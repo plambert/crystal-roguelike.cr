@@ -1,0 +1,13 @@
+name: crystal-roguelike
+version: 0.1.0
+
+authors:
+  - Paul M. Lambert <plambert@plambert.net>
+
+targets:
+  crystal-roguelike:
+    main: src/crystal-roguelike.cr
+
+crystal: '>= 1.21.0'
+
+license: MIT
