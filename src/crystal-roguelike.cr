@@ -12,4 +12,6 @@ module Roguelike
 end
 
 require "./roguelike/rng"
+require "./roguelike/ui"
+require "./roguelike/session"
 require "./roguelike/cli"

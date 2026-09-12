@@ -1,0 +1,15 @@
+require "termbuf-widgets"
+
+# Everything drawn on the screen.
+#
+# The aliases here are the ones every file under `Ui` reaches for, spelled
+# once so that the widgets read as widgets rather than as a path.
+module Roguelike::Ui
+  alias Widgets = TermBuf::Widgets
+  alias Layout = TermBuf::Widgets::Layout
+  alias Style = TermBuf::Style
+  alias Rect = TermBuf::Rect
+end
+
+require "./ui/keys"
+require "./ui/screen"

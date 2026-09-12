@@ -21,8 +21,11 @@ module Roguelike
     def run
       rng = Rng.for seed
 
+      Session.open rng
+
+      # After the terminal is given back, so it survives the alternate screen
+      # going away and can be copied out of the scrollback.
       puts "seed #{rng.seed}"
-      STDERR.puts "no game yet: the terminal arrives in phase 1"
     end
   end
 end

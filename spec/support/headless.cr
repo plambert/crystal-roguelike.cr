@@ -39,6 +39,12 @@ module Headless
       render.lines.map &.rstrip
     end
 
+    # The screen as one string, blanks trimmed, for comparing against a
+    # `Fixture`.
+    def text : String
+      rows.join '\n'
+    end
+
     # The row at *index*, for asserting on one line of a pane.
     def row(index : Int32) : String
       rows[index]
