@@ -8,6 +8,17 @@ targets:
   crystal-roguelike:
     main: src/crystal-roguelike.cr
 
-crystal: '>= 1.21.0'
+crystal: '>= 1.21'
 
 license: MIT
+
+dependencies:
+  termbuf-widgets:
+    github: plambert/termbuf-widgets.cr
+  guard:
+    github: plambert/guard.cr
+
+development_dependencies:
+  spectator:
+    gitlab: arctic-fox/spectator
+    version: "~> 0.11"

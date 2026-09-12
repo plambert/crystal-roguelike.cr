@@ -1,9 +1,9 @@
 require "./spec_helper"
 
-describe Crystal::Roguelike do
-  # TODO: Write tests
-
-  it "works" do
-    false.should eq(true)
+Spectator.describe Crystal::Roguelike do
+  describe "VERSION" do
+    it "matches the version in shard.yml" do
+      expect(Crystal::Roguelike::VERSION).to match(/\A\d+\.\d+\.\d+/)
+    end
   end
 end

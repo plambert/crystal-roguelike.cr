@@ -24,4 +24,4 @@ TODO: Write development instructions here
 
 ## Contributors
 
-- [Paul M. Lambert](https://github.com/plambert) - creator and maintainer
+* [Paul M. Lambert](https://github.com/plambert) - creator and maintainer
