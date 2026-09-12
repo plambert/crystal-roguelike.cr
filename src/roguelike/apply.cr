@@ -2,10 +2,10 @@ module Roguelike
   # Something the character could apply.
   #
   # Two things answer to `a`. A carried torch or candle is named by its
-  # inventory letter. A wall sconce is named by where it is on the floor. One
+  # inventory letter. A sconce is named by where it stands on the floor. One
   # record covers both, so the menu that offers them is one list.
   #
-  # A `#letter` says it is carried. No letter says it is the sconce at
+  # A `#letter` says it is carried. No letter says it is the fixture at
   # `#x`, `#y`.
   record Apply,
     letter : Char? = nil,
@@ -16,8 +16,8 @@ module Roguelike
       new letter: letter
     end
 
-    # The sconce at *x*, *y*.
-    def self.sconce(x : Int32, y : Int32) : Apply
+    # The fixture at *x*, *y*.
+    def self.fixture(x : Int32, y : Int32) : Apply
       new x: x, y: y
     end
 

@@ -85,22 +85,27 @@ module Roguelike::Ui
     # convention. It is also why the three are separate `Terrain` members
     # rather than one wall with a colour field.
     LOOKS = {
-      Terrain::Granite     => Look.new('#', GRANITE),
-      Terrain::Sandstone   => Look.new('#', SANDSTONE),
-      Terrain::Shale       => Look.new('#', SHALE),
-      Terrain::StoneFloor  => Look.new('.', STONE),
-      Terrain::DirtFloor   => Look.new('.', DIRT),
-      Terrain::ClosedDoor  => Look.new('+', WOOD),
-      Terrain::OpenDoor    => Look.new('\'', WOOD),
-      Terrain::StairsUp    => Look.new('<', STAIRS),
-      Terrain::StairsDown  => Look.new('>', STAIRS),
-      Terrain::UnlitSconce => Look.new('|', IRON),
-      Terrain::LitSconce   => Look.new('!', FLAME),
+      Terrain::Granite    => Look.new('#', GRANITE),
+      Terrain::Sandstone  => Look.new('#', SANDSTONE),
+      Terrain::Shale      => Look.new('#', SHALE),
+      Terrain::StoneFloor => Look.new('.', STONE),
+      Terrain::DirtFloor  => Look.new('.', DIRT),
+      Terrain::ClosedDoor => Look.new('+', WOOD),
+      Terrain::OpenDoor   => Look.new('\'', WOOD),
+      Terrain::StairsUp   => Look.new('<', STAIRS),
+      Terrain::StairsDown => Look.new('>', STAIRS),
     }
 
     # How *terrain* draws.
     def self.[](terrain : Terrain) : Look
       LOOKS[terrain]
+    end
+
+    # How *fitting* draws. An unlit one is cold iron. A lit one is the flame.
+    def self.[](fitting : Fixture) : Look
+      glyph = fitting.lit? ? fitting.kind.lit_mark : fitting.kind.mark
+
+      Look.new glyph, fitting.lit? ? FLAME : IRON
     end
 
     # What a square out of sight draws as.

@@ -10,7 +10,7 @@ Spectator.describe "light" do
   # up staircase in the middle, carrying *items*.
   ROOM = [
     "#########",
-    "####|####",
+    "#...|...#",
     "#.......#",
     "#...<...#",
     "#.......#",
@@ -113,8 +113,59 @@ Spectator.describe "light" do
       raise "the menu offers no sconce" unless found
       run.press found.key.to_s
 
-      expect(run.game.floor.terrain 4, 1).to eq Terrain::LitSconce
+      expect(run.game.floor.fixture(4, 1).try &.lit?).to be_true
       expect(run.game.player.inventory['a'].try &.lit?).to be_false
+    end
+  end
+
+  describe "a sconce standing on the floor" do
+    # It throws light every way rather than half, and one step less far,
+    # because the flame is at ankle height.
+    FREE = [
+      "###########",
+      "#.........#",
+      "#....|....#",
+      "#....<....#",
+      "#.........#",
+      "###########",
+    ]
+
+    it "is bolted to nothing" do
+      run = dark(Array(Item).new, FREE)
+
+      expect(run.game.floor.fixture(5, 2).try &.mounted?).to be_false
+    end
+
+    it "throws light every way once it is lit" do
+      run = dark(Array(Item).new, FREE)
+      run.game.player.move_to 5, 3
+
+      run.press "a"
+
+      expect(run.game.can_see?(5, 1)).to be_true
+      expect(run.game.can_see?(5, 4)).to be_true
+      expect(run.game.can_see?(1, 2)).to be_true
+    end
+
+    it "throws one step less than the same sconce on a wall" do
+      free = Roguelike::Fixture.new Roguelike::FixtureKind::Sconce, true
+      mounted = Roguelike::Fixture.new Roguelike::FixtureKind::Sconce, true,
+        Roguelike::Direction::North
+
+      expect(free.light).to eq mounted.light - Roguelike::Fixture::FLOOR_PENALTY
+    end
+  end
+
+  describe "a sconce bolted to a wall" do
+    it "throws light away from the wall and not along it" do
+      run = dark
+      run.game.player.move_to 4, 2
+
+      run.press "a"
+
+      expect(run.game.can_see?(4, 4)).to be_true
+      expect(run.game.can_see?(1, 4)).to be_true
+      expect(run.game.can_see?(8, 0)).to be_false
     end
   end
 
@@ -138,8 +189,20 @@ Spectator.describe "light" do
       run.press "a"
       run.press "a"
 
-      expect(run.game.floor.terrain 4, 1).to eq Terrain::UnlitSconce
+      expect(run.game.floor.fixture(4, 1).try &.lit?).to be_false
       expect(run.game.sight.size).to eq 1
+    end
+
+    # A fixture stands on an open square, so the character can stand on it
+    # and light it from there.
+    it "can be lit from the square it stands on" do
+      run = dark
+      run.game.player.move_to 4, 1
+
+      run.press "a"
+
+      expect(run.said).to contain "catches"
+      expect(run.game.floor.fixture(4, 1).try &.lit?).to be_true
     end
 
     it "is out of reach from across the room" do
@@ -202,7 +265,7 @@ Spectator.describe "light" do
     it "draws the room and leaves the corridor blank" do
       run = dark(Array(Item).new, LOOKING)
 
-      expect(run.row(1)).to eq " @   '...."
+      expect(run.row(1)).to eq " @   '....#"
     end
   end
 

@@ -1,4 +1,5 @@
 require "json"
+require "./fixture"
 require "./item"
 require "./tile"
 
@@ -57,10 +58,18 @@ module Roguelike
     # and a spec that is not about light uses this to see the whole floor.
     property ambient : Int32
 
+    # What is fitted to each square: a sconce, and later a brazier or an
+    # altar. A fixture is part of the room rather than loot, so it is here
+    # rather than in `#litter`.
+    #
+    # The key is `Floor.spot`, the same key `#litter` uses.
+    getter fixtures : Hash(String, Fixture)
+
     def initialize(@id : String, @columns : Int32, @rows : Int32, @tiles : Array(Tile),
                    @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
                    @glow : Hash(String, Int32) = {} of String => Int32,
-                   @ambient : Int32 = 0)
+                   @ambient : Int32 = 0,
+                   @fixtures : Hash(String, Fixture) = {} of String => Fixture)
       wanted = @columns * @rows
       return if @tiles.size == wanted
 
@@ -94,32 +103,94 @@ module Roguelike
 
     # :ditto:
     #
-    # `Terrains::GLOW` is not a terrain. It is a stone floor that glows on its
-    # own, and a floor file writes it as one character like everything else.
-    # `#glow` records it and `#to_map` writes a plain stone floor back, so the
-    # two are stored apart from each other.
+    # Three of the characters a floor file may hold are not terrain. Each sits
+    # on an open square and says something extra about it.
+    #
+    # `Terrains::GLOW` is a square that glows on its own. `FixtureKind`'s
+    # marks are a fitting standing on the square. Both are recorded apart from
+    # the terrain, and `#to_map` writes the plain terrain back.
+    #
+    # Neither says what the square under it is made of, so `#under` takes that
+    # from the squares beside it. A sconce in a dirt room stands on dirt.
     def self.parse(id : String, lines : Array(String)) : Floor
       rows = lines.reject(&.empty?)
       raise ArgumentError.new "floor #{id} has no rows" if rows.empty?
 
       columns = rows.max_of &.size
+      read = ->(column : Int32, row : Int32) do
+        line = rows[row]
+        column < line.size ? line[column] : Terrains::FILL
+      end
+
       tiles = Array(Tile).new columns * rows.size
       glow = {} of String => Int32
+      fixtures = {} of String => Fixture
 
-      rows.each_with_index do |line, row|
+      rows.each_index do |row|
         columns.times do |column|
-          mark = column < line.size ? line[column] : Terrains::FILL
+          mark = read.call column, row
+          fitting = FixtureKind.from_mark? mark
 
-          if mark == Terrains::GLOW
+          if fitting
+            fixtures[spot column, row] = Fixture.new fitting[0], fitting[1],
+              bolted_to(read, columns, rows.size, column, row)
+            mark = under read, columns, rows.size, column, row
+          elsif mark == Terrains::GLOW
             glow[spot column, row] = Terrains::GLOW_LIGHT
-            mark = Terrain::StoneFloor.mark
+            mark = under read, columns, rows.size, column, row
           end
 
           tiles << Tile.new(Terrain.from_mark(mark))
         end
       end
 
-      new id, columns, rows.size, tiles, glow: glow
+      new id, columns, rows.size, tiles, glow: glow, fixtures: fixtures
+    end
+
+    # What the square at *column*, *row* is made of, for a mark that does not
+    # say.
+    #
+    # The first square beside it that is ground to stand on, looked at west,
+    # east, north and then south. A stone floor when none of them is.
+    private def self.under(read, columns : Int32, rows : Int32,
+                           column : Int32, row : Int32) : Char
+      {% begin %}
+        { {-1, 0}, {1, 0}, {0, -1}, {0, 1} }.each do |step|
+          beside = {column + step[0], row + step[1]}
+          next unless 0 <= beside[0] < columns && 0 <= beside[1] < rows
+
+          mark = read.call beside[0], beside[1]
+          found = Terrain.from_mark? mark
+          return mark if found && found.floor?
+        end
+      {% end %}
+
+      Terrain::StoneFloor.mark
+    end
+
+    # Which wall a fixture at *column*, *row* is bolted to.
+    #
+    # The one wall touching it on a cardinal side. `nil` when none touches it,
+    # and `nil` when more than one does: a fixture in a corner or a corridor
+    # has no one wall to be bolted to, so it stands on the floor.
+    private def self.bolted_to(read, columns : Int32, rows : Int32,
+                               column : Int32, row : Int32) : Direction?
+      found = nil.as Direction?
+
+      {Direction::West, Direction::East,
+       Direction::North, Direction::South}.each do |direction|
+        beside = direction.from column, row
+        next unless 0 <= beside[0] < columns && 0 <= beside[1] < rows
+
+        terrain = Terrain.from_mark? read.call(beside[0], beside[1])
+        next unless terrain && terrain.blocks_move?
+
+        return if found
+
+        found = direction
+      end
+
+      found
     end
 
     # The width and the height.
@@ -165,6 +236,30 @@ module Roguelike
     def passable?(x : Int32, y : Int32) : Bool
       found = tile? x, y
       found ? found.passable? : false
+    end
+
+    # What is fitted to *x*, *y*. `nil` for a square with nothing on it.
+    def fixture(x : Int32, y : Int32) : Fixture?
+      @fixtures[Floor.spot x, y]?
+    end
+
+    # Fits *fitting* to *x*, *y*. A `nil` takes whatever is there away.
+    def set_fixture(x : Int32, y : Int32, fitting : Fixture?) : Nil
+      key = Floor.spot x, y
+
+      if fitting
+        @fixtures[key] = fitting
+      else
+        @fixtures.delete key
+      end
+    end
+
+    # Yields every fitted square, with what is on it.
+    def each_fixture(& : Int32, Int32, Fixture ->) : Nil
+      @fixtures.each do |spot, fitting|
+        parts = spot.split ','
+        yield parts[0].to_i, parts[1].to_i, fitting
+      end
     end
 
     # How brightly *x*, *y* glows on its own. Zero for a square that does not.
@@ -307,17 +402,19 @@ module Roguelike
       getter litter : Hash(String, Array(Item))
       getter glow : Hash(String, Int32)
       getter ambient : Int32
+      getter fixtures : Hash(String, Fixture)
 
       def initialize(@id : String, @map : Array(String),
                      @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
                      @glow : Hash(String, Int32) = {} of String => Int32,
-                     @ambient : Int32 = 0)
+                     @ambient : Int32 = 0,
+                     @fixtures : Hash(String, Fixture) = {} of String => Fixture)
       end
     end
 
     # The stored form of this floor.
     def stored : Stored
-      Stored.new @id, to_map, @litter, @glow, @ambient
+      Stored.new @id, to_map, @litter, @glow, @ambient, @fixtures
     end
 
     def self.new(pull : JSON::PullParser) : Floor
@@ -325,6 +422,7 @@ module Roguelike
       floor = parse held.id, held.map
       held.litter.each { |spot, pile| floor.litter[spot] = pile }
       held.glow.each { |spot, level| floor.glow[spot] = level }
+      held.fixtures.each { |spot, fitting| floor.fixtures[spot] = fitting }
       floor.ambient = held.ambient
 
       floor
@@ -338,7 +436,7 @@ module Roguelike
       @id == other.id && @columns == other.columns &&
         @rows == other.rows && @tiles == other.tiles &&
         @litter == other.litter && @glow == other.glow &&
-        @ambient == other.ambient
+        @ambient == other.ambient && @fixtures == other.fixtures
     end
 
     def to_s(io : IO) : Nil

@@ -545,7 +545,12 @@ module Roguelike::Ui
         return "#{letter} - #{item ? @game.name(item) : "nothing"}"
       end
 
-      "the #{@game.floor.terrain(target.x, target.y).label} beside you"
+      fitting = @game.floor.fixture target.x, target.y
+      return "nothing" unless fitting
+
+      where = target.x == @game.player.x && target.y == @game.player.y ? "here" : "beside you"
+
+      "the #{fitting.label} #{where}"
     end
 
     # Asks which carried item answering *wanted* to use. Runs *chosen* with

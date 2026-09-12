@@ -17,12 +17,15 @@ Spectator.describe "the message log" do
       expect(run.said).to eq "The granite blocks your way."
     end
 
-    # The shipped floor has a sconce in the wall north of the character.
-    it "names a sconce as readily as a wall" do
+    # A sconce stands on the floor rather than in the wall, so the character
+    # walks right up to it and stands under it.
+    it "lets the character stand on a sconce square" do
       run = Playing.open
       20.times { run.press "k" }
 
-      expect(run.said).to eq "The sconce blocks your way."
+      expect(run.at).to eq({6, 2})
+      expect(run.game.floor.fixture(6, 2)).not_to be_nil
+      expect(run.said).to eq "The granite blocks your way."
     end
 
     it "says nothing new for a wall bumped twice" do

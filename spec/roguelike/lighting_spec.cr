@@ -87,39 +87,49 @@ Spectator.describe Roguelike::Lighting do
     end
   end
 
-  describe "a source inside a wall" do
-    # A wall sconce is one of those. The scan starts one square out, so the
-    # squares facing the room are reached and the wall either side is not.
-    # The wall either side of it blocks the scan at the first step, so the
-    # light goes out in a widening cone rather than a circle. That is what a
-    # bracket on a wall does.
-    it "throws a cone into the room it faces" do
-      floor = spot [
-        "#########",
-        "####|####",
-        "#.......#",
-        "#.......#",
-        "#.......#",
-        "#########",
-      ]
-      lighting = Lighting.over floor, [Source.new(4, 1, 6)]
+  describe "a source bolted to a wall" do
+    # A bracket on a wall throws light away from that wall, not all round it.
+    BRACKET = [
+      "#########",
+      "#...|...#",
+      "#.......#",
+      "#.......#",
+      "#.......#",
+      "#########",
+    ]
 
-      expect(floor.terrain 4, 1).to eq Terrain::UnlitSconce
-      expect(lighting.lit? 4, 2).to be_true
-      expect(lighting.lit? 7, 4).to be_true
-      expect(lighting.lit? 7, 2).to be_false
+    it "throws light away from the wall and not back into it" do
+      floor = spot BRACKET
+      lighting = Lighting.over floor,
+        [Source.new(4, 1, 6, facing: Roguelike::Direction::North)]
+
+      expect(lighting.lit? 4, 4).to be_true
+      expect(lighting.lit? 1, 4).to be_true
+      expect(lighting.lit? 8, 0).to be_false
     end
 
-    it "draws that cone the way it drew it last time" do
-      floor = spot [
-        "#########",
-        "####|####",
-        "#.......#",
-        "#.......#",
-        "#.......#",
-        "#########",
-      ]
-      drawn = Lighting.over(floor, [Source.new(4, 1, 6)]).to_levels(floor).join '\n'
+    # The squares touching the bracket are lit either way, the wall it is
+    # bolted to included. A dark bracket on a lit wall would read as a hole.
+    it "lights the wall it is bolted to" do
+      floor = spot BRACKET
+      lighting = Lighting.over floor,
+        [Source.new(4, 1, 6, facing: Roguelike::Direction::North)]
+
+      expect(lighting.lit? 4, 0).to be_true
+      expect(lighting.lit? 3, 0).to be_true
+    end
+
+    it "throws light every way with no wall behind it" do
+      floor = spot BRACKET
+
+      expect(Lighting.over(floor, [Source.new(4, 1, 6)]).lit? 8, 0).to be_true
+    end
+
+    it "draws that half the way it drew it last time" do
+      floor = spot BRACKET
+      drawn = Lighting.over(floor,
+        [Source.new(4, 1, 6, facing: Roguelike::Direction::North)])
+        .to_levels(floor).join '\n'
 
       expect(drawn).to eq Fixture.expected("light/sconce-cone.txt", drawn)
     end
@@ -142,16 +152,30 @@ Spectator.describe Roguelike::Lighting do
       expect(lighting.lit? 0, 1).to be_true
     end
 
-    it "does not spill through a shut door" do
+    # A room lights its own walls and its own doors. Standing in a lit room,
+    # a person sees where the room ends.
+    it "lights a shut door in its own wall" do
       floor = spot ["#####", "+***#", "#####"]
 
-      expect(Lighting.over(floor, [] of Source).lit? 0, 1).to be_false
+      expect(Lighting.over(floor, [] of Source).lit? 0, 1).to be_true
     end
 
-    it "does not spill through a wall" do
+    it "lights its own walls" do
       floor = spot ["#####", "#***#", "#####"]
+      lighting = Lighting.over floor, [] of Source
 
-      expect(Lighting.over(floor, [] of Source).lit? 0, 1).to be_false
+      expect(lighting.lit? 0, 1).to be_true
+      expect(lighting.lit? 1, 0).to be_true
+      expect(lighting.lit? 4, 2).to be_true
+    end
+
+    # The spill reaches one square. The corridor behind the wall stays dark.
+    it "does not reach past its own wall" do
+      floor = spot ["#######", "#***#.#", "#######"]
+      lighting = Lighting.over floor, [] of Source
+
+      expect(lighting.lit? 4, 1).to be_true
+      expect(lighting.lit? 5, 1).to be_false
     end
   end
 
@@ -195,11 +219,9 @@ Spectator.describe Roguelike::Lighting do
       floor = Roguelike::Floors.proving_ground
       sources = [] of Source
 
-      floor.each do |column, row, tile|
-        next unless tile.terrain.sconce?
-
-        floor.set column, row, Terrain::LitSconce
-        sources << Source.new(column, row, Roguelike::Terrains::SCONCE_LIGHT)
+      floor.each_fixture do |column, row, fitting|
+        fitting.kindle
+        sources << Source.new(column, row, fitting.light, facing: fitting.attached)
       end
 
       drawn = Lighting.over(floor, sources).to_map(floor).join '\n'

@@ -82,7 +82,7 @@ module Roguelike::Ui
       @grid = Widgets::CellGrid.new @cells
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
         look = if seen? x, y
-                 @marks[{x, y}]? || Palette[tile.terrain]
+                 @marks[{x, y}]? || fitted(x, y) || Palette[tile.terrain]
                else
                  Palette::UNSEEN
                end
@@ -96,6 +96,17 @@ module Roguelike::Ui
         view.write_char 0, 0, look.glyph, style
         nil
       end
+    end
+
+    # How whatever is fitted to *x*, *y* draws. `nil` for a bare square.
+    #
+    # A fixture draws over the terrain and under a mark. A sconce is part of
+    # the room. The character standing in front of one still draws on top.
+    private def fitted(x : Int32, y : Int32) : Look?
+      fitting = floor.fixture x, y
+      return unless fitting
+
+      Palette[fitting]
     end
 
     # Whether the character can see *x*, *y*.

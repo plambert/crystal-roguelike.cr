@@ -43,6 +43,9 @@ actually been run rather than reasoned about.
 | Field of view | Symmetric shadowcasting on exact fractions. If A sees B then B sees A |
 | Seen | A square is seen when it is in the field of view and lit. A dungeon floor starts dark |
 | Light in the model | `LightKind`, never a colour. `Ui::Palette` holds the colours |
+| Sconces | A `Fixture` on the open square beside the wall, not a terrain. The wall keeps its rock |
+| A mounted flame | Throws the whole radius over the half turned away from its wall |
+| A standing flame | Throws every way, one step less far, because the flame is at ankle height |
 
 ## Ground rules
 
@@ -394,13 +397,24 @@ The largest part, split so that each step is visible on its own.
   Specs on the accumulation against fixture maps.
 * **Done.** `Lighting` accumulates a level per square; `Vision` is the field of view cut down to
   what is lit, and every pane takes one of those instead of a bare `FieldOfView`. A source lights
-  what it can see, so light does not go round a corner, and a wall sconce throws a cone into the
-  room it faces rather than a circle. Light comes from three places: `Terrain::LitSconce` on the
-  floor, an `Item` that `#burns?` and is lit, carried or lying down, and the floor's own
-  `#glow` and `#ambient`. A glowing square spills onto its neighbours, which is what lights a
-  doorway. `a` lights or puts out whichever of those is to hand. The proving ground is dark, with
-  four sconces in the first room, two in the second, and a magically lit room around the down
-  staircase; the character starts holding a lit torch.
+  what it can see, so light does not go round a corner. Light comes from three places: a lit
+  `Fixture` on the floor, an `Item` that `#burns?` and is lit, carried or lying down, and the
+  floor's own `#glow` and `#ambient`. A glowing square spills onto every neighbour, walls and
+  doors included, so a lit room has an edge to it and a door in a wall can be found. `a` lights or
+  puts out whichever of those is to hand. The proving ground is dark, with four sconces in the
+  first room, two in the second, and a magically lit room around the down staircase; the character
+  starts holding a lit torch.
+
+A sconce began as two `Terrain` members replacing a wall square. That made a sconce on granite and
+a sconce on sandstone the same terrain, and the rock a wall is cut from has to keep mattering:
+digging, sound and floor generation all read it. It also made the light shape an accident of
+casting from inside a wall rather than a rule.
+
+`Fixture` replaced it. A fixture stands on the open square beside the wall it is bolted to, which
+is where the flame is, so the wall keeps its rock and the cast is an ordinary one. `#attached`
+names the wall, and a fixture with none stands on its own foot. A floor file writes `|` and `!` on
+the open square; `Floor.parse` infers the attachment from the one wall touching it, and takes the
+terrain under it from the squares beside it, so a sconce in a dirt room stands on dirt.
 
 ### Phase 14 — Knowledge and remembered terrain
 

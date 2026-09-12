@@ -26,10 +26,27 @@ module Roguelike
     x : Int32,
     y : Int32,
     radius : Int32,
-    kind : LightKind = LightKind::Flame do
+    kind : LightKind = LightKind::Flame,
+    facing : Direction? = nil do
     # Where this source stands.
     def at : {Int32, Int32}
       {x, y}
+    end
+
+    # Whether this source throws light onto *x*, *y* at all.
+    #
+    # A source with no `#facing` throws light every way. One bolted to a wall
+    # throws it away from that wall: half the compass, plus the eight squares
+    # touching the bracket, which includes the wall it is bolted to.
+    def throws_on?(x : Int32, y : Int32) : Bool
+      wall = facing
+      return true unless wall
+
+      across = x - self.x
+      down = y - self.y
+      return true if across.abs <= 1 && down.abs <= 1
+
+      across * wall.dx + down * wall.dy <= 0
     end
   end
 
@@ -42,9 +59,8 @@ module Roguelike
   # its radius. Light does not go round a corner, so a torch in a corridor
   # does not light the room behind the wall.
   #
-  # A source that sits inside a wall still lights what it faces. A wall sconce
-  # is one of those: the scan starts one square out, so the three squares
-  # facing the room are reached and the wall either side of it is not.
+  # A source bolted to a wall throws light away from that wall rather than
+  # all around. `LightSource#throws_on?` is that half.
   #
   # This is derived rather than stored. It is worked out again whenever
   # anything that throws light moves or goes out.
@@ -100,21 +116,19 @@ module Roguelike
 
     # Adds the glow of *x*, *y* there and on the squares around it.
     #
-    # The spill is what lights a doorway. A lit room whose light stopped at
-    # its own floor would have a dark hole where each door is, and a person
-    # looking in from a dark corridor would see the room through a doorway
-    # they could not see.
+    # A room lights its own walls and its own doors. Standing in a lit room,
+    # a person sees where the room ends. A glow that stopped at the floor
+    # would leave the walls dark and the room with no edge to it, and a door
+    # in the middle of a dark wall could not be found.
     #
-    # It spills onto a square that does not block sight. A shut door stays
-    # dark, because a shut door has no room behind it to see. Opening it
-    # lights the doorway.
+    # The spill reaches one square. It does not reach past a wall into the
+    # corridor behind it.
     protected def spill(floor : Floor, x : Int32, y : Int32, level : Int32) : Nil
       add x, y, level
 
       Direction.values.each do |direction|
         spot = direction.from x, y
         next unless floor.contains? spot[0], spot[1]
-        next if floor.blocks_sight? spot[0], spot[1]
 
         add spot[0], spot[1], level
       end
@@ -129,6 +143,8 @@ module Roguelike
       return if source.radius <= 0
 
       FieldOfView.from(floor, source.at, source.radius).each do |spot|
+        next unless source.throws_on? spot[0], spot[1]
+
         across = spot[0] - source.x
         down = spot[1] - source.y
         away = Math.sqrt(across * across + down * down).round.to_i

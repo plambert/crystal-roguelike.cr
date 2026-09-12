@@ -287,10 +287,11 @@ module Roguelike
     def lights : Array(LightSource)
       found = [] of LightSource
 
-      floor.each do |column, row, tile|
-        next unless tile.terrain.lit_sconce?
+      floor.each_fixture do |column, row, fitting|
+        next unless fitting.lit?
 
-        found << LightSource.new column, row, Terrains::SCONCE_LIGHT
+        found << LightSource.new column, row, fitting.light,
+          facing: fitting.attached
       end
 
       floor.each_pile do |column, row, pile|
@@ -308,9 +309,9 @@ module Roguelike
 
     # Everything the character could apply right now.
     #
-    # A carried torch or candle, lit or not. A wall sconce beside them, lit or
-    # not. Each is one entry, and `#apply` does whatever that entry's state
-    # calls for.
+    # A carried torch or candle, lit or not. A sconce on their own square or
+    # beside them, lit or not. Each is one entry, and `#apply` does whatever
+    # that entry's state calls for.
     def appliable : Array(Apply)
       found = [] of Apply
 
@@ -318,12 +319,13 @@ module Roguelike
         found << Apply.carried(letter) if item.burns?
       end
 
+      found << Apply.fixture(@player.x, @player.y) if floor.fixture @player.x, @player.y
+
       Direction.values.each do |direction|
         wanted = direction.from @player.x, @player.y
-        terrain = floor.tile?(wanted[0], wanted[1]).try &.terrain
-        next unless terrain && terrain.sconce?
+        next unless floor.fixture wanted[0], wanted[1]
 
-        found << Apply.sconce(wanted[0], wanted[1])
+        found << Apply.fixture(wanted[0], wanted[1])
       end
 
       found
@@ -336,7 +338,7 @@ module Roguelike
       letter = target.letter
       return apply_carried letter if letter
 
-      apply_sconce target.x, target.y
+      apply_fixture target.x, target.y
     end
 
     # Lights or puts out the carried item under *letter*.
@@ -362,19 +364,19 @@ module Roguelike
       true
     end
 
-    # Lights or puts out the sconce at *x*, *y*.
-    private def apply_sconce(x : Int32, y : Int32) : Bool
-      terrain = floor.tile?(x, y).try &.terrain
-      return false unless terrain && terrain.sconce?
+    # Lights or puts out the fixture at *x*, *y*.
+    private def apply_fixture(x : Int32, y : Int32) : Bool
+      fitting = floor.fixture x, y
+      return false unless fitting
 
-      if terrain.lit_sconce?
-        floor.set x, y, Terrain::UnlitSconce
+      if fitting.lit?
+        fitting.douse
         @turn += 1
-        say "You put the sconce out."
+        say "You put the #{fitting.kind.label} out."
       else
-        floor.set x, y, Terrain::LitSconce
+        fitting.kindle
         @turn += 1
-        say "The sconce catches and burns."
+        say "The #{fitting.kind.label} catches and burns."
       end
 
       true
