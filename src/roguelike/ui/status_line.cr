@@ -24,6 +24,8 @@ module Roguelike::Ui
     def initialize
       @bar = Widgets::StatusBar.new
       @bar.add "hp", ""
+      @bar.add "ac", ""
+      @bar.add "wep", ""
       @bar.add "lv", ""
       @bar.add "xp", ""
       @bar.add "gold", ""
@@ -48,6 +50,8 @@ module Roguelike::Ui
 
       @bar.set "hp", "#{player.hit_points}/#{player.max_hit_points}"
       @bar["hp"]?.try &.style = health player
+      @bar.set "ac", player.armour_class.to_s
+      @bar.set "wep", weapon game
       @bar.set "lv", player.level.to_s
       @bar.set "xp", experience player
 
@@ -60,10 +64,23 @@ module Roguelike::Ui
       @bar.set "turn", game.turn.to_s
     end
 
-    # Experience, over what the next floor needs.
+    # What the character is swinging, and what it does.
     #
-    # `25/40` is twenty five points of the forty the next floor takes. The
-    # last floor has no next one, so it shows the count on its own.
+    # The name has no article and no count, because neither says anything on
+    # a row this narrow. Bare hands are the dice on their own, because there
+    # is no name to write. `1d8+1` is the weapon's own dice with the strength
+    # modifier worked in, which is what `Player#damage` answers.
+    private def weapon(game : Game) : String
+      held = game.player.wielded
+      return game.player.damage.to_s unless held
+
+      "#{game.lore.noun_for held} #{game.player.damage}"
+    end
+
+    # Experience, over what the next level needs.
+    #
+    # `25/40` is twenty five points of the forty the next level takes. The
+    # last level has no next one, so it shows the count on its own.
     private def experience(player : Player) : String
       wanted = player.to_next_level
       return player.experience.to_s unless wanted

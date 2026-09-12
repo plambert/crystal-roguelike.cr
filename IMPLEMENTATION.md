@@ -38,6 +38,8 @@ actually been run rather than reasoned about.
 | Numpad decoding | Deferred until there is a keypad to test it on |
 | Git transport | ssh for GitHub, via a global `url.insteadOf` rewrite |
 | Level and floor | A `Floor` is one map. A `Player#level` is how far the character has advanced |
+| Armour class | Higher is better. It is what is worn plus the dexterity modifier, floored at zero |
+| Readying a weapon | `w` picks the slot from the item, so one key fills melee, ranged and quiver |
 
 ## Ground rules
 
@@ -137,7 +139,7 @@ none of it is fixed and a preset can rebind the lot.
 | `,` | Pick up what is here |
 | `d` | Drop something |
 | `i` | Inventory |
-| `w` `W` `T` | Wield a weapon, wear armour, take armour off |
+| `w` `W` `T` | Wield a weapon, wear armour, take a weapon or armour off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
 | `f` `t` | Fire the ranged weapon, throw something |
 | `a` | Apply. Light a torch or a candle, or a wall sconce |
@@ -346,6 +348,12 @@ The model only. Nothing is on the floor yet and nothing can be carried.
 * **Verify** — Wield and wear across every slot; armour class and damage change as expected.
   Wearing a second body armour is refused with a message. Specs over the derived-stat table for a
   matrix of equipment, enchantment and condition.
+* **Done.** `Slot` names all eight. `Equipment` holds an inventory letter per slot rather than an
+  item, so a readied sword is still listed in the inventory and a save file holds one copy of it.
+  `w` picks the slot from the item, which fills melee, ranged and quiver from one key, so the
+  quiver needs no key of its own before Phase 21. Armour class is higher-is-better. Dropping a
+  readied item is refused until it comes off, and a cursed one announces itself as it goes on.
+  The inventory list marks each readied item the way NetHack does.
 
 ## Part 4: Sight and light
 
@@ -622,6 +630,10 @@ Small things deliberately left out of the basic game, to be picked up once it ex
 * A message history screen.
 * Mouse support for targeting and for the inventory, which `CellGrid#cell_at` already allows.
 * Glyph and colour themes.
+* A status bar that does not need 136 columns. It carries the hit points, armour class, weapon,
+  level, experience, gold, turn, five attributes, position and mouse state on one row, and a
+  wielded weapon's name pushes the last pairs off a narrower window. The five attributes belong
+  in the sidebar, which has room for them and is nearly empty.
 * A `--replay` mode that re-runs a recorded key sequence against a seed, which would make every
   bug report reproducible.
 * Move each of the five general-purpose pieces to `termbuf-widgets.cr` once settled, with the

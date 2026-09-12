@@ -1,4 +1,5 @@
 require "json"
+require "./equipment"
 require "./floors"
 require "./items"
 require "./lore"
@@ -323,7 +324,14 @@ module Roguelike
         return false
       end
 
+      slot = slot_of letter
+      if slot
+        say "You have to take #{name item} off first."
+        return false
+      end
+
       @player.inventory.remove letter
+      @player.equipment.clean @player.inventory
       floor.drop @player.x, @player.y, item
       @turn += 1
       say "You drop #{name item}."
@@ -339,6 +347,105 @@ module Roguelike
       @turn += 1
       say "You drop #{dropped} gold pieces."
       dropped
+    end
+
+    # ------------------------------------------------------------ equipment
+
+    # Readies what is under *letter*. Answers whether it went into a slot.
+    #
+    # One key readies anything that is readied at all. `Slot.for` picks the
+    # slot from what the item is. A sword goes in the hand, a bow goes in the
+    # other hand, and arrows go in the quiver.
+    #
+    # Armour is not readied this way. `#wear` puts armour on, because putting
+    # armour on is a different act from picking a weapon up.
+    def wield(letter : Char) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      slot = Slot.for item
+      if slot.nil? || slot.armour?
+        say "You cannot wield #{name item}."
+        return false
+      end
+
+      ready slot, letter, item, "You are now holding #{name item}."
+    end
+
+    # Puts on what is under *letter*. Answers whether it went on.
+    #
+    # A slot already filled refuses. A person takes one thing off before they
+    # put another on, and saying so is clearer than doing it for them.
+    def wear(letter : Char) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      slot = Slot.for item
+      unless slot && slot.armour?
+        say "You cannot wear #{name item}."
+        return false
+      end
+
+      held = @player.in_slot slot
+      if held
+        say "You are already wearing #{name held}."
+        return false
+      end
+
+      ready slot, letter, item, "You are now wearing #{name item}."
+    end
+
+    # Puts *letter* in *slot* and says *line*. Always answers true.
+    #
+    # A cursed item announces itself as it goes on. That is the moment the
+    # character finds out, and `#take_off` will refuse to let it go again.
+    private def ready(slot : Slot, letter : Char, item : Item, line : String) : Bool
+      @player.equipment.put slot, letter
+      @turn += 1
+      say line
+
+      if item.sticks? && item.reveal_blessing
+        say "#{name(item).capitalize} welds itself to you."
+      end
+
+      true
+    end
+
+    # Takes whatever is in *slot* off. Answers whether it came off.
+    def take_off(slot : Slot) : Bool
+      item = @player.in_slot slot
+      unless item
+        say "You have nothing #{slot.armour? ? "on your" : "in your"} #{slot.label}."
+        return false
+      end
+
+      if item.sticks?
+        item.reveal_blessing
+        say "You cannot let go of #{name item}."
+        return false
+      end
+
+      @player.equipment.clear slot
+      @turn += 1
+      say "You are no longer #{slot.armour? ? "wearing" : "holding"} #{name item}."
+      true
+    end
+
+    # Every filled slot, in the order `Slot` names them.
+    def readied : Array({Slot, Item})
+      found = [] of {Slot, Item}
+
+      @player.equipment.each do |slot, letter|
+        item = @player.inventory[letter]
+        found << {slot, item} if item
+      end
+
+      found
+    end
+
+    # Which slot holds what is under *letter*. `nil` when no slot does.
+    def slot_of(letter : Char) : Slot?
+      @player.equipment.slot_of letter
     end
 
     # ------------------------------------------------------------- movement

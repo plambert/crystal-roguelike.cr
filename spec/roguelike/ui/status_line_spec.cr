@@ -109,8 +109,11 @@ Spectator.describe Roguelike::Ui::StatusLine do
       expect(line).not_to contain "mouse"
     end
 
+    # The whole row comes to 133 columns with nothing wielded, and a wielded
+    # weapon's name adds to that. The pairs after the attributes are the ones
+    # a person can work out for themselves, so they are the ones cut.
     it "keeps everything when there is room" do
-      run = Playing.open columns: 120, rows: 24
+      run = Playing.open columns: 136, rows: 24
 
       expect(written(run)).not_to contain "…"
       expect(written(run)).to contain "mouse: on"
@@ -119,7 +122,7 @@ Spectator.describe Roguelike::Ui::StatusLine do
 
   describe "the mouse pair" do
     it "says what the terminal is doing" do
-      run = Playing.open columns: 120, rows: 24
+      run = Playing.open columns: 136, rows: 24
       run.play.mousing = false
       run.render
 

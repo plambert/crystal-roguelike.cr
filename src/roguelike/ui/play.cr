@@ -428,8 +428,95 @@ module Roguelike::Ui
 
     # Every carried entry, as a menu row.
     private def carried : Array(Widgets::Menu::Entry)
-      @game.player.inventory.entries.map do |letter, item|
-        Widgets::Menu::Entry.new letter, @game.name(item)
+      rows @game.player.inventory.entries
+    end
+
+    # *entries* as menu rows, each marked with the slot holding it.
+    #
+    # A person reading the list has to see which sword is in their hand.
+    private def rows(entries : Array({Char, Item})) : Array(Widgets::Menu::Entry)
+      entries.map do |letter, item|
+        slot = @game.slot_of letter
+        label = @game.name item
+        label = "#{label} (#{slot.note})" if slot
+
+        Widgets::Menu::Entry.new letter, label
+      end
+    end
+
+    # ------------------------------------------------------------ equipment
+
+    # Asks which carried item to ready, then readies it.
+    #
+    # Only what can be held is offered. `Game#wield` picks the slot from what
+    # the item is, so one key readies a sword, a bow and a quiver of arrows.
+    def wield : Nil
+      offer "Wield what?", "You have nothing to wield.",
+        ->(item : Item) { Slot.for(item).try(&.weapon?) || false } do |letter|
+        @game.wield letter
+      end
+    end
+
+    # Asks which carried piece of armour to put on, then puts it on.
+    def wear : Nil
+      offer "Wear what?", "You have nothing to wear.",
+        ->(item : Item) { Slot.for(item).try(&.armour?) || false } do |letter|
+        @game.wear letter
+      end
+    end
+
+    # Asks what to take off, then takes it off.
+    #
+    # One thing readied needs no question. More than one does. Nothing is
+    # said and nothing else happens.
+    def take_off : Nil
+      held = @game.readied
+
+      case held.size
+      when 0
+        say "You are not wearing or holding anything."
+      when 1
+        @game.take_off held.first[0]
+        refresh
+      else
+        choose_slot held
+      end
+    end
+
+    # Asks which of *held* to take off.
+    private def choose_slot(held : Array({Slot, Item})) : Nil
+      entries = held.each_with_index.map do |(slot, item), index|
+        Widgets::Menu::Entry.new Widgets::Menu.letter(index),
+          "#{slot.label}: #{@game.name item}"
+      end
+
+      choose("Take off what?", entries) do |key|
+        next unless key
+
+        found = held[Widgets::Menu.index key]?
+        next unless found
+
+        @game.take_off found[0]
+        refresh
+      end
+    end
+
+    # Asks which carried item answering *wanted* to use. Runs *chosen* with
+    # the letter. Says *nothing* when the character carries none.
+    private def offer(title : String, nothing : String, wanted : Item -> Bool,
+                      &chosen : Char -> Nil) : Nil
+      found = @game.player.inventory.select { |item| wanted.call item }
+
+      if found.empty?
+        say nothing
+        return
+      end
+
+      choose(title, rows(found)) do |key|
+        next unless key
+
+        chosen.call key
+        refresh
       end
     end
 

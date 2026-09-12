@@ -1,6 +1,7 @@
 require "json"
 require "./advancement"
 require "./attributes"
+require "./equipment"
 require "./inventory"
 
 module Roguelike
@@ -42,6 +43,10 @@ module Roguelike
     # What the character carries.
     getter inventory : Inventory
 
+    # What the character has readied, by slot. The letters are the
+    # inventory's own.
+    getter equipment : Equipment
+
     # Gold pieces. Counted rather than carried, so they take no letter.
     getter gold : Int32
 
@@ -51,8 +56,75 @@ module Roguelike
                    @experience : Int32 = 0,
                    hit_points : Int32? = nil,
                    @inventory : Inventory = Inventory.new,
-                   @gold : Int32 = 0)
+                   @gold : Int32 = 0,
+                   @equipment : Equipment = Equipment.new)
       @hit_points = hit_points || Advancement.max_hit_points(@level, @attributes.constitution)
+    end
+
+    # What a character with nothing in their hands hits for.
+    UNARMED = Dice.new 1, 2
+
+    # What is in *slot*. `nil` for an empty slot.
+    def in_slot(slot : Slot) : Item?
+      letter = @equipment[slot]
+      return unless letter
+
+      @inventory[letter]
+    end
+
+    # What the character swings. `nil` for bare hands.
+    def wielded : Item?
+      in_slot Slot::Melee
+    end
+
+    # What the character shoots with. `nil` for nothing readied.
+    def launcher : Item?
+      in_slot Slot::Ranged
+    end
+
+    # What the character shoots. `nil` for an empty quiver.
+    def quivered : Item?
+      in_slot Slot::Quiver
+    end
+
+    # Every piece of armour being worn, by slot.
+    def worn : Array({Slot, Item})
+      found = [] of {Slot, Item}
+
+      @equipment.worn.each do |slot, letter|
+        item = @inventory[letter]
+        found << {slot, item} if item
+      end
+
+      found
+    end
+
+    # Whether what is under *letter* is readied in any slot.
+    def readied?(letter : Char) : Bool
+      @equipment.readied? letter
+    end
+
+    # How much an attack against this character is reduced by.
+    #
+    # Higher is better. It is what is worn, plus the dexterity modifier, and
+    # it never goes below zero. Each piece already carries its enchantment and
+    # its condition, which `Item#armour` works in.
+    def armour_class : Int32
+      total = worn.sum { |_slot, item| item.armour }
+
+      Math.max total + @attributes.modifier(Attributes::Which::Dexterity), 0
+    end
+
+    # What the character hits for in melee.
+    #
+    # The wielded weapon's dice, or `UNARMED` for bare hands, plus the
+    # strength modifier. The weapon's own dice already carry its enchantment
+    # and its condition.
+    def damage : Dice
+      held = wielded
+      dice = held ? held.damage : UNARMED
+
+      dice.with_bonus @attributes.modifier(Attributes::Which::Strength)
     end
 
     # Adds *amount* gold pieces. Answers the new total.
