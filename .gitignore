@@ -18,3 +18,4 @@
 *.db
 .DS_Store
 .tmp
+/graft/
