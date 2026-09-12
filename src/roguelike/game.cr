@@ -46,7 +46,7 @@ module Roguelike
   # device. It draws nothing. A spec plays a hundred turns with no widget
   # tree. A save file is one game written out.
   #
-  # Every game rule lives here. `Session` reads the answer and draws it.
+  # Every game rule is in this class. `Session` reads the answer and draws it.
   # `Session` decides nothing.
   class Game
     include JSON::Serializable

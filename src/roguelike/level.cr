@@ -15,8 +15,8 @@ module Roguelike
   # characters a level file uses. That form is compact. A person can read it.
   # `git diff` can show a change in it.
   #
-  # No method here knows what a level looks like. `Ui::LevelCells` puts a
-  # level in front of a `CellGrid`.
+  # No method here draws a level. `Ui::LevelCells` puts a level in front of a
+  # `CellGrid`.
   class Level
     # What this level is called, for as long as the world lasts.
     getter id : String

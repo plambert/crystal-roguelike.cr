@@ -5,7 +5,7 @@ module Roguelike::Ui
   # module owns none. A spec builds an `App` over a buffer, installs these
   # bindings, and sends synthetic key events.
   #
-  # Each set is built on its own. A caller merges the sets it wants. A spec
+  # Each set is built on its own. A caller merges whichever sets apply. A spec
   # installs only the set it is about.
   module Keys
     # The eight keys that move.
@@ -45,7 +45,7 @@ module Roguelike::Ui
       end
     end
 
-    # The eight movement keys. Each hands its direction to *on_move*.
+    # The eight movement keys. Each passes its direction to *on_move*.
     def self.moving(&on_move : Direction -> Nil) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         MOVES.each do |key, direction|

@@ -108,7 +108,7 @@ module Roguelike::Ui
       @prompt.ask app, question, keys, default
     end
 
-    # Asks whether the person wants to leave. Leaves on yes.
+    # Asks the person whether to leave. Leaves on yes.
     def confirm_quit : Nil
       ask("Really leave the dungeon?", "yn", default: 'n') do |key|
         @finished = true if key == 'y'
@@ -131,7 +131,7 @@ module Roguelike::Ui
     # cursor takes it next. A person reading the level is not walking about
     # it. The character takes it otherwise.
     #
-    # A step that does not happen costs no turn.
+    # A step that does not happen takes no turn.
     def step(direction : Direction) : Nil
       waiting = @pending
       if waiting

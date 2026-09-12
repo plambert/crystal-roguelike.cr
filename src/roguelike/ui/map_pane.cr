@@ -29,8 +29,9 @@ module Roguelike::Ui
 
   # The window a level is played in.
   #
-  # This class holds the `CellGrid` and the camera over it. It knows how a
-  # tile draws. Every change to where the window points goes through here.
+  # This class holds the `CellGrid` and the camera over it. It also holds the
+  # rule for drawing one tile. Every change to where the window points goes
+  # through here.
   class MapPane
     # What the grid asks for its cells.
     getter cells : LevelCells
@@ -45,15 +46,16 @@ module Roguelike::Ui
     # The square the examine cursor is on. `nil` when there is no cursor.
     #
     # The cursor draws over whatever is on the square. It does not replace it.
-    # The cursor says where it is. It does not hide what it stands on.
+    # The cursor marks its square. It leaves the glyph on that square
+    # readable.
     property cursor : {Int32, Int32}? = nil
 
     # What is standing on a square. It draws over the terrain. It is not
     # written into the level.
     #
     # The character goes here now. Monsters and dropped items go here later.
-    # Whatever owns the game state fills this table. A pane draws a level. A
-    # pane does not know what walks on it.
+    # Whatever owns the game state fills this table. A pane draws a level. It
+    # holds nothing about the creatures on it.
     getter marks : Hash({Int32, Int32}, Look) = {} of {Int32, Int32} => Look
 
     def initialize(level : Level)

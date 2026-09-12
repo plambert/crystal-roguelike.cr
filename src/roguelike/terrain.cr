@@ -21,8 +21,7 @@ module Roguelike
   # Digging will differ by rock. Sound through a wall will differ by rock. A
   # level generator will pick a rock by depth.
   #
-  # No member here knows what it looks like. `Ui::Palette` holds the glyph and
-  # the style. A theme changes that table. A spec reads a level with no
+  # No member here carries a glyph or a style. `Ui::Palette` holds both. A theme changes that table. A spec reads a level with no
   # terminal open.
   enum Terrain
     Granite

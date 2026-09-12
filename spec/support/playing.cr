@@ -7,7 +7,7 @@ require "./headless"
 # keymap and the same mouse handling. A spec presses keys at the code the game
 # runs. It does not press keys at a copy.
 module Playing
-  # The seed every spec uses unless it wants another. A failure then names a
+  # The seed every spec uses. A spec may pass another. A failure then names a
   # run a person can start.
   SEED = 20260911_u64
 

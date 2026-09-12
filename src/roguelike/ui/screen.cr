@@ -1,6 +1,6 @@
 module Roguelike::Ui
-  # The regions the game is drawn in. This class says nothing about what goes
-  # in them.
+  # The regions the game is drawn in. This class does not decide what goes in
+  # them.
   #
   #     ┌──────────────────────────┬────────────┐
   #     │ map                      │ sidebar    │
@@ -160,8 +160,8 @@ module Roguelike::Ui
     # Answers the layout to a screen of *columns* by *rows*.
     #
     # The layout engine divides the space it is given. It never decides that a
-    # pane is not worth showing. This method makes that decision. It says so
-    # with `#hidden?`. A hidden widget leaves the layout. It takes no size, no
+    # pane is not worth showing. This method makes that decision. It records
+    # the decision with `#hidden?`. A hidden widget leaves the layout. It takes no size, no
     # position and no gap.
     #
     # Whatever owns the terminal calls this before the first frame. It calls

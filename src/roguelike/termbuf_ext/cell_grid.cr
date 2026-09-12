@@ -12,14 +12,15 @@ module TermBuf::Widgets
   #     grid.center_on player.x, player.y
   #
   # A grid holds no widget per cell. It asks its `Cells` only about the cells
-  # in view. A field of a million cells costs what the pane costs.
+  # in view. The work is the size of the pane. It is not the size of the
+  # field.
   #
   # A grid is a `Scrolls`. A `Scrollbar` attaches to it the way one attaches to
   # a `VirtualList`. A grid scrolls itself. It does not sit inside a scroll
   # panel. Such a panel would have to be as large as the whole field for the
   # clipping to have anything to clip.
   #
-  # Moving the camera changes no rectangle. It costs no layout. The next frame
+  # Moving the camera changes no rectangle. No layout runs. The next frame
   # draws different cells in the same box.
   class CellGrid(T) < Widget
     include Scrolls
@@ -224,8 +225,8 @@ module TermBuf::Widgets
     # Answers `nil` when that spot is outside the window. Answers `nil` when
     # it is past the edge of the field.
     #
-    # A mouse report needs this. `Layout::Tree#hit` says the pointer is over
-    # this widget. `Widget#content` turns the screen cell into a window
+    # A mouse report needs this. `Layout::Tree#hit` answers that the pointer
+    # is over this widget. `Widget#content` turns the screen cell into a window
     # cell.
     def cell_at(view_x : Int32, view_y : Int32) : {Int32, Int32}?
       room = viewport_size

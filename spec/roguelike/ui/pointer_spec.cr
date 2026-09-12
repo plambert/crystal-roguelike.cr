@@ -12,8 +12,8 @@ Spectator.describe Roguelike::Ui::Pointer do
       expect(pointer.shape).to be_nil
     end
 
-    # A program gives back what it took and no more. A terminal whose pointer
-    # never changed is left alone.
+    # A program restores what it changed. It changes nothing else. This code
+    # never changed the pointer, so it sends nothing.
     it "says nothing when the pointer was never over the map" do
       expect(pointer.away).to be_nil
     end

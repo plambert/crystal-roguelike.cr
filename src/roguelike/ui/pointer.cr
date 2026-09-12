@@ -18,8 +18,9 @@ module Roguelike::Ui
     #
     # This is a named shape rather than a reset. No reset works across the
     # three terminals. `OSC 22` with nothing after the semicolon is kitty's
-    # reset. Ghostty parses the payload as a shape name and ignores a name it
-    # does not know. The empty form leaves a ghostty pointer on the crosshair.
+    # reset. Ghostty parses the payload as a shape name. It ignores a name
+    # that is not in its list. The empty form leaves a ghostty pointer on the
+    # crosshair.
     #
     # `default`, `text` and `pointer` are the three shapes every terminal with
     # `OSC 22` supports. A terminal draws `text` over its own text. Asking for
@@ -52,7 +53,7 @@ module Roguelike::Ui
     # `nil`.
     #
     # A terminal that was never told anything is told nothing now. A program
-    # gives back what it took and no more.
+    # restores what it changed. It changes nothing else.
     def away : String?
       @spot = nil
       @shape ? want(ELSEWHERE) : nil
@@ -60,8 +61,8 @@ module Roguelike::Ui
 
     # The sequence that asks for *shape*.
     #
-    # The form is `OSC 22 ; name ST`. A terminal that does not know the
-    # sequence ignores it.
+    # The form is `OSC 22 ; name ST`. A terminal without `OSC 22` ignores the
+    # sequence.
     def self.sequence(shape : String) : String
       "\e]22;#{shape}\e\\"
     end

@@ -15,8 +15,8 @@ require "termbuf-widgets"
 #
 # * Should an answer arrive as a `Message` or through `#on_answer`? The
 #   catalogue uses `Message` for every other input widget. A prompt is
-#   answered and then dismissed, so a caller usually wants the answer at once.
-#   `#on_answer` gives it at once.
+#   answered and then dismissed. `#on_answer` runs as soon as a key arrives.
+#   A `Message` would arrive on the next pump.
 # * Should `#ask` take the `App` at all? It takes one so that it can push a
 #   focus scope. `Overlay#open` takes one for the same reason. A prompt that
 #   did not push a scope could not take the keyboard: `Router` consults the

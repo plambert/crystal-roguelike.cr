@@ -55,7 +55,7 @@ module Roguelike
     end
 
     # A generator on *seed*. A fresh seed from the system when *seed* is
-    # `nil`. The command line hands over that shape.
+    # `nil`. The command line passes that shape.
     def self.for(seed : UInt64?) : Rng
       seed ? new(seed) : random
     end

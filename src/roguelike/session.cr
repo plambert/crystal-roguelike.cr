@@ -105,9 +105,8 @@ module Roguelike
     # Draws, waits, and repeats until something ends the run.
     #
     # The `ensure` puts the pointer shape back however the run ends.
-    # `Terminal#close` gives back everything termbuf asked for. It does not
-    # know about `OSC 22`. This class asked for that. This class gives it
-    # back.
+    # `Terminal#close` restores every mode termbuf set. termbuf never sets
+    # `OSC 22`. This class set it. This class restores it.
     def run : Nil
       loop do
         draw
@@ -123,8 +122,8 @@ module Roguelike
     # line.
     #
     # Nothing asks the terminal for the mouse uninvited. `Terminal#close`
-    # gives the mouse back as well as this method. A run that ends any way at
-    # all leaves the terminal able to select text again.
+    # restores mouse reporting as well as this method. A run that ends any way
+    # at all leaves the terminal able to select text again.
     def mousing=(wanted : Bool) : Bool
       return wanted if wanted == @mousing
 
@@ -155,8 +154,8 @@ module Roguelike
     # An event no widget wanted.
     #
     # Two kinds get this far. A mouse report gets here because the map pane
-    # draws squares and does not know what is on them. A resize gets here
-    # because the tree has to be laid out again. `Screen#fit` then decides
+    # draws squares and holds nothing about what is on them. A resize gets
+    # here because the tree has to be laid out again. `Screen#fit` then decides
     # what is still worth showing, before anything draws against the new
     # rectangles.
     private def unclaimed(event : TermBuf::Event) : Nil

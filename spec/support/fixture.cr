@@ -1,4 +1,4 @@
-# Text a spec compares against. It lives in a file so that a change shows as a
+# Text a spec compares against. It is kept in a file. A change then shows as a
 # diff.
 #
 # A rendered screen goes here. So does a field of view. So does a generated

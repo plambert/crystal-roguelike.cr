@@ -3,7 +3,7 @@ require "termbuf-widgets"
 # Drives a whole application with no terminal anywhere.
 #
 # `TermBuf::Widgets::App` takes a `TermBuf::Drawing` and an event channel. It
-# does not take a `TermBuf::Terminal`. So a spec hands it a plain
+# does not take a `TermBuf::Terminal`. So a spec passes it a plain
 # `TermBuf::Buffer` and reads the cells back as text.
 #
 # Nothing here opens a device. Nothing here puts a terminal in raw mode.

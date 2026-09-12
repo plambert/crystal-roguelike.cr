@@ -31,7 +31,8 @@ module TermBuf::Widgets
   # What is at *x*, *y*.
   #
   # A window showing eight hundred cells of a million asks eight hundred
-  # times. A level too large to hold twice costs what the window costs.
+  # times. The work is the size of the window. It is not the size of the
+  # field.
   #
   #     class Level < TermBuf::Widgets::Cells(Tile)
   #       def columns : Int32
@@ -59,7 +60,7 @@ module TermBuf::Widgets
     # What is at *x*, *y*. A grid asks only about a cell that is showing.
     abstract def cell(x : Int32, y : Int32) : T
 
-    # The width and the height. `Scrolls#content_size` wants that shape.
+    # The width and the height. `Scrolls#content_size` returns that shape.
     def size : {Int32, Int32}
       {columns, rows}
     end
