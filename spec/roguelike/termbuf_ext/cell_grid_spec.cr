@@ -245,6 +245,32 @@ Spectator.describe TermBuf::Widgets::CellGrid do
     end
   end
 
+  describe "#background" do
+    it "leaves the window alone by default" do
+      run = windowed 40, 15
+
+      expect(run.grid.background).to be_nil
+      expect(run.session.buffer.hit(0, 0).try &.cell.style).to eq 0
+    end
+
+    # A field smaller than the window leaves part of the window with no cell
+    # in it. The background is what that part is.
+    it "paints the whole window, past the edge of the field" do
+      cells = Widgets::Cells.from 2, 2, ->(x : Int32, y : Int32) { {x, y} }
+      grid = Widgets::CellGrid.new cells
+      ground = TermBuf::Style::DEFAULT.bg TermBuf::Color.rgb(0x0C, 0x0E, 0x12)
+      grid.background = ground
+
+      session = Headless.open grid, 8, 4
+      session.render
+
+      corner = session.buffer.hit 7, 3
+      raise "the corner of the window was not drawn" unless corner
+
+      expect(session.buffer.styles[corner.cell.style]).to eq ground
+    end
+  end
+
   describe "#reveal" do
     it "does not move for a cell well inside the window" do
       grid = windowed(40, 15).grid

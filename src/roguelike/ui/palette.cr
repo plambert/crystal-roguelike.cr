@@ -119,8 +119,22 @@ module Roguelike::Ui
       Look.new FIXTURES[fitting.kind], fitting.lit? ? FLAME : IRON
     end
 
+    # What the map is painted on.
+    #
+    # The map paints its own background rather than letting the terminal's
+    # through. A game about darkness needs a known black. A pale theme would
+    # turn the dim end of the ramp into the high-contrast end, and a terminal
+    # that lightens a foreground to hold a contrast ratio against its own
+    # background undoes the shading altogether.
+    #
+    # This is the one colour a theme would want to change first.
+    GROUND = TermBuf::Color.rgb 0x0C, 0x0E, 0x12
+
+    # The style that paints it.
+    GROUND_STYLE = Style::DEFAULT.bg GROUND
+
     # What a square nobody has ever seen draws as. A blank.
-    UNSEEN = Look.new ' ', Style::DEFAULT
+    UNSEEN = Look.new ' ', GROUND_STYLE
 
     # How far toward `SHADOW` each step of `RAMP` moves.
     #
@@ -174,9 +188,12 @@ module Roguelike::Ui
       Math.min REMEMBERED + 1 + level // LIGHT_PER_STEP, STEPS - 1
     end
 
-    # *look* drawn at *step* of `RAMP`.
+    # *look* drawn at *step* of `RAMP`, on the map's own background.
+    #
+    # The background is put on after the ramp rather than into it. The ground
+    # is the same everywhere. Only what stands on it is shaded.
     def self.shaded(look : Look, step : Int32) : Look
-      Look.new look.glyph, RAMP[look.style, step]
+      Look.new look.glyph, RAMP[look.style, step].bg(GROUND)
     end
   end
 end

@@ -88,6 +88,7 @@ module Roguelike::Ui
     def initialize(floor : Floor)
       @cells = FloorCells.new floor
       @grid = Widgets::CellGrid.new @cells
+      @grid.background = Palette::GROUND_STYLE
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
         look = looked_at x, y, tile
 

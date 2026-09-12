@@ -31,6 +31,14 @@ module TermBuf::Widgets
     # How many cells one notch of the wheel moves.
     property wheel : Int32 = 3
 
+    # What the window is painted with before any cell draws. `nil` leaves
+    # whatever was there, which is the terminal's own background.
+    #
+    # A field smaller than the window leaves part of the window with no cell
+    # in it. This is what that part is. It is also what a caller sets when the
+    # window has to look the same whatever theme the terminal is using.
+    property background : Style? = nil
+
     # What draws one cell. `nil` uses the default. The default writes what
     # the cell answers to `#to_s`.
     #
@@ -345,6 +353,9 @@ module TermBuf::Widgets
       # A window that grew may show past the edge of the field. The camera
       # has had no reason to notice that until now.
       scroll_to @camera_x, @camera_y
+
+      ground = @background
+      view.clear ground if ground
 
       hook = @on_draw
       left = @camera_x

@@ -52,6 +52,38 @@ Spectator.describe Roguelike::Ui::Palette do
     end
   end
 
+  # A game about darkness needs a known black. A pale theme would turn the
+  # dim end of the ramp into the high-contrast end.
+  describe "the ground the map is painted on" do
+    it "is set on every shaded look rather than left to the terminal" do
+      (0..Palette::RAMP.top).each do |step|
+        shaded = Palette.shaded Palette[Terrain::StoneFloor], step
+
+        expect(shaded.style.background).to eq Palette::GROUND
+      end
+    end
+
+    it "is set on a square nobody has seen" do
+      expect(Palette::UNSEEN.style.background).to eq Palette::GROUND
+    end
+
+    it "stays the same at every step" do
+      grounds = (0..Palette::RAMP.top).map do |step|
+        Palette.shaded(Palette[Terrain::Granite], step).style.background
+      end
+
+      expect(grounds.uniq.size).to eq 1
+    end
+
+    it "is darker than the dimmest thing drawn on it" do
+      dimmest = Palette::RAMP[Palette::STONE, Palette::REMEMBERED].foreground
+
+      expect(Palette::GROUND.red).to be < dimmest.red
+      expect(Palette::GROUND.green).to be < dimmest.green
+      expect(Palette::GROUND.blue).to be < dimmest.blue
+    end
+  end
+
   describe "a lit sconce" do
     # `!` is the potion glyph. A burning bracket is the same bracket it was
     # before somebody put a light in it.
