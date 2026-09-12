@@ -1,8 +1,8 @@
 require "../spec_helper"
 
 Spectator.describe Roguelike::Rng do
-  # Enough draws that two generators agreeing by chance is not the
-  # explanation, and few enough that the spec stays instant.
+  # Enough draws that two generators cannot agree by chance. Few enough that
+  # the spec stays fast.
   def draws(rng : Roguelike::Rng, count : Int32 = 64) : Array(Int32)
     Array.new(count) { rng.rand 1_000_000 }
   end
@@ -73,8 +73,9 @@ Spectator.describe Roguelike::Rng do
         .not_to eq draws(described_class.new(20260912_u64).derive("worldgen", 3))
     end
 
-    # The property the whole design exists for: what a child draws does not
-    # depend on what the parent, or any sibling, did first.
+    # This is the property the whole design exists for. What a child draws
+    # does not depend on what the parent drew first. It does not depend on
+    # what a sibling drew first either.
     it "answers the same child however much the parent has been drawn from" do
       before = draws master.derive("worldgen", 3)
       1_000.times { master.rand 100 }
@@ -94,9 +95,9 @@ Spectator.describe Roguelike::Rng do
         .not_to eq master.derive("b").derive("a").stream
     end
 
-    # Pinned so that changing the hash is a failing spec rather than a silent
-    # break of every seed ever recorded. Regenerate these deliberately, never
-    # to make a red spec green.
+    # These numbers are pinned. Changing the hash then fails a spec. It does
+    # not silently break every seed already recorded. Regenerate these
+    # numbers on purpose. Never regenerate them to make a red spec green.
     it "derives a stream that is the same in every process and every build" do
       expect(master.derive("worldgen", 3).stream).to eq 16630584740655075460_u64
       expect(master.derive("ai", 12).stream).to eq 670043370366468092_u64

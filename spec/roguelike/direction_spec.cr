@@ -23,8 +23,8 @@ Spectator.describe Roguelike::Direction do
       expect(steps.uniq.size).to eq 8
     end
 
-    # South is positive because a screen counts rows downward, and the level
-    # is stored the way it is drawn.
+    # South is positive. A screen counts rows downward. A level stores rows in
+    # the order it draws them.
     it "counts rows downward" do
       expect(Direction::South.dy).to eq 1
       expect(Direction::North.dy).to eq -1

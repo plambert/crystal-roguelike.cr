@@ -1,12 +1,14 @@
 require "termbuf-widgets"
 
-# Driving a whole application with no terminal anywhere.
+# Drives a whole application with no terminal anywhere.
 #
-# `TermBuf::Widgets::App` is given a `TermBuf::Drawing` and an event channel
-# rather than a `TermBuf::Terminal`, so a spec can hand it a plain
-# `TermBuf::Buffer` and read the cells back as text. Nothing here opens a
-# device, puts a terminal in raw mode, or needs a tty to exist, which is what
-# makes every drawing phase of this game testable in CI.
+# `TermBuf::Widgets::App` takes a `TermBuf::Drawing` and an event channel. It
+# does not take a `TermBuf::Terminal`. So a spec hands it a plain
+# `TermBuf::Buffer` and reads the cells back as text.
+#
+# Nothing here opens a device. Nothing here puts a terminal in raw mode.
+# Nothing here needs a tty. Every drawing phase of this game is testable in
+# CI.
 module Headless
   DEFAULT_COLUMNS = 80
   DEFAULT_ROWS    = 24
@@ -33,41 +35,41 @@ module Headless
       @buffer.to_text
     end
 
-    # The screen as rows, with the blanks each one ends in taken off, which is
-    # what a fixture wants to be diffed against.
+    # The screen as rows. Trailing blanks come off each row. A fixture diffs
+    # better that way.
     def rows : Array(String)
       render.lines.map &.rstrip
     end
 
-    # The screen as one string, blanks trimmed, for comparing against a
-    # `Fixture`.
+    # The screen as one string, with trailing blanks trimmed. For comparing
+    # against a `Fixture`.
     def text : String
       rows.join '\n'
     end
 
-    # The row at *index*, for asserting on one line of a pane.
+    # The row at *index*. For asserting on one line of a pane.
     def row(index : Int32) : String
       rows[index]
     end
 
-    # Puts *event* on the channel and lets the tree answer it.
+    # Puts *event* on the channel. Lets the tree answer it.
     def send(event : TermBuf::Event) : Nil
       @events.send event
       @app.pump
     end
 
-    # The keys *description* names, pressed in order.
+    # Presses the keys *description* names, in order.
     #
-    # `TermBuf::Key.parse` reads a whole sequence, so `"Ctrl+X s"` is two
-    # presses and arrives as two events, which is what a multi-key binding
-    # needs to see.
+    # `TermBuf::Key.parse` reads a whole sequence. `"Ctrl+X s"` is two
+    # presses. It arrives as two events. A multi-key binding needs to see
+    # both.
     def press(description : String) : Nil
       TermBuf::Key.parse(description).each do |key|
         send TermBuf::Events::Key.new(key, Bytes.empty)
       end
     end
 
-    # Lays the application out at a new size, as a resize would.
+    # Lays the application out at a new size. A resize does the same.
     def resize(columns : Int32, rows : Int32) : Nil
       @buffer.resize columns, rows
       @app.resize TermBuf::Rect.full(columns, rows)

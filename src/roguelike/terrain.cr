@@ -1,13 +1,12 @@
 module Roguelike
-  # Everything one kind of terrain is, in one place.
+  # Everything one kind of terrain is.
   #
-  # *mark* is the character a level file writes it as, which is also what a
-  # save file holds. It is part of the file format, so changing one changes
-  # every level and every save that has ever been written.
+  # *mark* is the character a level file writes for this terrain. A save file
+  # writes the same character. *mark* is part of the file format. Changing one
+  # changes every level file and every save file already written.
   #
-  # It sits beside `Terrain` rather than inside it because an enum body in
-  # Crystal takes members and methods, and neither type definitions nor
-  # constants.
+  # This record sits beside `Terrain`. A Crystal enum body takes members and
+  # methods. It takes neither type definitions nor constants.
   record TerrainKind,
     mark : Char,
     label : String,
@@ -17,14 +16,14 @@ module Roguelike
 
   # What one square of a level is made of.
   #
-  # The three rocks behave alike and are told apart by eye. They are separate
-  # members rather than one wall with a colour because what a wall is made of
-  # is going to matter: digging, what a passage sounds like through it, and
-  # what a level is built out of at a given depth.
+  # The three rocks behave alike. A player tells them apart by colour. They
+  # are separate members because what a wall is made of will matter later.
+  # Digging will differ by rock. Sound through a wall will differ by rock. A
+  # level generator will pick a rock by depth.
   #
-  # Nothing here knows what anything looks like. A glyph and a style are the
-  # screen's business and live in `Ui::Palette`, so a theme can change them and
-  # a spec can read a level without a terminal.
+  # No member here knows what it looks like. `Ui::Palette` holds the glyph and
+  # the style. A theme changes that table. A spec reads a level with no
+  # terminal open.
   enum Terrain
     Granite
     Sandstone
@@ -38,9 +37,9 @@ module Roguelike
 
     # Which terrain a level file's *mark* names.
     #
-    # Raises rather than guessing: a character nobody meant is a mistake in a
-    # level, and one that quietly became floor would be a hole in a wall that
-    # nobody could find by reading the file.
+    # This method raises on an unknown character. An unknown character is a
+    # mistake in a level file. A character that became floor instead would be
+    # a hole in a wall. Nobody could find that hole by reading the file.
     def self.from_mark(mark : Char) : Terrain
       found = from_mark? mark
       return found if found
@@ -48,76 +47,74 @@ module Roguelike
       raise ArgumentError.new "no terrain is written #{mark.inspect}"
     end
 
-    # :ditto:, answering `nil` rather than raising.
+    # :ditto: Answers `nil` instead of raising.
     def self.from_mark?(mark : Char) : Terrain?
       Terrains::MARKS[mark]?
     end
 
-    # What this terrain is, for everything that would otherwise want a `case`
-    # of its own.
+    # What this terrain is. Every method below reads one field of it.
     def kind : TerrainKind
       Terrains::KINDS[self]
     end
 
-    # The character a level file writes this as.
+    # The character a level file writes for this terrain.
     def mark : Char
       kind.mark
     end
 
-    # What it is called, for a message or a readout.
+    # What this terrain is called. For a message or a readout.
     def label : String
       kind.label
     end
 
-    # A sentence about it, for the examine pane.
+    # A sentence about this terrain. For the examine pane.
     def description : String
       kind.description
     end
 
-    # Whether nothing can walk through it.
+    # Whether no creature can walk through this terrain.
     def blocks_move? : Bool
       kind.blocks_move
     end
 
-    # Whether nothing can see through it.
+    # Whether no creature can see through this terrain.
     def blocks_sight? : Bool
       kind.blocks_sight
     end
 
-    # Whether something can walk through it, which is asked far more often
-    # than its opposite.
+    # Whether a creature can walk through this terrain.
     def passable? : Bool
       !blocks_move?
     end
 
-    # Whether it is one of the rocks a level is cut out of.
+    # Whether this terrain is one of the rocks a level is cut out of.
     def rock? : Bool
       granite? || sandstone? || shale?
     end
 
-    # Whether it is a floor somebody could stand on.
+    # Whether this terrain is a floor a creature can stand on.
     def floor? : Bool
       stone_floor? || dirt_floor?
     end
 
-    # Whether it is a door, open or shut.
+    # Whether this terrain is a door. Open or shut.
     def door? : Bool
       closed_door? || open_door?
     end
 
-    # Whether it is a staircase, up or down.
+    # Whether this terrain is a staircase. Up or down.
     def stairs? : Bool
       stairs_up? || stairs_down?
     end
   end
 
-  # The table behind `Terrain`, which an enum body cannot hold itself.
+  # The table behind `Terrain`. An enum body cannot hold these constants.
   module Terrains
-    # What a level file writes where there is nothing else to say.
+    # The character a level file writes for an empty square.
     #
-    # A blank is granite so that an editor trimming the trailing whitespace off
-    # a line cannot change what a level is, and so that a row short of the
-    # level's width is solid rock rather than an error.
+    # A blank means granite. An editor that trims trailing whitespace then
+    # cannot change a level. A row shorter than the level's width is solid
+    # rock rather than an error.
     FILL = ' '
 
     KINDS = {

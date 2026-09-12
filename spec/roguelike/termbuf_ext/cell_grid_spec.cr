@@ -3,8 +3,8 @@ require "../../spec_helper"
 Spectator.describe TermBuf::Widgets::CellGrid do
   alias Widgets = TermBuf::Widgets
 
-  # A grid over a field of *field* by *field* cells, drawn in a window of
-  # *columns* by *rows*, laid out and ready to be measured.
+  # A grid over a field of *field* by *field* cells. Drawn in a window of
+  # *columns* by *rows*. Laid out and ready to measure.
   record Window,
     grid : Widgets::CellGrid({Int32, Int32}),
     session : Headless::Session
@@ -166,8 +166,8 @@ Spectator.describe TermBuf::Widgets::CellGrid do
       expect(grid.cell_at(0, 8)).to be_nil
     end
 
-    # The round trip a mouse report depends on: whatever the camera is doing,
-    # the cell under a spot is the cell drawn there.
+    # A mouse report depends on this round trip. The cell under a spot is the
+    # cell drawn there. That holds wherever the camera is.
     it "round-trips against #view_of wherever the camera is" do
       run = windowed 40, 15
       grid = run.grid
@@ -249,8 +249,8 @@ Spectator.describe TermBuf::Widgets::CellGrid do
       expect({grid.scroll_x, grid.scroll_y}).to eq({30, 20})
     end
 
-    # There is no camera position that leaves a cell five from every edge of a
-    # window eight wide, so it goes in the middle instead of oscillating.
+    # No camera position leaves a cell five cells from every edge of a window
+    # nine cells wide. The cell goes in the middle instead.
     it "centres when the margin does not fit the window" do
       grid = windowed(9, 9).grid
 
@@ -318,11 +318,10 @@ Spectator.describe TermBuf::Widgets::CellGrid do
                           {10, 21}, {11, 21}, {12, 21}, {13, 21}]
     end
 
-    # A square is one cell by construction. A cluster the terminal would draw
-    # two columns wide does not fit in the view cut for it, and termbuf drops
-    # a cluster crossing an edge whole rather than splitting it — so the
-    # square after it stays where it was, and the mapping a mouse report
-    # depends on stays exact.
+    # A square is one cell wide. A cluster two columns wide does not fit the
+    # view cut for it. Termbuf drops a cluster crossing an edge whole. It does
+    # not split one. So the square after it stays where it was. The mapping a
+    # mouse report depends on stays exact.
     it "keeps one cell per square when a square draws a wide glyph" do
       cells = Widgets::Cells.from 4, 1, ->(x : Int32, _y : Int32) { x }
       grid = Widgets::CellGrid.new cells
@@ -424,8 +423,8 @@ Spectator.describe TermBuf::Widgets::CellGrid do
   end
 
   describe "drawn" do
-    # A checkerboard is the cheapest thing to read a camera off by eye: the
-    # parity of the top left cell says where the window is.
+    # A checkerboard is the cheapest way to read a camera by eye. The parity
+    # of the top left cell says where the window is.
     def checkerboard(columns : Int32, rows : Int32) : Window
       cells = Widgets::Cells.from 200, 200,
         ->(x : Int32, y : Int32) { {x, y} }
@@ -447,8 +446,9 @@ Spectator.describe TermBuf::Widgets::CellGrid do
       expect(drawn).to eq Fixture.expected("cell_grid/checkerboard-origin.txt", drawn)
     end
 
-    # An odd sum, so the parity of the top left cell flips and the fixture is
-    # a different picture rather than the same one shifted by two.
+    # The sum of these two is odd. The parity of the top left cell flips. The
+    # fixture is then a different picture. An even sum would give the same
+    # picture shifted by two.
     it "draws what it drew last time once scrolled" do
       run = checkerboard 40, 15
       run.grid.scroll_to 7, 4
@@ -467,8 +467,8 @@ Spectator.describe TermBuf::Widgets::CellGrid do
   end
 
   describe "a Scrollbar over one" do
-    # The rule the bar is drawn on is one glyph and the thumb another, so the
-    # row that differs from the rest is where the thumb is.
+    # The bar draws its rule with one glyph and its thumb with another. The
+    # row that differs from the rest holds the thumb.
     def thumb_row(session : Headless::Session) : Int32?
       ends = session.rows.map &.[-1]
       rule = ends.tally.max_by { |_, count| count }[0]

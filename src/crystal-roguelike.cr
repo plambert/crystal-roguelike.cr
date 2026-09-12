@@ -1,8 +1,8 @@
 # A terminal roguelike.
 #
-# The shard is named `crystal-roguelike`, so this file is where `require
-# "crystal-roguelike"` lands, but the namespace is `Roguelike`: `Crystal` is
-# the compiler's own, and game types have no business sitting beside
+# The shard is named `crystal-roguelike`. This file is where
+# `require "crystal-roguelike"` lands. The namespace is `Roguelike` instead.
+# `Crystal` is the compiler's own namespace. Game types do not belong beside
 # `Crystal::System`.
 module Roguelike
   {% begin %}

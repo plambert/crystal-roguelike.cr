@@ -1,38 +1,38 @@
 require "json"
 
 module Roguelike
-  # The character being played.
+  # The character the person plays.
   #
-  # Where they are, and nothing else yet. Attributes, hit points, experience
-  # and what they are carrying arrive with the phases that need them, and
-  # arrive here.
+  # A player holds a position and nothing else so far. Later phases add
+  # attributes, hit points, experience and carried items. Those fields go
+  # here.
   #
-  # The level is held by its id rather than by a reference to the `Level`,
-  # because levels persist and are saved: a save file that held the level
-  # twice, once in the world and once under the player, would have two of them
-  # to keep in step.
+  # The player holds a level id. It does not hold a `Level`. Levels persist
+  # and a save file stores them. A save file that stored the level twice would
+  # hold one copy in the world and one under the player. The two copies would
+  # then need to stay in step.
   class Player
     include JSON::Serializable
 
-    # Which level they are on.
+    # Which level the character is on.
     property level : String
 
-    # Where on it.
+    # The column the character stands in.
     getter x : Int32
 
-    # :ditto:
+    # The row the character stands in.
     getter y : Int32
 
     def initialize(@level : String, @x : Int32, @y : Int32)
     end
 
-    # Where they are.
+    # Where the character stands.
     def at : {Int32, Int32}
       {@x, @y}
     end
 
-    # Puts them at *x*, *y*. Whether they could be there is the caller's
-    # question, and `Game#step` is where it is asked.
+    # Puts the character at *x*, *y*. This method does not check the square.
+    # `Game#step` checks the square.
     def move_to(x : Int32, y : Int32) : Nil
       @x = x
       @y = y
@@ -43,7 +43,7 @@ module Roguelike
       move_to spot[0], spot[1]
     end
 
-    # Whether they are standing on *x*, *y*.
+    # Whether the character stands on *x*, *y*.
     def at?(x : Int32, y : Int32) : Bool
       @x == x && @y == y
     end

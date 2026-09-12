@@ -4,36 +4,33 @@ require "./player"
 require "./world"
 
 module Roguelike
-  # Everything a run is, and the only thing that changes it.
+  # Everything a run is. The only class that changes a run.
   #
-  # The model root: the world, the character, and how many turns have been
-  # taken. Nothing here opens a device or draws anything, so a spec plays a
-  # hundred turns with no widget tree at all — and a save file is one of these
-  # written out.
+  # A game holds the world, the character and the turn count. It opens no
+  # device. It draws nothing. A spec plays a hundred turns with no widget
+  # tree. A save file is one game written out.
   #
-  # Every rule about what may happen lives on this side. `Session` reads the
-  # answer and draws it; it never decides anything.
+  # Every game rule lives here. `Session` reads the answer and draws it.
+  # `Session` decides nothing.
   class Game
     include JSON::Serializable
 
     # Every level of the run, and the seed that made them.
     getter world : World
 
-    # The character being played.
+    # The character the person plays.
     getter player : Player
 
-    # How many turns have been taken. A turn that did not happen — a step into
-    # a wall — does not count, because what a turn buys is the chance for
-    # everything else on the level to act, and nothing acted.
+    # How many turns have been taken.
+    #
+    # A blocked step does not count. A turn gives every other creature on the
+    # level one action. A blocked step gives them none.
     getter turn : Int32
 
     def initialize(@world : World, @player : Player, @turn : Int32 = 0)
     end
 
     # A new run on *rng*.
-    #
-    # The character starts on the staircase they came down by, which is where
-    # a level is entered from and where a level without one puts them instead.
     def self.start(rng : Rng) : Game
       world = World.on rng
       level = world.add Levels.proving_ground
@@ -42,6 +39,9 @@ module Roguelike
     end
 
     # Where a character arriving on *level* stands.
+    #
+    # The up staircase, when the level has one. A player enters a level by a
+    # staircase. Any passable square otherwise.
     def self.entrance(level : Level) : {Int32, Int32}
       found = level.find Terrain::StairsUp
       return found if found
@@ -58,11 +58,9 @@ module Roguelike
       @world[@player.level]
     end
 
-    # Takes one step *direction*, answering whether a turn happened.
+    # Takes one step *direction*. Answers whether a turn happened.
     #
-    # A step into something that will not be walked through costs nothing: no
-    # move, and no turn, so nothing else on the level gets to act because the
-    # character bumping a wall is not the character doing anything.
+    # A step into an impassable square moves nothing. It counts no turn.
     def step(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
       return false unless level.passable? wanted[0], wanted[1]
@@ -72,7 +70,7 @@ module Roguelike
       true
     end
 
-    # What is in the way *direction*, for saying so.
+    # What stops a step *direction*. Answers `nil` when nothing stops it.
     def blocking(direction : Direction) : Terrain?
       wanted = direction.from @player.x, @player.y
       found = level.tile? wanted[0], wanted[1]

@@ -1,14 +1,13 @@
 module Roguelike::Ui
-  # Everything the game shows and everything the keys do, with no device
-  # anywhere.
+  # Everything the game shows. Everything the keys do. No device anywhere.
   #
-  # `Session` owns a terminal, a frame loop and the mouse; this owns the rest.
-  # Splitting them is what lets a spec press `hjkl` at the thing the game
-  # actually runs, rather than at a copy of its wiring assembled beside it.
+  # `Session` owns a terminal, a frame loop and the mouse. This class owns the
+  # rest. The split lets a spec press keys at the code the game runs. A spec
+  # does not press keys at a copy of that wiring.
   #
-  # It decides nothing about the game. Every rule is `Game`'s; this reads the
-  # answer, puts it on the screen, and tells the caller what the terminal
-  # needs to hear.
+  # This class decides nothing about the game. Every rule belongs to `Game`.
+  # This class reads the answer, puts it on the screen, and tells the caller
+  # what the terminal needs to hear.
   class Play
     # The run.
     getter game : Game
@@ -22,7 +21,7 @@ module Roguelike::Ui
     # The readout of what is on one square.
     getter examine : ExaminePane
 
-    # What points the readout, from the pointer or from the keyboard.
+    # What points the readout. The pointer or the keyboard.
     getter examiner : Examiner
 
     # What the mouse pointer is doing.
@@ -42,31 +41,31 @@ module Roguelike::Ui
       refresh
     end
 
-    # Puts the camera on the character.
-    #
-    # Called by the owner once the tree has been laid out, and not before: a
-    # window that has not been measured is nothing by nothing, and centring on
-    # a square in a window of no size leaves the camera on the square rather
-    # than clamped against the edge of the level.
-    def look_at_player : Nil
-      @map.center_on @game.player.x, @game.player.y
-    end
-
-    # The tree, for an `App` to be built over.
+    # The tree. A caller builds an `App` over it.
     def root : Widgets::Widget
       @screen.root
     end
 
-    # The bindings that are the game's rather than the application's.
+    # The bindings that belong to the game rather than to the application.
     def bindings : Widgets::Bindings
       Keys.examining(@examiner).merge Keys.moving { |direction| step direction }
     end
 
+    # Puts the camera on the character.
+    #
+    # The owner calls this once the tree has been laid out. It cannot run
+    # before. An unmeasured window is nothing by nothing. Centring on a square
+    # in a window of no size leaves the camera on the square. It does not
+    # clamp against the edge of the level.
+    def look_at_player : Nil
+      @map.center_on @game.player.x, @game.player.y
+    end
+
     # One step of a movement key.
     #
-    # It moves the examine cursor while that is on the map, because somebody
-    # reading the level is not walking about it. Everywhere else it is the
-    # character, and a step that does not happen costs no turn.
+    # The key moves the examine cursor while that cursor is on the map. A
+    # person reading the level is not walking about it. The key moves the
+    # character otherwise. A step that does not happen costs no turn.
     def step(direction : Direction) : Nil
       if @examiner.cursoring?
         @examiner.move direction
@@ -81,16 +80,16 @@ module Roguelike::Ui
 
     # Puts what the game holds back on the screen.
     #
-    # Everything shown comes from `Game`, so this is the one place the two are
-    # put in step, and it runs after anything that changes the game rather
-    # than being remembered in half a dozen places.
+    # Everything shown comes from `Game`. This method is the one place the two
+    # are put in step. It runs after anything that changes the game.
     def refresh : Nil
       @map.clear_marks
       @map.mark @game.player.x, @game.player.y, Palette::PLAYER
       @screen.status_text.text = status
     end
 
-    # The status line. *mouse* is the terminal's to know, so it is passed in.
+    # The status line. *mouse* belongs to the terminal. A caller passes it
+    # in.
     def status(mouse : Bool = true) : String
       player = @game.player
 
@@ -100,17 +99,18 @@ module Roguelike::Ui
       "x to look, ? for the keys"
     end
 
-    # The pointer is at *x*, *y* of the buffer.
+    # Records that the pointer is at *x*, *y* of the buffer.
     #
-    # Answers the sequence the terminal needs, or `nil` when it needs none.
+    # Answers the sequence the terminal needs. Answers `nil` when it needs
+    # none.
     def pointed(x : Int32, y : Int32) : String?
       return pointer_away unless @examiner.point_at_screen x, y
 
       @pointer.over x, y
     end
 
-    # The pointer is somewhere the map is not, or the mouse has been turned
-    # off, or the run is ending.
+    # Records that the pointer is off the map. Also used when the mouse is
+    # turned off and when the run ends.
     def pointer_away : String?
       @pointer.away
     end

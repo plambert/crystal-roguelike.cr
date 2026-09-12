@@ -1,12 +1,12 @@
 module Roguelike::Ui
-  # Pointing at a square and saying what is on it.
+  # Points at a square. Says what is on it.
   #
-  # Two ways in, and they share one readout. The pointer needs no mode and is
-  # the quicker of the two. `x` puts a cursor on the map and moves it with the
-  # movement keys, which is what a terminal with mouse reporting turned off
-  # has, and what somebody who would rather not reach for the mouse has.
+  # There are two ways in. Both write one readout. The pointer needs no mode.
+  # It is the quicker of the two. `x` puts a cursor on the map. The movement
+  # keys move that cursor. A terminal with mouse reporting off has only that
+  # way. A person who prefers the keyboard has it too.
   #
-  # It holds no terminal, so a spec drives one over a buffer.
+  # This class holds no terminal. A spec drives one over a buffer.
   class Examiner
     # The window being pointed at.
     getter map : MapPane
@@ -14,7 +14,7 @@ module Roguelike::Ui
     # The readout being written.
     getter pane : ExaminePane
 
-    # Where it is pointed, in the level's own coordinates, or `nil` before
+    # Where the readout points, in the level's own coordinates. `nil` before
     # anything has been looked at.
     getter spot : {Int32, Int32}?
 
@@ -26,8 +26,8 @@ module Roguelike::Ui
 
     # Points the readout at *x*, *y* of the level.
     #
-    # A square off the level is not pointed at and does not clear what is
-    # there: the readout holds what it last had.
+    # A square off the level does not move the readout. The readout keeps what
+    # it last had.
     def point_at(x : Int32, y : Int32) : Bool
       return false unless @map.level.contains? x, y
 
@@ -36,8 +36,8 @@ module Roguelike::Ui
       true
     end
 
-    # Points it at whatever square is under *screen_x*, *screen_y* of the
-    # buffer, answering whether that was one.
+    # Points the readout at the square under *screen_x*, *screen_y* of the
+    # buffer. Answers whether that spot held a square.
     def point_at_screen(screen_x : Int32, screen_y : Int32) : Bool
       spot = @map.cell_at_screen screen_x, screen_y
       return false unless spot
@@ -45,8 +45,10 @@ module Roguelike::Ui
       point_at spot[0], spot[1]
     end
 
-    # Puts the cursor on the map, where the readout is already pointed or in
-    # the middle of the window.
+    # Puts the cursor on the map.
+    #
+    # The cursor starts where the readout already points. It starts in the
+    # middle of the window when the readout points nowhere.
     def start : Nil
       return if @cursoring
 
@@ -56,7 +58,7 @@ module Roguelike::Ui
       point_at here[0], here[1]
     end
 
-    # Takes the cursor off the map, leaving the readout saying what it said.
+    # Takes the cursor off the map. The readout keeps what it said.
     def stop : Nil
       return unless @cursoring
 
@@ -64,16 +66,17 @@ module Roguelike::Ui
       refresh
     end
 
-    # Starts if it is stopped and stops if it is started.
+    # Starts the cursor when it is off. Stops it when it is on.
     def toggle : Nil
       cursoring? ? stop : start
     end
 
-    # Moves the cursor one square *direction*, stopping at the edges of the
-    # level, and brings it into view.
+    # Moves the cursor one square *direction*. Stops at the edges of the
+    # level. Brings the cursor into view.
     #
-    # Does nothing when the cursor is not on the map, so the movement keys can
-    # be bound once and mean the cursor here and the player everywhere else.
+    # This method does nothing while the cursor is off the map. The movement
+    # keys can then be bound once. They mean the cursor here. They mean the
+    # character everywhere else.
     def move(direction : Direction) : Bool
       return false unless @cursoring
 
@@ -89,7 +92,7 @@ module Roguelike::Ui
       true
     end
 
-    # Writes the readout and puts the cursor where it belongs.
+    # Writes the readout. Puts the cursor where it belongs.
     private def refresh : Nil
       here = @spot
 

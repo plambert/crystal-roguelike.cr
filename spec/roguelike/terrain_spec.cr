@@ -34,9 +34,9 @@ Spectator.describe Roguelike::Terrain do
         .to eq Roguelike::Terrain::Granite
     end
 
-    # A character nobody meant is a mistake in a level. One that quietly
-    # became floor would be a hole in a wall that reading the file could not
-    # find.
+    # An unknown character is a mistake in a level file. A character that
+    # became floor instead would be a hole in a wall. Reading the file could
+    # not find that hole.
     it "refuses a character nothing is written as" do
       expect { described_class.from_mark('Z') }.to raise_error ArgumentError, /no terrain/
     end

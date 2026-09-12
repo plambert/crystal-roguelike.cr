@@ -3,28 +3,35 @@ require "termbuf-widgets"
 # Extraction candidate: `TermBuf::Widgets::Cells` and
 # `TermBuf::Widgets::CellGrid`, for termbuf-widgets.cr.
 #
-# Everything in the widget catalogue draws text in rows. `VirtualList` is one
-# item per screen row and `Table` is columns of text; nothing there is a 2D
-# addressable field of glyphs with a window over it. A dungeon map wants one,
-# and so does a minimap, a hex board, a Life grid, a chip layout and a tile
-# editor — the viewport arithmetic, the camera, the mouse translation and the
-# `Scrolls` wiring are the same every time.
+# Every widget in the catalogue draws text in rows. `VirtualList` draws one
+# item per screen row. `Table` draws columns of text. None of them is a 2D
+# addressable field of glyphs with a window over it.
 #
-# Written in `TermBuf::Widgets` rather than in `Roguelike` so that extracting
-# it is a file move with no edits. What is still to settle before it goes:
+# A dungeon map needs one. So does a minimap. So does a hex board, a Life
+# grid, a chip layout and a tile editor. Each of those needs the same viewport
+# arithmetic, the same camera, the same mouse translation and the same
+# `Scrolls` wiring.
 #
-# * Whether `#on_draw` should hand over a view per cell, as it does here, or
-#   answer a glyph and a style. A view is the more general of the two and
-#   matches `VirtualList#on_draw`; a glyph would allocate nothing.
-# * Whether `Cells` should be able to say its extent has changed, the way
-#   `Rows#size` is asked afresh every frame. It is asked afresh here, so a
-#   source is free to answer differently; nothing has needed it yet.
+# These types are written in `TermBuf::Widgets` rather than in `Roguelike`.
+# Extracting them is then a file move with no edits.
+#
+# Two questions remain open:
+#
+# * Should `#on_draw` hand over a view per cell? It does that here. The other
+#   option is to answer a glyph and a style. A view is the more general of the
+#   two. It also matches `VirtualList#on_draw`. A glyph would allocate
+#   nothing.
+# * Should `Cells` be able to say its extent has changed? `Rows#size` is asked
+#   afresh every frame. `Cells#columns` and `Cells#rows` are asked afresh too,
+#   so a source may answer differently. Nothing has needed that yet.
 module TermBuf::Widgets
   # Where a `CellGrid` gets what it shows.
   #
-  # Three questions and no more: how wide the field is, how tall, and what is
-  # at *x*, *y*. A window showing eight hundred cells of a million asks eight
-  # hundred times, which is what lets it show a level nobody would hold twice.
+  # A source answers three questions. How wide is the field. How tall is it.
+  # What is at *x*, *y*.
+  #
+  # A window showing eight hundred cells of a million asks eight hundred
+  # times. A level too large to hold twice costs what the window costs.
   #
   #     class Level < TermBuf::Widgets::Cells(Tile)
   #       def columns : Int32
@@ -40,8 +47,8 @@ module TermBuf::Widgets
   #       end
   #     end
   #
-  # This is `Rows` with two axes, and the same idea: the source is asked, and
-  # what it is asked about is what is on the screen.
+  # This is `Rows` with two axes. The idea is the same. The grid asks the
+  # source. It asks only about what is on the screen.
   abstract class Cells(T)
     # Cells across.
     abstract def columns : Int32
@@ -49,10 +56,10 @@ module TermBuf::Widgets
     # Cells down.
     abstract def rows : Int32
 
-    # What is at *x*, *y*. Only ever asked about a cell that is showing.
+    # What is at *x*, *y*. A grid asks only about a cell that is showing.
     abstract def cell(x : Int32, y : Int32) : T
 
-    # Both extents at once, which is the shape `Scrolls#content_size` wants.
+    # The width and the height. `Scrolls#content_size` wants that shape.
     def size : {Int32, Int32}
       {columns, rows}
     end
@@ -67,15 +74,15 @@ module TermBuf::Widgets
       0 <= x < columns && 0 <= y < rows
     end
 
-    # Rows of cells as a source, the outer array being the rows.
+    # Rows of cells as a source. The outer array holds the rows.
     #
-    # Every row has to be the same length, because a field with a ragged edge
-    # has no answer for what is past the end of a short one.
+    # Every row has to be the same length. A field with a ragged edge has no
+    # answer for what is past the end of a short row.
     def self.of(grid : Array(Array(T))) : Cells(T)
       Held(T).new grid
     end
 
-    # A block as a source, for a field that is computed rather than held.
+    # A block as a source. For a field a program computes rather than holds.
     def self.from(columns : Int32, rows : Int32,
                   fetch : Proc(Int32, Int32, T)) : Cells(T)
       Asked(T).new columns, rows, fetch
@@ -105,8 +112,7 @@ module TermBuf::Widgets
       end
     end
 
-    # Cells answered by a block, which is what a field too large to hold looks
-    # like.
+    # Cells answered by a block. A field too large to hold uses this.
     class Asked(T) < Cells(T)
       def initialize(@columns : Int32, @rows : Int32,
                      @fetch : Proc(Int32, Int32, T))

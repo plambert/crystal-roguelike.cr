@@ -4,18 +4,19 @@ require "./tile"
 module Roguelike
   # One floor of the world.
   #
-  # Levels are not thrown away when they are left. A level keeps its `#id` for
-  # as long as the world does, and that id is what a run's randomness is
-  # derived from — `rng.derive "worldgen", level.id` — so it has to be the
-  # level's own name and never a count of how many have been made, or the
-  # order they were made in comes back as a dependency.
+  # The world keeps a level after the player leaves it. A level keeps its
+  # `#id` for as long as the world lasts.
   #
-  # The stored form is the terrain as text, one string per row, in the same
-  # characters a level file uses. That is the compact form, the readable form
-  # and the form `git diff` can show, all at once.
+  # The id is what a run's randomness derives from. `rng.derive "worldgen",
+  # level.id` uses it. So the id has to be the level's own name. A count of
+  # how many levels exist would bring back an order dependency.
   #
-  # Nothing here knows what anything looks like. `Ui::LevelCells` is what puts
-  # a level in front of a `CellGrid`.
+  # A stored level holds its terrain as text. One string per row. The same
+  # characters a level file uses. That form is compact. A person can read it.
+  # `git diff` can show a change in it.
+  #
+  # No method here knows what a level looks like. `Ui::LevelCells` puts a
+  # level in front of a `CellGrid`.
   class Level
     # What this level is called, for as long as the world lasts.
     getter id : String
@@ -26,8 +27,10 @@ module Roguelike
     # Cells down.
     getter rows : Int32
 
-    # Row-major, `y * columns + x`. Protected rather than private so that two
-    # levels can be compared without going through a copy of every square.
+    # Row-major. The index of *x*, *y* is `y * columns + x`.
+    #
+    # This getter is protected rather than private. `#==` compares two levels
+    # through it. A private getter would force a copy of every square.
     protected getter tiles : Array(Tile)
 
     def initialize(@id : String, @columns : Int32, @rows : Int32, @tiles : Array(Tile))
@@ -38,26 +41,26 @@ module Roguelike
                               "but holds #{@tiles.size} tiles, not #{wanted}"
     end
 
-    # A level of nothing but *terrain*, for a generator to carve.
+    # A level of nothing but *terrain*. A generator carves one of these.
     def self.solid(id : String, columns : Int32, rows : Int32,
                    terrain : Terrain = Terrain::Granite) : Level
       new id, columns, rows, Array.new(columns * rows) { Tile.new terrain }
     end
 
-    # The level in *path*, named after the file.
+    # The level in *path*. The level takes its id from the file name.
     #
-    # A file holds nothing but the map, so the name is the only place an id
-    # can come from, and a level renamed on disk is a different level.
+    # A level file holds nothing but the map. The file name is the only place
+    # an id can come from. Renaming a level file makes a different level.
     def self.load(path : Path | String) : Level
       file = Path.new path
 
       parse File.basename(file.to_s, file.extension), File.read(file)
     end
 
-    # The level *text* names, one row per line.
+    # The level *text* names. One row per line.
     #
-    # Rows shorter than the longest are filled out with rock, so an editor
-    # that trims trailing whitespace cannot change what a level is.
+    # A row shorter than the longest row fills out with rock. An editor that
+    # trims trailing whitespace then cannot change a level.
     def self.parse(id : String, text : String) : Level
       parse id, text.lines.map(&.chomp)
     end
@@ -80,22 +83,22 @@ module Roguelike
       new id, columns, rows.size, tiles
     end
 
-    # Both extents at once.
+    # The width and the height.
     def size : {Int32, Int32}
       {@columns, @rows}
     end
 
-    # Whether *x*, *y* is on the level at all.
+    # Whether *x*, *y* is on the level.
     def contains?(x : Int32, y : Int32) : Bool
       0 <= x < @columns && 0 <= y < @rows
     end
 
-    # The square at *x*, *y*, which has to be on the level.
+    # The square at *x*, *y*. The square has to be on the level.
     def tile(x : Int32, y : Int32) : Tile
       @tiles[index x, y]
     end
 
-    # :ditto:, answering `nil` for a square that is not.
+    # :ditto: Answers `nil` for a square off the level.
     def tile?(x : Int32, y : Int32) : Tile?
       return unless contains? x, y
 
@@ -112,34 +115,37 @@ module Roguelike
       @tiles[index x, y] = tile
     end
 
-    # Makes the square at *x*, *y* out of *terrain*, which is what opening a
-    # door is.
+    # Makes the square at *x*, *y* out of *terrain*. Opening a door uses
+    # this.
     def set(x : Int32, y : Int32, terrain : Terrain) : Nil
       set x, y, tile(x, y).with_terrain(terrain)
     end
 
-    # Whether something could walk onto *x*, *y*. Off the level is not.
+    # Whether a creature could walk onto *x*, *y*. A square off the level
+    # answers false.
     def passable?(x : Int32, y : Int32) : Bool
       found = tile? x, y
       found ? found.passable? : false
     end
 
-    # Whether something could see through *x*, *y*. Off the level is not.
+    # Whether a creature could see through *x*, *y*. A square off the level
+    # answers true.
     def blocks_sight?(x : Int32, y : Int32) : Bool
       found = tile? x, y
       found ? found.blocks_sight? : true
     end
 
-    # Yields every square, in reading order.
+    # Yields every square. In reading order.
     def each(& : Int32, Int32, Tile ->) : Nil
       @rows.times do |row|
         @columns.times { |column| yield column, row, @tiles[index column, row] }
       end
     end
 
-    # Where the first square of *terrain* is, or `nil` when there is none.
+    # Where the first square of *terrain* is. Answers `nil` when the level
+    # has none.
     #
-    # What finds the staircase a level was entered by.
+    # `Game.entrance` uses this to find a staircase.
     def find(terrain : Terrain) : {Int32, Int32}?
       each do |column, row, tile|
         return {column, row} if tile.terrain == terrain
@@ -148,8 +154,8 @@ module Roguelike
       nil
     end
 
-    # The terrain as text, one string per row, which is the form a level file
-    # holds and the form a save file holds.
+    # The terrain as text. One string per row. A level file holds this form.
+    # A save file holds it too.
     def to_map : Array(String)
       Array.new(@rows) do |row|
         String.build(@columns) do |line|

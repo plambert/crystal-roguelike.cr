@@ -79,8 +79,8 @@ Spectator.describe Roguelike::Ui::Keys do
       expect(drawn).to contain "show the keys that work here"
     end
 
-    # It is modal, so the application's own keys are out of reach while it is
-    # up. That is what modal means, and Escape is the way back.
+    # The overlay is modal. The application's own keys are out of reach while
+    # it is up. Escape is the way back.
     it "holds the keyboard while it is up" do
       run = wired
 

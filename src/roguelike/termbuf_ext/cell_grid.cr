@@ -1,8 +1,8 @@
 require "./cells"
 
 module TermBuf::Widgets
-  # A window over a field of cells, which draws the ones that are showing and
-  # no others.
+  # A window over a field of cells. It draws the cells that are showing and no
+  # others.
   #
   #     grid = CellGrid.new level
   #     grid.on_draw = ->(view : View, x : Int32, y : Int32, tile : Tile) do
@@ -11,17 +11,16 @@ module TermBuf::Widgets
   #
   #     grid.center_on player.x, player.y
   #
-  # What makes it a window rather than a picture is that it holds no widget
-  # per cell and asks its `Cells` only about the cells in view, so a level of
-  # a million costs what the pane it is drawn in costs.
+  # A grid holds no widget per cell. It asks its `Cells` only about the cells
+  # in view. A field of a million cells costs what the pane costs.
   #
-  # It is a `Scrolls`, so a `Scrollbar` attaches to it the way one attaches to
-  # a `VirtualList`. It scrolls itself rather than sitting in a scroll panel,
-  # because a panel would have to be as large as the whole field for the
+  # A grid is a `Scrolls`. A `Scrollbar` attaches to it the way one attaches to
+  # a `VirtualList`. A grid scrolls itself. It does not sit inside a scroll
+  # panel. Such a panel would have to be as large as the whole field for the
   # clipping to have anything to clip.
   #
-  # Moving the camera changes no rectangle, so it costs no layout: the next
-  # frame draws different cells in the same box.
+  # Moving the camera changes no rectangle. It costs no layout. The next frame
+  # draws different cells in the same box.
   class CellGrid(T) < Widget
     include Scrolls
 
@@ -31,19 +30,22 @@ module TermBuf::Widgets
     # How many cells one notch of the wheel moves.
     property wheel : Int32 = 3
 
-    # What draws one cell, or `nil` for the default, which writes what the
-    # cell answers to `#to_s`.
+    # What draws one cell. `nil` uses the default. The default writes what
+    # the cell answers to `#to_s`.
     #
-    # Called with a view cut to that cell — one cell wide and one tall — and
-    # the cell's own coordinates in the field, which are what a caller needs
-    # to look up anything the cell does not carry itself.
+    # The grid calls this with a view cut to that cell. The view is one cell
+    # wide and one cell tall. The grid also passes the cell's own coordinates
+    # in the field. A caller uses those to look up anything the cell does not
+    # carry itself.
     property on_draw : Proc(View, Int32, Int32, T, Nil)? = nil
 
     # Whether the keyboard can land here.
     #
-    # False by default: a map pane in a game whose application binds its own
-    # movement keys should not be in the tab order. Set it and the arrows,
-    # page keys, `Home` and `End` move the camera.
+    # This is false by default. A game binds its own movement keys. Its map
+    # pane should stay out of the tab order.
+    #
+    # Set this true and the arrows, the page keys, `Home` and `End` move the
+    # camera.
     property? takes_focus : Bool = false
 
     # The leftmost column showing.
@@ -62,8 +64,8 @@ module TermBuf::Widgets
       @keymap = CellGrid.moves self
     end
 
-    # The keys that move the camera. A grid is given its own copy, so
-    # rebinding one leaves the rest alone.
+    # The keys that move the camera. Each grid gets its own copy. Rebinding
+    # one grid's keys leaves every other grid alone.
     def self.moves(grid : CellGrid(T)) : Bindings
       Bindings.build do |map|
         map.bind Key.parse("Left"), "a column back",
@@ -89,7 +91,7 @@ module TermBuf::Widgets
       takes_focus?
     end
 
-    # A grid is a window both ways.
+    # A grid is a window on both axes.
     def clip_x? : Bool
       true
     end
@@ -122,12 +124,12 @@ module TermBuf::Widgets
       @camera_y
     end
 
-    # How many rows a page key moves, which is a window's worth.
+    # How many rows a page key moves. One window of rows.
     def page : Int32
       Math.max viewport_size[1], 1
     end
 
-    # Moves the camera, stopping at the edges.
+    # Moves the camera. Stops at the edges.
     def scroll_by(dx : Int32, dy : Int32) : Nil
       scroll_to @camera_x + dx, @camera_y + dy
     end
@@ -137,10 +139,10 @@ module TermBuf::Widgets
       scroll_by dx, dy
     end
 
-    # Puts *x*, *y* at the top left of the window, as near as the edges allow.
+    # Puts *x*, *y* at the top left of the window. Stops at the edges.
     #
-    # A field smaller than the window has nowhere to go, so this leaves the
-    # camera at the origin rather than showing blank cells beside it.
+    # A field smaller than the window has nowhere to scroll. The camera then
+    # stays at the origin. It does not show blank cells beside the field.
     def scroll_to(x : Int32, y : Int32) : Nil
       limit = max_scroll
 
@@ -148,7 +150,7 @@ module TermBuf::Widgets
       @camera_y = y.clamp 0, limit[1]
     end
 
-    # Puts *x*, *y* in the middle of the window, as near as the edges allow.
+    # Puts *x*, *y* in the middle of the window. Stops at the edges.
     def center_on(x : Int32, y : Int32) : Nil
       room = viewport_size
 
@@ -158,10 +160,11 @@ module TermBuf::Widgets
     # Moves the camera as little as it takes to leave *x*, *y* at least
     # *margin* cells from every edge of the window.
     #
-    # The dead zone a camera wants: a player walking about the middle of the
-    # screen moves nothing, and the view only follows once they near an edge.
-    # A margin with no room for it — one wider than half the window — centres
-    # instead, because there is no position that satisfies it.
+    # This is a dead zone. A player walking about the middle of the screen
+    # moves the camera not at all. The view follows once they near an edge.
+    #
+    # A margin wider than half the window has no position that satisfies it.
+    # This method centres instead.
     def reveal(x : Int32, y : Int32, margin : Int32 = 0) : Nil
       room = viewport_size
       return if room[0] <= 0 || room[1] <= 0
@@ -194,7 +197,7 @@ module TermBuf::Widgets
       window @camera_x, viewport_size[0], @cells.columns
     end
 
-    # :ditto: for rows.
+    # The rows of the field that are showing.
     def visible_y : Range(Int32, Int32)
       window @camera_y, viewport_size[1], @cells.rows
     end
@@ -206,7 +209,7 @@ module TermBuf::Widgets
       (first...Math.min(first + room, extent))
     end
 
-    # Yields the coordinates and the cell of everything showing, in reading
+    # Yields the coordinates and the cell of everything showing. In reading
     # order.
     def each_visible(& : Int32, Int32, T ->) : Nil
       across = visible_x
@@ -216,12 +219,14 @@ module TermBuf::Widgets
       end
     end
 
-    # Which cell of the field is at *view_x*, *view_y* of the window, or `nil`
-    # when that spot is outside the window or past the edge of the field.
+    # Which cell of the field is at *view_x*, *view_y* of the window.
     #
-    # What a mouse report wants next: `Layout::Tree#hit` says the pointer is
-    # over this widget, and `Widget#content` turns the screen cell into one of
-    # these.
+    # Answers `nil` when that spot is outside the window. Answers `nil` when
+    # it is past the edge of the field.
+    #
+    # A mouse report needs this. `Layout::Tree#hit` says the pointer is over
+    # this widget. `Widget#content` turns the screen cell into a window
+    # cell.
     def cell_at(view_x : Int32, view_y : Int32) : {Int32, Int32}?
       room = viewport_size
       return unless 0 <= view_x < room[0] && 0 <= view_y < room[1]
@@ -232,8 +237,8 @@ module TermBuf::Widgets
       spot
     end
 
-    # Where in the window the field's *x*, *y* is drawn, or `nil` when it is
-    # not showing. The inverse of `#cell_at`.
+    # Where in the window the field's *x*, *y* draws. Answers `nil` when it is
+    # not showing. This is the inverse of `#cell_at`.
     def view_of(x : Int32, y : Int32) : {Int32, Int32}?
       return unless @cells.contains? x, y
 
@@ -244,8 +249,8 @@ module TermBuf::Widgets
       spot
     end
 
-    # Turns a cell of the screen into one of the field, for a widget holding
-    # a mouse event whose coordinates are the buffer's.
+    # Turns a cell of the screen into a cell of the field. A mouse event
+    # carries buffer coordinates. This method takes those.
     def cell_at_screen(screen_x : Int32, screen_y : Int32) : {Int32, Int32}?
       box = content
 
@@ -258,25 +263,27 @@ module TermBuf::Widgets
       Layout::Intrinsic.new 1, Math.max(@cells.columns, 1)
     end
 
-    # As tall as the field. A grid sized to grow never uses this; one sized to
-    # fit is as tall as what it holds.
+    # As tall as the field.
+    #
+    # A grid sized to grow never uses this. A grid sized to fit is as tall as
+    # the field it holds.
     def height_for_width(width : Int32, policy : Unicode::WidthPolicy) : Int32
       @cells.rows
     end
 
-    # Answers a wheel notch, and lets everything else past.
+    # Answers a wheel notch. Lets every other event past.
     def handle(event : Event, context : Context) : Nil
       return unless event.is_a? Events::Mouse
 
       context.consume if scroll_wheel event
     end
 
-    # Draws the cells that are showing, one view each.
+    # Draws the cells that are showing. One view for each.
     def draw(view : View) : Nil
       return if view.width <= 0 || view.height <= 0
 
-      # A window that grew may be showing past the edge of the field, which
-      # the camera has had no reason to notice until now.
+      # A window that grew may show past the edge of the field. The camera
+      # has had no reason to notice that until now.
       scroll_to @camera_x, @camera_y
 
       hook = @on_draw

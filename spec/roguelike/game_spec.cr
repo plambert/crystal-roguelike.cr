@@ -45,7 +45,7 @@ Spectator.describe Roguelike::Game do
   end
 
   describe "#step" do
-    # The up staircase sits in a room, so every direction out of it is floor.
+    # The up staircase sits in a room. Every square around it is floor.
     it "moves one square and takes a turn" do
       start = game.player.at
 
@@ -73,8 +73,8 @@ Spectator.describe Roguelike::Game do
       expect(game.turn).to eq 16
     end
 
-    # A step into a wall is not the character doing anything, so nothing else
-    # on the level should get a turn out of it.
+    # A blocked step is not an action. No other creature on the level should
+    # get a turn out of it.
     it "will not walk into rock, and costs no turn for trying" do
       level = Roguelike::Level.parse "cell", "###\n#<#\n###"
       shut = described_class.new(Roguelike::World.new(1_u64, {"cell" => level}),

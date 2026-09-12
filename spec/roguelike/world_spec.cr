@@ -57,8 +57,8 @@ Spectator.describe Roguelike::World do
       expect(again["proving-ground"]).to eq world["proving-ground"]
     end
 
-    # The seed is the run's identity and everything random comes from it, so a
-    # save that lost it could not reproduce anything.
+    # The seed is the run's identity. Every random value comes from it. A
+    # save that lost the seed could reproduce nothing.
     it "keeps the seed" do
       stored = JSON.parse world.to_json
 

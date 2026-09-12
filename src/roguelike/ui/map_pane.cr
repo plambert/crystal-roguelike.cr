@@ -1,12 +1,14 @@
 module Roguelike::Ui
-  # A level as something a `CellGrid` can draw.
+  # A level, as something a `CellGrid` can draw.
   #
-  # The adapter exists so that `Level` needs no reference to the widget layer.
-  # A level is the model and a `Cells` is what a window over one is asked; the
-  # game reads and writes the first and only the screen holds the second.
+  # This adapter exists so that `Level` needs no reference to the widget
+  # layer. A level is the model. A `Cells` is what a window over one asks. The
+  # game reads and writes the first. Only the screen holds the second.
   class LevelCells < Widgets::Cells(Tile)
-    # Which level is being shown. Assigning another shows that one instead,
-    # which is what walking down a staircase will be.
+    # Which level is being shown.
+    #
+    # Assigning another level shows that one instead. Walking down a staircase
+    # will do that.
     property level : Level
 
     def initialize(@level : Level)
@@ -27,31 +29,31 @@ module Roguelike::Ui
 
   # The window a level is played in.
   #
-  # Holds the `CellGrid` and the camera over it, and knows how a tile is
-  # drawn. Everything about where the window is pointed goes through here.
+  # This class holds the `CellGrid` and the camera over it. It knows how a
+  # tile draws. Every change to where the window points goes through here.
   class MapPane
-    # What the grid is asking.
+    # What the grid asks for its cells.
     getter cells : LevelCells
 
-    # The widget itself, for putting in a tree.
+    # The widget itself. A caller puts it in a tree.
     getter grid : Widgets::CellGrid(Tile)
 
-    # Cells kept between the thing being followed and the edge of the window
-    # before the camera moves at all.
+    # Cells kept between the followed square and the edge of the window. The
+    # camera does not move while the square is further in than this.
     property margin : Int32 = 6
 
-    # The square the examine cursor is on, or `nil` when there is no cursor.
+    # The square the examine cursor is on. `nil` when there is no cursor.
     #
-    # Drawn over whatever is there rather than instead of it, so the cursor
-    # says where it is without hiding what it is standing on.
+    # The cursor draws over whatever is on the square. It does not replace it.
+    # The cursor says where it is. It does not hide what it stands on.
     property cursor : {Int32, Int32}? = nil
 
-    # What is standing on a square, drawn over the terrain rather than in
-    # place of it in the level.
+    # What is standing on a square. It draws over the terrain. It is not
+    # written into the level.
     #
-    # The character for now; monsters and what is lying about later. Filled by
-    # whatever owns the game state, because a pane draws a level and has no
-    # business knowing what walks on it.
+    # The character goes here now. Monsters and dropped items go here later.
+    # Whatever owns the game state fills this table. A pane draws a level. A
+    # pane does not know what walks on it.
     getter marks : Hash({Int32, Int32}, Look) = {} of {Int32, Int32} => Look
 
     def initialize(level : Level)
@@ -67,7 +69,7 @@ module Roguelike::Ui
       end
     end
 
-    # Puts *look* on *x*, *y* until the marks are cleared.
+    # Puts *look* on *x*, *y*. It stays until `#clear_marks`.
     def mark(x : Int32, y : Int32, look : Look) : Nil
       @marks[{x, y}] = look
     end
@@ -77,7 +79,7 @@ module Roguelike::Ui
       @marks.clear
     end
 
-    # What is on *x*, *y* over the terrain, or `nil` for bare ground.
+    # What is on *x*, *y* over the terrain. `nil` for bare ground.
     def mark?(x : Int32, y : Int32) : Look?
       @marks[{x, y}]?
     end
@@ -96,18 +98,19 @@ module Roguelike::Ui
     end
 
     # Moves the camera as little as it takes to keep *x*, *y* off the edge of
-    # the window, which is what following the player is.
+    # the window. Following the character uses this.
     def follow(x : Int32, y : Int32) : Nil
       @grid.reveal x, y, margin: @margin
     end
 
-    # Puts *x*, *y* in the middle of the window, as near as the edges allow.
+    # Puts *x*, *y* in the middle of the window. Stops at the edges of the
+    # level.
     def center_on(x : Int32, y : Int32) : Nil
       @grid.center_on x, y
     end
 
-    # Which square of the level is at *screen_x*, *screen_y* of the buffer, or
-    # `nil` when the pointer is not over one.
+    # Which square of the level is at *screen_x*, *screen_y* of the buffer.
+    # `nil` when the pointer is not over a square.
     def cell_at_screen(screen_x : Int32, screen_y : Int32) : {Int32, Int32}?
       @grid.cell_at_screen screen_x, screen_y
     end
@@ -117,8 +120,8 @@ module Roguelike::Ui
       {@grid.scroll_x, @grid.scroll_y}
     end
 
-    # Which square is in the middle of the window, which is where a cursor
-    # with nowhere else to be should start.
+    # Which square is in the middle of the window. A cursor with nowhere else
+    # to be starts there.
     def middle : {Int32, Int32}
       room = @grid.viewport_size
 

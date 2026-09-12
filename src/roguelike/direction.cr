@@ -1,8 +1,8 @@
 module Roguelike
   # One step on the eight-way grid.
   #
-  # Ordered anticlockwise from east, so that the opposite of a direction is
-  # four steps round and turning is arithmetic rather than a table.
+  # The members run anticlockwise from east. The opposite of a direction is
+  # four steps round. `#opposite` is arithmetic. It needs no table.
   enum Direction
     East
     NorthEast
@@ -22,8 +22,8 @@ module Roguelike
       end
     end
 
-    # Rows this step moves. South is positive, because a screen counts rows
-    # downward and the level is stored the way it is drawn.
+    # Rows this step moves. South is positive. A screen counts rows downward.
+    # A level stores rows in the same order it draws them.
     def dy : Int32
       case self
       in .north?, .north_east?, .north_west? then -1
@@ -32,7 +32,7 @@ module Roguelike
       end
     end
 
-    # Both at once.
+    # Both offsets at once.
     def step : {Int32, Int32}
       {dx, dy}
     end
@@ -42,17 +42,17 @@ module Roguelike
       {x + dx, y + dy}
     end
 
-    # The way back.
+    # The direction back.
     def opposite : Direction
       Direction.new (value + 4) % 8
     end
 
-    # Whether it moves on both axes at once.
+    # Whether this step moves on both axes.
     def diagonal? : Bool
       dx != 0 && dy != 0
     end
 
-    # What it is called, for a message.
+    # What this direction is called. For a message.
     def label : String
       case self
       in .east?       then "east"

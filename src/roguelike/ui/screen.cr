@@ -1,5 +1,6 @@
 module Roguelike::Ui
-  # The regions the game is drawn in, and nothing about what goes in them.
+  # The regions the game is drawn in. This class says nothing about what goes
+  # in them.
   #
   #     ┌──────────────────────────┬────────────┐
   #     │ map                      │ sidebar    │
@@ -9,54 +10,60 @@ module Roguelike::Ui
   #     │ log                                   │
   #     └───────────────────────────────────────┘
   #
-  # The map grows to whatever is left. The sidebar is a fixed width, because
-  # what goes in it is a name and a short description and those read at a
-  # width that does not move. The status line is one row and the log is
-  # `LOG_ROWS`, both across the whole screen, because a message cut off at the
-  # sidebar would be a message half read.
+  # The map takes whatever width is left. The sidebar has a fixed width. It
+  # holds a name and a short description. Those read at a width that does not
+  # change.
   #
-  # Nothing here opens a terminal or reads an event. A `Screen` is a widget
-  # tree, so a spec builds one, renders it into a buffer and reads the cells
+  # The status line is one row. The log is `LOG_ROWS` rows. Both run the whole
+  # width. A message cut off at the sidebar would be half a message.
+  #
+  # This class opens no terminal. It reads no event. A `Screen` is a widget
+  # tree. A spec builds one, renders it into a buffer, and reads the cells
   # back.
   class Screen
-    # How wide the sidebar is. Twenty-four columns holds "a masterwork +1
-    # chain mail" on one line, which is about the longest thing that has to
-    # fit without wrapping.
+    # How wide the sidebar is.
+    #
+    # Twenty-four columns holds "a masterwork +1 chain mail" on one line. That
+    # is about the longest item name that has to fit without wrapping.
     SIDEBAR_WIDTH = 24
 
-    # Under this the sidebar is dropped rather than squeezed, because a map
-    # pane narrower than the sidebar beside it is no longer a map pane. The
-    # number is the sidebar plus enough map to play in.
+    # The narrowest screen that keeps the sidebar.
+    #
+    # A map pane narrower than the sidebar beside it is not a map pane. Under
+    # this width the sidebar is hidden rather than squeezed. The number is the
+    # sidebar width plus enough map to play in.
     SIDEBAR_MINIMUM_COLUMNS = 60
 
     # Rows the message log is given.
     LOG_ROWS = 4
 
-    # Rows that are not the map: the rule, the status line and the log.
+    # How many rows are not the map. The rule, the status line and the log.
     CHROME_ROWS = 1 + 1 + LOG_ROWS
 
     # The narrowest terminal the game is drawn in.
     #
-    # Under this the log wraps to something nobody can read and the map shows
-    # less than a room. There is no point drawing a game there, so the notice
-    # is drawn instead and the player is asked for a larger window.
+    # Under this width the log wraps to something nobody can read. The map
+    # shows less than one room. The notice is drawn instead of the game. The
+    # notice asks for a larger window.
     MINIMUM_COLUMNS = 40
 
-    # The shortest, for the same reason: `CHROME_ROWS` of it is not the map,
-    # so this leaves ten rows to play in.
+    # The shortest terminal the game is drawn in.
+    #
+    # `CHROME_ROWS` of the height is not the map. This height leaves ten rows
+    # to play in.
     MINIMUM_ROWS = 16
 
-    # The whole tree, for `App` and for `Layout::Tree`.
+    # The whole tree. `App` and `Layout::Tree` take it.
     #
-    # Holds both the game and the notice that there is no room for it. Which
-    # one is drawn is `#fit`'s to decide, and swapping between them is two
-    # widgets being hidden and unhidden rather than a tree being rebuilt.
+    # It holds both the game and the notice that there is no room for the
+    # game. `#fit` decides which one draws. Swapping between them hides one
+    # widget and unhides the other. It does not rebuild the tree.
     getter root : Widgets::Panel
 
-    # The four regions, hidden while there is no room for them.
+    # The four regions. Hidden while there is no room for them.
     getter playing : Widgets::Panel
 
-    # What is drawn instead when the terminal is too small.
+    # What draws instead when the terminal is too small.
     getter notice : Widgets::Panel
 
     # The line in the notice that says how big the terminal is now.
@@ -71,18 +78,19 @@ module Roguelike::Ui
     # What is under the pointer, and later the character summary.
     getter sidebar : Widgets::Panel
 
-    # One row: hit points, attributes, depth, gold.
+    # One row. It will hold hit points, attributes, depth and gold.
     getter status : Widgets::Panel
 
     # What has just happened, oldest first.
     getter log : Widgets::Panel
 
-    # The rule between the map and the sidebar, which goes when it does.
+    # The rule between the map and the sidebar. It hides when the sidebar
+    # hides.
     getter gutter : Widgets::Divider
 
     def initialize
-      # No padding: a map is a grid of cells and a column given up to a
-      # margin is a column of the level nobody can see.
+      # A map pane has no padding. A map is a grid of cells. A column given
+      # to a margin is a column of the level nobody can see.
       @map = Widgets::Panel.new(
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)
@@ -143,7 +151,7 @@ module Roguelike::Ui
       columns >= MINIMUM_COLUMNS && rows >= MINIMUM_ROWS
     end
 
-    # What to say to somebody whose terminal is *columns* by *rows*.
+    # What to tell a person whose terminal is *columns* by *rows*.
     def self.too_small(columns : Int32, rows : Int32) : String
       "This game requires #{MINIMUM_COLUMNS} columns and #{MINIMUM_ROWS} rows " \
       "in the terminal, please resize larger. This one is #{columns} by #{rows}."
@@ -151,13 +159,13 @@ module Roguelike::Ui
 
     # Answers the layout to a screen of *columns* by *rows*.
     #
-    # The layout engine apportions what it is given and does not decide that a
-    # pane is no longer worth having, so that decision is made here and said
-    # with `#hidden?`, which takes a widget out of the layout entirely — no
-    # size, no position, and no gap where it was.
+    # The layout engine divides the space it is given. It never decides that a
+    # pane is not worth showing. This method makes that decision. It says so
+    # with `#hidden?`. A hidden widget leaves the layout. It takes no size, no
+    # position and no gap.
     #
-    # Called before the first frame and again on every resize, by whatever
-    # owns the terminal.
+    # Whatever owns the terminal calls this before the first frame. It calls
+    # it again on every resize.
     def fit(columns : Int32, rows : Int32) : Nil
       room = Screen.fits? columns, rows
 
@@ -173,34 +181,31 @@ module Roguelike::Ui
       @gutter.hidden = !wanted
     end
 
-    # Whether the game, rather than the notice, is being drawn at the size it
-    # was last fitted to.
+    # Whether the game is being drawn. The notice draws otherwise.
     def playing? : Bool
       !@playing.hidden?
     end
 
-    # Puts *widget* in the map pane, taking out whatever was there.
+    # Puts *widget* in the map pane. Takes out whatever was there.
     #
-    # What `Ui::MapPane` is hung on, and what a level being swapped for
-    # another goes through.
+    # `Ui::MapPane` goes here.
     def show(widget : Widgets::Widget) : Nil
       @map.clear
       @map.add widget
     end
 
-    # Puts *widget* in the sidebar, taking out whatever was there.
+    # Puts *widget* in the sidebar. Takes out whatever was there.
     #
-    # What `Ui::ExaminePane` is hung on.
+    # `Ui::ExaminePane` goes here.
     def show_sidebar(widget : Widgets::Widget) : Nil
       @sidebar.clear
       @sidebar.add widget
     end
 
-    # Fills the regions that have nothing of their own yet with something that
-    # says where they are.
+    # Fills the regions that have nothing of their own yet.
     #
-    # Scaffolding. Phase 7 takes the status line and phase 8 the log, and when
-    # the second of them has gone so has this method.
+    # This is scaffolding. Phase 7 takes the status line. Phase 8 takes the
+    # log. This method goes when the second of those lands.
     def scaffold(seed : UInt64) : Nil
       @status_text.text = "seed #{seed}    turn 0"
       @status.add @status_text
@@ -209,13 +214,12 @@ module Roguelike::Ui
         "Welcome to the dungeon. ? for the keys, Q to leave.")
     end
 
-    # Whether the sidebar is being shown at the size it was last fitted to.
+    # Whether the sidebar is being shown.
     def sidebar? : Bool
       !@sidebar.hidden?
     end
 
-    # Rows the map pane comes to on a screen of *rows*, which is what the
-    # camera has to work with.
+    # How many rows the map pane gets on a screen of *rows*.
     def self.map_rows(rows : Int32) : Int32
       Math.max rows - CHROME_ROWS, 0
     end

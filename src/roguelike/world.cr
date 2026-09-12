@@ -2,19 +2,20 @@ require "json"
 require "./level"
 
 module Roguelike
-  # Every level of one run, and the seed that made it.
+  # Every level of one run, and the seed that made them.
   #
-  # Levels are kept rather than regenerated, because leaving one and coming
-  # back to it has to find what was left there. The world is what a save file
-  # holds, which is why the seed is here: it is the run's identity, and
-  # everything random in the run is derived from it.
+  # The world keeps levels. It does not regenerate them. A player who leaves a
+  # level and comes back must find what they left there.
+  #
+  # A save file holds a world. The seed is here for that reason. The seed is
+  # the run's identity. Every random value in the run derives from it.
   class World
     include JSON::Serializable
 
-    # What this run was started from.
+    # What this run started from.
     getter seed : UInt64
 
-    # Every level there is, by the name it keeps.
+    # Every level there is, by the id it keeps.
     getter levels : Hash(String, Level)
 
     def initialize(@seed : UInt64, @levels : Hash(String, Level) = {} of String => Level)
@@ -25,12 +26,12 @@ module Roguelike
       new rng.seed
     end
 
-    # The level called *id*, which has to be there.
+    # The level called *id*. The level has to be there.
     def [](id : String) : Level
       @levels[id]
     end
 
-    # :ditto:, answering `nil` when it is not.
+    # :ditto: Answers `nil` when the level is not there.
     def []?(id : String) : Level?
       @levels[id]?
     end
@@ -40,7 +41,7 @@ module Roguelike
       @levels.has_key? id
     end
 
-    # Puts *level* in the world under its own id, answering it.
+    # Puts *level* in the world under its own id. Answers *level*.
     def add(level : Level) : Level
       @levels[level.id] = level
     end

@@ -1,21 +1,21 @@
 module Roguelike::Ui
-  # The bindings that belong to the whole application rather than to any one
-  # widget.
+  # The bindings that belong to the whole application.
   #
-  # Kept apart from `Session` because `Session` owns a terminal and this does
-  # not: a spec builds an `App` over a buffer, installs these, and drives them
-  # with synthetic key events.
+  # This module sits apart from `Session`. `Session` owns a terminal. This
+  # module owns none. A spec builds an `App` over a buffer, installs these
+  # bindings, and sends synthetic key events.
   #
-  # Each set is built on its own and merged, so a spec can install the one it
-  # is about and nothing else.
+  # Each set is built on its own. A caller merges the sets it wants. A spec
+  # installs only the set it is about.
   module Keys
-    # The eight keys that move, in the layout NetHack made standard: `hjkl`
-    # for the cardinals and `yubn` for the corners, laid out the way they sit
-    # on the keyboard.
+    # The eight keys that move.
     #
-    # They move the examine cursor while it is on the map and the player
-    # otherwise, which is why they are bound once and dispatched by whatever
-    # is listening rather than bound twice.
+    # NetHack made this layout standard. `hjkl` are the cardinals. `yubn` are
+    # the corners. Each key sits on the keyboard where its direction points.
+    #
+    # These keys are bound once. Whatever is listening decides what they move.
+    # The examine cursor moves while it is on the map. The character moves
+    # otherwise.
     MOVES = {
       "h" => Direction::West,
       "j" => Direction::South,
@@ -27,17 +27,17 @@ module Roguelike::Ui
       "n" => Direction::SouthEast,
     }
 
-    # Binds the application's own keys on *app* and puts the help overlay on
-    # `F1` and `?`, answering the overlay so a caller can ask whether it is up.
+    # Binds the application's own keys on *app*. Puts the help overlay on `F1`
+    # and `?`. Answers the overlay so a caller can ask whether it is up.
     #
-    # *on_quit* runs when the player asks to leave. Ending the run is the
-    # caller's to do, because what that means depends on what owns the loop.
+    # *on_quit* runs when the player asks to leave. Ending the run belongs to
+    # the caller. What ending means depends on what owns the loop.
     def self.install(app : Widgets::App, &on_quit : -> Nil) : Widgets::HelpOverlay
       app.keymap = app.keymap.merge application(&on_quit)
       Widgets::HelpOverlay.install app
     end
 
-    # What the application answers under whatever a widget claims first.
+    # What the application answers after every widget declines a key.
     def self.application(&on_quit : -> Nil) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("Q"), "leave the game",
@@ -45,7 +45,7 @@ module Roguelike::Ui
       end
     end
 
-    # The eight movement keys, each handing its direction to *on_move*.
+    # The eight movement keys. Each hands its direction to *on_move*.
     def self.moving(&on_move : Direction -> Nil) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         MOVES.each do |key, direction|
@@ -55,8 +55,8 @@ module Roguelike::Ui
       end
     end
 
-    # `x` to put the examine cursor on the map and take it off again, and
-    # `Escape` to take it off whatever put it there.
+    # `x` puts the examine cursor on the map and takes it off again. `Escape`
+    # takes it off.
     def self.examining(examiner : Examiner) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("x"), "look at a square",
@@ -66,11 +66,11 @@ module Roguelike::Ui
       end
     end
 
-    # `M` to turn mouse reporting on and off.
+    # `M` turns mouse reporting on and off.
     #
-    # It is a toggle because a terminal reporting the mouse no longer lets the
-    # person select and copy with it, and reading the screen is worth more
-    # than pointing at it often enough that the choice has to be theirs.
+    # This is a toggle. A terminal reporting the mouse no longer lets the
+    # person select and copy with it. Reading the screen is worth more than
+    # pointing at it often enough that the person must choose.
     def self.mousing(&on_toggle : -> Nil) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("M"), "turn the mouse on or off",

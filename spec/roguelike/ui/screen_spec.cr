@@ -1,8 +1,8 @@
 require "../../spec_helper"
 
 Spectator.describe Roguelike::Ui::Screen do
-  # A screen fitted to *columns* by *rows* and filled, which is what every
-  # example here is about to measure.
+  # A screen fitted to *columns* by *rows*, and filled. Every example here
+  # measures one of these.
   def laid_out(columns : Int32, rows : Int32) : Roguelike::Ui::Screen
     screen = Roguelike::Ui::Screen.new
     screen.fit columns, rows

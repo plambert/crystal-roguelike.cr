@@ -4,24 +4,25 @@ require "./ui"
 module Roguelike
   # One run, from taking the terminal over to giving it back.
   #
-  # The only thing in the game that owns a device. Everything it shows and
-  # everything its keys do is `Ui::Play`, which owns no device, so the
-  # interesting half is driven by specs over a buffer and what is left here is
-  # the frame loop, the mouse and the cursor.
+  # This is the only class in the game that owns a device. `Ui::Play` owns
+  # everything shown and everything the keys do. `Ui::Play` owns no device, so
+  # specs drive it over a buffer. What is left here is the frame loop, the
+  # mouse and the cursor.
   class Session
-    # Runs a game on the terminal, giving it back however the run ends —
-    # including on an exception or a signal, which is what the block form of
-    # `Terminal.open` is for.
+    # Runs a game on the terminal. Gives the terminal back however the run
+    # ends. That includes an exception and a signal. The block form of
+    # `Terminal.open` does that.
     #
-    # Answers false without taking the terminal over at all when the window is
-    # too small to play in, having said so on stderr. The size is read before
-    # the alternate screen is entered, so the message is left where the person
-    # can read it rather than wiped by the screen being handed back.
+    # Answers false when the window is too small to play in. It writes the
+    # reason to stderr. It does not take the terminal over at all.
     #
-    # `SizeDetector` is termbuf's internal tier. It is used here because the
-    # question — how big is the terminal, without opening it — has no answer
-    # in the stable API, and the alternative is entering the alternate screen
-    # and leaving it again to find out.
+    # This method reads the size before it enters the alternate screen. The
+    # message then stays where the person can read it. Handing the screen back
+    # would wipe it.
+    #
+    # `SizeDetector` is termbuf's internal tier. The stable API cannot answer
+    # how big a terminal is without opening it. The other way to find out is
+    # to enter the alternate screen and leave it again.
     def self.open(rng : Rng) : Bool
       size = TermBuf::SizeDetector.detect
 
@@ -37,29 +38,29 @@ module Roguelike
       true
     end
 
-    # The device, and the only one anything here touches.
+    # The device. This class touches no other.
     getter terminal : TermBuf::Terminal
 
     # The run's randomness.
     getter rng : Rng
 
-    # Everything that is shown and everything the keys do.
+    # Everything that is shown. Everything the keys do.
     getter play : Ui::Play
 
     # The widget tree, its focus and its router.
     getter app : Ui::Widgets::App
 
-    # The terminal's own cursor, pointed wherever it belongs.
+    # The terminal's own cursor.
     getter cursor : TermBuf::Cursor
 
-    # The keys that work here, listed on `F1` and `?`.
+    # The list of keys that work here. `F1` and `?` show it.
     getter help : Ui::Widgets::HelpOverlay
 
     # Whether the terminal is reporting the mouse.
     #
-    # On at the start, because pointing at a square to find out what it is is
-    # the quickest way to read a map, and off on `M`, because a terminal
-    # reporting the mouse no longer lets the person select text with it.
+    # This starts on. Pointing at a square is the quickest way to read a map.
+    # `M` turns it off. A terminal reporting the mouse no longer lets the
+    # person select text with it.
     getter? mousing : Bool = false
 
     # Whether something has ended the run.
@@ -89,8 +90,8 @@ module Roguelike
 
       self.mousing = true
 
-      # One layout before the camera is pointed, because a window that has not
-      # been measured has no middle to put anything in.
+      # One layout runs before the camera is pointed. An unmeasured window
+      # has no middle to put anything in.
       @app.frame { }
       @play.look_at_player
     end
@@ -100,11 +101,12 @@ module Roguelike
       @play.game
     end
 
-    # Draws, waits, and does it again until something ends the run.
+    # Draws, waits, and repeats until something ends the run.
     #
-    # The pointer shape is put back however the run ends. `Terminal#close`
-    # gives back everything termbuf asked for and nothing it does not know
-    # about, and `OSC 22` is ours.
+    # The `ensure` puts the pointer shape back however the run ends.
+    # `Terminal#close` gives back everything termbuf asked for. It does not
+    # know about `OSC 22`. This class asked for that. This class gives it
+    # back.
     def run : Nil
       loop do
         draw
@@ -116,11 +118,12 @@ module Roguelike
       tell @play.pointer_away
     end
 
-    # Turns mouse reporting on or off, and says so on the status line.
+    # Turns mouse reporting on or off. Writes the new state to the status
+    # line.
     #
-    # Nothing asks the terminal for the mouse uninvited, and giving it back is
-    # `Terminal#close`'s job as well as this one's, so a run that ends any way
-    # at all leaves the terminal able to select text again.
+    # Nothing asks the terminal for the mouse uninvited. `Terminal#close`
+    # gives the mouse back as well as this method. A run that ends any way at
+    # all leaves the terminal able to select text again.
     def mousing=(wanted : Bool) : Bool
       return wanted if wanted == @mousing
 
@@ -137,23 +140,24 @@ module Roguelike
       wanted
     end
 
-    # Writes the status line, which is the one thing on the screen the play
-    # cannot work out for itself.
+    # Writes the status line. `Ui::Play` cannot work out the mouse state on
+    # its own.
     private def status : Nil
       @play.screen.status_text.text = @play.status mousing?
     end
 
-    # Sends *sequence*, if there is one to send.
+    # Sends *sequence*. Sends nothing when *sequence* is `nil`.
     private def tell(sequence : String?) : Nil
       @terminal.passthrough sequence if sequence
     end
 
     # An event no widget wanted.
     #
-    # Two get this far: a mouse report, because the map pane draws squares and
-    # does not know what is on them, and a resize, because the tree has to be
-    # laid out again and `Screen#fit` asked what is still worth showing before
-    # anything is drawn against the new rectangles.
+    # Two kinds get this far. A mouse report gets here because the map pane
+    # draws squares and does not know what is on them. A resize gets here
+    # because the tree has to be laid out again. `Screen#fit` then decides
+    # what is still worth showing, before anything draws against the new
+    # rectangles.
     private def unclaimed(event : TermBuf::Event) : Nil
       case event
       when TermBuf::Events::Mouse  then tell @play.pointed(event.x, event.y)
@@ -169,16 +173,16 @@ module Roguelike
       @app.resize bounds
       @cursor.region.bounds = bounds
 
-      # Whatever the pointer was over is not there any more.
+      # The square the pointer was over has moved.
       tell @play.pointer_away
     end
 
-    # One frame: lay out, draw, put the terminal's own cursor where it
-    # belongs, and send the difference.
+    # One frame. Lay out, draw, place the terminal's own cursor, and send the
+    # difference.
     private def draw : Nil
       @app.frame do |focused|
-        # The pointer wins: it is being moved now, and whatever has the
-        # keyboard is not.
+        # The pointer wins. The person is moving it now. The person is not
+        # moving whatever has the keyboard.
         spot = @play.pointer.cursor || focused
 
         if spot

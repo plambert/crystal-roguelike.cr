@@ -1,23 +1,23 @@
-# Text a spec compares against, kept in a file so a change shows as a diff.
+# Text a spec compares against. It lives in a file so that a change shows as a
+# diff.
 #
-# A rendered screen, a field of view, a generated level: things where the
-# assertion worth making is "all of this, exactly", and where an inline
-# heredoc would bury the spec. Keeping them in files means `git diff` shows
-# what moved.
+# A rendered screen goes here. So does a field of view. So does a generated
+# level. Each of those is worth asserting whole. An inline heredoc would bury
+# the spec around it. A file lets `git diff` show what moved.
 module Fixture
   # Where the files live.
   DIRECTORY = Path[__DIR__].parent / "fixtures"
 
   # The fixture named *name*.
   #
-  # With `UPDATE_FIXTURES` set in the environment, *actual* is written there
-  # first and comes straight back, which is how a fixture is regenerated after
-  # a deliberate change:
+  # Set `UPDATE_FIXTURES` in the environment and this method writes *actual*
+  # to the file first. It then returns what it wrote. That is how a fixture is
+  # regenerated after a deliberate change:
   #
   #     UPDATE_FIXTURES=1 crystal spec
   #
-  # Read the diff before committing one. A fixture that is regenerated to make
-  # a red spec green asserts nothing.
+  # Read the diff before committing a regenerated fixture. A fixture
+  # regenerated to make a red spec green asserts nothing.
   def self.expected(name : String, actual : String) : String
     path = DIRECTORY / name
 
@@ -30,10 +30,10 @@ module Fixture
       raise "no fixture at #{path}: run UPDATE_FIXTURES=1 crystal spec to write one"
     end
 
-    # Exactly one trailing newline comes off, because it is the file's
-    # terminator rather than content. Chomping more would throw away the blank
-    # rows at the bottom of a screen, which are the ones that say a pane is
-    # the height it claims.
+    # Exactly one trailing newline comes off. That newline is the file's
+    # terminator. It is not content. Chomping more would throw away the blank
+    # rows at the bottom of a screen. Those rows say a pane is the height it
+    # claims.
     stored = File.read path
     stored.ends_with?('\n') ? stored[0...-1] : stored
   end

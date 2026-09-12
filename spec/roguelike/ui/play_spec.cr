@@ -77,8 +77,8 @@ Spectator.describe Roguelike::Ui::Play do
   end
 
   describe "walking into something" do
-    # The up staircase sits six squares from the room's west wall, so six
-    # steps arrive and the seventh does not.
+    # The up staircase sits six squares from the room's west wall. Six steps
+    # arrive. The seventh does not.
     it "stops at a wall and burns no turn on the attempt" do
       run = Playing.open
       start = run.at
@@ -102,8 +102,9 @@ Spectator.describe Roguelike::Ui::Play do
   end
 
   describe "the camera" do
-    # A dead zone: somebody walking about the middle of the window moves
-    # nothing, and the view only follows once they near an edge.
+    # This is a dead zone. A person walking about the middle of the window
+    # moves the camera not at all. The view follows once they near an
+    # edge.
     it "holds still while the character is well inside the window" do
       run = Playing.open Playing.field
       before = run.map.camera
@@ -164,8 +165,8 @@ Spectator.describe Roguelike::Ui::Play do
   end
 
   describe "while the examine cursor is up" do
-    # Somebody reading the level is not walking about it, so the same keys
-    # mean the cursor until it is taken off again.
+    # A person reading the level is not walking about it. The same keys mean
+    # the cursor until the cursor comes off.
     it "moves the cursor and not the character" do
       run = Playing.open
       start = run.at

@@ -13,7 +13,7 @@ Spectator.describe Roguelike::Ui::Pointer do
     end
 
     # A program gives back what it took and no more. A terminal whose pointer
-    # was never changed is left alone.
+    # never changed is left alone.
     it "says nothing when the pointer was never over the map" do
       expect(pointer.away).to be_nil
     end
@@ -54,9 +54,9 @@ Spectator.describe Roguelike::Ui::Pointer do
       expect(pointer.cursor).to be_nil
     end
 
-    # There is no reset that works. Kitty takes an empty payload as one and
-    # ghostty parses the payload as a shape name, so the empty form leaves a
-    # ghostty pointer on the crosshair it was last told to draw.
+    # No reset works across the three terminals. Kitty takes an empty payload
+    # as a reset. Ghostty parses the payload as a shape name. The empty form
+    # leaves a ghostty pointer on the crosshair.
     it "asks for a named shape rather than for a reset" do
       pointer.over 12, 5
 
@@ -85,8 +85,8 @@ Spectator.describe Roguelike::Ui::Pointer do
       expect(described_class.sequence("crosshair")).to eq "\e]22;crosshair\e\\"
     end
 
-    # `default`, `text` and `pointer` are the three every terminal with OSC 22
-    # at all supports. Anything outside that set is a portability bet.
+    # `default`, `text` and `pointer` are the three shapes every terminal
+    # with OSC 22 supports. A shape outside that set may not work.
     it "names shapes every terminal we support knows" do
       expect(Pointer::OVER_MAP).to eq "crosshair"
       expect(Pointer::ELSEWHERE).to eq "text"

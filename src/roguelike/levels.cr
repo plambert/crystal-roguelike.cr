@@ -3,14 +3,15 @@ require "./level"
 module Roguelike
   # The levels that ship with the game.
   #
-  # Read into the binary at build time rather than off the disk at run time,
-  # so the game works from any directory and a level cannot go missing between
-  # building it and playing it. The files under `data/levels` stay the form
-  # they are written and reviewed in.
+  # The compiler reads each map file at build time. The binary then holds the
+  # text. The game runs from any directory. A level file cannot go missing
+  # between a build and a run.
+  #
+  # The files under `data/levels` stay the form a person writes and reviews.
   module Levels
     PROVING_GROUND = {{ read_file("#{__DIR__}/../../data/levels/proving-ground.map") }}
 
-    # The level everything is tried out on until there is a generator.
+    # The level the game uses until there is a generator.
     def self.proving_ground : Level
       Level.parse "proving-ground", PROVING_GROUND
     end

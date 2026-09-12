@@ -5,24 +5,24 @@ module Demo
   # What one cell of the field looks like.
   record Mark, glyph : Char, style : TermBuf::Style
 
-  # A large field with landmarks in it, for looking at a camera.
+  # A large field with landmarks in it. For looking at a camera.
   #
-  # A camera over an even texture cannot be read: everything looks the same
-  # wherever the window is. So there are four kinds of landmark, each saying
+  # A camera over an even texture cannot be read. Every part of the field
+  # looks the same. So this field carries four kinds of landmark. Each says
   # something the others do not.
   #
-  # * Guide lines, closer together down than across, because a window is
-  #   shorter than it is wide and one of each should be in view.
-  # * The coordinates of every crossing, written beside it, which say exactly
+  # * Guide lines. The rows sit closer together than the columns. A window is
+  #   shorter than it is wide. One line of each kind should be in view.
+  # * The coordinates of every crossing, written beside it. They say exactly
   #   where the window is.
-  # * A diagonal, whose place in the window moves when either axis does — the
-  #   one landmark that answers both at once.
-  # * A plus in the middle of the field, small enough to see all of at once,
-  #   coloured from warm in the centre to cool at the tips.
+  # * A diagonal. Its place in the window moves when either axis moves. It is
+  #   the one landmark that answers both axes at once.
+  # * A plus in the middle of the field. It is small enough to see all at
+  #   once. Its colour runs warm in the centre and cool at the tips.
   #
-  # It is a `TermBuf::Widgets::Cells` subclass, which is how a source that
-  # works out what it holds is meant to be written — the same shape a level in
-  # a game has.
+  # This class is a `TermBuf::Widgets::Cells` subclass. A source that works
+  # out what it holds is written this way. A level in a game has the same
+  # shape.
   class Field < TermBuf::Widgets::Cells(Mark)
     alias Style = TermBuf::Style
     alias Color = TermBuf::Color
@@ -30,33 +30,39 @@ module Demo
     # Cells across and down.
     SIZE = 200
 
-    # Cells between guide lines, across and down. A window is wider than it is
-    # tall, so the rows are closer together than the columns.
+    # Cells between guide lines, across and down.
+    #
+    # A window is wider than it is tall. So the rows sit closer together than
+    # the columns.
     STEP_X = 20
     STEP_Y = 10
 
     # The middle, where the plus is.
     CENTRE = SIZE // 2
 
-    # How far each arm of the plus reaches, and how far it is from the arm's
-    # own middle to its edge. Small enough that the whole plus is in one
-    # window, which is what makes it a shape rather than a wall.
+    # How far each arm of the plus reaches. How far it is from the arm's own
+    # middle to its edge.
+    #
+    # The whole plus fits in one window. A larger plus would fill the view and
+    # read as a wall.
     ARM   = 7
     THICK = 1
 
-    # Fixed styles, interned once.
+    # Fixed styles. The style table interns each one once.
     #
-    # A style worked out per cell per frame interns one per cell, which is
-    # bounded by the screen for one frame and by nothing at all across an
-    # animation. Everything here comes from a table instead.
+    # A style built inside a draw call interns one style per cell. One frame
+    # bounds that count by the screen size. An animation does not bound it at
+    # all. Every style here comes from a table.
     DIM      = Style::DEFAULT.fg Color.rgb(0x3A, 0x3F, 0x4A)
     RULE     = Style::DEFAULT.fg Color.rgb(0x3A, 0x55, 0x77)
     CROSSING = Style::DEFAULT.fg Color.rgb(0x5A, 0x86, 0xBB)
     LEGEND   = Style::DEFAULT.fg Color.rgb(0xE8, 0xA0, 0x3C)
     SLASH    = Style::DEFAULT.fg Color.rgb(0x4C, 0xA8, 0x7A)
 
-    # The plus, warm in the middle and cool at the tips. One style per whole
-    # cell of reach, so the table stops growing after the first frame.
+    # The plus. Warm in the middle. Cool at the tips.
+    #
+    # There is one style per whole cell of reach. The style table stops
+    # growing after the first frame that draws the plus.
     ARMS = Array.new(ARM + 1) do |reach|
       part = reach / ARM
       Style::DEFAULT.fg Color.rgb(
@@ -101,8 +107,8 @@ module Demo
       x.even? ? STIPPLE : BLANK
     end
 
-    # How far along an arm of the plus *x*, *y* is, or `nil` when it is
-    # outside it.
+    # How far along an arm of the plus *x*, *y* is. Answers `nil` when it is
+    # outside the plus.
     def arm_at(x : Int32, y : Int32) : Int32?
       across = (x - CENTRE).abs
       down = (y - CENTRE).abs
@@ -115,8 +121,8 @@ module Demo
 
     # The character of a crossing's label that belongs at *x*, *y*.
     #
-    # A label sits one cell to the right of the crossing it names, so the
-    # crossing itself is still drawn.
+    # A label starts one cell to the right of the crossing it names. The
+    # crossing glyph then still draws.
     def legend_at(x : Int32, y : Int32) : Char?
       return unless y % STEP_Y == 0
 

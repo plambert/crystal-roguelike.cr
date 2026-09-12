@@ -1,16 +1,16 @@
-# A window over a field of cells, to look at.
+# A window over a field of cells. For looking at.
 #
 #     crystal run examples/cell_grid.cr
 #
-# Arrows, page keys, Home and End move the camera. The wheel scrolls, and so
-# does dragging either scrollbar. The pointer names the cell under it. Q
-# leaves.
+# Arrows, page keys, Home and End move the camera. The wheel scrolls. Dragging
+# either scrollbar scrolls. The pointer names the cell under it. Q leaves.
 #
-# `Demo::Field` is what is being looked at: a 200 by 200 field landmarked with
-# guide lines, the coordinates of every crossing, a diagonal and a plus in the
-# middle. It is a `Cells` subclass, which is the shape a level in a game has.
+# `Demo::Field` is what this program shows. It is a 200 by 200 field. It
+# carries guide lines, the coordinates of every crossing, a diagonal and a
+# plus in the middle. It is a `Cells` subclass. A level in a game has the same
+# shape.
 #
-# Moves with `CellGrid` when it goes to termbuf-widgets.cr.
+# This file moves with `CellGrid` when that goes to termbuf-widgets.cr.
 
 require "./cell_grid_field"
 
@@ -25,8 +25,8 @@ def framed(grid : Widgets::CellGrid(Demo::Mark)) : Widgets::Panel
     width: grow, height: grow)
   body.add grid, Widgets::Scrollbar.new(grid)
 
-  # Both bars are up all the time. One that appears only while something is
-  # scrolling says where you are exactly when you already know, and nothing
+  # Both bars stay up all the time. A bar that appears only while something
+  # scrolls says where you are at the moment you already know. It says nothing
   # the rest of the time.
   footer = Widgets::Panel.new(
     direction: Widgets::Layout::Direction::Row,
@@ -83,8 +83,9 @@ TermBuf::Terminal.open do |terminal|
     nil
   end
 
-  # One layout before the first status line, so it reports the window it is in
-  # rather than the nothing it had before anything was measured.
+  # One layout runs before the first status line. The status line then
+  # reports the window it is in. An unmeasured window has no size to
+  # report.
   app.frame { }
 
   loop do

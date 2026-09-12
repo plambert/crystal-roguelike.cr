@@ -3,7 +3,8 @@ require "../spec_helper"
 Spectator.describe Roguelike::Level do
   alias Terrain = Roguelike::Terrain
 
-  # Small enough to read, and holding one of everything that matters.
+  # Small enough to read. It holds one square of every terrain that
+  # matters.
   SAMPLE = <<-MAP
     #####
     #.<+=
@@ -33,8 +34,9 @@ Spectator.describe Roguelike::Level do
       expect(level.id).to eq "sample"
     end
 
-    # An editor that trims trailing whitespace would otherwise turn a wall
-    # into an error, or worse, into something else.
+    # An editor that trims trailing whitespace must not change a level. It
+    # must not turn a wall into an error. It must not turn a wall into
+    # something else.
     it "fills a short row out with rock" do
       ragged = described_class.parse "ragged", ["#####", "#.", "#####"]
 

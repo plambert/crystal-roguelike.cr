@@ -2,25 +2,25 @@ require "./headless"
 
 # A `Roguelike::Ui::Play` over a buffer, wired the way `Session` wires it.
 #
-# `Session` owns a terminal and `Play` owns everything else, so this is the
-# whole game short of the device: the same widget tree, the same keymap, the
-# same mouse handling. A spec presses keys at the thing that runs rather than
-# at a copy of it.
+# `Session` owns a terminal. `Play` owns everything else. So this module is
+# the whole game short of the device. It builds the same widget tree, the same
+# keymap and the same mouse handling. A spec presses keys at the code the game
+# runs. It does not press keys at a copy.
 module Playing
-  # The seed every spec uses unless it wants another, so that a failure names
-  # a run somebody can start.
+  # The seed every spec uses unless it wants another. A failure then names a
+  # run a person can start.
   SEED = 20260911_u64
 
-  # One wired game, and everything a spec needs to poke it.
+  # One wired game, and everything a spec needs to drive it.
   class Run
     # The game and everything it draws.
     getter play : Roguelike::Ui::Play
 
-    # The buffer it is drawn into.
+    # The buffer the game draws into.
     getter session : Headless::Session
 
-    # Every sequence the terminal would have been sent, oldest first, which is
-    # where the pointer shapes go.
+    # Every sequence the terminal would have been sent. Oldest first. The
+    # pointer shapes arrive here.
     getter told : Array(String)
 
     def initialize(@play : Roguelike::Ui::Play,
@@ -47,12 +47,12 @@ module Playing
       @session.render
     end
 
-    # :ditto: for each of them in turn, which is what a walk is.
+    # :ditto: Presses each in turn. A walk uses this.
     def press(*descriptions : String) : Nil
       descriptions.each { |description| press description }
     end
 
-    # A motion report with no button held, which is what mode 1003 sends.
+    # A motion report with no button held. Mode 1003 sends these.
     def hover(x : Int32, y : Int32) : Nil
       @session.send TermBuf::Events::Mouse.new(
         TermBuf::Input::Mouse::Button::None, x, y,
@@ -61,7 +61,8 @@ module Playing
       @session.render
     end
 
-    # Resizes the terminal under it, as a window being dragged would.
+    # Resizes the terminal under the game. Dragging a window does the
+    # same.
     def resize(columns : Int32, rows : Int32) : Nil
       @play.fit columns, rows
       @session.resize columns, rows
@@ -69,12 +70,12 @@ module Playing
     end
   end
 
-  # A game on one open room of *columns* by *rows*, with the character in the
-  # middle of it.
+  # A game on one open room of *columns* by *rows*. The character starts in
+  # the middle.
   #
-  # The shipped level has every door shut until phase 6 opens them, so the
-  # character cannot leave the room they start in and the camera never has to
-  # move. Anything about walking a long way wants somewhere to walk.
+  # The shipped level has every door shut until phase 6 opens them. The
+  # character cannot leave the room they start in. The camera never has to
+  # move. A spec about walking a long way needs somewhere to walk.
   def self.field(columns : Int32 = 120, rows : Int32 = 60,
                  seed : UInt64 = SEED) : Roguelike::Game
     map = Array.new(rows) do |row|
@@ -116,7 +117,8 @@ module Playing
       nil
     end
 
-    # One layout before the camera is pointed, the way `Session` does it.
+    # One layout runs before the camera is pointed. `Session` does the
+    # same.
     session.render
     play.look_at_player
     session.render

@@ -60,8 +60,8 @@ Spectator.describe Roguelike::Ui::ExaminePane do
       expect(pane.detail.text).to be_empty
     end
 
-    # A label with nothing in it still takes a row, and a blank row under the
-    # rule reads as something missing rather than as nothing to say.
+    # An empty label still takes a row. A blank row under the rule reads as
+    # something missing.
     it "hides the coordinates rather than leaving a blank row" do
       pane.show level, 2, 1
       pane.clear

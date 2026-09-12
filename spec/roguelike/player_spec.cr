@@ -37,8 +37,8 @@ Spectator.describe Roguelike::Player do
       expect(again.level).to eq player.level
     end
 
-    # A save that held the level twice — once in the world and once under the
-    # player — would have two of them to keep in step.
+    # A save that stored the level twice would hold one copy in the world and
+    # one under the player. The two copies would then need to stay in step.
     it "names the level rather than holding one" do
       stored = JSON.parse player.to_json
 

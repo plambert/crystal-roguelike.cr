@@ -4,7 +4,7 @@ Spectator.describe Roguelike::Ui::Examiner do
   alias Direction = Roguelike::Direction
   alias Ui = Roguelike::Ui
 
-  # A motion report with no button held, which is what mode 1003 sends.
+  # A motion report with no button held. Mode 1003 sends these.
   def hover(run : Playing::Run, x : Int32, y : Int32) : Nil
     run.hover x, y
   end
@@ -56,8 +56,8 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.examiner.spot).to eq({camera[0] + 4, camera[1] + 3})
     end
 
-    # The readout holds what it last had. A panel that empties itself every
-    # time the pointer crosses the log is a panel nobody can read.
+    # The readout holds what it last had. A panel that empties whenever the
+    # pointer crosses the log is a panel nobody can read.
     it "leaves the readout alone over the sidebar" do
       run = Playing.open
 
@@ -88,8 +88,8 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.examiner.spot).to eq({1, 1})
     end
 
-    # A click carries a position like any other report, so it points the
-    # readout too and neither needs a mode of its own.
+    # A click carries a position. Every report does. So a click points the
+    # readout too. Neither needs a mode of its own.
     it "points on a click as well as on a move" do
       run = Playing.open
 
@@ -198,7 +198,8 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.examine.where.text).to eq "7, 5"
     end
 
-    # They mean the player everywhere else, which is what phase 5 gives them.
+    # The same keys move the character everywhere else. Phase 5 added
+    # that.
     it "do nothing while there is no cursor" do
       run = Playing.open
 
@@ -270,8 +271,8 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.map.cursor).to eq({6, 5})
     end
 
-    # The character is standing on the up staircase, so the square beside it
-    # is the one with nothing on it but floor.
+    # The character stands on the up staircase. The square beside it holds
+    # nothing but floor.
     it "leaves the square's own glyph showing" do
       run = Playing.open
 
@@ -282,8 +283,8 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.row(5)[7]).to eq '.'
     end
 
-    # The glyph is the same either way, so the only evidence the cursor is
-    # there is the style the cell came out with.
+    # The glyph is the same either way. The cell's style is the only evidence
+    # the cursor is there.
     it "draws that square in a style of its own" do
       run = Playing.open
 
