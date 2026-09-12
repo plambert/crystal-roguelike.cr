@@ -12,14 +12,18 @@ module Roguelike::Ui
   # built inside a draw call would intern one style per cell. One frame bounds
   # that count by the screen size. An animation does not bound it at all.
   module Palette
-    GRANITE   = Style::DEFAULT.fg TermBuf::Color.rgb(0x6E, 0x72, 0x7A)
-    SANDSTONE = Style::DEFAULT.fg TermBuf::Color.rgb(0xA8, 0x8A, 0x55)
-    SHALE     = Style::DEFAULT.fg TermBuf::Color.rgb(0x55, 0x68, 0x80)
-    STONE     = Style::DEFAULT.fg TermBuf::Color.rgb(0x60, 0x63, 0x6B)
-    DIRT      = Style::DEFAULT.fg TermBuf::Color.rgb(0x7A, 0x62, 0x48)
-    WOOD      = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x8A, 0x40)
-    STAIRS    = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0xE4, 0xEC)
-    IRON      = Style::DEFAULT.fg TermBuf::Color.rgb(0x8A, 0x8E, 0x96)
+    # A wall catches the light and a floor does not, so every wall is drawn
+    # brighter than the floor beside it. The ramp shades each of these down
+    # by how much light is on the square, and a colour that starts dim has
+    # nowhere to go.
+    GRANITE   = Style::DEFAULT.fg TermBuf::Color.rgb(0xA0, 0xA6, 0xB2)
+    SANDSTONE = Style::DEFAULT.fg TermBuf::Color.rgb(0xC2, 0xA0, 0x5A)
+    SHALE     = Style::DEFAULT.fg TermBuf::Color.rgb(0x7C, 0x99, 0xBC)
+    STONE     = Style::DEFAULT.fg TermBuf::Color.rgb(0x76, 0x7C, 0x8C)
+    DIRT      = Style::DEFAULT.fg TermBuf::Color.rgb(0x7A, 0x6E, 0x5E)
+    WOOD      = Style::DEFAULT.fg TermBuf::Color.rgb(0xD0, 0x8A, 0x3C)
+    STAIRS    = Style::DEFAULT.fg TermBuf::Color.rgb(0xE8, 0xEC, 0xF4)
+    IRON      = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0x9E, 0xA8)
     HERO      = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bold
 
     # What light looks like.
@@ -51,13 +55,13 @@ module Roguelike::Ui
     #
     # The glyphs are the roguelike conventions. A person who has played one
     # reads `)` as a weapon and `!` as a potion without being told.
-    WEAPON = Style::DEFAULT.fg TermBuf::Color.rgb(0xC8, 0xCC, 0xD4)
-    ARMOUR = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0xA4, 0xB8)
-    POTION = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0x5C, 0xA8)
-    SCROLL = Style::DEFAULT.fg TermBuf::Color.rgb(0xE8, 0xE2, 0xC8)
-    WAND   = Style::DEFAULT.fg TermBuf::Color.rgb(0x8A, 0xD0, 0xC0)
-    TOOL   = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x9A, 0x60)
-    COIN   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xD0, 0x40)).bold
+    WEAPON = Style::DEFAULT.fg TermBuf::Color.rgb(0xDC, 0xE2, 0xEC)
+    ARMOUR = Style::DEFAULT.fg TermBuf::Color.rgb(0xB4, 0xC2, 0xDC)
+    POTION = Style::DEFAULT.fg TermBuf::Color.rgb(0xE8, 0x64, 0xB4)
+    SCROLL = Style::DEFAULT.fg TermBuf::Color.rgb(0xF0, 0xEA, 0xD0)
+    WAND   = Style::DEFAULT.fg TermBuf::Color.rgb(0x88, 0xE0, 0xCC)
+    TOOL   = Style::DEFAULT.fg TermBuf::Color.rgb(0xE4, 0xA8, 0x60)
+    COIN   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xD8, 0x48)).bold
 
     ITEMS = {
       ItemClass::Melee      => Look.new(')', WEAPON),
@@ -101,28 +105,50 @@ module Roguelike::Ui
       LOOKS[terrain]
     end
 
+    # What each sort of fixture is drawn as.
+    #
+    # The glyph does not change when it is lit. A burning bracket is the same
+    # bracket, and `!` is the potion glyph, which a sconce has no business
+    # borrowing. The colour says whether it is alight.
+    FIXTURES = {
+      FixtureKind::Sconce => '|',
+    }
+
     # How *fitting* draws. An unlit one is cold iron. A lit one is the flame.
     def self.[](fitting : Fixture) : Look
-      glyph = fitting.lit? ? fitting.kind.lit_mark : fitting.kind.mark
-
-      Look.new glyph, fitting.lit? ? FLAME : IRON
+      Look.new FIXTURES[fitting.kind], fitting.lit? ? FLAME : IRON
     end
 
     # What a square nobody has ever seen draws as. A blank.
     UNSEEN = Look.new ' ', Style::DEFAULT
 
+    # How far toward `SHADOW` each step of `RAMP` moves.
+    #
+    # Four lit steps and one below them. The gap between the bottom step and
+    # the one above it is wider than any gap inside the lit range, because a
+    # square drawn from memory is not a dimly lit square. It is something
+    # else, and it has to read as something else at a glance.
+    SHADES = [0.66, 0.44, 0.30, 0.15, 0.0]
+
     # How many steps there are between a remembered square and a brightly lit
     # one.
-    #
-    # Five is enough that a torch pool has a visible falloff and few enough
-    # that the style table settles at a few dozen entries.
-    STEPS = 5
+    STEPS = SHADES.size
 
     # The step a square draws at when it is remembered rather than seen.
     REMEMBERED = 0
 
     # How many points of light one step of the ramp is worth.
-    LIGHT_PER_STEP = 3
+    #
+    # A torch of radius six throws seven points on the square under it and one
+    # at the edge of its reach, so two points to a step spreads a torch pool
+    # over the whole lit range.
+    LIGHT_PER_STEP = 2
+
+    # What a square with no light on it fades toward.
+    #
+    # A cool near-black rather than black. Shadow on a warm colour then reads
+    # as shadow rather than as a darker warm colour.
+    SHADOW = TermBuf::Color.rgb 0x14, 0x18, 0x22
 
     # The ramp every square is drawn through.
     #
@@ -130,17 +156,22 @@ module Roguelike::Ui
     # style table only grows. A ramp answers the same style for the same step
     # every time, so the table stops growing once each step of each look has
     # been asked for.
-    RAMP = Widgets::Ramp.new STEPS, TermBuf::Color.rgb(0x10, 0x11, 0x14)
+    RAMP = Widgets::Ramp.new SHADES, SHADOW
 
     # Which step of `RAMP` a square with *level* light draws at.
     #
     # A square with no light on it is remembered rather than seen, so it draws
     # at the bottom. Each `LIGHT_PER_STEP` points of light raises it one step,
     # up to the top.
+    #
+    # A torch of radius six then reaches the top on the two squares nearest
+    # the flame and falls a step every two squares out from there. A square at
+    # the top of the ramp is drawn in the colour it would have in daylight,
+    # and something has to reach it or the top is a colour nobody ever sees.
     def self.step(level : Int32) : Int32
       return REMEMBERED if level <= 0
 
-      Math.min REMEMBERED + 1 + (level - 1) // LIGHT_PER_STEP, STEPS - 1
+      Math.min REMEMBERED + 1 + level // LIGHT_PER_STEP, STEPS - 1
     end
 
     # *look* drawn at *step* of `RAMP`.

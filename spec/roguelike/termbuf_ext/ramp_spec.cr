@@ -7,10 +7,11 @@ Spectator.describe TermBuf::Widgets::Ramp do
   # A mid grey, far enough from both ends to see a step either way.
   GREY = Style::DEFAULT.fg Color.rgb(0x80, 0x80, 0x80)
 
-  subject(ramp) { described_class.new 5, Color.rgb(0, 0, 0) }
+  subject(ramp) { described_class.linear 5, Color.rgb(0, 0, 0) }
 
   it "refuses a ramp with no steps" do
-    expect { described_class.new 0 }.to raise_error ArgumentError
+    expect { described_class.new [] of Float64 }.to raise_error ArgumentError
+    expect { described_class.linear 0 }.to raise_error ArgumentError
   end
 
   describe "the ends" do
@@ -80,7 +81,7 @@ Spectator.describe TermBuf::Widgets::Ramp do
 
   describe "a ramp of one step" do
     it "answers the style itself" do
-      one = described_class.new 1
+      one = described_class.linear 1
 
       expect(one[GREY, 0]).to eq GREY
       expect(one.fraction 0).to eq 0.0
@@ -103,6 +104,25 @@ Spectator.describe TermBuf::Widgets::Ramp do
       1000.times { ramp[GREY, Random.rand(ramp.steps)] }
 
       expect(ramp.size).to eq settled
+    end
+
+    it "takes its steps from the fractions it was given" do
+      given = described_class.new [0.9, 0.4, 0.0], Color.rgb(0, 0, 0)
+
+      expect(given.steps).to eq 3
+      expect(given.top).to eq 2
+      expect(given.fraction 0).to eq 0.9
+      expect(given.fraction 1).to eq 0.4
+      expect(given[GREY, 2]).to eq GREY
+    end
+
+    # This is why the fractions are given rather than worked out from two
+    # ends. A square drawn from memory sits well below the dimmest lit one.
+    it "lets one step sit well below the rest" do
+      given = described_class.new [0.9, 0.4, 0.25, 0.0], Color.rgb(0, 0, 0)
+      reds = (0..given.top).map { |step| given[GREY, step].foreground.red }
+
+      expect(reds[1] - reds[0]).to be > reds[2] - reds[1]
     end
 
     it "counts each base style apart" do

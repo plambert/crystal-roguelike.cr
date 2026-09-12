@@ -53,6 +53,29 @@ Spectator.describe "what the character remembers" do
       expect(run.row(1)[1]).to eq '.'
     end
 
+    # The gap between remembered and the dimmest lit square has to be wider
+    # than any gap inside the lit range. A square drawn from memory is not a
+    # dimly lit square, and it has to read as something else at a glance.
+    it "is drawn further from the dimmest lit square than one lit step" do
+      base = Ui::Palette::STONE
+      shades = (0..Ui::Palette::RAMP.top).map do |step|
+        Ui::Palette::RAMP[base, step].foreground.red
+      end
+
+      remembered = shades[1] - shades[0]
+      inside = (1...shades.size - 1).map { |step| shades[step + 1] - shades[step] }
+
+      expect(remembered).to be > inside.max
+    end
+
+    # A torch reaches the top, so the colour at the top of the ramp is one
+    # somebody sees rather than one nothing ever draws.
+    it "is drawn at the top of the ramp beside a torch" do
+      expect(Ui::Palette.step 6).to eq Ui::Palette::RAMP.top
+      expect(Ui::Palette.step 1).to eq Ui::Palette::REMEMBERED + 1
+      expect(Ui::Palette.step 0).to eq Ui::Palette::REMEMBERED
+    end
+
     it "is drawn dimmer than the square the character stands on" do
       run = walking
 
@@ -63,6 +86,9 @@ Spectator.describe "what the character remembers" do
 
       expect(away).not_to eq here
       expect(away.foreground.red).to be < here.foreground.red
+
+      # Far enough apart to tell at a glance rather than by measuring.
+      expect(here.foreground.red - away.foreground.red).to be > 30
     end
 
     it "draws nothing for a square never seen" do

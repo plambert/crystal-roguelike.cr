@@ -3,7 +3,7 @@ require "termbuf"
 module TermBuf::Widgets
   # A fixed number of styles between one style and a colour.
   #
-  #     ramp = Ramp.new 5, Color.rgb(0, 0, 0)
+  #     ramp = Ramp.new [0.66, 0.44, 0.30, 0.15, 0.0], Color.rgb(0x14, 0x18, 0x22)
   #
   #     ramp[Style::DEFAULT.fg(Color.rgb 0xC0, 0xC0, 0xC0), 4]  # the style itself
   #     ramp[Style::DEFAULT.fg(Color.rgb 0xC0, 0xC0, 0xC0), 0]  # nearly black
@@ -22,31 +22,46 @@ module TermBuf::Widgets
   # whatever the terminal draws, and a ramp has nothing to move it toward.
   #
   # Extraction candidate: this belongs in `termbuf-widgets.cr`. What is still
-  # to settle is whether the step-to-fraction curve should be given rather
-  # than linear, which matters for a light falloff that is not linear either.
+  # to settle is whether a ramp should offer a hue shift as well as a fade,
+  # so that a dimmed warm colour reads as being in shadow rather than as a
+  # darker warm colour.
   class Ramp
-    # How many steps there are, the two ends included.
-    getter steps : Int32
+    # How far toward `#toward` each step moves, from the deepest to the top.
+    #
+    # The last one is nearly always zero, which leaves the top step the style
+    # itself. Giving these rather than working them out from two ends is what
+    # lets one step sit well below the rest: a square drawn from memory is
+    # not the dimmest lit square, it is something else.
+    getter fractions : Array(Float64)
 
     # What the deepest step moves toward.
     getter toward : Color
 
-    # How far the deepest step goes. One moves it the whole way to `#toward`.
-    # Less than one leaves the deepest step still readable.
-    getter deepest : Float64
-
     # What has been worked out so far, by base style and step.
     @made = {} of {Style, Int32} => Style
 
-    def initialize(@steps : Int32,
-                   @toward : Color = Color.rgb(0, 0, 0),
-                   @deepest : Float64 = 0.82)
-      raise ArgumentError.new "a ramp needs at least one step" if @steps < 1
+    def initialize(@fractions : Array(Float64),
+                   @toward : Color = Color.rgb(0, 0, 0))
+      raise ArgumentError.new "a ramp needs at least one step" if @fractions.empty?
+    end
+
+    # A ramp of *steps* spread evenly between *deepest* and the style itself.
+    def self.linear(steps : Int32, toward : Color = Color.rgb(0, 0, 0),
+                    deepest : Float64 = 0.82) : Ramp
+      raise ArgumentError.new "a ramp needs at least one step" if steps < 1
+      return new [0.0], toward if steps == 1
+
+      new Array.new(steps) { |step| deepest * (steps - 1 - step) / (steps - 1) }, toward
+    end
+
+    # How many steps there are, the two ends included.
+    def steps : Int32
+      @fractions.size
     end
 
     # The top step. A style asked for at this step comes back unchanged.
     def top : Int32
-      @steps - 1
+      @fractions.size - 1
     end
 
     # *base* at *step*. A step outside the ramp is clamped to an end of it.
@@ -71,11 +86,12 @@ module TermBuf::Widgets
 
     # How far toward `#toward` *step* is.
     def fraction(step : Int32) : Float64
-      return 0.0 if @steps == 1
+      @fractions[step.clamp 0, top]
+    end
 
-      wanted = step.clamp 0, top
-
-      @deepest * (top - wanted) / top
+    # How far the deepest step goes.
+    def deepest : Float64
+      @fractions.first
     end
 
     # *base* moved toward `#toward` by `#fraction` of *step*.

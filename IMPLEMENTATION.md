@@ -46,7 +46,8 @@ actually been run rather than reasoned about.
 | Sconces | A `Fixture` on the open square beside the wall, not a terrain. The wall keeps its rock |
 | A mounted flame | Throws the whole radius over the half turned away from its wall |
 | A standing flame | Throws every way, one step less far, because the flame is at ankle height |
-| Shading | Five steps from remembered to brightly lit, through `Widgets::Ramp` |
+| Shading | Five steps through `Widgets::Ramp`. The remembered step sits well below the four lit ones |
+| Palette brightness | A wall is drawn brighter than the floor beside it, and an item brighter than both |
 | Belief | `Knowledge` per believer per floor. `Game#look` is the one way anything gets in |
 
 ## Ground rules
@@ -174,7 +175,7 @@ naming what still has to be decided before it moves.
 | `Prompt` | Phase 6 | `[yn]` answered by one keystroke, in a modal overlay |
 | `Pager` | Phase 7 | `--More--` held at a page boundary |
 | `Menu` | Phase 10 | A list addressed by letter rather than filtered |
-| `Ramp` | Phase 14 | A fixed number of styles between one style and a colour |
+| `Ramp` | Phase 14 | A style per step between one style and a colour, from given fractions |
 
 Numpad decoding — the `SS3` keypad keys and a `DECKPAM` `Tty::Mode` for `termbuf-input.cr` — is
 deferred until there is a keypad to test it on and it is known which of the three supported
