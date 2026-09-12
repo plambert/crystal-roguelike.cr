@@ -215,10 +215,15 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 
 * **Build** — A `Terrain` enum: `Granite`, `Sandstone`, `Shale` (three rock walls, identical in
   behaviour for now, distinct in colour), `StoneFloor`, `DirtFloor`, `ClosedDoor`, `OpenDoor`,
-  `StairsUp`, `StairsDown`. Each carries its glyph, its style, whether it blocks movement and
-  whether it blocks sight. A `World` holding `Level`s by id; a `Level` holding a grid of `Tile`,
-  loaded from a plain-text map file under `data/levels/` so the fixture is readable and
-  diffable. The level drawn through `CellGrid`. Serialization for everything so far.
+  `StairsUp`, `StairsDown`. Each carries the character a level file writes it as, a label, a
+  description, whether it blocks movement and whether it blocks sight — but not a glyph or a
+  style, which are the screen's and live in `Ui::Palette`, per the rule that the model knows
+  nothing about the screen. A `World` holding `Level`s by id; a `Level` holding a grid of `Tile`,
+  loaded from a plain-text map file under `data/levels/` so the fixture is readable and diffable
+  and read into the binary at build time so the game runs from anywhere. The level drawn through
+  `CellGrid`, by way of a `Ui::LevelCells` adapter that keeps `Level` free of the widget layer.
+  Serialization for everything so far, with the terrain stored as the same text a level file
+  holds.
 * **Verify** — The test level loads and renders, walls in three colours, doors and stairs
   visible. A spec loads the fixture and snapshots the rendered pane. A spec asserts every glyph
   in the file maps to a terrain and that an unknown glyph raises rather than silently becoming

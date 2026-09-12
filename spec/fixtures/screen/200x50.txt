@@ -1,4 +1,4 @@
- the map arrives in phase 3                                                                                                                                                    │ Look
+                                                                                                                                                                               │ Look
                                                                                                                                                                                │ nothing under the
                                                                                                                                                                                │ pointer yet
                                                                                                                                                                                │

@@ -42,8 +42,14 @@ module Roguelike
     # The run's randomness.
     getter rng : Rng
 
+    # Every level of the run, and the seed that made it.
+    getter world : World
+
     # The regions being drawn in.
     getter screen : Ui::Screen
+
+    # The window the level is played in.
+    getter map : Ui::MapPane
 
     # The widget tree, its focus and its router.
     getter app : Ui::Widgets::App
@@ -61,9 +67,15 @@ module Roguelike
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
+      @world = World.on @rng
+      level = @world.add Levels.proving_ground
+
       @screen = Ui::Screen.new
       @screen.fit size.columns, size.rows
       @screen.scaffold @rng.seed
+
+      @map = Ui::MapPane.new level
+      @screen.show @map.grid
 
       @app = Ui::Widgets::App.new @terminal, @screen.root, bounds,
         @terminal.events, @terminal.policy

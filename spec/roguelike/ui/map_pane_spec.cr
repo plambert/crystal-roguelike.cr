@@ -1,0 +1,152 @@
+require "../../spec_helper"
+
+Spectator.describe Roguelike::Ui::MapPane do
+  alias Terrain = Roguelike::Terrain
+
+  SMALL = <<-MAP
+    #####
+    #.<+=
+    #,,,%
+    ##>##
+    MAP
+
+  # A pane over *level*, drawn in a window of *columns* by *rows*.
+  record Shown,
+    pane : Roguelike::Ui::MapPane,
+    session : Headless::Session
+
+  def shown(level : Roguelike::Level, columns : Int32, rows : Int32) : Shown
+    pane = described_class.new level
+    session = Headless.open pane.grid, columns, rows
+    session.render
+
+    Shown.new pane, session
+  end
+
+  describe "what it draws" do
+    it "draws the level, one glyph per square" do
+      run = shown Roguelike::Level.parse("small", SMALL), 5, 4
+
+      expect(run.session.rows).to eq ["#####", "#.<+#", "#...#", "##>##"]
+    end
+
+    # Three rocks are one glyph told apart by colour, and two floors are
+    # another, which is the roguelike convention. The model keeps them apart;
+    # only the palette draws them the same.
+    it "draws all three rocks as a wall and both floors as a floor" do
+      run = shown Roguelike::Level.parse("rocks", "#=%\n.,."), 3, 2
+
+      expect(run.session.rows).to eq ["###", "..."]
+    end
+
+    it "draws a door open and shut differently" do
+      run = shown Roguelike::Level.parse("doors", "+'"), 2, 1
+
+      expect(run.session.row(0)).to eq "+'"
+    end
+
+    it "leaves the window blank past the edge of a small level" do
+      run = shown Roguelike::Level.parse("tiny", "##\n##"), 6, 4
+
+      expect(run.session.rows).to eq ["##", "##", "", ""]
+    end
+  end
+
+  describe "#level=" do
+    it "shows the other level from its top left" do
+      run = shown Roguelike::Levels.proving_ground, 10, 4
+      run.pane.center_on 60, 20
+      expect(run.pane.camera).not_to eq({0, 0})
+
+      run.pane.level = Roguelike::Level.parse "small", SMALL
+      run.session.render
+
+      expect(run.pane.camera).to eq({0, 0})
+      expect(run.session.row(1)).to eq "#.<+#"
+    end
+  end
+
+  describe "#follow" do
+    it "does not move for somewhere well inside the window" do
+      run = shown Roguelike::Levels.proving_ground, 40, 16
+      run.pane.center_on 36, 14
+      before = run.pane.camera
+
+      run.pane.follow 36, 15
+      expect(run.pane.camera).to eq before
+    end
+
+    it "moves once the square is inside the margin" do
+      run = shown Roguelike::Levels.proving_ground, 40, 16
+      run.pane.center_on 36, 14
+      before = run.pane.camera
+
+      run.pane.follow 36 + 20, 14
+      expect(run.pane.camera[0]).to be > before[0]
+    end
+
+    it "keeps the square in view wherever it is asked to go" do
+      run = shown Roguelike::Levels.proving_ground, 40, 16
+
+      [{1, 1}, {70, 26}, {6, 5}, {62, 19}].each do |spot|
+        run.pane.follow spot[0], spot[1]
+        run.session.render
+
+        expect(run.pane.grid.view_of(spot[0], spot[1])).not_to be_nil
+      end
+    end
+  end
+
+  describe "#cell_at_screen" do
+    it "names the square under a spot of the buffer" do
+      run = shown Roguelike::Levels.proving_ground, 40, 16
+      run.pane.center_on 36, 14
+
+      camera = run.pane.camera
+      expect(run.pane.cell_at_screen(3, 2)).to eq({camera[0] + 3, camera[1] + 2})
+    end
+
+    it "answers nothing past the edge of the level" do
+      run = shown Roguelike::Level.parse("tiny", "##\n##"), 6, 4
+
+      expect(run.pane.cell_at_screen(1, 1)).to eq({1, 1})
+      expect(run.pane.cell_at_screen(3, 1)).to be_nil
+    end
+  end
+
+  describe "in the screen" do
+    it "draws what it drew last time" do
+      screen = Roguelike::Ui::Screen.new
+      screen.fit 80, 24
+      screen.scaffold 20260911_u64
+
+      pane = described_class.new Roguelike::Levels.proving_ground
+      screen.show pane.grid
+
+      drawn = Headless.open(screen.root, 80, 24).text
+
+      expect(drawn).to eq Fixture.expected("screen/proving-ground.txt", drawn)
+    end
+
+    it "draws what it drew last time with the camera on the down stairs" do
+      screen = Roguelike::Ui::Screen.new
+      screen.fit 80, 24
+      screen.scaffold 20260911_u64
+
+      level = Roguelike::Levels.proving_ground
+      pane = described_class.new level
+      screen.show pane.grid
+
+      session = Headless.open screen.root, 80, 24
+      session.render
+
+      stairs = level.find Terrain::StairsDown
+      raise "the shipped level has no down staircase" unless stairs
+
+      pane.center_on stairs[0], stairs[1]
+      drawn = session.text
+
+      expect(drawn).to eq Fixture.expected("screen/proving-ground-stairs.txt", drawn)
+    end
+  end
+end

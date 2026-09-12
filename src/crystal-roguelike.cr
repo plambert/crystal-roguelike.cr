@@ -12,6 +12,11 @@ module Roguelike
 end
 
 require "./roguelike/rng"
+require "./roguelike/terrain"
+require "./roguelike/tile"
+require "./roguelike/level"
+require "./roguelike/levels"
+require "./roguelike/world"
 require "./roguelike/ui"
 require "./roguelike/session"
 require "./roguelike/cli"

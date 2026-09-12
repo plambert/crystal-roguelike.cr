@@ -78,10 +78,11 @@ module Roguelike::Ui
     getter gutter : Widgets::Divider
 
     def initialize
+      # No padding: a map is a grid of cells and a column given up to a
+      # margin is a column of the level nobody can see.
       @map = Widgets::Panel.new(
         width: Layout::Sizing.grow,
-        height: Layout::Sizing.grow,
-        padding: Layout::Padding.symmetric(horizontal: 1))
+        height: Layout::Sizing.grow)
 
       @sidebar = Widgets::Panel.new(
         width: Layout::Sizing.fixed(SIDEBAR_WIDTH),
@@ -174,15 +175,21 @@ module Roguelike::Ui
       !@playing.hidden?
     end
 
-    # Fills each region with something that says where it is.
+    # Puts *widget* in the map pane, taking out whatever was there.
     #
-    # Scaffolding, and the only part of this class with an opinion about what
-    # goes where. Phase 3 takes the map, phase 4 the sidebar, phase 7 the
-    # status line and phase 8 the log, and when the last of them has gone so
-    # has this method.
-    def scaffold(seed : UInt64) : Nil
-      @map.add Widgets::Label.new("the map arrives in phase 3")
+    # What `Ui::MapPane` is hung on, and what a level being swapped for
+    # another goes through.
+    def show(widget : Widgets::Widget) : Nil
+      @map.clear
+      @map.add widget
+    end
 
+    # Fills the regions that have nothing of their own yet with something that
+    # says where they are.
+    #
+    # Scaffolding. Phase 4 takes the sidebar, phase 7 the status line and
+    # phase 8 the log, and when the last of them has gone so has this method.
+    def scaffold(seed : UInt64) : Nil
       @sidebar.add Widgets::Label.new("Look"),
         Widgets::Label.new("nothing under the pointer yet")
 
