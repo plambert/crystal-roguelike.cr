@@ -21,7 +21,7 @@ module Roguelike
     def run
       rng = Rng.for seed
 
-      Session.open rng
+      exit 1 unless Session.open rng
 
       # After the terminal is given back, so it survives the alternate screen
       # going away and can be copied out of the scrollback.

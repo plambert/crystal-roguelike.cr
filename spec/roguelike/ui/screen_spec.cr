@@ -104,6 +104,82 @@ Spectator.describe Roguelike::Ui::Screen do
     end
   end
 
+  describe ".fits?" do
+    it "takes a terminal at the minimum" do
+      expect(described_class.fits?(40, 16)).to be_true
+    end
+
+    it "refuses one a column short" do
+      expect(described_class.fits?(39, 16)).to be_false
+    end
+
+    it "refuses one a row short" do
+      expect(described_class.fits?(40, 15)).to be_false
+    end
+  end
+
+  describe "the notice" do
+    it "is down while there is room for the game" do
+      screen = laid_out 40, 16
+
+      expect(screen.playing?).to be_true
+      expect(screen.notice.hidden?).to be_true
+    end
+
+    it "replaces the game when the terminal is too narrow" do
+      screen = laid_out 39, 16
+
+      expect(screen.playing?).to be_false
+      expect(screen.notice.hidden?).to be_false
+    end
+
+    it "replaces the game when the terminal is too short" do
+      screen = laid_out 40, 15
+
+      expect(screen.playing?).to be_false
+    end
+
+    it "says what is needed and what there is" do
+      screen = laid_out 24, 8
+
+      expect(screen.notice_text.text).to contain "40 columns and 16 rows"
+      expect(screen.notice_text.text).to contain "24 by 8"
+    end
+
+    it "takes no room from the game it is not replacing" do
+      screen = laid_out 80, 24
+
+      expect(screen.notice.rect.height).to eq 0
+      expect(screen.map.rect).to eq TermBuf::Rect.new(0, 0, 55, 18)
+    end
+
+    it "goes away again when the window is made larger" do
+      screen = Roguelike::Ui::Screen.new
+      screen.scaffold 20260911_u64
+      session = Headless.open screen.root, 30, 10
+
+      screen.fit 30, 10
+      session.render
+      expect(screen.playing?).to be_false
+
+      screen.fit 80, 24
+      session.resize 80, 24
+      session.render
+      expect(screen.playing?).to be_true
+      expect(screen.map.rect).to eq TermBuf::Rect.new(0, 0, 55, 18)
+    end
+
+    it "draws what it drew last time" do
+      screen = Roguelike::Ui::Screen.new
+      screen.fit 30, 10
+      screen.scaffold 20260911_u64
+
+      drawn = Headless.open(screen.root, 30, 10).text
+
+      expect(drawn).to eq Fixture.expected("screen/30x10-too-small.txt", drawn)
+    end
+  end
+
   describe ".map_rows" do
     it "takes the rule, the status line and the log off the height" do
       expect(described_class.map_rows(24)).to eq 18

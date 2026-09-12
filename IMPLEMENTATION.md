@@ -184,11 +184,15 @@ makes the rest cheap to verify.
 * **Build** — `Terminal.open`, a `Widgets::App`, and a root laid out as a row — a map pane that
   grows beside a fixed sidebar of about twenty-four columns — above a one-row status bar and a
   message log of four rows. Placeholder text in each. The sidebar is where Phase 4 puts the
-  examine readout and later the character summary. `Q` quits. `HelpOverlay.install`.
+  examine readout and later the character summary. `Q` quits. `HelpOverlay.install`. A minimum
+  size: under it the game will not start, and a window shrunk under it during a run shows a
+  notice asking for a larger one in place of the whole layout.
 * **Verify** — Run it in ghostty. The four regions are there and in proportion; resizing reflows
-  them and narrowing past the sidebar's width does something sensible rather than overflowing;
-  `Q` gives the terminal back; `?` shows the help overlay. A snapshot spec renders the layout at
-  80x24 and at 200x50 and compares `Buffer#to_text` against fixtures.
+  them and narrowing past the sidebar's width drops the sidebar rather than overflowing;
+  shrinking past the minimum shows the notice and growing again brings the game back; starting
+  in a window under the minimum says so and exits without taking the terminal over; `Q` gives
+  the terminal back; `?` shows the help overlay. A snapshot spec renders the layout at 80x24, at
+  200x50, with no sidebar and with the notice, and compares `Buffer#to_text` against fixtures.
 
 ### Phase 2 — `Cells(T)` and `CellGrid(T)`
 

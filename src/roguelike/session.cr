@@ -11,10 +11,29 @@ module Roguelike
     # Runs a game on the terminal, giving it back however the run ends —
     # including on an exception or a signal, which is what the block form of
     # `Terminal.open` is for.
-    def self.open(rng : Rng) : Nil
+    #
+    # Answers false without taking the terminal over at all when the window is
+    # too small to play in, having said so on stderr. The size is read before
+    # the alternate screen is entered, so the message is left where the person
+    # can read it rather than wiped by the screen being handed back.
+    #
+    # `SizeDetector` is termbuf's internal tier. It is used here because the
+    # question — how big is the terminal, without opening it — has no answer
+    # in the stable API, and the alternative is entering the alternate screen
+    # and leaving it again to find out.
+    def self.open(rng : Rng) : Bool
+      size = TermBuf::SizeDetector.detect
+
+      unless Ui::Screen.fits? size.columns, size.rows
+        STDERR.puts Ui::Screen.too_small(size.columns, size.rows)
+        return false
+      end
+
       TermBuf::Terminal.open do |terminal|
         new(terminal, rng).run
       end
+
+      true
     end
 
     # The device, and the only one anything here touches.

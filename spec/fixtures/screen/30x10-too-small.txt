@@ -1,0 +1,10 @@
+
+
+    This game requires 40
+  columns and 16 rows in the
+   terminal, please resize
+  larger. This one is 30 by
+             10.
+
+
+

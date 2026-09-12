@@ -35,8 +35,32 @@ module Roguelike::Ui
     # Rows that are not the map: the rule, the status line and the log.
     CHROME_ROWS = 1 + 1 + LOG_ROWS
 
+    # The narrowest terminal the game is drawn in.
+    #
+    # Under this the log wraps to something nobody can read and the map shows
+    # less than a room. There is no point drawing a game there, so the notice
+    # is drawn instead and the player is asked for a larger window.
+    MINIMUM_COLUMNS = 40
+
+    # The shortest, for the same reason: `CHROME_ROWS` of it is not the map,
+    # so this leaves ten rows to play in.
+    MINIMUM_ROWS = 16
+
     # The whole tree, for `App` and for `Layout::Tree`.
+    #
+    # Holds both the game and the notice that there is no room for it. Which
+    # one is drawn is `#fit`'s to decide, and swapping between them is two
+    # widgets being hidden and unhidden rather than a tree being rebuilt.
     getter root : Widgets::Panel
+
+    # The four regions, hidden while there is no room for them.
+    getter playing : Widgets::Panel
+
+    # What is drawn instead when the terminal is too small.
+    getter notice : Widgets::Panel
+
+    # The line in the notice that says how big the terminal is now.
+    getter notice_text : Widgets::Label
 
     # Where the level is drawn.
     getter map : Widgets::Panel
@@ -82,14 +106,42 @@ module Roguelike::Ui
         height: Layout::Sizing.grow)
       upper.add @map, @gutter, @sidebar
 
+      @playing = Widgets::Panel.new(
+        direction: Layout::Direction::Column,
+        width: Layout::Sizing.grow,
+        height: Layout::Sizing.grow)
+      @playing.add upper,
+        Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
+        @status,
+        @log
+
+      @notice_text = Widgets::Label.new "", align: TermBuf::Unicode::Align::Center
+      @notice = Widgets::Panel.new(
+        direction: Layout::Direction::Column,
+        width: Layout::Sizing.grow,
+        height: Layout::Sizing.grow,
+        padding: Layout::Padding.all(1),
+        align_x: Layout::Align::Center,
+        align_y: Layout::Align::Center)
+      @notice.add @notice_text
+      @notice.hidden = true
+
       @root = Widgets::Panel.new(
         direction: Layout::Direction::Column,
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)
-      @root.add upper,
-        Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        @status,
-        @log
+      @root.add @playing, @notice
+    end
+
+    # Whether a terminal of *columns* by *rows* has room for the game.
+    def self.fits?(columns : Int32, rows : Int32) : Bool
+      columns >= MINIMUM_COLUMNS && rows >= MINIMUM_ROWS
+    end
+
+    # What to say to somebody whose terminal is *columns* by *rows*.
+    def self.too_small(columns : Int32, rows : Int32) : String
+      "This game requires #{MINIMUM_COLUMNS} columns and #{MINIMUM_ROWS} rows " \
+      "in the terminal, please resize larger. This one is #{columns} by #{rows}."
     end
 
     # Answers the layout to a screen of *columns* by *rows*.
@@ -102,10 +154,24 @@ module Roguelike::Ui
     # Called before the first frame and again on every resize, by whatever
     # owns the terminal.
     def fit(columns : Int32, rows : Int32) : Nil
-      wanted = columns >= SIDEBAR_MINIMUM_COLUMNS
+      room = Screen.fits? columns, rows
 
+      unless room
+        @notice_text.text = Screen.too_small columns, rows
+      end
+
+      @playing.hidden = !room
+      @notice.hidden = room
+
+      wanted = room && columns >= SIDEBAR_MINIMUM_COLUMNS
       @sidebar.hidden = !wanted
       @gutter.hidden = !wanted
+    end
+
+    # Whether the game, rather than the notice, is being drawn at the size it
+    # was last fitted to.
+    def playing? : Bool
+      !@playing.hidden?
     end
 
     # Fills each region with something that says where it is.
