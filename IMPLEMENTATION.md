@@ -135,9 +135,12 @@ none of it is fixed and a preset can rebind the lot.
 | `w` `W` `T` | Wield a weapon, wear armour, take armour off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
 | `f` `t` | Fire the ranged weapon, throw something |
-| `a` | Apply — light a torch or a candle, light a wall sconce |
+| `a` | Apply. Light a torch or a candle, or a wall sconce |
 | `o` `c` | Open, close |
-| `x` | Examine — move the cursor without the mouse |
+| `x` | Examine. Put a cursor on the map and move it with the movement keys |
+| `Escape` | Take back whatever is waiting for a key |
+| `M` | Turn mouse reporting on and off |
+| `Ctrl+E` | Grant experience. A debug key, removed when there is something to kill |
 | `?` or `F1` | Help, from `Router#active_bindings` |
 | `Q` | Quit, behind a `[yn]` prompt |
 
