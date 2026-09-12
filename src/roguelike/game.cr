@@ -1,5 +1,6 @@
 require "json"
 require "./equipment"
+require "./field_of_view"
 require "./floors"
 require "./items"
 require "./lore"
@@ -247,6 +248,22 @@ module Roguelike
     # What the character is standing on.
     def standing_on : Terrain
       floor.terrain @player.x, @player.y
+    end
+
+    # What the character can see from where they stand.
+    #
+    # This is worked out again every time it is asked for. It depends on where
+    # the character stands and on which doors are open, and both of those
+    # change often enough that a cache would need invalidating from five
+    # places. One cast over the shipped floor touches a few hundred squares.
+    # A cache goes in when a profile asks for one.
+    def sight : FieldOfView
+      FieldOfView.from floor, @player.at
+    end
+
+    # Whether the character can see *x*, *y* from where they stand.
+    def can_see?(x : Int32, y : Int32) : Bool
+      sight.includes? x, y
     end
 
     # Goes down the staircase the character stands on. Answers whether there

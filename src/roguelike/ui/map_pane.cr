@@ -47,6 +47,14 @@ module Roguelike::Ui
     # the window.
     property avoid_margin : Int32 = 3
 
+    # What the character can see from where they stand. `nil` draws every
+    # square, which is what a pane with no game behind it does.
+    #
+    # A square outside this draws as `Palette::UNSEEN`. Nothing on it draws
+    # either. A mark is something standing on a square, and a square the
+    # character cannot see shows nothing standing on it.
+    property sight : FieldOfView? = nil
+
     # The square the examine cursor is on. `nil` when there is no cursor.
     #
     # The cursor draws over whatever is on the square. It does not replace it.
@@ -73,7 +81,12 @@ module Roguelike::Ui
       @cells = FloorCells.new floor
       @grid = Widgets::CellGrid.new @cells
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
-        look = @marks[{x, y}]? || Palette[tile.terrain]
+        look = if seen? x, y
+                 @marks[{x, y}]? || Palette[tile.terrain]
+               else
+                 Palette::UNSEEN
+               end
+
         style = look.style
         style = style.bg Palette::OFFERED if @highlights.includes?({x, y})
 
@@ -83,6 +96,15 @@ module Roguelike::Ui
         view.write_char 0, 0, look.glyph, style
         nil
       end
+    end
+
+    # Whether the character can see *x*, *y*.
+    #
+    # A pane with no field of view set sees everything. A spec that is not
+    # about sight then needs to say nothing about sight.
+    def seen?(x : Int32, y : Int32) : Bool
+      found = @sight
+      found ? found.includes?(x, y) : true
     end
 
     # Puts *look* on *x*, *y*. It stays until `#clear_marks`.
@@ -126,6 +148,7 @@ module Roguelike::Ui
       @grid.scroll_to 0, 0
       clear_marks
       clear_highlights
+      @sight = nil
       floor
     end
 

@@ -33,17 +33,29 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.examine.where.text).to eq "6, 5"
     end
 
+    # Column 1 is the room's west wall. Column 0 is the rock behind it, which
+    # the character cannot see from inside the room.
     it "tracks across a room" do
       run = Playing.open
       seen = [] of String
 
-      (0..8).each do |column|
+      (1..8).each do |column|
         hover run, column, 3
         seen << run.examine.what.text
       end
 
       expect(seen.first).to eq "granite"
       expect(seen.last).to eq "stone floor"
+    end
+
+    it "says a square out of sight cannot be seen" do
+      run = Playing.open
+
+      hover run, 0, 3
+
+      expect(run.examiner.spot).to eq({0, 3})
+      expect(run.examine.what.text).to eq Ui::ExaminePane::UNSEEN
+      expect(run.examine.detail.text).to be_empty
     end
 
     it "follows the camera rather than the floor's own origin" do

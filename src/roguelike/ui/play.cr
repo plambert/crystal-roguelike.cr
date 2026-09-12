@@ -529,6 +529,7 @@ module Roguelike::Ui
     def refresh : Nil
       @map.clear_marks
       @map.clear_highlights
+      @map.sight = @game.sight
 
       @game.floor.each_pile do |column, row, pile|
         last = pile.last?

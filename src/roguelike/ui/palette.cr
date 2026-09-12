@@ -80,5 +80,11 @@ module Roguelike::Ui
     def self.[](terrain : Terrain) : Look
       LOOKS[terrain]
     end
+
+    # What a square out of sight draws as.
+    #
+    # A blank. Phase 14 puts a remembered square here, drawn dim. Until then
+    # a square the character cannot see says nothing at all.
+    UNSEEN = Look.new ' ', Style::DEFAULT
   end
 end

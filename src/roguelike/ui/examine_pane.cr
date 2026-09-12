@@ -11,6 +11,14 @@ module Roguelike::Ui
     # What the pane says before anything has been looked at.
     NOTHING = "Point at the map, or press x."
 
+    # What the pane says about a square the character cannot see.
+    #
+    # The pointer reaches any square of the floor. The readout must not, or
+    # the whole map could be read with the mouse and the field of view would
+    # be worth nothing. Phase 14 will say what was there when it was last
+    # seen.
+    UNSEEN = "out of sight"
+
     # The widget itself. A caller puts it in a tree.
     getter root : Widgets::Panel
 
@@ -50,8 +58,15 @@ module Roguelike::Ui
     # Says what is on *floor* at *x*, *y*.
     #
     # *lore* names whatever is lying there, because the name depends on what
-    # the character has found out.
-    def show(floor : Floor, x : Int32, y : Int32, lore : Lore? = nil) : Nil
+    # the character has found out. *sight* says which squares the character
+    # can see. A `nil` *sight* sees everything.
+    def show(floor : Floor, x : Int32, y : Int32, lore : Lore? = nil,
+             sight : FieldOfView? = nil) : Nil
+      if sight && !sight.includes?(x, y)
+        blank x, y
+        return
+      end
+
       terrain = floor.terrain x, y
 
       @where.text = "#{x}, #{y}"
@@ -63,6 +78,17 @@ module Roguelike::Ui
       pile = floor.items x, y
       @litter.hidden = pile.empty?
       @litter.text = listed pile, lore
+    end
+
+    # Says that *x*, *y* cannot be seen from where the character stands.
+    private def blank(x : Int32, y : Int32) : Nil
+      @where.text = "#{x}, #{y}"
+      @where.hidden = false
+      @what.text = UNSEEN
+      @what.style = Style::DEFAULT.faint
+      @detail.text = ""
+      @litter.text = ""
+      @litter.hidden = true
     end
 
     # What is lying on a square, written out.

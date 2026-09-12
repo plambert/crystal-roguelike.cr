@@ -40,6 +40,7 @@ actually been run rather than reasoned about.
 | Level and floor | A `Floor` is one map. A `Player#level` is how far the character has advanced |
 | Armour class | Higher is better. It is what is worn plus the dexterity modifier, floored at zero |
 | Readying a weapon | `w` picks the slot from the item, so one key fills melee, ranged and quiver |
+| Field of view | Symmetric shadowcasting on exact fractions. If A sees B then B sees A |
 
 ## Ground rules
 
@@ -368,6 +369,14 @@ The largest part, split so that each step is visible on its own.
   Standing in a corridor, sight runs its length and stops at the corner. Specs against fixture
   maps with the expected visible set written out as a second text file, so a change to the
   algorithm shows as a diff of two maps.
+* **Done.** `FieldOfView` is Albert Ford's symmetric shadowcasting over four quadrants. Every
+  comparison is on whole numbers: a slope is a `Fraction` of two integers, so a square on the
+  edge of a wedge falls the same side of it every time. A spec asserts the symmetry itself over
+  every pair of open squares on a map with walls in it. Four fixtures under `spec/fixtures/sight/`
+  hold the visible set as a map. A field of view is derived rather than stored, and `Game#sight`
+  works it out again each time it is asked, because it depends on where the character stands and
+  on which doors are open. The examine pane says "out of sight" for a square the character cannot
+  see, so the whole map cannot be read with the pointer.
 
 ### Phase 13 — Light sources
 
