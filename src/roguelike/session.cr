@@ -139,13 +139,15 @@ module Roguelike
       wanted
     end
 
-    # The pointer is no longer on the map, so the terminal gets its own cursor
-    # and its own pointer back.
+    # The pointer is no longer on the map, so the terminal's own cursor goes
+    # away and the pointer goes back to what it is over ordinary text.
     private def pointer_away : Nil
-      return unless @pointer.shape
+      tell @pointer.away
+    end
 
-      @pointer.away
-      @terminal.passthrough Ui::Pointer.sequence(nil)
+    # Sends *sequence*, if there is one to send.
+    private def tell(sequence : String?) : Nil
+      @terminal.passthrough sequence if sequence
     end
 
     # One step of a movement key.
@@ -206,11 +208,7 @@ module Roguelike
         return
       end
 
-      wanted = @pointer.shape
-      @pointer.over event.x, event.y
-      return if wanted == @pointer.shape
-
-      @terminal.passthrough Ui::Pointer.sequence(@pointer.shape)
+      tell @pointer.over(event.x, event.y)
     end
 
     private def resized(resize : TermBuf::Events::Resize) : Nil

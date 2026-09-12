@@ -238,10 +238,14 @@ The one piece of shard-shaped work that has to come before anything can be drawn
   `x` does the same thing from the keyboard with a cursor moved by the movement keys, and `M`
   turns mouse reporting off and on, since a terminal reporting the mouse no longer lets the
   person select text with it. While the pointer is over the map the terminal's own cursor sits
-  on the square under it and the pointer becomes a crosshair through `OSC 22`; both are given
-  back when it leaves, when the mouse is turned off, and when the run ends. The pointer cannot
-  be hidden — every `OSC 22` shape is a CSS cursor name and none of them means "no pointer", and
-  auto-hiding is a setting in each terminal rather than something an application can ask for.
+  on the square under it and the pointer becomes a crosshair through `OSC 22`; the cursor is
+  hidden again and the pointer asked back to `text` when it leaves, when the mouse is turned
+  off, and when the run ends. There is no reset to ask for: kitty takes an empty `OSC 22`
+  payload as one and ghostty parses the payload as a shape name and ignores what it does not
+  know, so only a named shape works, and `default`, `text` and `pointer` are the three every
+  terminal with `OSC 22` supports. The pointer cannot be hidden either — every shape is a CSS
+  cursor name and none of them means "no pointer", and auto-hiding is a setting in each terminal
+  rather than something an application can ask for.
 * **Verify** — Hover across a room; the sidebar tracks the terrain under the pointer. Hover over
   the edge of the pane and nothing is reported. Hover a wide glyph and the lead cell is named,
   not half of one. A spec feeds synthetic `Events::Mouse` at known coordinates and asserts the
