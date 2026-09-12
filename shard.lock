@@ -4,6 +4,10 @@ shards:
     git: https://github.com/plambert/guard.cr.git
     version: 1.0.1
 
+  shell-auto_complete:
+    git: https://github.com/plambert/shell-auto_complete.cr.git
+    version: 2.6.1
+
   spectator:
     git: https://gitlab.com/arctic-fox/spectator.git
     version: 0.12.4

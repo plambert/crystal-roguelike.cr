@@ -1,9 +1,15 @@
-# TODO: Write documentation for `Crystal::Roguelike`
-module Crystal::Roguelike
+# A terminal roguelike.
+#
+# The shard is named `crystal-roguelike`, so this file is where `require
+# "crystal-roguelike"` lands, but the namespace is `Roguelike`: `Crystal` is
+# the compiler's own, and game types have no business sitting beside
+# `Crystal::System`.
+module Roguelike
   {% begin %}
   {% command = "shards version '" + __DIR__.gsub(%r{'}, "'\\''") + "'" %}
   VERSION = {{ `#{command.id}`.strip.stringify }}
   {% end %}
-
-  # TODO: Put your code here
 end
+
+require "./roguelike/rng"
+require "./roguelike/cli"

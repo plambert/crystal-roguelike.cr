@@ -6,13 +6,16 @@ authors:
 
 targets:
   crystal-roguelike:
-    main: src/crystal-roguelike.cr
+    main: src/main.cr
 
 crystal: '>= 1.21'
 
 license: MIT
 
 dependencies:
+  shell-auto_complete:
+    github: plambert/shell-auto_complete.cr
+    version: ~> 2.0
   termbuf-widgets:
     github: plambert/termbuf-widgets.cr
   guard:
