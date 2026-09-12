@@ -237,7 +237,11 @@ The one piece of shard-shaped work that has to come before anything can be drawn
   readout, not a tooltip: it holds the last thing hovered rather than blanking on the way past.
   `x` does the same thing from the keyboard with a cursor moved by the movement keys, and `M`
   turns mouse reporting off and on, since a terminal reporting the mouse no longer lets the
-  person select text with it.
+  person select text with it. While the pointer is over the map the terminal's own cursor sits
+  on the square under it and the pointer becomes a crosshair through `OSC 22`; both are given
+  back when it leaves, when the mouse is turned off, and when the run ends. The pointer cannot
+  be hidden — every `OSC 22` shape is a CSS cursor name and none of them means "no pointer", and
+  auto-hiding is a setting in each terminal rather than something an application can ask for.
 * **Verify** — Hover across a room; the sidebar tracks the terrain under the pointer. Hover over
   the edge of the pane and nothing is reported. Hover a wide glyph and the lead cell is named,
   not half of one. A spec feeds synthetic `Events::Mouse` at known coordinates and asserts the

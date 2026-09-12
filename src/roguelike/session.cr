@@ -57,6 +57,10 @@ module Roguelike
     # What points the readout, from the pointer or from the keyboard.
     getter examiner : Ui::Examiner
 
+    # What the mouse pointer is doing, and what the terminal is being told
+    # about it.
+    getter pointer : Ui::Pointer
+
     # Whether the terminal is reporting the mouse.
     #
     # On at the start, because pointing at a square to find out what it is is
@@ -93,6 +97,7 @@ module Roguelike
       @examine = Ui::ExaminePane.new
       @screen.show_sidebar @examine.root
       @examiner = Ui::Examiner.new @map, @examine
+      @pointer = Ui::Pointer.new
 
       @app = Ui::Widgets::App.new @terminal, @screen.root, bounds,
         @terminal.events, @terminal.policy
@@ -127,10 +132,20 @@ module Roguelike
         @terminal.enable TermBuf::Tty::MOUSE_SGR_ANY
       else
         @terminal.disable TermBuf::Tty::MOUSE_SGR_ANY
+        pointer_away
       end
 
       status
       wanted
+    end
+
+    # The pointer is no longer on the map, so the terminal gets its own cursor
+    # and its own pointer back.
+    private def pointer_away : Nil
+      return unless @pointer.shape
+
+      @pointer.away
+      @terminal.passthrough Ui::Pointer.sequence(nil)
     end
 
     # One step of a movement key.
@@ -138,6 +153,9 @@ module Roguelike
     # It moves the examine cursor while that is on the map. Phase 5 gives it
     # the player for every other time.
     def step(direction : Direction) : Nil
+      # The keyboard is being used, and it can move the camera out from under
+      # wherever the pointer was last seen.
+      pointer_away
       @examiner.move direction
     end
 
@@ -149,6 +167,10 @@ module Roguelike
     end
 
     # Draws, waits, and does it again until something ends the run.
+    #
+    # The pointer shape is put back however the run ends. `Terminal#close`
+    # gives back everything termbuf asked for and nothing it does not know
+    # about, and `OSC 22` is ours.
     def run : Nil
       loop do
         draw
@@ -156,6 +178,8 @@ module Roguelike
         break if @leaving
         break unless @app.wait
       end
+    ensure
+      pointer_away
     end
 
     # An event no widget wanted.
@@ -177,7 +201,16 @@ module Roguelike
     # alike and neither needs a mode. A report over anything that is not the
     # map leaves the readout saying what it said.
     private def pointed(event : TermBuf::Events::Mouse) : Nil
-      @examiner.point_at_screen event.x, event.y
+      unless @examiner.point_at_screen event.x, event.y
+        pointer_away
+        return
+      end
+
+      wanted = @pointer.shape
+      @pointer.over event.x, event.y
+      return if wanted == @pointer.shape
+
+      @terminal.passthrough Ui::Pointer.sequence(@pointer.shape)
     end
 
     private def resized(resize : TermBuf::Events::Resize) : Nil
@@ -187,12 +220,19 @@ module Roguelike
       @screen.fit size.columns, size.rows
       @app.resize bounds
       @cursor.region.bounds = bounds
+
+      # Whatever the pointer was over is not there any more.
+      pointer_away
     end
 
     # One frame: lay out, draw, put the terminal's own cursor where whatever
     # has the keyboard wants it, and send the difference.
     private def draw : Nil
-      @app.frame do |spot|
+      @app.frame do |focused|
+        # The pointer wins: it is being moved now, and whatever has the
+        # keyboard is not.
+        spot = @pointer.cursor || focused
+
         if spot
           @cursor.move_to spot[0], spot[1]
           @terminal.hardware_cursor = @cursor
