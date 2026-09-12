@@ -324,6 +324,61 @@ Spectator.describe "doors, stairs and leaving" do
       expect(run.game.level.terrain(11, 12)).to eq Terrain::ClosedDoor
     end
 
+    # A person asked which way has to see which way.
+    it "lights up every door that answers" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+
+      run.press "o"
+
+      expect(run.map.highlights.to_a.sort).to eq [{9, 12}, {10, 13}, {11, 12}]
+    end
+
+    it "lights up nothing once the question is answered" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+
+      run.press "o"
+      run.press "h"
+
+      expect(run.map.highlights).to be_empty
+    end
+
+    it "lights up nothing after Escape" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+
+      run.press "o"
+      run.press "Escape"
+
+      expect(run.map.highlights).to be_empty
+    end
+
+    it "lights up the open doors for c, not the shut ones" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+      run.press "o"
+      run.press "h"
+      run.press "o"
+      run.press "l"
+
+      run.press "c"
+
+      # The north door counts too. Walking through it left it open.
+      expect(run.map.highlights.to_a.sort).to eq [{9, 12}, {10, 11}, {11, 12}]
+    end
+
+    it "leaves the door's own glyph showing under the highlight" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+
+      run.press "o"
+      spot = run.map.grid.view_of 11, 12
+      raise "the door is not in view" unless spot
+
+      expect(run.row(spot[1])[spot[0]]).to eq '+'
+    end
+
     it "asks which door to close once two are open" do
       run = Playing.open
       TO_JUNCTION.each_char { |key| run.press key.to_s }
@@ -373,6 +428,64 @@ Spectator.describe "doors, stairs and leaving" do
       expect(style_at(run, 6, 5)).not_to eq character
       expect(style_at(run, 1, 19)).not_to eq status
       expect(run.row(5)[6]).to eq '@'
+    end
+
+    # A box is drawn in the middle of the screen. A character standing in the
+    # middle of the map pane would be behind it, and a person answering a
+    # question about what is around them has to see what is around them.
+    # One open room, large enough that the camera can put the character
+    # anywhere in the window. On the shipped level the character starts near a
+    # corner and the camera cannot centre them at all.
+    def middled : Playing::Run
+      run = Playing.open Playing.field
+      run.map.center_on run.at[0], run.at[1]
+      run.render
+      run
+    end
+
+    it "moves the camera so the character is not behind the box" do
+      run = middled
+
+      run.press "Q"
+
+      spot = run.map.grid.view_of run.at[0], run.at[1]
+      raise "the character left the window" unless spot
+
+      boxed = run.rows.index &.includes?("Really leave")
+      raise "no question was drawn" unless boxed
+
+      expect((spot[1] - boxed).abs).to be > 1
+    end
+
+    it "leaves the character in view" do
+      run = middled
+
+      run.press "Q"
+
+      expect(run.map.grid.view_of(run.at[0], run.at[1])).not_to be_nil
+      expect(run.map.mark?(run.at[0], run.at[1])).not_to be_nil
+    end
+
+    it "puts the camera back once the question is answered" do
+      run = middled
+      before = run.map.camera
+
+      run.press "Q"
+      expect(run.map.camera).not_to eq before
+
+      run.press "n"
+      expect(run.map.camera).to eq before
+    end
+
+    # The character starts near the top left corner of the shipped level. The
+    # box covers the middle of the screen and never reaches them.
+    it "does not move the camera for a character already clear of the box" do
+      run = Playing.open
+      before = run.map.camera
+
+      run.press "Q"
+
+      expect(run.map.camera).to eq before
     end
 
     it "puts the screen back when the question goes" do

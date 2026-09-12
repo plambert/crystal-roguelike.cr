@@ -179,6 +179,51 @@ module TermBuf::Widgets
         axis(@camera_y, y, room[1], margin)
     end
 
+    # Moves the camera so that *x*, *y* and *margin* cells around it fall
+    # outside *area*.
+    #
+    # *area* is in window coordinates. A modal box drawn over part of the
+    # window is one. The camera moves the least it can. It tries above the
+    # area, below it, left of it and right of it, and takes the smallest move
+    # that clears the area once the edges of the field are allowed for.
+    #
+    # The camera does not move at all when *x*, *y* is already clear, or when
+    # the field is too small for any move to clear it.
+    def avoid(x : Int32, y : Int32, area : Rect, margin : Int32 = 1) : Bool
+      room = viewport_size
+      return false if room[0] <= 0 || room[1] <= 0
+      return false if area.empty?
+
+      spot = {x - @camera_x, y - @camera_y}
+      return false unless overlaps? spot, area, margin
+
+      wanted = {
+        {@camera_x, @camera_y + (spot[1] - (area.y - margin - 1))},
+        {@camera_x, @camera_y - ((area.bottom + margin) - spot[1])},
+        {@camera_x + (spot[0] - (area.x - margin - 1)), @camera_y},
+        {@camera_x - ((area.right + margin) - spot[0]), @camera_y},
+      }
+
+      limit = max_scroll
+      here = {@camera_x, @camera_y}
+
+      chosen = wanted
+        .map { |camera| {camera[0].clamp(0, limit[0]), camera[1].clamp(0, limit[1])} }
+        .reject { |camera| overlaps?({x - camera[0], y - camera[1]}, area, margin) }
+        .min_by? { |camera| (camera[0] - here[0]).abs + (camera[1] - here[1]).abs }
+
+      return false unless chosen
+
+      @camera_x, @camera_y = chosen
+      true
+    end
+
+    # Whether *margin* cells around *spot* reach into *area*.
+    private def overlaps?(spot : {Int32, Int32}, area : Rect, margin : Int32) : Bool
+      spot[0] + margin >= area.x && spot[0] - margin <= area.right - 1 &&
+        spot[1] + margin >= area.y && spot[1] - margin <= area.bottom - 1
+    end
+
     # Where one axis of the camera has to move to keep *spot* off the edge.
     private def axis(camera : Int32, spot : Int32, room : Int32,
                      margin : Int32) : Int32

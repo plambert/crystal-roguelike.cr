@@ -267,6 +267,86 @@ Spectator.describe TermBuf::Widgets::CellGrid do
     end
   end
 
+  describe "#avoid" do
+    # A modal box over the middle of the window. The camera has to put the
+    # cell somewhere the box does not cover.
+    BOX = TermBuf::Rect.new 10, 5, 20, 5
+
+    it "does not move for a cell already clear of the area" do
+      grid = windowed(40, 15).grid
+      grid.scroll_to 30, 20
+      before = {grid.scroll_x, grid.scroll_y}
+
+      expect(grid.avoid(31, 21, BOX, margin: 1)).to be_false
+      expect({grid.scroll_x, grid.scroll_y}).to eq before
+    end
+
+    it "moves a cell out from behind the area" do
+      run = windowed 40, 15
+      grid = run.grid
+      grid.center_on 100, 100
+      run.session.render
+
+      spot = grid.view_of 100, 100
+      expect(spot).not_to be_nil
+
+      expect(grid.avoid(100, 100, BOX, margin: 1)).to be_true
+      moved = grid.view_of 100, 100
+      raise "the cell left the window" unless moved
+
+      expect(moved[1] < BOX.y || moved[1] >= BOX.bottom ||
+             moved[0] < BOX.x || moved[0] >= BOX.right).to be_true
+    end
+
+    it "keeps the margin clear as well as the cell" do
+      grid = windowed(40, 15).grid
+      grid.center_on 100, 100
+      grid.avoid 100, 100, BOX, margin: 3
+
+      moved = grid.view_of 100, 100
+      raise "the cell left the window" unless moved
+
+      clear = (moved[1] + 3 < BOX.y) || (moved[1] - 3 >= BOX.bottom) ||
+              (moved[0] + 3 < BOX.x) || (moved[0] - 3 >= BOX.right)
+      expect(clear).to be_true
+    end
+
+    it "leaves the cell in the window" do
+      run = windowed 40, 15
+      run.grid.center_on 100, 100
+      run.grid.avoid 100, 100, BOX, margin: 3
+      run.session.render
+
+      expect(run.grid.view_of(100, 100)).not_to be_nil
+    end
+
+    it "makes the smallest move that clears the area" do
+      grid = windowed(40, 15).grid
+      grid.center_on 100, 100
+      before = {grid.scroll_x, grid.scroll_y}
+
+      grid.avoid 100, 100, BOX, margin: 1
+      moved = (grid.scroll_x - before[0]).abs + (grid.scroll_y - before[1]).abs
+
+      expect(moved).to be <= 8
+    end
+
+    # A window smaller than the box has no camera position that clears it.
+    it "does not move when no move would clear the area" do
+      grid = windowed(40, 15, field: 8).grid
+      before = {grid.scroll_x, grid.scroll_y}
+
+      expect(grid.avoid(4, 4, TermBuf::Rect.new(0, 0, 40, 15), margin: 1)).to be_false
+      expect({grid.scroll_x, grid.scroll_y}).to eq before
+    end
+
+    it "does nothing for an empty area" do
+      grid = windowed(40, 15).grid
+
+      expect(grid.avoid(0, 0, TermBuf::Rect.new(0, 0, 0, 0))).to be_false
+    end
+  end
+
   describe "what it asks its source" do
     it "asks only about the cells that are showing" do
       asked = 0

@@ -43,6 +43,10 @@ module Roguelike::Ui
     # camera does not move while the square is further in than this.
     property margin : Int32 = 6
 
+    # Squares kept clear around the character when a modal box covers part of
+    # the window.
+    property avoid_margin : Int32 = 3
+
     # The square the examine cursor is on. `nil` when there is no cursor.
     #
     # The cursor draws over whatever is on the square. It does not replace it.
@@ -58,13 +62,23 @@ module Roguelike::Ui
     # holds nothing about the creatures on it.
     getter marks : Hash({Int32, Int32}, Look) = {} of {Int32, Int32} => Look
 
+    # Squares offered as an answer to a question.
+    #
+    # Each keeps its own glyph and its own colour. Only the background
+    # changes. A person choosing between four doors has to see which door is
+    # which.
+    getter highlights : Set({Int32, Int32}) = Set({Int32, Int32}).new
+
     def initialize(level : Level)
       @cells = LevelCells.new level
       @grid = Widgets::CellGrid.new @cells
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
         look = @marks[{x, y}]? || Palette[tile.terrain]
+        style = look.style
+        style = style.bg Palette::OFFERED if @highlights.includes?({x, y})
+
         here = @cursor
-        style = here && here[0] == x && here[1] == y ? look.style.reverse : look.style
+        style = style.reverse if here && here[0] == x && here[1] == y
 
         view.write_char 0, 0, look.glyph, style
         nil
@@ -79,6 +93,21 @@ module Roguelike::Ui
     # Takes everything off the terrain.
     def clear_marks : Nil
       @marks.clear
+    end
+
+    # Offers *x*, *y* as an answer to a question.
+    def highlight(x : Int32, y : Int32) : Nil
+      @highlights << {x, y}
+    end
+
+    # Stops offering anything.
+    def clear_highlights : Nil
+      @highlights.clear
+    end
+
+    # Whether *x*, *y* is offered.
+    def highlighted?(x : Int32, y : Int32) : Bool
+      @highlights.includes?({x, y})
     end
 
     # What is on *x*, *y* over the terrain. `nil` for bare ground.
@@ -96,6 +125,7 @@ module Roguelike::Ui
       @cells.level = level
       @grid.scroll_to 0, 0
       clear_marks
+      clear_highlights
       level
     end
 
@@ -103,6 +133,17 @@ module Roguelike::Ui
     # the window. Following the character uses this.
     def follow(x : Int32, y : Int32) : Nil
       @grid.reveal x, y, margin: @margin
+    end
+
+    # Moves the camera so that *x*, *y* and the squares around it fall outside
+    # *area*. Answers whether the camera moved.
+    def avoid(x : Int32, y : Int32, area : TermBuf::Rect) : Bool
+      @grid.avoid x, y, area, margin: @avoid_margin
+    end
+
+    # Puts the camera back where *camera* had it.
+    def camera=(camera : {Int32, Int32}) : Nil
+      @grid.scroll_to camera[0], camera[1]
     end
 
     # Puts *x*, *y* in the middle of the window. Stops at the edges of the

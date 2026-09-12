@@ -21,6 +21,12 @@ module Roguelike::Ui
     STAIRS    = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0xE4, 0xEC)
     HERO      = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bold
 
+    # What a square offered as an answer is drawn on.
+    #
+    # The square keeps its own glyph and its own colour. Only the background
+    # changes. A person choosing a direction has to see which door is which.
+    OFFERED = TermBuf::Color.rgb 0x3A, 0x4E, 0x2A
+
     # The character. Roguelikes have drawn the player as `@` since 1980. A
     # person who has played one looks for it first.
     PLAYER = Look.new '@', HERO

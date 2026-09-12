@@ -11,6 +11,15 @@ module Roguelike::Ui
       in .close? then "close"
       end
     end
+
+    # The terrain this command acts on. Every square holding it beside the
+    # character is an answer.
+    def terrain : Terrain
+      case self
+      in .open?  then Terrain::ClosedDoor
+      in .close? then Terrain::OpenDoor
+      end
+    end
   end
 
   # Everything the game shows. Everything the keys do. No device anywhere.
@@ -69,6 +78,14 @@ module Roguelike::Ui
     # been answered.
     getter? finished : Bool = false
 
+    # Where the camera was before a question moved it. `nil` when no question
+    # has moved it.
+    @parked : {Int32, Int32}? = nil
+
+    # The size of the screen, as `#fit` was last told it.
+    @columns : Int32 = 0
+    @rows : Int32 = 0
+
     def initialize(@game : Game)
       @screen = Screen.new
       @map = MapPane.new @game.level
@@ -112,8 +129,67 @@ module Roguelike::Ui
       app = @app
       raise "Play#app has not been set" unless app
 
-      @prompt.on_answer = ->(key : Char?) { answered.call key; nil }
+      @prompt.on_answer = ->(key : Char?) do
+        park_camera_back
+        answered.call key
+        nil
+      end
+
+      clear_the_character
       @prompt.ask app, question, keys, default
+    end
+
+    # Moves the camera so that a modal box does not cover the character.
+    #
+    # A box is drawn in the middle of the screen. The map pane fills the top
+    # left of it. A character standing in the middle of the pane would be
+    # behind the box, and a person answering a question about what is around
+    # them has to see what is around them.
+    #
+    # The camera goes back where it was once the question is answered.
+    private def clear_the_character : Nil
+      return if @parked
+
+      here = @map.camera
+      return unless @map.avoid @game.player.x, @game.player.y, modal_area
+
+      @parked = here
+    end
+
+    # Puts the camera back where a question found it.
+    private def park_camera_back : Nil
+      parked = @parked
+      return unless parked
+
+      @parked = nil
+      @map.camera = parked
+    end
+
+    # How tall a band a modal box is assumed to need.
+    #
+    # A question is one row of text in a bordered box. Three rows hold it.
+    # Seven leaves the character clear of it rather than beside it.
+    MODAL_ROWS = 7
+
+    # The part of the map pane a modal box covers, in window coordinates.
+    #
+    # The box is centred on the screen, not on the map pane. The pane starts
+    # at the top left corner of the buffer, so a window coordinate of the pane
+    # is a buffer coordinate.
+    #
+    # The band is three quarters of the screen wide. A question sized to its
+    # own text is narrower than that. Reserving more than the box needs costs
+    # one camera move and never leaves the character behind the box.
+    private def modal_area : Rect
+      room = @map.grid.viewport_size
+      return Rect.new(0, 0, 0, 0) if room[0] <= 0 || room[1] <= 0 || @columns <= 0
+
+      width = Math.max @columns * 3 // 4, 1
+      left = (@columns - width) // 2
+      top = (@rows - MODAL_ROWS) // 2
+
+      Rect.new(left, top, width, MODAL_ROWS)
+        .intersect Rect.new(0, 0, room[0], room[1])
     end
 
     # Asks the person whether to leave. Leaves on yes.
@@ -224,9 +300,25 @@ module Roguelike::Ui
     # are put in step. It runs after anything that changes the game.
     def refresh : Nil
       @map.clear_marks
+      @map.clear_highlights
       @map.mark @game.player.x, @game.player.y, Palette::PLAYER
+      offer_directions
       @pager.show @game.log.lines
       @screen.status_text.text = status
+    end
+
+    # Lights up every square that answers the command waiting for a direction.
+    #
+    # A person asked which way has to see which way. Four doors around one
+    # square are four answers, and the question is which of them.
+    private def offer_directions : Nil
+      waiting = @pending
+      return unless waiting
+
+      @game.doors(waiting.terrain).each do |direction|
+        spot = direction.from @game.player.x, @game.player.y
+        @map.highlight spot[0], spot[1]
+      end
     end
 
     # The status line. *mouse* belongs to the terminal. A caller passes it
@@ -261,6 +353,8 @@ module Roguelike::Ui
 
     # Answers the layout to a screen of *columns* by *rows*.
     def fit(columns : Int32, rows : Int32) : Nil
+      @columns = columns
+      @rows = rows
       @screen.fit columns, rows
       @pager.resize Screen.log_width(columns), Screen::LOG_ROWS
     end
