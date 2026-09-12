@@ -46,6 +46,8 @@ actually been run rather than reasoned about.
 | Sconces | A `Fixture` on the open square beside the wall, not a terrain. The wall keeps its rock |
 | A mounted flame | Throws the whole radius over the half turned away from its wall |
 | A standing flame | Throws every way, one step less far, because the flame is at ankle height |
+| Shading | Five steps from remembered to brightly lit, through `Widgets::Ramp` |
+| Belief | `Knowledge` per believer per floor. `Game#look` is the one way anything gets in |
 
 ## Ground rules
 
@@ -172,7 +174,7 @@ naming what still has to be decided before it moves.
 | `Prompt` | Phase 6 | `[yn]` answered by one keystroke, in a modal overlay |
 | `Pager` | Phase 7 | `--More--` held at a page boundary |
 | `Menu` | Phase 10 | A list addressed by letter rather than filtered |
-| Quantized style ramp | Phase 14 | A `Blend` over N fixed steps, so styles stay interned |
+| `Ramp` | Phase 14 | A fixed number of styles between one style and a colour |
 
 Numpad decoding — the `SS3` keypad keys and a `DECKPAM` `Tty::Mode` for `termbuf-input.cr` — is
 deferred until there is a keypad to test it on and it is known which of the three supported
@@ -430,6 +432,15 @@ The phase that introduces the type monster bands will use in Phase 19.
   was in it is still drawn where it was even after it is moved. A spec asserts the style table
   stops growing after the first few frames of a long walk. A spec round-trips `Knowledge` through
   serialization.
+* **Done.** `Knowledge` holds a `Memory` per square: the terrain, the fixture and the top item as
+  they were, and the turn it was seen on. Each is a copy, so a torch that burns down or a door
+  that shuts after the character looks away does not change what they remember. `Player#memory`
+  keeps one per floor, because floors persist. `Game#look` is the one way anything gets in, and
+  whatever is about to draw the floor calls it, so what is remembered and what is drawn are never
+  out of step. `Game#sight` answers the same thing without recording it, for a spec reading the
+  field of view. The map pane draws three states: what is there now, shaded by light; what was
+  there when last seen, at the bottom of the ramp; and a blank for a square nobody has seen. The
+  examine pane says what a remembered square held and marks it `remembered`.
 
 ### Phase 15 — Silhouettes and flicker
 

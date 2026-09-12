@@ -147,6 +147,14 @@ module Roguelike
         @blessing, @blessing_known, @lit
     end
 
+    # A separate item with the same state.
+    #
+    # A `Memory` holds one of these. An item goes on burning down and being
+    # identified after somebody looks away, and what they remember does not.
+    def copy : Item
+      with_count @count
+    end
+
     # A copy with *amount* added to the count.
     def add(amount : Int32) : Item
       with_count @count + amount

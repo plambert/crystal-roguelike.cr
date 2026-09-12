@@ -3,6 +3,7 @@ require "./advancement"
 require "./attributes"
 require "./equipment"
 require "./inventory"
+require "./knowledge"
 
 module Roguelike
   # The character the person plays.
@@ -50,6 +51,13 @@ module Roguelike
     # Gold pieces. Counted rather than carried, so they take no letter.
     getter gold : Int32
 
+    # What the character remembers of each floor they have walked on, by
+    # floor id.
+    #
+    # Floors persist, so a character coming back to one remembers the shape of
+    # it. A monster band will hold the same type.
+    getter memory : Hash(String, Knowledge)
+
     def initialize(@floor : String, @x : Int32, @y : Int32,
                    @attributes : Attributes = Attributes.new,
                    @level : Int32 = 1,
@@ -57,8 +65,23 @@ module Roguelike
                    hit_points : Int32? = nil,
                    @inventory : Inventory = Inventory.new,
                    @gold : Int32 = 0,
-                   @equipment : Equipment = Equipment.new)
+                   @equipment : Equipment = Equipment.new,
+                   @memory : Hash(String, Knowledge) = {} of String => Knowledge)
       @hit_points = hit_points || Advancement.max_hit_points(@level, @attributes.constitution)
+    end
+
+    # What the character remembers of the floor they are on.
+    #
+    # A floor they have not walked on yet gets an empty one, put in the table
+    # so that what they learn on it is kept.
+    def knowledge : Knowledge
+      @memory[@floor] ||= Knowledge.new @floor
+    end
+
+    # What the character remembers of the floor *id*. `nil` for one they have
+    # never been on.
+    def knowledge?(id : String) : Knowledge?
+      @memory[id]?
     end
 
     # What a character with nothing in their hands hits for.

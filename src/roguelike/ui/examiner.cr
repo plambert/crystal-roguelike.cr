@@ -122,7 +122,7 @@ module Roguelike::Ui
       here = @spot
 
       if here
-        @pane.show @map.floor, here[0], here[1], @lore, @map.sight
+        @pane.show @map.floor, here[0], here[1], @lore, @map.sight, @map.knowledge
       else
         @pane.clear
       end

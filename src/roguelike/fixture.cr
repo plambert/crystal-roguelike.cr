@@ -117,6 +117,14 @@ module Roguelike
       true
     end
 
+    # A separate fixture with the same state.
+    #
+    # A `Memory` holds one of these. A fixture goes on being lit and put out
+    # after somebody looks away, and what they remember does not.
+    def copy : Fixture
+      Fixture.new @kind, @lit, @attached
+    end
+
     # What this fixture is called.
     def label : String
       @lit ? "lit #{@kind.label}" : @kind.label

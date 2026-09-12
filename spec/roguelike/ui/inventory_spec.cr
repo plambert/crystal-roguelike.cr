@@ -131,14 +131,17 @@ Spectator.describe "picking up and dropping" do
   end
 
   describe "the map" do
+    # The character stands on the dagger, so the character draws. Stepping
+    # off it leaves the dagger showing.
     it "draws what is lying on a square" do
       run = litter [Item.new(Kind::Dagger)]
 
       expect(run.map.mark?(2, 2)).to eq Roguelike::Ui::Palette::PLAYER
+      expect(run.row(2)[2]).to eq '@'
 
       run.press "l"
-      expect(run.map.mark?(2, 2))
-        .to eq Roguelike::Ui::Palette[Item.new(Kind::Dagger)]
+      expect(run.map.mark?(2, 2)).to be_nil
+      expect(run.row(2)[2]).to eq ')'
     end
 
     it "draws each class with its own glyph" do

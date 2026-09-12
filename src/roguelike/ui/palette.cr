@@ -108,10 +108,44 @@ module Roguelike::Ui
       Look.new glyph, fitting.lit? ? FLAME : IRON
     end
 
-    # What a square out of sight draws as.
-    #
-    # A blank. Phase 14 puts a remembered square here, drawn dim. Until then
-    # a square the character cannot see says nothing at all.
+    # What a square nobody has ever seen draws as. A blank.
     UNSEEN = Look.new ' ', Style::DEFAULT
+
+    # How many steps there are between a remembered square and a brightly lit
+    # one.
+    #
+    # Five is enough that a torch pool has a visible falloff and few enough
+    # that the style table settles at a few dozen entries.
+    STEPS = 5
+
+    # The step a square draws at when it is remembered rather than seen.
+    REMEMBERED = 0
+
+    # How many points of light one step of the ramp is worth.
+    LIGHT_PER_STEP = 3
+
+    # The ramp every square is drawn through.
+    #
+    # A blend computing a colour per cell interns a style per cell and the
+    # style table only grows. A ramp answers the same style for the same step
+    # every time, so the table stops growing once each step of each look has
+    # been asked for.
+    RAMP = Widgets::Ramp.new STEPS, TermBuf::Color.rgb(0x10, 0x11, 0x14)
+
+    # Which step of `RAMP` a square with *level* light draws at.
+    #
+    # A square with no light on it is remembered rather than seen, so it draws
+    # at the bottom. Each `LIGHT_PER_STEP` points of light raises it one step,
+    # up to the top.
+    def self.step(level : Int32) : Int32
+      return REMEMBERED if level <= 0
+
+      Math.min REMEMBERED + 1 + (level - 1) // LIGHT_PER_STEP, STEPS - 1
+    end
+
+    # *look* drawn at *step* of `RAMP`.
+    def self.shaded(look : Look, step : Int32) : Look
+      Look.new look.glyph, RAMP[look.style, step]
+    end
   end
 end

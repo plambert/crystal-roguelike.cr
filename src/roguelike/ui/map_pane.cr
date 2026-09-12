@@ -55,6 +55,14 @@ module Roguelike::Ui
     # character cannot see shows nothing standing on it.
     property sight : Vision? = nil
 
+    # What the character remembers of this floor. `nil` remembers nothing, so
+    # a square out of sight draws blank.
+    #
+    # A remembered square draws what it looked like when it was last seen,
+    # dimmed. The floor goes on changing after the character looks away and
+    # what is drawn does not.
+    property knowledge : Knowledge? = nil
+
     # The square the examine cursor is on. `nil` when there is no cursor.
     #
     # The cursor draws over whatever is on the square. It does not replace it.
@@ -81,11 +89,7 @@ module Roguelike::Ui
       @cells = FloorCells.new floor
       @grid = Widgets::CellGrid.new @cells
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
-        look = if seen? x, y
-                 @marks[{x, y}]? || fitted(x, y) || Palette[tile.terrain]
-               else
-                 Palette::UNSEEN
-               end
+        look = looked_at x, y, tile
 
         style = look.style
         style = style.bg Palette::OFFERED if @highlights.includes?({x, y})
@@ -98,15 +102,61 @@ module Roguelike::Ui
       end
     end
 
-    # How whatever is fitted to *x*, *y* draws. `nil` for a bare square.
+    # How *x*, *y* draws.
     #
-    # A fixture draws over the terrain and under a mark. A sconce is part of
-    # the room. The character standing in front of one still draws on top.
-    private def fitted(x : Int32, y : Int32) : Look?
-      fitting = floor.fixture x, y
-      return unless fitting
+    # A square in sight draws what is there now, shaded by how much light is
+    # on it. A square out of sight draws what it looked like when it was last
+    # seen, at the bottom of the ramp. A square nobody has ever seen draws
+    # blank.
+    private def looked_at(x : Int32, y : Int32, tile : Tile) : Look
+      return Palette.shaded live(x, y, tile), Palette.step(light x, y) if seen? x, y
 
-      Palette[fitting]
+      remembered x, y
+    end
+
+    # What is on *x*, *y* now, topmost first.
+    #
+    # A mark is something standing on the square. An item lying there draws
+    # over whatever is fitted to it, and a fixture draws over the terrain.
+    private def live(x : Int32, y : Int32, tile : Tile) : Look
+      mark = @marks[{x, y}]?
+      return mark if mark
+
+      item = floor.items(x, y).last?
+      return Palette[item] if item
+
+      fitting = floor.fixture x, y
+      return Palette[fitting] if fitting
+
+      Palette[tile.terrain]
+    end
+
+    # What *x*, *y* looked like when it was last seen.
+    private def remembered(x : Int32, y : Int32) : Look
+      held = @knowledge
+      memory = held.try &.[](x, y)
+      return Palette::UNSEEN unless memory
+
+      item = memory.item
+      fitting = memory.fixture
+
+      look = if item
+               Palette[item]
+             elsif fitting
+               Palette[fitting]
+             else
+               Palette[memory.terrain]
+             end
+
+      Palette.shaded look, Palette::REMEMBERED
+    end
+
+    # How much light is on *x*, *y*.
+    private def light(x : Int32, y : Int32) : Int32
+      found = @sight
+      return Palette::STEPS if found.nil?
+
+      Math.max found.light(x, y), 1
     end
 
     # Whether the character can see *x*, *y*.
@@ -160,6 +210,7 @@ module Roguelike::Ui
       clear_marks
       clear_highlights
       @sight = nil
+      @knowledge = nil
       floor
     end
 

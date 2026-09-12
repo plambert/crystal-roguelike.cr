@@ -43,8 +43,9 @@ Spectator.describe "what the character can see" do
     end
 
     # A field of view is worked out again from where the character stands.
-    # Standing in the second room, the first room is seen through the doorway
-    # and the two wall squares the doorway hides are not.
+    # Standing in the second room, the first room is seen through the doorway.
+    # The two wall squares the doorway hides are drawn from memory, because
+    # the character stood in the first room a moment ago.
     it "follows the character" do
       run = shown
 
@@ -53,8 +54,10 @@ Spectator.describe "what the character can see" do
       run.press "l"
 
       expect(run.at).to eq({5, 2})
-      expect(run.rows[0, 5]).to eq ["##  #####", "#...#...#", "#..<'@>.#",
-                                    "#...#...#", "##  #####"]
+      expect(run.rows[0, 5]).to eq ["#########", "#...#...#", "#..<'@>.#",
+                                    "#...#...#", "#########"]
+      expect(run.game.sight.includes?(2, 0)).to be_false
+      expect(run.game.knowledge.seen?(2, 0)).to be_true
     end
   end
 

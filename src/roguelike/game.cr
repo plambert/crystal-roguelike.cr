@@ -276,6 +276,25 @@ module Roguelike
       sight.includes? x, y
     end
 
+    # Works out what the character can see, and remembers it.
+    #
+    # This is the one place anything gets into `Player#knowledge`. Whatever is
+    # about to draw the floor calls it, so what is remembered and what is
+    # drawn are never out of step.
+    #
+    # `#sight` answers the same thing without remembering it. A spec reading
+    # the field of view uses that one.
+    def look : Vision
+      seen = sight
+      @player.knowledge.learn floor, seen, @turn
+      seen
+    end
+
+    # What the character remembers of the floor they are on.
+    def knowledge : Knowledge
+      @player.knowledge
+    end
+
     # ----------------------------------------------------------------- light
 
     # Everything on this floor that is throwing light.

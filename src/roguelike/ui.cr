@@ -3,6 +3,7 @@ require "./termbuf_ext/cell_grid"
 require "./termbuf_ext/menu"
 require "./termbuf_ext/pager"
 require "./termbuf_ext/prompt"
+require "./termbuf_ext/ramp"
 
 # Everything drawn on the screen.
 #

@@ -581,13 +581,12 @@ module Roguelike::Ui
     def refresh : Nil
       @map.clear_marks
       @map.clear_highlights
-      @map.sight = @game.sight
+      @map.sight = @game.look
+      @map.knowledge = @game.knowledge
 
-      @game.floor.each_pile do |column, row, pile|
-        last = pile.last?
-        @map.mark column, row, Palette[last] if last
-      end
-
+      # The pane reads the floor for what is lying about and the knowledge for
+      # what was lying about. A mark is something standing on a square, which
+      # is the character now and the monsters later.
       @map.mark @game.player.x, @game.player.y, Palette::PLAYER
       offer_directions
       @pager.show @game.log.lines
