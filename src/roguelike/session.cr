@@ -51,6 +51,19 @@ module Roguelike
     # The window the level is played in.
     getter map : Ui::MapPane
 
+    # The readout of what is on one square.
+    getter examine : Ui::ExaminePane
+
+    # What points the readout, from the pointer or from the keyboard.
+    getter examiner : Ui::Examiner
+
+    # Whether the terminal is reporting the mouse.
+    #
+    # On at the start, because pointing at a square to find out what it is is
+    # the quickest way to read a map, and off on `M`, because a terminal
+    # reporting the mouse no longer lets the person select text with it.
+    getter? mousing : Bool = false
+
     # The widget tree, its focus and its router.
     getter app : Ui::Widgets::App
 
@@ -77,6 +90,10 @@ module Roguelike
       @map = Ui::MapPane.new level
       @screen.show @map.grid
 
+      @examine = Ui::ExaminePane.new
+      @screen.show_sidebar @examine.root
+      @examiner = Ui::Examiner.new @map, @examine
+
       @app = Ui::Widgets::App.new @terminal, @screen.root, bounds,
         @terminal.events, @terminal.policy
       @cursor = @terminal.cursor bounds
@@ -88,6 +105,47 @@ module Roguelike
       @app.on_event = ->(event : TermBuf::Event) { unclaimed event }
 
       @help = Ui::Keys.install(@app) { @leaving = true }
+      @app.keymap = @app.keymap
+        .merge(Ui::Keys.examining(@examiner))
+        .merge(Ui::Keys.moving { |direction| step direction })
+        .merge(Ui::Keys.mousing { self.mousing = !mousing? })
+
+      self.mousing = true
+    end
+
+    # Turns mouse reporting on or off, and says so on the status line.
+    #
+    # Nothing asks the terminal for the mouse uninvited, and giving it back is
+    # `Terminal#close`'s job as well as this one's, so a run that ends any way
+    # at all leaves the terminal able to select text again.
+    def mousing=(wanted : Bool) : Bool
+      return wanted if wanted == @mousing
+
+      @mousing = wanted
+
+      if wanted
+        @terminal.enable TermBuf::Tty::MOUSE_SGR_ANY
+      else
+        @terminal.disable TermBuf::Tty::MOUSE_SGR_ANY
+      end
+
+      status
+      wanted
+    end
+
+    # One step of a movement key.
+    #
+    # It moves the examine cursor while that is on the map. Phase 5 gives it
+    # the player for every other time.
+    def step(direction : Direction) : Nil
+      @examiner.move direction
+    end
+
+    # Writes the status line.
+    private def status : Nil
+      @screen.status_text.text = "seed #{@rng.seed}    turn 0    " \
+                                 "mouse #{mousing? ? "on" : "off"}    " \
+                                 "x to look, ? for the keys"
     end
 
     # Draws, waits, and does it again until something ends the run.
@@ -102,13 +160,27 @@ module Roguelike
 
     # An event no widget wanted.
     #
-    # A resize is the one that matters here: the tree is laid out again at the
-    # new size, and `Screen#fit` is asked whether the sidebar is still worth
-    # having, before anything is drawn against the new rectangles.
+    # Two get this far: a mouse report, because the map pane draws squares and
+    # does not know what is on them, and a resize, because the tree has to be
+    # laid out again and `Screen#fit` asked what is still worth showing before
+    # anything is drawn against the new rectangles.
     private def unclaimed(event : TermBuf::Event) : Nil
-      resize = event.as? TermBuf::Events::Resize
-      return unless resize
+      case event
+      when TermBuf::Events::Mouse  then pointed event
+      when TermBuf::Events::Resize then resized event
+      end
+    end
 
+    # The pointer moved, or something was clicked with it.
+    #
+    # Every report says where it is, so a move and a click point the readout
+    # alike and neither needs a mode. A report over anything that is not the
+    # map leaves the readout saying what it said.
+    private def pointed(event : TermBuf::Events::Mouse) : Nil
+      @examiner.point_at_screen event.x, event.y
+    end
+
+    private def resized(resize : TermBuf::Events::Resize) : Nil
       size = resize.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 

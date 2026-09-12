@@ -12,6 +12,7 @@ module Roguelike
 end
 
 require "./roguelike/rng"
+require "./roguelike/direction"
 require "./roguelike/terrain"
 require "./roguelike/tile"
 require "./roguelike/level"

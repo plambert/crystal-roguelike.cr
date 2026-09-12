@@ -12,8 +12,11 @@ module Roguelike::Ui
   alias Rect = TermBuf::Rect
 end
 
+require "./direction"
 require "./level"
 require "./ui/palette"
 require "./ui/keys"
 require "./ui/map_pane"
+require "./ui/examine_pane"
+require "./ui/examiner"
 require "./ui/screen"

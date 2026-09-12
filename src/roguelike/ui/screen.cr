@@ -62,6 +62,9 @@ module Roguelike::Ui
     # The line in the notice that says how big the terminal is now.
     getter notice_text : Widgets::Label
 
+    # The status line's scaffolding, until phase 7 puts something real there.
+    getter status_text : Widgets::Label
+
     # Where the level is drawn.
     getter map : Widgets::Panel
 
@@ -91,6 +94,7 @@ module Roguelike::Ui
 
       @gutter = Widgets::Divider.new Widgets::Divider::Orientation::Vertical
 
+      @status_text = Widgets::Label.new ""
       @status = Widgets::Panel.new(
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fixed(1),
@@ -184,16 +188,22 @@ module Roguelike::Ui
       @map.add widget
     end
 
+    # Puts *widget* in the sidebar, taking out whatever was there.
+    #
+    # What `Ui::ExaminePane` is hung on.
+    def show_sidebar(widget : Widgets::Widget) : Nil
+      @sidebar.clear
+      @sidebar.add widget
+    end
+
     # Fills the regions that have nothing of their own yet with something that
     # says where they are.
     #
-    # Scaffolding. Phase 4 takes the sidebar, phase 7 the status line and
-    # phase 8 the log, and when the last of them has gone so has this method.
+    # Scaffolding. Phase 7 takes the status line and phase 8 the log, and when
+    # the second of them has gone so has this method.
     def scaffold(seed : UInt64) : Nil
-      @sidebar.add Widgets::Label.new("Look"),
-        Widgets::Label.new("nothing under the pointer yet")
-
-      @status.add Widgets::Label.new("seed #{seed}    turn 0")
+      @status_text.text = "seed #{seed}    turn 0"
+      @status.add @status_text
 
       @log.add Widgets::Label.new(
         "Welcome to the dungeon. ? for the keys, Q to leave.")

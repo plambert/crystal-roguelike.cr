@@ -40,12 +40,24 @@ module Roguelike::Ui
     # before the camera moves at all.
     property margin : Int32 = 6
 
+    # The square the examine cursor is on, or `nil` when there is no cursor.
+    #
+    # Drawn over whatever is there rather than instead of it, so the cursor
+    # says where it is without hiding what it is standing on.
+    property cursor : {Int32, Int32}? = nil
+
+    # What the cursor is drawn as: the square's own colours, swapped.
+    CURSOR = Style::DEFAULT.reverse
+
     def initialize(level : Level)
       @cells = LevelCells.new level
       @grid = Widgets::CellGrid.new @cells
-      @grid.on_draw = ->(view : TermBuf::View, _x : Int32, _y : Int32, tile : Tile) do
+      @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
         look = Palette[tile.terrain]
-        view.write_char 0, 0, look.glyph, look.style
+        here = @cursor
+        style = here && here[0] == x && here[1] == y ? look.style.reverse : look.style
+
+        view.write_char 0, 0, look.glyph, style
         nil
       end
     end
@@ -82,6 +94,14 @@ module Roguelike::Ui
     # Where the camera is.
     def camera : {Int32, Int32}
       {@grid.scroll_x, @grid.scroll_y}
+    end
+
+    # Which square is in the middle of the window, which is where a cursor
+    # with nowhere else to be should start.
+    def middle : {Int32, Int32}
+      room = @grid.viewport_size
+
+      {@grid.scroll_x + room[0] // 2, @grid.scroll_y + room[1] // 2}
     end
   end
 end

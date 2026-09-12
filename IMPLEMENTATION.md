@@ -235,8 +235,9 @@ The one piece of shard-shaped work that has to come before anything can be drawn
   reported. Hovering a map cell puts what is there into the sidebar — the terrain's name and
   description, and, once Phase 10 exists, everything lying on that square. It is a permanent
   readout, not a tooltip: it holds the last thing hovered rather than blanking on the way past.
-  `x` does the same thing from the keyboard with a cursor moved by the movement keys, since mouse
-  reporting costs the terminal's own text selection and wants a toggle.
+  `x` does the same thing from the keyboard with a cursor moved by the movement keys, and `M`
+  turns mouse reporting off and on, since a terminal reporting the mouse no longer lets the
+  person select text with it.
 * **Verify** — Hover across a room; the sidebar tracks the terrain under the pointer. Hover over
   the edge of the pane and nothing is reported. Hover a wide glyph and the lead cell is named,
   not half of one. A spec feeds synthetic `Events::Mouse` at known coordinates and asserts the

@@ -318,6 +318,26 @@ Spectator.describe TermBuf::Widgets::CellGrid do
                           {10, 21}, {11, 21}, {12, 21}, {13, 21}]
     end
 
+    # A square is one cell by construction. A cluster the terminal would draw
+    # two columns wide does not fit in the view cut for it, and termbuf drops
+    # a cluster crossing an edge whole rather than splitting it — so the
+    # square after it stays where it was, and the mapping a mouse report
+    # depends on stays exact.
+    it "keeps one cell per square when a square draws a wide glyph" do
+      cells = Widgets::Cells.from 4, 1, ->(x : Int32, _y : Int32) { x }
+      grid = Widgets::CellGrid.new cells
+      grid.on_draw = ->(view : TermBuf::View, x : Int32, _y : Int32, _held : Int32) do
+        view.write 0, 0, x.even? ? "漢" : "."
+        nil
+      end
+
+      session = Headless.open grid, 4, 1
+
+      expect(session.row(0)).to eq " . ."
+      expect(grid.cell_at(1, 0)).to eq({1, 0})
+      expect(grid.cell_at(3, 0)).to eq({3, 0})
+    end
+
     it "cuts each view to one cell, so an overlong write does not bleed" do
       cells = Widgets::Cells.from 4, 1, ->(x : Int32, _y : Int32) { x }
       grid = Widgets::CellGrid.new cells
