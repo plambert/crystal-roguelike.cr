@@ -246,11 +246,12 @@ Spectator.describe "doors, stairs and leaving" do
   # The walk the phase is for: out of the starting room, across the level, and
   # down the staircase at the far end.
   describe "a whole run on the shipped level" do
-    # South out of room A through the door at 10,9, down the corridor into
-    # room D, east along the corridor at row 20, through the door at 54,20
-    # into room C, and up to the staircase. A shut door takes two presses of
-    # the same key. One opens it. The next walks through it.
-    WALK = "nnnnnjjjjjnlllnnnnn" + "l" * 43 + "u"
+    # South out of room A through the door at 10,9, down the corridor and
+    # through the four way junction at 10,12, on into room D, east along the
+    # corridor at row 20, through the door at 54,20 into room C, and up to the
+    # staircase. A shut door takes two presses of the same key. One opens it.
+    # The next walks through it. There are four doors on the way.
+    WALK = "nnnnnjjjjjjjnlllnnnnn" + "l" * 43 + "u"
 
     it "opens a door, crosses the level, and wins" do
       run = Playing.open
@@ -273,8 +274,9 @@ Spectator.describe "doors, stairs and leaving" do
 
       WALK.each_char { |key| run.press key.to_s }
 
-      expect(run.game.level.terrain(10, 9)).to eq Terrain::OpenDoor
-      expect(run.game.level.terrain(54, 20)).to eq Terrain::OpenDoor
+      [{10, 9}, {10, 11}, {10, 13}, {54, 20}].each do |spot|
+        expect(run.game.level.terrain(spot[0], spot[1])).to eq Terrain::OpenDoor
+      end
     end
 
     it "takes one turn for each key that did something" do
@@ -283,6 +285,115 @@ Spectator.describe "doors, stairs and leaving" do
       WALK.each_char { |key| run.press key.to_s }
 
       expect(run.turn).to eq WALK.size
+    end
+  end
+
+  # Four shut doors around one square. `o` and `c` cannot guess which.
+  describe "the four way junction on the shipped level" do
+    # From the up staircase down to the junction at 10,12. Two doors on the
+    # way, at 10,9 and 10,11. Each takes one key to open and one to walk
+    # through.
+    TO_JUNCTION = "nnnnnjjjj"
+
+    it "puts the character between four doors" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+
+      expect(run.at).to eq({10, 12})
+      expect(run.game.doors(Terrain::ClosedDoor).size).to eq 3
+    end
+
+    it "asks which door to open" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+
+      run.press "o"
+
+      expect(run.play.pending).to eq Roguelike::Ui::Pending::Open
+      expect(run.said).to contain "Which way?"
+    end
+
+    it "opens the one the next key names" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+
+      run.press "o"
+      run.press "h"
+
+      expect(run.game.level.terrain(9, 12)).to eq Terrain::OpenDoor
+      expect(run.game.level.terrain(11, 12)).to eq Terrain::ClosedDoor
+    end
+
+    it "asks which door to close once two are open" do
+      run = Playing.open
+      TO_JUNCTION.each_char { |key| run.press key.to_s }
+
+      run.press "o"
+      run.press "h"
+      run.press "o"
+      run.press "l"
+      run.press "c"
+
+      expect(run.play.pending).to eq Roguelike::Ui::Pending::Close
+    end
+  end
+
+  describe "a question on the screen" do
+    # The style of one cell before the question and after it.
+    def style_at(run : Playing::Run, x : Int32, y : Int32) : UInt32?
+      run.buffer.hit(x, y).try &.cell.style
+    end
+
+    it "draws a box in the middle rather than against an edge" do
+      run = Playing.open
+      run.press "Q"
+
+      boxed = run.rows.find &.includes?("Really leave")
+      raise "no question was drawn" unless boxed
+
+      left = boxed.index('│')
+      right = boxed.rindex('│')
+      raise "no box was drawn" unless left && right
+
+      expect(left).to be > 0
+      expect(right).to be < 79
+      expect(right).to be > left
+    end
+
+    # Readable around it, and dimmed. The glyphs stay where they were.
+    it "dims what is behind it without covering it" do
+      run = Playing.open
+      wall = style_at run, 2, 2
+      character = style_at run, 6, 5
+      status = style_at run, 1, 19
+
+      run.press "Q"
+
+      expect(style_at(run, 2, 2)).not_to eq wall
+      expect(style_at(run, 6, 5)).not_to eq character
+      expect(style_at(run, 1, 19)).not_to eq status
+      expect(run.row(5)[6]).to eq '@'
+    end
+
+    it "puts the screen back when the question goes" do
+      run = Playing.open
+      wall = style_at run, 2, 2
+
+      run.press "Q"
+      run.press "n"
+
+      expect(style_at(run, 2, 2)).to eq wall
+    end
+
+    # A catcher answers every point the overlay did not. A click behind a
+    # modal question reaches nothing.
+    it "takes a click that lands behind it" do
+      run = Playing.open
+      run.press "Q"
+
+      run.hover 6, 5
+
+      expect(run.examiner.spot).to be_nil
     end
   end
 

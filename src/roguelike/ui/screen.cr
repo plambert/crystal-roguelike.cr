@@ -210,17 +210,6 @@ module Roguelike::Ui
       Math.max columns - 2, 0
     end
 
-    # Puts *widget* in the status row beside the status text.
-    #
-    # The row is one row tall. Exactly one of the two may be visible at a
-    # time. A hidden widget takes no room, so the visible one gets the row.
-    #
-    # `TermBuf::Widgets::Prompt` goes here. It hides itself while nobody is
-    # asking.
-    def show_status(widget : Widgets::Widget) : Nil
-      @status.add widget
-    end
-
     # Puts *widget* in the sidebar. Takes out whatever was there.
     #
     # `Ui::ExaminePane` goes here.

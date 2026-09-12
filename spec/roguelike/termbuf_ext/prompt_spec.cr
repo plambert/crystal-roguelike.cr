@@ -9,6 +9,11 @@ Spectator.describe TermBuf::Widgets::Prompt do
     session : Headless::Session,
     answers : Array(Char?)
 
+  # The row a prompt draws its question on. The box takes one row above it.
+  def said(session : Headless::Session) : String
+    session.rows.find(&.includes?('[')) || ""
+  end
+
   def asked(question : String = "Really leave?", keys : String = "yn",
             default : Char? = 'n', columns : Int32 = 40) : Asked
     prompt = Widgets::Prompt.new
@@ -36,12 +41,12 @@ Spectator.describe TermBuf::Widgets::Prompt do
       expect(prompt.focusable?).to be_false
     end
 
+    # A prompt is a float. It is not in the tree at all until the first
+    # question puts it there.
     it "draws nothing" do
-      prompt = described_class.new
       root = Widgets::Panel.new(
         width: Widgets::Layout::Sizing.grow,
         height: Widgets::Layout::Sizing.grow)
-      root.add prompt
 
       expect(Headless.open(root, 40, 3).rows).to eq ["", "", ""]
     end
@@ -52,7 +57,8 @@ Spectator.describe TermBuf::Widgets::Prompt do
       run = asked
 
       expect(run.prompt.asking?).to be_true
-      expect(run.session.row(0)).to eq "Really leave? [yN]"
+      expect(said(run.session)).to contain "Really leave?"
+      expect(said(run.session)).to contain "[yN]"
     end
 
     # The convention is an upper case letter for the default answer. `[yN]`
@@ -159,7 +165,8 @@ Spectator.describe TermBuf::Widgets::Prompt do
       run.prompt.ask run.session.app, "Open which way?", "hjkl"
       run.session.render
 
-      expect(run.session.row(0)).to eq "Open which way? [hjkl]"
+      expect(said(run.session)).to contain "Open which way?"
+      expect(said(run.session)).to contain "[hjkl]"
       expect(run.answers).to be_empty
     end
   end

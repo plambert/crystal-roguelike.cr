@@ -84,8 +84,9 @@ module Roguelike::Ui
       @pager = Widgets::Pager.new
       @screen.show_log @pager
 
+      # The prompt is a float. `Overlay#open` puts it in the tree the first
+      # time a question is asked.
       @prompt = Widgets::Prompt.new
-      @screen.show_status @prompt
 
       refresh
     end
@@ -104,20 +105,14 @@ module Roguelike::Ui
 
     # Asks *question*. Runs *answered* with the key the person pressed.
     #
-    # The prompt takes the row the status text is on. The status text hides
-    # while the question is up.
+    # The prompt is a modal overlay. It draws a box in the middle of the
+    # screen and dims what is behind it.
     def ask(question : String, keys : String, default : Char? = nil,
             &answered : Char? -> Nil) : Nil
       app = @app
       raise "Play#app has not been set" unless app
 
-      @screen.status_text.hidden = true
-      @prompt.on_answer = ->(key : Char?) do
-        @screen.status_text.hidden = false
-        answered.call key
-        nil
-      end
-
+      @prompt.on_answer = ->(key : Char?) { answered.call key; nil }
       @prompt.ask app, question, keys, default
     end
 
@@ -250,6 +245,9 @@ module Roguelike::Ui
     # Answers the sequence the terminal needs. Answers `nil` when it needs
     # none.
     def pointed(x : Int32, y : Int32) : String?
+      # A question and a held page are modal. Nothing else answers a pointer
+      # while one is up.
+      return pointer_away if @prompt.asking? || @pager.holding?
       return pointer_away unless @examiner.point_at_screen x, y
 
       @pointer.over x, y
