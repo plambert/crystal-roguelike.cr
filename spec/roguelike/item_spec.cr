@@ -296,4 +296,54 @@ Spectator.describe Roguelike::Item do
       expect(stored["kind"]).to eq "long_sword"
     end
   end
+
+  describe "a thing that burns" do
+    it "starts out unlit" do
+      expect(Roguelike::Item.new(Roguelike::ItemKind::Torch).lit?).to be_false
+    end
+
+    it "throws light once it is lit" do
+      torch = Roguelike::Item.new Roguelike::ItemKind::Torch
+
+      expect(torch.light).to eq 0
+      expect(torch.kindle).to be_true
+      expect(torch.lit?).to be_true
+      expect(torch.light).to eq Roguelike::ItemKind::Torch.light
+    end
+
+    it "goes out again" do
+      torch = Roguelike::Item.new Roguelike::ItemKind::Torch, lit: true
+
+      expect(torch.douse).to be_true
+      expect(torch.lit?).to be_false
+      expect(torch.douse).to be_false
+    end
+
+    it "says so when it is already alight" do
+      torch = Roguelike::Item.new Roguelike::ItemKind::Torch, lit: true
+
+      expect(torch.kindle).to be_false
+    end
+
+    it "keeps the flame through JSON" do
+      torch = Roguelike::Item.new Roguelike::ItemKind::Torch, lit: true
+
+      expect(Roguelike::Item.from_json(torch.to_json).lit?).to be_true
+    end
+  end
+
+  describe "a thing that does not burn" do
+    it "cannot be lit" do
+      sword = Roguelike::Item.new Roguelike::ItemKind::LongSword
+
+      expect(sword.burns?).to be_false
+      expect(sword.kindle).to be_false
+      expect(sword.lit?).to be_false
+      expect(sword.light).to eq 0
+    end
+
+    it "ignores a lit flag it was built with" do
+      expect(Roguelike::Item.new(Roguelike::ItemKind::LongSword, lit: true).lit?).to be_false
+    end
+  end
 end

@@ -34,6 +34,12 @@ module Roguelike
     StairsUp
     StairsDown
 
+    # A bracket on a wall, holding a torch that has burned out.
+    UnlitSconce
+
+    # The same bracket, with the torch alight.
+    LitSconce
+
     # Which terrain a floor file's *mark* names.
     #
     # This method raises on an unknown character. An unknown character is a
@@ -105,6 +111,11 @@ module Roguelike
     def stairs? : Bool
       stairs_up? || stairs_down?
     end
+
+    # Whether this terrain is a wall sconce. Lit or not.
+    def sconce? : Bool
+      unlit_sconce? || lit_sconce?
+    end
   end
 
   # The table behind `Terrain`. An enum body cannot hold these constants.
@@ -117,16 +128,31 @@ module Roguelike
     FILL = ' '
 
     KINDS = {
-      Terrain::Granite    => TerrainKind.new('#', "granite", "hard grey rock", true, true),
-      Terrain::Sandstone  => TerrainKind.new('=', "sandstone", "soft yellow rock", true, true),
-      Terrain::Shale      => TerrainKind.new('%', "shale", "layered blue-grey rock", true, true),
-      Terrain::StoneFloor => TerrainKind.new('.', "stone floor", "worn flagstones", false, false),
-      Terrain::DirtFloor  => TerrainKind.new(',', "dirt floor", "packed earth", false, false),
-      Terrain::ClosedDoor => TerrainKind.new('+', "closed door", "a shut wooden door", true, true),
-      Terrain::OpenDoor   => TerrainKind.new('\'', "open door", "a doorway standing open", false, false),
-      Terrain::StairsUp   => TerrainKind.new('<', "staircase up", "a staircase leading up", false, false),
-      Terrain::StairsDown => TerrainKind.new('>', "staircase down", "a staircase leading down", false, false),
+      Terrain::Granite     => TerrainKind.new('#', "granite", "hard grey rock", true, true),
+      Terrain::Sandstone   => TerrainKind.new('=', "sandstone", "soft yellow rock", true, true),
+      Terrain::Shale       => TerrainKind.new('%', "shale", "layered blue-grey rock", true, true),
+      Terrain::StoneFloor  => TerrainKind.new('.', "stone floor", "worn flagstones", false, false),
+      Terrain::DirtFloor   => TerrainKind.new(',', "dirt floor", "packed earth", false, false),
+      Terrain::ClosedDoor  => TerrainKind.new('+', "closed door", "a shut wooden door", true, true),
+      Terrain::OpenDoor    => TerrainKind.new('\'', "open door", "a doorway standing open", false, false),
+      Terrain::StairsUp    => TerrainKind.new('<', "staircase up", "a staircase leading up", false, false),
+      Terrain::StairsDown  => TerrainKind.new('>', "staircase down", "a staircase leading down", false, false),
+      Terrain::UnlitSconce => TerrainKind.new('|', "sconce", "an iron bracket holding a burnt-out torch", true, true),
+      Terrain::LitSconce   => TerrainKind.new('!', "lit sconce", "an iron bracket holding a burning torch", true, true),
     }
+
+    # How far a lit wall sconce throws light.
+    SCONCE_LIGHT = 7
+
+    # The character a floor file writes for a square that glows on its own.
+    #
+    # This is not a terrain. It is a stone floor with a light in it, and
+    # `Floor.parse` splits it into the two. A magically lit room is written
+    # with these.
+    GLOW = '*'
+
+    # How brightly a square written `GLOW` glows.
+    GLOW_LIGHT = 2
 
     # Every character a floor file may hold.
     MARKS = begin

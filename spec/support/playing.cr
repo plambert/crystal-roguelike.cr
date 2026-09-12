@@ -95,6 +95,20 @@ module Playing
     end
   end
 
+  # A lit torch, for a spec that wants light without saying much about it.
+  def self.torch : Roguelike::Item
+    Roguelike::Item.new Roguelike::ItemKind::Torch, lit: true
+  end
+
+  # Lights every square of *floor*, and answers it.
+  #
+  # Phase 13 made a floor dark until somebody brings a light. A spec that is
+  # not about light says this once and the floor reads the way it did before.
+  def self.daylight(floor : Roguelike::Floor) : Roguelike::Floor
+    floor.ambient = 1
+    floor
+  end
+
   # A game on one open room of *columns* by *rows*. The character starts in
   # the middle.
   #
@@ -113,7 +127,7 @@ module Playing
       end
     end
 
-    floor = Roguelike::Floor.parse "field", map
+    floor = daylight Roguelike::Floor.parse("field", map)
     world = Roguelike::World.new seed, {floor.id => floor}
 
     Roguelike::Game.new world,

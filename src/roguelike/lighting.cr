@@ -1,0 +1,171 @@
+require "./direction"
+require "./field_of_view"
+require "./floor"
+
+module Roguelike
+  # What sort of light a source throws.
+  #
+  # No member here carries a colour. `Ui::Palette` holds the colours, the
+  # same way it holds the glyph for a terrain. A theme changes that table. A
+  # spec reads a light with no terminal open.
+  enum LightKind
+    # A burning wick. A torch, a candle and a wall sconce all throw this.
+    Flame
+
+    # A light with nothing burning. A magically lit room throws this.
+    Glimmer
+  end
+
+  # One thing that throws light.
+  #
+  # A lit wall sconce is one. A lit torch or candle is one, whether it is
+  # carried or lying on the floor. A source is worked out from the floor and
+  # the character each turn rather than stored, so nothing has to keep a list
+  # of them in step with what is on the map.
+  record LightSource,
+    x : Int32,
+    y : Int32,
+    radius : Int32,
+    kind : LightKind = LightKind::Flame do
+    # Where this source stands.
+    def at : {Int32, Int32}
+      {x, y}
+    end
+  end
+
+  # How much light reaches each square of a floor.
+  #
+  # Light is accumulated rather than replaced. Two torches in one room make a
+  # brighter room than one, and a square reached by nothing is dark.
+  #
+  # Each source lights what it can see, which is its own field of view cut to
+  # its radius. Light does not go round a corner, so a torch in a corridor
+  # does not light the room behind the wall.
+  #
+  # A source that sits inside a wall still lights what it faces. A wall sconce
+  # is one of those: the scan starts one square out, so the three squares
+  # facing the room are reached and the wall either side of it is not.
+  #
+  # This is derived rather than stored. It is worked out again whenever
+  # anything that throws light moves or goes out.
+  class Lighting
+    # How much light each square has beyond the floor's own.
+    #
+    # A square with none holds no entry. `#level` answers the ambient for it.
+    getter levels : Hash({Int32, Int32}, Int32)
+
+    # How much light every square has whatever else happens. `Floor#ambient`
+    # is where this comes from.
+    getter ambient : Int32
+
+    def initialize(@levels : Hash({Int32, Int32}, Int32) = {} of {Int32, Int32} => Int32,
+                   @ambient : Int32 = 0)
+    end
+
+    # The light over *floor* from *sources*, plus whatever the floor glows on
+    # its own.
+    def self.over(floor : Floor, sources : Enumerable(LightSource)) : Lighting
+      lighting = new ambient: floor.ambient
+      floor.each_glow { |column, row, level| lighting.spill floor, column, row, level }
+      sources.each { |source| lighting.pour floor, source }
+      lighting
+    end
+
+    # How much light *x*, *y* has.
+    def level(x : Int32, y : Int32) : Int32
+      @ambient + (@levels[{x, y}]? || 0)
+    end
+
+    # Whether *x*, *y* has any light on it at all.
+    def lit?(x : Int32, y : Int32) : Bool
+      level(x, y) > 0
+    end
+
+    # :ditto:
+    def lit?(spot : {Int32, Int32}) : Bool
+      lit? spot[0], spot[1]
+    end
+
+    # How many squares have light on them beyond the floor's own.
+    def size : Int32
+      @levels.size
+    end
+
+    # Adds *amount* to what *x*, *y* has.
+    protected def add(x : Int32, y : Int32, amount : Int32) : Nil
+      return if amount <= 0
+
+      @levels[{x, y}] = (@levels[{x, y}]? || 0) + amount
+    end
+
+    # Adds the glow of *x*, *y* there and on the squares around it.
+    #
+    # The spill is what lights a doorway. A lit room whose light stopped at
+    # its own floor would have a dark hole where each door is, and a person
+    # looking in from a dark corridor would see the room through a doorway
+    # they could not see.
+    #
+    # It spills onto a square that does not block sight. A shut door stays
+    # dark, because a shut door has no room behind it to see. Opening it
+    # lights the doorway.
+    protected def spill(floor : Floor, x : Int32, y : Int32, level : Int32) : Nil
+      add x, y, level
+
+      Direction.values.each do |direction|
+        spot = direction.from x, y
+        next unless floor.contains? spot[0], spot[1]
+        next if floor.blocks_sight? spot[0], spot[1]
+
+        add spot[0], spot[1], level
+      end
+    end
+
+    # Adds what *source* throws over *floor*.
+    #
+    # The light falls off with distance: a square next to the flame gets the
+    # whole radius, and a square at the edge of the reach gets one. Straight
+    # line distance, so the pool is round.
+    protected def pour(floor : Floor, source : LightSource) : Nil
+      return if source.radius <= 0
+
+      FieldOfView.from(floor, source.at, source.radius).each do |spot|
+        across = spot[0] - source.x
+        down = spot[1] - source.y
+        away = Math.sqrt(across * across + down * down).round.to_i
+
+        add spot[0], spot[1], Math.max(source.radius - away + 1, 1)
+      end
+    end
+
+    # *floor* drawn with *dark* wherever no light reaches.
+    #
+    # For a spec and for reading a failure, the same way
+    # `FieldOfView#to_map` is.
+    def to_map(floor : Floor, dark : Char = '?') : Array(String)
+      Array.new(floor.rows) do |row|
+        String.build(floor.columns) do |line|
+          floor.columns.times do |column|
+            line << (lit?(column, row) ? floor.terrain(column, row).mark : dark)
+          end
+        end
+      end
+    end
+
+    # How much light each square has, as digits. A square with more than nine
+    # is written `9`.
+    def to_levels(floor : Floor, dark : Char = '.') : Array(String)
+      Array.new(floor.rows) do |row|
+        String.build(floor.columns) do |line|
+          floor.columns.times do |column|
+            here = level column, row
+            line << (here > 0 ? Math.min(here, 9).to_s[0] : dark)
+          end
+        end
+      end
+    end
+
+    def to_s(io : IO) : Nil
+      io << "Lighting(" << @levels.size << " lit)"
+    end
+  end
+end

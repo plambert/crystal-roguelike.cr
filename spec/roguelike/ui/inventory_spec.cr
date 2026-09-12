@@ -6,7 +6,7 @@ Spectator.describe "picking up and dropping" do
 
   # A one room floor with the character in the middle, holding *items*.
   def litter(items : Array(Item) = [] of Item) : Playing::Run
-    floor = Roguelike::Floor.parse "room", "#####\n#...#\n#.<.#\n#...#\n#####"
+    floor = Playing.daylight Roguelike::Floor.parse("room", "#####\n#...#\n#.<.#\n#...#\n#####")
     floor.clear_items 2, 2
     items.each { |item| floor.drop 2, 2, item }
 

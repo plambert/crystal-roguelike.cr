@@ -88,6 +88,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.wear; nil }
         map.bind TermBuf::Key.parse("T"), "take something off",
           ->(_context : Widgets::Context) { play.take_off; nil }
+        map.bind TermBuf::Key.parse("a"), "light or put out a flame",
+          ->(_context : Widgets::Context) { play.apply; nil }
         map.bind TermBuf::Key.parse(">"), "go down the staircase",
           ->(_context : Widgets::Context) { play.descend; nil }
         map.bind TermBuf::Key.parse("<"), "climb out of the dungeon",

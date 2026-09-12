@@ -53,7 +53,7 @@ module Roguelike::Ui
     # A square outside this draws as `Palette::UNSEEN`. Nothing on it draws
     # either. A mark is something standing on a square, and a square the
     # character cannot see shows nothing standing on it.
-    property sight : FieldOfView? = nil
+    property sight : Vision? = nil
 
     # The square the examine cursor is on. `nil` when there is no cursor.
     #

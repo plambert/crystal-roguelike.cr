@@ -7,7 +7,7 @@ Spectator.describe "doors, stairs and leaving" do
   # A game on *map*, with the character at *x*, *y*, wired the way `Session`
   # wires it.
   def room(map : String, x : Int32, y : Int32) : Playing::Run
-    floor = Roguelike::Floor.parse "room", map
+    floor = Playing.daylight Roguelike::Floor.parse("room", map)
     game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}),
       Roguelike::Player.new("room", x, y)
 

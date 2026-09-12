@@ -124,6 +124,7 @@ module Roguelike
     launcher : ItemKind? = nil,
     charges : Int32 = 0,
     weight : Int32 = 10,
+    light : Int32 = 0,
     uncountable : Bool = false do
     # Whether a `+N` means anything on this kind.
     def enchantable? : Bool
@@ -143,6 +144,11 @@ module Roguelike
     # Whether the name takes no article.
     def uncountable? : Bool
       uncountable
+    end
+
+    # Whether one of these can be set alight.
+    def light? : Bool
+      light > 0
     end
   end
 
@@ -234,6 +240,17 @@ module Roguelike
     # How many times it can be used before it is spent.
     def charges : Int32
       facts.charges
+    end
+
+    # How far one of these throws light once it is lit. Zero for anything
+    # that does not burn.
+    def light : Int32
+      facts.light
+    end
+
+    # Whether one of these can be set alight.
+    def light? : Bool
+      facts.light?
     end
 
     # Whether a `+N` means anything on this kind.
@@ -332,8 +349,10 @@ module Roguelike
       ItemKind::StrikingWand => ItemFacts.new("wand of striking", "wands of striking",
         ItemClass::Wand, damage: Dice.new(2, 4), charges: 5, weight: 7),
 
-      ItemKind::Torch  => ItemFacts.new("torch", "torches", ItemClass::Light, weight: 20),
-      ItemKind::Candle => ItemFacts.new("candle", "candles", ItemClass::Light, weight: 5),
+      ItemKind::Torch => ItemFacts.new("torch", "torches", ItemClass::Light,
+        weight: 20, light: 6),
+      ItemKind::Candle => ItemFacts.new("candle", "candles", ItemClass::Light,
+        weight: 5, light: 3),
 
       ItemKind::Gold => ItemFacts.new("gold piece", "gold pieces", ItemClass::Treasure,
         weight: 1),

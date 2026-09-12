@@ -61,7 +61,7 @@ module Roguelike::Ui
     # the character has found out. *sight* says which squares the character
     # can see. A `nil` *sight* sees everything.
     def show(floor : Floor, x : Int32, y : Int32, lore : Lore? = nil,
-             sight : FieldOfView? = nil) : Nil
+             sight : Vision? = nil) : Nil
       if sight && !sight.includes?(x, y)
         blank x, y
         return

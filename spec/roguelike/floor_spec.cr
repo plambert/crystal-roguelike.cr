@@ -227,4 +227,46 @@ Spectator.describe Roguelike::Floor do
       expect(shipped).to eq described_class.load("data/floors/proving-ground.map")
     end
   end
+
+  describe "light in the floor itself" do
+    it "reads a glow mark as a stone floor that glows" do
+      floor = Roguelike::Floor.parse "glowing", ["###", "#*#", "###"]
+
+      expect(floor.terrain 1, 1).to eq Terrain::StoneFloor
+      expect(floor.glow_at 1, 1).to eq Roguelike::Terrains::GLOW_LIGHT
+      expect(floor.glow_at 0, 0).to eq 0
+    end
+
+    it "writes a plain stone floor back out" do
+      floor = Roguelike::Floor.parse "glowing", ["###", "#*#", "###"]
+
+      expect(floor.to_map).to eq ["###", "#.#", "###"]
+    end
+
+    it "keeps the glow through JSON" do
+      floor = Roguelike::Floor.parse "glowing", ["###", "#*#", "###"]
+      again = Roguelike::Floor.from_json floor.to_json
+
+      expect(again.glow_at 1, 1).to eq Roguelike::Terrains::GLOW_LIGHT
+      expect(again).to eq floor
+    end
+
+    it "takes a glow away at a level of nothing" do
+      floor = Roguelike::Floor.parse "glowing", ["###", "#*#", "###"]
+
+      floor.set_glow 1, 1, 0
+      expect(floor.glow).to be_empty
+    end
+
+    it "keeps the ambient level through JSON" do
+      floor = Roguelike::Floor.parse "outside", ["###", "#.#", "###"]
+      floor.ambient = 3
+
+      expect(Roguelike::Floor.from_json(floor.to_json).ambient).to eq 3
+    end
+
+    it "starts with no ambient light at all" do
+      expect(Roguelike::Floor.parse("dark", ["###", "#.#", "###"]).ambient).to eq 0
+    end
+  end
 end

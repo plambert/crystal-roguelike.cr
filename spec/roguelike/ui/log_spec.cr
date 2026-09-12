@@ -12,9 +12,17 @@ Spectator.describe "the message log" do
 
     it "names what blocked a step" do
       run = Playing.open
-      20.times { run.press "k" }
+      20.times { run.press "h" }
 
       expect(run.said).to eq "The granite blocks your way."
+    end
+
+    # The shipped floor has a sconce in the wall north of the character.
+    it "names a sconce as readily as a wall" do
+      run = Playing.open
+      20.times { run.press "k" }
+
+      expect(run.said).to eq "The sconce blocks your way."
     end
 
     it "says nothing new for a wall bumped twice" do

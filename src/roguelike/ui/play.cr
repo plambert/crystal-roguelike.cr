@@ -501,6 +501,53 @@ module Roguelike::Ui
       end
     end
 
+    # Lights or puts out a torch, a candle or a wall sconce.
+    #
+    # One thing to apply needs no question. More than one does. Nothing is
+    # said and nothing else happens.
+    def apply : Nil
+      found = @game.appliable
+
+      case found.size
+      when 0
+        say "You have nothing to light and there is no sconce beside you."
+      when 1
+        @game.apply found.first
+        refresh
+      else
+        choose_target found
+      end
+    end
+
+    # Asks which of *found* to apply.
+    private def choose_target(found : Array(Apply)) : Nil
+      entries = found.each_with_index.map do |target, index|
+        Widgets::Menu::Entry.new Widgets::Menu.letter(index), applying(target)
+      end
+
+      choose("Apply what?", entries) do |key|
+        next unless key
+
+        target = found[Widgets::Menu.index key]?
+        next unless target
+
+        @game.apply target
+        refresh
+      end
+    end
+
+    # What one row of the apply menu says.
+    private def applying(target : Apply) : String
+      letter = target.letter
+
+      if letter
+        item = @game.player.inventory[letter]
+        return "#{letter} - #{item ? @game.name(item) : "nothing"}"
+      end
+
+      "the #{@game.floor.terrain(target.x, target.y).label} beside you"
+    end
+
     # Asks which carried item answering *wanted* to use. Runs *chosen* with
     # the letter. Says *nothing* when the character carries none.
     private def offer(title : String, nothing : String, wanted : Item -> Bool,

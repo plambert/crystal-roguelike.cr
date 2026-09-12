@@ -36,13 +36,19 @@ module Roguelike
     # Uses left on a wand. `nil` for anything that is not one.
     getter charges : Int32?
 
+    # Whether this item is alight. Always false for anything that does not
+    # burn.
+    getter? lit : Bool
+
     def initialize(@kind : ItemKind,
                    @enchantment : Int32 = 0,
                    @condition : Condition = Condition::Plain,
                    count : Int32 = 1,
                    charges : Int32? = nil,
                    @blessing : Blessing = Blessing::Uncursed,
-                   @blessing_known : Bool = false)
+                   @blessing_known : Bool = false,
+                   lit : Bool = false)
+      @lit = @kind.light? && lit
       @count = @kind.stacks? ? Math.max(count, 1) : 1
       @charges = charges || (@kind.charges > 0 ? @kind.charges : nil)
       @enchantment = @kind.enchantable? ? @enchantment : 0
@@ -52,6 +58,37 @@ module Roguelike
     # Whether this item refuses to be taken off or put down.
     def sticks? : Bool
       @blessing.sticks?
+    end
+
+    # How far this item throws light. Zero while it is not alight.
+    def light : Int32
+      @lit ? @kind.light : 0
+    end
+
+    # Whether this item can be set alight.
+    def burns? : Bool
+      @kind.light?
+    end
+
+    # Sets this item alight. Answers whether that was a change.
+    #
+    # A stack is one flame. Lighting two candles held as one entry lights the
+    # entry, because a person carrying two candles lights the one in their
+    # hand.
+    def kindle : Bool
+      return false unless burns?
+      return false if @lit
+
+      @lit = true
+      true
+    end
+
+    # Puts this item out. Answers whether that was a change.
+    def douse : Bool
+      return false unless @lit
+
+      @lit = false
+      true
     end
 
     # Whether a god has blessed it.
@@ -100,13 +137,14 @@ module Roguelike
     def stacks_with?(other : Item) : Bool
       @kind.stacks? && @kind == other.kind &&
         @enchantment == other.enchantment && @condition == other.condition &&
-        @blessing == other.blessing && @blessing_known == other.blessing_known?
+        @blessing == other.blessing && @blessing_known == other.blessing_known? &&
+        @lit == other.lit?
     end
 
     # A copy of this item with *count* of them.
     def with_count(count : Int32) : Item
       Item.new @kind, @enchantment, @condition, count, @charges,
-        @blessing, @blessing_known
+        @blessing, @blessing_known, @lit
     end
 
     # A copy with *amount* added to the count.
@@ -133,12 +171,12 @@ module Roguelike
       @kind == other.kind && @enchantment == other.enchantment &&
         @condition == other.condition && @count == other.count &&
         @charges == other.charges && @blessing == other.blessing &&
-        @blessing_known == other.blessing_known?
+        @blessing_known == other.blessing_known? && @lit == other.lit?
     end
 
     def hash(hasher)
       {@kind, @enchantment, @condition, @count, @charges,
-       @blessing, @blessing_known}.hash hasher
+       @blessing, @blessing_known, @lit}.hash hasher
     end
 
     def to_s(io : IO) : Nil
@@ -148,6 +186,7 @@ module Roguelike
       io << ' ' << @condition if !@condition.plain?
       io << " +" << @enchantment if @enchantment > 0
       io << ' ' << @enchantment if @enchantment < 0
+      io << " lit" if @lit
       io << ')'
     end
   end

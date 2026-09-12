@@ -8,7 +8,7 @@ Spectator.describe "wielding, wearing and taking off" do
 
   # A one room floor with the character in the middle, carrying *items*.
   def carrying(items : Array(Item) = [] of Item) : Playing::Run
-    floor = Roguelike::Floor.parse "room", "#####\n#...#\n#.<.#\n#...#\n#####"
+    floor = Playing.daylight Roguelike::Floor.parse("room", "#####\n#...#\n#.<.#\n#...#\n#####")
     floor.clear_items 2, 2
 
     player = Roguelike::Player.new "room", 2, 2

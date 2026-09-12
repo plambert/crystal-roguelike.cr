@@ -1,7 +1,10 @@
 require "json"
+require "./apply"
 require "./equipment"
 require "./field_of_view"
 require "./floors"
+require "./lighting"
+require "./vision"
 require "./items"
 require "./lore"
 require "./message_log"
@@ -100,13 +103,19 @@ module Roguelike
     end
 
     # A new run on *rng*.
+    #
+    # The character starts with a lit torch. A dungeon is dark, and a person
+    # who arrived with no light would see one square and nothing else.
     def self.start(rng : Rng) : Game
       world = World.on rng
       floor = world.add Floors.proving_ground
 
-      game = new world, Player.new(floor.id, *entrance(floor)), lore: Lore.roll(rng)
+      player = Player.new floor.id, *entrance(floor)
+      player.inventory.add Item.new(ItemKind::Torch, lit: true)
+
+      game = new world, player, lore: Lore.roll(rng)
       game.scatter rng
-      game.say "You are in a dungeon. Press ? for the keys."
+      game.say "You are in a dungeon, holding a lit torch. Press ? for the keys."
       game
     end
 
@@ -253,17 +262,122 @@ module Roguelike
     # What the character can see from where they stand.
     #
     # This is worked out again every time it is asked for. It depends on where
-    # the character stands and on which doors are open, and both of those
-    # change often enough that a cache would need invalidating from five
-    # places. One cast over the shipped floor touches a few hundred squares.
-    # A cache goes in when a profile asks for one.
-    def sight : FieldOfView
-      FieldOfView.from floor, @player.at
+    # the character stands, on which doors are open, and on what is alight,
+    # and all of those change often enough that a cache would need
+    # invalidating from a dozen places. One cast over the shipped floor
+    # touches a few hundred squares. A cache goes in when a profile asks for
+    # one.
+    def sight : Vision
+      Vision.from floor, @player.at, lights
     end
 
     # Whether the character can see *x*, *y* from where they stand.
     def can_see?(x : Int32, y : Int32) : Bool
       sight.includes? x, y
+    end
+
+    # ----------------------------------------------------------------- light
+
+    # Everything on this floor that is throwing light.
+    #
+    # Lit wall sconces, lit torches and candles lying about, and whatever the
+    # character is carrying alight. The floor's own glow is not here: a
+    # glowing square is not a source, and `Lighting.over` reads it straight
+    # off the floor.
+    def lights : Array(LightSource)
+      found = [] of LightSource
+
+      floor.each do |column, row, tile|
+        next unless tile.terrain.lit_sconce?
+
+        found << LightSource.new column, row, Terrains::SCONCE_LIGHT
+      end
+
+      floor.each_pile do |column, row, pile|
+        pile.each do |item|
+          found << LightSource.new(column, row, item.light) if item.lit?
+        end
+      end
+
+      @player.inventory.each do |_letter, item|
+        found << LightSource.new(@player.x, @player.y, item.light) if item.lit?
+      end
+
+      found
+    end
+
+    # Everything the character could apply right now.
+    #
+    # A carried torch or candle, lit or not. A wall sconce beside them, lit or
+    # not. Each is one entry, and `#apply` does whatever that entry's state
+    # calls for.
+    def appliable : Array(Apply)
+      found = [] of Apply
+
+      @player.inventory.each do |letter, item|
+        found << Apply.carried(letter) if item.burns?
+      end
+
+      Direction.values.each do |direction|
+        wanted = direction.from @player.x, @player.y
+        terrain = floor.tile?(wanted[0], wanted[1]).try &.terrain
+        next unless terrain && terrain.sconce?
+
+        found << Apply.sconce(wanted[0], wanted[1])
+      end
+
+      found
+    end
+
+    # Does whatever *target* calls for. Answers whether anything happened.
+    #
+    # An unlit thing is lit. A lit thing is put out. Either takes a turn.
+    def apply(target : Apply) : Bool
+      letter = target.letter
+      return apply_carried letter if letter
+
+      apply_sconce target.x, target.y
+    end
+
+    # Lights or puts out the carried item under *letter*.
+    private def apply_carried(letter : Char) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      unless item.burns?
+        say "You cannot light #{name item}."
+        return false
+      end
+
+      if item.lit?
+        item.douse
+        @turn += 1
+        say "You put out #{name item}."
+      else
+        item.kindle
+        @turn += 1
+        say "You light #{name item}."
+      end
+
+      true
+    end
+
+    # Lights or puts out the sconce at *x*, *y*.
+    private def apply_sconce(x : Int32, y : Int32) : Bool
+      terrain = floor.tile?(x, y).try &.terrain
+      return false unless terrain && terrain.sconce?
+
+      if terrain.lit_sconce?
+        floor.set x, y, Terrain::UnlitSconce
+        @turn += 1
+        say "You put the sconce out."
+      else
+        floor.set x, y, Terrain::LitSconce
+        @turn += 1
+        say "The sconce catches and burns."
+      end
+
+      true
     end
 
     # Goes down the staircase the character stands on. Answers whether there

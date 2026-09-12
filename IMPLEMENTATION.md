@@ -41,6 +41,8 @@ actually been run rather than reasoned about.
 | Armour class | Higher is better. It is what is worn plus the dexterity modifier, floored at zero |
 | Readying a weapon | `w` picks the slot from the item, so one key fills melee, ranged and quiver |
 | Field of view | Symmetric shadowcasting on exact fractions. If A sees B then B sees A |
+| Seen | A square is seen when it is in the field of view and lit. A dungeon floor starts dark |
+| Light in the model | `LightKind`, never a colour. `Ui::Palette` holds the colours |
 
 ## Ground rules
 
@@ -143,7 +145,7 @@ none of it is fixed and a preset can rebind the lot.
 | `w` `W` `T` | Wield a weapon, wear armour, take a weapon or armour off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
 | `f` `t` | Fire the ranged weapon, throw something |
-| `a` | Apply. Light a torch or a candle, or a wall sconce |
+| `a` | Apply. Light or put out a torch, a candle, or a wall sconce |
 | `o` `c` | Open, close |
 | `x` | Examine. Put a cursor on the map and move it with the movement keys |
 | `Escape` | Take back whatever is waiting for a key |
@@ -390,6 +392,15 @@ The largest part, split so that each step is visible on its own.
   reveals the room. Dropping a lit torch and walking away leaves the pool of light behind and
   visible. Standing in a dark corridor looking into a lit room shows the room and the doorway.
   Specs on the accumulation against fixture maps.
+* **Done.** `Lighting` accumulates a level per square; `Vision` is the field of view cut down to
+  what is lit, and every pane takes one of those instead of a bare `FieldOfView`. A source lights
+  what it can see, so light does not go round a corner, and a wall sconce throws a cone into the
+  room it faces rather than a circle. Light comes from three places: `Terrain::LitSconce` on the
+  floor, an `Item` that `#burns?` and is lit, carried or lying down, and the floor's own
+  `#glow` and `#ambient`. A glowing square spills onto its neighbours, which is what lights a
+  doorway. `a` lights or puts out whichever of those is to hand. The proving ground is dark, with
+  four sconces in the first room, two in the second, and a magically lit room around the down
+  staircase; the character starts holding a lit torch.
 
 ### Phase 14 — Knowledge and remembered terrain
 

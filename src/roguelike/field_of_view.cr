@@ -27,21 +27,42 @@ module Roguelike
     # Every square that can be seen, the origin included.
     getter visible : Set({Int32, Int32})
 
+    # How far sight reaches. `nil` reaches as far as the floor does.
+    #
+    # A light source has one. A creature looking about a lit floor does not.
+    # The limit is a circle rather than a square: a square is inside it when
+    # it is within *radius* of the origin by straight-line distance.
+    getter radius : Int32?
+
     def initialize(@origin : {Int32, Int32},
-                   @visible : Set({Int32, Int32}) = Set({Int32, Int32}).new)
+                   @visible : Set({Int32, Int32}) = Set({Int32, Int32}).new,
+                   @radius : Int32? = nil)
       @visible << @origin
     end
 
-    # What can be seen from *x*, *y* of *floor*.
-    def self.from(floor : Floor, x : Int32, y : Int32) : FieldOfView
-      sight = new({x, y})
+    # What can be seen from *x*, *y* of *floor*, no further than *radius*.
+    def self.from(floor : Floor, x : Int32, y : Int32,
+                  radius : Int32? = nil) : FieldOfView
+      sight = new({x, y}, radius: radius)
       sight.cast floor
       sight
     end
 
     # :ditto:
-    def self.from(floor : Floor, spot : {Int32, Int32}) : FieldOfView
-      from floor, spot[0], spot[1]
+    def self.from(floor : Floor, spot : {Int32, Int32},
+                  radius : Int32? = nil) : FieldOfView
+      from floor, spot[0], spot[1], radius
+    end
+
+    # Whether *x*, *y* is within `#radius` of the origin.
+    private def in_range?(x : Int32, y : Int32) : Bool
+      reach = @radius
+      return true unless reach
+
+      across = x - @origin[0]
+      down = y - @origin[1]
+
+      across * across + down * down <= reach * reach
     end
 
     # Whether *x*, *y* can be seen.
@@ -133,9 +154,73 @@ module Roguelike
       end
     end
 
+    # One row of a quadrant: how far out from the origin it is, and the wedge
+    # of slopes still being looked through at that distance.
+    struct Row
+      # How many squares out from the origin.
+      getter depth : Int32
+
+      # The near edge of the wedge.
+      property start_slope : Fraction
+
+      # The far edge.
+      property end_slope : Fraction
+
+      def initialize(@depth : Int32, @start_slope : Fraction, @end_slope : Fraction)
+      end
+
+      # The first row of a quadrant. The wedge is the whole 90 degrees.
+      def self.first : Row
+        new 1, Fraction.new(-1, 1), Fraction.new(1, 1)
+      end
+
+      # Which columns of this row the wedge covers.
+      def columns : Range(Int32, Int32)
+        @start_slope.up_at(@depth)..@end_slope.down_at(@depth)
+      end
+
+      # The row behind this one, through the same wedge.
+      def behind : Row
+        Row.new @depth + 1, @start_slope, @end_slope
+      end
+
+      # The row behind this one, through a wedge ending at *slope*.
+      def behind(slope : Fraction) : Row
+        Row.new @depth + 1, @start_slope, slope
+      end
+
+      # Whether the centre of *column* is inside the wedge.
+      def holds?(column : Int32) : Bool
+        @start_slope.below?(@depth, column) && @end_slope.above?(@depth, column)
+      end
+    end
+
     # The slope of the near edge of the square at *depth*, *column*.
     private def edge(depth : Int32, column : Int32) : Fraction
       Fraction.new 2 * column - 1, 2 * depth
+    end
+
+    # Whether *spot* stops the scan.
+    #
+    # Past the edge of the floor stops it, because there is nothing beyond
+    # the floor to see.
+    private def solid?(floor : Floor, spot : {Int32, Int32}) : Bool
+      !floor.contains?(spot[0], spot[1]) || floor.blocks_sight?(spot[0], spot[1])
+    end
+
+    # Whether *spot* is seen from the origin.
+    #
+    # A wall is seen whenever the scan reaches it, because a wall a creature
+    # cannot see the centre of is still a wall they can see the face of. A
+    # floor square is seen when its centre is inside the wedge.
+    #
+    # Neither is seen past the edge of the floor or past `#radius`.
+    private def seen?(floor : Floor, spot : {Int32, Int32}, wall : Bool,
+                      row : Row, column : Int32) : Bool
+      return false unless floor.contains? spot[0], spot[1]
+      return false unless in_range? spot[0], spot[1]
+
+      wall || row.holds?(column)
     end
 
     # The four quadrants, as the direction each scans away from the origin.
@@ -151,9 +236,7 @@ module Roguelike
 
     # Fills `#visible` from the origin over *floor*.
     protected def cast(floor : Floor) : Nil
-      Quadrant.each do |quadrant|
-        scan floor, quadrant, 1, Fraction.new(-1, 1), Fraction.new(1, 1)
-      end
+      Quadrant.each { |quadrant| scan floor, quadrant, Row.first }
     end
 
     # Which square of the floor *depth* and *column* of *quadrant* name.
@@ -170,36 +253,27 @@ module Roguelike
 
     # Scans one row of one quadrant, and whatever rows follow from it.
     #
-    # *start_slope* and *end_slope* are the wedge still being looked through.
-    # A wall inside the row narrows the wedge for the rows behind it: the
-    # scan recurses with the tighter end, and carries on with the tighter
-    # start.
-    private def scan(floor : Floor, quadrant : Quadrant, depth : Int32,
-                     start_slope : Fraction, end_slope : Fraction) : Nil
+    # A wall inside the row narrows the wedge for the rows behind it. The
+    # scan recurses into the rows behind with the tighter far edge, and
+    # carries on along this row with the tighter near edge.
+    private def scan(floor : Floor, quadrant : Quadrant, row : Row) : Nil
+      reach = @radius
+      return if reach && row.depth > reach
+
       seen_any = false
       was_wall = false
 
-      (start_slope.up_at(depth)..end_slope.down_at(depth)).each do |column|
-        spot = place quadrant, depth, column
+      row.columns.each do |column|
+        spot = place quadrant, row.depth, column
+        wall = solid? floor, spot
 
-        # Past the edge of the floor is treated as solid, so the scan stops
-        # there. It is not recorded as seen, because there is nothing there
-        # to see.
-        on_floor = floor.contains? spot[0], spot[1]
-        wall = !on_floor || floor.blocks_sight?(spot[0], spot[1])
-
-        # A wall is seen whenever the scan reaches it. A floor square is seen
-        # when its centre is inside the wedge.
-        if on_floor &&
-           (wall || (start_slope.below?(depth, column) && end_slope.above?(depth, column)))
-          @visible << spot
-        end
+        @visible << spot if seen? floor, spot, wall, row, column
 
         if seen_any && was_wall != wall
           if wall
-            scan floor, quadrant, depth + 1, start_slope, edge(depth, column)
+            scan floor, quadrant, row.behind(edge row.depth, column)
           else
-            start_slope = edge depth, column
+            row.start_slope = edge row.depth, column
           end
         end
 
@@ -208,7 +282,7 @@ module Roguelike
       end
 
       # The row ended on open ground, so the wedge carries on unchanged.
-      scan floor, quadrant, depth + 1, start_slope, end_slope if seen_any && !was_wall
+      scan floor, quadrant, row.behind if seen_any && !was_wall
     end
   end
 end

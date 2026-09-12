@@ -18,7 +18,7 @@ Spectator.describe "what the character can see" do
 
   # A run on *lines*, with the character on the up staircase.
   def shown(lines : Array(String) = ROOMS) : Playing::Run
-    floor = Roguelike::Floor.parse "rooms", lines
+    floor = Playing.daylight Roguelike::Floor.parse("rooms", lines)
     game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"rooms" => floor}),
       Roguelike::Player.new("rooms", *Roguelike::Game.entrance(floor))
 
@@ -147,7 +147,7 @@ Spectator.describe "what the character can see" do
     it "draws only what is seen once one is set" do
       floor = Roguelike::Floors.proving_ground
       pane = Ui::MapPane.new floor
-      pane.sight = Roguelike::FieldOfView.from floor, 6, 5
+      pane.sight = Roguelike::Vision.lit floor, 6, 5
 
       expect(pane.seen?(6, 5)).to be_true
       expect(pane.seen?(0, 0)).to be_false
@@ -156,7 +156,7 @@ Spectator.describe "what the character can see" do
     it "forgets the field of view when the floor changes" do
       floor = Roguelike::Floors.proving_ground
       pane = Ui::MapPane.new floor
-      pane.sight = Roguelike::FieldOfView.from floor, 6, 5
+      pane.sight = Roguelike::Vision.lit floor, 6, 5
 
       pane.floor = Roguelike::Floor.parse "tiny", "##\n##"
 

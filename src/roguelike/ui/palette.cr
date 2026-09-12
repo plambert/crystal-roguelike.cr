@@ -19,7 +19,27 @@ module Roguelike::Ui
     DIRT      = Style::DEFAULT.fg TermBuf::Color.rgb(0x7A, 0x62, 0x48)
     WOOD      = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x8A, 0x40)
     STAIRS    = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0xE4, 0xEC)
+    IRON      = Style::DEFAULT.fg TermBuf::Color.rgb(0x8A, 0x8E, 0x96)
     HERO      = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bold
+
+    # What light looks like.
+    #
+    # `Terrain` and `LightKind` carry no colour of their own. The model says
+    # what is burning. This table says what burning looks like.
+    FLAME   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xB0, 0x50)).bold
+    GLIMMER = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xFF)
+
+    # What each sort of light is drawn in. Phase 14 tints a lit square with
+    # it.
+    LIGHTS = {
+      LightKind::Flame   => FLAME,
+      LightKind::Glimmer => GLIMMER,
+    }
+
+    # How *kind* of light draws.
+    def self.[](kind : LightKind) : Style
+      LIGHTS[kind]
+    end
 
     # What a square offered as an answer is drawn on.
     #
@@ -65,15 +85,17 @@ module Roguelike::Ui
     # convention. It is also why the three are separate `Terrain` members
     # rather than one wall with a colour field.
     LOOKS = {
-      Terrain::Granite    => Look.new('#', GRANITE),
-      Terrain::Sandstone  => Look.new('#', SANDSTONE),
-      Terrain::Shale      => Look.new('#', SHALE),
-      Terrain::StoneFloor => Look.new('.', STONE),
-      Terrain::DirtFloor  => Look.new('.', DIRT),
-      Terrain::ClosedDoor => Look.new('+', WOOD),
-      Terrain::OpenDoor   => Look.new('\'', WOOD),
-      Terrain::StairsUp   => Look.new('<', STAIRS),
-      Terrain::StairsDown => Look.new('>', STAIRS),
+      Terrain::Granite     => Look.new('#', GRANITE),
+      Terrain::Sandstone   => Look.new('#', SANDSTONE),
+      Terrain::Shale       => Look.new('#', SHALE),
+      Terrain::StoneFloor  => Look.new('.', STONE),
+      Terrain::DirtFloor   => Look.new('.', DIRT),
+      Terrain::ClosedDoor  => Look.new('+', WOOD),
+      Terrain::OpenDoor    => Look.new('\'', WOOD),
+      Terrain::StairsUp    => Look.new('<', STAIRS),
+      Terrain::StairsDown  => Look.new('>', STAIRS),
+      Terrain::UnlitSconce => Look.new('|', IRON),
+      Terrain::LitSconce   => Look.new('!', FLAME),
     }
 
     # How *terrain* draws.

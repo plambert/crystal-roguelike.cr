@@ -40,8 +40,27 @@ module Roguelike
     # through it. A private getter would force a copy of every square.
     protected getter tiles : Array(Tile)
 
+    # Which squares glow on their own, and how brightly.
+    #
+    # A magically lit room is written this way. The light is part of the
+    # floor rather than of anything standing on it, so it does not go out and
+    # nothing carries it away.
+    #
+    # The key is `Floor.spot`, the same key `#litter` uses. A JSON object key
+    # has to be a string.
+    getter glow : Hash(String, Int32)
+
+    # How much light every square of this floor has whatever else happens.
+    #
+    # Zero for a dungeon floor, which is dark until somebody brings a light.
+    # A town at noon and a cavern with a hole in its roof are the other case,
+    # and a spec that is not about light uses this to see the whole floor.
+    property ambient : Int32
+
     def initialize(@id : String, @columns : Int32, @rows : Int32, @tiles : Array(Tile),
-                   @litter : Hash(String, Array(Item)) = {} of String => Array(Item))
+                   @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
+                   @glow : Hash(String, Int32) = {} of String => Int32,
+                   @ambient : Int32 = 0)
       wanted = @columns * @rows
       return if @tiles.size == wanted
 
@@ -74,21 +93,33 @@ module Roguelike
     end
 
     # :ditto:
+    #
+    # `Terrains::GLOW` is not a terrain. It is a stone floor that glows on its
+    # own, and a floor file writes it as one character like everything else.
+    # `#glow` records it and `#to_map` writes a plain stone floor back, so the
+    # two are stored apart from each other.
     def self.parse(id : String, lines : Array(String)) : Floor
       rows = lines.reject(&.empty?)
       raise ArgumentError.new "floor #{id} has no rows" if rows.empty?
 
       columns = rows.max_of &.size
       tiles = Array(Tile).new columns * rows.size
+      glow = {} of String => Int32
 
-      rows.each do |line|
+      rows.each_with_index do |line, row|
         columns.times do |column|
           mark = column < line.size ? line[column] : Terrains::FILL
+
+          if mark == Terrains::GLOW
+            glow[spot column, row] = Terrains::GLOW_LIGHT
+            mark = Terrain::StoneFloor.mark
+          end
+
           tiles << Tile.new(Terrain.from_mark(mark))
         end
       end
 
-      new id, columns, rows.size, tiles
+      new id, columns, rows.size, tiles, glow: glow
     end
 
     # The width and the height.
@@ -134,6 +165,31 @@ module Roguelike
     def passable?(x : Int32, y : Int32) : Bool
       found = tile? x, y
       found ? found.passable? : false
+    end
+
+    # How brightly *x*, *y* glows on its own. Zero for a square that does not.
+    def glow_at(x : Int32, y : Int32) : Int32
+      @glow[Floor.spot x, y]? || 0
+    end
+
+    # Makes *x*, *y* glow at *level*. A level of zero or less takes the glow
+    # away.
+    def set_glow(x : Int32, y : Int32, level : Int32) : Nil
+      key = Floor.spot x, y
+
+      if level > 0
+        @glow[key] = level
+      else
+        @glow.delete key
+      end
+    end
+
+    # Yields every square that glows on its own, with how brightly.
+    def each_glow(& : Int32, Int32, Int32 ->) : Nil
+      @glow.each do |spot, level|
+        parts = spot.split ','
+        yield parts[0].to_i, parts[1].to_i, level
+      end
     end
 
     # Whether a creature could see through *x*, *y*. A square off the floor
@@ -249,21 +305,27 @@ module Roguelike
       getter id : String
       getter map : Array(String)
       getter litter : Hash(String, Array(Item))
+      getter glow : Hash(String, Int32)
+      getter ambient : Int32
 
       def initialize(@id : String, @map : Array(String),
-                     @litter : Hash(String, Array(Item)) = {} of String => Array(Item))
+                     @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
+                     @glow : Hash(String, Int32) = {} of String => Int32,
+                     @ambient : Int32 = 0)
       end
     end
 
     # The stored form of this floor.
     def stored : Stored
-      Stored.new @id, to_map, @litter
+      Stored.new @id, to_map, @litter, @glow, @ambient
     end
 
     def self.new(pull : JSON::PullParser) : Floor
       held = Stored.new pull
       floor = parse held.id, held.map
       held.litter.each { |spot, pile| floor.litter[spot] = pile }
+      held.glow.each { |spot, level| floor.glow[spot] = level }
+      floor.ambient = held.ambient
 
       floor
     end
@@ -274,7 +336,9 @@ module Roguelike
 
     def ==(other : Floor) : Bool
       @id == other.id && @columns == other.columns &&
-        @rows == other.rows && @tiles == other.tiles && @litter == other.litter
+        @rows == other.rows && @tiles == other.tiles &&
+        @litter == other.litter && @glow == other.glow &&
+        @ambient == other.ambient
     end
 
     def to_s(io : IO) : Nil
