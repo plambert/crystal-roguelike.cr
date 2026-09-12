@@ -420,13 +420,13 @@ Spectator.describe "doors, stairs and leaving" do
       run = Playing.open
       wall = style_at run, 2, 2
       character = style_at run, 6, 5
-      status = style_at run, 1, 19
+      logged = style_at run, 1, 20
 
       run.press "Q"
 
       expect(style_at(run, 2, 2)).not_to eq wall
       expect(style_at(run, 6, 5)).not_to eq character
-      expect(style_at(run, 1, 19)).not_to eq status
+      expect(style_at(run, 1, 20)).not_to eq logged
       expect(run.row(5)[6]).to eq '@'
     end
 

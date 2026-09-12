@@ -163,17 +163,21 @@ Spectator.describe Roguelike::Ui::Play do
     it "says the turn and where the character is" do
       run = Playing.open
       run.press "l"
-      spot = run.at
+      bar = run.play.status_line.bar
 
-      expect(run.screen.status_text.text).to contain "turn 1"
-      expect(run.screen.status_text.text).to contain "at #{spot[0]},#{spot[1]}"
+      expect(bar["turn"]?.try &.text).to eq "1"
+      expect(bar["at"]?.try &.text).to eq "#{run.at[0]},#{run.at[1]}"
     end
 
     it "says whether the mouse is on" do
       run = Playing.open
+      bar = run.play.status_line.bar
 
-      expect(run.play.status(true)).to contain "mouse on"
-      expect(run.play.status(false)).to contain "mouse off"
+      run.play.mousing = false
+      expect(bar["mouse"]?.try &.text).to eq "off"
+
+      run.play.mousing = true
+      expect(bar["mouse"]?.try &.text).to eq "on"
     end
   end
 

@@ -13,6 +13,8 @@ end
 
 require "./roguelike/rng"
 require "./roguelike/direction"
+require "./roguelike/attributes"
+require "./roguelike/advancement"
 require "./roguelike/terrain"
 require "./roguelike/tile"
 require "./roguelike/level"

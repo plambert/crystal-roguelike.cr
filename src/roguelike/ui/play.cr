@@ -50,6 +50,9 @@ module Roguelike::Ui
     # What the mouse pointer is doing.
     getter pointer : Pointer
 
+    # What the character is, on one row.
+    getter status_line : StatusLine
+
     # What has just happened, held at a page boundary when a turn says more
     # than the pane shows at once.
     getter pager : Widgets::Pager
@@ -98,6 +101,9 @@ module Roguelike::Ui
 
       @screen.scaffold @game.world.seed
 
+      @status_line = StatusLine.new
+      @screen.show_status @status_line.bar
+
       @pager = Widgets::Pager.new
       @screen.show_log @pager
 
@@ -118,6 +124,7 @@ module Roguelike::Ui
       Keys.examining(self)
         .merge(Keys.moving { |direction| step direction })
         .merge(Keys.acting(self))
+        .merge(Keys.debugging(self))
     end
 
     # Asks *question*. Runs *answered* with the key the person pressed.
@@ -304,7 +311,7 @@ module Roguelike::Ui
       @map.mark @game.player.x, @game.player.y, Palette::PLAYER
       offer_directions
       @pager.show @game.log.lines
-      @screen.status_text.text = status
+      @status_line.show @game
     end
 
     # Lights up every square that answers the command waiting for a direction.
@@ -319,17 +326,6 @@ module Roguelike::Ui
         spot = direction.from @game.player.x, @game.player.y
         @map.highlight spot[0], spot[1]
       end
-    end
-
-    # The status line. *mouse* belongs to the terminal. A caller passes it
-    # in.
-    def status(mouse : Bool = true) : String
-      player = @game.player
-
-      "seed #{@game.world.seed}    turn #{@game.turn}    " \
-      "at #{player.x},#{player.y}    " \
-      "mouse #{mouse ? "on" : "off"}    " \
-      "x to look, ? for the keys"
     end
 
     # Records that the pointer is at *x*, *y* of the buffer.
@@ -398,6 +394,22 @@ module Roguelike::Ui
     # Ends the run. Holds *line* on the screen until the person presses a key.
     private def finish(line : String, key : Char = 'q') : Nil
       ask(line, key.to_s, default: key) { @finished = true }
+    end
+
+    # Writes whether the terminal is reporting the mouse.
+    def mousing=(wanted : Bool) : Nil
+      @status_line.mousing = wanted
+    end
+
+    # Grants *amount* experience and says what that did.
+    #
+    # A debug binding. Levelling is worth watching before there is anything to
+    # kill, and this is how phase 8 watches it.
+    def grant(amount : Int32) : Nil
+      gained = @game.player.gain amount
+      @game.say "You gain #{amount} experience."
+      @game.say "Welcome to level #{@game.player.level}." if gained > 0
+      refresh
     end
 
     # Adds *line* to the log.

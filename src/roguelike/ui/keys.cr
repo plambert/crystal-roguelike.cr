@@ -83,6 +83,17 @@ module Roguelike::Ui
       end
     end
 
+    # The keys that are only there to try something out.
+    #
+    # `Ctrl+E` grants experience, so that levelling can be watched before
+    # there is anything to kill. It goes when there is.
+    def self.debugging(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Ctrl+E"), "grant experience (debug)",
+          ->(_context : Widgets::Context) { play.grant 10; nil }
+      end
+    end
+
     # `M` turns mouse reporting on and off.
     #
     # This is a toggle. A terminal reporting the mouse no longer lets the

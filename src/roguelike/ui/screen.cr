@@ -194,6 +194,14 @@ module Roguelike::Ui
       @map.add widget
     end
 
+    # Puts *widget* in the status row. Takes out whatever was there.
+    #
+    # `Ui::StatusLine` goes here.
+    def show_status(widget : Widgets::Widget) : Nil
+      @status.clear
+      @status.add widget
+    end
+
     # Puts *widget* in the log pane. Takes out whatever was there.
     #
     # `TermBuf::Widgets::Pager` goes here.

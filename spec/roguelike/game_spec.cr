@@ -20,7 +20,7 @@ Spectator.describe Roguelike::Game do
     end
 
     it "puts the character on the level the world holds" do
-      expect(game.level.id).to eq game.player.level
+      expect(game.level.id).to eq game.player.floor
     end
   end
 

@@ -140,10 +140,10 @@ module Roguelike
       wanted
     end
 
-    # Writes the status line. `Ui::Play` cannot work out the mouse state on
-    # its own.
+    # Tells the status line whether the mouse is reporting. The terminal knows
+    # that. The game does not.
     private def status : Nil
-      @play.screen.status_text.text = @play.status mousing?
+      @play.mousing = mousing?
     end
 
     # Sends *sequence*. Sends nothing when *sequence* is `nil`.

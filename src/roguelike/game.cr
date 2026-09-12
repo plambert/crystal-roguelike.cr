@@ -112,7 +112,7 @@ module Roguelike
 
     # The level the character is on.
     def level : Level
-      @world[@player.level]
+      @world[@player.floor]
     end
 
     # Takes one step *direction*. Answers what the step did.
