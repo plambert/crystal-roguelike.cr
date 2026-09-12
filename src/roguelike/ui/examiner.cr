@@ -14,6 +14,9 @@ module Roguelike::Ui
     # The readout being written.
     getter pane : ExaminePane
 
+    # What names the items on a square. `nil` names none of them.
+    property lore : Lore? = nil
+
     # Where the readout points, in the level's own coordinates. `nil` before
     # anything has been looked at.
     getter spot : {Int32, Int32}?
@@ -97,7 +100,7 @@ module Roguelike::Ui
       here = @spot
 
       if here
-        @pane.show @map.level, here[0], here[1]
+        @pane.show @map.level, here[0], here[1], @lore
       else
         @pane.clear
       end

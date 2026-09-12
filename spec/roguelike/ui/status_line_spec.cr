@@ -31,12 +31,18 @@ Spectator.describe Roguelike::Ui::StatusLine do
     end
 
     it "writes every score" do
-      run = Playing.open
+      run = Playing.open columns: 120, rows: 24
       line = written run
 
       Which.values.each do |which|
         expect(line).to contain which.short.downcase
       end
+    end
+
+    it "counts the gold" do
+      run = Playing.open
+
+      expect(run.play.status_line.bar["gold"]?.try &.text).to eq "0"
     end
 
     # At eighty columns this pair is cut from the row. The bar still holds it,

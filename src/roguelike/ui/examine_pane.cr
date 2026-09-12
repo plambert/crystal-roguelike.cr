@@ -23,10 +23,15 @@ module Roguelike::Ui
     # A sentence about it.
     getter detail : Widgets::Label
 
+    # What is lying on the square.
+    getter litter : Widgets::Label
+
     def initialize
       @where = Widgets::Label.new ""
       @what = Widgets::Label.new NOTHING
       @detail = Widgets::Label.new ""
+      @litter = Widgets::Label.new ""
+      @litter.hidden = true
 
       heading = Widgets::Label.new HEADING
       heading.style = Style::DEFAULT.bold
@@ -39,11 +44,14 @@ module Roguelike::Ui
         height: Layout::Sizing.grow)
       @root.add heading,
         Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        @where, @what, @detail
+        @where, @what, @detail, @litter
     end
 
     # Says what is on *level* at *x*, *y*.
-    def show(level : Level, x : Int32, y : Int32) : Nil
+    #
+    # *lore* names whatever is lying there, because the name depends on what
+    # the character has found out.
+    def show(level : Level, x : Int32, y : Int32, lore : Lore? = nil) : Nil
       terrain = level.terrain x, y
 
       @where.text = "#{x}, #{y}"
@@ -51,6 +59,19 @@ module Roguelike::Ui
       @what.text = terrain.label
       @what.style = Palette[terrain].style
       @detail.text = terrain.description
+
+      pile = level.items x, y
+      @litter.hidden = pile.empty?
+      @litter.text = listed pile, lore
+    end
+
+    # What is lying on a square, written out.
+    private def listed(pile : Array(Item), lore : Lore?) : String
+      return "" if pile.empty?
+      return "Here: #{pile.size} things" unless lore
+
+      named = pile.map { |item| lore.name(item).as(String) }
+      "Here: #{named.join ", "}"
     end
 
     # Puts the pane back to the state before anything was looked at.
@@ -62,6 +83,8 @@ module Roguelike::Ui
       @what.text = NOTHING
       @what.style = nil
       @detail.text = ""
+      @litter.text = ""
+      @litter.hidden = true
     end
   end
 end

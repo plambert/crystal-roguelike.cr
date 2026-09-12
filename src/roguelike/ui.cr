@@ -1,5 +1,6 @@
 require "termbuf-widgets"
 require "./termbuf_ext/cell_grid"
+require "./termbuf_ext/menu"
 require "./termbuf_ext/pager"
 require "./termbuf_ext/prompt"
 
@@ -16,6 +17,7 @@ end
 
 require "./direction"
 require "./attributes"
+require "./item"
 require "./game"
 require "./level"
 require "./ui/palette"

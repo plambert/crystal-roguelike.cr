@@ -26,6 +26,7 @@ module Roguelike::Ui
       @bar.add "hp", ""
       @bar.add "lv", ""
       @bar.add "xp", ""
+      @bar.add "gold", ""
       @bar.add "turn", ""
 
       Attributes::Which.values.each { |which| @bar.add which.short.downcase, "" }
@@ -55,6 +56,7 @@ module Roguelike::Ui
       end
 
       @bar.set "at", "#{player.x},#{player.y}"
+      @bar.set "gold", player.gold.to_s
       @bar.set "turn", game.turn.to_s
     end
 

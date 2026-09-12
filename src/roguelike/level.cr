@@ -1,4 +1,5 @@
 require "json"
+require "./item"
 require "./tile"
 
 module Roguelike
@@ -27,13 +28,20 @@ module Roguelike
     # Cells down.
     getter rows : Int32
 
+    # What is lying on the floor, by square.
+    #
+    # A square with nothing on it holds no entry. The newest item is last, so
+    # a character picking one thing up takes what was dropped last.
+    getter litter : Hash(String, Array(Item))
+
     # Row-major. The index of *x*, *y* is `y * columns + x`.
     #
     # This getter is protected rather than private. `#==` compares two levels
     # through it. A private getter would force a copy of every square.
     protected getter tiles : Array(Tile)
 
-    def initialize(@id : String, @columns : Int32, @rows : Int32, @tiles : Array(Tile))
+    def initialize(@id : String, @columns : Int32, @rows : Int32, @tiles : Array(Tile),
+                   @litter : Hash(String, Array(Item)) = {} of String => Array(Item))
       wanted = @columns * @rows
       return if @tiles.size == wanted
 
@@ -168,26 +176,96 @@ module Roguelike
       y * @columns + x
     end
 
+    # ------------------------------------------------------------ the floor
+
+    # The key the litter table uses for *x*, *y*.
+    #
+    # A string, because a JSON object key is a string and a save file holds
+    # this table.
+    def self.spot(x : Int32, y : Int32) : String
+      "#{x},#{y}"
+    end
+
+    # What is lying on *x*, *y*, oldest first. An empty array for a bare
+    # square.
+    def items(x : Int32, y : Int32) : Array(Item)
+      @litter[Level.spot(x, y)]? || [] of Item
+    end
+
+    # Whether anything is lying on *x*, *y*.
+    def items?(x : Int32, y : Int32) : Bool
+      found = @litter[Level.spot(x, y)]?
+      found ? !found.empty? : false
+    end
+
+    # Puts *item* on *x*, *y*.
+    #
+    # A stack joins one already there rather than making a second pile of the
+    # same thing.
+    def drop(x : Int32, y : Int32, item : Item) : Nil
+      pile = @litter[Level.spot(x, y)] ||= [] of Item
+      found = pile.index &.stacks_with?(item)
+
+      if found
+        pile[found] = pile[found].add item.count
+      else
+        pile << item
+      end
+    end
+
+    # Takes *item* off *x*, *y*. Answers whether it was there.
+    def take(x : Int32, y : Int32, item : Item) : Bool
+      spot = Level.spot x, y
+      pile = @litter[spot]?
+      return false unless pile
+
+      found = pile.index &.same?(item)
+      return false unless found
+
+      pile.delete_at found
+      @litter.delete spot if pile.empty?
+      true
+    end
+
+    # Takes everything off *x*, *y* and answers it.
+    def clear_items(x : Int32, y : Int32) : Array(Item)
+      @litter.delete(Level.spot(x, y)) || [] of Item
+    end
+
+    # Every square with something on it, and what is on it.
+    def each_pile(& : Int32, Int32, Array(Item) ->) : Nil
+      @litter.each do |spot, pile|
+        next if pile.empty?
+
+        parts = spot.split ','
+        yield parts[0].to_i, parts[1].to_i, pile
+      end
+    end
+
     # What a level is in a save file.
     struct Stored
       include JSON::Serializable
 
       getter id : String
       getter map : Array(String)
+      getter litter : Hash(String, Array(Item))
 
-      def initialize(@id : String, @map : Array(String))
+      def initialize(@id : String, @map : Array(String),
+                     @litter : Hash(String, Array(Item)) = {} of String => Array(Item))
       end
     end
 
     # The stored form of this level.
     def stored : Stored
-      Stored.new @id, to_map
+      Stored.new @id, to_map, @litter
     end
 
     def self.new(pull : JSON::PullParser) : Level
       held = Stored.new pull
+      level = parse held.id, held.map
+      held.litter.each { |spot, pile| level.litter[spot] = pile }
 
-      parse held.id, held.map
+      level
     end
 
     def to_json(json : JSON::Builder) : Nil
@@ -196,7 +274,7 @@ module Roguelike
 
     def ==(other : Level) : Bool
       @id == other.id && @columns == other.columns &&
-        @rows == other.rows && @tiles == other.tiles
+        @rows == other.rows && @tiles == other.tiles && @litter == other.litter
     end
 
     def to_s(io : IO) : Nil

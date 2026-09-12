@@ -57,6 +57,9 @@ module Roguelike::Ui
     # than the pane shows at once.
     getter pager : Widgets::Pager
 
+    # The list of things to choose from, when there is one.
+    getter menu : Widgets::Menu
+
     # The one-key question, when there is one.
     getter prompt : Widgets::Prompt
 
@@ -67,6 +70,14 @@ module Roguelike::Ui
     def app=(app : Widgets::App?) : Widgets::App?
       @pager.app = app
       @app = app
+    end
+
+    # The application, or a failure saying the owner never set one.
+    private def application : Widgets::App
+      app = @app
+      raise "Play#app has not been set" unless app
+
+      app
     end
 
     # :ditto:
@@ -97,6 +108,7 @@ module Roguelike::Ui
       @examine = ExaminePane.new
       @screen.show_sidebar @examine.root
       @examiner = Examiner.new @map, @examine
+      @examiner.lore = @game.lore
       @pointer = Pointer.new
 
       @screen.scaffold @game.world.seed
@@ -107,9 +119,10 @@ module Roguelike::Ui
       @pager = Widgets::Pager.new
       @screen.show_log @pager
 
-      # The prompt is a float. `Overlay#open` puts it in the tree the first
-      # time a question is asked.
+      # Both are floats. `Overlay#open` puts one in the tree the first time it
+      # is used.
       @prompt = Widgets::Prompt.new
+      @menu = Widgets::Menu.new
 
       refresh
     end
@@ -133,9 +146,6 @@ module Roguelike::Ui
     # screen and dims what is behind it.
     def ask(question : String, keys : String, default : Char? = nil,
             &answered : Char? -> Nil) : Nil
-      app = @app
-      raise "Play#app has not been set" unless app
-
       @prompt.on_answer = ->(key : Char?) do
         park_camera_back
         answered.call key
@@ -143,7 +153,20 @@ module Roguelike::Ui
       end
 
       clear_the_character
-      @prompt.ask app, question, keys, default
+      @prompt.ask application, question, keys, default
+    end
+
+    # Puts *entries* up under *title*. Runs *chosen* with the key pressed.
+    def choose(title : String, entries : Enumerable(Widgets::Menu::Entry),
+               &chosen : Char? -> Nil) : Nil
+      @menu.on_choose = ->(key : Char?) do
+        park_camera_back
+        chosen.call key
+        nil
+      end
+
+      clear_the_character
+      @menu.show application, title, entries
     end
 
     # Moves the camera so that a modal box does not cover the character.
@@ -296,7 +319,83 @@ module Roguelike::Ui
         return
       end
 
+      if @menu.showing?
+        @menu.cancel
+        return
+      end
+
       @examiner.stop
+    end
+
+    # ---------------------------------------------------------------- items
+
+    # Picks up what is on the square the character stands on.
+    #
+    # Nothing there says so. One thing is taken without a question. More than
+    # one is a menu, because a person standing on a pile has to say which.
+    def pick_up : Nil
+      pile = @game.here
+
+      case pile.size
+      when 0
+        say "There is nothing here to pick up."
+      when 1
+        @game.pick_up pile.first
+        refresh
+      else
+        choose_from pile
+      end
+    end
+
+    # Asks which of *pile* to pick up.
+    private def choose_from(pile : Array(Item)) : Nil
+      entries = pile.each_with_index.map do |item, index|
+        Widgets::Menu::Entry.new Widgets::Menu.letter(index), @game.name(item)
+      end
+
+      choose("Pick up what?", entries) do |key|
+        next unless key
+
+        index = Widgets::Menu.index key
+        item = pile[index]?
+        next unless item
+
+        @game.pick_up item
+        refresh
+      end
+    end
+
+    # Asks which carried item to drop.
+    def drop : Nil
+      inventory = @game.player.inventory
+      if inventory.empty?
+        say "You are carrying nothing."
+        return
+      end
+
+      choose("Drop what?", carried) do |key|
+        next unless key
+
+        @game.drop key
+        refresh
+      end
+    end
+
+    # Shows what the character carries.
+    def show_inventory : Nil
+      if @game.player.inventory.empty?
+        say "You are carrying nothing."
+        return
+      end
+
+      choose("Inventory", carried) { |_key| refresh }
+    end
+
+    # Every carried entry, as a menu row.
+    private def carried : Array(Widgets::Menu::Entry)
+      @game.player.inventory.entries.map do |letter, item|
+        Widgets::Menu::Entry.new letter, @game.name(item)
+      end
     end
 
     # Puts the camera on the character.
@@ -308,6 +407,12 @@ module Roguelike::Ui
     def refresh : Nil
       @map.clear_marks
       @map.clear_highlights
+
+      @game.level.each_pile do |column, row, pile|
+        last = pile.last?
+        @map.mark column, row, Palette[last] if last
+      end
+
       @map.mark @game.player.x, @game.player.y, Palette::PLAYER
       offer_directions
       @pager.show @game.log.lines

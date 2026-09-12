@@ -1,6 +1,7 @@
 require "json"
 require "./advancement"
 require "./attributes"
+require "./inventory"
 
 module Roguelike
   # The character the person plays.
@@ -38,12 +39,33 @@ module Roguelike
     # Hit points left. The character dies at zero.
     getter hit_points : Int32
 
+    # What the character carries.
+    getter inventory : Inventory
+
+    # Gold pieces. Counted rather than carried, so they take no letter.
+    getter gold : Int32
+
     def initialize(@floor : String, @x : Int32, @y : Int32,
                    @attributes : Attributes = Attributes.new,
                    @level : Int32 = 1,
                    @experience : Int32 = 0,
-                   hit_points : Int32? = nil)
+                   hit_points : Int32? = nil,
+                   @inventory : Inventory = Inventory.new,
+                   @gold : Int32 = 0)
       @hit_points = hit_points || Advancement.max_hit_points(@level, @attributes.constitution)
+    end
+
+    # Adds *amount* gold pieces. Answers the new total.
+    def take_gold(amount : Int32) : Int32
+      @gold += Math.max amount, 0
+    end
+
+    # Takes *amount* gold pieces away, no further than nothing. Answers how
+    # many were taken.
+    def spend_gold(amount : Int32) : Int32
+      spent = Math.min Math.max(amount, 0), @gold
+      @gold -= spent
+      spent
     end
 
     # Where the character stands.

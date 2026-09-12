@@ -18,6 +18,9 @@ module Roguelike
     Wand
     Light
 
+    # Coins. A character counts them rather than carrying them.
+    Treasure
+
     # Whether a `+N` means anything on this class.
     def enchantable? : Bool
       melee? || launcher? || ammunition? || thrown? || armour?
@@ -29,7 +32,7 @@ module Roguelike
     # Potions and scrolls stack because two of the same are the same. Wands do
     # not, because two wands have different charges left.
     def stacks? : Bool
-      ammunition? || thrown? || potion? || scroll?
+      ammunition? || thrown? || potion? || scroll? || treasure?
     end
 
     # Whether a character has to find out what one of these is.
@@ -185,6 +188,9 @@ module Roguelike
     Torch
     Candle
 
+    # Counted rather than carried.
+    Gold
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -328,6 +334,9 @@ module Roguelike
 
       ItemKind::Torch  => ItemFacts.new("torch", "torches", ItemClass::Light, weight: 20),
       ItemKind::Candle => ItemFacts.new("candle", "candles", ItemClass::Light, weight: 5),
+
+      ItemKind::Gold => ItemFacts.new("gold piece", "gold pieces", ItemClass::Treasure,
+        weight: 1),
     }
   end
 end

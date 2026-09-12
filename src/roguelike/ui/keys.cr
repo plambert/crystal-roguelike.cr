@@ -76,6 +76,12 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.open_door; nil }
         map.bind TermBuf::Key.parse("c"), "close a door",
           ->(_context : Widgets::Context) { play.close_door; nil }
+        map.bind TermBuf::Key.parse(","), "pick up what is here",
+          ->(_context : Widgets::Context) { play.pick_up; nil }
+        map.bind TermBuf::Key.parse("d"), "drop something",
+          ->(_context : Widgets::Context) { play.drop; nil }
+        map.bind TermBuf::Key.parse("i"), "look at what you are carrying",
+          ->(_context : Widgets::Context) { play.show_inventory; nil }
         map.bind TermBuf::Key.parse(">"), "go down the staircase",
           ->(_context : Widgets::Context) { play.descend; nil }
         map.bind TermBuf::Key.parse("<"), "climb out of the dungeon",

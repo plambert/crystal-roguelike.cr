@@ -1,5 +1,6 @@
 require "json"
 require "./levels"
+require "./items"
 require "./lore"
 require "./message_log"
 require "./player"
@@ -102,8 +103,37 @@ module Roguelike
       level = world.add Levels.proving_ground
 
       game = new world, Player.new(level.id, *entrance(level)), lore: Lore.roll(rng)
+      game.scatter rng
       game.say "You are in a dungeon. Press ? for the keys."
       game
+    end
+
+    # How many items a level starts with, until there is a generator.
+    LITTER = 24
+
+    # How much gold one pile holds, until there is a generator.
+    PURSE = 5..40
+
+    # Puts items about the level on *rng*.
+    #
+    # Placement is its own stream, so the loot does not shift when anything
+    # else changes how much it rolls.
+    def scatter(rng : Rng) : Nil
+      stream = rng.derive "litter:#{level.id}"
+      floors = [] of {Int32, Int32}
+      level.each { |column, row, tile| floors << {column, row} if tile.terrain.floor? }
+      return if floors.empty?
+
+      LITTER.times do
+        spot = floors.sample stream
+        item = stream.rand(4).zero? ? gold(stream) : Items.random(stream)
+        level.drop spot[0], spot[1], item
+      end
+    end
+
+    # One pile of gold.
+    private def gold(rng : Rng) : Item
+      Item.new ItemKind::Gold, count: rng.rand(PURSE)
     end
 
     # Where a character arriving on *level* stands.
@@ -165,10 +195,17 @@ module Roguelike
 
     # Says what the character has walked onto, when it is worth saying.
     private def arrived : Nil
-      here = standing_on
-      return unless here.stairs?
+      ground = standing_on
+      say "There is #{ground.description} here." if ground.stairs?
 
-      say "There is #{here.description} here."
+      pile = here
+      return if pile.empty?
+
+      if pile.size == 1
+        say "You see #{name pile.first} here."
+      else
+        say "There are #{pile.size} things here."
+      end
     end
 
     # Opens the door *direction*. Answers whether it opened.
@@ -232,6 +269,79 @@ module Roguelike
       @outcome = Outcome::Left
       true
     end
+
+    # ---------------------------------------------------------------- items
+
+    # What is lying on the square the character stands on.
+    def here : Array(Item)
+      level.items @player.x, @player.y
+    end
+
+    # Picks *item* up off the square the character stands on.
+    #
+    # Gold is counted rather than carried. It takes no letter and never fills
+    # the inventory.
+    #
+    # Answers whether the character now has it. A full inventory answers false
+    # and leaves the item where it was.
+    def pick_up(item : Item) : Bool
+      return false unless level.take @player.x, @player.y, item
+
+      if item.kind.item_class.treasure?
+        @player.take_gold item.count
+        @turn += 1
+        say "You pick up #{item.count} gold pieces."
+        return true
+      end
+
+      letter = @player.inventory.add item
+      unless letter
+        level.drop @player.x, @player.y, item
+        say "You cannot carry any more."
+        return false
+      end
+
+      @turn += 1
+      say "#{letter} - #{name item}"
+      true
+    end
+
+    # Picks up everything on the square. Answers how many entries were taken.
+    def pick_up_all : Int32
+      taken = 0
+      here.dup.each { |item| taken += 1 if pick_up item }
+      taken
+    end
+
+    # Puts what is under *letter* on the floor. Answers whether it went.
+    def drop(letter : Char) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      if item.sticks? && item.blessing_known?
+        say "You cannot let go of #{name item}."
+        return false
+      end
+
+      @player.inventory.remove letter
+      level.drop @player.x, @player.y, item
+      @turn += 1
+      say "You drop #{name item}."
+      true
+    end
+
+    # Puts *amount* gold pieces on the floor. Answers how many went.
+    def drop_gold(amount : Int32) : Int32
+      dropped = @player.spend_gold amount
+      return 0 if dropped.zero?
+
+      level.drop @player.x, @player.y, Item.new(ItemKind::Gold, count: dropped)
+      @turn += 1
+      say "You drop #{dropped} gold pieces."
+      dropped
+    end
+
+    # ------------------------------------------------------------- movement
 
     # What stops a step *direction*. Answers `nil` when nothing stops it.
     def blocking(direction : Direction) : Terrain?

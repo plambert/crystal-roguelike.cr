@@ -27,6 +27,36 @@ module Roguelike::Ui
     # changes. A person choosing a direction has to see which door is which.
     OFFERED = TermBuf::Color.rgb 0x3A, 0x4E, 0x2A
 
+    # What each class of item is drawn as.
+    #
+    # The glyphs are the roguelike conventions. A person who has played one
+    # reads `)` as a weapon and `!` as a potion without being told.
+    WEAPON = Style::DEFAULT.fg TermBuf::Color.rgb(0xC8, 0xCC, 0xD4)
+    ARMOUR = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0xA4, 0xB8)
+    POTION = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0x5C, 0xA8)
+    SCROLL = Style::DEFAULT.fg TermBuf::Color.rgb(0xE8, 0xE2, 0xC8)
+    WAND   = Style::DEFAULT.fg TermBuf::Color.rgb(0x8A, 0xD0, 0xC0)
+    TOOL   = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x9A, 0x60)
+    COIN   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xD0, 0x40)).bold
+
+    ITEMS = {
+      ItemClass::Melee      => Look.new(')', WEAPON),
+      ItemClass::Launcher   => Look.new(')', WEAPON),
+      ItemClass::Ammunition => Look.new(')', WEAPON),
+      ItemClass::Thrown     => Look.new(')', WEAPON),
+      ItemClass::Armour     => Look.new('[', ARMOUR),
+      ItemClass::Potion     => Look.new('!', POTION),
+      ItemClass::Scroll     => Look.new('?', SCROLL),
+      ItemClass::Wand       => Look.new('/', WAND),
+      ItemClass::Light      => Look.new('(', TOOL),
+      ItemClass::Treasure   => Look.new('$', COIN),
+    }
+
+    # How *item* is drawn where it lies.
+    def self.[](item : Item) : Look
+      ITEMS[item.kind.item_class]
+    end
+
     # The character. Roguelikes have drawn the player as `@` since 1980. A
     # person who has played one looks for it first.
     PLAYER = Look.new '@', HERO

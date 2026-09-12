@@ -158,7 +158,7 @@ naming what still has to be decided before it moves.
 | `Cells(T)` and `CellGrid(T)` | Phase 2 | A 2D addressable grid widget with a camera |
 | `Prompt` | Phase 6 | `[yn]` answered by one keystroke, in a modal overlay |
 | `Pager` | Phase 7 | `--More--` held at a page boundary |
-| Accelerator menus | Phase 10 | A list addressed by letter rather than filtered |
+| `Menu` | Phase 10 | A list addressed by letter rather than filtered |
 | Quantized style ramp | Phase 14 | A `Blend` over N fixed steps, so styles stay interned |
 
 Numpad decoding — the `SS3` keypad keys and a `DECKPAM` `Tty::Mode` for `termbuf-input.cr` — is

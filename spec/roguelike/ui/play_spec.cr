@@ -15,10 +15,15 @@ Spectator.describe Roguelike::Ui::Play do
       expect(run.map.mark?(spot[0], spot[1])).to eq Roguelike::Ui::Palette::PLAYER
     end
 
-    it "is the only thing on the map that is not the level" do
+    # Items are marked too. The character is the one on their own square.
+    it "is drawn over whatever it is standing on" do
       run = Playing.open
+      spot = run.at
+      run.game.level.drop spot[0], spot[1],
+        Roguelike::Item.new(Roguelike::ItemKind::Dagger)
+      run.play.refresh
 
-      expect(run.map.marks.size).to eq 1
+      expect(run.map.mark?(spot[0], spot[1])).to eq Roguelike::Ui::Palette::PLAYER
     end
 
     it "starts in view" do

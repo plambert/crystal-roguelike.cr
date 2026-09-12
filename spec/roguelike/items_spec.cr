@@ -61,12 +61,22 @@ Spectator.describe Roguelike::Items do
       expect(second).not_to eq first
     end
 
+    # Gold is placed on its own rather than rolled as loot, so it is not in
+    # the table and never comes out of it.
     it "rolls every kind eventually" do
       rng = stream
       seen = Set(Kind).new
       20_000.times { seen << described_class.random(rng).kind }
 
-      expect(seen.size).to eq Kind.values.size
+      expect(seen).to eq Roguelike::Items::WEIGHTS.keys.to_set
+    end
+
+    it "never rolls gold" do
+      rng = stream
+
+      5_000.times do
+        expect(described_class.random(rng).kind.item_class.treasure?).to be_false
+      end
     end
 
     it "rolls a plain item more often than any other condition" do
@@ -194,9 +204,17 @@ Spectator.describe Roguelike::Items do
       end
     end
 
-    it "weights every kind" do
+    it "weights every kind that is rolled as loot" do
       Kind.each do |kind|
+        next if kind.item_class.treasure?
+
         expect(Roguelike::Items::WEIGHTS[kind]?).not_to be_nil
+      end
+    end
+
+    it "weights nothing that is placed on its own" do
+      Roguelike::Items::WEIGHTS.each_key do |kind|
+        expect(kind.item_class.treasure?).to be_false
       end
     end
 
