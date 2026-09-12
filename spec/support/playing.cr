@@ -28,7 +28,7 @@ module Playing
                    @told : Array(String))
     end
 
-    delegate game, screen, map, examine, examiner, pointer, prompt, to: @play
+    delegate game, screen, map, examine, examiner, pointer, prompt, pager, to: @play
 
     # Whether the run should end.
     def finished? : Bool
@@ -40,6 +40,16 @@ module Playing
     # Where the character is.
     def at : {Int32, Int32}
       game.player.at
+    end
+
+    # What has just happened, oldest first.
+    def log : Array(String)
+      game.log.lines
+    end
+
+    # The most recent message.
+    def said : String
+      game.log.last? || ""
     end
 
     # How many turns have been taken.

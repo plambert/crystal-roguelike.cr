@@ -41,14 +41,24 @@ module Roguelike::Ui
     # What the mouse pointer is doing.
     getter pointer : Pointer
 
+    # What has just happened, held at a page boundary when a turn says more
+    # than the pane shows at once.
+    getter pager : Widgets::Pager
+
     # The one-key question, when there is one.
     getter prompt : Widgets::Prompt
 
     # The application this play is drawn on.
     #
-    # The owner sets this once it has built an `App`. A question needs it to
-    # push a focus scope. Nothing else here uses it.
-    property app : Widgets::App? = nil
+    # The owner sets this once it has built an `App`. A question and a held
+    # page each need it to push a focus scope.
+    def app=(app : Widgets::App?) : Widgets::App?
+      @pager.app = app
+      @app = app
+    end
+
+    # :ditto:
+    getter app : Widgets::App? = nil
 
     # A command waiting for a direction. `nil` when none is.
     getter pending : Pending? = nil
@@ -70,6 +80,9 @@ module Roguelike::Ui
       @pointer = Pointer.new
 
       @screen.scaffold @game.world.seed
+
+      @pager = Widgets::Pager.new
+      @screen.show_log @pager
 
       @prompt = Widgets::Prompt.new
       @screen.show_status @prompt
@@ -145,9 +158,9 @@ module Roguelike::Ui
         return
       end
 
-      return if @game.step(direction).blocked?
-
-      @map.follow @game.player.x, @game.player.y
+      # A blocked step says why. The pane has to be redrawn either way.
+      done = @game.step direction
+      @map.follow @game.player.x, @game.player.y unless done.blocked?
       refresh
     end
 
@@ -217,6 +230,7 @@ module Roguelike::Ui
     def refresh : Nil
       @map.clear_marks
       @map.mark @game.player.x, @game.player.y, Palette::PLAYER
+      @pager.show @game.log.lines
       @screen.status_text.text = status
     end
 
@@ -250,6 +264,7 @@ module Roguelike::Ui
     # Answers the layout to a screen of *columns* by *rows*.
     def fit(columns : Int32, rows : Int32) : Nil
       @screen.fit columns, rows
+      @pager.resize Screen.log_width(columns), Screen::LOG_ROWS
     end
 
     # Starts *command*. Finds the one door of *terrain* beside the character,
@@ -266,6 +281,11 @@ module Roguelike::Ui
         @pending = command
         say "Which way? Press a direction, or Escape."
       end
+    end
+
+    # Whether the log is holding a page that has not been read.
+    def holding? : Bool
+      @pager.holding?
     end
 
     # Runs *command* on the door *direction*.
@@ -288,9 +308,10 @@ module Roguelike::Ui
       ask(line, key.to_s, default: key) { @finished = true }
     end
 
-    # Writes *line* where the status text goes, until the next `#refresh`.
+    # Adds *line* to the log.
     private def say(line : String) : Nil
-      @screen.status_text.text = line
+      @game.say line
+      refresh
     end
   end
 end

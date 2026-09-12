@@ -49,7 +49,7 @@ Spectator.describe "doors, stairs and leaving" do
 
       run.press "o"
 
-      expect(run.screen.status_text.text).to contain "nothing to open"
+      expect(run.said).to contain "nothing to open"
       expect(run.turn).to eq 0
     end
 
@@ -60,7 +60,7 @@ Spectator.describe "doors, stairs and leaving" do
       run.press "o"
 
       expect(run.play.pending).to eq Roguelike::Ui::Pending::Open
-      expect(run.screen.status_text.text).to contain "Which way?"
+      expect(run.said).to contain "Which way?"
       expect(run.turn).to eq 0
     end
 
@@ -90,7 +90,7 @@ Spectator.describe "doors, stairs and leaving" do
       run.press "o"
       run.press "h"
 
-      expect(run.screen.status_text.text).to contain "nothing to open that way"
+      expect(run.said).to contain "nothing to open that way"
     end
 
     it "gives the keys back after Escape" do
@@ -120,7 +120,7 @@ Spectator.describe "doors, stairs and leaving" do
 
       run.press "c"
 
-      expect(run.screen.status_text.text).to contain "nothing to close"
+      expect(run.said).to contain "nothing to close"
     end
   end
 
@@ -151,7 +151,7 @@ Spectator.describe "doors, stairs and leaving" do
       run.press ">"
 
       expect(run.game.outcome).to eq Outcome::Playing
-      expect(run.screen.status_text.text).to contain "no staircase down"
+      expect(run.said).to contain "no staircase down"
       expect(run.finished?).to be_false
     end
   end
@@ -194,7 +194,7 @@ Spectator.describe "doors, stairs and leaving" do
       run.press "<"
 
       expect(run.prompt.asking?).to be_false
-      expect(run.screen.status_text.text).to contain "no staircase up"
+      expect(run.said).to contain "no staircase up"
     end
   end
 

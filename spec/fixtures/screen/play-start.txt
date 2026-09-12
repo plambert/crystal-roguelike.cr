@@ -18,7 +18,7 @@
 ####...............####################################│
 ────────────────────────────────────────────────────────────────────────────────
  seed 20260911    turn 0    at 6,5    mouse on    x to look, ? for the keys
- Welcome to the dungeon. ? for the keys, Q to leave.
+ You are in a dungeon. Press ? for the keys.
 
 
 

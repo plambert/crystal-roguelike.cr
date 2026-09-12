@@ -194,6 +194,22 @@ module Roguelike::Ui
       @map.add widget
     end
 
+    # Puts *widget* in the log pane. Takes out whatever was there.
+    #
+    # `TermBuf::Widgets::Pager` goes here.
+    def show_log(widget : Widgets::Widget) : Nil
+      @log.clear
+      @log.add widget
+    end
+
+    # How wide the log pane's text is on a screen of *columns*.
+    #
+    # The pane runs the whole width. Its padding takes one column on each
+    # side.
+    def self.log_width(columns : Int32) : Int32
+      Math.max columns - 2, 0
+    end
+
     # Puts *widget* in the status row beside the status text.
     #
     # The row is one row tall. Exactly one of the two may be visible at a

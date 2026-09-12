@@ -1,0 +1,232 @@
+require "termbuf-widgets"
+
+# Extraction candidate: `TermBuf::Widgets::Pager`, for termbuf-widgets.cr.
+#
+# A pane of N rows shows the last N lines. A turn that produces six lines in a
+# four row pane loses two of them. Nobody reads what scrolled past before it
+# was drawn.
+#
+# `less` solves this by holding at a page boundary. Roguelikes solve it the
+# same way and write `--More--` at the end of the line. The widget catalogue
+# has nothing that does it. `VirtualList` scrolls, and scrolling past unread
+# text is the problem rather than the fix.
+#
+# This type is written in `TermBuf::Widgets` rather than in `Roguelike`.
+# Extracting it is then a file move with no edits.
+#
+# Two questions remain open:
+#
+# * Should this be a `VirtualList` over `Rows(String)` instead? A list holds a
+#   window and a selection. A pager holds a read mark and a page size. The two
+#   pieces of state do not overlap, so a subclass would carry a selection it
+#   never uses.
+# * Should `#resize` be needed at all? The widget learns its own size during
+#   `#draw`. Holding is decided outside `#draw` because pushing a focus scope
+#   during a render is not safe. An owner that already knows the pane size
+#   passes it in.
+module TermBuf::Widgets
+  # Lines that hold at a page boundary until a key is pressed.
+  #
+  #     pager.resize 78, 4
+  #     pager.show log.lines
+  #     pager.holding?   # => true when more arrived than one page holds
+  #
+  # The widget wraps what it is given to its own width. A line longer than the
+  # pane becomes two lines rather than being cut.
+  #
+  # A pager pushes a focus scope while it holds. Every key then reaches the
+  # pager and stops there. `Router` reads the chain's keymaps before it offers
+  # an event to a widget's `#handle`, so an application binding would answer
+  # before the pager saw the key.
+  class Pager < Widget
+    # What the pager draws at the end of a page when more lines remain.
+    property marker : String = "--More--"
+
+    # What the marker is drawn in.
+    property marker_style : Style = Style::DEFAULT.reverse
+
+    # Cells across. An owner sets this with `#resize`.
+    getter columns : Int32 = 0
+
+    # Rows down. An owner sets this with `#resize`.
+    getter rows : Int32 = 0
+
+    # Every line, wrapped to `#columns`, oldest first.
+    getter lines : Array(String) = [] of String
+
+    # How many lines the person has seen.
+    getter read : Int32 = 0
+
+    # The application this pager is drawn on.
+    #
+    # An owner sets this once it has built an `App`. Holding needs it to push
+    # a focus scope. A pager without one still holds and still draws the
+    # marker. Other keys then reach their own bindings.
+    property app : App? = nil
+
+    # The focus scope holding pushed.
+    @scope : Focus::Scope? = nil
+
+    def initialize(style : Style? = nil)
+      @width = Layout::Sizing.grow
+      @height = Layout::Sizing.grow
+      @style = style
+      @source = [] of String
+    end
+
+    # Sets the size of the pane. Wraps the text again when the width changed.
+    def resize(columns : Int32, rows : Int32) : Nil
+      @rows = rows
+      return if columns == @columns
+
+      @columns = columns
+      rewrap
+    end
+
+    # Shows *source*, oldest first.
+    #
+    # A line already shown stays shown. The read mark moves only when the
+    # person has seen a line.
+    def show(source : Array(String)) : Nil
+      @source = source.dup
+      rewrap
+    end
+
+    # How many wrapped lines the person has not seen.
+    def unread : Int32
+      @lines.size - @read
+    end
+
+    # Whether more lines arrived than one page holds.
+    def holding? : Bool
+      @rows > 0 && unread > @rows
+    end
+
+    # How many lines one page shows while the pager holds.
+    #
+    # One row goes to the marker. A page that used every row would leave
+    # nowhere to say that more is coming.
+    def page : Int32
+      Math.max @rows - 1, 1
+    end
+
+    # Shows the next page. Does nothing while the pager is not holding.
+    def advance : Bool
+      return false unless holding?
+
+      @read += page
+      settle
+      true
+    end
+
+    # Marks every line as seen.
+    def catch_up : Nil
+      @read = @lines.size
+    end
+
+    # The lines this pane shows now.
+    #
+    # While the pager holds, this is one page starting at the read mark.
+    # Otherwise it is the last `#rows` lines, so older text stays as context.
+    def showing : Array(String)
+      return [] of String if @rows <= 0
+
+      return @lines[@read, page] if holding?
+
+      first = Math.max @lines.size - @rows, 0
+      @lines[first..]
+    end
+
+    # The keyboard lands here while the pager holds. It lands nowhere else.
+    def focusable? : Bool
+      holding?
+    end
+
+    def intrinsic_width(policy : Unicode::WidthPolicy) : Layout::Intrinsic
+      Layout::Intrinsic.new 1, Math.max(@columns, 1)
+    end
+
+    def height_for_width(width : Int32, policy : Unicode::WidthPolicy) : Int32
+      Math.max @rows, 1
+    end
+
+    # Takes every key while the pager holds. Any key shows the next page.
+    def handle(event : Event, context : Context) : Nil
+      return unless holding?
+      return unless event.is_a? Events::Key
+
+      context.consume
+      advance
+    end
+
+    def draw(view : View) : Nil
+      return if view.width <= 0 || view.height <= 0
+
+      more = holding?
+      showing.each_with_index do |line, row|
+        break if row >= view.height
+
+        view.write 0, row, line
+      end
+
+      return unless more
+
+      spot = Math.min page, view.height - 1
+      view.write 0, spot, @marker, @marker_style
+    end
+
+    # Wraps the source to `#columns`. Keeps the read mark where it was.
+    #
+    # Rewrapping changes how many lines there are. The read mark counts
+    # wrapped lines, so it is clamped rather than kept exactly.
+    private def rewrap : Nil
+      @lines = if @columns > 0
+                 @source.flat_map { |line| Pager.wrap line, @columns }
+               else
+                 @source.dup
+               end
+
+      settle
+    end
+
+    # Holds the read mark inside the lines there are. Takes or gives back the
+    # keyboard as holding starts or stops.
+    private def settle : Nil
+      @read = @read.clamp 0, @lines.size
+      @read = @lines.size unless holding?
+
+      holding? ? grab : release
+    end
+
+    # Puts a focus scope over the application, with this pager as its root.
+    private def grab : Nil
+      return if @scope
+
+      app = @app
+      return unless app
+
+      @scope = app.focus.push self
+      app.focus.focus self
+    end
+
+    # Takes that scope off again.
+    private def release : Nil
+      return unless @scope
+
+      @scope = nil
+      @app.try &.focus.pop
+    end
+
+    # *text* broken into lines no wider than *columns*.
+    def self.wrap(text : String, columns : Int32,
+                  policy : Unicode::WidthPolicy = Unicode::WidthPolicy::DEFAULT) : Array(String)
+      return [text] if columns <= 0
+
+      measured = Layout::TextMeasure.measure text, policy
+      broken = Layout::TextMeasure.wrap measured, columns, Layout::Wrap::Words
+
+      lines = broken.map &.text(text)
+      lines.empty? ? [""] : lines
+    end
+  end
+end

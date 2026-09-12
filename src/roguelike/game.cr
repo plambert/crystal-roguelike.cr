@@ -1,5 +1,6 @@
 require "json"
 require "./levels"
+require "./message_log"
 require "./player"
 require "./world"
 
@@ -66,8 +67,17 @@ module Roguelike
     # How the run ended. `Playing` while it has not.
     getter outcome : Outcome
 
+    # What has just happened.
+    getter log : MessageLog
+
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
-                   @outcome : Outcome = Outcome::Playing)
+                   @outcome : Outcome = Outcome::Playing,
+                   @log : MessageLog = MessageLog.new)
+    end
+
+    # Adds *line* to the log.
+    def say(line : String) : Nil
+      @log.add line
     end
 
     # Whether the run is over.
@@ -80,7 +90,9 @@ module Roguelike
       world = World.on rng
       level = world.add Levels.proving_ground
 
-      new world, Player.new(level.id, *entrance(level))
+      game = new world, Player.new(level.id, *entrance(level))
+      game.say "You are in a dungeon. Press ? for the keys."
+      game
     end
 
     # Where a character arriving on *level* stands.
@@ -117,14 +129,35 @@ module Roguelike
       if level.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
         level.set wanted[0], wanted[1], Terrain::OpenDoor
         @turn += 1
+        say "You open the door."
         return Step::Opened
       end
 
-      return Step::Blocked unless level.passable? wanted[0], wanted[1]
+      unless level.passable? wanted[0], wanted[1]
+        say blocked_by direction
+        return Step::Blocked
+      end
 
       @player.move_to wanted
       @turn += 1
+      arrived
       Step::Moved
+    end
+
+    # What to say about a step that did not happen.
+    private def blocked_by(direction : Direction) : String
+      stopped = blocking direction
+      return "You cannot go that way." unless stopped
+
+      "The #{stopped.label} blocks your way."
+    end
+
+    # Says what the character has walked onto, when it is worth saying.
+    private def arrived : Nil
+      here = standing_on
+      return unless here.stairs?
+
+      say "There is #{here.description} here."
     end
 
     # Opens the door *direction*. Answers whether it opened.
@@ -137,6 +170,7 @@ module Roguelike
 
       level.set wanted[0], wanted[1], Terrain::OpenDoor
       @turn += 1
+      say "You open the door."
       true
     end
 
@@ -147,6 +181,7 @@ module Roguelike
 
       level.set wanted[0], wanted[1], Terrain::ClosedDoor
       @turn += 1
+      say "You close the door."
       true
     end
 

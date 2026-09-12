@@ -154,7 +154,7 @@ naming what still has to be decided before it moves.
 |---|---|---|
 | `Cells(T)` and `CellGrid(T)` | Phase 2 | A 2D addressable grid widget with a camera |
 | `Prompt` | Phase 6 | `[yn]` on one line, no button group, no Tab |
-| Paged message line | Phase 7 | `--More--` held at a page boundary |
+| `Pager` | Phase 7 | `--More--` held at a page boundary |
 | Accelerator menus | Phase 10 | A list addressed by letter rather than filtered |
 | Quantized style ramp | Phase 14 | A `Blend` over N fixed steps, so styles stay interned |
 
