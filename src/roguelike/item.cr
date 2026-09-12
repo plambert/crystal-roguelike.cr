@@ -21,6 +21,15 @@ module Roguelike
     # How well made it is, or how badly worn.
     getter condition : Condition
 
+    # Whether a god has touched it, and which way.
+    getter blessing : Blessing
+
+    # Whether the character knows the blessing.
+    #
+    # This is per item rather than per kind. Two identical swords may be
+    # blessed and cursed, so learning one says nothing about the other.
+    getter? blessing_known : Bool
+
     # How many there are. Always one for a kind that does not stack.
     getter count : Int32
 
@@ -31,11 +40,37 @@ module Roguelike
                    @enchantment : Int32 = 0,
                    @condition : Condition = Condition::Plain,
                    count : Int32 = 1,
-                   charges : Int32? = nil)
+                   charges : Int32? = nil,
+                   @blessing : Blessing = Blessing::Uncursed,
+                   @blessing_known : Bool = false)
       @count = @kind.stacks? ? Math.max(count, 1) : 1
       @charges = charges || (@kind.charges > 0 ? @kind.charges : nil)
       @enchantment = @kind.enchantable? ? @enchantment : 0
       @condition = @kind.enchantable? ? @condition : Condition::Plain
+    end
+
+    # Whether this item refuses to be taken off or put down.
+    def sticks? : Bool
+      @blessing.sticks?
+    end
+
+    # Whether a god has blessed it.
+    def blessed? : Bool
+      @blessing.blessed?
+    end
+
+    # Whether a god has cursed it.
+    def cursed? : Bool
+      @blessing.cursed?
+    end
+
+    # Records that the character has found out the blessing. Answers whether
+    # that was news.
+    def reveal_blessing : Bool
+      return false if @blessing_known
+
+      @blessing_known = true
+      true
     end
 
     # What this item does to whatever it hits.
@@ -64,12 +99,14 @@ module Roguelike
     # which.
     def stacks_with?(other : Item) : Bool
       @kind.stacks? && @kind == other.kind &&
-        @enchantment == other.enchantment && @condition == other.condition
+        @enchantment == other.enchantment && @condition == other.condition &&
+        @blessing == other.blessing && @blessing_known == other.blessing_known?
     end
 
     # A copy of this item with *count* of them.
     def with_count(count : Int32) : Item
-      Item.new @kind, @enchantment, @condition, count, @charges
+      Item.new @kind, @enchantment, @condition, count, @charges,
+        @blessing, @blessing_known
     end
 
     # A copy with *amount* added to the count.
@@ -95,16 +132,19 @@ module Roguelike
     def ==(other : Item) : Bool
       @kind == other.kind && @enchantment == other.enchantment &&
         @condition == other.condition && @count == other.count &&
-        @charges == other.charges
+        @charges == other.charges && @blessing == other.blessing &&
+        @blessing_known == other.blessing_known?
     end
 
     def hash(hasher)
-      {@kind, @enchantment, @condition, @count, @charges}.hash hasher
+      {@kind, @enchantment, @condition, @count, @charges,
+       @blessing, @blessing_known}.hash hasher
     end
 
     def to_s(io : IO) : Nil
       io << "Item(" << @kind
       io << " x" << @count if @count > 1
+      io << ' ' << @blessing if !@blessing.uncursed?
       io << ' ' << @condition if !@condition.plain?
       io << " +" << @enchantment if @enchantment > 0
       io << ' ' << @enchantment if @enchantment < 0

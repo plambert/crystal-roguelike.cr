@@ -93,8 +93,8 @@ module Roguelike
     # What *item* is called.
     #
     #     a damaged short sword
-    #     a masterwork +1 chain mail
-    #     3 arrows
+    #     a blessed masterwork +1 chain mail
+    #     3 cursed arrows
     #     a swirly potion
     #     a potion of healing
     def name(item : Item) : String
@@ -111,10 +111,11 @@ module Roguelike
       plural = item.count > 1
 
       unless known? kind
-        return disguised_noun kind, plural
+        return disguised_noun item, plural
       end
 
       words = [] of String
+      words << item.blessing.label if item.blessing_known?
       words << (item.condition.label || "") unless item.condition.plain?
       words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
       words << (plural ? kind.plural : kind.label)
@@ -122,17 +123,25 @@ module Roguelike
       words.reject(&.empty?).join ' '
     end
 
-    # What an unidentified *kind* is called.
-    private def disguised_noun(kind : ItemKind, plural : Bool) : String
+    # What an unidentified item is called.
+    #
+    # A known blessing still shows. A character can be told a potion is cursed
+    # without being told what is in it.
+    private def disguised_noun(item : Item, plural : Bool) : String
+      kind = item.kind
       look = appearance kind
-      return plural ? kind.plural : kind.label unless look
+      noun = if look
+               case kind.item_class
+               when .potion? then plural ? "#{look} potions" : "#{look} potion"
+               when .wand?   then plural ? "#{look} wands" : "#{look} wand"
+               when .scroll? then plural ? "scrolls labelled #{look}" : "scroll labelled #{look}"
+               else               plural ? kind.plural : kind.label
+               end
+             else
+               plural ? kind.plural : kind.label
+             end
 
-      case kind.item_class
-      when .potion? then plural ? "#{look} potions" : "#{look} potion"
-      when .wand?   then plural ? "#{look} wands" : "#{look} wand"
-      when .scroll? then plural ? "scrolls labelled #{look}" : "scroll labelled #{look}"
-      else               plural ? kind.plural : kind.label
-      end
+      item.blessing_known? ? "#{item.blessing.label} #{noun}" : noun
     end
 
     # `+1`, `-2`, and so on.
@@ -140,15 +149,22 @@ module Roguelike
       amount > 0 ? "+#{amount}" : amount.to_s
     end
 
-    # `a` or `an`, by the sound *noun* starts with.
+    # Words that start with a vowel letter and take `a` anyway.
     #
-    # The rule is the vowel letters, with `u` taken out. Every `u` word in the
-    # catalogue starts with a `yu` sound, which takes `a`.
-    def self.article(noun : String) : String
-      first = noun[0]?
-      return "a" unless first
+    # The letter is not the sound. "unicorn" and "one-handed" both start with
+    # a consonant sound. The list is short because the catalogue is short, and
+    # a word added to one is added to the other.
+    CONSONANT_SOUNDS = %w[uni use uso eu one]
 
-      "aeio".includes?(first.downcase) ? "an" : "a"
+    # `a` or `an`, by the sound *noun* starts with.
+    def self.article(noun : String) : String
+      word = noun.downcase
+      first = word[0]?
+      return "a" unless first
+      return "a" unless "aeiou".includes? first
+      return "a" if CONSONANT_SOUNDS.any? { |sound| word.starts_with? sound }
+
+      "an"
     end
   end
 end

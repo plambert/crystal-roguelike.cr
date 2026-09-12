@@ -311,9 +311,11 @@ The model only. Nothing is on the floor yet and nothing can be carried.
   boots, gloves; scrolls; wands. An `Item` carrying a kind plus its variants: an appearance
   (colour or material, assigned per seed, so "a swirly potion" means the same thing all game and
   a different thing next game), an enchantment `+N` or `-N` for weapons, armour and ammunition,
-  and a condition of damaged, plain, or masterwork. Naming that composes all of it — "a damaged
-  short sword", "a masterwork +1 chain mail", "a swirly potion" before it is identified and "a
-  potion of healing" after.
+  a condition of damaged, plain, or masterwork, and a blessing of blessed, uncursed or cursed.
+  The blessing is hidden per item rather than per kind, because two identical swords may be
+  blessed and cursed, and a cursed item leans toward a penalty. Naming that composes all of it:
+  "a damaged short sword", "a blessed masterwork +1 chain mail", "a swirly potion" before it is
+  identified and "a potion of healing" after.
 * **Verify** — Specs on naming across the combinations, including the article. Specs that the
   appearance mapping is stable within a seed and differs between seeds. A spec that generating
   ten thousand items under a seed produces the same multiset every time.
@@ -524,7 +526,7 @@ Everything asked for in the basic game, against the phase that delivers it.
 | Terrain: three rock walls, stone floor, dirt floor, doors, stairs | 3 |
 | Stairs as the exit that wins the game | 6 |
 | Items: potions, ammunition, thrown weapons, melee, launchers, armour, scrolls, wands | 9 |
-| Item variants: appearance, `+N`, damaged and masterwork | 9 |
+| Item variants: appearance, `+N`, damaged and masterwork, blessed and cursed | 9 |
 | Enemy types: slime, goblin, orc | 16 |
 | Enemy pathfinding and attack | 17, 19 |
 | Detection range against stealth and light | 18 |

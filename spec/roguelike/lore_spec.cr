@@ -122,6 +122,51 @@ Spectator.describe Roguelike::Lore do
       expect(lore.name(Item.new(Kind::Arrow, count: 1))).to eq "an arrow"
     end
 
+    describe "a blessing" do
+      it "says nothing while the character does not know" do
+        cursed = Item.new Kind::Dagger, blessing: Roguelike::Blessing::Cursed
+
+        expect(lore.name(cursed)).to eq "a dagger"
+      end
+
+      it "goes first, before the condition and the plus" do
+        item = Item.new Kind::LongSword, 1, Condition::Masterwork,
+          blessing: Roguelike::Blessing::Blessed, blessing_known: true
+
+        expect(lore.name(item)).to eq "a blessed masterwork +1 long sword"
+      end
+
+      it "says uncursed once the character knows" do
+        item = Item.new Kind::Dagger, blessing_known: true
+
+        expect(lore.name(item)).to eq "an uncursed dagger"
+      end
+
+      it "counts a cursed stack" do
+        arrows = Item.new Kind::Arrow, count: 5,
+          blessing: Roguelike::Blessing::Cursed, blessing_known: true
+
+        expect(lore.name(arrows)).to eq "5 cursed arrows"
+      end
+
+      # A character can be told a potion is cursed without being told what is
+      # in it.
+      it "shows on an item the character has not identified" do
+        look = lore.appearance Kind::HealingPotion
+        potion = Item.new Kind::HealingPotion,
+          blessing: Roguelike::Blessing::Cursed, blessing_known: true
+
+        expect(lore.name(potion)).to eq "a cursed #{look} potion"
+      end
+
+      it "shows on an uncountable noun with no article" do
+        mail = Item.new Kind::ChainMail, blessing: Roguelike::Blessing::Blessed,
+          blessing_known: true
+
+        expect(lore.name(mail)).to eq "blessed chain mail"
+      end
+    end
+
     describe "the article" do
       it "is a before a consonant" do
         expect(lore.name(Item.new(Kind::Dagger))).to start_with "a "
@@ -130,6 +175,16 @@ Spectator.describe Roguelike::Lore do
 
       it "is an before a vowel" do
         expect(lore.name(Item.new(Kind::Arrow))).to start_with "an "
+      end
+
+      # The letter is not the sound. "uncursed" takes "an" and "unicorn"
+      # would take "a".
+      it "follows the sound rather than the letter" do
+        expect(described_class.article("uncursed dagger")).to eq "an"
+        expect(described_class.article("unicorn horn")).to eq "a"
+        expect(described_class.article("one-handed sword")).to eq "a"
+        expect(described_class.article("arrow")).to eq "an"
+        expect(described_class.article("")).to eq "a"
       end
 
       # "chain mail" is a substance and "boots" is a pair. Neither takes one.

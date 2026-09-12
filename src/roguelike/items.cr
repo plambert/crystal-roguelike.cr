@@ -15,17 +15,42 @@ module Roguelike
       {Condition::Masterwork, 10},
     }
 
-    # How often each enchantment comes up.
+    # How often each blessing comes up.
     #
-    # Most things are plain. A cursed item is about as common as a blessed
-    # one, and both are rarer than nothing at all.
+    # Most things nobody has touched. A blessed item is about as common as a
+    # cursed one.
+    BLESSINGS = {
+      {Blessing::Cursed, 10},
+      {Blessing::Uncursed, 80},
+      {Blessing::Blessed, 10},
+    }
+
+    # How often each enchantment comes up on an item nobody has touched.
     ENCHANTMENTS = {
-      {-2, 3},
-      {-1, 9},
-      {0, 70},
+      {-1, 6},
+      {0, 78},
       {1, 12},
-      {2, 5},
+      {2, 3},
       {3, 1},
+    }
+
+    # The same, on a cursed item.
+    #
+    # A curse leans the other way. A cursed sword is usually worse than a
+    # plain one, which is what makes finding out worth the trouble.
+    CURSED_ENCHANTMENTS = {
+      {-3, 5},
+      {-2, 20},
+      {-1, 45},
+      {0, 30},
+    }
+
+    # The same, on a blessed item.
+    BLESSED_ENCHANTMENTS = {
+      {0, 30},
+      {1, 45},
+      {2, 20},
+      {3, 5},
     }
 
     # How many of a stacking kind turn up at once.
@@ -78,12 +103,26 @@ module Roguelike
     }
 
     # One item of *kind*, with its variants rolled on *rng*.
+    #
+    # The blessing is rolled first. The enchantment then rolls on the table
+    # that blessing leans toward, so a cursed sword is usually worse than a
+    # plain one.
     def self.make(rng : Rng, kind : ItemKind) : Item
+      blessing = pick rng, BLESSINGS
       condition = kind.enchantable? ? pick(rng, CONDITIONS) : Condition::Plain
-      enchantment = kind.enchantable? ? pick(rng, ENCHANTMENTS) : 0
+      enchantment = kind.enchantable? ? pick(rng, enchantments_for(blessing)) : 0
       count = STACKS[kind]?.try { |range| rng.rand range } || 1
 
-      Item.new kind, enchantment, condition, count
+      Item.new kind, enchantment, condition, count, blessing: blessing
+    end
+
+    # Which enchantment table *blessing* rolls on.
+    def self.enchantments_for(blessing : Blessing)
+      case blessing
+      in .cursed?   then CURSED_ENCHANTMENTS
+      in .uncursed? then ENCHANTMENTS
+      in .blessed?  then BLESSED_ENCHANTMENTS
+      end
     end
 
     # One item of any kind, rolled on *rng*.

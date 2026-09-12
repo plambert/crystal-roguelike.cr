@@ -85,6 +85,31 @@ module Roguelike
     end
   end
 
+  # Whether a god has touched an item, and which way.
+  #
+  # This is not the same thing as `Condition`. A condition is how well the
+  # item was made and how worn it is. A blessing is what happens when it is
+  # used, and whether it can be put down again.
+  #
+  # A blessing is hidden on each item until the character finds out. Two
+  # identical swords may be blessed and cursed, so this cannot be learned per
+  # kind the way a potion's colour is.
+  enum Blessing
+    Cursed
+    Uncursed
+    Blessed
+
+    # The word that goes in an item's name, once the character knows.
+    def label : String
+      to_s.downcase
+    end
+
+    # Whether the item refuses to be taken off or put down.
+    def sticks? : Bool
+      cursed?
+    end
+  end
+
   # Everything one kind of item is.
   record ItemFacts,
     label : String,

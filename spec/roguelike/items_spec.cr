@@ -101,6 +101,68 @@ Spectator.describe Roguelike::Items do
     end
   end
 
+  describe "the blessing it rolls" do
+    it "leaves most things untouched" do
+      rng = stream
+      counts = Hash(Roguelike::Blessing, Int32).new 0
+      10_000.times { counts[described_class.random(rng).blessing] += 1 }
+
+      expect(counts[Roguelike::Blessing::Uncursed])
+        .to be > counts[Roguelike::Blessing::Cursed] * 4
+      expect(counts[Roguelike::Blessing::Uncursed])
+        .to be > counts[Roguelike::Blessing::Blessed] * 4
+    end
+
+    it "blesses about as often as it curses" do
+      rng = stream
+      counts = Hash(Roguelike::Blessing, Int32).new 0
+      20_000.times { counts[described_class.random(rng).blessing] += 1 }
+
+      ratio = counts[Roguelike::Blessing::Blessed] /
+              counts[Roguelike::Blessing::Cursed].to_f
+      expect(ratio).to be > 0.7
+      expect(ratio).to be < 1.4
+    end
+
+    it "hides the blessing on everything it rolls" do
+      rng = stream
+
+      500.times { expect(described_class.random(rng).blessing_known?).to be_false }
+    end
+
+    # A cursed sword is usually worse than a plain one. That is what makes
+    # finding out worth the trouble.
+    it "leans a cursed item's plus the other way" do
+      rng = stream
+      totals = Hash(Roguelike::Blessing, Array(Int32)).new { |table, key| table[key] = [] of Int32 }
+
+      20_000.times do
+        item = described_class.make rng, Kind::LongSword
+        totals[item.blessing] << item.enchantment
+      end
+
+      cursed = totals[Roguelike::Blessing::Cursed]
+      blessed = totals[Roguelike::Blessing::Blessed]
+      plain = totals[Roguelike::Blessing::Uncursed]
+
+      expect(cursed.sum / cursed.size.to_f).to be < 0
+      expect(blessed.sum / blessed.size.to_f).to be > 0.5
+      expect(plain.sum / plain.size.to_f).to be > cursed.sum / cursed.size.to_f
+      expect(plain.sum / plain.size.to_f).to be < blessed.sum / blessed.size.to_f
+    end
+
+    it "never gives a cursed item a plus above nothing" do
+      rng = stream
+
+      5_000.times do
+        item = described_class.make rng, Kind::LongSword
+        next unless item.cursed?
+
+        expect(item.enchantment).to be <= 0
+      end
+    end
+  end
+
   describe ".pick" do
     it "never picks a weight of nothing" do
       rng = stream
@@ -126,6 +188,12 @@ Spectator.describe Roguelike::Items do
   end
 
   describe "the tables" do
+    it "weights every blessing" do
+      Roguelike::Blessing.each do |blessing|
+        expect(Roguelike::Items::BLESSINGS.any? { |pair| pair[0] == blessing }).to be_true
+      end
+    end
+
     it "weights every kind" do
       Kind.each do |kind|
         expect(Roguelike::Items::WEIGHTS[kind]?).not_to be_nil

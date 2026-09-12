@@ -151,6 +151,49 @@ Spectator.describe Roguelike::Item do
     end
   end
 
+  describe "a blessing" do
+    it "is uncursed and hidden on a new item" do
+      item = described_class.new Kind::LongSword
+
+      expect(item.blessing).to eq Roguelike::Blessing::Uncursed
+      expect(item.blessing_known?).to be_false
+    end
+
+    it "takes the one it is given" do
+      item = described_class.new Kind::LongSword, blessing: Roguelike::Blessing::Cursed
+
+      expect(item.cursed?).to be_true
+      expect(item.blessed?).to be_false
+    end
+
+    # Unlike an enchantment, anything can be blessed. A cursed potion is a
+    # classic.
+    it "goes on a kind that cannot take a plus" do
+      potion = described_class.new Kind::HealingPotion,
+        blessing: Roguelike::Blessing::Blessed
+
+      expect(potion.blessed?).to be_true
+      expect(potion.enchantment).to eq 0
+    end
+
+    it "is revealed once and then known" do
+      item = described_class.new Kind::LongSword
+
+      expect(item.reveal_blessing).to be_true
+      expect(item.blessing_known?).to be_true
+      expect(item.reveal_blessing).to be_false
+    end
+
+    # Phase 11 uses this. A cursed weapon cannot be put down.
+    it "sticks when it is cursed" do
+      cursed = described_class.new Kind::LongSword, blessing: Roguelike::Blessing::Cursed
+      plain = described_class.new Kind::LongSword
+
+      expect(cursed.sticks?).to be_true
+      expect(plain.sticks?).to be_false
+    end
+  end
+
   describe "#stacks_with?" do
     it "joins two of the same" do
       one = described_class.new Kind::Arrow, count: 3
@@ -172,6 +215,23 @@ Spectator.describe Roguelike::Item do
       worn = described_class.new Kind::Arrow, 0, Condition::Damaged, count: 3
 
       expect(plain.stacks_with?(worn)).to be_false
+    end
+
+    it "keeps a cursed one apart" do
+      plain = described_class.new Kind::Arrow, count: 3
+      cursed = described_class.new Kind::Arrow, count: 3,
+        blessing: Roguelike::Blessing::Cursed
+
+      expect(plain.stacks_with?(cursed)).to be_false
+    end
+
+    # One known and one not are two piles. A person who put them together
+    # would lose track of which was which.
+    it "keeps a known blessing apart from an unknown one" do
+      hidden = described_class.new Kind::Arrow, count: 3
+      shown = described_class.new Kind::Arrow, count: 3, blessing_known: true
+
+      expect(hidden.stacks_with?(shown)).to be_false
     end
 
     it "never joins two of a kind that does not stack" do
@@ -215,7 +275,8 @@ Spectator.describe Roguelike::Item do
 
   describe "serialization" do
     it "round-trips through JSON" do
-      item = described_class.new Kind::Arrow, -1, Condition::Damaged, count: 7
+      item = described_class.new Kind::Arrow, -1, Condition::Damaged, count: 7,
+        blessing: Roguelike::Blessing::Cursed, blessing_known: true
 
       expect(described_class.from_json(item.to_json)).to eq item
     end
