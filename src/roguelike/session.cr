@@ -4,9 +4,10 @@ require "./ui"
 module Roguelike
   # One run, from taking the terminal over to giving it back.
   #
-  # This is the only thing in the game that owns a device. Everything under
-  # `Ui` is a widget tree and everything under the model is state, so a spec
-  # exercises either without one.
+  # The only thing in the game that owns a device. Everything it shows and
+  # everything its keys do is `Ui::Play`, which owns no device, so the
+  # interesting half is driven by specs over a buffer and what is left here is
+  # the frame loop, the mouse and the cursor.
   class Session
     # Runs a game on the terminal, giving it back however the run ends —
     # including on an exception or a signal, which is what the block form of
@@ -42,24 +43,17 @@ module Roguelike
     # The run's randomness.
     getter rng : Rng
 
-    # Every level of the run, and the seed that made it.
-    getter world : World
+    # Everything that is shown and everything the keys do.
+    getter play : Ui::Play
 
-    # The regions being drawn in.
-    getter screen : Ui::Screen
+    # The widget tree, its focus and its router.
+    getter app : Ui::Widgets::App
 
-    # The window the level is played in.
-    getter map : Ui::MapPane
+    # The terminal's own cursor, pointed wherever it belongs.
+    getter cursor : TermBuf::Cursor
 
-    # The readout of what is on one square.
-    getter examine : Ui::ExaminePane
-
-    # What points the readout, from the pointer or from the keyboard.
-    getter examiner : Ui::Examiner
-
-    # What the mouse pointer is doing, and what the terminal is being told
-    # about it.
-    getter pointer : Ui::Pointer
+    # The keys that work here, listed on `F1` and `?`.
+    getter help : Ui::Widgets::HelpOverlay
 
     # Whether the terminal is reporting the mouse.
     #
@@ -68,15 +62,6 @@ module Roguelike
     # reporting the mouse no longer lets the person select text with it.
     getter? mousing : Bool = false
 
-    # The widget tree, its focus and its router.
-    getter app : Ui::Widgets::App
-
-    # The terminal's own cursor, pointed wherever the keyboard is.
-    getter cursor : TermBuf::Cursor
-
-    # The keys that work here, listed on `F1` and `?`.
-    getter help : Ui::Widgets::HelpOverlay
-
     # Whether something has ended the run.
     getter? leaving : Bool = false
 
@@ -84,22 +69,10 @@ module Roguelike
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
-      @world = World.on @rng
-      level = @world.add Levels.proving_ground
+      @play = Ui::Play.new Game.start(@rng)
+      @play.fit size.columns, size.rows
 
-      @screen = Ui::Screen.new
-      @screen.fit size.columns, size.rows
-      @screen.scaffold @rng.seed
-
-      @map = Ui::MapPane.new level
-      @screen.show @map.grid
-
-      @examine = Ui::ExaminePane.new
-      @screen.show_sidebar @examine.root
-      @examiner = Ui::Examiner.new @map, @examine
-      @pointer = Ui::Pointer.new
-
-      @app = Ui::Widgets::App.new @terminal, @screen.root, bounds,
+      @app = Ui::Widgets::App.new @terminal, @play.root, bounds,
         @terminal.events, @terminal.policy
       @cursor = @terminal.cursor bounds
 
@@ -111,11 +84,36 @@ module Roguelike
 
       @help = Ui::Keys.install(@app) { @leaving = true }
       @app.keymap = @app.keymap
-        .merge(Ui::Keys.examining(@examiner))
-        .merge(Ui::Keys.moving { |direction| step direction })
+        .merge(@play.bindings)
         .merge(Ui::Keys.mousing { self.mousing = !mousing? })
 
       self.mousing = true
+
+      # One layout before the camera is pointed, because a window that has not
+      # been measured has no middle to put anything in.
+      @app.frame { }
+      @play.look_at_player
+    end
+
+    # The run.
+    def game : Game
+      @play.game
+    end
+
+    # Draws, waits, and does it again until something ends the run.
+    #
+    # The pointer shape is put back however the run ends. `Terminal#close`
+    # gives back everything termbuf asked for and nothing it does not know
+    # about, and `OSC 22` is ours.
+    def run : Nil
+      loop do
+        draw
+
+        break if @leaving
+        break unless @app.wait
+      end
+    ensure
+      tell @play.pointer_away
     end
 
     # Turns mouse reporting on or off, and says so on the status line.
@@ -132,56 +130,22 @@ module Roguelike
         @terminal.enable TermBuf::Tty::MOUSE_SGR_ANY
       else
         @terminal.disable TermBuf::Tty::MOUSE_SGR_ANY
-        pointer_away
+        tell @play.pointer_away
       end
 
       status
       wanted
     end
 
-    # The pointer is no longer on the map, so the terminal's own cursor goes
-    # away and the pointer goes back to what it is over ordinary text.
-    private def pointer_away : Nil
-      tell @pointer.away
+    # Writes the status line, which is the one thing on the screen the play
+    # cannot work out for itself.
+    private def status : Nil
+      @play.screen.status_text.text = @play.status mousing?
     end
 
     # Sends *sequence*, if there is one to send.
     private def tell(sequence : String?) : Nil
       @terminal.passthrough sequence if sequence
-    end
-
-    # One step of a movement key.
-    #
-    # It moves the examine cursor while that is on the map. Phase 5 gives it
-    # the player for every other time.
-    def step(direction : Direction) : Nil
-      # The keyboard is being used, and it can move the camera out from under
-      # wherever the pointer was last seen.
-      pointer_away
-      @examiner.move direction
-    end
-
-    # Writes the status line.
-    private def status : Nil
-      @screen.status_text.text = "seed #{@rng.seed}    turn 0    " \
-                                 "mouse #{mousing? ? "on" : "off"}    " \
-                                 "x to look, ? for the keys"
-    end
-
-    # Draws, waits, and does it again until something ends the run.
-    #
-    # The pointer shape is put back however the run ends. `Terminal#close`
-    # gives back everything termbuf asked for and nothing it does not know
-    # about, and `OSC 22` is ours.
-    def run : Nil
-      loop do
-        draw
-
-        break if @leaving
-        break unless @app.wait
-      end
-    ensure
-      pointer_away
     end
 
     # An event no widget wanted.
@@ -192,44 +156,30 @@ module Roguelike
     # anything is drawn against the new rectangles.
     private def unclaimed(event : TermBuf::Event) : Nil
       case event
-      when TermBuf::Events::Mouse  then pointed event
+      when TermBuf::Events::Mouse  then tell @play.pointed(event.x, event.y)
       when TermBuf::Events::Resize then resized event
       end
-    end
-
-    # The pointer moved, or something was clicked with it.
-    #
-    # Every report says where it is, so a move and a click point the readout
-    # alike and neither needs a mode. A report over anything that is not the
-    # map leaves the readout saying what it said.
-    private def pointed(event : TermBuf::Events::Mouse) : Nil
-      unless @examiner.point_at_screen event.x, event.y
-        pointer_away
-        return
-      end
-
-      tell @pointer.over(event.x, event.y)
     end
 
     private def resized(resize : TermBuf::Events::Resize) : Nil
       size = resize.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
-      @screen.fit size.columns, size.rows
+      @play.fit size.columns, size.rows
       @app.resize bounds
       @cursor.region.bounds = bounds
 
       # Whatever the pointer was over is not there any more.
-      pointer_away
+      tell @play.pointer_away
     end
 
-    # One frame: lay out, draw, put the terminal's own cursor where whatever
-    # has the keyboard wants it, and send the difference.
+    # One frame: lay out, draw, put the terminal's own cursor where it
+    # belongs, and send the difference.
     private def draw : Nil
       @app.frame do |focused|
         # The pointer wins: it is being moved now, and whatever has the
         # keyboard is not.
-        spot = @pointer.cursor || focused
+        spot = @play.pointer.cursor || focused
 
         if spot
           @cursor.move_to spot[0], spot[1]

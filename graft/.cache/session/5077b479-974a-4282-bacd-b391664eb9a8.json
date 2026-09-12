@@ -1,9 +1,12 @@
 {
-  "lastQuery": "I ran it in ghostty and when the mouse leaves the map panel, into any of the other panels, the crosshair shape remains.",
+  "lastQuery": "On to the next phase",
   "perAgentQuery": {},
   "graftReads": 0,
   "sourceReads": 0,
   "savedTokens": 0,
   "injectedPointers": [],
-  "nudges": 0
+  "nudges": 0,
+  "inputCostMicros": 5338656,
+  "inputTokensBilled": 5354796,
+  "lastBillingUuid": "bb2a330d-0f5f-4ba0-a5ad-c199dcec03f6"
 }

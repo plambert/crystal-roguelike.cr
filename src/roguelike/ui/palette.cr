@@ -19,6 +19,11 @@ module Roguelike::Ui
     DIRT      = Style::DEFAULT.fg TermBuf::Color.rgb(0x7A, 0x62, 0x48)
     WOOD      = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x8A, 0x40)
     STAIRS    = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0xE4, 0xEC)
+    HERO      = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bold
+
+    # The character. `@` is what a roguelike has drawn the player as since
+    # 1980, and anybody who has played one will look for it first.
+    PLAYER = Look.new '@', HERO
 
     # The three rocks are all drawn `#` and told apart by colour, which is the
     # roguelike convention and the reason they are three members rather than

@@ -55,7 +55,9 @@ These hold from Phase 0 and are not revisited.
 * **The game is headless-testable.** `TermBuf::Widgets::App` takes a `TermBuf::Drawing` and an
   event channel rather than a `Terminal`, so specs drive the whole UI over a bare
   `TermBuf::Buffer` and assert on `Buffer#to_text`. Every phase that draws something gets a
-  snapshot spec this way. Nothing needs a tty to test.
+  snapshot spec this way. Nothing needs a tty to test. `Session` owns the terminal, the frame
+  loop and the mouse, and `Ui::Play` owns everything shown and everything the keys do, so a spec
+  presses keys at the thing that runs rather than at a copy of its wiring.
 * **The model knows nothing about the screen.** Level, player, monsters and items have no
   reference to `TermBuf`. Widgets read the model and draw it. A spec runs a hundred turns with no
   widget tree at all.

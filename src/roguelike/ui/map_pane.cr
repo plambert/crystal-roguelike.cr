@@ -46,20 +46,40 @@ module Roguelike::Ui
     # says where it is without hiding what it is standing on.
     property cursor : {Int32, Int32}? = nil
 
-    # What the cursor is drawn as: the square's own colours, swapped.
-    CURSOR = Style::DEFAULT.reverse
+    # What is standing on a square, drawn over the terrain rather than in
+    # place of it in the level.
+    #
+    # The character for now; monsters and what is lying about later. Filled by
+    # whatever owns the game state, because a pane draws a level and has no
+    # business knowing what walks on it.
+    getter marks : Hash({Int32, Int32}, Look) = {} of {Int32, Int32} => Look
 
     def initialize(level : Level)
       @cells = LevelCells.new level
       @grid = Widgets::CellGrid.new @cells
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
-        look = Palette[tile.terrain]
+        look = @marks[{x, y}]? || Palette[tile.terrain]
         here = @cursor
         style = here && here[0] == x && here[1] == y ? look.style.reverse : look.style
 
         view.write_char 0, 0, look.glyph, style
         nil
       end
+    end
+
+    # Puts *look* on *x*, *y* until the marks are cleared.
+    def mark(x : Int32, y : Int32, look : Look) : Nil
+      @marks[{x, y}] = look
+    end
+
+    # Takes everything off the terrain.
+    def clear_marks : Nil
+      @marks.clear
+    end
+
+    # What is on *x*, *y* over the terrain, or `nil` for bare ground.
+    def mark?(x : Int32, y : Int32) : Look?
+      @marks[{x, y}]?
     end
 
     # Which level is being shown.
@@ -71,6 +91,7 @@ module Roguelike::Ui
     def level=(level : Level) : Level
       @cells.level = level
       @grid.scroll_to 0, 0
+      clear_marks
       level
     end
 

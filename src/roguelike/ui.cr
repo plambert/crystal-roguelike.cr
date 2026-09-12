@@ -13,6 +13,7 @@ module Roguelike::Ui
 end
 
 require "./direction"
+require "./game"
 require "./level"
 require "./ui/palette"
 require "./ui/keys"
@@ -20,4 +21,5 @@ require "./ui/map_pane"
 require "./ui/examine_pane"
 require "./ui/examiner"
 require "./ui/pointer"
+require "./ui/play"
 require "./ui/screen"
