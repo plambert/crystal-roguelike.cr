@@ -50,18 +50,19 @@ module Roguelike::Ui
 
     # Puts the cursor on the map.
     #
-    # The cursor starts where the readout already points. It starts on *at*
-    # when the readout points nowhere. The character's own square is what a
-    # caller passes. It starts in the middle of the window when there is no
-    # *at* either.
+    # The cursor starts on *at*. The character's own square is what a caller
+    # passes. A person presses `x` to read the map from the keyboard, and the
+    # character is where reading from the keyboard starts.
     #
-    # Each candidate is checked against the floor. A remembered spot belongs
-    # to whichever floor was showing when the pointer was there. A window
-    # larger than the floor has a middle that is past the edge of it.
+    # It falls back to where the readout already points, and then to the
+    # middle of the window. Each candidate is checked against the floor. A
+    # remembered spot belongs to whichever floor was showing when the pointer
+    # was there. A window larger than the floor has a middle that is past the
+    # edge of it.
     def start(at : {Int32, Int32}? = nil) : Nil
       return if @cursoring
 
-      here = [@spot, at, @map.middle].compact
+      here = [at, @spot, @map.middle].compact
         .find { |spot| @map.floor.contains? spot[0], spot[1] }
       return unless here
 

@@ -468,14 +468,27 @@ module Roguelike::Ui
       end
     end
 
-    # Records that the pointer is at *x*, *y* of the buffer.
+    # Records that the pointer is at *x*, *y* of the buffer. *click* says the
+    # person pressed a button rather than moved the pointer.
     #
     # Answers the sequence the terminal needs. Answers `nil` when it needs
     # none.
-    def pointed(x : Int32, y : Int32) : String?
+    #
+    # A pointer moving over the map points the readout, until `x` puts the
+    # cursor on the map. A person who pressed `x` is reading with the
+    # keyboard. A pointer brushing past would take the cursor off what they
+    # are reading. So while the cursor is on the map, only a click moves it.
+    def pointed(x : Int32, y : Int32, click : Bool = false) : String?
       # A modal box owns the screen. Nothing else answers a pointer while one
       # is up.
       return pointer_away if modal?
+
+      if @examiner.cursoring? && !click
+        # The shape still follows the pointer. The pointer is over the map,
+        # whatever the readout is pointing at.
+        return @map.cell_at_screen(x, y) ? @pointer.over(x, y) : pointer_away
+      end
+
       return pointer_away unless @examiner.point_at_screen x, y
 
       @pointer.over x, y

@@ -126,14 +126,16 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.map.cursor).to eq run.at
     end
 
-    it "starts where the pointer left the readout" do
+    # A person who presses `x` is reading with the keyboard. Where the mouse
+    # was resting is not where they want to start.
+    it "starts on the character wherever the pointer left the readout" do
       run = Playing.open
 
-      hover run, 6, 5
+      hover run, 12, 9
       run.press "x"
 
-      expect(run.examiner.spot).to eq({6, 5})
-      expect(run.map.cursor).to eq({6, 5})
+      expect(run.examiner.spot).to eq run.at
+      expect(run.map.cursor).to eq run.at
     end
 
     it "takes the cursor off again" do
@@ -154,6 +156,91 @@ Spectator.describe Roguelike::Ui::Examiner do
       run.press "x"
 
       expect(run.examine.what.text).to eq "staircase up"
+    end
+  end
+
+  describe "the pointer while the cursor is on the map" do
+    # Brushing the mouse would otherwise take the readout off whatever the
+    # person is reading with the keyboard.
+    it "does not move the cursor" do
+      run = Playing.open
+
+      run.press "x"
+      run.press "j"
+      hover run, 20, 12
+
+      expect(run.examiner.spot).to eq({6, 6})
+      expect(run.map.cursor).to eq({6, 6})
+      expect(run.examine.where.text).to eq "6, 6"
+    end
+
+    # A person who wants the mouse says so with a button. That is a request,
+    # not a brush.
+    it "moves the cursor on a click" do
+      run = Playing.open
+
+      run.press "x"
+      run.click 20, 12
+
+      expect(run.examiner.spot).to eq({20, 12})
+      expect(run.map.cursor).to eq({20, 12})
+      expect(run.examiner.cursoring?).to be_true
+    end
+
+    it "leaves the cursor alone on a click off the map" do
+      run = Playing.open
+
+      run.press "x"
+      run.click 70, 5
+
+      expect(run.examiner.spot).to eq({6, 5})
+    end
+
+    # A wheel notch arrives as a press. It is not a click, and it says
+    # nothing about where the person wants to look.
+    it "does not move the cursor on a wheel notch" do
+      run = Playing.open
+
+      run.press "x"
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::WheelDown, 20, 12,
+        TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+      run.render
+
+      expect(run.examiner.spot).to eq({6, 5})
+    end
+
+    it "still asks for the crosshair over the map" do
+      run = Playing.open
+
+      run.press "x"
+      hover run, 20, 12
+
+      expect(run.pointer.shape).to eq Ui::Pointer::OVER_MAP
+    end
+
+    it "puts the shape back off the map" do
+      run = Playing.open
+
+      run.press "x"
+      hover run, 20, 12
+      hover run, 70, 5
+
+      expect(run.pointer.shape).to eq Ui::Pointer::ELSEWHERE
+      expect(run.pointer.cursor).to be_nil
+    end
+
+    # The gate is only for the cursor. The pointer points the readout again
+    # once the cursor comes off the map.
+    it "points the readout again once the cursor comes off" do
+      run = Playing.open
+
+      run.press "x"
+      run.press "Escape"
+      hover run, 20, 12
+
+      expect(run.examiner.spot).to eq({20, 12})
     end
   end
 
@@ -209,13 +296,16 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.play.cursor).to eq({9, 7})
     end
 
-    it "goes to the pointer while the pointer is on the map" do
+    # The pointer is over the map, so its shape is still the crosshair. The
+    # readout is the keyboard's, so the terminal's own cursor stays on it.
+    it "stays on the examine cursor while the pointer is elsewhere on the map" do
       run = Playing.open
 
       run.press "x"
       hover run, 9, 7
 
-      expect(run.play.cursor).to eq({9, 7})
+      expect(run.pointer.cursor).to eq({9, 7})
+      expect(run.play.cursor).to eq({6, 5})
     end
 
     it "goes nowhere while the cursor is scrolled out of the window" do
@@ -327,10 +417,9 @@ Spectator.describe Roguelike::Ui::Examiner do
     it "stop at the edge of the floor" do
       run = Playing.open
 
-      hover run, 0, 0
       run.press "x"
-      run.press "h"
-      run.press "k"
+      10.times { run.press "h" }
+      10.times { run.press "k" }
 
       expect(run.examiner.spot).to eq({0, 0})
     end
@@ -391,10 +480,11 @@ Spectator.describe Roguelike::Ui::Examiner do
     it "leaves the square's own glyph showing" do
       run = Playing.open
 
-      hover run, 7, 5
       run.press "x"
+      run.press "l"
       run.render
 
+      expect(run.examiner.spot).to eq({7, 5})
       expect(run.row(5)[7]).to eq '.'
     end
 

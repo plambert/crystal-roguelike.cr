@@ -160,9 +160,18 @@ module Roguelike
     # rectangles.
     private def unclaimed(event : TermBuf::Event) : Nil
       case event
-      when TermBuf::Events::Mouse  then tell @play.pointed(event.x, event.y)
+      when TermBuf::Events::Mouse  then tell @play.pointed(event.x, event.y, Session.click?(event))
       when TermBuf::Events::Resize then resized event
       end
+    end
+
+    # Whether *event* is a button going down on the map rather than the
+    # pointer moving.
+    #
+    # A wheel notch arrives as a press too. A notch is not a click. It says
+    # nothing about where the person wants to look.
+    def self.click?(event : TermBuf::Events::Mouse) : Bool
+      event.action.press? && !event.button.wheel?
     end
 
     private def resized(resize : TermBuf::Events::Resize) : Nil

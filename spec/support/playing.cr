@@ -77,6 +77,15 @@ module Playing
       @session.render
     end
 
+    # The left button going down at *x*, *y* of the buffer.
+    def click(x : Int32, y : Int32) : Nil
+      @session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::Left, x, y,
+        TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+      @session.render
+    end
+
     # Resizes the terminal under the game. Dragging a window does the
     # same.
     def resize(columns : Int32, rows : Int32) : Nil
@@ -129,7 +138,8 @@ module Playing
       report = event.as? TermBuf::Events::Mouse
 
       if report
-        sequence = play.pointed report.x, report.y
+        sequence = play.pointed report.x, report.y,
+          Roguelike::Session.click?(report)
         told << sequence if sequence
       end
 
