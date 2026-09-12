@@ -1,0 +1,308 @@
+require "json"
+require "./dice"
+
+module Roguelike
+  # What sort of thing an item is.
+  #
+  # The class decides what a character can do with an item. A `Melee` weapon
+  # goes in the hand. `Ammunition` goes in the quiver and needs a `Launcher`.
+  # `Thrown` needs nothing but an arm.
+  enum ItemClass
+    Melee
+    Launcher
+    Ammunition
+    Thrown
+    Armour
+    Potion
+    Scroll
+    Wand
+    Light
+
+    # Whether a `+N` means anything on this class.
+    def enchantable? : Bool
+      melee? || launcher? || ammunition? || thrown? || armour?
+    end
+
+    # Whether several of these are held as one entry with a count.
+    #
+    # Ammunition and thrown weapons stack because a person carries dozens.
+    # Potions and scrolls stack because two of the same are the same. Wands do
+    # not, because two wands have different charges left.
+    def stacks? : Bool
+      ammunition? || thrown? || potion? || scroll?
+    end
+
+    # Whether a character has to find out what one of these is.
+    #
+    # A sword is a sword on sight. A potion is a colour until somebody drinks
+    # one.
+    def disguised? : Bool
+      potion? || scroll? || wand?
+    end
+  end
+
+  # Where a piece of armour is worn.
+  enum ArmourSlot
+    Head
+    Body
+    Hands
+    Feet
+    Shield
+
+    # What the slot is called, for a readout.
+    def label : String
+      to_s.downcase
+    end
+  end
+
+  # How well made an item is, or how badly worn.
+  #
+  # A condition changes what an item does and what it is called. A damaged
+  # sword hits for less. A masterwork one hits for more.
+  enum Condition
+    Damaged
+    Plain
+    Masterwork
+
+    # The word that goes in an item's name. `nil` for a plain one, which is
+    # called nothing at all.
+    def label : String?
+      case self
+      in .damaged?    then "damaged"
+      in .plain?      then nil
+      in .masterwork? then "masterwork"
+      end
+    end
+
+    # What this condition adds to a weapon's damage or a piece of armour's
+    # rating.
+    def modifier : Int32
+      case self
+      in .damaged?    then -1
+      in .plain?      then 0
+      in .masterwork? then 1
+      end
+    end
+  end
+
+  # Everything one kind of item is.
+  record ItemFacts,
+    label : String,
+    plural : String,
+    item_class : ItemClass,
+    damage : Dice = Dice::NONE,
+    armour : Int32 = 0,
+    slot : ArmourSlot? = nil,
+    launcher : ItemKind? = nil,
+    charges : Int32 = 0,
+    weight : Int32 = 10,
+    uncountable : Bool = false do
+    # Whether a `+N` means anything on this kind.
+    def enchantable? : Bool
+      item_class.enchantable?
+    end
+
+    # Whether several of these are held as one entry with a count.
+    def stacks? : Bool
+      item_class.stacks?
+    end
+
+    # Whether a character has to find out what one of these is.
+    def disguised? : Bool
+      item_class.disguised?
+    end
+
+    # Whether the name takes no article.
+    def uncountable? : Bool
+      uncountable
+    end
+  end
+
+  # Every kind of item there is.
+  #
+  # A member is never removed and never reordered. A save file holds the
+  # member name, and an old save has to keep meaning what it meant.
+  enum ItemKind
+    # Melee weapons.
+    Dagger
+    ShortSword
+    LongSword
+    Rapier
+    Mace
+    Spear
+
+    # Launchers and what they fire.
+    Sling
+    Bow
+    Stone
+    Arrow
+
+    # Thrown by hand.
+    Rock
+    Dart
+
+    # Armour.
+    Cap
+    LeatherArmour
+    ChainMail
+    Gloves
+    Boots
+    Shield
+
+    # Drunk, read and zapped.
+    HealingPotion
+    IdentifyScroll
+    MappingScroll
+    LightWand
+    StrikingWand
+
+    # Carried for the light.
+    Torch
+    Candle
+
+    # What this kind is.
+    def facts : ItemFacts
+      ItemKinds::FACTS[self]
+    end
+
+    # What one of these is called, when the character knows.
+    def label : String
+      facts.label
+    end
+
+    # What several are called.
+    def plural : String
+      facts.plural
+    end
+
+    # What sort of thing it is.
+    def item_class : ItemClass
+      facts.item_class
+    end
+
+    # What it does to whatever it hits.
+    def damage : Dice
+      facts.damage
+    end
+
+    # What it takes off an attack against whoever wears it.
+    def armour : Int32
+      facts.armour
+    end
+
+    # Where it is worn. `nil` for anything that is not armour.
+    def slot : ArmourSlot?
+      facts.slot
+    end
+
+    # What fires it. `nil` for anything that is not ammunition.
+    def launcher : ItemKind?
+      facts.launcher
+    end
+
+    # How many times it can be used before it is spent.
+    def charges : Int32
+      facts.charges
+    end
+
+    # Whether a `+N` means anything on this kind.
+    def enchantable? : Bool
+      facts.enchantable?
+    end
+
+    # Whether several are held as one entry with a count.
+    def stacks? : Bool
+      facts.stacks?
+    end
+
+    # Whether a character has to find out what one of these is.
+    def disguised? : Bool
+      facts.disguised?
+    end
+
+    # Whether the name takes no article.
+    #
+    # "chain mail" is a substance and "boots" is a pair. Neither takes "a".
+    def uncountable? : Bool
+      facts.uncountable?
+    end
+
+    # The key a JSON object uses for this kind.
+    #
+    # `Lore` holds a `Hash(ItemKind, String)`. A JSON object key has to be a
+    # string, and a save file that held the member number would break the
+    # first time a member was inserted.
+    def to_json_object_key : String
+      to_s
+    end
+
+    # :ditto:
+    def self.from_json_object_key?(key : String) : ItemKind?
+      parse? key
+    end
+
+    # Every kind of the given class.
+    def self.of_class(item_class : ItemClass) : Array(ItemKind)
+      values.select { |kind| kind.item_class == item_class }
+    end
+  end
+
+  # The table behind `ItemKind`. An enum body cannot hold it.
+  module ItemKinds
+    FACTS = {
+      ItemKind::Dagger => ItemFacts.new("dagger", "daggers", ItemClass::Melee,
+        damage: Dice.new(1, 4), weight: 10),
+      ItemKind::ShortSword => ItemFacts.new("short sword", "short swords", ItemClass::Melee,
+        damage: Dice.new(1, 6), weight: 30),
+      ItemKind::LongSword => ItemFacts.new("long sword", "long swords", ItemClass::Melee,
+        damage: Dice.new(1, 8), weight: 40),
+      ItemKind::Rapier => ItemFacts.new("rapier", "rapiers", ItemClass::Melee,
+        damage: Dice.new(1, 6, 1), weight: 25),
+      ItemKind::Mace => ItemFacts.new("mace", "maces", ItemClass::Melee,
+        damage: Dice.new(1, 6, 1), weight: 60),
+      ItemKind::Spear => ItemFacts.new("spear", "spears", ItemClass::Melee,
+        damage: Dice.new(1, 8), weight: 50),
+
+      ItemKind::Sling => ItemFacts.new("sling", "slings", ItemClass::Launcher, weight: 5),
+      ItemKind::Bow   => ItemFacts.new("bow", "bows", ItemClass::Launcher, weight: 30),
+      ItemKind::Stone => ItemFacts.new("stone", "stones", ItemClass::Ammunition,
+        damage: Dice.new(1, 4), launcher: ItemKind::Sling, weight: 5),
+      ItemKind::Arrow => ItemFacts.new("arrow", "arrows", ItemClass::Ammunition,
+        damage: Dice.new(1, 6), launcher: ItemKind::Bow, weight: 2),
+
+      ItemKind::Rock => ItemFacts.new("rock", "rocks", ItemClass::Thrown,
+        damage: Dice.new(1, 3), weight: 10),
+      ItemKind::Dart => ItemFacts.new("dart", "darts", ItemClass::Thrown,
+        damage: Dice.new(1, 4), weight: 2),
+
+      ItemKind::Cap => ItemFacts.new("cap", "caps", ItemClass::Armour,
+        armour: 1, slot: ArmourSlot::Head, weight: 10),
+      ItemKind::LeatherArmour => ItemFacts.new("leather armour", "suits of leather armour",
+        ItemClass::Armour, armour: 2, slot: ArmourSlot::Body, weight: 100,
+        uncountable: true),
+      ItemKind::ChainMail => ItemFacts.new("chain mail", "suits of chain mail",
+        ItemClass::Armour, armour: 4, slot: ArmourSlot::Body, weight: 300,
+        uncountable: true),
+      ItemKind::Gloves => ItemFacts.new("gloves", "pairs of gloves", ItemClass::Armour,
+        armour: 1, slot: ArmourSlot::Hands, weight: 10, uncountable: true),
+      ItemKind::Boots => ItemFacts.new("boots", "pairs of boots", ItemClass::Armour,
+        armour: 1, slot: ArmourSlot::Feet, weight: 20, uncountable: true),
+      ItemKind::Shield => ItemFacts.new("shield", "shields", ItemClass::Armour,
+        armour: 2, slot: ArmourSlot::Shield, weight: 60),
+
+      ItemKind::HealingPotion => ItemFacts.new("potion of healing", "potions of healing",
+        ItemClass::Potion, weight: 20),
+      ItemKind::IdentifyScroll => ItemFacts.new("scroll of identify", "scrolls of identify",
+        ItemClass::Scroll, weight: 5),
+      ItemKind::MappingScroll => ItemFacts.new("scroll of magic mapping",
+        "scrolls of magic mapping", ItemClass::Scroll, weight: 5),
+      ItemKind::LightWand => ItemFacts.new("wand of light", "wands of light",
+        ItemClass::Wand, charges: 6, weight: 7),
+      ItemKind::StrikingWand => ItemFacts.new("wand of striking", "wands of striking",
+        ItemClass::Wand, damage: Dice.new(2, 4), charges: 5, weight: 7),
+
+      ItemKind::Torch  => ItemFacts.new("torch", "torches", ItemClass::Light, weight: 20),
+      ItemKind::Candle => ItemFacts.new("candle", "candles", ItemClass::Light, weight: 5),
+    }
+  end
+end

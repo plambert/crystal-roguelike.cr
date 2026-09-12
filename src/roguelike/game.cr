@@ -1,5 +1,6 @@
 require "json"
 require "./levels"
+require "./lore"
 require "./message_log"
 require "./player"
 require "./world"
@@ -70,9 +71,19 @@ module Roguelike
     # What has just happened.
     getter log : MessageLog
 
+    # What this run's items look like, and which of them the character has
+    # found out.
+    getter lore : Lore
+
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
-                   @log : MessageLog = MessageLog.new)
+                   @log : MessageLog = MessageLog.new,
+                   @lore : Lore = Lore.new)
+    end
+
+    # What *item* is called, as this character would call it.
+    def name(item : Item) : String
+      @lore.name item
     end
 
     # Adds *line* to the log.
@@ -90,7 +101,7 @@ module Roguelike
       world = World.on rng
       level = world.add Levels.proving_ground
 
-      game = new world, Player.new(level.id, *entrance(level))
+      game = new world, Player.new(level.id, *entrance(level)), lore: Lore.roll(rng)
       game.say "You are in a dungeon. Press ? for the keys."
       game
     end
