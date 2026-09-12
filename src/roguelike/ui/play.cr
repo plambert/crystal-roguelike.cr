@@ -229,6 +229,41 @@ module Roguelike::Ui
       end
     end
 
+    # Puts the examine cursor on the map, or takes it off. `x` does this.
+    #
+    # A cursor with nowhere else to be starts on the character. The middle of
+    # the window is not on the floor at all when the window is larger than the
+    # floor.
+    def toggle_examine : Nil
+      @examiner.toggle @game.player.at
+    end
+
+    # Where the terminal's own cursor belongs, in buffer coordinates. `nil`
+    # hides it.
+    #
+    # The examine cursor wins. Both it and the pointer point at one readout,
+    # so a pointer over the map is on the examine cursor's own square anyway.
+    # A pointer that is resting while the keyboard moves the cursor is a
+    # pointer the person is not using.
+    #
+    # The pointer takes it when there is no examine cursor. Reverse video
+    # alone is easy to miss on a screen full of glyphs.
+    #
+    # A modal takes it back. Whatever has the focus inside the box is what the
+    # person is answering. A cursor left out on the map says the map is what
+    # they are answering.
+    def cursor : {Int32, Int32}?
+      return if modal?
+
+      @examiner.screen_spot || @pointer.cursor
+    end
+
+    # Whether a box is holding the keyboard. A question, a list and a held
+    # page each do.
+    def modal? : Bool
+      @prompt.asking? || @menu.showing? || @pager.holding?
+    end
+
     # Puts the camera on the character.
     #
     # The owner calls this once the tree has been laid out. It cannot run
@@ -438,9 +473,9 @@ module Roguelike::Ui
     # Answers the sequence the terminal needs. Answers `nil` when it needs
     # none.
     def pointed(x : Int32, y : Int32) : String?
-      # A question and a held page are modal. Nothing else answers a pointer
-      # while one is up.
-      return pointer_away if @prompt.asking? || @pager.holding?
+      # A modal box owns the screen. Nothing else answers a pointer while one
+      # is up.
+      return pointer_away if modal?
       return pointer_away unless @examiner.point_at_screen x, y
 
       @pointer.over x, y

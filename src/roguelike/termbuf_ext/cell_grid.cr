@@ -303,6 +303,20 @@ module TermBuf::Widgets
       cell_at screen_x - box.x, screen_y - box.y
     end
 
+    # Where on the screen the field's *x*, *y* draws, in buffer coordinates.
+    # Answers `nil` when it is not showing. This is the inverse of
+    # `#cell_at_screen`.
+    #
+    # Putting the terminal's own cursor on a cell needs this. A terminal
+    # places its cursor in buffer coordinates.
+    def screen_of(x : Int32, y : Int32) : {Int32, Int32}?
+      spot = view_of x, y
+      return unless spot
+
+      box = content
+      {spot[0] + box.x, spot[1] + box.y}
+    end
+
     # ------------------------------------------------------------ the widget
 
     def intrinsic_width(policy : Unicode::WidthPolicy) : Layout::Intrinsic

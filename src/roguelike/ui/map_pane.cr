@@ -158,17 +158,28 @@ module Roguelike::Ui
       @grid.cell_at_screen screen_x, screen_y
     end
 
+    # Where the floor's *x*, *y* is drawn, in buffer coordinates. `nil` when
+    # that square is not showing.
+    def screen_of(x : Int32, y : Int32) : {Int32, Int32}?
+      @grid.screen_of x, y
+    end
+
     # Where the camera is.
     def camera : {Int32, Int32}
       {@grid.scroll_x, @grid.scroll_y}
     end
 
-    # Which square is in the middle of the window. A cursor with nowhere else
-    # to be starts there.
+    # Which square is in the middle of the window.
+    #
+    # A window larger than the floor shows the floor in one corner of itself.
+    # The middle of such a window is past the edge of the floor. The answer is
+    # clamped onto the floor, because every caller wants a square that exists.
     def middle : {Int32, Int32}
       room = @grid.viewport_size
+      here = {@grid.scroll_x + room[0] // 2, @grid.scroll_y + room[1] // 2}
 
-      {@grid.scroll_x + room[0] // 2, @grid.scroll_y + room[1] // 2}
+      {here[0].clamp(0, Math.max(floor.columns - 1, 0)),
+       here[1].clamp(0, Math.max(floor.rows - 1, 0))}
     end
   end
 end

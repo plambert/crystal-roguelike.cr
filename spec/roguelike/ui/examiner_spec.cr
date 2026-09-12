@@ -103,14 +103,27 @@ Spectator.describe Roguelike::Ui::Examiner do
   end
 
   describe "x" do
-    it "puts a cursor in the middle of the window" do
+    it "puts a cursor on the character" do
       run = Playing.open
 
       run.press "x"
 
       expect(run.examiner.cursoring?).to be_true
-      expect(run.examiner.spot).to eq run.map.middle
+      expect(run.examiner.spot).to eq run.at
       expect(run.map.cursor).to eq run.examiner.spot
+    end
+
+    # The map pane is larger than the floor in a window this size. The floor
+    # draws in the top left corner of the pane. The middle of the pane is past
+    # the edge of the floor, and a cursor put there is a cursor nobody sees.
+    it "puts a cursor on the character in a window larger than the floor" do
+      run = Playing.open nil, 200, 60
+
+      run.press "x"
+
+      expect(run.examiner.cursoring?).to be_true
+      expect(run.examiner.spot).to eq run.at
+      expect(run.map.cursor).to eq run.at
     end
 
     it "starts where the pointer left the readout" do
@@ -141,6 +154,108 @@ Spectator.describe Roguelike::Ui::Examiner do
       run.press "x"
 
       expect(run.examine.what.text).to eq "staircase up"
+    end
+  end
+
+  describe "the terminal's own cursor" do
+    it "goes nowhere before anything has been looked at" do
+      expect(Playing.open.play.cursor).to be_nil
+    end
+
+    it "goes where the examine cursor is" do
+      run = Playing.open
+
+      hover run, 6, 5
+      run.press "x"
+
+      expect(run.examiner.screen_spot).to eq({6, 5})
+    end
+
+    # The pointer moved the readout. The pointer is then taken off the map.
+    # The keyboard cursor is what is left, so the terminal's own cursor goes
+    # to it.
+    it "follows the keyboard once the pointer leaves the map" do
+      run = Playing.open
+
+      hover run, 6, 5
+      run.press "x"
+      run.press "j"
+      hover run, 70, 5
+
+      expect(run.pointer.cursor).to be_nil
+      expect(run.play.cursor).to eq({6, 6})
+    end
+
+    # The mouse is resting on the square it last reported. The keyboard is
+    # what is moving the cursor. The terminal's own cursor follows the
+    # keyboard.
+    it "follows the keyboard while the pointer rests" do
+      run = Playing.open
+
+      hover run, 6, 5
+      run.press "x"
+      run.press "j"
+      run.press "j"
+
+      expect(run.pointer.cursor).to eq({6, 5})
+      expect(run.play.cursor).to eq({6, 7})
+    end
+
+    it "goes to the pointer while there is no examine cursor" do
+      run = Playing.open
+
+      hover run, 9, 7
+
+      expect(run.play.cursor).to eq({9, 7})
+    end
+
+    it "goes to the pointer while the pointer is on the map" do
+      run = Playing.open
+
+      run.press "x"
+      hover run, 9, 7
+
+      expect(run.play.cursor).to eq({9, 7})
+    end
+
+    it "goes nowhere while the cursor is scrolled out of the window" do
+      run = Playing.open
+
+      run.press "x"
+      run.map.center_on 60, 20
+      run.render
+
+      expect(run.examiner.screen_spot).to be_nil
+    end
+
+    it "goes nowhere while a menu is up" do
+      run = Playing.open
+      run.game.player.inventory.add Roguelike::Item.new Roguelike::ItemKind::Dagger
+
+      run.press "x"
+      run.press "i"
+
+      expect(run.menu.showing?).to be_true
+      expect(run.play.cursor).to be_nil
+    end
+
+    it "goes nowhere while a question is up" do
+      run = Playing.open
+
+      run.press "x"
+      run.press "Q"
+
+      expect(run.prompt.asking?).to be_true
+      expect(run.play.cursor).to be_nil
+    end
+
+    it "goes nowhere once the cursor comes off the map" do
+      run = Playing.open
+
+      run.press "x"
+      run.press "Escape"
+
+      expect(run.examiner.screen_spot).to be_nil
     end
   end
 

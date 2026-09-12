@@ -50,13 +50,22 @@ module Roguelike::Ui
 
     # Puts the cursor on the map.
     #
-    # The cursor starts where the readout already points. It starts in the
-    # middle of the window when the readout points nowhere.
-    def start : Nil
+    # The cursor starts where the readout already points. It starts on *at*
+    # when the readout points nowhere. The character's own square is what a
+    # caller passes. It starts in the middle of the window when there is no
+    # *at* either.
+    #
+    # Each candidate is checked against the floor. A remembered spot belongs
+    # to whichever floor was showing when the pointer was there. A window
+    # larger than the floor has a middle that is past the edge of it.
+    def start(at : {Int32, Int32}? = nil) : Nil
       return if @cursoring
 
+      here = [@spot, at, @map.middle].compact
+        .find { |spot| @map.floor.contains? spot[0], spot[1] }
+      return unless here
+
       @cursoring = true
-      here = @spot || @map.middle
       @spot = here
       point_at here[0], here[1]
     end
@@ -70,8 +79,20 @@ module Roguelike::Ui
     end
 
     # Starts the cursor when it is off. Stops it when it is on.
-    def toggle : Nil
-      cursoring? ? stop : start
+    def toggle(at : {Int32, Int32}? = nil) : Nil
+      cursoring? ? stop : start(at)
+    end
+
+    # Where the cursor is on the screen, in buffer coordinates. `nil` when
+    # there is no cursor, or when its square is scrolled out of the window.
+    #
+    # The terminal's own cursor goes here. Reverse video alone is easy to miss
+    # on a screen full of glyphs.
+    def screen_spot : {Int32, Int32}?
+      here = @spot
+      return unless @cursoring && here
+
+      @map.screen_of here[0], here[1]
     end
 
     # Moves the cursor one square *direction*. Stops at the edges of the

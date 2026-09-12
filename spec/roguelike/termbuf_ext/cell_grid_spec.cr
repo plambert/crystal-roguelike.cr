@@ -203,6 +203,48 @@ Spectator.describe TermBuf::Widgets::CellGrid do
     end
   end
 
+  describe "#screen_of" do
+    # The grid is the whole window here. A grid inside a padded panel draws at
+    # an offset, and the offset is what this method adds.
+    it "answers where a cell is drawn in the buffer" do
+      cells = Widgets::Cells.from 200, 200, ->(x : Int32, y : Int32) { {x, y} }
+      grid = Widgets::CellGrid.new cells
+      panel = Widgets::Panel.new(
+        width: Widgets::Layout::Sizing.grow,
+        height: Widgets::Layout::Sizing.grow,
+        padding: Widgets::Layout::Padding.all(2))
+      panel.add grid
+
+      session = Headless.open panel, 40, 15
+      session.render
+      grid.scroll_to 30, 20
+
+      expect(grid.view_of(33, 22)).to eq({3, 2})
+      expect(grid.screen_of(33, 22)).to eq({5, 4})
+    end
+
+    it "round-trips against #cell_at_screen" do
+      grid = windowed(40, 15).grid
+      grid.scroll_to 30, 20
+
+      spot = grid.cell_at_screen 7, 4
+      raise "that spot held no cell" unless spot
+
+      expect(grid.screen_of(spot[0], spot[1])).to eq({7, 4})
+    end
+
+    it "answers nothing for a cell that is not showing" do
+      grid = windowed(40, 15).grid
+
+      grid.scroll_to 30, 20
+      expect(grid.screen_of(29, 20)).to be_nil
+    end
+
+    it "answers nothing for a cell outside the field" do
+      expect(windowed(40, 15).grid.screen_of(200, 0)).to be_nil
+    end
+  end
+
   describe "#reveal" do
     it "does not move for a cell well inside the window" do
       grid = windowed(40, 15).grid

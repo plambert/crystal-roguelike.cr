@@ -114,6 +114,56 @@ Spectator.describe Roguelike::Ui::MapPane do
     end
   end
 
+  describe "#screen_of" do
+    it "answers where a square is drawn in the buffer" do
+      run = shown Roguelike::Floors.proving_ground, 40, 16
+      run.pane.center_on 36, 14
+
+      camera = run.pane.camera
+      expect(run.pane.screen_of(camera[0] + 3, camera[1] + 2)).to eq({3, 2})
+    end
+
+    it "round-trips against #cell_at_screen" do
+      run = shown Roguelike::Floors.proving_ground, 40, 16
+      run.pane.center_on 36, 14
+
+      spot = run.pane.cell_at_screen 7, 4
+      raise "the pointer was over no square" unless spot
+
+      expect(run.pane.screen_of(spot[0], spot[1])).to eq({7, 4})
+    end
+
+    it "answers nothing for a square that is scrolled away" do
+      run = shown Roguelike::Floors.proving_ground, 40, 16
+      run.pane.center_on 4, 4
+
+      expect(run.pane.screen_of(70, 26)).to be_nil
+    end
+  end
+
+  describe "#middle" do
+    # The window is larger than this floor on both axes. The floor draws in
+    # the top left corner of it. The middle of the window is past the edge of
+    # the floor.
+    it "stays on a floor smaller than the window" do
+      floor = Roguelike::Floor.parse "tiny", "##\n##"
+      run = shown floor, 40, 16
+
+      middle = run.pane.middle
+      expect(floor.contains?(middle[0], middle[1])).to be_true
+      expect(middle).to eq({1, 1})
+    end
+
+    it "is the middle of the window on a floor larger than it" do
+      run = shown Roguelike::Floors.proving_ground, 40, 16
+      run.pane.center_on 36, 14
+
+      camera = run.pane.camera
+      room = run.pane.grid.viewport_size
+      expect(run.pane.middle).to eq({camera[0] + room[0] // 2, camera[1] + room[1] // 2})
+    end
+  end
+
   describe "in the screen" do
     it "draws what it drew last time" do
       screen = Roguelike::Ui::Screen.new

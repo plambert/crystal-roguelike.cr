@@ -181,9 +181,9 @@ module Roguelike
     # difference.
     private def draw : Nil
       @app.frame do |focused|
-        # The pointer wins. The person is moving it now. The person is not
-        # moving whatever has the keyboard.
-        spot = @play.pointer.cursor || focused
+        # The pointer wins, then the examine cursor. The person is moving one
+        # of those now. The person is not moving whatever has the keyboard.
+        spot = @play.cursor || focused
 
         if spot
           @cursor.move_to spot[0], spot[1]

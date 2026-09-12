@@ -60,7 +60,7 @@ module Roguelike::Ui
     def self.examining(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("x"), "look at a square",
-          ->(_context : Widgets::Context) { play.examiner.toggle; nil }
+          ->(_context : Widgets::Context) { play.toggle_examine; nil }
         map.bind TermBuf::Key.parse("Escape"), "stop what is waiting",
           ->(_context : Widgets::Context) { play.cancel; nil }
       end
