@@ -1,24 +1,24 @@
 require "../spec_helper"
 
 Spectator.describe Roguelike::World do
-  def sample(id : String) : Roguelike::Level
-    Roguelike::Level.parse id, "###\n#.#\n###"
+  def sample(id : String) : Roguelike::Floor
+    Roguelike::Floor.parse id, "###\n#.#\n###"
   end
 
   subject(world) { described_class.new 20260911_u64 }
 
   describe "#add" do
-    it "keeps a level under its own name" do
+    it "keeps a floor under its own name" do
       world.add sample("cellar")
 
       expect(world["cellar"].id).to eq "cellar"
       expect(world.size).to eq 1
     end
 
-    it "answers the level it was given" do
-      level = sample "cellar"
+    it "answers the floor it was given" do
+      floor = sample "cellar"
 
-      expect(world.add(level)).to be level
+      expect(world.add(floor)).to be floor
     end
 
     it "replaces one of the same name" do
@@ -30,7 +30,7 @@ Spectator.describe Roguelike::World do
   end
 
   describe "#[]?" do
-    it "answers nothing for a level nobody put there" do
+    it "answers nothing for a floor nobody put there" do
       expect(world["nowhere"]?).to be_nil
       expect(world.has?("nowhere")).to be_false
     end
@@ -46,7 +46,7 @@ Spectator.describe Roguelike::World do
 
   describe "serialization" do
     it "round-trips through JSON" do
-      world.add Roguelike::Levels.proving_ground
+      world.add Roguelike::Floors.proving_ground
       world.add sample("cellar")
 
       again = described_class.from_json world.to_json

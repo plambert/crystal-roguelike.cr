@@ -10,13 +10,13 @@ Spectator.describe Roguelike::Ui::MapPane do
     ##>##
     MAP
 
-  # A pane over *level*, drawn in a window of *columns* by *rows*.
+  # A pane over *floor*, drawn in a window of *columns* by *rows*.
   record Shown,
     pane : Roguelike::Ui::MapPane,
     session : Headless::Session
 
-  def shown(level : Roguelike::Level, columns : Int32, rows : Int32) : Shown
-    pane = described_class.new level
+  def shown(floor : Roguelike::Floor, columns : Int32, rows : Int32) : Shown
+    pane = described_class.new floor
     session = Headless.open pane.grid, columns, rows
     session.render
 
@@ -24,8 +24,8 @@ Spectator.describe Roguelike::Ui::MapPane do
   end
 
   describe "what it draws" do
-    it "draws the level, one glyph per square" do
-      run = shown Roguelike::Level.parse("small", SMALL), 5, 4
+    it "draws the floor, one glyph per square" do
+      run = shown Roguelike::Floor.parse("small", SMALL), 5, 4
 
       expect(run.session.rows).to eq ["#####", "#.<+#", "#...#", "##>##"]
     end
@@ -34,31 +34,31 @@ Spectator.describe Roguelike::Ui::MapPane do
     # them apart. That is the roguelike convention. The model keeps the six
     # terrains separate. Only the palette draws them alike.
     it "draws all three rocks as a wall and both floors as a floor" do
-      run = shown Roguelike::Level.parse("rocks", "#=%\n.,."), 3, 2
+      run = shown Roguelike::Floor.parse("rocks", "#=%\n.,."), 3, 2
 
       expect(run.session.rows).to eq ["###", "..."]
     end
 
     it "draws a door open and shut differently" do
-      run = shown Roguelike::Level.parse("doors", "+'"), 2, 1
+      run = shown Roguelike::Floor.parse("doors", "+'"), 2, 1
 
       expect(run.session.row(0)).to eq "+'"
     end
 
-    it "leaves the window blank past the edge of a small level" do
-      run = shown Roguelike::Level.parse("tiny", "##\n##"), 6, 4
+    it "leaves the window blank past the edge of a small floor" do
+      run = shown Roguelike::Floor.parse("tiny", "##\n##"), 6, 4
 
       expect(run.session.rows).to eq ["##", "##", "", ""]
     end
   end
 
-  describe "#level=" do
-    it "shows the other level from its top left" do
-      run = shown Roguelike::Levels.proving_ground, 10, 4
+  describe "#floor=" do
+    it "shows the other floor from its top left" do
+      run = shown Roguelike::Floors.proving_ground, 10, 4
       run.pane.center_on 60, 20
       expect(run.pane.camera).not_to eq({0, 0})
 
-      run.pane.level = Roguelike::Level.parse "small", SMALL
+      run.pane.floor = Roguelike::Floor.parse "small", SMALL
       run.session.render
 
       expect(run.pane.camera).to eq({0, 0})
@@ -68,7 +68,7 @@ Spectator.describe Roguelike::Ui::MapPane do
 
   describe "#follow" do
     it "does not move for somewhere well inside the window" do
-      run = shown Roguelike::Levels.proving_ground, 40, 16
+      run = shown Roguelike::Floors.proving_ground, 40, 16
       run.pane.center_on 36, 14
       before = run.pane.camera
 
@@ -77,7 +77,7 @@ Spectator.describe Roguelike::Ui::MapPane do
     end
 
     it "moves once the square is inside the margin" do
-      run = shown Roguelike::Levels.proving_ground, 40, 16
+      run = shown Roguelike::Floors.proving_ground, 40, 16
       run.pane.center_on 36, 14
       before = run.pane.camera
 
@@ -86,7 +86,7 @@ Spectator.describe Roguelike::Ui::MapPane do
     end
 
     it "keeps the square in view wherever it is asked to go" do
-      run = shown Roguelike::Levels.proving_ground, 40, 16
+      run = shown Roguelike::Floors.proving_ground, 40, 16
 
       [{1, 1}, {70, 26}, {6, 5}, {62, 19}].each do |spot|
         run.pane.follow spot[0], spot[1]
@@ -99,15 +99,15 @@ Spectator.describe Roguelike::Ui::MapPane do
 
   describe "#cell_at_screen" do
     it "names the square under a spot of the buffer" do
-      run = shown Roguelike::Levels.proving_ground, 40, 16
+      run = shown Roguelike::Floors.proving_ground, 40, 16
       run.pane.center_on 36, 14
 
       camera = run.pane.camera
       expect(run.pane.cell_at_screen(3, 2)).to eq({camera[0] + 3, camera[1] + 2})
     end
 
-    it "answers nothing past the edge of the level" do
-      run = shown Roguelike::Level.parse("tiny", "##\n##"), 6, 4
+    it "answers nothing past the edge of the floor" do
+      run = shown Roguelike::Floor.parse("tiny", "##\n##"), 6, 4
 
       expect(run.pane.cell_at_screen(1, 1)).to eq({1, 1})
       expect(run.pane.cell_at_screen(3, 1)).to be_nil
@@ -120,7 +120,7 @@ Spectator.describe Roguelike::Ui::MapPane do
       screen.fit 80, 24
       screen.scaffold 20260911_u64
 
-      pane = described_class.new Roguelike::Levels.proving_ground
+      pane = described_class.new Roguelike::Floors.proving_ground
       screen.show pane.grid
 
       drawn = Headless.open(screen.root, 80, 24).text
@@ -133,15 +133,15 @@ Spectator.describe Roguelike::Ui::MapPane do
       screen.fit 80, 24
       screen.scaffold 20260911_u64
 
-      level = Roguelike::Levels.proving_ground
-      pane = described_class.new level
+      floor = Roguelike::Floors.proving_ground
+      pane = described_class.new floor
       screen.show pane.grid
 
       session = Headless.open screen.root, 80, 24
       session.render
 
-      stairs = level.find Terrain::StairsDown
-      raise "the shipped level has no down staircase" unless stairs
+      stairs = floor.find Terrain::StairsDown
+      raise "the shipped floor has no down staircase" unless stairs
 
       pane.center_on stairs[0], stairs[1]
       drawn = session.text

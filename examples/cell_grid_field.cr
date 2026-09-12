@@ -21,7 +21,7 @@ module Demo
   #   once. Its colour runs warm in the centre and cool at the tips.
   #
   # This class is a `TermBuf::Widgets::Cells` subclass. A source that works
-  # out what it holds is written this way. A level in a game has the same
+  # out what it holds is written this way. A floor in a game has the same
   # shape.
   class Field < TermBuf::Widgets::Cells(Mark)
     alias Style = TermBuf::Style

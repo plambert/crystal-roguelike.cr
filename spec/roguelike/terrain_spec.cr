@@ -29,12 +29,12 @@ Spectator.describe Roguelike::Terrain do
       end
     end
 
-    it "reads a blank as rock, so trimming a line cannot change a level" do
+    it "reads a blank as rock, so trimming a line cannot change a floor" do
       expect(described_class.from_mark(Roguelike::Terrains::FILL))
         .to eq Roguelike::Terrain::Granite
     end
 
-    # An unknown character is a mistake in a level file. A character that
+    # An unknown character is a mistake in a floor file. A character that
     # became floor instead would be a hole in a wall. Reading the file could
     # not find that hole.
     it "refuses a character nothing is written as" do

@@ -8,7 +8,7 @@ Spectator.describe Roguelike::Game do
 
   describe ".start" do
     it "puts the character on the staircase they came down by" do
-      expect(game.player.at).to eq game.level.find(Terrain::StairsUp)
+      expect(game.player.at).to eq game.floor.find(Terrain::StairsUp)
     end
 
     it "starts on turn nothing" do
@@ -19,36 +19,36 @@ Spectator.describe Roguelike::Game do
       expect(game.world.seed).to eq Playing::SEED
     end
 
-    it "puts the character on the level the world holds" do
-      expect(game.level.id).to eq game.player.floor
+    it "puts the character on the floor the world holds" do
+      expect(game.floor.id).to eq game.player.floor
     end
   end
 
   describe ".entrance" do
     it "finds the up staircase" do
-      level = Roguelike::Level.parse "sample", "###\n#<#\n###"
+      floor = Roguelike::Floor.parse "sample", "###\n#<#\n###"
 
-      expect(described_class.entrance(level)).to eq({1, 1})
+      expect(described_class.entrance(floor)).to eq({1, 1})
     end
 
     it "falls back to anywhere somebody could stand" do
-      level = Roguelike::Level.parse "sample", "###\n#.#\n###"
+      floor = Roguelike::Floor.parse "sample", "###\n#.#\n###"
 
-      expect(described_class.entrance(level)).to eq({1, 1})
+      expect(described_class.entrance(floor)).to eq({1, 1})
     end
 
-    it "refuses a level with nowhere to stand" do
-      level = Roguelike::Level.parse "solid", "###\n###"
+    it "refuses a floor with nowhere to stand" do
+      floor = Roguelike::Floor.parse "solid", "###\n###"
 
-      expect { described_class.entrance(level) }.to raise_error ArgumentError, /nowhere/
+      expect { described_class.entrance(floor) }.to raise_error ArgumentError, /nowhere/
     end
   end
 
   # A game on *map*, with the character at *x*, *y*.
   def one_room(map : String, x : Int32, y : Int32) : Roguelike::Game
-    level = Roguelike::Level.parse "room", map
+    floor = Roguelike::Floor.parse "room", map
 
-    described_class.new Roguelike::World.new(1_u64, {"room" => level}),
+    described_class.new Roguelike::World.new(1_u64, {"room" => floor}),
       Roguelike::Player.new("room", x, y)
   end
 
@@ -81,7 +81,7 @@ Spectator.describe Roguelike::Game do
       expect(game.turn).to eq 16
     end
 
-    # A blocked step is not an action. No other creature on the level should
+    # A blocked step is not an action. No other creature on the floor should
     # get a turn out of it.
     it "will not walk into rock, and costs no turn for trying" do
       shut = one_room "###\n#<#\n###", 1, 1
@@ -100,7 +100,7 @@ Spectator.describe Roguelike::Game do
 
       expect(shut.step(Direction::East).opened?).to be_true
       expect(shut.player.at).to eq({1, 1})
-      expect(shut.level.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(shut.floor.terrain(2, 1)).to eq Terrain::OpenDoor
       expect(shut.turn).to eq 1
     end
 
@@ -120,7 +120,7 @@ Spectator.describe Roguelike::Game do
       expect(open.player.at).to eq({2, 1})
     end
 
-    it "will not walk off the level" do
+    it "will not walk off the floor" do
       edge = one_room "<", 0, 0
 
       Direction.each { |direction| expect(edge.step(direction).blocked?).to be_true }
@@ -143,7 +143,7 @@ Spectator.describe Roguelike::Game do
       shut = one_room "###\n#<+\n###", 1, 1
 
       expect(shut.open(Direction::East)).to be_true
-      expect(shut.level.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(shut.floor.terrain(2, 1)).to eq Terrain::OpenDoor
       expect(shut.turn).to eq 1
     end
 
@@ -166,7 +166,7 @@ Spectator.describe Roguelike::Game do
       open = one_room "###\n#<'\n###", 1, 1
 
       expect(open.close(Direction::East)).to be_true
-      expect(open.level.terrain(2, 1)).to eq Terrain::ClosedDoor
+      expect(open.floor.terrain(2, 1)).to eq Terrain::ClosedDoor
       expect(open.turn).to eq 1
     end
 
@@ -248,7 +248,7 @@ Spectator.describe Roguelike::Game do
       expect(game.blocking(Direction::East)).to be_nil
     end
 
-    it "answers nothing off the level" do
+    it "answers nothing off the floor" do
       edge = one_room "<", 0, 0
 
       expect(edge.blocking(Direction::East)).to be_nil
@@ -262,7 +262,7 @@ Spectator.describe Roguelike::Game do
 
       expect(again.turn).to eq game.turn
       expect(again.player.at).to eq game.player.at
-      expect(again.level).to eq game.level
+      expect(again.floor).to eq game.floor
       expect(again.world.seed).to eq game.world.seed
     end
 
@@ -280,7 +280,7 @@ Spectator.describe Roguelike::Game do
 
       again = described_class.from_json shut.to_json
 
-      expect(again.level.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(again.floor.terrain(2, 1)).to eq Terrain::OpenDoor
     end
 
     it "keeps the outcome" do

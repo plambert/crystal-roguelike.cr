@@ -5,21 +5,21 @@ require "./tile"
 module Roguelike
   # One floor of the world.
   #
-  # The world keeps a level after the player leaves it. A level keeps its
+  # The world keeps a floor after the player leaves it. A floor keeps its
   # `#id` for as long as the world lasts.
   #
   # The id is what a run's randomness derives from. `rng.derive "worldgen",
-  # level.id` uses it. So the id has to be the level's own name. A count of
-  # how many levels exist would bring back an order dependency.
+  # floor.id` uses it. So the id has to be the floor's own name. A count of
+  # how many floors exist would bring back an order dependency.
   #
-  # A stored level holds its terrain as text. One string per row. The same
-  # characters a level file uses. That form is compact. A person can read it.
+  # A stored floor holds its terrain as text. One string per row. The same
+  # characters a floor file uses. That form is compact. A person can read it.
   # `git diff` can show a change in it.
   #
-  # No method here draws a level. `Ui::LevelCells` puts a level in front of a
+  # No method here draws a floor. `Ui::FloorCells` puts a floor in front of a
   # `CellGrid`.
-  class Level
-    # What this level is called, for as long as the world lasts.
+  class Floor
+    # What this floor is called, for as long as the world lasts.
     getter id : String
 
     # Cells across.
@@ -36,7 +36,7 @@ module Roguelike
 
     # Row-major. The index of *x*, *y* is `y * columns + x`.
     #
-    # This getter is protected rather than private. `#==` compares two levels
+    # This getter is protected rather than private. `#==` compares two floors
     # through it. A private getter would force a copy of every square.
     protected getter tiles : Array(Tile)
 
@@ -45,38 +45,38 @@ module Roguelike
       wanted = @columns * @rows
       return if @tiles.size == wanted
 
-      raise ArgumentError.new "level #{@id} is #{@columns}x#{@rows} " \
+      raise ArgumentError.new "floor #{@id} is #{@columns}x#{@rows} " \
                               "but holds #{@tiles.size} tiles, not #{wanted}"
     end
 
-    # A level of nothing but *terrain*. A generator carves one of these.
+    # A floor of nothing but *terrain*. A generator carves one of these.
     def self.solid(id : String, columns : Int32, rows : Int32,
-                   terrain : Terrain = Terrain::Granite) : Level
+                   terrain : Terrain = Terrain::Granite) : Floor
       new id, columns, rows, Array.new(columns * rows) { Tile.new terrain }
     end
 
-    # The level in *path*. The level takes its id from the file name.
+    # The floor in *path*. The floor takes its id from the file name.
     #
-    # A level file holds nothing but the map. The file name is the only place
-    # an id can come from. Renaming a level file makes a different level.
-    def self.load(path : Path | String) : Level
+    # A floor file holds nothing but the map. The file name is the only place
+    # an id can come from. Renaming a floor file makes a different floor.
+    def self.load(path : Path | String) : Floor
       file = Path.new path
 
       parse File.basename(file.to_s, file.extension), File.read(file)
     end
 
-    # The level *text* names. One row per line.
+    # The floor *text* names. One row per line.
     #
     # A row shorter than the longest row fills out with rock. An editor that
-    # trims trailing whitespace then cannot change a level.
-    def self.parse(id : String, text : String) : Level
+    # trims trailing whitespace then cannot change a floor.
+    def self.parse(id : String, text : String) : Floor
       parse id, text.lines.map(&.chomp)
     end
 
     # :ditto:
-    def self.parse(id : String, lines : Array(String)) : Level
+    def self.parse(id : String, lines : Array(String)) : Floor
       rows = lines.reject(&.empty?)
-      raise ArgumentError.new "level #{id} has no rows" if rows.empty?
+      raise ArgumentError.new "floor #{id} has no rows" if rows.empty?
 
       columns = rows.max_of &.size
       tiles = Array(Tile).new columns * rows.size
@@ -96,17 +96,17 @@ module Roguelike
       {@columns, @rows}
     end
 
-    # Whether *x*, *y* is on the level.
+    # Whether *x*, *y* is on the floor.
     def contains?(x : Int32, y : Int32) : Bool
       0 <= x < @columns && 0 <= y < @rows
     end
 
-    # The square at *x*, *y*. The square has to be on the level.
+    # The square at *x*, *y*. The square has to be on the floor.
     def tile(x : Int32, y : Int32) : Tile
       @tiles[index x, y]
     end
 
-    # :ditto: Answers `nil` for a square off the level.
+    # :ditto: Answers `nil` for a square off the floor.
     def tile?(x : Int32, y : Int32) : Tile?
       return unless contains? x, y
 
@@ -129,14 +129,14 @@ module Roguelike
       set x, y, tile(x, y).with_terrain(terrain)
     end
 
-    # Whether a creature could walk onto *x*, *y*. A square off the level
+    # Whether a creature could walk onto *x*, *y*. A square off the floor
     # answers false.
     def passable?(x : Int32, y : Int32) : Bool
       found = tile? x, y
       found ? found.passable? : false
     end
 
-    # Whether a creature could see through *x*, *y*. A square off the level
+    # Whether a creature could see through *x*, *y*. A square off the floor
     # answers true.
     def blocks_sight?(x : Int32, y : Int32) : Bool
       found = tile? x, y
@@ -150,7 +150,7 @@ module Roguelike
       end
     end
 
-    # Where the first square of *terrain* is. Answers `nil` when the level
+    # Where the first square of *terrain* is. Answers `nil` when the floor
     # has none.
     #
     # `Game.entrance` uses this to find a staircase.
@@ -162,7 +162,7 @@ module Roguelike
       nil
     end
 
-    # The terrain as text. One string per row. A level file holds this form.
+    # The terrain as text. One string per row. A floor file holds this form.
     # A save file holds it too.
     def to_map : Array(String)
       Array.new(@rows) do |row|
@@ -189,12 +189,12 @@ module Roguelike
     # What is lying on *x*, *y*, oldest first. An empty array for a bare
     # square.
     def items(x : Int32, y : Int32) : Array(Item)
-      @litter[Level.spot(x, y)]? || [] of Item
+      @litter[Floor.spot(x, y)]? || [] of Item
     end
 
     # Whether anything is lying on *x*, *y*.
     def items?(x : Int32, y : Int32) : Bool
-      found = @litter[Level.spot(x, y)]?
+      found = @litter[Floor.spot(x, y)]?
       found ? !found.empty? : false
     end
 
@@ -203,7 +203,7 @@ module Roguelike
     # A stack joins one already there rather than making a second pile of the
     # same thing.
     def drop(x : Int32, y : Int32, item : Item) : Nil
-      pile = @litter[Level.spot(x, y)] ||= [] of Item
+      pile = @litter[Floor.spot(x, y)] ||= [] of Item
       found = pile.index &.stacks_with?(item)
 
       if found
@@ -215,7 +215,7 @@ module Roguelike
 
     # Takes *item* off *x*, *y*. Answers whether it was there.
     def take(x : Int32, y : Int32, item : Item) : Bool
-      spot = Level.spot x, y
+      spot = Floor.spot x, y
       pile = @litter[spot]?
       return false unless pile
 
@@ -229,7 +229,7 @@ module Roguelike
 
     # Takes everything off *x*, *y* and answers it.
     def clear_items(x : Int32, y : Int32) : Array(Item)
-      @litter.delete(Level.spot(x, y)) || [] of Item
+      @litter.delete(Floor.spot(x, y)) || [] of Item
     end
 
     # Every square with something on it, and what is on it.
@@ -242,7 +242,7 @@ module Roguelike
       end
     end
 
-    # What a level is in a save file.
+    # What a floor is in a save file.
     struct Stored
       include JSON::Serializable
 
@@ -255,30 +255,30 @@ module Roguelike
       end
     end
 
-    # The stored form of this level.
+    # The stored form of this floor.
     def stored : Stored
       Stored.new @id, to_map, @litter
     end
 
-    def self.new(pull : JSON::PullParser) : Level
+    def self.new(pull : JSON::PullParser) : Floor
       held = Stored.new pull
-      level = parse held.id, held.map
-      held.litter.each { |spot, pile| level.litter[spot] = pile }
+      floor = parse held.id, held.map
+      held.litter.each { |spot, pile| floor.litter[spot] = pile }
 
-      level
+      floor
     end
 
     def to_json(json : JSON::Builder) : Nil
       stored.to_json json
     end
 
-    def ==(other : Level) : Bool
+    def ==(other : Floor) : Bool
       @id == other.id && @columns == other.columns &&
         @rows == other.rows && @tiles == other.tiles && @litter == other.litter
     end
 
     def to_s(io : IO) : Nil
-      io << "Level(" << @id << ' ' << @columns << 'x' << @rows << ')'
+      io << "Floor(" << @id << ' ' << @columns << 'x' << @rows << ')'
     end
   end
 end

@@ -1,14 +1,14 @@
 require "./terrain"
 
 module Roguelike
-  # One square of a level.
+  # One square of a floor.
   #
   # A tile holds terrain and nothing else so far. Later phases add fields for
   # light, for items and for traps. Those fields go here. They do not go in a
   # second array beside this one.
   #
-  # `Tile` is a struct. A level holds tens of thousands of them. A program
-  # reads a tile far more often than it changes one. `Level#set` is how a
+  # `Tile` is a struct. A floor holds tens of thousands of them. A program
+  # reads a tile far more often than it changes one. `Floor#set` is how a
   # program changes one. It puts a new tile in the array.
   struct Tile
     # What the square is made of.

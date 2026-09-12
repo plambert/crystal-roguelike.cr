@@ -1,5 +1,5 @@
 require "json"
-require "./levels"
+require "./floors"
 require "./items"
 require "./lore"
 require "./message_log"
@@ -54,7 +54,7 @@ module Roguelike
   class Game
     include JSON::Serializable
 
-    # Every level of the run, and the seed that made them.
+    # Every floor of the run, and the seed that made them.
     getter world : World
 
     # The character the person plays.
@@ -63,7 +63,7 @@ module Roguelike
     # How many turns have been taken.
     #
     # A blocked step does not count. A turn gives every other creature on the
-    # level one action. A blocked step gives them none.
+    # floor one action. A blocked step gives them none.
     getter turn : Int32
 
     # How the run ended. `Playing` while it has not.
@@ -100,34 +100,34 @@ module Roguelike
     # A new run on *rng*.
     def self.start(rng : Rng) : Game
       world = World.on rng
-      level = world.add Levels.proving_ground
+      floor = world.add Floors.proving_ground
 
-      game = new world, Player.new(level.id, *entrance(level)), lore: Lore.roll(rng)
+      game = new world, Player.new(floor.id, *entrance(floor)), lore: Lore.roll(rng)
       game.scatter rng
       game.say "You are in a dungeon. Press ? for the keys."
       game
     end
 
-    # How many items a level starts with, until there is a generator.
+    # How many items a floor starts with, until there is a generator.
     LITTER = 24
 
     # How much gold one pile holds, until there is a generator.
     PURSE = 5..40
 
-    # Puts items about the level on *rng*.
+    # Puts items about the floor on *rng*.
     #
     # Placement is its own stream, so the loot does not shift when anything
     # else changes how much it rolls.
     def scatter(rng : Rng) : Nil
-      stream = rng.derive "litter:#{level.id}"
-      floors = [] of {Int32, Int32}
-      level.each { |column, row, tile| floors << {column, row} if tile.terrain.floor? }
-      return if floors.empty?
+      stream = rng.derive "litter:#{floor.id}"
+      squares = [] of {Int32, Int32}
+      floor.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
+      return if squares.empty?
 
       LITTER.times do
-        spot = floors.sample stream
+        spot = squares.sample stream
         item = stream.rand(4).zero? ? gold(stream) : Items.random(stream)
-        level.drop spot[0], spot[1], item
+        floor.drop spot[0], spot[1], item
       end
     end
 
@@ -136,23 +136,23 @@ module Roguelike
       Item.new ItemKind::Gold, count: rng.rand(PURSE)
     end
 
-    # Where a character arriving on *level* stands.
+    # Where a character arriving on *floor* stands.
     #
-    # The up staircase, when the level has one. A player enters a level by a
+    # The up staircase, when the floor has one. A player enters a floor by a
     # staircase. Any passable square otherwise.
-    def self.entrance(level : Level) : {Int32, Int32}
-      found = level.find Terrain::StairsUp
+    def self.entrance(floor : Floor) : {Int32, Int32}
+      found = floor.find Terrain::StairsUp
       return found if found
 
-      level.each do |column, row, tile|
+      floor.each do |column, row, tile|
         return {column, row} if tile.passable?
       end
 
-      raise ArgumentError.new "level #{level.id} has nowhere to stand"
+      raise ArgumentError.new "floor #{floor.id} has nowhere to stand"
     end
 
-    # The level the character is on.
-    def level : Level
+    # The floor the character is on.
+    def floor : Floor
       @world[@player.floor]
     end
 
@@ -167,14 +167,14 @@ module Roguelike
     def step(direction : Direction) : Step
       wanted = direction.from @player.x, @player.y
 
-      if level.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
-        level.set wanted[0], wanted[1], Terrain::OpenDoor
+      if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
+        floor.set wanted[0], wanted[1], Terrain::OpenDoor
         @turn += 1
         say "You open the door."
         return Step::Opened
       end
 
-      unless level.passable? wanted[0], wanted[1]
+      unless floor.passable? wanted[0], wanted[1]
         say blocked_by direction
         return Step::Blocked
       end
@@ -214,9 +214,9 @@ module Roguelike
     # takes none.
     def open(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
-      return false unless level.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
+      return false unless floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
 
-      level.set wanted[0], wanted[1], Terrain::OpenDoor
+      floor.set wanted[0], wanted[1], Terrain::OpenDoor
       @turn += 1
       say "You open the door."
       true
@@ -225,9 +225,9 @@ module Roguelike
     # Closes the door *direction*. Answers whether it closed.
     def close(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
-      return false unless level.tile?(wanted[0], wanted[1]).try &.terrain.open_door?
+      return false unless floor.tile?(wanted[0], wanted[1]).try &.terrain.open_door?
 
-      level.set wanted[0], wanted[1], Terrain::ClosedDoor
+      floor.set wanted[0], wanted[1], Terrain::ClosedDoor
       @turn += 1
       say "You close the door."
       true
@@ -239,19 +239,19 @@ module Roguelike
     def doors(terrain : Terrain) : Array(Direction)
       Direction.values.select do |direction|
         wanted = direction.from @player.x, @player.y
-        level.tile?(wanted[0], wanted[1]).try(&.terrain) == terrain
+        floor.tile?(wanted[0], wanted[1]).try(&.terrain) == terrain
       end
     end
 
     # What the character is standing on.
     def standing_on : Terrain
-      level.terrain @player.x, @player.y
+      floor.terrain @player.x, @player.y
     end
 
     # Goes down the staircase the character stands on. Answers whether there
     # was one.
     #
-    # There is one level, so down is out. The run ends as a win.
+    # There is one floor, so down is out. The run ends as a win.
     def descend : Bool
       return false unless standing_on.stairs_down?
 
@@ -274,7 +274,7 @@ module Roguelike
 
     # What is lying on the square the character stands on.
     def here : Array(Item)
-      level.items @player.x, @player.y
+      floor.items @player.x, @player.y
     end
 
     # Picks *item* up off the square the character stands on.
@@ -285,7 +285,7 @@ module Roguelike
     # Answers whether the character now has it. A full inventory answers false
     # and leaves the item where it was.
     def pick_up(item : Item) : Bool
-      return false unless level.take @player.x, @player.y, item
+      return false unless floor.take @player.x, @player.y, item
 
       if item.kind.item_class.treasure?
         @player.take_gold item.count
@@ -296,7 +296,7 @@ module Roguelike
 
       letter = @player.inventory.add item
       unless letter
-        level.drop @player.x, @player.y, item
+        floor.drop @player.x, @player.y, item
         say "You cannot carry any more."
         return false
       end
@@ -324,7 +324,7 @@ module Roguelike
       end
 
       @player.inventory.remove letter
-      level.drop @player.x, @player.y, item
+      floor.drop @player.x, @player.y, item
       @turn += 1
       say "You drop #{name item}."
       true
@@ -335,7 +335,7 @@ module Roguelike
       dropped = @player.spend_gold amount
       return 0 if dropped.zero?
 
-      level.drop @player.x, @player.y, Item.new(ItemKind::Gold, count: dropped)
+      floor.drop @player.x, @player.y, Item.new(ItemKind::Gold, count: dropped)
       @turn += 1
       say "You drop #{dropped} gold pieces."
       dropped
@@ -346,7 +346,7 @@ module Roguelike
     # What stops a step *direction*. Answers `nil` when nothing stops it.
     def blocking(direction : Direction) : Terrain?
       wanted = direction.from @player.x, @player.y
-      found = level.tile? wanted[0], wanted[1]
+      found = floor.tile? wanted[0], wanted[1]
       return unless found
       return if found.passable?
 

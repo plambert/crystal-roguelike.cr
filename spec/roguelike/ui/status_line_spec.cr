@@ -16,7 +16,7 @@ Spectator.describe Roguelike::Ui::StatusLine do
       expect(written(run)).to contain "hp: #{player.hit_points}/#{player.max_hit_points}"
     end
 
-    it "writes the level and the experience" do
+    it "writes the floor and the experience" do
       run = Playing.open
 
       expect(written(run)).to contain "lv: 1"
@@ -64,7 +64,7 @@ Spectator.describe Roguelike::Ui::StatusLine do
   end
 
   describe "the experience pair" do
-    it "shows the count alone at the last level" do
+    it "shows the count alone at the last floor" do
       line = described_class.new
       game = Playing.open.game
       game.player.gain Int32::MAX

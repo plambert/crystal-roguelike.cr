@@ -11,7 +11,7 @@ module Roguelike
   # has advanced. They are named apart here so that neither reading has to be
   # guessed.
   #
-  # The floor is held by its id rather than by a reference to the `Level`.
+  # The floor is held by its id rather than by a reference to the `Floor`.
   # Levels persist and a save file stores them. A save file that stored the
   # floor twice would hold one copy in the world and one under the player. The
   # two copies would then need to stay in step.

@@ -72,7 +72,7 @@ module Roguelike::Ui
     # The status line's scaffolding, until phase 7 puts something real there.
     getter status_text : Widgets::Label
 
-    # Where the level is drawn.
+    # Where the floor is drawn.
     getter map : Widgets::Panel
 
     # What is under the pointer, and later the character summary.
@@ -90,7 +90,7 @@ module Roguelike::Ui
 
     def initialize
       # A map pane has no padding. A map is a grid of cells. A column given
-      # to a margin is a column of the level nobody can see.
+      # to a margin is a column of the floor nobody can see.
       @map = Widgets::Panel.new(
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)

@@ -2,7 +2,7 @@
 # diff.
 #
 # A rendered screen goes here. So does a field of view. So does a generated
-# level. Each of those is worth asserting whole. An inline heredoc would bury
+# floor. Each of those is worth asserting whole. An inline heredoc would bury
 # the spec around it. A file lets `git diff` show what moved.
 module Fixture
   # Where the files live.

@@ -4,13 +4,13 @@ Spectator.describe "picking up and dropping" do
   alias Kind = Roguelike::ItemKind
   alias Item = Roguelike::Item
 
-  # A one room level with the character in the middle, holding *items*.
+  # A one room floor with the character in the middle, holding *items*.
   def litter(items : Array(Item) = [] of Item) : Playing::Run
-    level = Roguelike::Level.parse "room", "#####\n#...#\n#.<.#\n#...#\n#####"
-    level.clear_items 2, 2
-    items.each { |item| level.drop 2, 2, item }
+    floor = Roguelike::Floor.parse "room", "#####\n#...#\n#.<.#\n#...#\n#####"
+    floor.clear_items 2, 2
+    items.each { |item| floor.drop 2, 2, item }
 
-    game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => level}),
+    game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}),
       Roguelike::Player.new("room", 2, 2)
 
     Playing.open game

@@ -1,9 +1,9 @@
 module Roguelike
   # Everything one kind of terrain is.
   #
-  # *mark* is the character a level file writes for this terrain. A save file
+  # *mark* is the character a floor file writes for this terrain. A save file
   # writes the same character. *mark* is part of the file format. Changing one
-  # changes every level file and every save file already written.
+  # changes every floor file and every save file already written.
   #
   # This record sits beside `Terrain`. A Crystal enum body takes members and
   # methods. It takes neither type definitions nor constants.
@@ -14,14 +14,14 @@ module Roguelike
     blocks_move : Bool,
     blocks_sight : Bool
 
-  # What one square of a level is made of.
+  # What one square of a floor is made of.
   #
   # The three rocks behave alike. A player tells them apart by colour. They
   # are separate members because what a wall is made of will matter later.
   # Digging will differ by rock. Sound through a wall will differ by rock. A
-  # level generator will pick a rock by depth.
+  # floor generator will pick a rock by depth.
   #
-  # No member here carries a glyph or a style. `Ui::Palette` holds both. A theme changes that table. A spec reads a level with no
+  # No member here carries a glyph or a style. `Ui::Palette` holds both. A theme changes that table. A spec reads a floor with no
   # terminal open.
   enum Terrain
     Granite
@@ -34,10 +34,10 @@ module Roguelike
     StairsUp
     StairsDown
 
-    # Which terrain a level file's *mark* names.
+    # Which terrain a floor file's *mark* names.
     #
     # This method raises on an unknown character. An unknown character is a
-    # mistake in a level file. A character that became floor instead would be
+    # mistake in a floor file. A character that became floor instead would be
     # a hole in a wall. Nobody could find that hole by reading the file.
     def self.from_mark(mark : Char) : Terrain
       found = from_mark? mark
@@ -56,7 +56,7 @@ module Roguelike
       Terrains::KINDS[self]
     end
 
-    # The character a level file writes for this terrain.
+    # The character a floor file writes for this terrain.
     def mark : Char
       kind.mark
     end
@@ -86,7 +86,7 @@ module Roguelike
       !blocks_move?
     end
 
-    # Whether this terrain is one of the rocks a level is cut out of.
+    # Whether this terrain is one of the rocks a floor is cut out of.
     def rock? : Bool
       granite? || sandstone? || shale?
     end
@@ -109,10 +109,10 @@ module Roguelike
 
   # The table behind `Terrain`. An enum body cannot hold these constants.
   module Terrains
-    # The character a level file writes for an empty square.
+    # The character a floor file writes for an empty square.
     #
     # A blank means granite. An editor that trims trailing whitespace then
-    # cannot change a level. A row shorter than the level's width is solid
+    # cannot change a floor. A row shorter than the floor's width is solid
     # rock rather than an error.
     FILL = ' '
 
@@ -128,7 +128,7 @@ module Roguelike
       Terrain::StairsDown => TerrainKind.new('>', "staircase down", "a staircase leading down", false, false),
     }
 
-    # Every character a level file may hold.
+    # Every character a floor file may hold.
     MARKS = begin
       table = {} of Char => Terrain
       KINDS.each { |terrain, kind| table[kind.mark] = terrain }

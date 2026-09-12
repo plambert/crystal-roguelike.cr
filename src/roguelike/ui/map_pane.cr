@@ -1,40 +1,40 @@
 module Roguelike::Ui
-  # A level, as something a `CellGrid` can draw.
+  # A floor, as something a `CellGrid` can draw.
   #
-  # This adapter exists so that `Level` needs no reference to the widget
-  # layer. A level is the model. A `Cells` is what a window over one asks. The
+  # This adapter exists so that `Floor` needs no reference to the widget
+  # layer. A floor is the model. A `Cells` is what a window over one asks. The
   # game reads and writes the first. Only the screen holds the second.
-  class LevelCells < Widgets::Cells(Tile)
-    # Which level is being shown.
+  class FloorCells < Widgets::Cells(Tile)
+    # Which floor is being shown.
     #
-    # Assigning another level shows that one instead. Walking down a staircase
+    # Assigning another floor shows that one instead. Walking down a staircase
     # will do that.
-    property level : Level
+    property floor : Floor
 
-    def initialize(@level : Level)
+    def initialize(@floor : Floor)
     end
 
     def columns : Int32
-      @level.columns
+      @floor.columns
     end
 
     def rows : Int32
-      @level.rows
+      @floor.rows
     end
 
     def cell(x : Int32, y : Int32) : Tile
-      @level.tile x, y
+      @floor.tile x, y
     end
   end
 
-  # The window a level is played in.
+  # The window a floor is played in.
   #
   # This class holds the `CellGrid` and the camera over it. It also holds the
   # rule for drawing one tile. Every change to where the window points goes
   # through here.
   class MapPane
     # What the grid asks for its cells.
-    getter cells : LevelCells
+    getter cells : FloorCells
 
     # The widget itself. A caller puts it in a tree.
     getter grid : Widgets::CellGrid(Tile)
@@ -55,10 +55,10 @@ module Roguelike::Ui
     property cursor : {Int32, Int32}? = nil
 
     # What is standing on a square. It draws over the terrain. It is not
-    # written into the level.
+    # written into the floor.
     #
     # The character goes here now. Monsters and dropped items go here later.
-    # Whatever owns the game state fills this table. A pane draws a level. It
+    # Whatever owns the game state fills this table. A pane draws a floor. It
     # holds nothing about the creatures on it.
     getter marks : Hash({Int32, Int32}, Look) = {} of {Int32, Int32} => Look
 
@@ -69,8 +69,8 @@ module Roguelike::Ui
     # which.
     getter highlights : Set({Int32, Int32}) = Set({Int32, Int32}).new
 
-    def initialize(level : Level)
-      @cells = LevelCells.new level
+    def initialize(floor : Floor)
+      @cells = FloorCells.new floor
       @grid = Widgets::CellGrid.new @cells
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
         look = @marks[{x, y}]? || Palette[tile.terrain]
@@ -115,18 +115,18 @@ module Roguelike::Ui
       @marks[{x, y}]?
     end
 
-    # Which level is being shown.
-    def level : Level
-      @cells.level
+    # Which floor is being shown.
+    def floor : Floor
+      @cells.floor
     end
 
-    # Shows *level* instead, from its top left corner.
-    def level=(level : Level) : Level
-      @cells.level = level
+    # Shows *floor* instead, from its top left corner.
+    def floor=(floor : Floor) : Floor
+      @cells.floor = floor
       @grid.scroll_to 0, 0
       clear_marks
       clear_highlights
-      level
+      floor
     end
 
     # Moves the camera as little as it takes to keep *x*, *y* off the edge of
@@ -147,12 +147,12 @@ module Roguelike::Ui
     end
 
     # Puts *x*, *y* in the middle of the window. Stops at the edges of the
-    # level.
+    # floor.
     def center_on(x : Int32, y : Int32) : Nil
       @grid.center_on x, y
     end
 
-    # Which square of the level is at *screen_x*, *screen_y* of the buffer.
+    # Which square of the floor is at *screen_x*, *screen_y* of the buffer.
     # `nil` when the pointer is not over a square.
     def cell_at_screen(screen_x : Int32, screen_y : Int32) : {Int32, Int32}?
       @grid.cell_at_screen screen_x, screen_y

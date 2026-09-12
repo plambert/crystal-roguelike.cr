@@ -4,7 +4,7 @@ module TermBuf::Widgets
   # A window over a field of cells. It draws the cells that are showing and no
   # others.
   #
-  #     grid = CellGrid.new level
+  #     grid = CellGrid.new floor
   #     grid.on_draw = ->(view : View, x : Int32, y : Int32, tile : Tile) do
   #       view.write_char 0, 0, tile.glyph, tile.style
   #     end

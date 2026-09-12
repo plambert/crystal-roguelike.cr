@@ -37,6 +37,7 @@ actually been run rather than reasoned about.
 | Colour floor | 256 colours required; 24-bit used wherever it helps |
 | Numpad decoding | Deferred until there is a keypad to test it on |
 | Git transport | ssh for GitHub, via a global `url.insteadOf` rewrite |
+| Level and floor | A `Floor` is one map. A `Player#level` is how far the character has advanced |
 
 ## Ground rules
 
@@ -44,7 +45,7 @@ These hold from Phase 0 and are not revisited.
 
 * **One seed, many streams.** A run has one seed and `--seed N` reproduces it exactly, which is
   what makes every later phase testable. It does not have one sequence: `Rng#derive(domain, id)`
-  picks an independent PCG32 stream from a stable hash of the name, so what a level, a loot
+  picks an independent PCG32 stream from a stable hash of the name, so what a floor, a loot
   table or a monster band draws does not depend on what anything else drew first. One shared
   stream would make a run deterministic without making it stable — adding a roll anywhere shifts
   every roll after it — and it cannot work at all once planning is parallel, because the
@@ -58,7 +59,7 @@ These hold from Phase 0 and are not revisited.
   snapshot spec this way. Nothing needs a tty to test. `Session` owns the terminal, the frame
   loop and the mouse, and `Ui::Play` owns everything shown and everything the keys do, so a spec
   presses keys at the thing that runs rather than at a copy of its wiring.
-* **The model knows nothing about the screen.** Level, player, monsters and items have no
+* **The model knows nothing about the screen.** Floor, player, monsters and items have no
   reference to `TermBuf`. Widgets read the model and draw it. A spec runs a hundred turns with no
   widget tree at all.
 * **Turns, not frames.** The loop is `App#wait`, which blocks on the event channel. Nothing
@@ -67,6 +68,10 @@ These hold from Phase 0 and are not revisited.
 * **Build for 24-bit colour and check the fallback.** Styles carry true colour; termbuf reduces
   at encode time. Each phase that adds colour is also run once under
   `TERMBUF_CAPS=none,+color256` to confirm it is still readable.
+* **Level means one thing and floor means another.** The word means two things in a roguelike.
+  A `Floor` is one map of the world, and `Player#floor` names which one the character is on. A
+  `Player#level` is how far the character has advanced. The types, the fields and the prose all
+  follow that split, so neither reading has to be guessed.
 * **`shard.yml` names dependencies as `github:`.** Transport is ssh, set once and globally with
   `git config --global url."git@github.com:".insteadOf "https://github.com/"`, which covers
   transitive dependencies as well. Naming a git URL in `shard.yml` does not, and collides with
@@ -77,10 +82,10 @@ These hold from Phase 0 and are not revisited.
 Four decisions that cost almost nothing now and are expensive to retrofit. Each exists because of
 something in [Long-term direction](#long-term-direction).
 
-### Levels persist, so the model serializes from the start
+### Floors persist, so the model serializes from the start
 
-Levels are not thrown away when they are left, and eventually they live in a save file. So the
-world is a `World` holding `Level`s by id, and every type in the model round-trips through
+Floors are not thrown away when they are left, and eventually they live in a save file. So the
+world is a `World` holding `Floor`s by id, and every type in the model round-trips through
 serialization from Phase 3 onward, with a spec that says so.
 
 The constraint that follows, and the one that bites if it is found late: **nothing in the model
@@ -92,9 +97,9 @@ Save and load themselves are future work. Serializability is not.
 
 ### Belief is modelled apart from truth
 
-What is on a level and what somebody thinks is on a level are two different things, and the
+What is on a floor and what somebody thinks is on a floor are two different things, and the
 second one is where the interesting behaviour lives. So there is a `Knowledge` type from the
-first moment anything needs to remember a level: terrain seen, where things were when last seen,
+first moment anything needs to remember a floor: terrain seen, where things were when last seen,
 where somebody was last known to be, and how stale each of those is.
 
 The player's remembered map in Phase 14 is the same type a monster band uses in Phase 19. Writing
@@ -216,20 +221,20 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 
 ## Part 2: A world to walk in
 
-### Phase 3 — Terrain and a hand-built level
+### Phase 3 — Terrain and a hand-built floor
 
 * **Build** — A `Terrain` enum: `Granite`, `Sandstone`, `Shale` (three rock walls, identical in
   behaviour for now, distinct in colour), `StoneFloor`, `DirtFloor`, `ClosedDoor`, `OpenDoor`,
-  `StairsUp`, `StairsDown`. Each carries the character a level file writes it as, a label, a
+  `StairsUp`, `StairsDown`. Each carries the character a floor file writes it as, a label, a
   description, whether it blocks movement and whether it blocks sight — but not a glyph or a
   style, which are the screen's and live in `Ui::Palette`, per the rule that the model knows
-  nothing about the screen. A `World` holding `Level`s by id; a `Level` holding a grid of `Tile`,
-  loaded from a plain-text map file under `data/levels/` so the fixture is readable and diffable
-  and read into the binary at build time so the game runs from anywhere. The level drawn through
-  `CellGrid`, by way of a `Ui::LevelCells` adapter that keeps `Level` free of the widget layer.
-  Serialization for everything so far, with the terrain stored as the same text a level file
+  nothing about the screen. A `World` holding `Floor`s by id; a `Floor` holding a grid of `Tile`,
+  loaded from a plain-text map file under `data/floors/` so the fixture is readable and diffable
+  and read into the binary at build time so the game runs from anywhere. The floor drawn through
+  `CellGrid`, by way of a `Ui::LevelCells` adapter that keeps `Floor` free of the widget layer.
+  Serialization for everything so far, with the terrain stored as the same text a floor file
   holds.
-* **Verify** — The test level loads and renders, walls in three colours, doors and stairs
+* **Verify** — The test floor loads and renders, walls in three colours, doors and stairs
   visible. A spec loads the fixture and snapshots the rendered pane. A spec asserts every glyph
   in the file maps to a terrain and that an unknown glyph raises rather than silently becoming
   floor. A spec round-trips the `World` through serialization and gets an identical one back.
@@ -261,7 +266,7 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 * **Build** — A `Player` with a position. The eight movement bindings. Walls and closed doors
   block. The camera follows with a dead zone via `CellGrid#reveal`. A turn counter that advances
   on a move and not on a blocked one.
-* **Verify** — Walk around the test level in all eight directions. Walking into a wall does not
+* **Verify** — Walk around the test floor in all eight directions. Walking into a wall does not
   move and does not burn a turn. The camera holds still until the player nears an edge, then
   follows. A spec feeds a scripted key sequence into the app and asserts the final position and
   turn count.
@@ -274,7 +279,7 @@ The one piece of shard-shaped work that has to come before anything can be drawn
   first extraction candidate, behind `Q` and behind `<`. The prompt is an `Overlay`: a small box
   in the middle of the screen, with everything behind it dimmed and still readable. It is modal,
   so a key nothing in it claims stops there, and a click behind it reaches nothing.
-* **Verify** — A scripted sequence opens a door, crosses the level, descends, and the win screen
+* **Verify** — A scripted sequence opens a door, crosses the floor, descends, and the win screen
   appears. `Q` prompts, `n` returns to the game, `y` exits. A spec asserts that `>` anywhere but
   on the stairs says so and does not win.
 
@@ -322,7 +327,7 @@ The model only. Nothing is on the floor yet and nothing can be carried.
 
 ### Phase 10 — Floor items, pick up, drop, gold
 
-* **Build** — Items lying on the level, drawn on the map under the player, and named in the
+* **Build** — Items lying on the floor, drawn on the map under the player, and named in the
   examine pane from Phase 4. `,` to pick up, `d` to drop. An inventory with letter slots. The
   inventory screen, addressed by letter — the third extraction candidate, an accelerator list
   rather than a filtered one. Gold as the simplest floor item, counted rather than carried, shown
@@ -350,7 +355,7 @@ The largest part, split so that each step is visible on its own.
 
 * **Build** — Symmetric shadowcasting from the player over the terrain's sight-blocking flag.
   Everything within the field of view is drawn; everything outside it is blank. No light yet —
-  the whole level is treated as lit.
+  the whole floor is treated as lit.
 * **Verify** — Standing in a room, the room is visible and the corridor behind the door is not.
   Standing in a corridor, sight runs its length and stops at the corner. Specs against fixture
   maps with the expected visible set written out as a second text file, so a change to the
@@ -373,7 +378,7 @@ The largest part, split so that each step is visible on its own.
 
 The phase that introduces the type monster bands will use in Phase 19.
 
-* **Build** — `Knowledge`: what somebody believes about a level — which tiles they have seen and
+* **Build** — `Knowledge`: what somebody believes about a floor — which tiles they have seen and
   what was on them, where things were when last seen, and how many turns ago each of those was.
   The player gets one. Terrain once seen is remembered and drawn dim; items and monsters are
   remembered as they were, and are not updated while out of sight. The quantized style ramp — the
@@ -402,10 +407,10 @@ The phase that introduces the type monster bands will use in Phase 19.
 
 * **Build** — A `Monster` with a species, hit points, attributes, a position, a `band` and a
   `faction`. Three species: slime, goblin, orc, each with a glyph, colour and base statistics.
-  Placed on the level from the map file, each in a band of one. They block movement and are
+  Placed on the floor from the map file, each in a band of one. They block movement and are
   drawn, and the examine pane names them. No behaviour at all.
 * **Verify** — All three appear, in the right colours, and hovering one describes it. Walking into
-  one is refused with a message. A spec snapshots a level with one of each and round-trips it
+  one is refused with a message. A spec snapshots a floor with one of each and round-trips it
   through serialization.
 
 ### Phase 17 — Melee combat, death, experience
@@ -433,7 +438,7 @@ The phase that introduces the type monster bands will use in Phase 19.
 
 ### Phase 19 — Pathfinding and pursuit
 
-* **Build** — A band's `Knowledge` of the level, seeded with the tiles its monsters have seen. A
+* **Build** — A band's `Knowledge` of the floor, seeded with the tiles its monsters have seen. A
   Dijkstra map computed over what the band knows rather than over the truth, which every hunting
   monster descends. Attack when adjacent. Lose the player after a number of turns without seeing
   them and go to the last known square. Slimes do not path — they step toward the player and stop
@@ -441,7 +446,7 @@ The phase that introduces the type monster bands will use in Phase 19.
   rule.
 * **Verify** — A goblin on the far side of a wall walks around it rather than into it. Breaking
   line of sight and moving makes it go to where the player was, then give up. A goblin that has
-  never seen a shortcut does not use it. Specs on the Dijkstra map over fixture levels, and a
+  never seen a shortcut does not use it. Specs on the Dijkstra map over fixture floors, and a
   spec that a hundred turns of pursuit terminates and costs no more than a bounded amount of
   work.
 
@@ -489,18 +494,18 @@ The phase that introduces the type monster bands will use in Phase 19.
   points change, or a message is printed. Each step is a full turn, so monsters act.
 * **Verify** — Run down a corridor and stop at the junction. Run into a room and stop at the
   doorway. Run with a goblin in a side passage and stop when it appears. A spec asserts the stop
-  condition for each case on a fixture level.
+  condition for each case on a fixture floor.
 
-### Phase 24 — Level generation
+### Phase 24 — Floor generation
 
-Everything before this runs on hand-built levels, which is what makes them testable. The
+Everything before this runs on hand-built floors, which is what makes them testable. The
 generator comes last because by now it is clear what it has to place.
 
 * **Build** — Rooms and corridors from the seeded RNG. Doors where a corridor meets a room. Up
   and down stairs in different rooms. Rock type varying by region. Items, gold, monsters, bands
   and light sources placed to a density that scales with nothing yet, since there is one floor.
-* **Verify** — `--seed N` twice gives the identical level. A spec generates a thousand seeded
-  levels and asserts for each: every floor tile is reachable from the up stairs, both staircases
+* **Verify** — `--seed N` twice gives the identical floor. A spec generates a thousand seeded
+  floors and asserts for each: every floor tile is reachable from the up stairs, both staircases
   exist and are not in the same room, no door is isolated, and no monster or item is inside rock.
 
 ### Phase 25 — Start, death, victory
@@ -549,15 +554,15 @@ early decisions in [Architecture](#architecture) have a reason attached to them.
 
 ### A world that stays put
 
-* Levels persist in the save file rather than being regenerated. Leaving and returning finds
+* Floors persist in the save file rather than being regenerated. Leaving and returning finds
   what was left.
-* Enemies respawn, and a level is not truly safe until whatever is producing them is found and
+* Enemies respawn, and a floor is not truly safe until whatever is producing them is found and
   dealt with — hidden spawners, nests, unsealed passages.
 * Shortcuts matter, because the alternative is walking the same floors repeatedly. Portals are
   placed by the player, where and when they choose, rather than arriving as a teleport spell.
 * The best treasure is not portable: ore seams and resource points that have to be found, cleared
   a path to, and then worked by NPCs recruited in town and escorted back.
-* Enemies travel between levels, set up new bases, and lay traps in the direction they expect the
+* Enemies travel between floors, set up new bases, and lay traps in the direction they expect the
   player to return from.
 
 ### Enemies that are actually intelligent
@@ -589,7 +594,7 @@ The centre of the project, and the reason for the snapshot-and-action rule and f
 
 ### A place to come back to
 
-* A town level whose shops and residents are attracted by what the player does and what they are
+* A town floor whose shops and residents are attracted by what the player does and what they are
   worth.
 * A house to build out: storage, decorations.
 * Reputation, managed partly through travelling bards.
@@ -613,7 +618,7 @@ Small things deliberately left out of the basic game, to be picked up once it ex
 * Save and load. The model already serializes; this is the file format, the slot, and the rule
   that a save is removed on load.
 * Numpad decoding, once there is a keypad to test it on.
-* A full-screen map view for a level larger than the pane.
+* A full-screen map view for a floor larger than the pane.
 * A message history screen.
 * Mouse support for targeting and for the inventory, which `CellGrid#cell_at` already allows.
 * Glyph and colour themes.

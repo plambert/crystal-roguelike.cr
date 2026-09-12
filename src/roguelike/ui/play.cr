@@ -38,7 +38,7 @@ module Roguelike::Ui
     # The regions being drawn in.
     getter screen : Screen
 
-    # The window the level is played in.
+    # The window the floor is played in.
     getter map : MapPane
 
     # The readout of what is on one square.
@@ -102,7 +102,7 @@ module Roguelike::Ui
 
     def initialize(@game : Game)
       @screen = Screen.new
-      @map = MapPane.new @game.level
+      @map = MapPane.new @game.floor
       @screen.show @map.grid
 
       @examine = ExaminePane.new
@@ -234,7 +234,7 @@ module Roguelike::Ui
     # The owner calls this once the tree has been laid out. It cannot run
     # before. An unmeasured window is nothing by nothing. Centring on a square
     # in a window of no size leaves the camera on the square. It does not
-    # clamp against the edge of the level.
+    # clamp against the edge of the floor.
     def look_at_player : Nil
       @map.center_on @game.player.x, @game.player.y
     end
@@ -242,7 +242,7 @@ module Roguelike::Ui
     # One step of a movement key.
     #
     # A command waiting for a direction takes the key first. The examine
-    # cursor takes it next. A person reading the level is not walking about
+    # cursor takes it next. A person reading the floor is not walking about
     # it. The character takes it otherwise.
     #
     # A step that does not happen takes no turn.
@@ -408,7 +408,7 @@ module Roguelike::Ui
       @map.clear_marks
       @map.clear_highlights
 
-      @game.level.each_pile do |column, row, pile|
+      @game.floor.each_pile do |column, row, pile|
         last = pile.last?
         @map.mark column, row, Palette[last] if last
       end

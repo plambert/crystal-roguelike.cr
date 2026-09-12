@@ -34,7 +34,7 @@ module TermBuf::Widgets
   # times. The work is the size of the window. It is not the size of the
   # field.
   #
-  #     class Level < TermBuf::Widgets::Cells(Tile)
+  #     class Floor < TermBuf::Widgets::Cells(Tile)
   #       def columns : Int32
   #         @width
   #       end

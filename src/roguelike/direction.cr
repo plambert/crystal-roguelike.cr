@@ -23,7 +23,7 @@ module Roguelike
     end
 
     # Rows this step moves. South is positive. A screen counts rows downward.
-    # A level stores rows in the same order it draws them.
+    # A floor stores rows in the same order it draws them.
     def dy : Int32
       case self
       in .north?, .north_east?, .north_west? then -1

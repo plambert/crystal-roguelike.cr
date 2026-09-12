@@ -6,12 +6,12 @@ module Roguelike
   #
   # A run does not have one sequence. One shared sequence makes a run
   # deterministic. It does not make a run stable. Adding one `rand` call to
-  # level generation shifts every roll after it. The same seed then gives a
+  # floor generation shifts every roll after it. The same seed then gives a
   # different game in the next build. A bug report with a seed in it stops
   # reproducing.
   #
   # One shared sequence also cannot survive two things this game is built for.
-  # The player visits levels in whatever order they choose. Monster planning
+  # The player visits floors in whatever order they choose. Monster planning
   # runs in a parallel execution context. Threads interleave differently on
   # every run.
   #
@@ -20,17 +20,17 @@ module Roguelike
   # streams are independent. `#derive` picks a stream from a name:
   #
   #     master = Rng.for options.seed
-  #     level  = master.derive "worldgen", level_id
+  #     floor  = master.derive "worldgen", level_id
   #     band   = master.derive "ai", band_id
   #
   # `#derive` reads nothing from the generator it is called on. It is a
-  # function of the seed, the parent stream and the name. Level 7 generates
-  # identically whether or not level 3 generated first. It generates
-  # identically whether or not level 3 generated at all. It generates
+  # function of the seed, the parent stream and the name. Floor 7 generates
+  # identically whether or not floor 3 generated first. It generates
+  # identically whether or not floor 3 generated at all. It generates
   # identically after any number of rolls elsewhere.
   #
   # One derived generator belongs to one fiber. Derive one per band. Derive
-  # one per level. Derive one per anything that might plan in parallel. Never
+  # one per floor. Derive one per anything that might plan in parallel. Never
   # share a leaf generator between fibers.
   #
   # NOTE: a domain name is part of the seed contract. Renaming one changes
@@ -76,7 +76,7 @@ module Roguelike
 
     # :ditto:
     #
-    # *id* names which one. Which level. Which band. Which room. It has to be
+    # *id* names which one. Which floor. Which band. Which room. It has to be
     # the thing's own stable identity. A count of how many exist would bring
     # back the order dependency this design removes.
     def derive(domain : String, id : Int) : Rng
@@ -98,7 +98,7 @@ module Roguelike
     # stream.
     #
     # This code does not call `String#hash`. Crystal seeds its hasher randomly
-    # in each process. `"level:3".hash` is a different number in every run. A
+    # in each process. `"floor:3".hash` is a different number in every run. A
     # seed derivation must give the same number in every run.
     #
     # Mixing the parent stream in makes derivation path dependent.

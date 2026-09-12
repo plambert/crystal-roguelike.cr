@@ -17,7 +17,7 @@ module Roguelike::Ui
     # What names the items on a square. `nil` names none of them.
     property lore : Lore? = nil
 
-    # Where the readout points, in the level's own coordinates. `nil` before
+    # Where the readout points, in the floor's own coordinates. `nil` before
     # anything has been looked at.
     getter spot : {Int32, Int32}?
 
@@ -27,12 +27,12 @@ module Roguelike::Ui
     def initialize(@map : MapPane, @pane : ExaminePane)
     end
 
-    # Points the readout at *x*, *y* of the level.
+    # Points the readout at *x*, *y* of the floor.
     #
-    # A square off the level does not move the readout. The readout keeps what
+    # A square off the floor does not move the readout. The readout keeps what
     # it last had.
     def point_at(x : Int32, y : Int32) : Bool
-      return false unless @map.level.contains? x, y
+      return false unless @map.floor.contains? x, y
 
       @spot = {x, y}
       refresh
@@ -75,7 +75,7 @@ module Roguelike::Ui
     end
 
     # Moves the cursor one square *direction*. Stops at the edges of the
-    # level. Brings the cursor into view.
+    # floor. Brings the cursor into view.
     #
     # This method does nothing while the cursor is off the map. The movement
     # keys can then be bound once. They mean the cursor here. They mean the
@@ -87,7 +87,7 @@ module Roguelike::Ui
       return false unless here
 
       wanted = direction.from here[0], here[1]
-      return false unless @map.level.contains? wanted[0], wanted[1]
+      return false unless @map.floor.contains? wanted[0], wanted[1]
 
       @spot = wanted
       @map.follow wanted[0], wanted[1]
@@ -100,7 +100,7 @@ module Roguelike::Ui
       here = @spot
 
       if here
-        @pane.show @map.level, here[0], here[1], @lore
+        @pane.show @map.floor, here[0], here[1], @lore
       else
         @pane.clear
       end

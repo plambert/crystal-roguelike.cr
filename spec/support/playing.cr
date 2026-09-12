@@ -89,7 +89,7 @@ module Playing
   # A game on one open room of *columns* by *rows*. The character starts in
   # the middle.
   #
-  # The shipped level has every door shut until phase 6 opens them. The
+  # The shipped floor has every door shut until phase 6 opens them. The
   # character cannot leave the room they start in. The camera never has to
   # move. A spec about walking a long way needs somewhere to walk.
   def self.field(columns : Int32 = 120, rows : Int32 = 60,
@@ -104,11 +104,11 @@ module Playing
       end
     end
 
-    level = Roguelike::Level.parse "field", map
-    world = Roguelike::World.new seed, {level.id => level}
+    floor = Roguelike::Floor.parse "field", map
+    world = Roguelike::World.new seed, {floor.id => floor}
 
     Roguelike::Game.new world,
-      Roguelike::Player.new(level.id, *Roguelike::Game.entrance(level))
+      Roguelike::Player.new(floor.id, *Roguelike::Game.entrance(floor))
   end
 
   # A run on *game*, drawn in a window of *columns* by *rows*.

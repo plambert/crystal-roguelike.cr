@@ -7,8 +7,8 @@ Spectator.describe "doors, stairs and leaving" do
   # A game on *map*, with the character at *x*, *y*, wired the way `Session`
   # wires it.
   def room(map : String, x : Int32, y : Int32) : Playing::Run
-    level = Roguelike::Level.parse "room", map
-    game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => level}),
+    floor = Roguelike::Floor.parse "room", map
+    game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}),
       Roguelike::Player.new("room", x, y)
 
     Playing.open game
@@ -20,7 +20,7 @@ Spectator.describe "doors, stairs and leaving" do
 
       run.press "l"
 
-      expect(run.game.level.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::OpenDoor
       expect(run.at).to eq({1, 1})
       expect(run.turn).to eq 1
     end
@@ -40,7 +40,7 @@ Spectator.describe "doors, stairs and leaving" do
 
       run.press "o"
 
-      expect(run.game.level.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::OpenDoor
       expect(run.turn).to eq 1
     end
 
@@ -70,8 +70,8 @@ Spectator.describe "doors, stairs and leaving" do
       run.press "o"
       run.press "k"
 
-      expect(run.game.level.terrain(1, 0)).to eq Terrain::OpenDoor
-      expect(run.game.level.terrain(2, 1)).to eq Terrain::ClosedDoor
+      expect(run.game.floor.terrain(1, 0)).to eq Terrain::OpenDoor
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::ClosedDoor
       expect(run.play.pending).to be_nil
     end
 
@@ -101,7 +101,7 @@ Spectator.describe "doors, stairs and leaving" do
       expect(run.play.pending).to be_nil
 
       run.press "l"
-      expect(run.game.level.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::OpenDoor
     end
   end
 
@@ -111,7 +111,7 @@ Spectator.describe "doors, stairs and leaving" do
 
       run.press "c"
 
-      expect(run.game.level.terrain(2, 1)).to eq Terrain::ClosedDoor
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::ClosedDoor
       expect(run.turn).to eq 1
     end
 
@@ -243,9 +243,9 @@ Spectator.describe "doors, stairs and leaving" do
     end
   end
 
-  # The walk the phase is for: out of the starting room, across the level, and
+  # The walk the phase is for: out of the starting room, across the floor, and
   # down the staircase at the far end.
-  describe "a whole run on the shipped level" do
+  describe "a whole run on the shipped floor" do
     # South out of room A through the door at 10,9, down the corridor and
     # through the four way junction at 10,12, on into room D, east along the
     # corridor at row 20, through the door at 54,20 into room C, and up to the
@@ -253,7 +253,7 @@ Spectator.describe "doors, stairs and leaving" do
     # The next walks through it. There are four doors on the way.
     WALK = "nnnnnjjjjjjjnlllnnnnn" + "l" * 43 + "u"
 
-    it "opens a door, crosses the level, and wins" do
+    it "opens a door, crosses the floor, and wins" do
       run = Playing.open
 
       WALK.each_char { |key| run.press key.to_s }
@@ -275,7 +275,7 @@ Spectator.describe "doors, stairs and leaving" do
       WALK.each_char { |key| run.press key.to_s }
 
       [{10, 9}, {10, 11}, {10, 13}, {54, 20}].each do |spot|
-        expect(run.game.level.terrain(spot[0], spot[1])).to eq Terrain::OpenDoor
+        expect(run.game.floor.terrain(spot[0], spot[1])).to eq Terrain::OpenDoor
       end
     end
 
@@ -289,7 +289,7 @@ Spectator.describe "doors, stairs and leaving" do
   end
 
   # Four shut doors around one square. `o` and `c` cannot guess which.
-  describe "the four way junction on the shipped level" do
+  describe "the four way junction on the shipped floor" do
     # From the up staircase down to the junction at 10,12. Two doors on the
     # way, at 10,9 and 10,11. Each takes one key to open and one to walk
     # through.
@@ -320,8 +320,8 @@ Spectator.describe "doors, stairs and leaving" do
       run.press "o"
       run.press "h"
 
-      expect(run.game.level.terrain(9, 12)).to eq Terrain::OpenDoor
-      expect(run.game.level.terrain(11, 12)).to eq Terrain::ClosedDoor
+      expect(run.game.floor.terrain(9, 12)).to eq Terrain::OpenDoor
+      expect(run.game.floor.terrain(11, 12)).to eq Terrain::ClosedDoor
     end
 
     # A person asked which way has to see which way.
@@ -434,7 +434,7 @@ Spectator.describe "doors, stairs and leaving" do
     # middle of the map pane would be behind it, and a person answering a
     # question about what is around them has to see what is around them.
     # One open room, large enough that the camera can put the character
-    # anywhere in the window. On the shipped level the character starts near a
+    # anywhere in the window. On the shipped floor the character starts near a
     # corner and the camera cannot centre them at all.
     def middled : Playing::Run
       run = Playing.open Playing.field
@@ -477,7 +477,7 @@ Spectator.describe "doors, stairs and leaving" do
       expect(run.map.camera).to eq before
     end
 
-    # The character starts near the top left corner of the shipped level. The
+    # The character starts near the top left corner of the shipped floor. The
     # box covers the middle of the screen and never reaches them.
     it "does not move the camera for a character already clear of the box" do
       run = Playing.open

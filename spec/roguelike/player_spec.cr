@@ -34,7 +34,7 @@ Spectator.describe Roguelike::Player do
       again = described_class.from_json player.to_json
 
       expect(again.at).to eq player.at
-      expect(again.level).to eq player.level
+      expect(again.floor).to eq player.floor
     end
 
     # A save that stored the floor twice would hold one copy in the world and

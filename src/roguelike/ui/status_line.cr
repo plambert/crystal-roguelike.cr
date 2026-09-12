@@ -60,10 +60,10 @@ module Roguelike::Ui
       @bar.set "turn", game.turn.to_s
     end
 
-    # Experience, over what the next level needs.
+    # Experience, over what the next floor needs.
     #
-    # `25/40` is twenty five points of the forty the next level takes. The
-    # last level has no next one, so it shows the count on its own.
+    # `25/40` is twenty five points of the forty the next floor takes. The
+    # last floor has no next one, so it shows the count on its own.
     private def experience(player : Player) : String
       wanted = player.to_next_level
       return player.experience.to_s unless wanted

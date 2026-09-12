@@ -14,7 +14,7 @@ module Roguelike::Ui
     # The widget itself. A caller puts it in a tree.
     getter root : Widgets::Panel
 
-    # Where the readout points, in the level's own coordinates.
+    # Where the readout points, in the floor's own coordinates.
     getter where : Widgets::Label
 
     # What is on that square.
@@ -47,12 +47,12 @@ module Roguelike::Ui
         @where, @what, @detail, @litter
     end
 
-    # Says what is on *level* at *x*, *y*.
+    # Says what is on *floor* at *x*, *y*.
     #
     # *lore* names whatever is lying there, because the name depends on what
     # the character has found out.
-    def show(level : Level, x : Int32, y : Int32, lore : Lore? = nil) : Nil
-      terrain = level.terrain x, y
+    def show(floor : Floor, x : Int32, y : Int32, lore : Lore? = nil) : Nil
+      terrain = floor.terrain x, y
 
       @where.text = "#{x}, #{y}"
       @where.hidden = false
@@ -60,7 +60,7 @@ module Roguelike::Ui
       @what.style = Palette[terrain].style
       @detail.text = terrain.description
 
-      pile = level.items x, y
+      pile = floor.items x, y
       @litter.hidden = pile.empty?
       @litter.text = listed pile, lore
     end

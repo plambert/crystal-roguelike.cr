@@ -46,7 +46,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(seen.last).to eq "stone floor"
     end
 
-    it "follows the camera rather than the level's own origin" do
+    it "follows the camera rather than the floor's own origin" do
       run = Playing.open
       run.map.center_on 62, 19
       run.render
@@ -77,9 +77,9 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.examiner.spot).to eq({6, 5})
     end
 
-    it "leaves it alone past the edge of a level smaller than the window" do
+    it "leaves it alone past the edge of a floor smaller than the window" do
       run = Playing.open
-      run.map.level = Roguelike::Level.parse "tiny", "##\n##"
+      run.map.floor = Roguelike::Floor.parse "tiny", "##\n##"
       run.render
 
       hover run, 1, 1
@@ -209,7 +209,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       expect(run.examiner.spot).to eq({6, 5})
     end
 
-    it "stop at the edge of the level" do
+    it "stop at the edge of the floor" do
       run = Playing.open
 
       hover run, 0, 0

@@ -7,7 +7,7 @@
 #
 # `Demo::Field` is what this program shows. It is a 200 by 200 field. It
 # carries guide lines, the coordinates of every crossing, a diagonal and a
-# plus in the middle. It is a `Cells` subclass. A level in a game has the same
+# plus in the middle. It is a `Cells` subclass. A floor in a game has the same
 # shape.
 #
 # This file moves with `CellGrid` when that goes to termbuf-widgets.cr.

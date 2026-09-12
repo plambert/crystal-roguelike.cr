@@ -19,7 +19,7 @@ Spectator.describe Roguelike::Ui::Play do
     it "is drawn over whatever it is standing on" do
       run = Playing.open
       spot = run.at
-      run.game.level.drop spot[0], spot[1],
+      run.game.floor.drop spot[0], spot[1],
         Roguelike::Item.new(Roguelike::ItemKind::Dagger)
       run.play.refresh
 
@@ -104,7 +104,7 @@ Spectator.describe Roguelike::Ui::Play do
 
       15.times { run.press "l" }
 
-      expect(run.game.level.terrain(21, start[1])).to eq Terrain::OpenDoor
+      expect(run.game.floor.terrain(21, start[1])).to eq Terrain::OpenDoor
       expect(run.at).to eq({20, start[1]})
     end
 
@@ -151,13 +151,13 @@ Spectator.describe Roguelike::Ui::Play do
       end
     end
 
-    it "stops at the edge of the level rather than showing past it" do
+    it "stops at the edge of the floor rather than showing past it" do
       run = Playing.open Playing.field
 
       200.times { run.press "n" }
       camera = run.map.camera
       room = run.map.grid.viewport_size
-      columns, rows = run.game.level.size
+      columns, rows = run.game.floor.size
 
       expect(camera[0] + room[0]).to be <= columns
       expect(camera[1] + room[1]).to be <= rows
@@ -187,7 +187,7 @@ Spectator.describe Roguelike::Ui::Play do
   end
 
   describe "while the examine cursor is up" do
-    # A person reading the level is not walking about it. The same keys mean
+    # A person reading the floor is not walking about it. The same keys mean
     # the cursor until the cursor comes off.
     it "moves the cursor and not the character" do
       run = Playing.open

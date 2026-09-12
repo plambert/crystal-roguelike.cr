@@ -4,37 +4,37 @@ Spectator.describe "items on the floor" do
   alias Kind = Roguelike::ItemKind
   alias Item = Roguelike::Item
 
-  # A one room level with the character in the middle and nothing on it.
+  # A one room floor with the character in the middle and nothing on it.
   def bare : Roguelike::Game
-    level = Roguelike::Level.parse "room", "#####\n#...#\n#.<.#\n#...#\n#####"
-    level.clear_items 2, 2
+    floor = Roguelike::Floor.parse "room", "#####\n#...#\n#.<.#\n#...#\n#####"
+    floor.clear_items 2, 2
 
-    Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => level}),
+    Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}),
       Roguelike::Player.new("room", 2, 2)
   end
 
-  describe "Level#drop" do
+  describe "Floor#drop" do
     it "puts an item on a square" do
       game = bare
-      game.level.drop 2, 2, Item.new(Kind::Dagger)
+      game.floor.drop 2, 2, Item.new(Kind::Dagger)
 
       expect(game.here.size).to eq 1
-      expect(game.level.items?(2, 2)).to be_true
+      expect(game.floor.items?(2, 2)).to be_true
     end
 
     it "leaves other squares bare" do
       game = bare
-      game.level.drop 2, 2, Item.new(Kind::Dagger)
+      game.floor.drop 2, 2, Item.new(Kind::Dagger)
 
-      expect(game.level.items?(1, 1)).to be_false
+      expect(game.floor.items?(1, 1)).to be_false
     end
 
     # Two piles of the same thing on one square would be two entries to pick
     # up where a person sees one heap.
     it "joins a stack already there" do
       game = bare
-      game.level.drop 2, 2, Item.new(Kind::Arrow, count: 5)
-      game.level.drop 2, 2, Item.new(Kind::Arrow, count: 7)
+      game.floor.drop 2, 2, Item.new(Kind::Arrow, count: 5)
+      game.floor.drop 2, 2, Item.new(Kind::Arrow, count: 7)
 
       expect(game.here.size).to eq 1
       expect(game.here.first.count).to eq 12
@@ -42,8 +42,8 @@ Spectator.describe "items on the floor" do
 
     it "keeps a different stack apart" do
       game = bare
-      game.level.drop 2, 2, Item.new(Kind::Arrow, count: 5)
-      game.level.drop 2, 2, Item.new(Kind::Arrow, 1, count: 5)
+      game.floor.drop 2, 2, Item.new(Kind::Arrow, count: 5)
+      game.floor.drop 2, 2, Item.new(Kind::Arrow, 1, count: 5)
 
       expect(game.here.size).to eq 2
     end
@@ -53,7 +53,7 @@ Spectator.describe "items on the floor" do
     it "takes an item off the floor and into a letter" do
       game = bare
       dagger = Item.new Kind::Dagger
-      game.level.drop 2, 2, dagger
+      game.floor.drop 2, 2, dagger
 
       expect(game.pick_up(dagger)).to be_true
       expect(game.here).to be_empty
@@ -63,7 +63,7 @@ Spectator.describe "items on the floor" do
     it "takes a turn" do
       game = bare
       dagger = Item.new Kind::Dagger
-      game.level.drop 2, 2, dagger
+      game.floor.drop 2, 2, dagger
       game.pick_up dagger
 
       expect(game.turn).to eq 1
@@ -72,7 +72,7 @@ Spectator.describe "items on the floor" do
     it "says which letter it went under" do
       game = bare
       dagger = Item.new Kind::Dagger
-      game.level.drop 2, 2, dagger
+      game.floor.drop 2, 2, dagger
       game.pick_up dagger
 
       expect(game.log.last?).to eq "a - a dagger"
@@ -90,7 +90,7 @@ Spectator.describe "items on the floor" do
     it "counts gold rather than carrying it" do
       game = bare
       coins = Item.new Kind::Gold, count: 42
-      game.level.drop 2, 2, coins
+      game.floor.drop 2, 2, coins
 
       expect(game.pick_up(coins)).to be_true
       expect(game.player.gold).to eq 42
@@ -100,11 +100,11 @@ Spectator.describe "items on the floor" do
     it "adds one pile of gold to another" do
       game = bare
       first = Item.new Kind::Gold, count: 10
-      game.level.drop 2, 2, first
+      game.floor.drop 2, 2, first
       game.pick_up first
 
       second = Item.new Kind::Gold, count: 5
-      game.level.drop 2, 2, second
+      game.floor.drop 2, 2, second
       game.pick_up second
 
       expect(game.player.gold).to eq 15
@@ -117,7 +117,7 @@ Spectator.describe "items on the floor" do
       end
 
       dagger = Item.new Kind::Dagger
-      game.level.drop 2, 2, dagger
+      game.floor.drop 2, 2, dagger
 
       expect(game.pick_up(dagger)).to be_false
       expect(game.here.size).to eq 1
@@ -126,9 +126,9 @@ Spectator.describe "items on the floor" do
 
     it "picks up everything on the square" do
       game = bare
-      game.level.drop 2, 2, Item.new(Kind::Dagger)
-      game.level.drop 2, 2, Item.new(Kind::LongSword)
-      game.level.drop 2, 2, Item.new(Kind::Gold, count: 9)
+      game.floor.drop 2, 2, Item.new(Kind::Dagger)
+      game.floor.drop 2, 2, Item.new(Kind::LongSword)
+      game.floor.drop 2, 2, Item.new(Kind::Gold, count: 9)
 
       expect(game.pick_up_all).to eq 3
       expect(game.here).to be_empty
@@ -213,7 +213,7 @@ Spectator.describe "items on the floor" do
   describe "walking onto a square" do
     it "says what one thing there is" do
       game = bare
-      game.level.drop 3, 2, Item.new(Kind::Dagger)
+      game.floor.drop 3, 2, Item.new(Kind::Dagger)
       game.step Roguelike::Direction::East
 
       expect(game.log.last?).to eq "You see a dagger here."
@@ -221,8 +221,8 @@ Spectator.describe "items on the floor" do
 
     it "counts more than one" do
       game = bare
-      game.level.drop 3, 2, Item.new(Kind::Dagger)
-      game.level.drop 3, 2, Item.new(Kind::LongSword)
+      game.floor.drop 3, 2, Item.new(Kind::Dagger)
+      game.floor.drop 3, 2, Item.new(Kind::LongSword)
       game.step Roguelike::Direction::East
 
       expect(game.log.last?).to eq "There are 2 things here."
@@ -237,11 +237,11 @@ Spectator.describe "items on the floor" do
     end
   end
 
-  describe "the level the game ships" do
+  describe "the floor the game ships" do
     it "has items scattered on it" do
       game = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED)
       piles = 0
-      game.level.each_pile { |_x, _y, pile| piles += pile.size }
+      game.floor.each_pile { |_x, _y, pile| piles += pile.size }
 
       expect(piles).to be > 0
     end
@@ -249,8 +249,8 @@ Spectator.describe "items on the floor" do
     it "puts them on floor and never in rock" do
       game = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED)
 
-      game.level.each_pile do |column, row, _pile|
-        expect(game.level.terrain(column, row).floor?).to be_true
+      game.floor.each_pile do |column, row, _pile|
+        expect(game.floor.terrain(column, row).floor?).to be_true
       end
     end
 
@@ -260,21 +260,21 @@ Spectator.describe "items on the floor" do
       first = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED)
       again = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED)
 
-      expect(again.level.litter).to eq first.level.litter
+      expect(again.floor.litter).to eq first.floor.litter
     end
 
     it "scatters different items from a different seed" do
       first = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED)
       other = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED + 1)
 
-      expect(other.level.litter).not_to eq first.level.litter
+      expect(other.floor.litter).not_to eq first.floor.litter
     end
   end
 
   describe "serialization" do
     it "keeps what is on the floor" do
       game = bare
-      game.level.drop 2, 2, Item.new(Kind::Arrow, count: 7)
+      game.floor.drop 2, 2, Item.new(Kind::Arrow, count: 7)
       again = Roguelike::Game.from_json game.to_json
 
       expect(again.here.size).to eq 1
