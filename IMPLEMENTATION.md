@@ -42,9 +42,16 @@ actually been run rather than reasoned about.
 
 These hold from Phase 0 and are not revisited.
 
-* **One seeded RNG.** A single `Random::PCG32` is created from the seed and threaded through
-  everything that needs randomness. Nothing calls the global `Random`. `--seed N` reproduces a
-  run exactly, which is what makes every later phase testable.
+* **One seed, many streams.** A run has one seed and `--seed N` reproduces it exactly, which is
+  what makes every later phase testable. It does not have one sequence: `Rng#derive(domain, id)`
+  picks an independent PCG32 stream from a stable hash of the name, so what a level, a loot
+  table or a monster band draws does not depend on what anything else drew first. One shared
+  stream would make a run deterministic without making it stable — adding a roll anywhere shifts
+  every roll after it — and it cannot work at all once planning is parallel, because the
+  interleaving between threads is not the same twice. Nothing calls the global `Random`, and a
+  derived generator belongs to one fiber.
+* **A domain name is part of the seed contract.** Renaming one changes every seed that reaches
+  it. The pinned derivation specs are there so that is a decision rather than an accident.
 * **The game is headless-testable.** `TermBuf::Widgets::App` takes a `TermBuf::Drawing` and an
   event channel rather than a `Terminal`, so specs drive the whole UI over a bare
   `TermBuf::Buffer` and assert on `Buffer#to_text`. Every phase that draws something gets a
@@ -162,13 +169,15 @@ makes the rest cheap to verify.
 
 * **Build** — Rename the module to `Roguelike`. `Shell::AutoComplete` for the command line:
   `--version`, `--seed N`, `--threads N` as a placeholder, and `--shell-completion` for free.
-  A `Roguelike::Rng` wrapping `Random::PCG32`, created from the seed and printed at startup. The
-  spec helper that builds an `App` over a `TermBuf::Buffer` with an `IO::Memory`-backed event
-  channel.
+  A `Roguelike::Rng` over `Random::PCG32`, carrying its seed and its stream, with
+  `#derive(domain, id)` for the independent stream a subsystem draws from. The spec helper that
+  builds an `App` over a `TermBuf::Buffer` with an `IO::Memory`-backed event channel.
 * **Verify** — `shards build` produces a binary. `--version` reports what is in `shard.yml`.
   `--help` and `--shell-completion bash` both produce sensible output. Two runs with the same
-  `--seed` draw the same sequence from the RNG; two different seeds do not. The spec helper
-  builds an empty app and `Buffer#to_text` comes back blank.
+  `--seed` draw the same sequence from the RNG; two different seeds do not. A derived generator
+  draws the same sequence however much its parent or its siblings have been drawn from, and the
+  streams it derives are pinned so a change to the hash fails a spec. The spec helper builds an
+  empty app and `Buffer#to_text` comes back blank.
 
 ### Phase 1 — Four regions on the screen
 
