@@ -13,8 +13,9 @@ module Roguelike
     # ends. That includes an exception and a signal. The block form of
     # `Terminal.open` does that.
     #
-    # Answers false when the window is too small to play in. It writes the
-    # reason to stderr. It does not take the terminal over at all.
+    # Answers the session that ran. Answers `nil` when the window is too small
+    # to play in. It writes the reason to stderr in that case. It does not
+    # take the terminal over at all.
     #
     # This method reads the size before it enters the alternate screen. The
     # message then stays where the person can read it. Handing the screen back
@@ -23,19 +24,21 @@ module Roguelike
     # `SizeDetector` is termbuf's internal tier. The stable API cannot answer
     # how big a terminal is without opening it. The other way to find out is
     # to enter the alternate screen and leave it again.
-    def self.open(rng : Rng) : Bool
+    def self.open(rng : Rng) : Session?
       size = TermBuf::SizeDetector.detect
 
       unless Ui::Screen.fits? size.columns, size.rows
         STDERR.puts Ui::Screen.too_small(size.columns, size.rows)
-        return false
+        return
       end
 
+      ran = nil.as Session?
       TermBuf::Terminal.open do |terminal|
-        new(terminal, rng).run
+        ran = new terminal, rng
+        ran.try &.run
       end
 
-      true
+      ran
     end
 
     # The device. This class touches no other.
@@ -63,9 +66,6 @@ module Roguelike
     # person select text with it.
     getter? mousing : Bool = false
 
-    # Whether something has ended the run.
-    getter? leaving : Bool = false
-
     def initialize(@terminal : TermBuf::Terminal, @rng : Rng)
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
@@ -76,6 +76,7 @@ module Roguelike
       @app = Ui::Widgets::App.new @terminal, @play.root, bounds,
         @terminal.events, @terminal.policy
       @cursor = @terminal.cursor bounds
+      @play.app = @app
 
       @app.after = ->(span : Time::Span) { @terminal.after span }
       @app.cancel = ->(nonce : UInt64) { @terminal.cancel nonce }
@@ -83,7 +84,7 @@ module Roguelike
       @app.images = @terminal.images
       @app.on_event = ->(event : TermBuf::Event) { unclaimed event }
 
-      @help = Ui::Keys.install(@app) { @leaving = true }
+      @help = Ui::Keys.install(@app) { @play.confirm_quit }
       @app.keymap = @app.keymap
         .merge(@play.bindings)
         .merge(Ui::Keys.mousing { self.mousing = !mousing? })
@@ -111,7 +112,7 @@ module Roguelike
       loop do
         draw
 
-        break if @leaving
+        break if @play.finished?
         break unless @app.wait
       end
     ensure

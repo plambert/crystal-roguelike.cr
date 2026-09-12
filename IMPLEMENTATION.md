@@ -153,7 +153,7 @@ naming what still has to be decided before it moves.
 | Piece | Built in | What it is |
 |---|---|---|
 | `Cells(T)` and `CellGrid(T)` | Phase 2 | A 2D addressable grid widget with a camera |
-| Single-key prompt | Phase 6 | `[yn]` on one line, no button group, no Tab |
+| `Prompt` | Phase 6 | `[yn]` on one line, no button group, no Tab |
 | Paged message line | Phase 7 | `--More--` held at a page boundary |
 | Accelerator menus | Phase 10 | A list addressed by letter rather than filtered |
 | Quantized style ramp | Phase 14 | A `Blend` over N fixed steps, so styles stay interned |
@@ -265,9 +265,12 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 
 ### Phase 6 — Doors, stairs, and winning
 
-* **Build** — Walking into a closed door opens it and costs the turn; `o` and `c` do it
-  deliberately. `>` on the down stairs ends the game as a win; `<` on the up stairs leaves. A
-  one-line `[yn]` prompt — the first extraction candidate — behind `Q` and behind `<`.
+* **Build** — Walking into a closed door opens it and costs the turn. `o` and `c` do it
+  deliberately, asking for a direction only when more than one door is adjacent. `>` on the down
+  stairs ends the game as a win. `<` on the up stairs leaves. A one-line `[yn]` prompt, the
+  first extraction candidate, behind `Q` and behind `<`. The prompt pushes a focus scope while a
+  question is up, because `Router` consults the chain's keymaps before any widget's `#handle`
+  and an application binding would otherwise answer before the prompt saw the key.
 * **Verify** — A scripted sequence opens a door, crosses the level, descends, and the win screen
   appears. `Q` prompts, `n` returns to the game, `y` exits. A spec asserts that `>` anywhere but
   on the stairs says so and does not win.

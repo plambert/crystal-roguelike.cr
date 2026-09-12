@@ -92,12 +92,25 @@ Spectator.describe Roguelike::Ui::Play do
       expect(run.game.blocking(Roguelike::Direction::West)).not_to be_nil
     end
 
-    it "stops at a shut door" do
+    # Walking into a shut door opens it. Phase 6 added that.
+    it "opens a shut door instead of stopping at it" do
       run = Playing.open
+      start = run.at
 
-      30.times { run.press "l" }
+      15.times { run.press "l" }
 
-      expect(run.game.blocking(Roguelike::Direction::East)).to eq Terrain::ClosedDoor
+      expect(run.game.level.terrain(21, start[1])).to eq Terrain::OpenDoor
+      expect(run.at).to eq({20, start[1]})
+    end
+
+    it "walks through the door it opened" do
+      run = Playing.open
+      start = run.at
+
+      20.times { run.press "l" }
+
+      expect(run.at[0]).to be > 21
+      expect(run.at[1]).to eq start[1]
     end
   end
 

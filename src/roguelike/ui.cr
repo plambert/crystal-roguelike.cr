@@ -1,5 +1,6 @@
 require "termbuf-widgets"
 require "./termbuf_ext/cell_grid"
+require "./termbuf_ext/prompt"
 
 # Everything drawn on the screen.
 #

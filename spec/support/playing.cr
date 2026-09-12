@@ -28,7 +28,13 @@ module Playing
                    @told : Array(String))
     end
 
-    delegate game, screen, map, examine, examiner, pointer, to: @play
+    delegate game, screen, map, examine, examiner, pointer, prompt, to: @play
+
+    # Whether the run should end.
+    def finished? : Bool
+      @play.finished?
+    end
+
     delegate render, rows, row, text, buffer, to: @session
 
     # Where the character is.
@@ -103,9 +109,12 @@ module Playing
     play.fit columns, rows
 
     session = Headless.open play.root, columns, rows
+    play.app = session.app
     told = [] of String
 
-    session.app.keymap = session.app.keymap.merge play.bindings
+    session.app.keymap = session.app.keymap
+      .merge(play.bindings)
+      .merge(Roguelike::Ui::Keys.application { play.confirm_quit })
     session.app.on_event = ->(event : TermBuf::Event) do
       report = event.as? TermBuf::Events::Mouse
 

@@ -20,12 +20,19 @@ module Roguelike
 
     def run
       rng = Rng.for seed
+      session = Session.open rng
 
-      exit 1 unless Session.open rng
+      exit 1 unless session
 
-      # This line runs after the terminal is restored. The alternate screen is
-      # gone by then. The seed stays in the scrollback.
-      puts "seed #{rng.seed}"
+      # These lines run after the terminal is restored. The alternate screen
+      # is gone by then. They stay in the scrollback.
+      game = session.game
+      puts case game.outcome
+      in .won?     then "You escaped with your life. You win."
+      in .left?    then "You climbed back out."
+      in .playing? then "You left the dungeon where it was."
+      end
+      puts "seed #{rng.seed}    turn #{game.turn}"
     end
   end
 end

@@ -56,13 +56,30 @@ module Roguelike::Ui
     end
 
     # `x` puts the examine cursor on the map and takes it off again. `Escape`
-    # takes it off.
-    def self.examining(examiner : Examiner) : Widgets::Bindings
+    # takes back whatever is waiting.
+    def self.examining(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("x"), "look at a square",
-          ->(_context : Widgets::Context) { examiner.toggle; nil }
-        map.bind TermBuf::Key.parse("Escape"), "stop looking",
-          ->(_context : Widgets::Context) { examiner.stop; nil }
+          ->(_context : Widgets::Context) { play.examiner.toggle; nil }
+        map.bind TermBuf::Key.parse("Escape"), "stop what is waiting",
+          ->(_context : Widgets::Context) { play.cancel; nil }
+      end
+    end
+
+    # `o` opens a door. `c` closes one. `<` and `>` take a staircase.
+    #
+    # *play* answers each of these. A door needs a direction, and `Play` finds
+    # it or asks for it.
+    def self.acting(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("o"), "open a door",
+          ->(_context : Widgets::Context) { play.open_door; nil }
+        map.bind TermBuf::Key.parse("c"), "close a door",
+          ->(_context : Widgets::Context) { play.close_door; nil }
+        map.bind TermBuf::Key.parse(">"), "go down the staircase",
+          ->(_context : Widgets::Context) { play.descend; nil }
+        map.bind TermBuf::Key.parse("<"), "climb out of the dungeon",
+          ->(_context : Widgets::Context) { play.ascend; nil }
       end
     end
 

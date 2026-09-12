@@ -44,12 +44,20 @@ Spectator.describe Roguelike::Game do
     end
   end
 
+  # A game on *map*, with the character at *x*, *y*.
+  def one_room(map : String, x : Int32, y : Int32) : Roguelike::Game
+    level = Roguelike::Level.parse "room", map
+
+    described_class.new Roguelike::World.new(1_u64, {"room" => level}),
+      Roguelike::Player.new("room", x, y)
+  end
+
   describe "#step" do
     # The up staircase sits in a room. Every square around it is floor.
     it "moves one square and takes a turn" do
       start = game.player.at
 
-      expect(game.step(Direction::East)).to be_true
+      expect(game.step(Direction::East).moved?).to be_true
       expect(game.player.at).to eq({start[0] + 1, start[1]})
       expect(game.turn).to eq 1
     end
@@ -65,8 +73,8 @@ Spectator.describe Roguelike::Game do
       start = game.player.at
 
       Direction.each do |direction|
-        expect(game.step(direction)).to be_true
-        expect(game.step(direction.opposite)).to be_true
+        expect(game.step(direction).moved?).to be_true
+        expect(game.step(direction.opposite).moved?).to be_true
         expect(game.player.at).to eq start
       end
 
@@ -76,59 +84,161 @@ Spectator.describe Roguelike::Game do
     # A blocked step is not an action. No other creature on the level should
     # get a turn out of it.
     it "will not walk into rock, and costs no turn for trying" do
-      level = Roguelike::Level.parse "cell", "###\n#<#\n###"
-      shut = described_class.new(Roguelike::World.new(1_u64, {"cell" => level}),
-        Roguelike::Player.new("cell", 1, 1))
+      shut = one_room "###\n#<#\n###", 1, 1
 
       Direction.each do |direction|
-        expect(shut.step(direction)).to be_false
+        expect(shut.step(direction).blocked?).to be_true
       end
 
       expect(shut.player.at).to eq({1, 1})
       expect(shut.turn).to eq 0
     end
 
-    it "will not walk through a shut door" do
-      level = Roguelike::Level.parse "hall", "###\n#<+\n###"
-      shut = described_class.new(Roguelike::World.new(1_u64, {"hall" => level}),
-        Roguelike::Player.new("hall", 1, 1))
+    # A person opens a door in one turn. They walk through it in the next.
+    it "opens a shut door and stays where it is" do
+      shut = one_room "###\n#<+\n###", 1, 1
 
-      expect(shut.step(Direction::East)).to be_false
-      expect(shut.turn).to eq 0
+      expect(shut.step(Direction::East).opened?).to be_true
+      expect(shut.player.at).to eq({1, 1})
+      expect(shut.level.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(shut.turn).to eq 1
+    end
+
+    it "walks through the door it opened, on the next step" do
+      shut = one_room "###\n#<+\n###", 1, 1
+
+      shut.step Direction::East
+      expect(shut.step(Direction::East).moved?).to be_true
+      expect(shut.player.at).to eq({2, 1})
+      expect(shut.turn).to eq 2
     end
 
     it "walks through a door standing open" do
-      level = Roguelike::Level.parse "hall", "###\n#<'\n###"
-      open = described_class.new(Roguelike::World.new(1_u64, {"hall" => level}),
-        Roguelike::Player.new("hall", 1, 1))
+      open = one_room "###\n#<'\n###", 1, 1
 
-      expect(open.step(Direction::East)).to be_true
+      expect(open.step(Direction::East).moved?).to be_true
       expect(open.player.at).to eq({2, 1})
     end
 
     it "will not walk off the level" do
-      level = Roguelike::Level.parse "ledge", "<"
-      edge = described_class.new(Roguelike::World.new(1_u64, {"ledge" => level}),
-        Roguelike::Player.new("ledge", 0, 0))
+      edge = one_room "<", 0, 0
 
-      Direction.each { |direction| expect(edge.step(direction)).to be_false }
+      Direction.each { |direction| expect(edge.step(direction).blocked?).to be_true }
       expect(edge.turn).to eq 0
     end
 
+    # North out of the starting room reaches rock. East would open the door
+    # and keep going.
     it "counts only the turns that happened" do
-      walk = ([Direction::East] * 40)
-      taken = walk.count { |direction| game.step direction }
+      walk = ([Direction::North] * 40)
+      taken = walk.count { |direction| game.step(direction).turn? }
 
       expect(game.turn).to eq taken
       expect(taken).to be < walk.size
     end
   end
 
+  describe "#open" do
+    it "opens a shut door and takes a turn" do
+      shut = one_room "###\n#<+\n###", 1, 1
+
+      expect(shut.open(Direction::East)).to be_true
+      expect(shut.level.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(shut.turn).to eq 1
+    end
+
+    it "will not open rock, and costs no turn for trying" do
+      shut = one_room "###\n#<+\n###", 1, 1
+
+      expect(shut.open(Direction::North)).to be_false
+      expect(shut.turn).to eq 0
+    end
+
+    it "will not open a door that is already open" do
+      open = one_room "###\n#<'\n###", 1, 1
+
+      expect(open.open(Direction::East)).to be_false
+    end
+  end
+
+  describe "#close" do
+    it "closes an open door and takes a turn" do
+      open = one_room "###\n#<'\n###", 1, 1
+
+      expect(open.close(Direction::East)).to be_true
+      expect(open.level.terrain(2, 1)).to eq Terrain::ClosedDoor
+      expect(open.turn).to eq 1
+    end
+
+    it "will not close a door that is already shut" do
+      shut = one_room "###\n#<+\n###", 1, 1
+
+      expect(shut.close(Direction::East)).to be_false
+      expect(shut.turn).to eq 0
+    end
+  end
+
+  describe "#doors" do
+    it "finds every shut door beside the character" do
+      two = one_room "#+#\n#<+\n###", 1, 1
+
+      expect(two.doors(Terrain::ClosedDoor).to_set)
+        .to eq [Direction::North, Direction::East].to_set
+    end
+
+    it "finds nothing when there is nothing" do
+      none = one_room "###\n#<#\n###", 1, 1
+
+      expect(none.doors(Terrain::ClosedDoor)).to be_empty
+    end
+
+    it "looks on the diagonals too" do
+      corner = one_room "##+\n#<#\n###", 1, 1
+
+      expect(corner.doors(Terrain::ClosedDoor)).to eq [Direction::NorthEast]
+    end
+  end
+
+  describe "#descend" do
+    it "wins the run from the down staircase" do
+      down = one_room "###\n#>#\n###", 1, 1
+
+      expect(down.descend).to be_true
+      expect(down.outcome).to eq Roguelike::Outcome::Won
+      expect(down.over?).to be_true
+    end
+
+    it "does nothing anywhere else" do
+      expect(game.descend).to be_false
+      expect(game.outcome).to eq Roguelike::Outcome::Playing
+      expect(game.over?).to be_false
+    end
+  end
+
+  describe "#ascend" do
+    it "ends the run from the up staircase, without a win" do
+      expect(game.ascend).to be_true
+      expect(game.outcome).to eq Roguelike::Outcome::Left
+      expect(game.over?).to be_true
+    end
+
+    it "does nothing anywhere else" do
+      away = one_room "###\n#.#\n###", 1, 1
+
+      expect(away.ascend).to be_false
+      expect(away.outcome).to eq Roguelike::Outcome::Playing
+    end
+  end
+
+  describe "#standing_on" do
+    it "answers the terrain under the character" do
+      expect(game.standing_on).to eq Terrain::StairsUp
+    end
+  end
+
   describe "#blocking" do
     it "names what is in the way" do
-      level = Roguelike::Level.parse "hall", "###\n#<+\n###"
-      shut = described_class.new(Roguelike::World.new(1_u64, {"hall" => level}),
-        Roguelike::Player.new("hall", 1, 1))
+      shut = one_room "###\n#<+\n###", 1, 1
 
       expect(shut.blocking(Direction::East)).to eq Terrain::ClosedDoor
       expect(shut.blocking(Direction::North)).to eq Terrain::Granite
@@ -139,9 +249,7 @@ Spectator.describe Roguelike::Game do
     end
 
     it "answers nothing off the level" do
-      level = Roguelike::Level.parse "ledge", "<"
-      edge = described_class.new(Roguelike::World.new(1_u64, {"ledge" => level}),
-        Roguelike::Player.new("ledge", 0, 0))
+      edge = one_room "<", 0, 0
 
       expect(edge.blocking(Direction::East)).to be_nil
     end
@@ -164,6 +272,22 @@ Spectator.describe Roguelike::Game do
 
       expect(again.step(Direction::South)).to eq game.step(Direction::South)
       expect(again.player.at).to eq game.player.at
+    end
+
+    it "keeps a door that was opened" do
+      shut = one_room "###\n#<+\n###", 1, 1
+      shut.open Direction::East
+
+      again = described_class.from_json shut.to_json
+
+      expect(again.level.terrain(2, 1)).to eq Terrain::OpenDoor
+    end
+
+    it "keeps the outcome" do
+      game.ascend
+      again = described_class.from_json game.to_json
+
+      expect(again.outcome).to eq Roguelike::Outcome::Left
     end
   end
 end
