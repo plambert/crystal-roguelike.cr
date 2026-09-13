@@ -92,6 +92,12 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.fire; nil }
         map.bind TermBuf::Key.parse("t"), "throw something",
           ->(_context : Widgets::Context) { play.throw; nil }
+        map.bind TermBuf::Key.parse("q"), "drink a potion",
+          ->(_context : Widgets::Context) { play.quaff; nil }
+        map.bind TermBuf::Key.parse("r"), "read a scroll",
+          ->(_context : Widgets::Context) { play.read; nil }
+        map.bind TermBuf::Key.parse("z"), "zap a wand",
+          ->(_context : Widgets::Context) { play.zap; nil }
         map.bind TermBuf::Key.parse("a"), "light or put out a flame",
           ->(_context : Widgets::Context) { play.apply; nil }
         map.bind TermBuf::Key.parse(">"), "go down the staircase",

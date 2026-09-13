@@ -1,6 +1,7 @@
 require "json"
 require "./apply"
 require "./combat"
+require "./effect"
 require "./equipment"
 require "./field_of_view"
 require "./flight"
@@ -93,6 +94,12 @@ module Roguelike
     # This names the generator for the next one. See `#exchange`.
     getter blows : Int32
 
+    # How many items have been used in this run.
+    #
+    # The same idea as `#blows`, on its own stream. A potion drunk mid-fight
+    # must not shift the swings that follow it.
+    getter uses : Int32
+
     # What has just happened.
     getter log : MessageLog
 
@@ -110,7 +117,8 @@ module Roguelike
                    @outcome : Outcome = Outcome::Playing,
                    @log : MessageLog = MessageLog.new,
                    @lore : Lore = Lore.new,
-                   @blows : Int32 = 0)
+                   @blows : Int32 = 0,
+                   @uses : Int32 = 0)
     end
 
     # What *item* is called, as this character would call it.
@@ -430,23 +438,26 @@ module Roguelike
       spot = shot.at
       struck = floor.monster spot[0], spot[1]
 
-      hit struck, missile, bonus, damage if struck
+      hit struck, missile.kind.label, bonus, damage if struck
 
       floor.drop spot[0], spot[1], missile
       spend_turn
     end
 
-    # *missile* meets *creature*. Answers what the throw did.
-    private def hit(creature : Monster, missile : Item, bonus : Int32,
+    # Something called *noun* meets *creature*. Answers what it did.
+    #
+    # An arrow, a thrown rock and a bolt from a wand all land here. The noun
+    # is what the message calls it.
+    private def hit(creature : Monster, noun : String, bonus : Int32,
                     damage : Dice) : Blow
       blow = Combat.swing exchange, bonus, creature.armour_class, damage
 
       if blow.hit?
         creature.hurt blow.damage
-        say "The #{missile.kind.label} hits the #{creature.label} for #{blow.damage}."
+        say "The #{noun} hits the #{creature.label} for #{blow.damage}."
         kill creature unless creature.alive?
       else
-        say "The #{missile.kind.label} misses the #{creature.label}."
+        say "The #{noun} misses the #{creature.label}."
       end
 
       wake creature if creature.alive?
@@ -815,6 +826,18 @@ module Roguelike
       found
     end
 
+    # The generator for the next thing used.
+    #
+    # `#exchange` without the fight. A potion drunk between two swings rolls
+    # here, so the swings roll the same numbers whether it was drunk or not.
+    private def draught : Rng
+      root = (@root ||= Rng.new @world.seed)
+      found = root.derive "use", @uses
+      @uses += 1
+
+      found
+    end
+
     # Opens the door *direction*. Answers whether it opened.
     #
     # Opening takes a turn. Trying to open something that is not a shut door
@@ -1130,6 +1153,194 @@ module Roguelike
       say "You drop #{dropped} gold pieces."
       spend_turn
       dropped
+    end
+
+    # ---------------------------------------------------------- consumables
+
+    # What using the item under *letter* would do.
+    #
+    # `Play` asks this before it uses the item. A wand that needs a square to
+    # aim at and a scroll that needs an item to work on each say so here, so
+    # the question is asked before the turn is spent rather than after.
+    def effect_of(letter : Char) : Effect
+      @player.inventory[letter].try(&.kind.effect) || Effect::None
+    end
+
+    # Drinks what is under *letter*. Answers whether it went down.
+    def quaff(letter : Char) : Bool
+      use letter, ItemClass::Potion, "drink" do |item|
+        say "You drink #{name item}."
+      end
+    end
+
+    # Reads what is under *letter*. Answers whether it was read.
+    #
+    # *choice* is the carried item a scroll of identify works on. Every other
+    # scroll ignores it.
+    def read(letter : Char, choice : Char? = nil) : Bool
+      use letter, ItemClass::Scroll, "read", choice do |item|
+        say "You read #{name item}."
+      end
+    end
+
+    # Zaps what is under *letter*. Answers whether anything came out of it.
+    #
+    # *target* is the square an offensive wand is aimed at. A wand of light
+    # ignores it.
+    #
+    # A charge goes whether or not the wand does anything worth seeing. A
+    # spent one says so and still costs the turn: a person cannot know a wand
+    # is empty until they try it.
+    def zap(letter : Char, target : {Int32, Int32}? = nil) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      unless item.kind.item_class.wand?
+        say "You cannot zap #{name item}."
+        return false
+      end
+
+      unless item.spend
+        say "You zap #{name item}. Nothing happens."
+        spend_turn
+        return true
+      end
+
+      say "You zap #{name item}."
+      work item.kind.effect, item, target: target
+      found_out item.kind
+      spend_turn
+      true
+    end
+
+    # Uses one of what is under *letter*, which has to be of *item_class*.
+    #
+    # A potion and a scroll are used up. The block says what using it looks
+    # like, before the effect says what it did.
+    private def use(letter : Char, item_class : ItemClass, verb : String,
+                    choice : Char? = nil, & : Item -> Nil) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      unless item.kind.item_class == item_class
+        say "You cannot #{verb} #{name item}."
+        return false
+      end
+
+      used = @player.inventory.take letter, 1
+      return false unless used
+      @player.equipment.clean @player.inventory
+
+      yield used
+      work used.kind.effect, used, choice: choice
+      found_out used.kind
+      spend_turn
+      true
+    end
+
+    # Does what *effect* names.
+    #
+    # This is the one place an effect turns into something happening. Every
+    # item names its effect and nothing holds a block, so this method is the
+    # whole registry.
+    private def work(effect : Effect, item : Item,
+                     choice : Char? = nil,
+                     target : {Int32, Int32}? = nil) : Nil
+      case effect
+      in .none?      then say "Nothing happens."
+      in .heal?      then mend item
+      in .identify?  then name_one choice
+      in .map_floor? then map_the_floor
+      in .light?     then light_up
+      in .strike?    then bolt item, target
+      end
+    end
+
+    # Records that the character has found out what *kind* is, and says so.
+    #
+    # Every effect in this phase is one somebody watching would understand,
+    # so using an item names its kind. A potion that did nothing visible
+    # would not, and this is where that exception goes when there is one.
+    private def found_out(kind : ItemKind) : Nil
+      return unless @lore.learn kind
+
+      say "It was #{name Item.new(kind)}."
+    end
+
+    # Puts hit points back.
+    private def mend(item : Item) : Nil
+      put_back = @player.heal item.kind.power.roll(draught)
+
+      say put_back > 0 ? "You feel better." : "You feel no different."
+    end
+
+    # Names the carried item under *choice*, and whether it is cursed.
+    private def name_one(choice : Char?) : Nil
+      item = choice ? @player.inventory[choice] : nil
+      unless item
+        say "You feel knowledgeable, and the feeling passes."
+        return
+      end
+
+      news = @lore.learn item.kind
+      item.reveal_blessing
+
+      say news ? "It is #{name item}." : "You knew that already. It is #{name item}."
+    end
+
+    # Writes the shape of the whole floor into what the character remembers.
+    #
+    # The shape and no more. `Knowledge#touch` records the terrain and what is
+    # fixed to it, and keeps whatever item was already remembered there. A map
+    # shows a person the walls. It does not show them the loot.
+    private def map_the_floor : Nil
+      floor.each { |column, row, _tile| @player.knowledge.touch floor, column, row, @turn }
+      say "The shape of the floor comes to you."
+    end
+
+    # How far a wand of light makes the floor glow.
+    GLOW = 6
+
+    # Makes the squares round the character glow for good.
+    #
+    # Only the passable ones. A glowing square spills onto every neighbour,
+    # so the walls of the room light up the way they do round a magically lit
+    # room. Setting the glow on the walls as well would light what is behind
+    # them.
+    private def light_up : Nil
+      thrown = Lighting.from floor, LightSource.new(@player.x, @player.y, GLOW,
+        LightKind::Glimmer)
+
+      thrown.levels.each do |spot, level|
+        next unless level > 0
+        next unless floor.passable? spot[0], spot[1]
+
+        floor.set_glow spot[0], spot[1], Math.max(floor.glow_at(spot[0], spot[1]), level)
+      end
+
+      say "Light floods out and stays."
+    end
+
+    # Sends a bolt at *target*.
+    #
+    # It flies the way an arrow flies and stops at the first thing in the
+    # line. Nothing is left on the floor afterwards.
+    private def bolt(item : Item, target : {Int32, Int32}?) : Nil
+      unless target
+        say "The bolt goes nowhere."
+        return
+      end
+
+      shot = flight target, item.kind.reach
+      spot = shot.at
+      struck = floor.monster spot[0], spot[1]
+
+      unless struck
+        say "The bolt strikes the #{floor.terrain(spot[0], spot[1]).label}."
+        return
+      end
+
+      hit struck, "bolt", @player.to_zap, item.kind.power
     end
 
     # ------------------------------------------------------------ equipment

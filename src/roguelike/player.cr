@@ -194,6 +194,14 @@ module Roguelike
       item.damage.with_bonus @attributes.modifier(Attributes::Which::Strength)
     end
 
+    # What the character adds to a bolt from a wand.
+    #
+    # The dexterity modifier and nothing else. A wand carries no `+N`, and
+    # strength does not aim one.
+    def to_zap : Int32
+      @attributes.modifier Attributes::Which::Dexterity
+    end
+
     # Adds *amount* gold pieces. Answers the new total.
     def take_gold(amount : Int32) : Int32
       @gold += Math.max amount, 0

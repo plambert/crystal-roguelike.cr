@@ -29,6 +29,9 @@ module Roguelike::Ui
 
     # `t`, throwing what the person chose.
     Throw
+
+    # `z`, zapping a wand that needs a square to aim at.
+    Zap
   end
 
   # Everything the game shows. Everything the keys do. No device anywhere.
@@ -104,8 +107,9 @@ module Roguelike::Ui
     # A command waiting for a square to be aimed at. `nil` when none is.
     getter aiming : Aiming? = nil
 
-    # The letter of what is being thrown. `nil` while firing.
-    @thrown : Char? = nil
+    # The letter of what is being thrown or zapped. `nil` while firing,
+    # which takes its ammunition from the quiver rather than from a letter.
+    @chosen : Char? = nil
 
     # How far what is being aimed goes.
     @reach : Int32 = 0
@@ -547,7 +551,7 @@ module Roguelike::Ui
     def loose : Nil
       command = @aiming
       target = @examiner.spot
-      letter = @thrown
+      letter = @chosen
       return unless command && target
 
       stop_aiming
@@ -555,6 +559,7 @@ module Roguelike::Ui
       case command
       in .fire?  then @game.fire target
       in .throw? then @game.throw letter, target if letter
+      in .zap?   then @game.zap letter, target if letter
       end
 
       refresh
@@ -566,7 +571,7 @@ module Roguelike::Ui
     # down an empty corridor walks the cursor out along it.
     private def start_aiming(command : Aiming, letter : Char?, reach : Int32) : Nil
       @aiming = command
-      @thrown = letter
+      @chosen = letter
       @reach = reach
 
       @examiner.start @game.player.at
@@ -579,7 +584,7 @@ module Roguelike::Ui
     # Takes the targeting cursor off and forgets what was being aimed.
     private def stop_aiming : Nil
       @aiming = nil
-      @thrown = nil
+      @chosen = nil
       @reach = 0
 
       @examiner.stop
@@ -632,6 +637,78 @@ module Roguelike::Ui
       in .blocked? then "Something is in the way."
       in .spent?   then "That is out of range."
       in .reached? then "The shot is clear."
+      end
+    end
+
+    # ---------------------------------------------------------- consumables
+
+    # Asks which potion to drink, then drinks it. `q` does this.
+    def quaff : Nil
+      offer "Drink what?", "You have nothing to drink.",
+        ->(item : Item) { item.kind.item_class.potion? } do |letter|
+        @game.quaff letter
+      end
+    end
+
+    # Asks which scroll to read, then reads it. `r` does this.
+    #
+    # A scroll of identify needs a second question: which carried item it
+    # names. `Game#effect_of` says so before the turn is spent.
+    def read : Nil
+      offer "Read what?", "You have nothing to read.",
+        ->(item : Item) { item.kind.item_class.scroll? } do |letter|
+        if @game.effect_of(letter).chosen?
+          identify_with letter
+        else
+          @game.read letter
+        end
+      end
+    end
+
+    # Asks which carried item the scroll under *letter* names.
+    #
+    # The scroll itself is not offered. It is about to be used up, and a
+    # person who spent it naming it would have learned nothing.
+    #
+    # Nothing else to name reads the scroll anyway. It is used up either way,
+    # and saying so is clearer than refusing to read it.
+    private def identify_with(letter : Char) : Nil
+      found = @game.player.inventory.entries.select do |held, item|
+        held != letter && !@game.lore.known?(item.kind)
+      end
+
+      if found.empty?
+        @game.read letter
+        return
+      end
+
+      choose("Identify what?", rows(found)) do |key|
+        @game.read letter, key
+        refresh
+      end
+    end
+
+    # Asks which wand to zap, then zaps it. `z` does this.
+    #
+    # A wand that needs a square to aim at puts the targeting cursor up
+    # instead. A second press of `z` looses it, the way `f` does.
+    def zap : Nil
+      if @aiming
+        loose
+        return
+      end
+
+      offer "Zap what?", "You have nothing to zap.",
+        ->(item : Item) { item.kind.item_class.wand? } do |letter|
+        item = @game.player.inventory[letter]
+        next unless item
+
+        effect = @game.effect_of letter
+        if effect.aimed?
+          start_aiming Aiming::Zap, letter, item.kind.reach
+        else
+          @game.zap letter
+        end
       end
     end
 

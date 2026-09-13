@@ -1,5 +1,6 @@
 require "json"
 require "./dice"
+require "./effect"
 
 module Roguelike
   # What sort of thing an item is.
@@ -126,6 +127,8 @@ module Roguelike
     weight : Int32 = 10,
     light : Int32 = 0,
     range : Int32 = 0,
+    effect : Effect = Effect::None,
+    power : Dice = Dice::NONE,
     uncountable : Bool = false do
     # How far a thing nobody made for throwing goes, before its weight is
     # taken off.
@@ -283,6 +286,17 @@ module Roguelike
       facts.reach
     end
 
+    # What using one of these does. `None` for most things.
+    def effect : Effect
+      facts.effect
+    end
+
+    # How strong that effect is. The dice a potion heals for and the dice a
+    # wand hits for.
+    def power : Dice
+      facts.power
+    end
+
     # Whether a `+N` means anything on this kind.
     def enchantable? : Bool
       facts.enchantable?
@@ -371,15 +385,18 @@ module Roguelike
         armour: 2, slot: ArmourSlot::Shield, weight: 60),
 
       ItemKind::HealingPotion => ItemFacts.new("potion of healing", "potions of healing",
-        ItemClass::Potion, weight: 20),
+        ItemClass::Potion, weight: 20,
+        effect: Effect::Heal, power: Dice.new(2, 4, 2)),
       ItemKind::IdentifyScroll => ItemFacts.new("scroll of identify", "scrolls of identify",
-        ItemClass::Scroll, weight: 5),
+        ItemClass::Scroll, weight: 5, effect: Effect::Identify),
       ItemKind::MappingScroll => ItemFacts.new("scroll of magic mapping",
-        "scrolls of magic mapping", ItemClass::Scroll, weight: 5),
+        "scrolls of magic mapping", ItemClass::Scroll, weight: 5,
+        effect: Effect::MapFloor),
       ItemKind::LightWand => ItemFacts.new("wand of light", "wands of light",
-        ItemClass::Wand, charges: 6, weight: 7),
+        ItemClass::Wand, charges: 6, weight: 7, effect: Effect::Light),
       ItemKind::StrikingWand => ItemFacts.new("wand of striking", "wands of striking",
-        ItemClass::Wand, damage: Dice.new(2, 4), charges: 5, weight: 7),
+        ItemClass::Wand, charges: 5, weight: 7, range: 12,
+        effect: Effect::Strike, power: Dice.new(2, 4)),
 
       ItemKind::Torch => ItemFacts.new("torch", "torches", ItemClass::Light,
         weight: 20, light: 6),

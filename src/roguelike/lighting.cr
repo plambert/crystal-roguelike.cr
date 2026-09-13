@@ -119,6 +119,17 @@ module Roguelike
       lighting
     end
 
+    # The light one *source* throws over *floor*, and nothing else.
+    #
+    # `.over` adds the floor's own glow, which is what drawing wants. Making
+    # a square glow wants the source on its own. Pouring the glow back in
+    # would spread whatever already glows one square further every time.
+    def self.from(floor : Floor, source : LightSource) : Lighting
+      lighting = new
+      lighting.pour floor, source
+      lighting
+    end
+
     # How much light *x*, *y* has.
     def level(x : Int32, y : Int32) : Int32
       @ambient + (@levels[{x, y}]? || 0)

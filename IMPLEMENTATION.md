@@ -74,6 +74,10 @@ actually been run rather than reasoned about.
 | Sidebar | Three sections: "Here" is the square underfoot, "Seen" is what is in sight now, "Look" is the square pointed at |
 | Here and Seen | What is there now, never `Knowledge`. The map draws what was last seen. These two say what is seen |
 | Naming the ground | "Here" always names the terrain underfoot. Nobody reads it standing still. Everybody notices it change |
+| An item's effect | An `Effect` member. `Game#work` is the whole registry. Nothing in the model holds a block |
+| Finding out by use | Using an item names its kind, and every item of that kind with it. Each effect here is one a watcher would understand |
+| A use rolls on its own stream | `#draught` is `#exchange` without the fight, so a potion drunk mid-fight does not shift the swings after it |
+| An empty wand | Costs the turn and says nothing happened. A person cannot know a wand is spent until they try it |
 
 ## Ground rules
 
@@ -734,6 +738,34 @@ The phase that introduces the type monster bands will use in Phase 19.
   identified afterwards and every other potion of that appearance is too. Zap a wand of light in
   a dark room and the room stays lit. Specs on charges, on identification propagating, and on
   each effect.
+* **Done.** `Effect` is an enum of six members and `Game#work` is the whole registry. An item
+  names its effect and nothing holds a block, which is the rule a save file needs. `ItemFacts`
+  gained `effect` and `power`, so what a potion heals for and what a wand hits for are table
+  entries beside the weight and the label.
+
+  Using an item names its kind, and `Lore` is per kind, so one swirly potion names every swirly
+  potion. That holds for all five effects in this phase because each is one somebody watching
+  would understand. `Game#found_out` is where the exception goes when there is an effect nobody
+  could see.
+
+  A use rolls on its own stream. `#draught` is `#exchange` without the fight: a potion drunk
+  between two swings leaves those swings rolling the numbers they would have rolled. A spec
+  fights the same goblin in two games, one of which drank first, and compares the messages.
+
+  `Game#effect_of` answers what an item would do before the turn is spent, which is what lets
+  `Play` ask the second question first. A scroll of identify asks which carried item it names,
+  and leaves itself out of that list: spending it to name itself teaches nobody anything. A wand
+  of striking puts Phase 21's targeting cursor up rather than a second menu, and `Aiming::Zap`
+  joins `Fire` and `Throw` on the same three keys.
+
+  A wand of light writes the floor's own `glow` rather than placing anything. That is what the
+  proving ground's magically lit room already is, so a zapped room and a built one are the same
+  thing and the light survives a save file. Only the passable squares are set. A glowing square
+  spills onto every neighbour, so the walls light the way they do round any lit room, and setting
+  the glow on them as well would light what is behind them.
+
+  Magic mapping writes `Knowledge#touch` over every square: the terrain and what is fixed to it,
+  and not what is lying on the floor. A map shows a person the walls.
 
 ### Phase 23 — Running
 
