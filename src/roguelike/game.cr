@@ -550,9 +550,13 @@ module Roguelike
     # This is what lets a creature in a dark corridor walk toward somebody
     # standing in a pool of light. The squares between are dark, so it never
     # sees them, but it can see across them.
+    #
+    # It records that they can be crossed and no more. What each one is made
+    # of it has not looked at, and `Knowledge#opening` is careful not to
+    # claim otherwise.
     private def trace(knowledge : Knowledge, from : {Int32, Int32}) : Nil
       Line.walk(from, @player.at) do |spot|
-        knowledge.glimpse floor, spot[0], spot[1], @turn
+        knowledge.opening spot[0], spot[1]
       end
     end
 
@@ -573,7 +577,7 @@ module Roguelike
 
       Direction.values.each do |direction|
         spot = direction.from x, y
-        knowledge.glimpse floor, spot[0], spot[1], @turn
+        knowledge.touch floor, spot[0], spot[1], @turn
       end
     end
 

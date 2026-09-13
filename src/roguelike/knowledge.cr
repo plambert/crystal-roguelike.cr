@@ -89,9 +89,20 @@ module Roguelike
     # a monster, once a band has a reason to track one.
     getter sightings : Hash(String, Sighting)
 
+    # Squares known to be open, with nothing else known about them.
+    #
+    # Seeing somebody across a square says nothing solid is in the way. It
+    # does not say what the square is made of, so there is no `Memory` for
+    # one of these: `#walkable?` answers true and `#seen?` answers false,
+    # because it has not been seen.
+    #
+    # The key is `Floor.spot`, the same key `#memories` uses.
+    getter openings : Set(String)
+
     def initialize(@floor : String,
                    @memories : Hash(String, Memory) = {} of String => Memory,
-                   @sightings : Hash(String, Sighting) = {} of String => Sighting)
+                   @sightings : Hash(String, Sighting) = {} of String => Sighting,
+                   @openings : Set(String) = Set(String).new)
     end
 
     # The key `#sightings` holds the character under.
@@ -117,7 +128,7 @@ module Roguelike
     # A band whose members each keep their own beliefs gives each of them one
     # of these. What one of them learns after that is its own.
     def copy : Knowledge
-      Knowledge.new @floor, @memories.dup, @sightings.dup
+      Knowledge.new @floor, @memories.dup, @sightings.dup, @openings.dup
     end
 
     # What *x*, *y* looked like. `nil` for a square never seen.
@@ -135,15 +146,20 @@ module Roguelike
       @memories.has_key? Floor.spot(x, y)
     end
 
-    # Whether what is remembered of *x*, *y* could be walked on.
+    # Whether what is known of *x*, *y* could be walked on.
     #
-    # A square never seen answers false. A band does not walk through what it
-    # has never looked at, which is what keeps it off a shortcut it has never
-    # found. A door remembered as shut answers false as well, until somebody
-    # looks at it again and finds it open.
+    # A square never seen and never crossed answers false. A band does not
+    # walk through what it knows nothing about, which is what keeps it off a
+    # shortcut it has never found. A door remembered as shut answers false as
+    # well, until somebody looks at it again and finds it open.
+    #
+    # What is remembered wins over what was inferred. A square seen to be a
+    # wall is a wall, whatever was once guessed about it.
     def walkable?(x : Int32, y : Int32) : Bool
       found = self[x, y]
-      found ? found.terrain.passable? : false
+      return found.terrain.passable? if found
+
+      @openings.includes? Floor.spot(x, y)
     end
 
     # :ditto:
@@ -177,21 +193,26 @@ module Roguelike
 
     # Records what the terrain of *x*, *y* is, and nothing else on it.
     #
-    # A creature that can see somebody across a square has seen the square
-    # well enough to know what it is made of. It has not seen what is lying
-    # on it, so whatever was remembered about that is kept rather than
-    # replaced.
-    #
-    # This records the terrain rather than deciding the square can be walked
-    # on. Everything a floor is made of blocks sight and movement together
-    # today, so the two readings agree. A chasm would not, and a band that
-    # had written down "walkable" rather than "chasm" would walk into it.
-    def glimpse(floor : Floor, x : Int32, y : Int32, turn : Int32 = 0) : Nil
+    # Reaching out in the dark says whether there is a wall there. It does
+    # not say what is lying on the floor, so whatever was remembered about
+    # that is kept rather than replaced.
+    def touch(floor : Floor, x : Int32, y : Int32, turn : Int32 = 0) : Nil
       return unless floor.contains? x, y
 
       held = self[x, y]
       @memories[Floor.spot x, y] = Memory.new floor.terrain(x, y),
         held.try(&.fixture), held.try(&.item), turn
+    end
+
+    # Records that *x*, *y* can be crossed, and nothing else about it.
+    #
+    # This is what seeing somebody across a square gives. The line that
+    # reached them ran through the square, so nothing solid is in it. What
+    # the square is made of is not known, and this does not guess: a `Memory`
+    # written here would claim the square is a stone floor, or an open door,
+    # or a staircase, none of which the creature has looked at.
+    def opening(x : Int32, y : Int32) : Nil
+      @openings << Floor.spot x, y
     end
 
     # Records every square *vision* can see. This is the one way anything gets
@@ -212,6 +233,7 @@ module Roguelike
     def forget : Nil
       @memories.clear
       @sightings.clear
+      @openings.clear
     end
 
     # *floor* drawn as it is remembered, with *unknown* wherever it is not.
@@ -230,7 +252,7 @@ module Roguelike
 
     def ==(other : Knowledge) : Bool
       @floor == other.floor && @memories == other.memories &&
-        @sightings == other.sightings
+        @sightings == other.sightings && @openings == other.openings
     end
 
     def to_s(io : IO) : Nil

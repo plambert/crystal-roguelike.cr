@@ -271,6 +271,97 @@ Spectator.describe Roguelike::Knowledge do
     end
   end
 
+  describe "#touch" do
+    it "records what the terrain is" do
+      knowledge = described_class.new "room"
+      knowledge.touch spot, 0, 0
+
+      expect(knowledge.seen? 0, 0).to be_true
+      expect(knowledge[0, 0].try &.terrain).to eq spot.terrain 0, 0
+    end
+
+    # Reaching out in the dark says there is a wall there. It says nothing
+    # about what is lying on the floor.
+    it "records nothing that is lying there" do
+      floor = spot
+      floor.drop 1, 1, Item.new Kind::LongSword
+      knowledge = described_class.new "room"
+      knowledge.touch floor, 1, 1
+
+      expect(knowledge[1, 1].try &.item).to be_nil
+    end
+
+    it "keeps what was already remembered of what is lying there" do
+      floor = spot
+      floor.drop 1, 1, Item.new Kind::LongSword
+      knowledge = described_class.new "room"
+      knowledge.see floor, 1, 1
+      knowledge.touch floor, 1, 1
+
+      expect(knowledge[1, 1].try &.item).not_to be_nil
+    end
+
+    it "records a square off the floor as nothing" do
+      knowledge = described_class.new "room"
+      knowledge.touch spot, -1, 0
+
+      expect(knowledge.empty?).to be_true
+    end
+  end
+
+  describe "#opening" do
+    # Seeing somebody across a square says nothing solid is in the way. It
+    # does not say what the square is made of.
+    it "makes a square walkable without making it seen" do
+      knowledge = described_class.new "room"
+      knowledge.opening 1, 1
+
+      expect(knowledge.walkable? 1, 1).to be_true
+      expect(knowledge.seen? 1, 1).to be_false
+      expect(knowledge[1, 1]).to be_nil
+    end
+
+    it "leaves a square nothing is known about unwalkable" do
+      expect(described_class.new("room").walkable? 1, 1).to be_false
+    end
+
+    # A square looked at is a square known. Whatever was once inferred about
+    # it does not argue with what was seen.
+    it "loses to what was seen" do
+      knowledge = described_class.new "room"
+      knowledge.opening 0, 0
+      knowledge.see spot, 0, 0
+
+      expect(spot.terrain(0, 0).passable?).to be_false
+      expect(knowledge.walkable? 0, 0).to be_false
+    end
+
+    it "goes into a copy" do
+      knowledge = described_class.new "room"
+      knowledge.opening 1, 1
+
+      expect(knowledge.copy.walkable? 1, 1).to be_true
+    end
+
+    it "goes when everything is forgotten" do
+      knowledge = described_class.new "room"
+      knowledge.opening 1, 1
+      knowledge.forget
+
+      expect(knowledge.walkable? 1, 1).to be_false
+    end
+
+    it "round-trips through JSON" do
+      knowledge = described_class.new "room"
+      knowledge.opening 1, 1
+
+      again = described_class.from_json knowledge.to_json
+
+      expect(again.walkable? 1, 1).to be_true
+      expect(again).to eq knowledge
+    end
+  end
+
   describe "on the player" do
     it "gives the floor they stand on an empty one" do
       player = Roguelike::Player.new "room", 3, 2

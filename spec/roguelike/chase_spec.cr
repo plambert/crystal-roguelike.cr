@@ -332,15 +332,28 @@ Spectator.describe "being chased" do
 
     # A line that reached the character ran through every square on the way,
     # so it knows that ground well enough to walk it.
-    it "learns the ground between it and the character" do
+    it "learns it can cross the ground between it and the character" do
       game, creature = corridor
 
       game.step Direction::East
       found = knowledge game, creature
 
       (LURKING[0]..game.player.x).each do |column|
-        expect(found.seen? column, 1).to be_true
+        expect(found.walkable? column, 1).to be_true
       end
+    end
+
+    # It knows nothing solid is in the way. It does not know what any of it
+    # is made of, because it has not looked at any of it.
+    it "does not learn what that ground is" do
+      game, creature = corridor
+
+      game.step Direction::East
+      found = knowledge game, creature
+
+      expect(found.walkable? 8, 1).to be_true
+      expect(found.seen? 8, 1).to be_false
+      expect(found[8, 1]).to be_nil
     end
 
     it "learns none of the dark off that line" do
@@ -360,7 +373,7 @@ Spectator.describe "being chased" do
       game.floor.each_pile { |_column, _row, pile| pile.each &.douse }
       wait game, 2
 
-      expect(knowledge(game, creature).seen? 8, 1).to be_true
+      expect(knowledge(game, creature).walkable? 8, 1).to be_true
     end
 
     it "paths on its own map rather than feeling its way" do

@@ -61,7 +61,7 @@ actually been run rather than reasoned about.
 | Seeing in the dark | An orc's reach ignores light. A goblin or a slime notices nothing unlit, however close it stands |
 | Pursuit | One `Descent` per band per turn, flooded over the band's own `Knowledge`. Its members step downhill |
 | A creature's decision | `Pursuit.decide` reads a snapshot holding no floor and no player, and answers an `Action` |
-| Seeing across a square | A creature that can see somebody writes down what the ground between is made of, and keeps it |
+| Seeing across a square | A creature that can see somebody writes down that the ground between can be crossed, and no more |
 | Touch | A creature knows the terrain of the eight squares round it. It knows the items only where it stands |
 
 ## Ground rules
@@ -618,15 +618,19 @@ The phase that introduces the type monster bands will use in Phase 19.
   reached them ran through every square on the way, so it knows that ground well enough to walk
   it, and it goes on knowing it after the light has gone. That is what lets a goblin in a dark
   corridor walk at somebody standing in a pool of light: it never sees the squares between, but
-  it can see across them. `Knowledge#glimpse` records what a square is made of and nothing else
-  on it, rather than writing down that the square can be walked on. Everything a floor is made of
-  blocks sight and movement together today, so the two readings agree; a chasm would not, and a
-  band that had written down "walkable" would walk into one.
+  it can see across them.
+
+  `Knowledge` holds that apart from what has been seen. `#opening` records that a square can be
+  crossed and nothing else — no `Memory`, so `#seen?` still answers false and `#walkable?`
+  answers true. Writing a memory there would claim the square is a stone floor, or an open door,
+  or a staircase, none of which the creature has looked at. What is remembered wins over what was
+  inferred, so a square later seen to be a wall is a wall.
 
   A creature also knows the ground it could reach out and touch, seen or not, so it can take the
-  first step out of a dark square. What it stands on it knows whole, items and all. What is
-  beside it it knows the shape of and no more: reaching out in the dark says there is a wall
-  there, not that there is a sword on the floor.
+  first step out of a dark square. `#touch` records what that square is made of and nothing else
+  on it. What a creature stands on it knows whole, items and all; what is beside it it knows the
+  shape of and no more. Reaching out in the dark says there is a wall there, not that there is a
+  sword on the floor.
 
   One gap, left for later: a creature cannot open a door. A shut door is impassable in a band's
   knowledge, so pursuit stops at one.
