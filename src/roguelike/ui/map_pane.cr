@@ -89,6 +89,12 @@ module Roguelike::Ui
     # which.
     getter highlights : Set({Int32, Int32}) = Set({Int32, Int32}).new
 
+    # Squares a shot would cross, and the colour each is drawn on.
+    #
+    # The line is one colour and the square the shot stops on is another. A
+    # person aiming has to see where the line runs and where it ends.
+    getter flight : Hash({Int32, Int32}, TermBuf::Color) = {} of {Int32, Int32} => TermBuf::Color
+
     def initialize(floor : Floor)
       @cells = FloorCells.new floor
       @grid = Widgets::CellGrid.new @cells
@@ -98,6 +104,9 @@ module Roguelike::Ui
 
         style = look.style
         style = style.bg Palette::OFFERED if @highlights.includes?({x, y})
+
+        aimed = @flight[{x, y}]?
+        style = style.bg aimed if aimed
 
         here = @cursor
         style = style.reverse if here && here[0] == x && here[1] == y
@@ -236,6 +245,16 @@ module Roguelike::Ui
       @highlights.clear
     end
 
+    # Draws *x*, *y* on *colour* while a shot is being aimed.
+    def aim(x : Int32, y : Int32, colour : TermBuf::Color) : Nil
+      @flight[{x, y}] = colour
+    end
+
+    # Takes the aimed line off.
+    def clear_flight : Nil
+      @flight.clear
+    end
+
     # Whether *x*, *y* is offered.
     def highlighted?(x : Int32, y : Int32) : Bool
       @highlights.includes?({x, y})
@@ -257,6 +276,7 @@ module Roguelike::Ui
       @grid.scroll_to 0, 0
       clear_marks
       clear_highlights
+      clear_flight
       @sight = nil
       @knowledge = nil
       floor

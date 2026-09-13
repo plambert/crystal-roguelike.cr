@@ -67,6 +67,10 @@ actually been run rather than reasoned about.
 | Monster loot | Independent draws per species, each with its own chance and table, on a stream named by where the creature stands |
 | A carried light | Rolled alight. A monster holding one lights itself, and it goes on burning where the monster fell |
 | Swinging back | A creature swings at a sighting no more than a turn old, so one stabbed in the dark hits back |
+| Aiming | `f` and `t` put the Phase 4 examine cursor on the map. `Tab` walks the monsters in sight, nearest first |
+| A missile's line | Bresenham, the line sight and light already use. It stops at the first creature, the first wall, or its reach |
+| Where it lands | On the square it stopped on, hit or miss. A fired arrow is on the floor to be picked up again |
+| How far it goes | A bow, a sling, a dart and a rock say. Anything else goes ten squares less one per twenty of weight |
 
 ## Ground rules
 
@@ -687,6 +691,34 @@ The phase that introduces the type monster bands will use in Phase 19.
 * **Verify** — Shoot a goblin across a lit room; the line draws, the ammunition depletes, the
   arrow that misses is on the floor and can be picked up. Firing a bow with no arrows says so and
   costs no turn. Specs on the line and on what a wall does to it.
+* **Done.** `Flight` is the geometry, and it holds nothing else: given a floor, two squares and a
+  reach, it answers which squares a missile crosses, where it stops and why. `Landing` names the
+  four reasons — it arrived, it met a creature, it met something solid, it ran out of reach. The
+  line is `Line.walk`, which is the line sight runs along and the line light comes from, so a shot
+  at something visible runs the squares the sight of it ran.
+
+  `Game#fire` and `Game#throw` both end in one private method. It builds the flight, swings at
+  whatever is standing where the missile stopped, and drops the missile on that square. A hit and
+  a miss leave it in the same place, because an arrow that goes home still ends up on the floor.
+  One of a stack goes: a person carrying twenty darts throws one dart, and the last arrow empties
+  the quiver slot as well as the letter.
+
+  How far a thing goes is a fact of its kind. A bow, a sling, a dart and a rock each say. Anything
+  else goes as far as its weight allows, ten squares less one for every twenty of weight, so a
+  dagger crosses a room and a suit of chain mail lands on the thrower's boots. A held weapon can
+  be thrown without putting it down first; worn armour has to come off.
+
+  The targeting cursor is the Phase 4 examine cursor. Nothing new draws it, nothing new moves it,
+  and the readout it writes is the one that was already there with one row added. `f` and `t` put
+  it on the nearest monster in sight, `Tab` walks the rest nearest first, and the movement keys
+  walk the squares. `MapPane` colours the line one shade and the square the shot stops on another,
+  so a shot that will not reach shows the gap rather than having to be described.
+
+  `Tab` already meant "the next widget" in every application `Widgets` builds. The binding takes
+  the key only while something is being aimed and hands it back to the focus stack otherwise.
+
+  `Game#cannot_fire` answers the complaint rather than the shot, so `Play` asks it before the
+  cursor goes up. A person with an empty quiver is told at once and spends no turn finding out.
 
 ### Phase 22 — Consumables
 

@@ -22,6 +22,15 @@ module Roguelike::Ui
     end
   end
 
+  # A command waiting for a square to be aimed at.
+  enum Aiming
+    # `f`, firing the readied launcher.
+    Fire
+
+    # `t`, throwing what the person chose.
+    Throw
+  end
+
   # Everything the game shows. Everything the keys do. No device anywhere.
   #
   # `Session` owns a terminal, a frame loop and the mouse. This class owns the
@@ -89,6 +98,15 @@ module Roguelike::Ui
     # A command waiting for a direction. `nil` when none is.
     getter pending : Pending? = nil
 
+    # A command waiting for a square to be aimed at. `nil` when none is.
+    getter aiming : Aiming? = nil
+
+    # The letter of what is being thrown. `nil` while firing.
+    @thrown : Char? = nil
+
+    # How far what is being aimed goes.
+    @reach : Int32 = 0
+
     # Whether the run should end.
     #
     # The person asked to leave, or the game ended, and the final question has
@@ -146,6 +164,7 @@ module Roguelike::Ui
       Keys.examining(self)
         .merge(Keys.moving { |direction| step direction })
         .merge(Keys.acting(self))
+        .merge(Keys.aiming(self))
     end
 
     # Asks *question*. Runs *answered* with the key the person pressed.
@@ -299,6 +318,7 @@ module Roguelike::Ui
 
       if @examiner.cursoring?
         @examiner.move direction
+        show_aim if @aiming
         return
       end
 
@@ -354,6 +374,12 @@ module Roguelike::Ui
       if @pending
         @pending = nil
         refresh
+        return
+      end
+
+      if @aiming
+        stop_aiming
+        say "Never mind."
         return
       end
 
@@ -449,6 +475,159 @@ module Roguelike::Ui
         label = "#{label} (#{slot.note})" if slot
 
         Widgets::Menu::Entry.new letter, label
+      end
+    end
+
+    # ------------------------------------------------------------- shooting
+
+    # Fires the readied launcher. `f` does this.
+    #
+    # A second press looses the shot, so a person can press `f`, pick a
+    # monster with `Tab` and press `f` again without reaching for `Enter`.
+    def fire : Nil
+      if @aiming
+        loose
+        return
+      end
+
+      complaint = @game.cannot_fire
+      if complaint
+        say complaint
+        return
+      end
+
+      start_aiming Aiming::Fire, nil, @game.firing_reach
+    end
+
+    # Throws a carried item. `t` does this.
+    #
+    # Anything can be thrown. A rock and a dart go furthest, and a suit of
+    # chain mail lands on the character's boots.
+    def throw : Nil
+      if @aiming
+        loose
+        return
+      end
+
+      offer "Throw what?", "You are carrying nothing to throw.",
+        ->(_item : Item) { true } do |letter|
+        item = @game.player.inventory[letter]
+        start_aiming Aiming::Throw, letter, item.kind.reach if item
+      end
+    end
+
+    # Aims at the next monster in sight. `Tab` does this.
+    #
+    # Nearest first, and round again from the end. The one about to reach the
+    # character is the one worth shooting, so it is the one offered first.
+    #
+    # Answers whether it moved the cursor. `Tab` means "the next widget"
+    # everywhere else, and the binding hands the key back when this says no.
+    def next_target : Bool
+      return false unless @aiming
+
+      found = targets
+      return false if found.empty?
+
+      here = @examiner.spot
+      index = here ? found.index(here) : nil
+      wanted = found[index ? (index + 1) % found.size : 0]
+
+      @examiner.point_at wanted[0], wanted[1]
+      @map.follow wanted[0], wanted[1]
+      refresh
+      true
+    end
+
+    # Looses what is being aimed. `Enter` does this.
+    def loose : Nil
+      command = @aiming
+      target = @examiner.spot
+      letter = @thrown
+      return unless command && target
+
+      stop_aiming
+
+      case command
+      in .fire?  then @game.fire target
+      in .throw? then @game.throw letter, target if letter
+      end
+
+      refresh
+    end
+
+    # Starts *command* aiming at the nearest monster in sight.
+    #
+    # The cursor falls back to the character's own square. A person shooting
+    # down an empty corridor walks the cursor out along it.
+    private def start_aiming(command : Aiming, letter : Char?, reach : Int32) : Nil
+      @aiming = command
+      @thrown = letter
+      @reach = reach
+
+      @examiner.start @game.player.at
+      wanted = targets.first?
+      @examiner.point_at wanted[0], wanted[1] if wanted
+
+      say "Aim with the movement keys. Tab picks a monster, Enter looses, Escape stops."
+    end
+
+    # Takes the targeting cursor off and forgets what was being aimed.
+    private def stop_aiming : Nil
+      @aiming = nil
+      @thrown = nil
+      @reach = 0
+
+      @examiner.stop
+      @examine.aiming = nil
+      @map.clear_flight
+    end
+
+    # Every monster in sight, nearest first.
+    #
+    # Ties go to the lower row and then to the lower column, so `Tab` walks
+    # the same ring in the same order every time.
+    private def targets : Array({Int32, Int32})
+      here = @game.player.at
+
+      @game.monsters_in_sight.map(&.at).sort_by! do |spot|
+        across = spot[0] - here[0]
+        down = spot[1] - here[1]
+
+        {across * across + down * down, spot[1], spot[0]}
+      end
+    end
+
+    # Draws the line the shot would take and says where it would stop.
+    private def show_aim : Nil
+      @map.clear_flight
+      @examine.aiming = nil
+
+      return unless @aiming
+
+      target = @examiner.spot
+      return unless target
+
+      shot = @game.flight target, @reach
+      shot.path.each { |spot| @map.aim spot[0], spot[1], Palette::FLIGHT }
+
+      stop = shot.at
+      @map.aim stop[0], stop[1], Palette::IMPACT unless stop == @game.player.at
+
+      @examine.aiming = aimed shot
+    end
+
+    # What the readout says about *shot*.
+    private def aimed(shot : Flight) : String
+      return "The shot is clear." if shot.clear?
+
+      case shot.landing
+      in .struck?
+        in_the_way = @game.floor.monster shot.at[0], shot.at[1]
+        "The #{in_the_way.try(&.label) || "creature"} is in the way."
+      in .blocked? then "Something is in the way."
+      in .spent?   then "That is out of range."
+      in .reached? then "The shot is clear."
       end
     end
 
@@ -597,6 +776,7 @@ module Roguelike::Ui
       # is the character now and the monsters later.
       @map.mark @game.player.x, @game.player.y, Palette::PLAYER
       offer_directions
+      show_aim
       @pager.show @game.log.lines
       @status_line.show @game
       show_death
@@ -616,6 +796,7 @@ module Roguelike::Ui
       return if @mourned || @app.nil?
 
       @mourned = true
+      stop_aiming
       finish "You die on turn #{@game.turn} at level #{@game.player.level}."
     end
 

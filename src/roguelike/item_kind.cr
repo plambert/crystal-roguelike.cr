@@ -125,7 +125,32 @@ module Roguelike
     charges : Int32 = 0,
     weight : Int32 = 10,
     light : Int32 = 0,
+    range : Int32 = 0,
     uncountable : Bool = false do
+    # How far a thing nobody made for throwing goes, before its weight is
+    # taken off.
+    ARM = 10
+
+    # How much weight costs one square of that.
+    BURDEN = 20
+
+    # How far a thing goes however heavy it is. It lands at the thrower's
+    # feet.
+    NEAR = 1
+
+    # How far one of these goes when it is let go.
+    #
+    # A thing made for the job says so. A bow and a sling say how far they
+    # shoot, and a dart and a rock say how far an arm sends them.
+    #
+    # Anything else goes as far as its weight allows. A dagger crosses a
+    # room. A suit of chain mail lands on the thrower's boots.
+    def reach : Int32
+      return range if range > 0
+
+      Math.max ARM - weight // BURDEN, NEAR
+    end
+
     # Whether a `+N` means anything on this kind.
     def enchantable? : Bool
       item_class.enchantable?
@@ -253,6 +278,11 @@ module Roguelike
       facts.light?
     end
 
+    # How far one of these goes when it is thrown or fired.
+    def reach : Int32
+      facts.reach
+    end
+
     # Whether a `+N` means anything on this kind.
     def enchantable? : Bool
       facts.enchantable?
@@ -311,17 +341,19 @@ module Roguelike
       ItemKind::Spear => ItemFacts.new("spear", "spears", ItemClass::Melee,
         damage: Dice.new(1, 8), weight: 50),
 
-      ItemKind::Sling => ItemFacts.new("sling", "slings", ItemClass::Launcher, weight: 5),
-      ItemKind::Bow   => ItemFacts.new("bow", "bows", ItemClass::Launcher, weight: 30),
+      ItemKind::Sling => ItemFacts.new("sling", "slings", ItemClass::Launcher,
+        weight: 5, range: 12),
+      ItemKind::Bow => ItemFacts.new("bow", "bows", ItemClass::Launcher,
+        weight: 30, range: 16),
       ItemKind::Stone => ItemFacts.new("stone", "stones", ItemClass::Ammunition,
         damage: Dice.new(1, 4), launcher: ItemKind::Sling, weight: 5),
       ItemKind::Arrow => ItemFacts.new("arrow", "arrows", ItemClass::Ammunition,
         damage: Dice.new(1, 6), launcher: ItemKind::Bow, weight: 2),
 
       ItemKind::Rock => ItemFacts.new("rock", "rocks", ItemClass::Thrown,
-        damage: Dice.new(1, 3), weight: 10),
+        damage: Dice.new(1, 3), weight: 10, range: 10),
       ItemKind::Dart => ItemFacts.new("dart", "darts", ItemClass::Thrown,
-        damage: Dice.new(1, 4), weight: 2),
+        damage: Dice.new(1, 4), weight: 2, range: 14),
 
       ItemKind::Cap => ItemFacts.new("cap", "caps", ItemClass::Armour,
         armour: 1, slot: ArmourSlot::Head, weight: 10),

@@ -64,6 +64,16 @@ module Roguelike::Ui
     # changes. A person choosing a direction has to see which door is which.
     OFFERED = TermBuf::Color.rgb 0x3A, 0x4E, 0x2A
 
+    # What a square a shot would cross is drawn on.
+    FLIGHT = TermBuf::Color.rgb 0x2E, 0x36, 0x52
+
+    # What the square a shot would stop on is drawn on.
+    #
+    # A different colour from the rest of the line. The line says where the
+    # shot goes and this says how far it gets, and a person aiming past a wall
+    # has to see the two part company.
+    IMPACT = TermBuf::Color.rgb 0x6A, 0x2E, 0x2E
+
     # What each class of item is drawn as.
     #
     # The glyphs are the roguelike conventions. A person who has played one

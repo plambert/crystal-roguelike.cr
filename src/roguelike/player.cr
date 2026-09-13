@@ -162,6 +162,38 @@ module Roguelike
       dice.with_bonus @attributes.modifier(Attributes::Which::Strength)
     end
 
+    # What the character adds to a shot from *launcher* with *ammunition*.
+    #
+    # The dexterity modifier, plus what each of the two is worth. A masterwork
+    # bow and a bent arrow both count.
+    def to_shoot(launcher : Item, ammunition : Item) : Int32
+      @attributes.modifier(Attributes::Which::Dexterity) +
+        launcher.enchantment + launcher.condition.modifier +
+        ammunition.enchantment + ammunition.condition.modifier
+    end
+
+    # What a shot of *ammunition* from *launcher* hits for.
+    #
+    # The ammunition's dice, which already carry its own enchantment and its
+    # condition, plus what the launcher is worth. Strength adds nothing. The
+    # bow throws the arrow, not the arm.
+    def shot_damage(launcher : Item, ammunition : Item) : Dice
+      ammunition.damage.with_bonus launcher.enchantment + launcher.condition.modifier
+    end
+
+    # What the character adds to a throw of *item*.
+    def to_throw(item : Item) : Int32
+      @attributes.modifier(Attributes::Which::Dexterity) +
+        item.enchantment + item.condition.modifier
+    end
+
+    # What *item* hits for when it is thrown.
+    #
+    # Its dice, plus the strength modifier. An arm sends this one.
+    def throw_damage(item : Item) : Dice
+      item.damage.with_bonus @attributes.modifier(Attributes::Which::Strength)
+    end
+
     # Adds *amount* gold pieces. Answers the new total.
     def take_gold(amount : Int32) : Int32
       @gold += Math.max amount, 0

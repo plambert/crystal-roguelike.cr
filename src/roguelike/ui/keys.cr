@@ -88,12 +88,37 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.wear; nil }
         map.bind TermBuf::Key.parse("T"), "take something off",
           ->(_context : Widgets::Context) { play.take_off; nil }
+        map.bind TermBuf::Key.parse("f"), "fire the readied launcher",
+          ->(_context : Widgets::Context) { play.fire; nil }
+        map.bind TermBuf::Key.parse("t"), "throw something",
+          ->(_context : Widgets::Context) { play.throw; nil }
         map.bind TermBuf::Key.parse("a"), "light or put out a flame",
           ->(_context : Widgets::Context) { play.apply; nil }
         map.bind TermBuf::Key.parse(">"), "go down the staircase",
           ->(_context : Widgets::Context) { play.descend; nil }
         map.bind TermBuf::Key.parse("<"), "climb out of the dungeon",
           ->(_context : Widgets::Context) { play.ascend; nil }
+      end
+    end
+
+    # `Tab` aims at the next monster in sight. `Enter` looses the shot.
+    #
+    # Neither does anything while nothing is being aimed. The movement keys
+    # are already bound, and `Play` sends them to the targeting cursor the
+    # same way it sends them to the examine cursor.
+    #
+    # `Tab` means "the next widget" in every application `Widgets` builds.
+    # This binding takes the key only while something is being aimed and
+    # hands it to the focus stack otherwise.
+    def self.aiming(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Tab"), "aim at the next monster",
+          ->(context : Widgets::Context) do
+            context.focus.next unless play.next_target
+            nil
+          end
+        map.bind TermBuf::Key.parse("Enter"), "loose the shot",
+          ->(_context : Widgets::Context) { play.loose; nil }
       end
     end
 

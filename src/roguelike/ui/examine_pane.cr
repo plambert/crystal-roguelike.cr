@@ -40,6 +40,9 @@ module Roguelike::Ui
     # What is lying on the square.
     getter litter : Widgets::Label
 
+    # What a shot at the square would do. Blank when nothing is being aimed.
+    getter aim : Widgets::Label
+
     def initialize
       @where = Widgets::Label.new ""
       @what = Widgets::Label.new NOTHING
@@ -50,6 +53,10 @@ module Roguelike::Ui
 
       @litter = Widgets::Label.new ""
       @litter.hidden = true
+
+      @aim = Widgets::Label.new ""
+      @aim.hidden = true
+      @aim.style = Style::DEFAULT.bold
 
       heading = Widgets::Label.new HEADING
       heading.style = Style::DEFAULT.bold
@@ -62,7 +69,17 @@ module Roguelike::Ui
         height: Layout::Sizing.grow)
       @root.add heading,
         Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        @where, @what, @detail, @doing, @litter
+        @where, @what, @detail, @doing, @litter, @aim
+    end
+
+    # Says what a shot at the square being pointed at would do. `nil` says
+    # nothing at all.
+    #
+    # `#show` does not touch this row. The readout is pointed at a square
+    # whether or not anything is being aimed, so whatever is aiming owns it.
+    def aiming=(line : String?) : Nil
+      @aim.text = line || ""
+      @aim.hidden = line.nil?
     end
 
     # Says what is on *floor* at *x*, *y*.
@@ -158,6 +175,7 @@ module Roguelike::Ui
       @doing.hidden = true
       @litter.text = ""
       @litter.hidden = true
+      self.aiming = nil
     end
   end
 end

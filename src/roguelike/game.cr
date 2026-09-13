@@ -3,6 +3,7 @@ require "./apply"
 require "./combat"
 require "./equipment"
 require "./field_of_view"
+require "./flight"
 require "./floors"
 require "./lighting"
 require "./line"
@@ -318,6 +319,138 @@ module Roguelike
 
       gained = @player.gain creature.species.experience
       say "Welcome to level #{@player.level}." if gained > 0
+    end
+
+    # ------------------------------------------------------------- shooting
+
+    # Why the character cannot shoot. `nil` when they can.
+    #
+    # `Play` asks this before it puts the targeting cursor up, so a person
+    # with an empty quiver is told at once and spends no turn finding out.
+    def cannot_fire : String?
+      launcher = @player.launcher
+      return "You have nothing readied to shoot with." unless launcher
+
+      ammunition = @player.quivered
+      return "Your quiver is empty." unless ammunition
+      return if ammunition.kind.launcher == launcher.kind
+
+      "You cannot shoot #{name ammunition} from #{name launcher}."
+    end
+
+    # How far the readied launcher shoots. Zero when nothing is readied.
+    def firing_reach : Int32
+      @player.launcher.try(&.kind.reach) || 0
+    end
+
+    # Where a thing let go at *target* with *reach* squares in it would stop.
+    #
+    # `Play` draws this while a person aims. Nothing about the run changes.
+    def flight(target : {Int32, Int32}, reach : Int32) : Flight
+      Flight.toward floor, @player.at, target, reach
+    end
+
+    # Fires the readied launcher at *target*. Answers whether it went.
+    #
+    # One piece of ammunition leaves the quiver. It lands on the square the
+    # shot stopped on, hit or miss, so a fight down a corridor leaves a line
+    # of arrows to walk back over.
+    def fire(target : {Int32, Int32}) : Bool
+      complaint = cannot_fire
+      if complaint
+        say complaint
+        return false
+      end
+
+      launcher = @player.launcher
+      letter = @player.equipment[Slot::Quiver]
+      return false unless launcher && letter
+
+      ammunition = @player.inventory[letter]
+      return false unless ammunition
+
+      bonus = @player.to_shoot launcher, ammunition
+      damage = @player.shot_damage launcher, ammunition
+
+      one = draw_one letter
+      return false unless one
+
+      say "You shoot #{name one}."
+      loose one, target, launcher.kind.reach, bonus, damage
+      true
+    end
+
+    # Throws what is under *letter* at *target*. Answers whether it went.
+    #
+    # One of a stack goes. A person carrying twenty darts throws one dart.
+    def throw(letter : Char, target : {Int32, Int32}) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      if item.sticks? && item.blessing_known?
+        say "You cannot let go of #{name item}."
+        return false
+      end
+
+      slot = slot_of letter
+      if slot && slot.armour?
+        say "You have to take #{name item} off first."
+        return false
+      end
+
+      bonus = @player.to_throw item
+      damage = @player.throw_damage item
+      reach = item.kind.reach
+
+      one = draw_one letter
+      return false unless one
+
+      say "You throw #{name one}."
+      loose one, target, reach, bonus, damage
+      true
+    end
+
+    # Takes one of what is under *letter* out of the inventory.
+    #
+    # A letter left holding nothing comes out of whatever slot held it. The
+    # last arrow empties the quiver.
+    private def draw_one(letter : Char) : Item?
+      one = @player.inventory.take letter, 1
+      @player.equipment.clean @player.inventory
+      one
+    end
+
+    # Sends *missile* at *target* and puts it on the floor where it stops.
+    #
+    # A creature in the way is swung at, whether or not it was the square
+    # aimed at. A missile stops at the first thing standing in the line.
+    private def loose(missile : Item, target : {Int32, Int32}, reach : Int32,
+                      bonus : Int32, damage : Dice) : Nil
+      shot = flight target, reach
+      spot = shot.at
+      struck = floor.monster spot[0], spot[1]
+
+      hit struck, missile, bonus, damage if struck
+
+      floor.drop spot[0], spot[1], missile
+      spend_turn
+    end
+
+    # *missile* meets *creature*. Answers what the throw did.
+    private def hit(creature : Monster, missile : Item, bonus : Int32,
+                    damage : Dice) : Blow
+      blow = Combat.swing exchange, bonus, creature.armour_class, damage
+
+      if blow.hit?
+        creature.hurt blow.damage
+        say "The #{missile.kind.label} hits the #{creature.label} for #{blow.damage}."
+        kill creature unless creature.alive?
+      else
+        say "The #{missile.kind.label} misses the #{creature.label}."
+      end
+
+      wake creature if creature.alive?
+      blow
     end
 
     # Gives every awake creature on the floor its turn.
