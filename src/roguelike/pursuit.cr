@@ -71,22 +71,32 @@ module Roguelike
       at : {Int32, Int32},
       knowledge : Knowledge,
       quarry : {Int32, Int32}? = nil,
-      hunting : Bool = false,
+      stale : Int32 = 0,
       descent : Descent? = nil,
       blocked : Set({Int32, Int32}) = Descent::EMPTY
 
+    # How many turns old a sighting may be and still be worth swinging at.
+    #
+    # A creature that was looking at the character last turn swings at the
+    # square it believes they are on. So does one that was hit by them, which
+    # is how a creature fights back in a dark corridor it can see nothing in:
+    # being stabbed says which side the blow came from. Older than this and
+    # the creature walks to the square instead, and finds nothing there.
+    FRESH = 1
+
     # What the creature *snapshot* describes does this turn.
     #
-    # It swings when the character is one square away and it can see them. It
-    # walks toward where it last saw them otherwise. It waits when it has
-    # never seen them, when it is standing on the square it last saw them,
-    # and when there is nowhere to go.
+    # It swings when the character is one square away and it knew where they
+    # were within the last `FRESH` turns. It walks toward where it last saw
+    # them otherwise. It waits when it has never seen them, when it is
+    # standing on the square it last saw them, and when there is nowhere to
+    # go.
     def self.decide(snapshot : Snapshot) : Action
       quarry = snapshot.quarry
       return Action.wait unless quarry
 
       beside = beside snapshot.at, quarry
-      return Action.strike(beside) if beside && snapshot.hunting
+      return Action.strike(beside) if beside && snapshot.stale <= FRESH
       return Action.wait if snapshot.at == quarry
 
       direction = walk snapshot

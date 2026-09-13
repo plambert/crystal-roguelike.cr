@@ -228,9 +228,16 @@ Spectator.describe "monsters on the screen" do
   # east end and a goblin between it and the approach from the west. Walking
   # up it, the goblin is a shape long before a carried torch reaches it.
   describe "the corridor on the shipped floor" do
-    def approaching(column : Int32) : Playing::Run
+    # *dark* puts out whatever the goblin is carrying.
+    #
+    # Phase 20 gives a monster loot, and on this seed that goblin comes up
+    # with a lit candle. A creature holding a light is lit by it and is not a
+    # silhouette at all, so the examples about the silhouette rule take it
+    # off and the one about carrying a light leaves it on.
+    def approaching(column : Int32, dark : Bool = true) : Playing::Run
       game = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED)
       game.player.move_to column, 20
+      game.floor.monster(42, 20).try(&.carrying.each &.douse) if dark
 
       run = Playing.open game, 120, 30
       run.play.refresh
@@ -281,6 +288,25 @@ Spectator.describe "monsters on the screen" do
       raise "the goblin was not drawn" unless shape && lit
 
       expect(shape.foreground.green).to be < lit.foreground.green
+    end
+
+    # A creature carrying a light is not a shape. It is standing in a pool of
+    # its own making, and that pool is what gives it away from further off
+    # than anything else would.
+    it "shows a goblin carrying a light in its own colour" do
+      run = approaching 30, dark: false
+
+      expect(run.game.floor.monster(42, 20).try &.carrying.any? &.lit?).to be_true
+      expect(run.game.sight.includes? 42, 20).to be_true
+      expect(glyph_at run, 42, 20).to eq 'g'
+    end
+
+    it "lights the ground round a goblin carrying one" do
+      dark = approaching(30).game.sight
+      carried = approaching(30, dark: false).game.sight
+
+      expect(dark.light 41, 20).to eq 0
+      expect(carried.light 41, 20).to be > 0
     end
   end
 

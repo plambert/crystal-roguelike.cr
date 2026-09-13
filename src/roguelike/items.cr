@@ -107,9 +107,13 @@ module Roguelike
     # The blessing is rolled first. The enchantment then rolls on the table
     # that blessing leans toward, so a cursed sword is usually worse than a
     # plain one.
-    def self.make(rng : Rng, kind : ItemKind) : Item
+    #
+    # *conditions* is the table the condition rolls on. `Loot` passes a
+    # different one, because what a monster is carrying is more battered than
+    # what is lying about the floor.
+    def self.make(rng : Rng, kind : ItemKind, conditions = CONDITIONS) : Item
       blessing = pick rng, BLESSINGS
-      condition = kind.enchantable? ? pick(rng, CONDITIONS) : Condition::Plain
+      condition = kind.enchantable? ? pick(rng, conditions) : Condition::Plain
       enchantment = kind.enchantable? ? pick(rng, enchantments_for(blessing)) : 0
       count = STACKS[kind]?.try { |range| rng.rand range } || 1
 

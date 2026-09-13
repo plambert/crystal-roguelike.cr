@@ -1,4 +1,5 @@
 require "json"
+require "./item"
 require "./knowledge"
 require "./species"
 
@@ -47,11 +48,23 @@ module Roguelike
     # serialized type later means migrating save files.
     getter memory : Hash(String, Knowledge)
 
+    # What it is carrying.
+    #
+    # `Loot` rolls this when the floor is made. Everything in it goes on the
+    # square the creature dies on. Nothing else reads it: a monster does not
+    # swing the sword it is holding until a later phase gives it a reason to,
+    # and its armour does not add to what it takes off a blow either.
+    #
+    # A lit torch in here does throw light. `Game#lights` reads it, which is
+    # where Phase 13's carried source finally has a carrier.
+    getter carrying : Array(Item)
+
     def initialize(@species : Species, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
                    attributes : Attributes? = nil,
-                   @memory : Hash(String, Knowledge) = {} of String => Knowledge)
+                   @memory : Hash(String, Knowledge) = {} of String => Knowledge,
+                   @carrying : Array(Item) = [] of Item)
       @hit_points = hit_points || @species.hit_points
       @attributes = attributes || @species.attributes
     end
@@ -96,9 +109,9 @@ module Roguelike
 
     # What this creature adds to a swing.
     #
-    # Its dexterity modifier and nothing else. Phase 20 gives it a weapon to
-    # hold, and that weapon's enchantment adds to this the way the
-    # character's does.
+    # Its dexterity modifier and nothing else. A creature carrying a sword is
+    # not yet swinging it: `#carrying` is what drops when it dies and nothing
+    # more than that.
     def to_hit : Int32
       @attributes.modifier Attributes::Which::Dexterity
     end
@@ -131,6 +144,18 @@ module Roguelike
       @hit_points = Math.max @hit_points - amount, 0
     end
 
+    # Gives it *items* to carry, on top of whatever it already had.
+    def carry(items : Enumerable(Item)) : Nil
+      items.each { |item| @carrying << item }
+    end
+
+    # Takes everything it is carrying off it. Answers what was taken.
+    def drop_everything : Array(Item)
+      taken = @carrying.dup
+      @carrying.clear
+      taken
+    end
+
     # What it is called.
     def label : String
       @species.label
@@ -144,7 +169,8 @@ module Roguelike
     def ==(other : Monster) : Bool
       @species == other.species && @x == other.x && @y == other.y &&
         @hit_points == other.hit_points && @band == other.band &&
-        @attributes.to_a == other.attributes.to_a && @memory == other.memory
+        @attributes.to_a == other.attributes.to_a && @memory == other.memory &&
+        @carrying == other.carrying
     end
 
     def to_s(io : IO) : Nil

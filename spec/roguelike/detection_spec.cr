@@ -233,6 +233,22 @@ Spectator.describe "noticing the character" do
       expect(game.log.lines).to contain "The goblin notices you."
     end
 
+    # It cannot see who hit it. It knows which side the blow came from, so it
+    # swings back at the dark.
+    it "swings back at a character it cannot see" do
+      game, creature = corridor away: 1
+
+      before = game.player.hit_points
+      30.times do
+        break if game.player.hit_points < before
+
+        game.attack creature
+      end
+
+      expect(game.player.hit_points).to be < before
+      expect(game.log.lines.any? &.starts_with?("The goblin")).to be_true
+    end
+
     it "hunts what it can see when it is hit" do
       game, creature = corridor away: 1, ambient: 1
 

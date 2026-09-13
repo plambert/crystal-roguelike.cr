@@ -63,6 +63,9 @@ actually been run rather than reasoned about.
 | A creature's decision | `Pursuit.decide` reads a snapshot holding no floor and no player, and answers an `Action` |
 | Seeing across a square | A creature that can see somebody writes down that the ground between can be crossed, and no more |
 | Touch | A creature knows the terrain of the eight squares round it. It knows the items only where it stands |
+| Monster loot | Independent draws per species, each with its own chance and table, on a stream named by where the creature stands |
+| A carried light | Rolled alight. A monster holding one lights itself, and it goes on burning where the monster fell |
+| Swinging back | A creature swings at a sighting no more than a turn old, so one stabbed in the dark hits back |
 
 ## Ground rules
 
@@ -646,6 +649,27 @@ The phase that introduces the type monster bands will use in Phase 19.
   torch is on the floor, still lit. Specs that ten thousand seeded rolls of each table produce
   the stated distribution within tolerance, and that a table never produces an item the species
   should not have.
+* **Done.** A species makes several independent draws rather than one. `Loot::Draw` is a table of
+  kinds by weight, a chance out of a hundred, and a count; a goblin draws for a weapon, for
+  armour, for a light and for coins, and each rolls whether or not the others did. One table of
+  everything a goblin might have would make those exclusive, and a goblin with a sword and no
+  boots is the ordinary case. A slime has no weapon draw at all rather than one it almost never
+  makes.
+
+  Each creature rolls on a stream named by where it stands, which is its stable identity on a
+  floor written by hand. Adding an entry to a table shifts what that one creature carries and
+  nothing else, and the order the creatures are walked in says nothing.
+
+  `Loot::CONDITIONS` leans toward damaged where `Items::CONDITIONS` leans toward plain, so what is
+  taken off a body is more battered than what is lying about the floor. Anything that burns comes
+  out alight: a monster carrying a torch is carrying it for the light, `Game#lights` reads it, and
+  Phase 13's carried source finally has a carrier. Killing the monster leaves it burning where the
+  monster fell.
+
+  Verifying this turned up a hole worth naming. A creature stabbed in the dark stood there and
+  took it, because it only swung at a character it could see and it could see nothing. A creature
+  now swings at a sighting no more than `Pursuit::FRESH` turns old, and being hit writes one, so
+  it fights back at the square the blow came from.
 
 ## Part 6: A whole game
 

@@ -8,6 +8,7 @@ require "./lighting"
 require "./line"
 require "./vision"
 require "./items"
+require "./loot"
 require "./lore"
 require "./message_log"
 require "./notice"
@@ -139,6 +140,7 @@ module Roguelike
 
       game = new world, player, lore: Lore.roll(rng)
       game.scatter rng
+      game.equip rng
       game.say "You are in a dungeon, holding a lit torch. Press ? for the keys."
       game
     end
@@ -163,6 +165,19 @@ module Roguelike
         spot = squares.sample stream
         item = stream.rand(4).zero? ? gold(stream) : Items.random(stream)
         floor.drop spot[0], spot[1], item
+      end
+    end
+
+    # Gives every monster on the floor what it is carrying.
+    #
+    # Each creature draws on a stream of its own, named by where it stands.
+    # That is its stable identity on a floor written by hand: adding an entry
+    # to a loot table shifts what one creature carries and nothing else, and
+    # the order the creatures are walked in does not matter at all.
+    def equip(rng : Rng) : Nil
+      floor.each_monster do |column, row, creature|
+        stream = rng.derive "loot:#{floor.id}:#{column},#{row}"
+        creature.carry Loot.for(creature.species, stream)
       end
     end
 
@@ -274,8 +289,15 @@ module Roguelike
     end
 
     # Takes *creature* off the floor and awards its experience.
+    #
+    # Whatever it was carrying lands on the square it died on. A lit torch
+    # goes on burning there, which is how a fight in a dark corridor leaves a
+    # light behind it.
     private def kill(creature : Monster) : Nil
       floor.remove creature.x, creature.y
+      creature.drop_everything.each do |item|
+        floor.drop creature.x, creature.y, item
+      end
       say "You kill the #{creature.label}."
 
       gained = @player.gain creature.species.experience
@@ -342,7 +364,7 @@ module Roguelike
         at: creature.at,
         knowledge: knowledge,
         quarry: quarry.try(&.at),
-        hunting: band.awareness.hunting?,
+        stale: quarry.try(&.age(@turn)) || 0,
         descent: creature.species.paths? ? maps[creature.band]? : nil,
         blocked: standing_on_squares(creature))
     end
@@ -745,8 +767,9 @@ module Roguelike
 
     # Everything on this floor that is throwing light.
     #
-    # Lit wall sconces, lit torches and candles lying about, and whatever the
-    # character is carrying alight. The floor's own glow is not here: a
+    # Lit wall sconces, lit torches and candles lying about, whatever the
+    # character is carrying alight, and whatever a monster is carrying
+    # alight. The floor's own glow is not here: a
     # glowing square is not a source, and `Lighting.over` reads it straight
     # off the floor.
     def lights : Array(LightSource)
@@ -767,6 +790,12 @@ module Roguelike
 
       @player.inventory.each do |_letter, item|
         found << LightSource.new(@player.x, @player.y, item.light) if item.lit?
+      end
+
+      floor.each_monster do |column, row, creature|
+        creature.carrying.each do |item|
+          found << LightSource.new(column, row, item.light) if item.lit?
+        end
       end
 
       found

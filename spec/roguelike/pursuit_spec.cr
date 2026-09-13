@@ -34,7 +34,7 @@ Spectator.describe Roguelike::Pursuit do
   # difference between a goblin and a slime.
   def snapshot(at : {Int32, Int32},
                quarry : {Int32, Int32}? = nil,
-               hunting : Bool = true,
+               stale : Int32 = 0,
                paths : Bool = true,
                knowledge : Knowledge? = nil,
                blocked : Array({Int32, Int32}) = [] of {Int32, Int32}) : Pursuit::Snapshot
@@ -46,7 +46,7 @@ Spectator.describe Roguelike::Pursuit do
       at: at,
       knowledge: held,
       quarry: quarry,
-      hunting: hunting,
+      stale: stale,
       descent: quarry && paths ? Descent.toward(held, quarry) : nil,
       blocked: taken)
   end
@@ -72,10 +72,19 @@ Spectator.describe Roguelike::Pursuit do
       expect(found.direction).to eq Direction::SouthEast
     end
 
-    # The square is where it last saw them rather than where they are. It
+    # A creature hit in the dark knows which side the blow came from. It
+    # swings back without seeing anything.
+    it "swings back at a sighting from last turn" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {3, 2}, stale: Pursuit::FRESH)
+
+      expect(found.intent).to eq Intent::Strike
+      expect(found.direction).to eq Direction::East
+    end
+
+    # An older sighting is where they were rather than where they are. It
     # walks onto the square and finds nothing.
-    it "walks onto the square when it cannot see them" do
-      found = Pursuit.decide snapshot({2, 2}, quarry: {3, 2}, hunting: false)
+    it "walks onto the square when the sighting has gone cold" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {3, 2}, stale: Pursuit::FRESH + 1)
 
       expect(found.intent).to eq Intent::Step
       expect(found.direction).to eq Direction::East
@@ -84,7 +93,7 @@ Spectator.describe Roguelike::Pursuit do
 
   describe "a creature standing where it last saw them" do
     it "waits" do
-      found = Pursuit.decide snapshot({2, 2}, quarry: {2, 2}, hunting: false)
+      found = Pursuit.decide snapshot({2, 2}, quarry: {2, 2}, stale: 5)
 
       expect(found).to eq Action.wait
     end
@@ -127,7 +136,7 @@ Spectator.describe Roguelike::Pursuit do
 
     it "waits when every way down is taken" do
       found = Pursuit.decide snapshot({2, 2}, quarry: {1, 1},
-        hunting: false, blocked: [{1, 1}, {1, 2}, {2, 1}])
+        stale: 5, blocked: [{1, 1}, {1, 2}, {2, 1}])
 
       expect(found).to eq Action.wait
     end
