@@ -53,6 +53,7 @@ actually been run rather than reasoned about.
 | One flame | Every square one flame lights takes its shift. Overlapping pools add. `--no-flicker` stops it |
 | A creature in the dark | Seen by the light on it, or as a shape against light behind it |
 | Monsters on a floor | Keyed by square, so one square holds one creature and the lookup is free |
+| What a creature knows | Its own `Knowledge` and its band's, never the same one. `Band#sharing` says how the second reaches the first |
 | Floor file layers | One character per square. A mark that is not terrain takes its ground from the squares beside it |
 
 ## Ground rules
@@ -137,6 +138,25 @@ A `Monster` carries a `band` and the band carries a `faction`, from Phase 16, ev
 reads either until much later. A band is the unit that shares knowledge, and a faction is the
 unit that decides who fights whom. Adding the fields to a serialized type later means migrating
 save files; adding them now costs two lines.
+
+### A creature knows two things: what it saw and what it was told
+
+Every creature has a `Knowledge` of its own, and so does its band. The two are never the same
+object, so that one creature walking into a room can be told apart from the band having been told
+about it. `Band#sharing` decides how the second reaches the first:
+
+| `Sharing` | What it is |
+|---|---|
+| `Inherited` | The band's knowledge seeds a new member's own, and the two go their own ways. A tribe whose members have all walked these corridors before and who each saw something different yesterday. Most bands. |
+| `Hive` | One mind in several bodies. What one member sees, the band and every other member know in the same turn. A hive, and some slimes. |
+| `Called` | Each member keeps its own and passes it to whichever members are near enough to be told. A pack that calls out. |
+
+`Knowledge#sightings` is where each creature was last seen, by who, with the turn. A monster goes
+to where it saw the character rather than to where the character is, which is the difference
+between a creature that hunts and one that cheats. `Knowledge#copy` is what `Inherited` hands a
+new member.
+
+The fields are in place from Phase 16. Nothing reads them until Phase 19.
 
 ## Keybindings
 
@@ -429,7 +449,8 @@ terrain under it from the squares beside it, so a sconce in a dirt room stands o
 The phase that introduces the type monster bands will use in Phase 19.
 
 * **Build** — `Knowledge`: what somebody believes about a floor — which tiles they have seen and
-  what was on them, where things were when last seen, and how many turns ago each of those was.
+  what was on them, where things were when last seen, where each creature was last seen, and how
+  many turns ago each of those was.
   The player gets one. Terrain once seen is remembered and drawn dim; items and monsters are
   remembered as they were, and are not updated while out of sight. The quantized style ramp — the
   fourth extraction candidate — giving a fixed number of steps between lit, dim and unseen, so

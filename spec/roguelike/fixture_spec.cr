@@ -145,15 +145,30 @@ Spectator.describe Roguelike::Fixture do
   end
 
   describe "on the shipped floor" do
-    it "puts six sconces on open squares, each bolted to a wall" do
+    it "stands every sconce on ground somebody could walk on" do
       floor = Roguelike::Floors.proving_ground
 
-      expect(floor.fixtures.size).to eq 6
+      expect(floor.fixtures.size).to eq 7
+
+      floor.each_fixture do |column, row, _fitting|
+        expect(floor.terrain(column, row).floor?).to be_true
+      end
+    end
+
+    # Six are bolted to a wall. The seventh stands on its own foot in the
+    # middle of the long corridor, where a wall touches it on both sides and
+    # neither is the one it hangs on.
+    it "bolts six of them to a wall and stands one free" do
+      floor = Roguelike::Floors.proving_ground
+      mounted = [] of {Int32, Int32}
+      standing = [] of {Int32, Int32}
 
       floor.each_fixture do |column, row, fitting|
-        expect(floor.terrain(column, row).floor?).to be_true
-        expect(fitting.mounted?).to be_true
+        (fitting.mounted? ? mounted : standing) << {column, row}
       end
+
+      expect(mounted.size).to eq 6
+      expect(standing).to eq [{50, 20}]
     end
 
     it "stands two of them on the dirt of the second room" do

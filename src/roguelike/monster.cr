@@ -1,4 +1,5 @@
 require "json"
+require "./knowledge"
 require "./species"
 
 module Roguelike
@@ -32,12 +33,38 @@ module Roguelike
     # has something to share.
     getter band : String
 
+    # What this creature believes, by floor id, apart from what its band
+    # believes.
+    #
+    # Every creature has its own. A band whose `Sharing` is `Inherited` gives
+    # a new member a copy of the band's to start from and the two go their own
+    # ways after that. One whose sharing is `Hive` writes both at once. One
+    # whose sharing is `Called` writes its own and passes it on when it can.
+    # In every case what this creature saw is here and what the band was told
+    # is there, so the two can be told apart.
+    #
+    # Nothing reads this yet. It is here because adding a field to a
+    # serialized type later means migrating save files.
+    getter memory : Hash(String, Knowledge)
+
     def initialize(@species : Species, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
-                   attributes : Attributes? = nil)
+                   attributes : Attributes? = nil,
+                   @memory : Hash(String, Knowledge) = {} of String => Knowledge)
       @hit_points = hit_points || @species.hit_points
       @attributes = attributes || @species.attributes
+    end
+
+    # What this creature believes about the floor *id*, empty until it learns
+    # something.
+    def knowledge(id : String) : Knowledge
+      @memory[id] ||= Knowledge.new id
+    end
+
+    # :ditto: Answers `nil` for a floor it has never been on.
+    def knowledge?(id : String) : Knowledge?
+      @memory[id]?
     end
 
     # Where it stands.
@@ -90,7 +117,7 @@ module Roguelike
     def ==(other : Monster) : Bool
       @species == other.species && @x == other.x && @y == other.y &&
         @hit_points == other.hit_points && @band == other.band &&
-        @attributes.to_a == other.attributes.to_a
+        @attributes.to_a == other.attributes.to_a && @memory == other.memory
     end
 
     def to_s(io : IO) : Nil

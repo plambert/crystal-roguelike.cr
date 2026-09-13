@@ -179,6 +179,66 @@ Spectator.describe "monsters on the screen" do
     end
   end
 
+  # The long corridor on the shipped floor has a torch on a stand near its
+  # east end and a goblin between it and the approach from the west. Walking
+  # up it, the goblin is a shape long before a carried torch reaches it.
+  describe "the corridor on the shipped floor" do
+    def approaching(column : Int32) : Playing::Run
+      game = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED)
+      game.player.move_to column, 20
+
+      run = Playing.open game, 120, 30
+      run.play.refresh
+      run.render
+      run
+    end
+
+    def glyph_at(run : Playing::Run, x : Int32, y : Int32) : Char?
+      spot = run.map.screen_of x, y
+      return unless spot
+
+      run.rows[spot[1]]?.try &.[spot[0]]?
+    end
+
+    def style_at(run : Playing::Run, x : Int32, y : Int32) : TermBuf::Style?
+      spot = run.map.screen_of x, y
+      return unless spot
+
+      run.buffer.hit(spot[0], spot[1]).try { |cell| run.buffer.styles[cell.cell.style] }
+    end
+
+    it "stands the torch on its own foot rather than on a wall" do
+      stand = Roguelike::Floors.proving_ground.fixture 50, 20
+      raise "no torch on a stand at 50,20" unless stand
+
+      expect(stand.lit?).to be_true
+      expect(stand.mounted?).to be_false
+    end
+
+    it "shows the goblin as a shape from down the corridor" do
+      run = approaching 30
+
+      expect(run.game.sight.includes? 42, 20).to be_false
+      expect(run.game.sight.backlit? run.game.floor, 42, 20).to be_true
+      expect(glyph_at run, 42, 20).to eq 'g'
+    end
+
+    it "shows it lit once the carried torch reaches it" do
+      run = approaching 38
+
+      expect(run.game.sight.includes? 42, 20).to be_true
+      expect(glyph_at run, 42, 20).to eq 'g'
+    end
+
+    it "draws the shape darker than the lit one" do
+      shape = style_at approaching(30), 42, 20
+      lit = style_at approaching(38), 42, 20
+      raise "the goblin was not drawn" unless shape && lit
+
+      expect(shape.foreground.green).to be < lit.foreground.green
+    end
+  end
+
   describe "drawn" do
     it "draws what it drew last time with one of each" do
       drawn = shown(["#########", "#.j...g.#", "#...<...#", "#...o...#", "#########"]).text

@@ -146,12 +146,93 @@ Spectator.describe Roguelike::Knowledge do
     end
   end
 
+  # A monster that has seen the character goes to where it saw them rather
+  # than to where they are now.
+  describe "where somebody was last seen" do
+    it "records a square and a turn" do
+      knowledge.saw Roguelike::Knowledge::PLAYER, 4, 7, 12
+
+      sighting = knowledge.sighting Roguelike::Knowledge::PLAYER
+      raise "nobody was seen" unless sighting
+
+      expect(sighting.at).to eq({4, 7})
+      expect(sighting.turn).to eq 12
+      expect(sighting.age 20).to eq 8
+      expect(sighting.age 12).to eq 0
+    end
+
+    it "answers nothing for somebody never seen" do
+      expect(knowledge.sighting Roguelike::Knowledge::PLAYER).to be_nil
+    end
+
+    it "replaces the square when they are seen again" do
+      knowledge.saw Roguelike::Knowledge::PLAYER, 4, 7, 12
+      knowledge.saw Roguelike::Knowledge::PLAYER, 9, 2, 30
+
+      expect(knowledge.sighting(Roguelike::Knowledge::PLAYER).try &.at).to eq({9, 2})
+    end
+
+    it "keeps one per creature seen" do
+      knowledge.saw Roguelike::Knowledge::PLAYER, 4, 7, 12
+      knowledge.saw "goblin-one", 1, 1, 3
+
+      expect(knowledge.sighting(Roguelike::Knowledge::PLAYER).try &.at).to eq({4, 7})
+      expect(knowledge.sighting("goblin-one").try &.at).to eq({1, 1})
+    end
+
+    it "forgets one on its own" do
+      knowledge.saw Roguelike::Knowledge::PLAYER, 4, 7, 12
+      knowledge.lost Roguelike::Knowledge::PLAYER
+
+      expect(knowledge.sighting Roguelike::Knowledge::PLAYER).to be_nil
+    end
+
+    it "round-trips through JSON" do
+      knowledge.saw Roguelike::Knowledge::PLAYER, 4, 7, 12
+      again = described_class.from_json knowledge.to_json
+
+      expect(again).to eq knowledge
+      expect(again.sighting(Roguelike::Knowledge::PLAYER).try &.at).to eq({4, 7})
+    end
+  end
+
+  # A band whose members each keep their own beliefs gives each of them a
+  # copy to start from. What one learns after that is its own.
+  describe "#copy" do
+    it "holds what the original held" do
+      knowledge.learn spot, Vision.lit(spot, 3, 2), 4
+      knowledge.saw Roguelike::Knowledge::PLAYER, 1, 1, 4
+
+      expect(knowledge.copy).to eq knowledge
+    end
+
+    it "goes its own way after that" do
+      knowledge.saw Roguelike::Knowledge::PLAYER, 1, 1, 4
+      mine = knowledge.copy
+      mine.saw Roguelike::Knowledge::PLAYER, 8, 8, 9
+
+      expect(knowledge.sighting(Roguelike::Knowledge::PLAYER).try &.at).to eq({1, 1})
+      expect(mine.sighting(Roguelike::Knowledge::PLAYER).try &.at).to eq({8, 8})
+    end
+
+    it "does not share what it remembers of the floor" do
+      knowledge.see spot, 1, 1, 1
+      mine = knowledge.copy
+      mine.see spot, 2, 2, 2
+
+      expect(knowledge.size).to eq 1
+      expect(mine.size).to eq 2
+    end
+  end
+
   describe "#forget" do
     it "throws everything away" do
       knowledge.learn spot, Vision.lit(spot, 3, 2), 0
+      knowledge.saw Roguelike::Knowledge::PLAYER, 1, 1, 0
       knowledge.forget
 
       expect(knowledge.empty?).to be_true
+      expect(knowledge.sightings).to be_empty
     end
   end
 

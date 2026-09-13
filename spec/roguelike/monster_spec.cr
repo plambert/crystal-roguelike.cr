@@ -50,6 +50,78 @@ Spectator.describe Roguelike::Monster do
     it "fights the dungeon's fight by default" do
       expect(Band.new("band-one").faction).to eq Faction::Dungeon
     end
+
+    # Most bands are a tribe whose members have walked these corridors before
+    # and who each saw something different yesterday.
+    it "passes what it knows down to each member by default" do
+      expect(Band.new("band-one").sharing).to eq Roguelike::Sharing::Inherited
+    end
+  end
+
+  # Every creature has knowledge of its own, apart from its band's, so that
+  # one of them walking into a room can be told apart from the band having
+  # been told about it.
+  describe "what it knows" do
+    it "starts knowing nothing of any floor" do
+      expect(goblin.memory).to be_empty
+      expect(goblin.knowledge?("room")).to be_nil
+    end
+
+    it "keeps one per floor" do
+      goblin.knowledge("room").saw Roguelike::Knowledge::PLAYER, 2, 3, 9
+
+      expect(goblin.knowledge?("room")).not_to be_nil
+      expect(goblin.knowledge?("cellar")).to be_nil
+    end
+
+    it "is not the band's" do
+      band = Band.new "band-one"
+      band.knowledge("room").saw Roguelike::Knowledge::PLAYER, 9, 9, 1
+      goblin.knowledge("room").saw Roguelike::Knowledge::PLAYER, 2, 3, 9
+
+      expect(goblin.knowledge("room").sighting(Roguelike::Knowledge::PLAYER).try &.at)
+        .to eq({2, 3})
+      expect(band.knowledge("room").sighting(Roguelike::Knowledge::PLAYER).try &.at)
+        .to eq({9, 9})
+    end
+
+    it "round-trips through JSON" do
+      goblin.knowledge("room").saw Roguelike::Knowledge::PLAYER, 2, 3, 9
+      again = described_class.from_json goblin.to_json
+
+      expect(again).to eq goblin
+      expect(again.knowledge("room").sighting(Roguelike::Knowledge::PLAYER).try &.turn)
+        .to eq 9
+    end
+  end
+
+  describe "how a band shares" do
+    alias Sharing = Roguelike::Sharing
+
+    it "hands a copy down to a new member unless it calls out" do
+      expect(Sharing::Inherited.inherits?).to be_true
+      expect(Sharing::Hive.inherits?).to be_true
+      expect(Sharing::Called.inherits?).to be_false
+    end
+
+    # One mind in several bodies.
+    it "reaches every member in the same turn only for a hive" do
+      expect(Sharing::Hive.instant?).to be_true
+      expect(Sharing::Inherited.instant?).to be_false
+      expect(Sharing::Called.instant?).to be_false
+    end
+
+    it "round-trips a band through JSON" do
+      band = Band.new "band-one", Faction::Dungeon, Sharing::Hive
+      band.knowledge("room").saw Roguelike::Knowledge::PLAYER, 4, 4, 2
+
+      again = Band.from_json band.to_json
+
+      expect(again).to eq band
+      expect(again.sharing).to eq Sharing::Hive
+      expect(again.knowledge("room").sighting(Roguelike::Knowledge::PLAYER).try &.at)
+        .to eq({4, 4})
+    end
   end
 
   describe "serialization" do
@@ -61,12 +133,6 @@ Spectator.describe Roguelike::Monster do
       expect(again.species).to eq Species::Goblin
       expect(again.hit_points).to eq goblin.hit_points
       expect(again.band).to eq "band-one"
-    end
-
-    it "round-trips a band through JSON" do
-      band = Band.new "band-one", Faction::Dungeon
-
-      expect(Band.from_json band.to_json).to eq band
     end
   end
 

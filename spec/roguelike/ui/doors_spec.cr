@@ -253,8 +253,18 @@ Spectator.describe "doors, stairs and leaving" do
     # The next walks through it. There are four doors on the way.
     WALK = "nnnnnjjjjjjjnlllnnnnn" + "l" * 43 + "u"
 
-    it "opens a door, crosses the floor, and wins" do
+    # The walk is about doors and stairs. A monster standing in a one-wide
+    # corridor stops it dead, and until Phase 17 there is nothing to do about
+    # one but turn round. The floor is cleared of them so the spec says what
+    # it is about.
+    def crossing : Playing::Run
       run = Playing.open
+      run.game.floor.monsters.clear
+      run
+    end
+
+    it "opens a door, crosses the floor, and wins" do
+      run = crossing
 
       WALK.each_char { |key| run.press key.to_s }
 
@@ -270,7 +280,7 @@ Spectator.describe "doors, stairs and leaving" do
     end
 
     it "leaves the doors it opened open" do
-      run = Playing.open
+      run = crossing
 
       WALK.each_char { |key| run.press key.to_s }
 
@@ -280,11 +290,22 @@ Spectator.describe "doors, stairs and leaving" do
     end
 
     it "takes one turn for each key that did something" do
-      run = Playing.open
+      run = crossing
 
       WALK.each_char { |key| run.press key.to_s }
 
       expect(run.turn).to eq WALK.size
+    end
+
+    # The same walk with the floor as it ships stops at the goblin standing in
+    # the corridor. That is the phase after this one.
+    it "stops at the creature standing in the way" do
+      run = Playing.open
+
+      WALK.each_char { |key| run.press key.to_s }
+
+      expect(run.at).to eq({41, 20})
+      expect(run.log.any? &.includes?("goblin is in your way")).to be_true
     end
   end
 

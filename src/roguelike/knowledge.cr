@@ -46,6 +46,25 @@ module Roguelike
     end
   end
 
+  # Where somebody was last known to be.
+  #
+  # A monster that has seen the character remembers where, and how long ago.
+  # It goes to that square rather than to where the character is now, which is
+  # the difference between a creature that hunts and one that cheats.
+  record Sighting, x : Int32, y : Int32, turn : Int32 do
+    include JSON::Serializable
+
+    # Where they were.
+    def at : {Int32, Int32}
+      {x, y}
+    end
+
+    # How many turns ago that was, as of *now*.
+    def age(now : Int32) : Int32
+      Math.max now - turn, 0
+    end
+  end
+
   # What somebody believes about one floor.
   #
   # What is on a floor and what somebody thinks is on a floor are two
@@ -64,8 +83,41 @@ module Roguelike
     # `Floor.spot`, the same key `Floor#litter` uses.
     getter memories : Hash(String, Memory)
 
+    # Where each creature was last seen, by who.
+    #
+    # `PLAYER` is the key for the character. A monster id will be the key for
+    # a monster, once a band has a reason to track one.
+    getter sightings : Hash(String, Sighting)
+
     def initialize(@floor : String,
-                   @memories : Hash(String, Memory) = {} of String => Memory)
+                   @memories : Hash(String, Memory) = {} of String => Memory,
+                   @sightings : Hash(String, Sighting) = {} of String => Sighting)
+    end
+
+    # The key `#sightings` holds the character under.
+    PLAYER = "player"
+
+    # Records that *who* was at *x*, *y* on *turn*.
+    def saw(who : String, x : Int32, y : Int32, turn : Int32) : Nil
+      @sightings[who] = Sighting.new x, y, turn
+    end
+
+    # Where *who* was last seen. `nil` for somebody never seen.
+    def sighting(who : String) : Sighting?
+      @sightings[who]?
+    end
+
+    # Forgets where *who* was.
+    def lost(who : String) : Nil
+      @sightings.delete who
+    end
+
+    # A copy of this knowledge, to hand a member of a band as a start.
+    #
+    # A band whose members each keep their own beliefs gives each of them one
+    # of these. What one of them learns after that is its own.
+    def copy : Knowledge
+      Knowledge.new @floor, @memories.dup, @sightings.dup
     end
 
     # What *x*, *y* looked like. `nil` for a square never seen.
@@ -124,6 +176,7 @@ module Roguelike
     # Forgets everything.
     def forget : Nil
       @memories.clear
+      @sightings.clear
     end
 
     # *floor* drawn as it is remembered, with *unknown* wherever it is not.
@@ -141,7 +194,8 @@ module Roguelike
     end
 
     def ==(other : Knowledge) : Bool
-      @floor == other.floor && @memories == other.memories
+      @floor == other.floor && @memories == other.memories &&
+        @sightings == other.sightings
     end
 
     def to_s(io : IO) : Nil

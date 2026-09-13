@@ -1,6 +1,7 @@
 require "json"
 require "./attributes"
 require "./dice"
+require "./knowledge"
 
 module Roguelike
   # Who fights whom.
@@ -21,12 +22,56 @@ module Roguelike
     end
   end
 
+  # How the members of a band come by what they know.
+  #
+  # A band always has knowledge of its own: where its members have been,
+  # between them, and where they last saw anybody. What each member does with
+  # that is what this decides.
+  #
+  # A member always has knowledge of its own as well. The two are never the
+  # same object, even under `Hive`, so that one creature walking into a room
+  # can be told apart from the band having been told about it.
+  #
+  # A member is never removed and never reordered. A save file holds the
+  # member name.
+  enum Sharing
+    # The band's knowledge seeds each member's own, and the two go their own
+    # ways after that. A tribe whose members have all walked these corridors
+    # before, and who each saw something different yesterday.
+    #
+    # This is what most bands are.
+    Inherited
+
+    # One mind in several bodies. What one member sees the band knows and
+    # every other member knows at once. A hive, and some slimes.
+    Hive
+
+    # Each member keeps its own and passes it to whichever members of the
+    # band are near enough to be told. A pack that calls out.
+    Called
+
+    # Whether what one member learns reaches the others in the same turn.
+    def instant? : Bool
+      hive?
+    end
+
+    # Whether a member starts from what the band knows.
+    def inherits? : Bool
+      !called?
+    end
+
+    # What this is called, for a readout.
+    def label : String
+      to_s.downcase
+    end
+  end
+
   # A group of monsters that acts together.
   #
-  # A band is the unit that shares what it knows. Nothing reads that yet:
-  # every monster is in a band of one until Phase 19 gives a band a
-  # `Knowledge` and a plan. The field is here now because adding it to a
-  # serialized type later means migrating save files.
+  # A band is the unit that shares what it knows. Nothing reads `#knowledge`
+  # or `#sharing` yet: every monster is in a band of one until Phase 19 gives
+  # a band a plan. Both are here now because adding a field to a serialized
+  # type later means migrating save files.
   class Band
     include JSON::Serializable
 
@@ -36,15 +81,36 @@ module Roguelike
     # Who it fights.
     getter faction : Faction
 
-    def initialize(@id : String, @faction : Faction = Faction::Dungeon)
+    # How its members come by what they know.
+    getter sharing : Sharing
+
+    # What the band knows, by floor id.
+    #
+    # Floors persist, so a band that has walked two of them remembers both.
+    getter memory : Hash(String, Knowledge)
+
+    def initialize(@id : String, @faction : Faction = Faction::Dungeon,
+                   @sharing : Sharing = Sharing::Inherited,
+                   @memory : Hash(String, Knowledge) = {} of String => Knowledge)
+    end
+
+    # What the band knows of the floor *id*, empty until it learns something.
+    def knowledge(id : String) : Knowledge
+      @memory[id] ||= Knowledge.new id
+    end
+
+    # :ditto: Answers `nil` for a floor the band has never been on.
+    def knowledge?(id : String) : Knowledge?
+      @memory[id]?
     end
 
     def ==(other : Band) : Bool
-      @id == other.id && @faction == other.faction
+      @id == other.id && @faction == other.faction &&
+        @sharing == other.sharing && @memory == other.memory
     end
 
     def to_s(io : IO) : Nil
-      io << "Band(" << @id << ' ' << @faction << ')'
+      io << "Band(" << @id << ' ' << @faction << ' ' << @sharing << ')'
     end
   end
 
