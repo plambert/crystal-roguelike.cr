@@ -122,6 +122,60 @@ Spectator.describe "doors, stairs and leaving" do
 
       expect(run.said).to contain "nothing to close"
     end
+
+    # A door swings through the square it stands in. Whatever is in that
+    # square is in its way.
+    it "refuses to shut a door with a creature standing in it" do
+      run = room "#####\n#<'.#\n#####", 1, 1
+      run.game.floor.place Roguelike::Monster.new(
+        Roguelike::Species::Orc, 2, 1, "band-one")
+      run.play.refresh
+
+      run.press "c"
+
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(run.turn).to eq 0
+      expect(run.said).to eq "The orc is in the doorway."
+    end
+
+    it "does not name a creature the character cannot see" do
+      run = room "#####\n#<'.#\n#####", 1, 1
+      run.game.floor.ambient = 0
+      run.game.floor.place Roguelike::Monster.new(
+        Roguelike::Species::Orc, 2, 1, "band-one")
+      run.play.refresh
+
+      run.press "c"
+
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(run.said).to eq "There is something in the doorway."
+    end
+
+    it "refuses to shut a door with something lying in it" do
+      run = room "#####\n#<'.#\n#####", 1, 1
+      run.game.floor.drop 2, 1, Roguelike::Item.new(Roguelike::ItemKind::LongSword)
+      run.play.refresh
+
+      run.press "c"
+
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::OpenDoor
+      expect(run.turn).to eq 0
+      expect(run.said).to eq "Something is lying in the doorway."
+    end
+
+    it "shuts it once the doorway is clear again" do
+      run = room "#####\n#<'.#\n#####", 1, 1
+      run.game.floor.place Roguelike::Monster.new(
+        Roguelike::Species::Orc, 2, 1, "band-one")
+      run.play.refresh
+      run.press "c"
+
+      run.game.floor.remove 2, 1
+      run.play.refresh
+      run.press "c"
+
+      expect(run.game.floor.terrain(2, 1)).to eq Terrain::ClosedDoor
+    end
   end
 
   describe ">" do

@@ -844,7 +844,10 @@ module Roguelike
     # takes none.
     def open(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
-      return false unless floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
+      unless floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
+        say "There is nothing to open that way."
+        return false
+      end
 
       floor.set wanted[0], wanted[1], Terrain::OpenDoor
       handled wanted
@@ -854,15 +857,46 @@ module Roguelike
     end
 
     # Closes the door *direction*. Answers whether it closed.
+    #
+    # A doorway with anything in it stays open. A door swings through the
+    # square it stands in, and a creature or a pile of loot is in its way.
     def close(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
-      return false unless floor.tile?(wanted[0], wanted[1]).try &.terrain.open_door?
+      unless floor.tile?(wanted[0], wanted[1]).try &.terrain.open_door?
+        say "There is nothing to close that way."
+        return false
+      end
+
+      blocked = doorway_blocked wanted
+      if blocked
+        say blocked
+        return false
+      end
 
       floor.set wanted[0], wanted[1], Terrain::ClosedDoor
       handled wanted
       say "You close the door."
       spend_turn
       true
+    end
+
+    # Why the door on *spot* will not shut. `nil` when nothing stops it.
+    #
+    # A creature standing in the doorway is named when the character can see
+    # it. One they cannot see is not: they have pushed the door against
+    # something and do not know what. Anything lying on the square stops the
+    # door the same way.
+    private def doorway_blocked(spot : {Int32, Int32}) : String?
+      creature = floor.monster spot[0], spot[1]
+      if creature
+        return "There is something in the doorway." unless can_see_creature? spot[0], spot[1]
+
+        return "The #{creature.label} is in the doorway."
+      end
+
+      return unless floor.items? spot[0], spot[1]
+
+      "Something is lying in the doorway."
     end
 
     # Every direction holding a door of *terrain*.

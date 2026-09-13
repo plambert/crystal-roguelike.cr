@@ -983,15 +983,13 @@ module Roguelike::Ui
     end
 
     # Runs *command* on the door *direction*.
+    #
+    # `Game` says what happened either way. A door that will not shut says
+    # why, and this method must not write over that with a guess.
     private def act(command : Pending, direction : Direction) : Nil
-      done = case command
-             in .open?  then @game.open direction
-             in .close? then @game.close direction
-             end
-
-      unless done
-        say "There is nothing to #{command.verb} that way."
-        return
+      case command
+      in .open?  then @game.open direction
+      in .close? then @game.close direction
       end
 
       refresh

@@ -78,6 +78,8 @@ actually been run rather than reasoned about.
 | Finding out by use | Using an item names its kind, and every item of that kind with it. Each effect here is one a watcher would understand |
 | A use rolls on its own stream | `#draught` is `#exchange` without the fight, so a potion drunk mid-fight does not shift the swings after it |
 | An empty wand | Costs the turn and says nothing happened. A person cannot know a wand is spent until they try it |
+| Shutting a door | A doorway with a creature or a pile in it stays open. The door swings through that square |
+| Who says why | `Game` writes the refusal. `Play` never writes over it with a guess about what went wrong |
 
 ## Ground rules
 
