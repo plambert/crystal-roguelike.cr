@@ -28,7 +28,7 @@ module Playing
                    @told : Array(String))
     end
 
-    delegate game, screen, map, examine, examiner, pointer, prompt, pager, menu, to: @play
+    delegate game, screen, map, examine, examiner, nearby, pointer, prompt, pager, menu, to: @play
 
     # Whether the run should end.
     def finished? : Bool

@@ -71,6 +71,8 @@ actually been run rather than reasoned about.
 | A missile's line | Bresenham, the line sight and light already use. It stops at the first creature, the first wall, or its reach |
 | Where it lands | On the square it stopped on, hit or miss. A fired arrow is on the floor to be picked up again |
 | How far it goes | A bow, a sling, a dart and a rock say. Anything else goes ten squares less one per twenty of weight |
+| Sidebar | Three sections: "Here" is the square underfoot, "Seen" is what is in sight now, "Look" is the square pointed at |
+| Here and Seen | What is there now, never `Knowledge`. The map draws what was last seen; these two say what is seen |
 
 ## Ground rules
 

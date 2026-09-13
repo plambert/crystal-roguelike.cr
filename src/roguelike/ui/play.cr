@@ -53,6 +53,9 @@ module Roguelike::Ui
     # The readout of what is on one square.
     getter examine : ExaminePane
 
+    # What is underfoot and what is in sight.
+    getter nearby : NearbyPane
+
     # What points the readout. The pointer or the keyboard.
     getter examiner : Examiner
 
@@ -130,7 +133,8 @@ module Roguelike::Ui
       @screen.show @map.grid
 
       @examine = ExaminePane.new
-      @screen.show_sidebar @examine.root
+      @nearby = NearbyPane.new
+      @screen.show_sidebar @nearby.root, @examine.root
       @examiner = Examiner.new @map, @examine
       @examiner.lore = @game.lore
       @pointer = Pointer.new
@@ -768,8 +772,10 @@ module Roguelike::Ui
     def refresh : Nil
       @map.clear_marks
       @map.clear_highlights
-      @map.sight = @game.look
+      seen = @game.look
+      @map.sight = seen
       @map.knowledge = @game.knowledge
+      @nearby.show @game, seen
 
       # The pane reads the floor for what is lying about and the knowledge for
       # what was lying about. A mark is something standing on a square, which
@@ -856,6 +862,7 @@ module Roguelike::Ui
       @rows = rows
       @screen.fit columns, rows
       @pager.resize Screen.log_width(columns), Screen::LOG_ROWS
+      @nearby.budget = Play.nearby_budget rows
 
       app = @app
       @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app
@@ -876,6 +883,22 @@ module Roguelike::Ui
         say "Which way? Press a direction, or Escape."
       end
     end
+
+    # How many rows the sidebar's two lists get on a screen of *rows*.
+    #
+    # Whatever the map pane has, less the headings and rules of all three
+    # sections and the most `ExaminePane` writes. A shorter screen gives them
+    # less, and `NearbyPane` elides what does not fit rather than pushing the
+    # readout off the bottom.
+    def self.nearby_budget(rows : Int32) : Int32
+      Math.max Screen.map_rows(rows) - SIDEBAR_CHROME - EXAMINE_ROWS, 1
+    end
+
+    # Rows the three sidebar headings and the rules under them take.
+    SIDEBAR_CHROME = 5
+
+    # The most rows `ExaminePane` writes at once.
+    EXAMINE_ROWS = 6
 
     # Whether the log is holding a page that has not been read.
     def holding? : Bool

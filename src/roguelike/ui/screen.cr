@@ -95,10 +95,13 @@ module Roguelike::Ui
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)
 
+      # A blank row between the panes stacked in it. Each writes its own
+      # heading and rule, and two of them touching read as one pane.
       @sidebar = Widgets::Panel.new(
         width: Layout::Sizing.fixed(SIDEBAR_WIDTH),
         height: Layout::Sizing.grow,
-        padding: Layout::Padding.symmetric(horizontal: 1))
+        padding: Layout::Padding.symmetric(horizontal: 1),
+        gap: 1)
 
       @gutter = Widgets::Divider.new Widgets::Divider::Orientation::Vertical
 
@@ -218,12 +221,13 @@ module Roguelike::Ui
       Math.max columns - 2, 0
     end
 
-    # Puts *widget* in the sidebar. Takes out whatever was there.
+    # Puts *widgets* in the sidebar, stacked in the order given. Takes out
+    # whatever was there.
     #
-    # `Ui::ExaminePane` goes here.
-    def show_sidebar(widget : Widgets::Widget) : Nil
+    # `Ui::NearbyPane` and `Ui::ExaminePane` go here.
+    def show_sidebar(*widgets : Widgets::Widget) : Nil
       @sidebar.clear
-      @sidebar.add widget
+      widgets.each { |widget| @sidebar.add widget }
     end
 
     # Fills the regions that have nothing of their own yet.
