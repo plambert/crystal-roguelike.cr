@@ -62,7 +62,8 @@ actually been run rather than reasoned about.
 | Pursuit | One `Descent` per band per turn, flooded over the band's own `Knowledge`. Its members step downhill |
 | A creature's decision | `Pursuit.decide` reads a snapshot holding no floor and no player, and answers an `Action` |
 | Seeing across a square | A creature that can see somebody writes down that the ground between can be crossed, and no more |
-| Touch | A creature knows the terrain of the eight squares round it. It knows the items only where it stands |
+| Touch | A creature knows the terrain of the eight squares round it and what is fixed to them. Items only where it stands |
+| Hands on | A door opened or shut and a sconce lit or put out are remembered as they were left, light or no light |
 | Monster loot | Independent draws per species, each with its own chance and table, on a stream named by where the creature stands |
 | A carried light | Rolled alight. A monster holding one lights itself, and it goes on burning where the monster fell |
 | Swinging back | A creature swings at a sighting no more than a turn old, so one stabbed in the dark hits back |
@@ -630,10 +631,13 @@ The phase that introduces the type monster bands will use in Phase 19.
   inferred, so a square later seen to be a wall is a wall.
 
   A creature also knows the ground it could reach out and touch, seen or not, so it can take the
-  first step out of a dark square. `#touch` records what that square is made of and nothing else
-  on it. What a creature stands on it knows whole, items and all; what is beside it it knows the
-  shape of and no more. Reaching out in the dark says there is a wall there, not that there is a
-  sword on the floor.
+  first step out of a dark square. `#touch` records the shape of that square and what is fixed to
+  it, and nothing lying on it. What a creature stands on it knows whole, items and all; what is
+  beside it it knows the shape of and no more. Reaching out in the dark says there is a wall
+  there, and a bracket bolted to it, not that there is a sword on the floor.
+
+  `#touch` is what a door opened or shut by hand records too, and a sconce lit or put out.
+  Somebody who has just shut a door knows it is shut whether or not they can see it.
 
   One gap, left for later: a creature cannot open a door. A shut door is impassable in a band's
   knowledge, so pursuit stops at one.

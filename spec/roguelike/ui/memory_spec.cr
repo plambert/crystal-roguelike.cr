@@ -40,6 +40,130 @@ Spectator.describe "what the character remembers" do
       Roguelike::World.new(Playing::SEED, {"hall" => floor}), player), 40, 16
   end
 
+  # A corridor with a door in it and no light anywhere.
+  #
+  # The character carries a torch and puts it out. Nothing is lit after
+  # that, so the map holds what they remember and nothing else.
+  DARK = [
+    "###########",
+    "#.<..'....#",
+    "###########",
+  ]
+
+  def dark_corridor : Playing::Run
+    floor = Roguelike::Floor.parse "corridor", DARK
+    player = Roguelike::Player.new "corridor", *Roguelike::Game.entrance(floor)
+    player.inventory.add Playing.torch
+
+    run = Playing.open Roguelike::Game.new(
+      Roguelike::World.new(Playing::SEED, {"corridor" => floor}), player), 40, 16
+    run.press "l"
+    run.press "l"
+    run.press "a"
+    run
+  end
+
+  # Where the door stands.
+  DOOR = {5, 1}
+
+  describe "a door worked by hand" do
+    it "is remembered shut once it has been shut" do
+      run = dark_corridor
+      expect(run.game.knowledge[DOOR].try &.terrain).to eq Roguelike::Terrain::OpenDoor
+
+      run.press "c"
+
+      expect(run.game.sight.includes?(*DOOR)).to be_false
+      expect(run.game.knowledge[DOOR].try &.terrain).to eq Roguelike::Terrain::ClosedDoor
+    end
+
+    it "is remembered open once it has been opened again" do
+      run = dark_corridor
+      run.press "c"
+      run.press "o"
+
+      expect(run.game.knowledge[DOOR].try &.terrain).to eq Roguelike::Terrain::OpenDoor
+    end
+
+    it "draws the shut door on the map" do
+      run = dark_corridor
+      run.press "c"
+      run.render
+
+      spot = run.map.screen_of(*DOOR)
+      raise "the door is off the window" unless spot
+
+      expect(run.rows[spot[1]][spot[0]]).to eq '+'
+    end
+
+    # Working a latch says nothing about what is on the floor the other side
+    # of it.
+    it "learns nothing of what is lying on the square" do
+      run = dark_corridor
+      run.game.floor.drop DOOR[0], DOOR[1], Item.new Kind::LongSword
+
+      run.press "c"
+
+      expect(run.game.knowledge[DOOR].try &.item).to be_nil
+    end
+  end
+
+  describe "a sconce worked by hand" do
+    SCONCE = [
+      "#######",
+      "#.<.|.#",
+      "#######",
+    ]
+
+    def beside_it : Playing::Run
+      floor = Roguelike::Floor.parse "room", SCONCE
+      player = Roguelike::Player.new "room", *Roguelike::Game.entrance(floor)
+      player.inventory.add Playing.torch
+
+      run = Playing.open Roguelike::Game.new(
+        Roguelike::World.new(Playing::SEED, {"room" => floor}), player), 40, 16
+      run.press "l"
+      run
+    end
+
+    # The character carries a torch and stands beside a sconce, so `a` has
+    # two things to offer and puts a menu up. The torch is the first row and
+    # the sconce the second.
+    def work_the_torch(run : Playing::Run) : Nil
+      run.press "a"
+      run.press "a"
+    end
+
+    # :ditto:
+    def work_the_sconce(run : Playing::Run) : Nil
+      run.press "a"
+      run.press "b"
+    end
+
+    it "is remembered alight once it has been lit" do
+      run = beside_it
+      work_the_sconce run
+
+      fitting = run.game.knowledge[{4, 1}].try &.fixture
+      expect(fitting.try &.lit?).to be_true
+    end
+
+    # This is the one the light cannot do on its own. The square goes dark
+    # the moment the sconce does, so nothing looks at it again.
+    it "is remembered out once it has been put out" do
+      run = beside_it
+      work_the_torch run
+      work_the_sconce run
+      work_the_sconce run
+
+      expect(run.game.floor.fixture(4, 1).try &.lit?).to be_false
+      expect(run.game.sight.includes? 4, 1).to be_false
+
+      fitting = run.game.knowledge[{4, 1}].try &.fixture
+      expect(fitting.try &.lit?).to be_false
+    end
+  end
+
   describe "a room walked through" do
     # Its shape stays on the map after the character has gone.
     it "keeps its shape on the map" do

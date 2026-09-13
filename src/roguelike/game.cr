@@ -225,6 +225,7 @@ module Roguelike
 
       if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
         floor.set wanted[0], wanted[1], Terrain::OpenDoor
+        handled wanted
         say "You open the door."
         spend_turn
         return Step::Opened
@@ -239,6 +240,21 @@ module Roguelike
       arrived
       spend_turn
       Step::Moved
+    end
+
+    # Records what the character has just had their hands on.
+    #
+    # A door they opened or shut, a sconce they lit or put out. `#look` picks
+    # up whatever they can see, and in the dark that is one square. Somebody
+    # who has just shut a door knows it is shut whether or not they can see
+    # it, and the map has to say so rather than going on showing what was
+    # there the last time there was light on it.
+    #
+    # It records the shape of the square and what is fixed to it, and not
+    # what is lying on the floor. Working a door latch says nothing about
+    # what is under your feet on the far side of it.
+    private def handled(spot : {Int32, Int32}) : Nil
+      @player.knowledge.touch floor, spot[0], spot[1], @turn
     end
 
     # What to say about a step that did not happen.
@@ -675,6 +691,7 @@ module Roguelike
       return false unless floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
 
       floor.set wanted[0], wanted[1], Terrain::OpenDoor
+      handled wanted
       say "You open the door."
       spend_turn
       true
@@ -686,6 +703,7 @@ module Roguelike
       return false unless floor.tile?(wanted[0], wanted[1]).try &.terrain.open_door?
 
       floor.set wanted[0], wanted[1], Terrain::ClosedDoor
+      handled wanted
       say "You close the door."
       spend_turn
       true
@@ -870,6 +888,7 @@ module Roguelike
         say "The #{fitting.kind.label} catches and burns."
       end
 
+      handled({x, y})
       spend_turn
       true
     end

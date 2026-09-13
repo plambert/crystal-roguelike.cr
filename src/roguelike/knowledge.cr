@@ -191,17 +191,21 @@ module Roguelike
         fitting.try(&.copy), pile.last?.try(&.copy), turn
     end
 
-    # Records what the terrain of *x*, *y* is, and nothing else on it.
+    # Records the shape of *x*, *y* and what is fixed to it, and no more.
     #
-    # Reaching out in the dark says whether there is a wall there. It does
-    # not say what is lying on the floor, so whatever was remembered about
-    # that is kept rather than replaced.
+    # Reaching out in the dark says whether there is a wall there, and a
+    # bracket bolted to the wall is felt the same way. It does not say what
+    # is lying on the floor, so whatever was remembered about that is kept
+    # rather than replaced.
+    #
+    # This is also what a door opened or closed by hand records. Somebody who
+    # has just shut a door knows it is shut, whether or not they can see it.
     def touch(floor : Floor, x : Int32, y : Int32, turn : Int32 = 0) : Nil
       return unless floor.contains? x, y
 
       held = self[x, y]
       @memories[Floor.spot x, y] = Memory.new floor.terrain(x, y),
-        held.try(&.fixture), held.try(&.item), turn
+        floor.fixture(x, y).try(&.copy), held.try(&.item), turn
     end
 
     # Records that *x*, *y* can be crossed, and nothing else about it.
