@@ -165,15 +165,20 @@ Spectator.describe "fighting" do
       expect(game.log.lines.any? &.starts_with?("The slime")).to be_true
     end
 
-    # A creature out of reach does nothing at all. Phase 19 makes it walk.
+    # A creature out of reach does nothing but notice. Phase 19 makes it
+    # walk.
     it "does nothing from two squares away" do
       game, creature = arena at: {1, 1}
 
       10.times { game.step Direction::East }
 
+      swung = game.log.lines.any? do |line|
+        line.starts_with?("The slime hits") || line.starts_with?("The slime misses")
+      end
+
       expect(game.player.hit_points).to eq game.player.max_hit_points
       expect(creature.at).to eq({1, 1})
-      expect(game.log.lines.none? &.starts_with?("The slime")).to be_true
+      expect(swung).to be_false
     end
 
     # Any action that takes a turn gives a creature beside the character its

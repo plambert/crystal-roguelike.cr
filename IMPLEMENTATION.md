@@ -57,6 +57,8 @@ actually been run rather than reasoned about.
 | Floor file layers | One character per square. A mark that is not terrain takes its ground from the squares beside it |
 | A swing | `d20` plus the attacker's bonus against the defender's armour class. Twenty always lands, one never does |
 | Combat rolls | Their own stream per swing, named by how many the run has rolled, so a save file holds a count |
+| Noticing | A band notices, not a monster. Reach is the species' own, less stealth, plus the light on the character |
+| Seeing in the dark | An orc's reach ignores light. A goblin or a slime notices nothing unlit, however close it stands |
 
 ## Ground rules
 
@@ -553,6 +555,23 @@ The phase that introduces the type monster bands will use in Phase 19.
 * **Verify** — Sneak past a goblin in a dark corridor with a high stealth and no torch; carry a
   lit torch past the same goblin and it wakes. The orc wakes either way. Specs over the detection
   function across the matrix of stealth, light and species.
+* **Done.** `Notice` is the whole rule and holds no state: a reach of the species' own `notice`
+  less the stealth modifier plus the light on the character's own square, and a straight line
+  comparison against it. Two species traits decide how the last two are read. `Species#darkvision?`
+  makes an orc's reach ignore light in both directions, so it reads the same in a lit room and a
+  dark corridor. Without it a creature sees by the light on what it looks at, so a character
+  standing on an unlit square is not noticed at all, however close — which is what a doused torch
+  buys, and it is what makes the awake check in `Game#creatures_act` do real work rather than
+  never fire. Being hit wakes a band whatever the light, which is `Game#wake` rather than a rule
+  in `Notice`.
+
+  Line of sight costs nothing extra. The field of view is symmetric, so the cast the character
+  already makes each turn answers which creatures have a line back, and one cast serves the whole
+  floor. `Awareness` lives on the `Band`, not the monster: `Asleep` takes no turn at all, `Hunting`
+  can see the character, and `Alert` has lost them and knows where they were. A band that notices
+  writes a `Sighting` into its own `Knowledge`, which is the phase 16 field finally having a
+  writer. Nothing reads it until Phase 19. The examine pane says which of the three a creature is
+  in.
 
 ### Phase 19 — Pathfinding and pursuit
 

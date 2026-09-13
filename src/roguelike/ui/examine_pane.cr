@@ -34,6 +34,9 @@ module Roguelike::Ui
     # A sentence about it.
     getter detail : Widgets::Label
 
+    # What a creature on the square is doing. Blank for a square with none.
+    getter doing : Widgets::Label
+
     # What is lying on the square.
     getter litter : Widgets::Label
 
@@ -41,6 +44,10 @@ module Roguelike::Ui
       @where = Widgets::Label.new ""
       @what = Widgets::Label.new NOTHING
       @detail = Widgets::Label.new ""
+      @doing = Widgets::Label.new ""
+      @doing.hidden = true
+      @doing.style = Style::DEFAULT.faint
+
       @litter = Widgets::Label.new ""
       @litter.hidden = true
 
@@ -55,7 +62,7 @@ module Roguelike::Ui
         height: Layout::Sizing.grow)
       @root.add heading,
         Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        @where, @what, @detail, @litter
+        @where, @what, @detail, @doing, @litter
     end
 
     # Says what is on *floor* at *x*, *y*.
@@ -77,10 +84,13 @@ module Roguelike::Ui
       @where.text = "#{x}, #{y}"
       @where.hidden = false
 
+      @doing.hidden = creature.nil?
+
       if creature
         @what.text = creature.label
         @what.style = Palette[creature].style
         @detail.text = creature.description
+        @doing.text = "It is #{floor.awareness(creature).label}."
       elsif fitting
         @what.text = fitting.label
         @what.style = Palette[fitting].style
@@ -102,6 +112,8 @@ module Roguelike::Ui
                          memory : Memory?) : Nil
       @where.text = "#{x}, #{y}"
       @where.hidden = false
+      @doing.text = ""
+      @doing.hidden = true
       @litter.text = ""
       @litter.hidden = true
 
@@ -142,6 +154,8 @@ module Roguelike::Ui
       @what.text = NOTHING
       @what.style = nil
       @detail.text = ""
+      @doing.text = ""
+      @doing.hidden = true
       @litter.text = ""
       @litter.hidden = true
     end

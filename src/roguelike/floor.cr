@@ -318,6 +318,19 @@ module Roguelike
       @bands[id]?
     end
 
+    # Yields every band with a monster on this floor.
+    def each_band(& : Band ->) : Nil
+      @bands.each_value { |band| yield band }
+    end
+
+    # What the band *creature* belongs to knows about the character.
+    #
+    # A creature whose band this floor does not hold is asleep. There is no
+    # band to have noticed anything.
+    def awareness(creature : Monster) : Awareness
+      band(creature.band).try(&.awareness) || Awareness::Asleep
+    end
+
     # ------------------------------------------------------------ fixtures
 
     # What is fitted to *x*, *y*. `nil` for a square with nothing on it.

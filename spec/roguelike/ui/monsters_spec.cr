@@ -126,6 +126,35 @@ Spectator.describe "monsters on the screen" do
       expect(run.examine.what.text).to eq "goblin"
       expect(run.examine.litter.text).to contain "long sword"
     end
+
+    # Nothing has taken a turn yet, so nothing has noticed anything.
+    it "says a creature that has noticed nothing is asleep" do
+      run = shown ["#######", "#..g..#", "#..<..#", "#######"]
+
+      run.hover 3, 1
+
+      expect(run.examine.doing.hidden?).to be_false
+      expect(run.examine.doing.text).to eq "It is asleep."
+    end
+
+    it "says what a creature that has noticed is doing" do
+      run = shown ["#######", "#..g..#", "#..<..#", "#######"]
+
+      # One step away from the goblin, which leaves it beside the character
+      # on the diagonal. The room is lit, so it notices.
+      run.press "h"
+      run.hover 3, 1
+
+      expect(run.examine.doing.text).to eq "It is hunting you."
+    end
+
+    it "says nothing about a square with no creature on it" do
+      run = shown ["#######", "#..g..#", "#..<..#", "#######"]
+
+      run.hover 2, 1
+
+      expect(run.examine.doing.hidden?).to be_true
+    end
   end
 
   describe "walking into one" do

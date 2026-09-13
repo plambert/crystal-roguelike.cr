@@ -66,6 +66,40 @@ module Roguelike
     end
   end
 
+  # What a band knows about the character.
+  #
+  # This is a band's state rather than a monster's. Waking one member wakes
+  # the band, which is what a pack calling out to each other comes to. Every
+  # band holds one creature for now, so the two readings are the same.
+  #
+  # A member is never removed and never reordered. A save file holds the
+  # member name.
+  enum Awareness
+    # It has noticed nothing. It does not act.
+    Asleep
+
+    # It has noticed the character and cannot see them now. It knows where
+    # they were.
+    Alert
+
+    # It can see the character.
+    Hunting
+
+    # Whether it acts at all.
+    def awake? : Bool
+      !asleep?
+    end
+
+    # What this is called, for a readout.
+    def label : String
+      case self
+      in .asleep?  then "asleep"
+      in .alert?   then "looking for you"
+      in .hunting? then "hunting you"
+      end
+    end
+  end
+
   # A group of monsters that acts together.
   #
   # A band is the unit that shares what it knows. Nothing reads `#knowledge`
@@ -89,9 +123,22 @@ module Roguelike
     # Floors persist, so a band that has walked two of them remembers both.
     getter memory : Hash(String, Knowledge)
 
+    # What it knows about the character.
+    #
+    # A band that has noticed nothing takes no turn. `Game#creatures_notice`
+    # is the one thing that writes this, apart from being hit, which wakes a
+    # band whatever it had noticed.
+    property awareness : Awareness
+
     def initialize(@id : String, @faction : Faction = Faction::Dungeon,
                    @sharing : Sharing = Sharing::Inherited,
-                   @memory : Hash(String, Knowledge) = {} of String => Knowledge)
+                   @memory : Hash(String, Knowledge) = {} of String => Knowledge,
+                   @awareness : Awareness = Awareness::Asleep)
+    end
+
+    # Whether this band acts at all.
+    def awake? : Bool
+      @awareness.awake?
     end
 
     # What the band knows of the floor *id*, empty until it learns something.
@@ -106,11 +153,13 @@ module Roguelike
 
     def ==(other : Band) : Bool
       @id == other.id && @faction == other.faction &&
-        @sharing == other.sharing && @memory == other.memory
+        @sharing == other.sharing && @memory == other.memory &&
+        @awareness == other.awareness
     end
 
     def to_s(io : IO) : Nil
-      io << "Band(" << @id << ' ' << @faction << ' ' << @sharing << ')'
+      io << "Band(" << @id << ' ' << @faction << ' ' << @sharing
+      io << ' ' << @awareness << ')'
     end
   end
 
@@ -127,6 +176,8 @@ module Roguelike
     hit_points : Int32,
     damage : Dice,
     armour : Int32,
+    notice : Int32,
+    darkvision : Bool,
     experience : Int32,
     attributes : Attributes
 
@@ -182,6 +233,21 @@ module Roguelike
       facts.armour
     end
 
+    # How far one notices a character of average stealth on a square with no
+    # light on it, before `Notice` adjusts either.
+    def notice : Int32
+      facts.notice
+    end
+
+    # Whether one sees without light.
+    #
+    # A species with darkvision reads the same reach in a lit room and in a
+    # dark corridor. One without it sees by the light on what it looks at,
+    # and notices a character standing in the dark only in arm's reach.
+    def darkvision? : Bool
+      facts.darkvision
+    end
+
     # What killing one is worth.
     def experience : Int32
       facts.experience
@@ -204,19 +270,22 @@ module Roguelike
     FACTS = {
       Species::Slime => SpeciesFacts.new('j', "slime", "slimes",
         "a puddle of acid that moves on its own",
-        hit_points: 6, damage: Dice.new(1, 4), armour: 0, experience: 3,
+        hit_points: 6, damage: Dice.new(1, 4), armour: 0,
+        notice: 4, darkvision: false, experience: 3,
         attributes: Attributes.new(strength: 8, dexterity: 4, constitution: 12,
           intelligence: 3, stealth: 6)),
 
       Species::Goblin => SpeciesFacts.new('g', "goblin", "goblins",
         "a small green thing with a large knife",
-        hit_points: 9, damage: Dice.new(1, 6), armour: 2, experience: 7,
+        hit_points: 9, damage: Dice.new(1, 6), armour: 2,
+        notice: 8, darkvision: false, experience: 7,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 9, stealth: 13)),
 
       Species::Orc => SpeciesFacts.new('o', "orc", "orcs",
         "a heavy grey brute with a notched blade",
-        hit_points: 14, damage: Dice.new(1, 8), armour: 4, experience: 14,
+        hit_points: 14, damage: Dice.new(1, 8), armour: 4,
+        notice: 8, darkvision: true, experience: 14,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 8, stealth: 8)),
     }

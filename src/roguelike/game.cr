@@ -9,6 +9,7 @@ require "./vision"
 require "./items"
 require "./lore"
 require "./message_log"
+require "./notice"
 require "./player"
 require "./world"
 
@@ -265,6 +266,7 @@ module Roguelike
         say "You miss the #{creature.label}."
       end
 
+      wake creature if creature.alive?
       spend_turn
       blow
     end
@@ -278,11 +280,11 @@ module Roguelike
       say "Welcome to level #{@player.level}." if gained > 0
     end
 
-    # Gives every other creature on the floor its turn.
+    # Gives every awake creature on the floor its turn.
     #
-    # Phase 17 has no AI. A creature standing beside the character swings at
-    # them and a creature anywhere else does nothing. Phase 18 decides
-    # whether one has noticed the character. Phase 19 makes one walk.
+    # There is no AI yet. A creature whose band has noticed the character
+    # swings at them when it is standing beside them, and does nothing
+    # anywhere else. Phase 19 makes one walk.
     #
     # The list is taken before any of them acts. A swing can end the run, and
     # the run ending stops the rest of them.
@@ -291,9 +293,15 @@ module Roguelike
 
       adjacent.each do |creature|
         break if over?
+        next unless awake? creature
 
         strike creature
       end
+    end
+
+    # Whether the band *creature* belongs to has noticed the character.
+    def awake?(creature : Monster) : Bool
+      floor.awareness(creature).awake?
     end
 
     # Every creature standing next to the character.
@@ -333,9 +341,88 @@ module Roguelike
     #
     # Every action that takes a turn ends with this, after it has said what
     # it did. What the character did is then read before what was done back.
+    #
+    # Every band looks first and then the awake ones act, so a band that
+    # notices the character this turn swings on the same turn it noticed.
     private def spend_turn : Nil
       @turn += 1
+      return if over?
+
+      creatures_notice sight
       creatures_act
+    end
+
+    # ------------------------------------------------------------ detection
+
+    # Lets every band on this floor notice the character, or lose them.
+    #
+    # *seen* is what the character can see, which is also what can see the
+    # character. The field of view is symmetric, so a creature the character
+    # has a line to has a line back. That is one cast for the whole floor
+    # rather than one for each creature standing on it.
+    #
+    # A band that notices writes down where the character is. Nothing reads
+    # that until Phase 19 walks a band to the square.
+    private def creatures_notice(seen : Vision) : Nil
+      found = noticing seen
+
+      floor.each_band do |band|
+        creature = found[band.id]?
+
+        if creature
+          woke = band.awareness.asleep?
+          band.awareness = Awareness::Hunting
+          band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
+          say noticed(creature, seen) if woke
+        elsif band.awareness.hunting?
+          # It knows where the character was and cannot see them now. Phase
+          # 19 walks it there and gives up after a while.
+          band.awareness = Awareness::Alert
+        end
+      end
+    end
+
+    # Which bands notice the character, and which of their creatures did.
+    #
+    # One creature is enough to wake a band. The first one found is the one
+    # named in the message.
+    private def noticing(seen : Vision) : Hash(String, Monster)
+      light = seen.light @player.x, @player.y
+      stealth = @player.attributes.stealth
+      found = {} of String => Monster
+
+      floor.each_monster do |column, row, creature|
+        next if found.has_key? creature.band
+        next unless Notice.notices? creature.species, stealth, light,
+                      {column, row}, @player.at, seen.field.includes?(column, row)
+
+        found[creature.band] = creature
+      end
+
+      found
+    end
+
+    # What to say when a band wakes up.
+    #
+    # A creature the character can see is named. One they cannot is not: the
+    # character has heard something move and does not know what it was.
+    private def noticed(creature : Monster, seen : Vision) : String
+      return "You hear something stir." unless seen.shows? floor, creature.x, creature.y
+
+      "The #{creature.label} notices you."
+    end
+
+    # Wakes the band *creature* belongs to.
+    #
+    # A creature that has been hit knows it has been hit. This runs whatever
+    # the light is and whatever the character's stealth is.
+    private def wake(creature : Monster) : Nil
+      band = floor.band creature.band
+      return unless band
+      return unless band.awareness.asleep?
+
+      band.awareness = Awareness::Hunting
+      say "The #{creature.label} notices you."
     end
 
     # The generator for the next swing.
