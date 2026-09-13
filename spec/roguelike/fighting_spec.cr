@@ -165,19 +165,20 @@ Spectator.describe "fighting" do
       expect(game.log.lines.any? &.starts_with?("The slime")).to be_true
     end
 
-    # A creature out of reach does nothing but notice. Phase 19 makes it
-    # walk.
-    it "does nothing from two squares away" do
+    # A creature out of reach walks toward the character rather than
+    # swinging from where it stands.
+    it "does not swing from two squares away" do
       game, creature = arena at: {1, 1}
+      away = creature.at
 
-      10.times { game.step Direction::East }
+      game.step Direction::East
 
       swung = game.log.lines.any? do |line|
         line.starts_with?("The slime hits") || line.starts_with?("The slime misses")
       end
 
       expect(game.player.hit_points).to eq game.player.max_hit_points
-      expect(creature.at).to eq({1, 1})
+      expect(creature.at).not_to eq away
       expect(swung).to be_false
     end
 

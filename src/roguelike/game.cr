@@ -10,6 +10,7 @@ require "./items"
 require "./lore"
 require "./message_log"
 require "./notice"
+require "./pursuit"
 require "./player"
 require "./world"
 
@@ -282,21 +283,110 @@ module Roguelike
 
     # Gives every awake creature on the floor its turn.
     #
-    # There is no AI yet. A creature whose band has noticed the character
-    # swings at them when it is standing beside them, and does nothing
-    # anywhere else. Phase 19 makes one walk.
+    # Each one reads a `Pursuit::Snapshot` and answers an `Action`, and this
+    # method applies it. The snapshot holds no floor and no player: what a
+    # creature knows about the shape of the world is its band's `Knowledge`
+    # and what it knows about the character is where the band last saw them.
+    # Every check against what is actually there happens here.
     #
-    # The list is taken before any of them acts. A swing can end the run, and
-    # the run ending stops the rest of them.
+    # One `Descent` is built for each awake band rather than for each of its
+    # members. The band searches. The creatures walk downhill.
+    #
+    # The list is taken before any of them acts. A creature that moves would
+    # otherwise change the table being walked, and a swing can end the run.
     private def creatures_act : Nil
       return if over?
 
-      adjacent.each do |creature|
+      maps = descents
+      held = [] of Monster
+      floor.each_monster { |_column, _row, creature| held << creature }
+
+      held.each do |creature|
         break if over?
         next unless awake? creature
+        next unless floor.monster?(creature.x, creature.y)
 
-        strike creature
+        perform creature, plan(creature, maps)
       end
+    end
+
+    # One descent for each awake band that has something to walk toward.
+    #
+    # A band whose species does not path gets none. A slime walks straight at
+    # what it is after and has no use for a map.
+    private def descents : Hash(String, Descent)
+      maps = {} of String => Descent
+
+      floor.each_band do |band|
+        next unless band.awake?
+
+        quarry = band.knowledge(floor.id).sighting(Knowledge::PLAYER)
+        next unless quarry
+
+        maps[band.id] = Descent.toward band.knowledge(floor.id), quarry.at
+      end
+
+      maps
+    end
+
+    # What *creature* has decided to do.
+    private def plan(creature : Monster, maps : Hash(String, Descent)) : Action
+      band = floor.band creature.band
+      return Action.wait unless band
+
+      knowledge = band.knowledge floor.id
+      quarry = knowledge.sighting Knowledge::PLAYER
+
+      Pursuit.decide Pursuit::Snapshot.new(
+        at: creature.at,
+        knowledge: knowledge,
+        quarry: quarry.try(&.at),
+        hunting: band.awareness.hunting?,
+        descent: creature.species.paths? ? maps[creature.band]? : nil,
+        blocked: standing_on_squares(creature))
+    end
+
+    # Every square beside *creature* that something else is standing on.
+    #
+    # The character counts. A creature walks round its neighbours and swings
+    # at the character rather than walking into them.
+    private def standing_on_squares(creature : Monster) : Set({Int32, Int32})
+      taken = Set({Int32, Int32}).new
+
+      Direction.values.each do |direction|
+        spot = direction.from creature.x, creature.y
+        taken << spot if floor.monster? spot[0], spot[1]
+      end
+
+      taken << @player.at
+      taken
+    end
+
+    # Does what *action* says, as far as the floor allows.
+    #
+    # This is where a decision meets what is actually there. A creature that
+    # decided to walk into a wall walks nowhere and a creature that decided
+    # to swing at an empty square swings at nothing.
+    private def perform(creature : Monster, action : Action) : Nil
+      direction = action.direction
+      return unless direction
+
+      wanted = direction.from creature.x, creature.y
+
+      case action.intent
+      in .wait?   then nil
+      in .step?   then walk_creature creature, wanted
+      in .strike? then strike creature if @player.at? wanted[0], wanted[1]
+      end
+    end
+
+    # Moves *creature* onto *wanted*, when nothing is in the way.
+    private def walk_creature(creature : Monster, wanted : {Int32, Int32}) : Nil
+      return unless floor.passable? wanted[0], wanted[1]
+      return if floor.monster? wanted[0], wanted[1]
+      return if @player.at? wanted[0], wanted[1]
+
+      floor.walk creature.at, wanted
     end
 
     # Whether the band *creature* belongs to has noticed the character.
@@ -348,7 +438,9 @@ module Roguelike
       @turn += 1
       return if over?
 
-      creatures_notice sight
+      seen = sight
+      creatures_notice seen
+      creatures_look seen
       creatures_act
     end
 
@@ -375,10 +467,65 @@ module Roguelike
           band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
           say noticed(creature, seen) if woke
         elsif band.awareness.hunting?
-          # It knows where the character was and cannot see them now. Phase
-          # 19 walks it there and gives up after a while.
+          # It knows where the character was and cannot see them now. It
+          # walks there, and gives up when the trail is cold enough.
           band.awareness = Awareness::Alert
+        elsif band.awareness.alert?
+          give_up band if cold? band
         end
+      end
+    end
+
+    # How many turns a band goes on looking after it has lost the character.
+    #
+    # It walks to the square it last saw them on, and then casts about there
+    # until this runs out.
+    PATIENCE = 10
+
+    # Whether the trail *band* is following has gone cold.
+    private def cold?(band : Band) : Bool
+      seen = band.knowledge(floor.id).sighting Knowledge::PLAYER
+      return true unless seen
+
+      seen.age(@turn) > PATIENCE
+    end
+
+    # *band* stops looking and goes back to sleep.
+    #
+    # What it learned of the floor stays. Where it last saw the character
+    # does not: a band that wakes again looks for them where it finds them,
+    # not where they were half a dungeon ago.
+    private def give_up(band : Band) : Nil
+      band.awareness = Awareness::Asleep
+      band.knowledge(floor.id).lost Knowledge::PLAYER
+    end
+
+    # Lets every awake creature look about and write what it saw into its
+    # band's `Knowledge`.
+    #
+    # This is what a band builds its `Descent` over. A band that has walked a
+    # corridor can walk it again in the dark; one that has never been down it
+    # cannot use it as a shortcut.
+    #
+    # The lighting is worked out once for the whole floor and handed to each
+    # of them. A species with darkvision is given none, so it learns the
+    # shape of everything it has a line to whether there is light on it or
+    # not.
+    #
+    # An asleep band looks at nothing. That is what bounds the work: a floor
+    # of sleeping monsters costs one cast, the character's own.
+    private def creatures_look(seen : Vision) : Nil
+      lighting = seen.lighting
+
+      floor.each_monster do |column, row, creature|
+        next unless awake? creature
+
+        band = floor.band creature.band
+        next unless band
+
+        looking = Vision.new FieldOfView.from(floor, column, row),
+          creature.species.darkvision? ? nil : lighting
+        band.knowledge(floor.id).learn floor, looking, @turn
       end
     end
 
@@ -416,9 +563,15 @@ module Roguelike
     #
     # A creature that has been hit knows it has been hit. This runs whatever
     # the light is and whatever the character's stealth is.
+    #
+    # It writes down where the blow came from as well. Being hit in the dark
+    # says which side the character is on, and a band with nowhere to go
+    # would give up the turn after it woke.
     private def wake(creature : Monster) : Nil
       band = floor.band creature.band
       return unless band
+
+      band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
       return unless band.awareness.asleep?
 
       band.awareness = Awareness::Hunting

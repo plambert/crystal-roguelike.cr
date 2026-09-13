@@ -1,0 +1,185 @@
+require "../spec_helper"
+
+Spectator.describe Roguelike::Pursuit do
+  alias Action = Roguelike::Action
+  alias Descent = Roguelike::Descent
+  alias Direction = Roguelike::Direction
+  alias Floor = Roguelike::Floor
+  alias Intent = Roguelike::Intent
+  alias Knowledge = Roguelike::Knowledge
+  alias Pursuit = Roguelike::Pursuit
+
+  # A room split by a wall, with the way round it at the bottom.
+  SPLIT = [
+    "#########",
+    "#...#...#",
+    "#...#...#",
+    "#...#...#",
+    "#.......#",
+    "#########",
+  ]
+
+  # Knowledge of every square of *lines*.
+  def known(lines : Array(String) = SPLIT) : Knowledge
+    floor = Floor.parse "test", lines
+    knowledge = Knowledge.new floor.id
+    floor.each { |column, row, _tile| knowledge.see floor, column, row }
+
+    knowledge
+  end
+
+  # A snapshot of a creature at *at* after a character at *quarry*.
+  #
+  # *paths* says whether the creature works out a way round, which is the
+  # difference between a goblin and a slime.
+  def snapshot(at : {Int32, Int32},
+               quarry : {Int32, Int32}? = nil,
+               hunting : Bool = true,
+               paths : Bool = true,
+               knowledge : Knowledge? = nil,
+               blocked : Array({Int32, Int32}) = [] of {Int32, Int32}) : Pursuit::Snapshot
+    held = knowledge || known
+    taken = Set({Int32, Int32}).new
+    blocked.each { |spot| taken << spot }
+
+    Pursuit::Snapshot.new(
+      at: at,
+      knowledge: held,
+      quarry: quarry,
+      hunting: hunting,
+      descent: quarry && paths ? Descent.toward(held, quarry) : nil,
+      blocked: taken)
+  end
+
+  describe "a creature that has never seen the character" do
+    it "waits" do
+      expect(Pursuit.decide snapshot({2, 2})).to eq Action.wait
+    end
+  end
+
+  describe "a creature standing beside the character" do
+    it "swings at them" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {3, 2})
+
+      expect(found.intent).to eq Intent::Strike
+      expect(found.direction).to eq Direction::East
+    end
+
+    it "swings on the diagonal too" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {3, 3})
+
+      expect(found.intent).to eq Intent::Strike
+      expect(found.direction).to eq Direction::SouthEast
+    end
+
+    # The square is where it last saw them rather than where they are. It
+    # walks onto the square and finds nothing.
+    it "walks onto the square when it cannot see them" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {3, 2}, hunting: false)
+
+      expect(found.intent).to eq Intent::Step
+      expect(found.direction).to eq Direction::East
+    end
+  end
+
+  describe "a creature standing where it last saw them" do
+    it "waits" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {2, 2}, hunting: false)
+
+      expect(found).to eq Action.wait
+    end
+  end
+
+  describe "a creature that paths" do
+    it "walks downhill toward the character" do
+      found = Pursuit.decide snapshot({3, 3}, quarry: {1, 1})
+
+      expect(found.intent).to eq Intent::Step
+      expect(found.direction).to eq Direction::NorthWest
+    end
+
+    # The whole point of the map. Straight at the character is a wall.
+    it "walks round a wall rather than into it" do
+      found = Pursuit.decide snapshot({5, 1}, quarry: {3, 1})
+
+      expect(found.intent).to eq Intent::Step
+      expect(found.direction).not_to eq Direction::West
+      expect(found.direction.try &.dy).to eq 1
+    end
+
+    # A descent steps to a square strictly nearer the goal, never sideways,
+    # so a creature whose way down is taken waits for it rather than
+    # shuffling round and coming back next turn.
+    it "waits rather than pushing past its neighbour" do
+      open = Pursuit.decide snapshot({3, 3}, quarry: {1, 1})
+      shut = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, blocked: [{2, 2}])
+
+      expect(open.direction).to eq Direction::NorthWest
+      expect(shut).to eq Action.wait
+    end
+
+    it "takes whichever way down is left when one of several is taken" do
+      found = Pursuit.decide snapshot({3, 4}, quarry: {1, 1}, blocked: [{2, 3}])
+
+      expect(found.intent).to eq Intent::Step
+      expect(found.direction).not_to eq Direction::NorthWest
+    end
+
+    it "waits when every way down is taken" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {1, 1},
+        hunting: false, blocked: [{1, 1}, {1, 2}, {2, 1}])
+
+      expect(found).to eq Action.wait
+    end
+
+    # A band that has never looked down a corridor cannot use it.
+    it "does not walk a way it has never seen" do
+      floor = Floor.parse "test", SPLIT
+      partial = Knowledge.new floor.id
+      [{1, 1}, {2, 1}, {3, 1}, {3, 2}, {3, 3}].each do |spot|
+        partial.see floor, spot[0], spot[1]
+      end
+
+      found = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, knowledge: partial)
+
+      expect(found.intent).to eq Intent::Step
+      expect(found.direction).to eq Direction::North
+    end
+  end
+
+  describe "a creature that does not path" do
+    it "walks straight at the character" do
+      found = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, paths: false)
+
+      expect(found.intent).to eq Intent::Step
+      expect(found.direction).to eq Direction::NorthWest
+    end
+
+    # It has no idea the way round the end of the wall is there.
+    it "stops at a wall rather than going round it" do
+      found = Pursuit.decide snapshot({5, 1}, quarry: {3, 1}, paths: false)
+
+      expect(found).to eq Action.wait
+    end
+
+    it "waits rather than walking into its neighbour" do
+      found = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, paths: false,
+        blocked: [{2, 2}])
+
+      expect(found).to eq Action.wait
+    end
+  end
+
+  describe Roguelike::Action do
+    it "writes itself out" do
+      expect(Action.wait.to_s).to eq "Wait"
+      expect(Action.step(Direction::North).to_s).to eq "Step north"
+      expect(Action.strike(Direction::SouthWest).to_s).to eq "Strike south-west"
+    end
+
+    it "knows when it does nothing" do
+      expect(Action.wait.nothing?).to be_true
+      expect(Action.step(Direction::North).nothing?).to be_false
+    end
+  end
+end

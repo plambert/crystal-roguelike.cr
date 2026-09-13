@@ -259,7 +259,7 @@ Spectator.describe "doors, stairs and leaving" do
     # it is about.
     def crossing : Playing::Run
       run = Playing.open
-      run.game.floor.monsters.clear
+      run.clear_monsters
       run
     end
 

@@ -59,6 +59,8 @@ actually been run rather than reasoned about.
 | Combat rolls | Their own stream per swing, named by how many the run has rolled, so a save file holds a count |
 | Noticing | A band notices, not a monster. Reach is the species' own, less stealth, plus the light on the character |
 | Seeing in the dark | An orc's reach ignores light. A goblin or a slime notices nothing unlit, however close it stands |
+| Pursuit | One `Descent` per band per turn, flooded over the band's own `Knowledge`. Its members step downhill |
+| A creature's decision | `Pursuit.decide` reads a snapshot holding no floor and no player, and answers an `Action` |
 
 ## Ground rules
 
@@ -586,6 +588,32 @@ The phase that introduces the type monster bands will use in Phase 19.
   never seen a shortcut does not use it. Specs on the Dijkstra map over fixture floors, and a
   spec that a hundred turns of pursuit terminates and costs no more than a bounded amount of
   work.
+* **Done.** `Descent` is a Dijkstra map: the goal holds zero, every square beside it one, and a
+  creature walks a shortest path by stepping to whichever neighbour holds a smaller number. The
+  search runs once for a band rather than once for each of its members, and it floods over the
+  band's `Knowledge` rather than over the `Floor`, so a shortcut nobody has looked down is not in
+  it. `Knowledge#walkable?` is the whole of that: a square never seen answers false. The flood
+  stops at `Descent::LIMIT`, which is what bounds the work however much floor a band has walked.
+
+  `Pursuit.decide` is the AI and it keeps the architecture rule exactly: it reads a
+  `Pursuit::Snapshot` holding no `Floor` and no `Player` — the band's belief, where the band last
+  saw the character, whether it can see them now, the descent, and which neighbouring squares are
+  taken — and answers an `Action`, which `Game#perform` applies and checks against what is
+  actually there. A creature that decides to walk into a wall walks nowhere.
+
+  Every awake creature looks about each turn and writes what it saw into its band's `Knowledge`,
+  which is what fills the descent in. A species with darkvision learns the shape of everything it
+  has a line to; one without it learns only what is lit. An asleep band looks at nothing, so a
+  floor of sleeping monsters costs one cast, the character's own. `Species#paths?` is false for a
+  slime, which walks straight at the character and stops against whatever is in the way.
+
+  `Awareness::Alert` now means something: a band walks to the square it last saw the character on
+  and gives up `Game::PATIENCE` turns after the sighting, forgetting where they were but keeping
+  what it learned of the floor. Being hit writes a sighting as well as waking a band, because a
+  band woken with nowhere to go would give up the turn after.
+
+  One gap, left for later: a creature cannot open a door. A shut door is impassable in a band's
+  knowledge, so pursuit stops at one.
 
 ### Phase 20 — Monster inventory and drops
 

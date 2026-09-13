@@ -178,6 +178,7 @@ module Roguelike
     armour : Int32,
     notice : Int32,
     darkvision : Bool,
+    paths : Bool,
     experience : Int32,
     attributes : Attributes
 
@@ -248,6 +249,15 @@ module Roguelike
       facts.darkvision
     end
 
+    # Whether one works out a way round a wall.
+    #
+    # A species that paths descends its band's `Descent`. One that does not
+    # walks straight at whatever it is after and comes up against whatever is
+    # in the way.
+    def paths? : Bool
+      facts.paths
+    end
+
     # What killing one is worth.
     def experience : Int32
       facts.experience
@@ -271,21 +281,21 @@ module Roguelike
       Species::Slime => SpeciesFacts.new('j', "slime", "slimes",
         "a puddle of acid that moves on its own",
         hit_points: 6, damage: Dice.new(1, 4), armour: 0,
-        notice: 4, darkvision: false, experience: 3,
+        notice: 4, darkvision: false, paths: false, experience: 3,
         attributes: Attributes.new(strength: 8, dexterity: 4, constitution: 12,
           intelligence: 3, stealth: 6)),
 
       Species::Goblin => SpeciesFacts.new('g', "goblin", "goblins",
         "a small green thing with a large knife",
         hit_points: 9, damage: Dice.new(1, 6), armour: 2,
-        notice: 8, darkvision: false, experience: 7,
+        notice: 8, darkvision: false, paths: true, experience: 7,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 9, stealth: 13)),
 
       Species::Orc => SpeciesFacts.new('o', "orc", "orcs",
         "a heavy grey brute with a notched blade",
         hit_points: 14, damage: Dice.new(1, 8), armour: 4,
-        notice: 8, darkvision: true, experience: 14,
+        notice: 8, darkvision: true, paths: true, experience: 14,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 8, stealth: 8)),
     }

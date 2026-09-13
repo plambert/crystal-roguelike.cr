@@ -135,6 +135,22 @@ module Roguelike
       @memories.has_key? Floor.spot(x, y)
     end
 
+    # Whether what is remembered of *x*, *y* could be walked on.
+    #
+    # A square never seen answers false. A band does not walk through what it
+    # has never looked at, which is what keeps it off a shortcut it has never
+    # found. A door remembered as shut answers false as well, until somebody
+    # looks at it again and finds it open.
+    def walkable?(x : Int32, y : Int32) : Bool
+      found = self[x, y]
+      found ? found.terrain.passable? : false
+    end
+
+    # :ditto:
+    def walkable?(spot : {Int32, Int32}) : Bool
+      walkable? spot[0], spot[1]
+    end
+
     # How many squares have been seen.
     def size : Int32
       @memories.size

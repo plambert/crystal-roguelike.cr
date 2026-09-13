@@ -100,6 +100,7 @@ Spectator.describe Roguelike::Ui::Play do
     # Walking into a shut door opens it. Phase 6 added that.
     it "opens a shut door instead of stopping at it" do
       run = Playing.open
+      run.clear_monsters
       start = run.at
 
       15.times { run.press "l" }
@@ -110,6 +111,7 @@ Spectator.describe Roguelike::Ui::Play do
 
     it "walks through the door it opened" do
       run = Playing.open
+      run.clear_monsters
       start = run.at
 
       20.times { run.press "l" }
@@ -222,8 +224,12 @@ Spectator.describe Roguelike::Ui::Play do
       expect(drawn).to eq Fixture.expected("screen/play-start.txt", drawn)
     end
 
+    # The floor is cleared first. This fixture is about what a walk draws:
+    # the light moving with the character, the squares left behind and the
+    # camera. A slime chasing them across it is a different spec's subject.
     it "draws what it drew last time after a walk" do
       run = Playing.open
+      run.clear_monsters
       %w[l l l l l l l l l l j j j n n n].each { |key| run.press key }
       drawn = run.text
 

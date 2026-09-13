@@ -39,6 +39,7 @@ Spectator.describe "the message log" do
 
     it "says so when a door opens" do
       run = Playing.open
+      run.clear_monsters
       16.times { run.press "l" }
 
       expect(run.log).to contain "You open the door."
@@ -49,6 +50,7 @@ Spectator.describe "the message log" do
     # no door beside them to close.
     it "says so when a door closes" do
       run = Playing.open
+      run.clear_monsters
       15.times { run.press "l" }
       run.press "c"
 

@@ -86,6 +86,17 @@ module Playing
       @session.render
     end
 
+    # Takes every creature off the floor.
+    #
+    # A spec about doors, drawing or the log is not about being chased.
+    # Phase 19 gave every awake band a plan, and one of them walking into
+    # the route is a different spec's subject.
+    def clear_monsters : Nil
+      game.floor.monsters.clear
+      play.refresh
+      @session.render
+    end
+
     # Resizes the terminal under the game. Dragging a window does the
     # same.
     def resize(columns : Int32, rows : Int32) : Nil

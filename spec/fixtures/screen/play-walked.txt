@@ -4,7 +4,7 @@
  #...................#                                 │ press x.
  #...................#                                 │
  #)...<..............+                                 │
- #.............j.....#                                 │
+ #...................#                                 │
  #.).................#                                 │
  #...|..........@....#                                 │
   ########+###########                                 │
@@ -17,8 +17,8 @@
                                                        │
                                                        │
 ────────────────────────────────────────────────────────────────────────────────
- hp: 4/8 | ac: 0 | wep: 1d2 | lv: 1 | xp: 0/20 | gold: 0 | turn: 13 | st: 10 |…
- The slime hits you for 1.
- The slime misses you.
- The slime hits you for 3.
+ hp: 8/8 | ac: 0 | wep: 1d2 | lv: 1 | xp: 0/20 | gold: 0 | turn: 13 | st: 10 |…
+ You are in a dungeon, holding a lit torch. Press ? for the keys.
  The granite blocks your way.
+
+
