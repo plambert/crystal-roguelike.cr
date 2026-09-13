@@ -80,6 +80,8 @@ actually been run rather than reasoned about.
 | An empty wand | Costs the turn and says nothing happened. A person cannot know a wand is spent until they try it |
 | Shutting a door | A doorway with a creature or a pile in it stays open. The door swings through that square |
 | Who says why | `Game` writes the refusal. `Play` never writes over it with a guess about what went wrong |
+| A scattered launcher | Lands with ammunition it fires within three squares, most of the time. A bow nobody can shoot is scenery |
+| The supply's stream | Named by the launcher's square, never the litter's own, so adding the rule moved nothing else on the floor |
 
 ## Ground rules
 

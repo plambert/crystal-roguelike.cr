@@ -174,7 +174,58 @@ module Roguelike
         spot = squares.sample stream
         item = stream.rand(4).zero? ? gold(stream) : Items.random(stream)
         floor.drop spot[0], spot[1], item
+        supply rng, spot, item
       end
+    end
+
+    # How often a launcher lands with ammunition for it nearby.
+    QUIVERED = 85
+
+    # How far from the launcher that ammunition lands.
+    NEARBY = 3
+
+    # How many stacks of it land.
+    SUPPLY = 1..2
+
+    # Puts ammunition for *launcher* on or near *spot*.
+    #
+    # A bow with no arrows anywhere on the floor is a bow nobody can use.
+    # Whoever carried it down here carried arrows for it, and what is left of
+    # the two is lying where they fell.
+    #
+    # This rolls on a stream named by the square rather than on the litter's
+    # own. The litter then falls where it always fell, and a floor from an
+    # old seed gains arrows without moving anything else.
+    private def supply(rng : Rng, spot : {Int32, Int32}, launcher : Item) : Nil
+      kind = launcher.kind.ammunition
+      return unless kind
+
+      stream = rng.derive "ammunition:#{floor.id}:#{spot[0]},#{spot[1]}"
+      return unless stream.rand(100) < QUIVERED
+
+      stream.rand(SUPPLY).times do
+        where = near stream, spot
+        floor.drop where[0], where[1], Items.make(stream, kind)
+      end
+    end
+
+    # A floor square within `NEARBY` of *spot*, or *spot* itself.
+    #
+    # The square the launcher is on counts. A quiver dropped beside its bow
+    # and one dropped on top of it are the same story.
+    private def near(rng : Rng, spot : {Int32, Int32}) : {Int32, Int32}
+      found = [] of {Int32, Int32}
+
+      ((spot[1] - NEARBY)..(spot[1] + NEARBY)).each do |row|
+        ((spot[0] - NEARBY)..(spot[0] + NEARBY)).each do |column|
+          next unless floor.contains? column, row
+          next unless floor.terrain(column, row).floor?
+
+          found << {column, row}
+        end
+      end
+
+      found.empty? ? spot : found.sample(rng)
     end
 
     # Gives every monster on the floor what it is carrying.

@@ -265,6 +265,16 @@ module Roguelike
       facts.launcher
     end
 
+    # What this fires. `nil` for anything that is not a launcher.
+    #
+    # The other way round from `#launcher`. The table names the launcher on
+    # the ammunition, because ammunition is what needs one.
+    def ammunition : ItemKind?
+      return unless item_class.launcher?
+
+      ItemKind.values.find { |kind| kind.launcher == self }
+    end
+
     # How many times it can be used before it is spent.
     def charges : Int32
       facts.charges
