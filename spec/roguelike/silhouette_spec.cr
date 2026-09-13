@@ -126,6 +126,43 @@ Spectator.describe "seeing a creature against the light" do
     end
   end
 
+  describe "which square the light is on" do
+    # A shape is drawn by the light behind it rather than by any on its own
+    # square, so what is drawn has to know which square that is.
+    it "answers the first lit square beyond the creature" do
+      floor = spot LAMPLIGHT
+      vision = Vision.from floor, 1, 1, [Source.new(13, 1, 2)]
+
+      expect(vision.backlight floor, 7, 1).to eq({11, 1})
+    end
+
+    it "answers nothing for a creature with no light behind them" do
+      floor = spot LAMPLIGHT
+      vision = Vision.from floor, 1, 1, [] of Source
+
+      expect(vision.backlight floor, 7, 1).to be_nil
+    end
+
+    it "answers nothing for a creature standing in the light" do
+      floor = spot DOORWAY
+      vision = Vision.from floor, 1, 1, [] of Source
+
+      expect(vision.backlight floor, 7, 1).to be_nil
+    end
+
+    it "agrees with Vision#backlit? on every square" do
+      floor = spot LAMPLIGHT
+      vision = Vision.from floor, 1, 1, [Source.new(13, 1, 3)]
+
+      floor.rows.times do |row|
+        floor.columns.times do |column|
+          expect(!vision.backlight(floor, column, row).nil?)
+            .to eq vision.backlit?(floor, column, row)
+        end
+      end
+    end
+  end
+
   describe "through the game" do
     it "answers for a creature the character could see" do
       floor = Playing.daylight spot(LAMPLIGHT)

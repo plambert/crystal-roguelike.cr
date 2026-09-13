@@ -86,6 +86,8 @@ actually been run rather than reasoned about.
 | A shape against light | Drawn by `Species::Size`, in one colour for every species. A letter names a species and a shape names none |
 | Shooting at a shape | Allowed. `Tab` walks it and a bolt, an arrow or a rock flies at it. Seeing something move is enough to aim |
 | Glyphs for a shape | `∙`, `▪` and `◼`. No letters, and none East Asian Ambiguous: a two-cell glyph would tear the map's grid |
+| A shape wavers | With the flame lighting the square behind it, not with its own square. Its own square has no light on it |
+| How far it wavers | One step up from the dimmest lit step, and never below it. A shape drawn dimmer than that reads as a memory |
 
 ## Ground rules
 

@@ -221,6 +221,109 @@ Spectator.describe "how a flame is drawn" do
     end
   end
 
+  # A dark hall with a lit sconce on the east wall and a goblin standing
+  # between it and the character. The goblin's own square has no light on it,
+  # so the only flame that can move it is the one lighting the square behind.
+  BACKLIT = [
+    "###############",
+    "#<...g.......!#",
+    "###############",
+  ]
+
+  # Where the goblin stands, and where the light it shows against is.
+  SHAPE  = {5, 1}
+  BEHIND = {7, 1}
+
+  describe "a shape against a flame" do
+    def watching(lines : Array(String) = BACKLIT) : Playing::Run
+      floor = Roguelike::Floor.parse "hall", lines
+      run = Playing.open Roguelike::Game.new(
+        Roguelike::World.new(Playing::SEED, {"hall" => floor}),
+        Roguelike::Player.new("hall", 1, 1)), 40, 16
+      run.play.refresh
+      run.render
+      run
+    end
+
+    # What the shape is drawn in now.
+    def shading(run : Playing::Run) : TermBuf::Color
+      spot = run.map.screen_of SHAPE[0], SHAPE[1]
+      raise "the shape is off the screen" unless spot
+
+      drawn_style(run, spot[0], spot[1]).foreground
+    end
+
+    # Every colour the shape is drawn in over *ticks* ticks.
+    def shadings(run : Playing::Run, ticks : Int32) : Array(TermBuf::Color)
+      found = [shading run]
+      ticks.times do
+        run.play.waver
+        run.render
+        found << shading run
+      end
+
+      found
+    end
+
+    it "is a shape rather than a letter" do
+      run = watching
+
+      expect(run.game.sight.includes? *SHAPE).to be_false
+      expect(run.game.sight.backlit? run.game.floor, *SHAPE).to be_true
+      expect(run.game.sight.backlight run.game.floor, *SHAPE).to eq BEHIND
+    end
+
+    it "stands on a square with no flame of its own" do
+      run = watching
+
+      expect(run.game.sight.flames_at *SHAPE).to be_empty
+      expect(run.game.sight.flames_at *BEHIND).not_to be_empty
+    end
+
+    it "changes what it is drawn in as the flame behind it moves" do
+      expect(shadings(watching, 40).uniq!.size).to be > 1
+    end
+
+    # One flame lights the square behind it, so it has one step to move to
+    # and one to come back to.
+    it "moves between two shades and no more" do
+      expect(shadings(watching, 120).uniq!.size).to eq 2
+    end
+
+    # A shape drawn below `SHAPE_STEP` would be drawn the way a remembered
+    # square is drawn, and a flame guttering must not do that.
+    it "is never drawn darker than a shape that holds still" do
+      base = Ui::Palette.shaded(
+        Ui::Palette.shape(Roguelike::Size::Small), Ui::Palette::SHAPE_STEP)
+        .style.foreground
+
+      expect(shadings(watching, 120).min_of(&.red)).to eq base.red
+    end
+
+    it "is never drawn brighter than one step above that" do
+      top = Ui::Palette.shaded(Ui::Palette.shape(Roguelike::Size::Small),
+        Ui::Palette::SHAPE_STEP + Ui::Palette::SHAPE_WAVER).style.foreground
+
+      expect(shadings(watching, 120).max_of(&.red)).to eq top.red
+    end
+
+    it "holds still with no flicker" do
+      run = watching
+      run.map.flicker = nil
+
+      expect(shadings(run, 40).uniq!.size).to eq 1
+    end
+
+    # Nothing is burning in a magically lit room, so nothing behind the shape
+    # wavers and the shape does not either.
+    it "holds still against a light with no flame in it" do
+      run = watching ["###############", "#<...g..******#", "###############"]
+
+      expect(run.game.sight.backlit? run.game.floor, *SHAPE).to be_true
+      expect(shadings(run, 40).uniq!.size).to eq 1
+    end
+  end
+
   describe "a pane with no flicker" do
     it "draws the same map every time" do
       run = burning

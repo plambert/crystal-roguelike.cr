@@ -99,18 +99,30 @@ module Roguelike
     # A creature on a lit square needs none of this. `#includes?` already
     # says they can be seen.
     def backlit?(floor : Floor, x : Int32, y : Int32) : Bool
-      return false unless @field.includes? x, y
-      return false if lit? x, y
-      return false if x == origin[0] && y == origin[1]
+      !backlight(floor, x, y).nil?
+    end
 
-      found = false
+    # Which lit square a creature standing at *x*, *y* shows against.
+    #
+    # The first lit square along the line from here through that one, within
+    # `BACKLIGHT`. `nil` when the creature would not show as a shape at all.
+    #
+    # What is drawn on the creature's square follows from this square rather
+    # than from the creature's own. A shape is seen by the light behind it,
+    # so a flame guttering behind it is a flame guttering on it.
+    def backlight(floor : Floor, x : Int32, y : Int32) : {Int32, Int32}?
+      return unless @field.includes? x, y
+      return if lit? x, y
+      return if x == origin[0] && y == origin[1]
+
+      found : {Int32, Int32}? = nil
 
       Line.beyond(origin, {x, y}, BACKLIGHT) do |spot|
         break unless floor.contains? spot[0], spot[1]
         break if floor.blocks_sight? spot[0], spot[1]
 
         if lit? spot[0], spot[1]
-          found = true
+          found = spot
           break
         end
       end
