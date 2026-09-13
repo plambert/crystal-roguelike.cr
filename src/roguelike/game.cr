@@ -1258,11 +1258,30 @@ module Roguelike
       end
     end
 
+    # Why the character cannot read. `nil` when they can.
+    #
+    # `Play` asks this before it offers the scrolls, so a person standing in
+    # the dark is told before they choose one rather than after.
+    def cannot_read : String?
+      return if sight.lit? @player.x, @player.y
+
+      "It is too dark to read."
+    end
+
     # Reads what is under *letter*. Answers whether it was read.
     #
     # *choice* is the carried item a scroll of identify works on. Every other
     # scroll ignores it.
+    #
+    # A scroll is words on paper. Somebody standing in the dark cannot make
+    # them out, and the scroll is not spent finding that out.
     def read(letter : Char, choice : Char? = nil) : Bool
+      complaint = cannot_read
+      if complaint
+        say complaint
+        return false
+      end
+
       use letter, ItemClass::Scroll, "read", choice do |item|
         say "You read #{name item}."
       end

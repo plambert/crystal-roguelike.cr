@@ -38,10 +38,13 @@ Spectator.describe "drinking, reading and zapping" do
 
   # A game with the character carrying *held*.
   #
-  # The floor is lit unless *dark*. The character has *hit_points*, so an
-  # example about healing can start somebody short of full.
+  # The floor is lit unless *dark*. A *torch* puts light on the character's
+  # own square and the few round it, which is what somebody reading in a dark
+  # dungeon is doing. The character has *hit_points*, so an example about
+  # healing can start somebody short of full.
   def carrying(held : Array(Item) = [] of Item,
                dark : Bool = false,
+               torch : Bool = false,
                hit_points : Int32? = nil) : Game
     floor = Floor.parse "hall", HALL
     Playing.daylight floor unless dark
@@ -50,6 +53,7 @@ Spectator.describe "drinking, reading and zapping" do
     game = Game.new World.new(SEED, {floor.id => floor}), player,
       lore: Lore.roll(Rng.new SEED)
     held.each { |item| player.inventory.add item }
+    player.inventory.add Playing.torch if torch
     game
   end
 
@@ -210,7 +214,7 @@ Spectator.describe "drinking, reading and zapping" do
 
   describe "a scroll of magic mapping" do
     it "remembers the shape of the whole floor" do
-      game = carrying [Item.new(Kind::MappingScroll)], dark: true
+      game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
 
       game.read 'a'
 
@@ -219,7 +223,7 @@ Spectator.describe "drinking, reading and zapping" do
     end
 
     it "remembers a square the character has never seen" do
-      game = carrying [Item.new(Kind::MappingScroll)], dark: true
+      game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
       expect(game.knowledge.seen? 10, 4).to be_false
 
       game.read 'a'
@@ -229,7 +233,7 @@ Spectator.describe "drinking, reading and zapping" do
 
     # A map shows a person the walls. It does not show them the loot.
     it "says nothing about what is lying on the floor" do
-      game = carrying [Item.new(Kind::MappingScroll)], dark: true
+      game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
       game.floor.drop 10, 4, Item.new(Kind::LongSword)
 
       game.read 'a'
@@ -243,6 +247,67 @@ Spectator.describe "drinking, reading and zapping" do
       game.read 'a'
 
       expect(game.player.inventory.has? 'a').to be_false
+    end
+  end
+
+  # A scroll is words on paper.
+  describe "reading in the dark" do
+    it "refuses, and costs neither the scroll nor a turn" do
+      game = carrying [Item.new(Kind::MappingScroll)], dark: true
+      before = game.turn
+
+      expect(game.read 'a').to be_false
+      expect(game.player.inventory.has? 'a').to be_true
+      expect(game.turn).to eq before
+      expect(game.log.last?).to eq "It is too dark to read."
+    end
+
+    it "says so before anything is chosen" do
+      game = carrying [] of Item, dark: true
+
+      expect(game.cannot_read).to eq "It is too dark to read."
+    end
+
+    it "says nothing when the character carries a lit torch" do
+      game = carrying [] of Item, dark: true, torch: true
+
+      expect(game.cannot_read).to be_nil
+    end
+
+    it "reads by the light of a carried torch" do
+      game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
+
+      expect(game.read 'a').to be_true
+      expect(game.player.inventory.has? 'a').to be_false
+    end
+
+    it "reads by the light a wand of light left behind" do
+      game = carrying [Item.new(Kind::LightWand), Item.new(Kind::MappingScroll)],
+        dark: true
+      expect(game.cannot_read).not_to be_nil
+
+      game.zap 'a'
+
+      expect(game.cannot_read).to be_nil
+      expect(game.read 'b').to be_true
+    end
+
+    it "stops the character reading once the torch goes out" do
+      game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
+      torch = game.player.inventory['b']
+      expect(game.cannot_read).to be_nil
+
+      torch.try &.douse
+
+      expect(game.cannot_read).to eq "It is too dark to read."
+    end
+
+    it "leaves drinking and zapping alone" do
+      game = carrying [Item.new(Kind::HealingPotion), Item.new(Kind::LightWand)],
+        dark: true, hit_points: 1
+
+      expect(game.quaff 'a').to be_true
+      expect(game.zap 'b').to be_true
     end
   end
 

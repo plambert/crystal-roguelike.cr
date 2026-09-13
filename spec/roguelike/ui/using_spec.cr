@@ -102,6 +102,24 @@ Spectator.describe "quaffing, reading and zapping" do
       expect(run.game.player.inventory.has? 'a').to be_false
     end
 
+    it "says so in the dark, without offering anything" do
+      run = carrying [Item.new Kind::MappingScroll], dark: true
+
+      run.press "r"
+
+      expect(run.said).to eq "It is too dark to read."
+      expect(run.menu.showing?).to be_false
+      expect(run.game.player.inventory.has? 'a').to be_true
+    end
+
+    it "reads by the light of a carried torch" do
+      run = carrying [Item.new(Kind::MappingScroll), Playing.torch], dark: true
+
+      run.press "r", "a"
+
+      expect(run.game.player.inventory.has? 'a').to be_false
+    end
+
     # Offering an empty list would be a question with no answer.
     it "reads the scroll anyway when there is nothing left to name" do
       run = carrying [Item.new Kind::IdentifyScroll]

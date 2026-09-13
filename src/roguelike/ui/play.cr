@@ -655,6 +655,12 @@ module Roguelike::Ui
     # A scroll of identify needs a second question: which carried item it
     # names. `Game#effect_of` says so before the turn is spent.
     def read : Nil
+      complaint = @game.cannot_read
+      if complaint
+        say complaint
+        return
+      end
+
       offer "Read what?", "You have nothing to read.",
         ->(item : Item) { item.kind.item_class.scroll? } do |letter|
         if @game.effect_of(letter).chosen?

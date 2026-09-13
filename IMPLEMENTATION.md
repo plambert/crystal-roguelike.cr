@@ -82,6 +82,7 @@ actually been run rather than reasoned about.
 | Who says why | `Game` writes the refusal. `Play` never writes over it with a guess about what went wrong |
 | A scattered launcher | Lands with ammunition it fires within three squares, most of the time. A bow nobody can shoot is scenery |
 | The supply's stream | Named by the launcher's square, never the litter's own, so adding the rule moved nothing else on the floor |
+| Reading in the dark | Refused. A scroll is words on paper. The scroll is not spent and no turn is taken finding that out |
 
 ## Ground rules
 
@@ -883,6 +884,29 @@ change to perception and a change to behaviour together.
   on that before anything is in sight.
 * What such a creature does with it: wait at the mouth of the corridor, move to somewhere it can
   strike from, or fall back and tell the rest of the band.
+
+### Ways of seeing without light
+
+`Species#darkvision?` is one flag on a monster today, and the character has nothing at all. Three
+senses replace it, each with its own reach, each carried by the character as well as by a
+monster. A creature may have any combination of them and a reach of its own for each.
+
+* **Darkvision.** Every square within reach is treated as dimly lit, which is what the flag
+  already does for an orc. Everything a lit square shows is shown: terrain, creatures and items
+  alike. The reach is short, and past it the dark is the dark.
+* **Low light vision.** Terrain within reach is sensed in the dark, and nothing else. Walls,
+  doors, chasms and staircases come through; creatures and items do not. A person with this
+  walks a corridor in the dark without a light and without knowing what is standing in it. This
+  is close to what `Knowledge#touch` already records, so the shape it writes is settled.
+* **Blindsense.** Creatures within reach are sensed in the dark, and nothing else. No terrain,
+  no items. The reach is typically much longer than the other two, which makes it the sense that
+  answers "something is coming" rather than "here is the room".
+
+Each is a separate reach rather than a rank, because a creature with blindsense and no
+darkvision is a different thing to play against than one with both. Drawing has to tell them
+apart as well: a creature known only by blindsense is a shape with no name and no detail, the
+way a backlit silhouette is drawn now, and terrain known only by low light vision draws the way
+remembered terrain draws rather than the way lit terrain does.
 
 ### The machinery that needs
 
