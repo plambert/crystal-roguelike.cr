@@ -6,6 +6,7 @@ require "./equipment"
 require "./field_of_view"
 require "./flight"
 require "./floors"
+require "./generator"
 require "./lighting"
 require "./line"
 require "./vision"
@@ -137,13 +138,17 @@ module Roguelike
       @outcome.over?
     end
 
-    # A new run on *rng*.
+    # A new run on *rng*, played on *ground*.
     #
     # The character starts with a lit torch. A dungeon is dark, and a person
     # who arrived with no light would see one square and nothing else.
-    def self.start(rng : Rng) : Game
+    #
+    # *ground* is the floor that ships with the game unless a caller names
+    # another. `Game.dug` is the one the generator digs, which is what the
+    # game itself plays.
+    def self.start(rng : Rng, ground : Floor = Floors.proving_ground) : Game
       world = World.on rng
-      floor = world.add Floors.proving_ground
+      floor = world.add ground
 
       player = Player.new floor.id, *entrance(floor)
       player.inventory.add Item.new(ItemKind::Torch, lit: true)
@@ -155,10 +160,18 @@ module Roguelike
       game
     end
 
-    # How many items a floor starts with, until there is a generator.
+    # A new run on *rng*, played on a floor dug from the same seed.
+    #
+    # `--seed N` twice digs the same floor, because `Generator` derives every
+    # roll from the seed and from nothing else.
+    def self.dug(rng : Rng) : Game
+      start rng, Generator.floor(rng)
+    end
+
+    # How many items a floor starts with.
     LITTER = 24
 
-    # How much gold one pile holds, until there is a generator.
+    # How much gold one pile holds.
     PURSE = 5..40
 
     # Puts items about the floor on *rng*.

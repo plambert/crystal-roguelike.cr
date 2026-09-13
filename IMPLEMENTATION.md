@@ -90,6 +90,9 @@ actually been run rather than reasoned about.
 | How far it wavers | One step up from the dimmest lit step, and never below it. A shape drawn dimmer than that reads as a memory |
 | Readying an item | The message follows the slot. A sword is held, a helmet is worn, and arrows go in the quiver |
 | Running | `Game#run` takes whole turns, so creatures act between steps. It never swings and never opens a door |
+| Digging a floor | Binary space partition. Joining the two halves of every cut is what leaves every square reachable |
+| A generated door | Where a corridor crosses the ring one square outside a room, and only with a wall on each side of it |
+| Where a run starts | The room with the up staircase holds no creature |
 | What stops a run | The run ending, a wound, a creature coming into sight, a message, a door underfoot, or a junction |
 | What counts as a corridor | Two cardinal ways off a square, facing each other. A room corner has two at right angles |
 | Naming a bow's slot | "Ranged weapon", never "launcher". `ItemClass::RangedWeapon` and `Player#ranged_weapon` say the same |
@@ -825,6 +828,34 @@ on. The generator comes last because by now it is clear what it has to place.
 * **Verify** — `--seed N` twice gives the identical floor. A spec generates a thousand seeded
   floors and asserts for each: every floor tile is reachable from the up stairs, both staircases
   exist and are not in the same room, no door is isolated, and no monster or item is inside rock.
+* **Done.** `Generator` cuts a floor by binary space partition. The whole floor starts as one
+  rectangle of solid rock, each rectangle is cut in two four times over, a room is carved in each
+  of the sixteen smallest rectangles, and the two halves of every cut are joined by a corridor of
+  two straight lengths meeting at a right angle. Joining at every cut is what makes every square
+  reachable from every other: the rooms form a tree, and a tree has a path between any two of its
+  leaves. No repair pass walks the floor looking for what was left stranded.
+
+  A room keeps a square of rock between itself and the edge of its rectangle, so two rooms never
+  touch. Each rectangle takes its own rock, so what a wall is made of changes from one part of
+  the floor to another. A door goes where a corridor crosses the ring of squares one outside a
+  room, and only where that square has exactly two ways off it facing each other: a door needs a
+  wall on each side to hang from. A square inside another room, and one with a door already
+  beside it, take no door.
+
+  The room with the up staircase gets no creature. A character who arrives standing next to a
+  goblin has been given no turn to decide anything.
+
+  Every roll is on a stream named after the rectangle or the room it is about, never on one
+  shared stream walked in order. Adding a roll in one place moves nothing elsewhere: a second
+  sconce in one room shifts that room's lights and leaves every other room where it was.
+
+  `Game.dug` plays a floor the generator cut and `Game.start` plays the floor that ships, which
+  is what every spec about a named square still reads. `--no-generate` plays the shipped floor.
+  A dug floor holds sixteen rooms, about ten creatures, fifteen sconces, twenty-four doors and
+  seven hundred squares of open ground.
+
+  Every floor has the same sixteen rooms. Varying that means letting a rectangle hold no room,
+  and a rectangle with no room has nothing for the cut above it to join to.
 
 ### Phase 25 — Start, death, victory
 

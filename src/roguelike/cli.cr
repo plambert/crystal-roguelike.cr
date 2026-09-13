@@ -21,9 +21,12 @@ module Roguelike
     flag flicker : Bool = true, "--flicker",
       "Let flames waver. --no-flicker holds them still"
 
+    flag generate : Bool = true, "--generate",
+      "Dig a floor from the seed. --no-generate plays the floor that ships"
+
     def run
       rng = Rng.for seed
-      session = Session.open rng, flicker: flicker
+      session = Session.open rng, flicker: flicker, generate: generate
 
       exit 1 unless session
 
