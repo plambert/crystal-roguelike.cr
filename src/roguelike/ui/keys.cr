@@ -130,6 +130,17 @@ module Roguelike::Ui
       end
     end
 
+    # `` ` `` puts the debug console up and takes it down.
+    #
+    # `Play` merges this only when it has a console, so the key is unbound in
+    # a run started without `--debug-console`.
+    def self.debugging(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse(ConsolePane::TOGGLE), "open the debug console",
+          ->(_context : Widgets::Context) { play.toggle_console; nil }
+      end
+    end
+
     # `M` turns mouse reporting on and off.
     #
     # This is a toggle. A terminal reporting the mouse no longer lets the

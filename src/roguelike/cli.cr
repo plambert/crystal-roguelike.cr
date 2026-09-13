@@ -24,9 +24,15 @@ module Roguelike
     flag generate : Bool = true, "--generate",
       "Dig a floor from the seed. --no-generate plays the floor that ships"
 
+    # A development tool. It is off unless this is passed, so a normal run has
+    # neither the box nor the key that opens it.
+    flag debug_console : Bool = false, "--debug-console",
+      "Open a console with ` for commands that change the running game"
+
     def run
       rng = Rng.for seed
-      session = Session.open rng, flicker: flicker, generate: generate
+      session = Session.open rng, flicker: flicker, generate: generate,
+        console: debug_console
 
       exit 1 unless session
 

@@ -28,7 +28,8 @@ module Playing
                    @told : Array(String))
     end
 
-    delegate game, screen, map, examine, examiner, nearby, pointer, prompt, pager, menu, to: @play
+    delegate game, screen, map, examine, examiner, nearby, pointer, prompt, pager, menu,
+      console, to: @play
 
     # Whether the run should end.
     def finished? : Bool
@@ -66,6 +67,19 @@ module Playing
     # :ditto: Presses each in turn. A walk uses this.
     def press(*descriptions : String) : Nil
       descriptions.each { |description| press description }
+    end
+
+    # Types *text*, one character at a time, at whatever has the keyboard.
+    #
+    # `#press` parses its argument, so a space in it is a separator rather
+    # than a keystroke. A console command has spaces in it.
+    def type(text : String) : Nil
+      text.each_char do |character|
+        @session.send TermBuf::Events::Key.new(
+          TermBuf::Key.character(character), Bytes.empty)
+      end
+
+      @session.render
     end
 
     # A motion report with no button held. Mode 1003 sends these.
@@ -148,8 +162,10 @@ module Playing
   # A run on *game*, drawn in a window of *columns* by *rows*.
   def self.open(game : Roguelike::Game? = nil,
                 columns : Int32 = 80,
-                rows : Int32 = 24) : Run
-    play = Roguelike::Ui::Play.new(game || Roguelike::Game.start(Roguelike::Rng.new(SEED)))
+                rows : Int32 = 24,
+                console : Bool = false) : Run
+    play = Roguelike::Ui::Play.new(
+      game || Roguelike::Game.start(Roguelike::Rng.new(SEED)), console)
     play.fit columns, rows
 
     session = Headless.open play.root, columns, rows

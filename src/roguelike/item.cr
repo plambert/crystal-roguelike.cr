@@ -101,6 +101,18 @@ module Roguelike
       @blessing.cursed?
     end
 
+    # Takes a curse off. Answers whether that was a change.
+    #
+    # The blessing is left known. A character who watched a curse lift knows
+    # the item is no longer cursed.
+    def uncurse : Bool
+      return false unless @blessing.cursed?
+
+      @blessing = Blessing::Uncursed
+      @blessing_known = true
+      true
+    end
+
     # Records that the character has found out the blessing. Answers whether
     # that was news.
     def reveal_blessing : Bool

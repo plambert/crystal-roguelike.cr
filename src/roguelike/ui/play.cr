@@ -80,6 +80,12 @@ module Roguelike::Ui
     # How the flames waver. `Session` advances it on a timer.
     getter flicker : Flicker
 
+    # The debug console. `nil` unless `--debug-console` was passed.
+    #
+    # Nothing is built when it is off, so there is no box in the tree and the
+    # key that opens one is never bound.
+    getter console : ConsolePane? = nil
+
     # The application this play is drawn on.
     #
     # The owner sets this once it has built an `App`. A question and a held
@@ -130,7 +136,7 @@ module Roguelike::Ui
     @columns : Int32 = 0
     @rows : Int32 = 0
 
-    def initialize(@game : Game)
+    def initialize(@game : Game, console : Bool = false)
       @screen = Screen.new
       @map = MapPane.new @game.floor
       @screen.show @map.grid
@@ -158,6 +164,12 @@ module Roguelike::Ui
       @prompt = Widgets::Prompt.new
       @menu = Widgets::Menu.new
 
+      if console
+        pane = ConsolePane.new @game
+        pane.on_command = -> { after_command }
+        @console = pane
+      end
+
       refresh
     end
 
@@ -168,10 +180,34 @@ module Roguelike::Ui
 
     # The bindings that belong to the game rather than to the application.
     def bindings : Widgets::Bindings
-      Keys.examining(self)
+      found = Keys.examining(self)
         .merge(Keys.moving { |direction| step direction })
         .merge(Keys.acting(self))
         .merge(Keys.aiming(self))
+
+      @console ? found.merge(Keys.debugging(self)) : found
+    end
+
+    # Puts the debug console up, or takes it down. `` ` `` does this.
+    #
+    # Nothing happens in a run opened without the console, because the key is
+    # not bound in one.
+    def toggle_console : Nil
+      pane = @console
+      return unless pane
+
+      pane.fit_into Rect.new(0, 0, @columns, @rows)
+      pane.toggle application
+    end
+
+    # Puts the floor back on the screen after a console command.
+    #
+    # `goto` moves the character, `reveal` fills in the map and `light`
+    # changes what can be seen. Each shows on the next frame rather than on
+    # the next turn, because a command takes no turn.
+    private def after_command : Nil
+      @map.follow @game.player.x, @game.player.y
+      refresh
     end
 
     # Asks *question*. Runs *answered* with the key the person pressed.
@@ -294,7 +330,8 @@ module Roguelike::Ui
     # Whether a box is holding the keyboard. A question, a list and a held
     # page each do.
     def modal? : Bool
-      @prompt.asking? || @menu.showing? || @pager.holding?
+      @prompt.asking? || @menu.showing? || @pager.holding? ||
+        (@console.try &.showing? || false)
     end
 
     # Puts the camera on the character.

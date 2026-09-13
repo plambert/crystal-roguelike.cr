@@ -184,6 +184,29 @@ Spectator.describe Roguelike::Item do
       expect(item.reveal_blessing).to be_false
     end
 
+    it "lifts a curse once, and leaves the blessing known" do
+      item = described_class.new Kind::LongSword, blessing: Roguelike::Blessing::Cursed
+
+      expect(item.uncurse).to be_true
+      expect(item.cursed?).to be_false
+      expect(item.blessing_known?).to be_true
+      expect(item.uncurse).to be_false
+    end
+
+    it "lifts no curse off something that was not cursed" do
+      item = described_class.new Kind::LongSword
+
+      expect(item.uncurse).to be_false
+      expect(item.blessing_known?).to be_false
+    end
+
+    it "round-trips through JSON after a curse is lifted" do
+      item = described_class.new Kind::LongSword, blessing: Roguelike::Blessing::Cursed
+      item.uncurse
+
+      expect(described_class.from_json(item.to_json)).to eq item
+    end
+
     # Phase 11 uses this. A cursed weapon cannot be put down.
     it "sticks when it is cursed" do
       cursed = described_class.new Kind::LongSword, blessing: Roguelike::Blessing::Cursed

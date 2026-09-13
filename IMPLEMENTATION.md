@@ -866,6 +866,41 @@ on. The generator comes last because by now it is clear what it has to place.
   Win once and die once. A spec drives a scripted game to a win and to a death and snapshots both
   screens.
 
+## Development tools
+
+Not phases. These are for working on the game rather than for playing it, and they are built when
+they are needed rather than in the sequence above.
+
+### The debug console
+
+`--debug-console` builds a box that opens on `` ` `` and runs typed commands against the game that
+is running. Without the flag nothing is built: there is no box in the widget tree and the key is
+not bound, so a normal run cannot reach any of it.
+
+The reason for it is the cost of finding the thing to test. Firing a bow needs a bow and arrows to
+turn up on the floor, and a seed that drops them there drops something else after the next change
+to the generator. `spawn bow` and `spawn 20 +1 arrow` take two lines instead of twenty minutes of
+walking.
+
+The commands are `help`, `heal`, `hurt`, `spawn`, `identify`, `remove-curse`, `kill`, `inspect`,
+`goto`, `reveal` and `light`. `help` lists them with what each one takes.
+
+Two rules hold for all of them.
+
+* A command takes no turn. Nothing else on the floor acts, so setting a test up does not change
+  what is being tested.
+* A command rolls nothing. No command touches an `Rng`, so `--seed N` plays out the same way
+  whether or not the box was opened. `spawn` therefore takes the enchantment, the condition and
+  the blessing from what was typed rather than from `Items.make`, which rolls: `spawn bow` makes a
+  plain uncursed `+0` bow every time.
+
+`Debug::Console` holds the commands and everything they do, and owns no widget and no terminal, so
+a spec runs a command against a `Game` without drawing anything. `Ui::ConsolePane` is the box: it
+takes what was typed, hands it over, and puts what came back on the screen. `Debug.item` turns
+words into an item, and matches a kind by its own label, by its member name, or by the starts of
+the words of its label, so `mwk sh sword` and `pot heal` each name one thing. Words that could
+name more than one thing make nothing and say what they could have meant.
+
 ## Feature checklist
 
 Everything asked for in the basic game, against the phase that delivers it.

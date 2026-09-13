@@ -532,7 +532,11 @@ module Roguelike
     #
     # Whatever it was carrying lands on the square it died on. A lit torch
     # goes on burning there.
-    private def kill(creature : Monster) : Nil
+    #
+    # This is public so that the debug console's `kill` command can call it
+    # rather than repeat it. Nothing in a normal run reaches it from outside
+    # `Game`.
+    def kill(creature : Monster) : Nil
       floor.remove creature.x, creature.y
       creature.drop_everything.each do |item|
         floor.drop creature.x, creature.y, item

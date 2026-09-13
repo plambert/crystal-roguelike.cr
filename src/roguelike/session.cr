@@ -25,7 +25,7 @@ module Roguelike
     # how big a terminal is without opening it. The other way to find out is
     # to enter the alternate screen and leave it again.
     def self.open(rng : Rng, flicker : Bool = true,
-                  generate : Bool = true) : Session?
+                  generate : Bool = true, console : Bool = false) : Session?
       size = TermBuf::SizeDetector.detect
 
       unless Ui::Screen.fits? size.columns, size.rows
@@ -35,7 +35,7 @@ module Roguelike
 
       ran = nil.as Session?
       TermBuf::Terminal.open do |terminal|
-        ran = new terminal, rng, flicker, generate
+        ran = new terminal, rng, flicker, generate, console
         ran.try &.run
       end
 
@@ -68,11 +68,12 @@ module Roguelike
     getter? mousing : Bool = false
 
     def initialize(@terminal : TermBuf::Terminal, @rng : Rng,
-                   flicker : Bool = true, generate : Bool = true)
+                   flicker : Bool = true, generate : Bool = true,
+                   console : Bool = false)
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
-      @play = Ui::Play.new(generate ? Game.dug(@rng) : Game.start(@rng))
+      @play = Ui::Play.new(generate ? Game.dug(@rng) : Game.start(@rng), console)
       @play.fit size.columns, size.rows
 
       @app = Ui::Widgets::App.new @terminal, @play.root, bounds,

@@ -53,8 +53,14 @@ module Headless
     end
 
     # Puts *event* on the channel. Lets the tree answer it.
+    #
+    # It pumps twice. `App#pump` delivers what is posted before it delivers
+    # what is waiting, so a message a widget emitted while answering this
+    # event is delivered on the pump after it. `Session#run` gets that second
+    # pump from `App#wait`.
     def send(event : TermBuf::Event) : Nil
       @events.send event
+      @app.pump
       @app.pump
     end
 
