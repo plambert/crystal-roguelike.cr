@@ -100,13 +100,16 @@ Spectator.describe "noticing the character" do
       expect(game.player.hit_points).to eq game.player.max_hit_points
     end
 
+    # The torch lights the character brightly enough for the goblin to pick
+    # them out from the far end. The character cannot see the goblin at that
+    # range, so what they get is the sound of it rather than its name.
     it "wakes the same goblin for a character carrying a torch" do
       game, creature = corridor stealth: 18, torch: true
 
       walk game, 10
 
       expect(awareness(game, creature)).to eq Awareness::Hunting
-      expect(game.log.lines).to contain "The goblin notices you."
+      expect(game.log.lines).to contain "You hear something stir."
     end
 
     it "wakes an orc either way" do

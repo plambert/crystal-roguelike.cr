@@ -57,7 +57,7 @@ actually been run rather than reasoned about.
 | Floor file layers | One character per square. A mark that is not terrain takes its ground from the squares beside it |
 | A swing | `d20` plus the attacker's bonus against the defender's armour class. Twenty always lands, one never does |
 | Combat rolls | Their own stream per swing, named by how many the run has rolled, so a save file holds a count |
-| Noticing | A band notices, not a monster. Reach is the species' own, less stealth, plus the light on the character |
+| Noticing | A band notices, not a monster. Reach is the species' own, less stealth, plus the light on the character, a square per point |
 | Seeing in the dark | An orc's reach ignores light. A goblin or a slime notices nothing unlit, however close it stands |
 | Pursuit | One `Descent` per band per turn, flooded over the band's own `Knowledge`. Its members step downhill |
 | A creature's decision | `Pursuit.decide` reads a snapshot holding no floor and no player, and answers an `Action` |

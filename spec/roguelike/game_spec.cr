@@ -4,7 +4,16 @@ Spectator.describe Roguelike::Game do
   alias Direction = Roguelike::Direction
   alias Terrain = Roguelike::Terrain
 
-  subject(game) { described_class.start Roguelike::Rng.new(Playing::SEED) }
+  # A run on the shipped floor with nothing alive on it.
+  #
+  # Nothing in this file is about being chased. The slime in the first room
+  # walks at a character carrying a lit torch from the moment the run starts,
+  # and a creature standing in the way is a different spec's subject.
+  subject(game) do
+    found = described_class.start Roguelike::Rng.new(Playing::SEED)
+    found.floor.monsters.clear
+    found
+  end
 
   describe ".start" do
     it "puts the character on the staircase they came down by" do

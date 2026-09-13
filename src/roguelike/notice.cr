@@ -20,20 +20,28 @@ module Roguelike
     # on them.
     TOUCH = 1
 
-    # How much light on the character's square adds one square of reach.
-    LIGHT_PER_STEP = 3
+    # How many squares of reach one point of light on the character adds.
+    #
+    # A torch lights the square its carrier stands on brightly, so carrying
+    # one roughly triples how far a goblin notices them, and a creature
+    # across a dark room picks the flame out at once. Somebody at the edge of
+    # a sconce's pool is lit by one or two and is that much easier to see.
+    # Somebody in the dark is not lit at all, and a species without
+    # darkvision does not see them however close they stand.
+    REACH_PER_LIGHT = 1
 
     # How far *species* notices a character of *stealth* standing on a square
     # lit to *light*.
     #
     # Stealth takes squares off: the modifier from `Attributes`, so a
-    # character of average stealth is noticed at the species' own reach. Light
-    # puts squares on, for a species that needs light to see by. A species
-    # with darkvision reads the same reach in a lit room and in a dark
-    # corridor, because the light is not what it is looking with.
+    # character of average stealth standing in the dark is noticed at the
+    # species' own reach. Light puts squares on, for a species that needs
+    # light to see by, and a lit character is what such a species is looking
+    # for. A species with darkvision reads the same reach in a lit room and
+    # in a dark corridor, because the light is not what it is looking with.
     def self.reach(species : Species, stealth : Int32, light : Int32) : Int32
       found = species.notice - Attributes.modifier(stealth)
-      found += light // LIGHT_PER_STEP unless species.darkvision?
+      found += light * REACH_PER_LIGHT unless species.darkvision?
 
       Math.max found, TOUCH
     end

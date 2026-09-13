@@ -24,9 +24,17 @@ Spectator.describe Roguelike::Notice do
 
     it "puts squares on for light" do
       dark = Notice.reach Species::Goblin, AVERAGE, 0
-      lit = Notice.reach Species::Goblin, AVERAGE, Notice::LIGHT_PER_STEP * 2
+      lit = Notice.reach Species::Goblin, AVERAGE, 2
 
-      expect(lit).to eq dark + 2
+      expect(lit).to eq dark + 2 * Notice::REACH_PER_LIGHT
+    end
+
+    # A carried torch lights the square its carrier stands on to seven, so a
+    # goblin picks them out from three times as far off as it would in the
+    # dark.
+    it "notices somebody carrying a torch a long way off" do
+      expect(Notice.reach Species::Goblin, AVERAGE, 7).to eq 15
+      expect(Notice.reach Species::Slime, AVERAGE, 7).to eq 11
     end
 
     # An orc is not looking with the light, so the light says nothing about

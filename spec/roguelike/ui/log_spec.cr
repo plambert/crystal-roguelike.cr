@@ -30,6 +30,7 @@ Spectator.describe "the message log" do
 
     it "says nothing new for a wall bumped twice" do
       run = Playing.open
+      run.clear_monsters
       before = run.log.size
 
       5.times { run.press "k" }
