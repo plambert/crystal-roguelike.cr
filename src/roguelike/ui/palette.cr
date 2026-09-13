@@ -98,6 +98,27 @@ module Roguelike::Ui
     # person who has played one looks for it first.
     PLAYER = Look.new '@', HERO
 
+    # What each species is drawn as.
+    #
+    # The glyph is the letter a floor file writes, which is the roguelike
+    # convention: `j` for a jelly, `g` for a goblin, `o` for an orc. The
+    # colours are far enough apart to tell the three of them apart at the
+    # dimmest step of the ramp.
+    SLIME  = Style::DEFAULT.fg TermBuf::Color.rgb(0x7C, 0xD8, 0x6C)
+    GOBLIN = Style::DEFAULT.fg TermBuf::Color.rgb(0xB8, 0xE0, 0x40)
+    ORC    = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0x60, 0x50)
+
+    MONSTERS = {
+      Species::Slime  => SLIME,
+      Species::Goblin => GOBLIN,
+      Species::Orc    => ORC,
+    }
+
+    # How *creature* draws.
+    def self.[](creature : Monster) : Look
+      Look.new creature.species.mark, MONSTERS[creature.species]
+    end
+
     # All three rocks draw as `#`. Their colours differ. That is the roguelike
     # convention. It is also why the three are separate `Terrain` members
     # rather than one wall with a colour field.

@@ -114,6 +114,8 @@ module Roguelike::Ui
     # seen, at the bottom of the ramp. A square nobody has ever seen draws
     # blank.
     private def looked_at(x : Int32, y : Int32, tile : Tile) : Look
+      shape = silhouette x, y
+      return shape if shape
       return remembered x, y unless seen? x, y
 
       level = light x, y
@@ -136,13 +138,34 @@ module Roguelike::Ui
       found.shift @sight.try(&.flames_at(x, y)) || Lighting::NO_FLAMES
     end
 
+    # A creature standing on an unlit square the character has a line to.
+    #
+    # It is seen as a shape against light behind it, so it draws at the
+    # dimmest step there is light at. `nil` when no creature is there, when
+    # the square is lit, or when there is nothing behind it to show against.
+    private def silhouette(x : Int32, y : Int32) : Look?
+      return if seen? x, y
+
+      creature = floor.monster x, y
+      return unless creature
+
+      found = @sight
+      return unless found && found.backlit?(floor, x, y)
+
+      Palette.shaded Palette[creature], Palette::REMEMBERED + 1
+    end
+
     # What is on *x*, *y* now, topmost first.
     #
-    # A mark is something standing on the square. An item lying there draws
-    # over whatever is fitted to it, and a fixture draws over the terrain.
+    # A mark is something standing on the square. A creature draws over what
+    # is lying there, an item draws over whatever is fitted to the square, and
+    # a fixture draws over the terrain.
     private def live(x : Int32, y : Int32, tile : Tile) : Look
       mark = @marks[{x, y}]?
       return mark if mark
+
+      creature = floor.monster x, y
+      return Palette[creature] if creature
 
       item = floor.items(x, y).last?
       return Palette[item] if item
@@ -159,6 +182,9 @@ module Roguelike::Ui
       memory = held.try &.[](x, y)
       return Palette::UNSEEN unless memory
 
+      # A creature is not remembered here. Phase 19 gives `Memory` one, so
+      # that a monster last seen somewhere stays drawn there until the
+      # character looks again.
       item = memory.item
       fitting = memory.fixture
 

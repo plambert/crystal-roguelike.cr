@@ -52,6 +52,8 @@ actually been run rather than reasoned about.
 | Flicker | Drawn, never played. It shifts a shade and decides nothing, so a seed still reproduces a run |
 | One flame | Every square one flame lights takes its shift. Overlapping pools add. `--no-flicker` stops it |
 | A creature in the dark | Seen by the light on it, or as a shape against light behind it |
+| Monsters on a floor | Keyed by square, so one square holds one creature and the lookup is free |
+| Floor file layers | One character per square. A mark that is not terrain takes its ground from the squares beside it |
 
 ## Ground rules
 
@@ -486,6 +488,15 @@ The phase that introduces the type monster bands will use in Phase 19.
 * **Verify** — All three appear, in the right colours, and hovering one describes it. Walking into
   one is refused with a message. A spec snapshots a floor with one of each and round-trips it
   through serialization.
+* **Done.** `Species` is the table, `Ui::Palette` holds the glyph and colour, and a floor file
+  writes `j`, `g` and `o`. `Floor#monsters` is keyed by square, so finding what stands on one
+  costs nothing and a square holds one creature; a monster carries its own position as well and
+  `Floor#walk` is the one thing that keeps the two in step. Each is in a `Band` of one, and the
+  band carries the `Faction`, because adding either to a serialized type later means migrating
+  save files. A creature on a lit square draws in its own colour; one on an unlit square with
+  light behind it draws as a shape at the dimmest lit step, which is Phase 15's rule finally
+  having something to answer about. Nothing is remembered: a monster is drawn where it is or not
+  at all, until Phase 19 gives `Memory` a creature.
 
 ### Phase 17 — Melee combat, death, experience
 

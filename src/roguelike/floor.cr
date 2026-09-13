@@ -1,6 +1,7 @@
 require "json"
 require "./fixture"
 require "./item"
+require "./monster"
 require "./tile"
 
 module Roguelike
@@ -65,11 +66,23 @@ module Roguelike
     # The key is `Floor.spot`, the same key `#litter` uses.
     getter fixtures : Hash(String, Fixture)
 
+    # What is standing on each square.
+    #
+    # The key is `Floor.spot`, so a square holds at most one creature and
+    # finding what is on one costs nothing. A monster carries its own
+    # position as well, and `#walk` is what keeps the two in step.
+    getter monsters : Hash(String, Monster)
+
+    # The bands the monsters on this floor belong to, by `Band#id`.
+    getter bands : Hash(String, Band)
+
     def initialize(@id : String, @columns : Int32, @rows : Int32, @tiles : Array(Tile),
                    @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
                    @glow : Hash(String, Int32) = {} of String => Int32,
                    @ambient : Int32 = 0,
-                   @fixtures : Hash(String, Fixture) = {} of String => Fixture)
+                   @fixtures : Hash(String, Fixture) = {} of String => Fixture,
+                   @monsters : Hash(String, Monster) = {} of String => Monster,
+                   @bands : Hash(String, Band) = {} of String => Band)
       wanted = @columns * @rows
       return if @tiles.size == wanted
 
@@ -125,15 +138,25 @@ module Roguelike
       tiles = Array(Tile).new columns * rows.size
       glow = {} of String => Int32
       fixtures = {} of String => Fixture
+      monsters = {} of String => Monster
+      bands = {} of String => Band
 
       rows.each_index do |row|
         columns.times do |column|
           mark = read.call column, row
           fitting = FixtureKind.from_mark? mark
+          species = Species.from_mark? mark
 
           if fitting
             fixtures[spot column, row] = Fixture.new fitting[0], fitting[1],
               bolted_to(read, columns, rows.size, column, row)
+            mark = under read, columns, rows.size, column, row
+          elsif species
+            # Each in a band of one. A generator will put several in one band
+            # and this is where that will be decided.
+            band = Band.new "#{id}-#{species.to_s.downcase}-#{column},#{row}"
+            bands[band.id] = band
+            monsters[spot column, row] = Monster.new species, column, row, band.id
             mark = under read, columns, rows.size, column, row
           elsif mark == Terrains::GLOW
             glow[spot column, row] = Terrains::GLOW_LIGHT
@@ -144,7 +167,8 @@ module Roguelike
         end
       end
 
-      new id, columns, rows.size, tiles, glow: glow, fixtures: fixtures
+      new id, columns, rows.size, tiles, glow: glow, fixtures: fixtures,
+        monsters: monsters, bands: bands
     end
 
     # What the square at *column*, *row* is made of, for a mark that does not
@@ -237,6 +261,64 @@ module Roguelike
       found = tile? x, y
       found ? found.passable? : false
     end
+
+    # ------------------------------------------------------------ monsters
+
+    # What is standing on *x*, *y*. `nil` for an empty square.
+    def monster(x : Int32, y : Int32) : Monster?
+      @monsters[Floor.spot x, y]?
+    end
+
+    # Whether anything is standing on *x*, *y*.
+    def monster?(x : Int32, y : Int32) : Bool
+      @monsters.has_key? Floor.spot(x, y)
+    end
+
+    # Puts *creature* on the square it says it is on. Answers whether it went.
+    #
+    # A square already holding something answers false and takes nothing. One
+    # square holds one creature.
+    def place(creature : Monster) : Bool
+      return false unless contains? creature.x, creature.y
+      return false if monster? creature.x, creature.y
+
+      @monsters[Floor.spot creature.x, creature.y] = creature
+      @bands[creature.band] ||= Band.new creature.band
+      true
+    end
+
+    # Takes whatever is standing on *x*, *y* off the floor. Answers it.
+    def remove(x : Int32, y : Int32) : Monster?
+      @monsters.delete Floor.spot(x, y)
+    end
+
+    # Moves what stands on *from* to *to*. Answers whether it moved.
+    #
+    # This is the one way a monster changes square. It keeps the floor's own
+    # table and the monster's own position in step.
+    def walk(from : {Int32, Int32}, to : {Int32, Int32}) : Bool
+      creature = monster from[0], from[1]
+      return false unless creature
+      return false unless contains? to[0], to[1]
+      return false if monster? to[0], to[1]
+
+      @monsters.delete Floor.spot(from[0], from[1])
+      creature.move_to to
+      @monsters[Floor.spot to[0], to[1]] = creature
+      true
+    end
+
+    # Yields every monster on this floor, with where it stands.
+    def each_monster(& : Int32, Int32, Monster ->) : Nil
+      @monsters.each_value { |creature| yield creature.x, creature.y, creature }
+    end
+
+    # The band *id* names. `nil` for a band this floor holds none of.
+    def band(id : String) : Band?
+      @bands[id]?
+    end
+
+    # ------------------------------------------------------------ fixtures
 
     # What is fitted to *x*, *y*. `nil` for a square with nothing on it.
     def fixture(x : Int32, y : Int32) : Fixture?
@@ -403,18 +485,22 @@ module Roguelike
       getter glow : Hash(String, Int32)
       getter ambient : Int32
       getter fixtures : Hash(String, Fixture)
+      getter monsters : Hash(String, Monster)
+      getter bands : Hash(String, Band)
 
       def initialize(@id : String, @map : Array(String),
                      @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
                      @glow : Hash(String, Int32) = {} of String => Int32,
                      @ambient : Int32 = 0,
-                     @fixtures : Hash(String, Fixture) = {} of String => Fixture)
+                     @fixtures : Hash(String, Fixture) = {} of String => Fixture,
+                     @monsters : Hash(String, Monster) = {} of String => Monster,
+                     @bands : Hash(String, Band) = {} of String => Band)
       end
     end
 
     # The stored form of this floor.
     def stored : Stored
-      Stored.new @id, to_map, @litter, @glow, @ambient, @fixtures
+      Stored.new @id, to_map, @litter, @glow, @ambient, @fixtures, @monsters, @bands
     end
 
     def self.new(pull : JSON::PullParser) : Floor
@@ -423,6 +509,8 @@ module Roguelike
       held.litter.each { |spot, pile| floor.litter[spot] = pile }
       held.glow.each { |spot, level| floor.glow[spot] = level }
       held.fixtures.each { |spot, fitting| floor.fixtures[spot] = fitting }
+      held.bands.each { |id, band| floor.bands[id] = band }
+      held.monsters.each { |spot, creature| floor.monsters[spot] = creature }
       floor.ambient = held.ambient
 
       floor
@@ -436,7 +524,8 @@ module Roguelike
       @id == other.id && @columns == other.columns &&
         @rows == other.rows && @tiles == other.tiles &&
         @litter == other.litter && @glow == other.glow &&
-        @ambient == other.ambient && @fixtures == other.fixtures
+        @ambient == other.ambient && @fixtures == other.fixtures &&
+        @monsters == other.monsters && @bands == other.bands
     end
 
     def to_s(io : IO) : Nil

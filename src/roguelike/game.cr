@@ -178,6 +178,14 @@ module Roguelike
     def step(direction : Direction) : Step
       wanted = direction.from @player.x, @player.y
 
+      blocking_creature = floor.monster wanted[0], wanted[1]
+      if blocking_creature
+        # Phase 17 swings at it. Until then it is in the way and nothing else.
+        say "#{Lore.article(blocking_creature.label).capitalize} " \
+            "#{blocking_creature.label} is in your way."
+        return Step::Blocked
+      end
+
       if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
         floor.set wanted[0], wanted[1], Terrain::OpenDoor
         @turn += 1
@@ -283,6 +291,18 @@ module Roguelike
     # creature in a dark corner with nothing behind them is not.
     def can_see_creature?(x : Int32, y : Int32) : Bool
       sight.shows? floor, x, y
+    end
+
+    # Every monster on this floor the character can see.
+    def monsters_in_sight : Array(Monster)
+      seen = sight
+      found = [] of Monster
+
+      floor.each_monster do |column, row, creature|
+        found << creature if seen.shows? floor, column, row
+      end
+
+      found
     end
 
     # Works out what the character can see, and remembers it.

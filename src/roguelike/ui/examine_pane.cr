@@ -72,12 +72,24 @@ module Roguelike::Ui
 
       terrain = floor.terrain x, y
       fitting = floor.fixture x, y
+      creature = floor.monster x, y
 
       @where.text = "#{x}, #{y}"
       @where.hidden = false
-      @what.text = fitting ? fitting.label : terrain.label
-      @what.style = fitting ? Palette[fitting].style : Palette[terrain].style
-      @detail.text = fitting ? fitting.description : terrain.description
+
+      if creature
+        @what.text = creature.label
+        @what.style = Palette[creature].style
+        @detail.text = creature.description
+      elsif fitting
+        @what.text = fitting.label
+        @what.style = Palette[fitting].style
+        @detail.text = fitting.description
+      else
+        @what.text = terrain.label
+        @what.style = Palette[terrain].style
+        @detail.text = terrain.description
+      end
 
       pile = floor.items x, y
       @litter.hidden = pile.empty?
