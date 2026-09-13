@@ -1,5 +1,6 @@
 require "json"
 require "./apply"
+require "./combat"
 require "./equipment"
 require "./field_of_view"
 require "./floors"
@@ -16,6 +17,11 @@ module Roguelike
   enum Step
     # The character walked onto the square.
     Moved
+
+    # The character swung at whatever was standing there. A step into a
+    # creature is an attack on it. The character stays where they were,
+    # whether the swing landed or not.
+    Struck
 
     # The character opened a door and stayed where they were. Opening a door
     # takes a turn. A person cannot walk through a door in the same turn they
@@ -41,6 +47,9 @@ module Roguelike
 
     # The character climbed back out.
     Left
+
+    # The character was killed.
+    Died
 
     # Whether the run is over.
     def over? : Bool
@@ -74,6 +83,11 @@ module Roguelike
     # How the run ended. `Playing` while it has not.
     getter outcome : Outcome
 
+    # How many swings have been rolled in this run.
+    #
+    # This names the generator for the next one. See `#exchange`.
+    getter blows : Int32
+
     # What has just happened.
     getter log : MessageLog
 
@@ -81,10 +95,17 @@ module Roguelike
     # found out.
     getter lore : Lore
 
+    # The run's root generator, built from the world's seed.
+    #
+    # This is not written out. `World#seed` is, and this is a function of it.
+    @[JSON::Field(ignore: true)]
+    @root : Rng? = nil
+
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
                    @log : MessageLog = MessageLog.new,
-                   @lore : Lore = Lore.new)
+                   @lore : Lore = Lore.new,
+                   @blows : Int32 = 0)
     end
 
     # What *item* is called, as this character would call it.
@@ -180,16 +201,14 @@ module Roguelike
 
       blocking_creature = floor.monster wanted[0], wanted[1]
       if blocking_creature
-        # Phase 17 swings at it. Until then it is in the way and nothing else.
-        say "#{Lore.article(blocking_creature.label).capitalize} " \
-            "#{blocking_creature.label} is in your way."
-        return Step::Blocked
+        attack blocking_creature
+        return Step::Struck
       end
 
       if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
         floor.set wanted[0], wanted[1], Terrain::OpenDoor
-        @turn += 1
         say "You open the door."
+        spend_turn
         return Step::Opened
       end
 
@@ -199,8 +218,8 @@ module Roguelike
       end
 
       @player.move_to wanted
-      @turn += 1
       arrived
+      spend_turn
       Step::Moved
     end
 
@@ -227,6 +246,112 @@ module Roguelike
       end
     end
 
+    # ------------------------------------------------------------- fighting
+
+    # The character swings at *creature*. Answers what the swing did.
+    #
+    # A swing takes a turn whether it lands or not. A creature left at zero
+    # hit points is taken off the floor and what killing it is worth is
+    # awarded.
+    def attack(creature : Monster) : Blow
+      blow = Combat.swing exchange, @player.to_hit,
+        creature.armour_class, @player.damage
+
+      if blow.hit?
+        creature.hurt blow.damage
+        say "You hit the #{creature.label} for #{blow.damage}."
+        kill creature unless creature.alive?
+      else
+        say "You miss the #{creature.label}."
+      end
+
+      spend_turn
+      blow
+    end
+
+    # Takes *creature* off the floor and awards its experience.
+    private def kill(creature : Monster) : Nil
+      floor.remove creature.x, creature.y
+      say "You kill the #{creature.label}."
+
+      gained = @player.gain creature.species.experience
+      say "Welcome to level #{@player.level}." if gained > 0
+    end
+
+    # Gives every other creature on the floor its turn.
+    #
+    # Phase 17 has no AI. A creature standing beside the character swings at
+    # them and a creature anywhere else does nothing. Phase 18 decides
+    # whether one has noticed the character. Phase 19 makes one walk.
+    #
+    # The list is taken before any of them acts. A swing can end the run, and
+    # the run ending stops the rest of them.
+    private def creatures_act : Nil
+      return if over?
+
+      adjacent.each do |creature|
+        break if over?
+
+        strike creature
+      end
+    end
+
+    # Every creature standing next to the character.
+    #
+    # In the order `Direction` names them, so one turn plays out the same way
+    # from the same seed.
+    def adjacent : Array(Monster)
+      Direction.values.compact_map do |direction|
+        spot = direction.from @player.x, @player.y
+        floor.monster spot[0], spot[1]
+      end
+    end
+
+    # *creature* swings at the character. Answers what the swing did.
+    private def strike(creature : Monster) : Blow
+      blow = Combat.swing exchange, creature.to_hit,
+        @player.armour_class, creature.damage
+
+      if blow.hit?
+        @player.hurt blow.damage
+        say "The #{creature.label} hits you for #{blow.damage}."
+        character_died unless @player.alive?
+      else
+        say "The #{creature.label} misses you."
+      end
+
+      blow
+    end
+
+    # Ends the run. The character has been killed.
+    private def character_died : Nil
+      @outcome = Outcome::Died
+      say "You die..."
+    end
+
+    # Counts one turn and gives every other creature on the floor its own.
+    #
+    # Every action that takes a turn ends with this, after it has said what
+    # it did. What the character did is then read before what was done back.
+    private def spend_turn : Nil
+      @turn += 1
+      creatures_act
+    end
+
+    # The generator for the next swing.
+    #
+    # Combat draws from a stream named by how many swings this run has
+    # rolled. A fight then rolls the same numbers from the same seed whatever
+    # else the run has drawn. A save file holds that count rather than the
+    # position of a generator, which PCG32 cannot be asked for.
+    private def exchange : Rng
+      root = (@root ||= Rng.new @world.seed)
+      found = root.derive "combat", @blows
+      @blows += 1
+
+      found
+    end
+
     # Opens the door *direction*. Answers whether it opened.
     #
     # Opening takes a turn. Trying to open something that is not a shut door
@@ -236,8 +361,8 @@ module Roguelike
       return false unless floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
 
       floor.set wanted[0], wanted[1], Terrain::OpenDoor
-      @turn += 1
       say "You open the door."
+      spend_turn
       true
     end
 
@@ -247,8 +372,8 @@ module Roguelike
       return false unless floor.tile?(wanted[0], wanted[1]).try &.terrain.open_door?
 
       floor.set wanted[0], wanted[1], Terrain::ClosedDoor
-      @turn += 1
       say "You close the door."
+      spend_turn
       true
     end
 
@@ -401,14 +526,13 @@ module Roguelike
 
       if item.lit?
         item.douse
-        @turn += 1
         say "You put out #{name item}."
       else
         item.kindle
-        @turn += 1
         say "You light #{name item}."
       end
 
+      spend_turn
       true
     end
 
@@ -419,14 +543,13 @@ module Roguelike
 
       if fitting.lit?
         fitting.douse
-        @turn += 1
         say "You put the #{fitting.kind.label} out."
       else
         fitting.kindle
-        @turn += 1
         say "The #{fitting.kind.label} catches and burns."
       end
 
+      spend_turn
       true
     end
 
@@ -471,8 +594,8 @@ module Roguelike
 
       if item.kind.item_class.treasure?
         @player.take_gold item.count
-        @turn += 1
         say "You pick up #{item.count} gold pieces."
+        spend_turn
         return true
       end
 
@@ -483,15 +606,21 @@ module Roguelike
         return false
       end
 
-      @turn += 1
       say "#{letter} - #{name item}"
+      spend_turn
       true
     end
 
     # Picks up everything on the square. Answers how many entries were taken.
     def pick_up_all : Int32
       taken = 0
-      here.dup.each { |item| taken += 1 if pick_up item }
+
+      here.dup.each do |item|
+        break if over?
+
+        taken += 1 if pick_up item
+      end
+
       taken
     end
 
@@ -514,8 +643,8 @@ module Roguelike
       @player.inventory.remove letter
       @player.equipment.clean @player.inventory
       floor.drop @player.x, @player.y, item
-      @turn += 1
       say "You drop #{name item}."
+      spend_turn
       true
     end
 
@@ -525,8 +654,8 @@ module Roguelike
       return 0 if dropped.zero?
 
       floor.drop @player.x, @player.y, Item.new(ItemKind::Gold, count: dropped)
-      @turn += 1
       say "You drop #{dropped} gold pieces."
+      spend_turn
       dropped
     end
 
@@ -582,13 +711,13 @@ module Roguelike
     # character finds out, and `#take_off` will refuse to let it go again.
     private def ready(slot : Slot, letter : Char, item : Item, line : String) : Bool
       @player.equipment.put slot, letter
-      @turn += 1
       say line
 
       if item.sticks? && item.reveal_blessing
         say "#{name(item).capitalize} welds itself to you."
       end
 
+      spend_turn
       true
     end
 
@@ -607,8 +736,8 @@ module Roguelike
       end
 
       @player.equipment.clear slot
-      @turn += 1
       say "You are no longer #{slot.armour? ? "wearing" : "holding"} #{name item}."
+      spend_turn
       true
     end
 

@@ -138,6 +138,18 @@ module Roguelike
       Math.max total + @attributes.modifier(Attributes::Which::Dexterity), 0
     end
 
+    # What the character adds to a swing.
+    #
+    # The dexterity modifier, plus the wielded weapon's enchantment and its
+    # condition. Bare hands add the modifier and nothing else.
+    def to_hit : Int32
+      bonus = @attributes.modifier Attributes::Which::Dexterity
+      held = wielded
+      return bonus unless held
+
+      bonus + held.enchantment + held.condition.modifier
+    end
+
     # What the character hits for in melee.
     #
     # The wielded weapon's dice, or `UNARMED` for bare hands, plus the

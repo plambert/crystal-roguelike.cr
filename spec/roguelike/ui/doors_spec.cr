@@ -254,8 +254,8 @@ Spectator.describe "doors, stairs and leaving" do
     WALK = "nnnnnjjjjjjjnlllnnnnn" + "l" * 43 + "u"
 
     # The walk is about doors and stairs. A monster standing in a one-wide
-    # corridor stops it dead, and until Phase 17 there is nothing to do about
-    # one but turn round. The floor is cleared of them so the spec says what
+    # corridor has to be killed before the walk goes on, and how many swings
+    # that takes is rolled. The floor is cleared of them so the spec says what
     # it is about.
     def crossing : Playing::Run
       run = Playing.open
@@ -297,15 +297,17 @@ Spectator.describe "doors, stairs and leaving" do
       expect(run.turn).to eq WALK.size
     end
 
-    # The same walk with the floor as it ships stops at the goblin standing in
-    # the corridor. That is the phase after this one.
-    it "stops at the creature standing in the way" do
+    # The same walk with the floor as it ships reaches the goblin standing in
+    # the row 20 corridor and swings at it. Whether the walk gets past depends
+    # on how the swings roll, so the spec asserts the fight rather than where
+    # the walk ended.
+    it "fights the creature standing in the way" do
       run = Playing.open
 
       WALK.each_char { |key| run.press key.to_s }
 
-      expect(run.at).to eq({41, 20})
-      expect(run.log.any? &.includes?("goblin is in your way")).to be_true
+      expect(run.log.any? &.includes?("the goblin")).to be_true
+      expect(run.game.player.hit_points).to be < run.game.player.max_hit_points
     end
   end
 

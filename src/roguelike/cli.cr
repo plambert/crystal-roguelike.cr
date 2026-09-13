@@ -33,6 +33,7 @@ module Roguelike
       puts case game.outcome
       in .won?     then "You escaped with your life. You win."
       in .left?    then "You climbed back out."
+      in .died?    then "You died in the dungeon."
       in .playing? then "You left the dungeon where it was."
       end
       puts "seed #{rng.seed}    turn #{game.turn}"

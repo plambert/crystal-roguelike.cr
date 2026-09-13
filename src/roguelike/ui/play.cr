@@ -99,6 +99,9 @@ module Roguelike::Ui
     # has moved it.
     @parked : {Int32, Int32}? = nil
 
+    # Whether the death screen has been put up.
+    @mourned : Bool = false
+
     # The size of the screen, as `#fit` was last told it.
     @columns : Int32 = 0
     @rows : Int32 = 0
@@ -143,7 +146,6 @@ module Roguelike::Ui
       Keys.examining(self)
         .merge(Keys.moving { |direction| step direction })
         .merge(Keys.acting(self))
-        .merge(Keys.debugging(self))
     end
 
     # Asks *question*. Runs *answered* with the key the person pressed.
@@ -597,6 +599,24 @@ module Roguelike::Ui
       offer_directions
       @pager.show @game.log.lines
       @status_line.show @game
+      show_death
+    end
+
+    # Puts the death screen up, once.
+    #
+    # Everything that changes the game ends with `#refresh`, so this is the
+    # one place that has to notice. The run ends when the person presses the
+    # key.
+    #
+    # An owner that has not built an `App` yet has nowhere to put a modal.
+    # `#initialize` refreshes before there is one, and a game cannot be over
+    # at that point anyway.
+    private def show_death : Nil
+      return unless @game.outcome.died?
+      return if @mourned || @app.nil?
+
+      @mourned = true
+      finish "You die on turn #{@game.turn} at level #{@game.player.level}."
     end
 
     # Lights up every square that answers the command waiting for a direction.
@@ -697,17 +717,6 @@ module Roguelike::Ui
     # Writes whether the terminal is reporting the mouse.
     def mousing=(wanted : Bool) : Nil
       @status_line.mousing = wanted
-    end
-
-    # Grants *amount* experience and says what that did.
-    #
-    # A debug binding. Levelling is worth watching before there is anything to
-    # kill, and this is how phase 8 watches it.
-    def grant(amount : Int32) : Nil
-      gained = @game.player.gain amount
-      @game.say "You gain #{amount} experience."
-      @game.say "Welcome to level #{@game.player.level}." if gained > 0
-      refresh
     end
 
     # Moves the flames on one tick.

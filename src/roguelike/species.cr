@@ -126,6 +126,7 @@ module Roguelike
     description : String,
     hit_points : Int32,
     damage : Dice,
+    armour : Int32,
     experience : Int32,
     attributes : Attributes
 
@@ -173,6 +174,14 @@ module Roguelike
       facts.damage
     end
 
+    # How much an attack on one is reduced by, before its dexterity.
+    #
+    # This is hide and scraps rather than a worn piece. Phase 20 gives a
+    # monster armour it carries, and that adds to this.
+    def armour : Int32
+      facts.armour
+    end
+
     # What killing one is worth.
     def experience : Int32
       facts.experience
@@ -195,19 +204,19 @@ module Roguelike
     FACTS = {
       Species::Slime => SpeciesFacts.new('j', "slime", "slimes",
         "a puddle of acid that moves on its own",
-        hit_points: 6, damage: Dice.new(1, 4), experience: 3,
+        hit_points: 6, damage: Dice.new(1, 4), armour: 0, experience: 3,
         attributes: Attributes.new(strength: 8, dexterity: 4, constitution: 12,
           intelligence: 3, stealth: 6)),
 
       Species::Goblin => SpeciesFacts.new('g', "goblin", "goblins",
         "a small green thing with a large knife",
-        hit_points: 9, damage: Dice.new(1, 6), experience: 7,
+        hit_points: 9, damage: Dice.new(1, 6), armour: 2, experience: 7,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 9, stealth: 13)),
 
       Species::Orc => SpeciesFacts.new('o', "orc", "orcs",
         "a heavy grey brute with a notched blade",
-        hit_points: 14, damage: Dice.new(1, 8), experience: 14,
+        hit_points: 14, damage: Dice.new(1, 8), armour: 4, experience: 14,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 8, stealth: 8)),
     }

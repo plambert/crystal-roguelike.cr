@@ -55,6 +55,8 @@ actually been run rather than reasoned about.
 | Monsters on a floor | Keyed by square, so one square holds one creature and the lookup is free |
 | What a creature knows | Its own `Knowledge` and its band's, never the same one. `Band#sharing` says how the second reaches the first |
 | Floor file layers | One character per square. A mark that is not terrain takes its ground from the squares beside it |
+| A swing | `d20` plus the attacker's bonus against the defender's armour class. Twenty always lands, one never does |
+| Combat rolls | Their own stream per swing, named by how many the run has rolled, so a save file holds a count |
 
 ## Ground rules
 
@@ -529,6 +531,16 @@ The phase that introduces the type monster bands will use in Phase 19.
   awarded, the level rises at the threshold. Die to an orc and get the death screen. Specs run a
   fixed seed through a hundred exchanges and assert the exact sequence, so a change to the combat
   maths shows as a diff.
+* **Done.** `Combat.swing` is the whole of the maths: one twenty sided die plus what the attacker
+  adds, against `Combat::TARGET` plus the defender's armour class, with twenty always landing and
+  one never landing so that neither side is ever unhittable or unmissable. It answers a `Blow`,
+  which records the face, the bonus, what it was against and the damage, and changes nobody.
+  `Game` reads one and takes the hit points off. Every swing draws from its own stream, named by
+  `Game#blows`, so a miss and a hit rolling a different count of values shifts nothing after them
+  and a save file holds a count rather than a generator's position. `Species` gained an `armour`
+  field, so a goblin is harder to hit than a slime. A creature standing beside the character
+  swings back on every turn the character takes, which is the whole of monster behaviour until
+  Phase 18 decides whether one has noticed. `Ctrl+E` is gone: there is something to kill now.
 
 ### Phase 18 — Detection, stealth and darkvision
 

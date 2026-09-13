@@ -94,6 +94,33 @@ module Roguelike
       @species.hit_points
     end
 
+    # What this creature adds to a swing.
+    #
+    # Its dexterity modifier and nothing else. Phase 20 gives it a weapon to
+    # hold, and that weapon's enchantment adds to this the way the
+    # character's does.
+    def to_hit : Int32
+      @attributes.modifier Attributes::Which::Dexterity
+    end
+
+    # How much an attack on this creature is reduced by.
+    #
+    # Its species' hide, plus the dexterity modifier, never below zero. That
+    # is the shape `Player#armour_class` has, which is worn armour plus the
+    # same modifier.
+    def armour_class : Int32
+      hide = @species.armour + @attributes.modifier(Attributes::Which::Dexterity)
+
+      Math.max hide, 0
+    end
+
+    # What this creature hits for.
+    #
+    # Its species' dice plus the strength modifier.
+    def damage : Dice
+      @species.damage.with_bonus @attributes.modifier(Attributes::Which::Strength)
+    end
+
     # Whether it is still alive.
     def alive? : Bool
       @hit_points > 0

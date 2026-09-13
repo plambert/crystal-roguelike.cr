@@ -1,0 +1,100 @@
+  0 slime   you d12 +0 vs 0 hit  1  it d13 -3 vs 0 hit  1
+  1 goblin  you d13 +0 vs 3 hit  2  it d18 +1 vs 0 hit  4
+  2 orc     you d1  +0 vs 4 miss    it d10 +0 vs 0 hit  7
+  3 slime   you d5  +0 vs 0 miss    it d20 -3 vs 0 hit  1
+  4 goblin  you d1  +0 vs 3 miss    it d10 +1 vs 0 hit  3
+  5 orc     you d12 +0 vs 4 miss    it d18 +0 vs 0 hit  7
+  6 slime   you d19 +0 vs 0 hit  2  it d18 -3 vs 0 hit  3
+  7 goblin  you d8  +0 vs 3 miss    it d17 +1 vs 0 hit  3
+  8 orc     you d20 +0 vs 4 hit  2  it d8  +0 vs 0 miss
+  9 slime   you d11 +0 vs 0 hit  1  it d10 -3 vs 0 miss
+ 10 goblin  you d7  +0 vs 3 miss    it d12 +1 vs 0 hit  4
+ 11 orc     you d9  +0 vs 4 miss    it d6  +0 vs 0 miss
+ 12 slime   you d9  +0 vs 0 miss    it d1  -3 vs 0 miss
+ 13 goblin  you d2  +0 vs 3 miss    it d15 +1 vs 0 hit  4
+ 14 orc     you d18 +0 vs 4 hit  1  it d20 +0 vs 0 hit  7
+ 15 slime   you d7  +0 vs 0 miss    it d15 -3 vs 0 hit  1
+ 16 goblin  you d13 +0 vs 3 hit  1  it d9  +1 vs 0 hit  4
+ 17 orc     you d6  +0 vs 4 miss    it d9  +0 vs 0 miss
+ 18 slime   you d13 +0 vs 0 hit  2  it d6  -3 vs 0 miss
+ 19 goblin  you d8  +0 vs 3 miss    it d18 +1 vs 0 hit  3
+ 20 orc     you d15 +0 vs 4 hit  2  it d2  +0 vs 0 miss
+ 21 slime   you d5  +0 vs 0 miss    it d20 -3 vs 0 hit  2
+ 22 goblin  you d14 +0 vs 3 hit  2  it d5  +1 vs 0 miss
+ 23 orc     you d5  +0 vs 4 miss    it d6  +0 vs 0 miss
+ 24 slime   you d5  +0 vs 0 miss    it d3  -3 vs 0 miss
+ 25 goblin  you d17 +0 vs 3 hit  1  it d5  +1 vs 0 miss
+ 26 orc     you d6  +0 vs 4 miss    it d14 +0 vs 0 hit  5
+ 27 slime   you d6  +0 vs 0 miss    it d10 -3 vs 0 miss
+ 28 goblin  you d20 +0 vs 3 hit  2  it d16 +1 vs 0 hit  2
+ 29 orc     you d18 +0 vs 4 hit  2  it d8  +0 vs 0 miss
+ 30 slime   you d4  +0 vs 0 miss    it d17 -3 vs 0 hit  1
+ 31 goblin  you d5  +0 vs 3 miss    it d10 +1 vs 0 hit  2
+ 32 orc     you d1  +0 vs 4 miss    it d1  +0 vs 0 miss
+ 33 slime   you d19 +0 vs 0 hit  1  it d15 -3 vs 0 hit  2
+ 34 goblin  you d17 +0 vs 3 hit  2  it d1  +1 vs 0 miss
+ 35 orc     you d2  +0 vs 4 miss    it d2  +0 vs 0 miss
+ 36 slime   you d7  +0 vs 0 miss    it d5  -3 vs 0 miss
+ 37 goblin  you d10 +0 vs 3 miss    it d5  +1 vs 0 miss
+ 38 orc     you d5  +0 vs 4 miss    it d9  +0 vs 0 miss
+ 39 slime   you d15 +0 vs 0 hit  2  it d10 -3 vs 0 miss
+ 40 goblin  you d4  +0 vs 3 miss    it d11 +1 vs 0 hit  1
+ 41 orc     you d14 +0 vs 4 hit  2  it d7  +0 vs 0 miss
+ 42 slime   you d10 +0 vs 0 hit  1  it d3  -3 vs 0 miss
+ 43 goblin  you d17 +0 vs 3 hit  2  it d17 +1 vs 0 hit  6
+ 44 orc     you d15 +0 vs 4 hit  2  it d4  +0 vs 0 miss
+ 45 slime   you d8  +0 vs 0 miss    it d16 -3 vs 0 hit  2
+ 46 goblin  you d6  +0 vs 3 miss    it d9  +1 vs 0 hit  1
+ 47 orc     you d4  +0 vs 4 miss    it d17 +0 vs 0 hit  3
+ 48 slime   you d2  +0 vs 0 miss    it d18 -3 vs 0 hit  1
+ 49 goblin  you d14 +0 vs 3 hit  2  it d12 +1 vs 0 hit  5
+ 50 orc     you d1  +0 vs 4 miss    it d17 +0 vs 0 hit  6
+ 51 slime   you d16 +0 vs 0 hit  1  it d9  -3 vs 0 miss
+ 52 goblin  you d12 +0 vs 3 miss    it d4  +1 vs 0 miss
+ 53 orc     you d20 +0 vs 4 hit  3  it d8  +0 vs 0 miss
+ 54 slime   you d12 +0 vs 0 hit  2  it d1  -3 vs 0 miss
+ 55 goblin  you d2  +0 vs 3 miss    it d17 +1 vs 0 hit  3
+ 56 orc     you d9  +0 vs 4 miss    it d10 +0 vs 0 hit  8
+ 57 slime   you d6  +0 vs 0 miss    it d18 -3 vs 0 hit  3
+ 58 goblin  you d12 +0 vs 3 miss    it d6  +1 vs 0 miss
+ 59 orc     you d17 +0 vs 4 hit  4  it d14 +0 vs 0 hit 10
+ 60 slime   you d15 +0 vs 0 hit  2  it d7  -3 vs 0 miss
+ 61 goblin  you d20 +0 vs 3 hit  3  it d8  +1 vs 0 miss
+ 62 orc     you d5  +0 vs 4 miss    it d17 +0 vs 0 hit  7
+ 63 slime   you d3  +0 vs 0 miss    it d9  -3 vs 0 miss
+ 64 goblin  you d6  +0 vs 3 miss    it d11 +1 vs 0 hit  1
+ 65 orc     you d15 +0 vs 4 hit  4  it d4  +0 vs 0 miss
+ 66 slime   you d18 +0 vs 0 hit  5  it d16 -3 vs 0 hit  3
+ 67 goblin  you d9  +0 vs 3 miss    it d2  +1 vs 0 miss
+ 68 orc     you d14 +0 vs 4 hit  6  it d5  +0 vs 0 miss
+ 69 slime   you d19 +0 vs 0 hit  4  it d1  -3 vs 0 miss
+ 70 goblin  you d19 +0 vs 3 hit  5  it d13 +1 vs 0 hit  3
+ 71 orc     you d15 +0 vs 4 hit  5  it d13 +0 vs 0 hit  3
+ 72 slime   you d13 +0 vs 0 hit  5  it d4  -3 vs 0 miss
+ 73 goblin  you d8  +0 vs 3 miss    it d8  +1 vs 0 miss
+ 74 orc     you d9  +0 vs 4 miss    it d18 +0 vs 0 hit  7
+ 75 slime   you d4  +0 vs 0 miss    it d19 -3 vs 0 hit  1
+ 76 goblin  you d12 +0 vs 3 miss    it d8  +1 vs 0 miss
+ 77 orc     you d15 +0 vs 4 hit  1  it d9  +0 vs 0 miss
+ 78 slime   you d12 +0 vs 0 hit  4  it d2  -3 vs 0 miss
+ 79 goblin  you d10 +0 vs 3 miss    it d2  +1 vs 0 miss
+ 80 orc     you d5  +0 vs 4 miss    it d19 +0 vs 0 hit  3
+ 81 slime   you d10 +0 vs 0 hit  6  it d7  -3 vs 0 miss
+ 82 goblin  you d4  +0 vs 3 miss    it d14 +1 vs 0 hit  2
+ 83 orc     you d14 +0 vs 4 hit  5  it d12 +0 vs 0 hit 10
+ 84 slime   you d14 +0 vs 0 hit  5  it d17 -3 vs 0 hit  2
+ 85 goblin  you d8  +0 vs 3 miss    it d14 +1 vs 0 hit  2
+ 86 orc     you d13 +0 vs 4 miss    it d20 +0 vs 0 hit  6
+ 87 slime   you d20 +0 vs 0 hit  5  it d20 -3 vs 0 hit  1
+ 88 goblin  you d7  +0 vs 3 miss    it d16 +1 vs 0 hit  1
+ 89 orc     you d4  +0 vs 4 miss    it d4  +0 vs 0 miss
+ 90 slime   you d8  +0 vs 0 miss    it d10 -3 vs 0 miss
+ 91 goblin  you d15 +0 vs 3 hit  3  it d19 +1 vs 0 hit  4
+ 92 orc     you d10 +0 vs 4 miss    it d5  +0 vs 0 miss
+ 93 slime   you d13 +0 vs 0 hit  3  it d14 -3 vs 0 hit  1
+ 94 goblin  you d20 +0 vs 3 hit  2  it d19 +1 vs 0 hit  3
+ 95 orc     you d13 +0 vs 4 miss    it d17 +0 vs 0 hit  9
+ 96 slime   you d10 +0 vs 0 hit  4  it d17 -3 vs 0 hit  1
+ 97 goblin  you d10 +0 vs 3 miss    it d14 +1 vs 0 hit  1
+ 98 orc     you d19 +0 vs 4 hit  1  it d3  +0 vs 0 miss
+ 99 slime   you d7  +0 vs 0 miss    it d14 -3 vs 0 hit  3

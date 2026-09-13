@@ -129,38 +129,54 @@ Spectator.describe "monsters on the screen" do
   end
 
   describe "walking into one" do
-    # Phase 17 swings at it. Until then it is in the way and nothing else.
-    it "is refused with a message" do
+    # Whether the character says they hit or missed. The swing is rolled, so
+    # a spec about walking into a creature does not assert which it was.
+    def swung?(run : Playing::Run) : Bool
+      run.log.any? do |line|
+        line.starts_with?("You hit") || line.starts_with?("You miss")
+      end
+    end
+
+    it "swings at it rather than walking onto its square" do
       run = shown ["#######", "#..g..#", "#..<..#", "#######"]
 
       run.press "k"
 
       expect(run.at).to eq({3, 2})
-      expect(run.said).to eq "A goblin is in your way."
+      expect(swung? run).to be_true
     end
 
-    it "takes no turn" do
+    it "takes a turn" do
       run = shown ["#######", "#..g..#", "#..<..#", "#######"]
 
       run.press "k"
 
-      expect(run.turn).to eq 0
+      expect(run.turn).to eq 1
     end
 
-    it "names the creature rather than the ground under it" do
+    it "names the creature it swung at" do
       run = shown ["#######", "#..o..#", "#..<..#", "#######"]
 
       run.press "k"
 
-      expect(run.said).to eq "An orc is in your way."
+      expect(run.log.any? &.includes?("the orc")).to be_true
     end
 
-    it "leaves the creature where it was" do
+    # A slime has more hit points than one bare handed swing takes off.
+    it "leaves a creature it did not kill where it was" do
       run = shown ["#######", "#..j..#", "#..<..#", "#######"]
 
       run.press "k"
 
       expect(run.game.floor.monster(3, 1).try &.species).to eq Species::Slime
+    end
+
+    it "is swung at back" do
+      run = shown ["#######", "#..j..#", "#..<..#", "#######"]
+
+      run.press "k"
+
+      expect(run.log.any? &.starts_with?("The slime")).to be_true
     end
   end
 

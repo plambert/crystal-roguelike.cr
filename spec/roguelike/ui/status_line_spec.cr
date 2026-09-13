@@ -130,26 +130,6 @@ Spectator.describe Roguelike::Ui::StatusLine do
     end
   end
 
-  describe "the debug grant" do
-    it "adds experience on Ctrl+E" do
-      run = Playing.open
-
-      run.press "Ctrl+E"
-
-      expect(run.game.player.experience).to eq 10
-      expect(run.said).to contain "experience"
-    end
-
-    it "says so when the level rises" do
-      run = Playing.open
-
-      2.times { run.press "Ctrl+E" }
-
-      expect(run.game.player.level).to eq 2
-      expect(run.said).to contain "Welcome to level 2"
-    end
-  end
-
   describe "drawn" do
     it "draws what it drew last time" do
       run = Playing.open columns: 100, rows: 24
