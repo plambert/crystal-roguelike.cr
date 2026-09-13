@@ -31,8 +31,8 @@ Spectator.describe Roguelike::FieldOfView do
   end
 
   # Standing inside solid rock is not a position the game puts anybody in.
-  # The answer is still the one the rule gives: the eight walls touching the
-  # square are seen, and nothing behind them is.
+  # The rule still applies: the eight walls touching the square are seen, and
+  # nothing behind them is.
   it "always sees the square it stands on" do
     floor = Floor.solid "rock", 5, 5
 
@@ -172,10 +172,10 @@ Spectator.describe Roguelike::FieldOfView do
     end
   end
 
-  # Symmetric shadowcasting is strict about this and it is worth knowing
-  # rather than rediscovering. A one-wide corridor cuts the view to a narrow
-  # wedge, and a floor square needs its centre inside that wedge. An opening
-  # in the corridor's side wall a few squares along falls outside it.
+  # Symmetric shadowcasting is strict about this. A one-wide corridor cuts
+  # the view to a narrow wedge, and a floor square needs its centre inside
+  # that wedge. An opening in the corridor's side wall a few squares along
+  # falls outside it.
   #
   # The rule holds both ways, so somebody standing in that opening cannot
   # see along the corridor either.

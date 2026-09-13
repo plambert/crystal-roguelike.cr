@@ -156,8 +156,8 @@ Spectator.describe Roguelike::Fixture do
     end
 
     # Six are bolted to a wall. The seventh stands on its own foot in the
-    # middle of the long corridor, where a wall touches it on both sides and
-    # neither is the one it hangs on.
+    # middle of the long corridor, where walls touch it on two sides, so
+    # neither can be called the wall it hangs on.
     it "bolts six of them to a wall and stands one free" do
       floor = Roguelike::Floors.proving_ground
       mounted = [] of {Int32, Int32}

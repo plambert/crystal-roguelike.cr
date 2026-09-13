@@ -41,8 +41,8 @@ module Roguelike::Ui
   # does not press keys at a copy of that wiring.
   #
   # This class decides nothing about the game. Every rule belongs to `Game`.
-  # This class reads the answer, puts it on the screen, and tells the caller
-  # what the terminal needs to hear.
+  # This class reads what `Game` did, puts it on the screen, and tells the
+  # caller what the terminal needs to hear.
   class Play
     # The run.
     getter game : Game
@@ -525,8 +525,8 @@ module Roguelike::Ui
 
     # Aims at the next monster in sight. `Tab` does this.
     #
-    # Nearest first, and round again from the end. The one about to reach the
-    # character is the one worth shooting, so it is the one offered first.
+    # Nearest first, and round again from the end. The nearest monster is
+    # the one about to reach the character, so it is offered first.
     #
     # Answers whether it moved the cursor. `Tab` means "the next widget"
     # everywhere else, and the binding hands the key back when this says no.
@@ -888,7 +888,7 @@ module Roguelike::Ui
       finish "You die on turn #{@game.turn} at level #{@game.player.level}."
     end
 
-    # Lights up every square that answers the command waiting for a direction.
+    # Lights up every square the command waiting for a direction would take.
     #
     # Four doors around one square are four answers, and a person has to see
     # which is which before they pick one.

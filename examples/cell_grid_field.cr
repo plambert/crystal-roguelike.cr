@@ -15,8 +15,8 @@ module Demo
   #   shorter than it is wide. One line of each kind should be in view.
   # * The coordinates of every crossing, written beside it. They say exactly
   #   where the window is.
-  # * A diagonal. Its place in the window moves when either axis moves. It is
-  #   the one landmark that answers both axes at once.
+  # * A diagonal. Its place in the window moves when either axis moves, so
+  #   it is the one landmark that reports both axes at once.
   # * A plus in the middle of the field. It is small enough to see all at
   #   once. Its colour runs warm in the centre and cool at the tips.
   #

@@ -63,8 +63,8 @@ Spectator.describe TermBuf::Widgets::Ramp do
       expect(ramp[style, 0].background.red).to be < 0x80
     end
 
-    # Bold on a dim colour reads as lit, which is the one thing the dimming
-    # says it is not.
+    # A bold dim colour reads as lit, which is what the dimming is there to
+    # say it is not.
     it "drops bold below the top" do
       style = GREY.bold
 
@@ -88,8 +88,8 @@ Spectator.describe TermBuf::Widgets::Ramp do
     end
   end
 
-  # This is the whole point of the type. A blend computing a colour per cell
-  # interns a style per cell, and a style table only grows.
+  # A blend computing a colour per cell interns a style per cell, and a style
+  # table only grows. Bounding that count is what the type is for.
   describe "how many styles it makes" do
     it "makes one per style and step, and no more" do
       3.times { (0..ramp.top).each { |step| ramp[GREY, step] } }

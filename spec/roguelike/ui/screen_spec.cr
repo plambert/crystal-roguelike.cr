@@ -62,7 +62,7 @@ Spectator.describe Roguelike::Ui::Screen do
   end
 
   describe "#fit" do
-    it "keeps the sidebar at the width it is worth having" do
+    it "keeps the sidebar at the narrowest width it is shown at" do
       screen = laid_out Roguelike::Ui::Screen::SIDEBAR_MINIMUM_COLUMNS, 24
 
       expect(screen.sidebar?).to be_true

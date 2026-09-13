@@ -117,7 +117,7 @@ module TermBuf::Widgets
     #
     # `VirtualList` holds no widget per row, so it cannot be asked how wide
     # its content is: it answers one cell whatever it holds. A menu measures
-    # its rows when it goes up and writes the answer here, which is what lets
+    # its rows when it goes up and writes the width here, which is what lets
     # the box around it grow to fit them.
     class Content < VirtualList(Entry)
       # How wide the widest row is, in cells.

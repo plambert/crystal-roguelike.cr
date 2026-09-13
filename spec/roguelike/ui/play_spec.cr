@@ -15,7 +15,8 @@ Spectator.describe Roguelike::Ui::Play do
       expect(run.map.mark?(spot[0], spot[1])).to eq Roguelike::Ui::Palette::PLAYER
     end
 
-    # Items are marked too. The character is the one on their own square.
+    # Items are marked too. The character's mark wins on the square they
+    # stand on.
     it "is drawn over whatever it is standing on" do
       run = Playing.open
       spot = run.at

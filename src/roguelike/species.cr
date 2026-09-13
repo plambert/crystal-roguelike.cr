@@ -66,8 +66,9 @@ module Roguelike
   # What a band knows about the character.
   #
   # This is a band's state rather than a monster's. Waking one member wakes
-  # the band, which is what a pack calling out to each other comes to. Every
-  # band holds one creature for now, so the two readings are the same.
+  # the band, which is how a pack calls out to each other. Every band holds
+  # one creature for now, so waking a band and waking a monster come to the
+  # same thing today.
   #
   # A member is never removed and never reordered. A save file holds the
   # member name.
@@ -123,7 +124,7 @@ module Roguelike
     # What it knows about the character.
     #
     # A band that has noticed nothing takes no turn. `Game#creatures_notice`
-    # is the one thing that writes this, apart from being hit, which wakes a
+    # is the only method that writes this, apart from being hit, which wakes a
     # band whatever it had noticed.
     property awareness : Awareness
 

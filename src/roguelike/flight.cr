@@ -19,9 +19,8 @@ module Roguelike
 
   # Where a thing thrown or fired goes, and where it stops.
   #
-  # The line is the one `Line` walks. What a creature sees along, what light
-  # comes from and what an arrow flies along are the same line, so a shot at
-  # something visible runs the squares the sight of it ran.
+  # The line is `Line`'s, which sight and light also walk, so a shot at
+  # something visible crosses the squares the sight of it crossed.
   #
   # A flight stops at the first creature it meets, at the first square it
   # cannot cross, or when its reach runs out. Whichever comes first.

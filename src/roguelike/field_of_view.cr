@@ -14,8 +14,8 @@ module Roguelike
   #
   # Every comparison is on whole numbers. A slope is a `Fraction` of two
   # integers rather than a float, so a square on the edge of a wedge falls the
-  # same side of it every time. Floating point would make the answer depend on
-  # rounding.
+  # same side of it every time. Floating point would make which side it falls
+  # depend on rounding.
   #
   # A field of view is derived rather than stored. It is recomputed from the
   # floor and a position, and it is not in a save file. `Knowledge` is what

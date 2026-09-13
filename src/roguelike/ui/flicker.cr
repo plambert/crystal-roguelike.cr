@@ -85,7 +85,7 @@ module Roguelike::Ui
     # The number *phase* draws for a flame standing at *x*, *y*.
     #
     # FNV-1a over the seed, the phase and the flame, then `Rng.mix`. The same
-    # derivation `Rng#derive` uses, and for the same reason: the answer has to
+    # derivation `Rng#derive` uses, and for the same reason: the number has to
     # depend on all of its inputs and on nothing else.
     private def roll_for(phase : Int32, x : Int32, y : Int32) : UInt64
       hash = 0xcbf29ce484222325_u64

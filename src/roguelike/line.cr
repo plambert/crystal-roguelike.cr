@@ -2,8 +2,8 @@ module Roguelike
   # The squares a straight line passes through.
   #
   # Bresenham. Every step moves one square, and the squares come out in order
-  # from the near end. The line a creature sees along, the line an arrow
-  # flies along and the line light comes from are the same line.
+  # from the near end. Sight, light and a missile all walk this module, so
+  # they cross the same squares.
   module Line
     # Yields every square from *from* to *to*, both ends included.
     def self.walk(from : {Int32, Int32}, to : {Int32, Int32},

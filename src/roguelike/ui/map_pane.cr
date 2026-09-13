@@ -348,8 +348,8 @@ module Roguelike::Ui
     # Which square is in the middle of the window.
     #
     # A window larger than the floor shows the floor in one corner of itself.
-    # The middle of such a window is past the edge of the floor. The answer is
-    # clamped onto the floor, because every caller wants a square that exists.
+    # The middle of such a window is past the edge of the floor, so the square
+    # is clamped onto the floor. Every caller wants a square that exists.
     def middle : {Int32, Int32}
       room = @grid.viewport_size
       here = {@grid.scroll_x + room[0] // 2, @grid.scroll_y + room[1] // 2}

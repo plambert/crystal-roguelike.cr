@@ -33,9 +33,9 @@ def halved : Array(String)
   lines
 end
 
-# Two cells across per row, which is the one that looks like 45°. Unicode
-# 16.0, from 2024, so font coverage is thin and a terminal that draws box
-# glyphs itself is what makes it work.
+# Two cells across per row, which is the ratio that looks like 45°. Unicode
+# 16.0, from 2024, so font coverage is thin and it draws correctly only on a
+# terminal that renders box glyphs itself.
 def shallow : Array(String)
   Array.new(ROWS) { |row| " " * (row * 2) + "🯒🯓" }
 end

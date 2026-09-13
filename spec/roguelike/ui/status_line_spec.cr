@@ -110,8 +110,8 @@ Spectator.describe Roguelike::Ui::StatusLine do
     end
 
     # The whole row comes to 133 columns with nothing wielded, and a wielded
-    # weapon's name adds to that. The pairs after the attributes are the ones
-    # a person can work out for themselves, so they are the ones cut.
+    # weapon's name adds to that. The pairs after the attributes are read
+    # least often, so they are cut first.
     it "keeps everything when there is room" do
       run = Playing.open columns: 136, rows: 24
 

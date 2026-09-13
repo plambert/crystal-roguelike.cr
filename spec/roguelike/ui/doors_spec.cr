@@ -401,8 +401,9 @@ Spectator.describe "doors, stairs and leaving" do
       expect(run.game.floor.terrain(11, 12)).to eq Terrain::ClosedDoor
     end
 
-    # A person asked which way has to see which way.
-    it "lights up every door that answers" do
+    # Four doors around one square are four answers, and a person has to see
+    # which is which before they pick one.
+    it "lights up every door the question would accept" do
       run = Playing.open
       TO_JUNCTION.each_char { |key| run.press key.to_s }
 

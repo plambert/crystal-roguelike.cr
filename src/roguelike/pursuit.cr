@@ -63,7 +63,7 @@ module Roguelike
     # it knows about where the character is is `quarry`, which is where the
     # band last saw them. Neither is necessarily what is on the floor now.
     #
-    # `blocked` is the one thing here that is not belief.
+    # `blocked` is the only field here that is not belief.
     record Snapshot,
       at : {Int32, Int32},
       knowledge : Knowledge,

@@ -140,8 +140,8 @@ Floors are not thrown away when they are left, and eventually they live in a sav
 world is a `World` holding `Floor`s by id, and every type in the model round-trips through
 serialization from Phase 3 onward, with a spec that says so.
 
-The constraint that follows, and the one that bites if it is found late: **nothing in the model
-holds a `Proc` or a closure**. Behaviour is named — an enum, a symbol, a registry key — and
+The constraint that follows, and an expensive one to discover late: **nothing in the model holds
+a `Proc` or a closure**. Behaviour is named — an enum, a symbol, a registry key — and
 looked up. A monster's attack pattern, an item's effect and a trap's trigger are all identifiers,
 not blocks.
 
@@ -545,13 +545,13 @@ The phase that introduces the type monster bands will use in Phase 19.
   through serialization.
 * **Done.** `Species` is the table, `Ui::Palette` holds the glyph and colour, and a floor file
   writes `j`, `g` and `o`. `Floor#monsters` is keyed by square, so finding what stands on one
-  costs nothing and a square holds one creature; a monster carries its own position as well and
-  `Floor#walk` is the one thing that keeps the two in step. Each is in a `Band` of one, and the
-  band carries the `Faction`, because adding either to a serialized type later means migrating
-  save files. A creature on a lit square draws in its own colour; one on an unlit square with
-  light behind it draws as a shape at the dimmest lit step, which is Phase 15's rule finally
-  having something to answer about. Nothing is remembered: a monster is drawn where it is or not
-  at all, until Phase 19 gives `Memory` a creature.
+  costs nothing and a square holds one creature; a monster carries its own position as well, and
+  `Floor#walk` is the only method that moves a monster, so it writes both. Each is in a `Band` of
+  one, and the band carries the `Faction`, because adding either to a serialized type later means
+  migrating save files. A creature on a lit square draws in its own colour; one on an unlit square
+  with light behind it draws as a shape at the dimmest lit step, which is Phase 15's silhouette
+  rule applied to the first creatures there are. Nothing is remembered: a monster is drawn where
+  it is or not at all, until Phase 19 gives `Memory` a creature.
 
 ### Phase 17 — Melee combat, death, experience
 
@@ -726,7 +726,7 @@ The phase that introduces the type monster bands will use in Phase 19.
   be thrown without putting it down first; worn armour has to come off.
 
   The targeting cursor is the Phase 4 examine cursor. Nothing new draws it, nothing new moves it,
-  and the readout it writes is the one that was already there with one row added. `f` and `t` put
+  and it writes the Phase 4 readout with one row added. `f` and `t` put
   it on the nearest monster in sight, `Tab` walks the rest nearest first, and the movement keys
   walk the squares. `MapPane` colours the line one shade and the square the shot stops on another,
   so a shot that will not reach shows the gap rather than having to be described.
@@ -769,8 +769,8 @@ The phase that introduces the type monster bands will use in Phase 19.
   joins `Fire` and `Throw` on the same three keys.
 
   A wand of light writes the floor's own `glow` rather than placing anything. That is what the
-  proving ground's magically lit room already is, so a zapped room and a built one are the same
-  thing and the light survives a save file. Only the passable squares are set. A glowing square
+  proving ground's magically lit room already is, so a zapped room is stored the way a built one
+  is and the light survives a save file. Only the passable squares are set. A glowing square
   spills onto every neighbour, so the walls light the way they do round any lit room, and setting
   the glow on them as well would light what is behind them.
 
@@ -788,8 +788,8 @@ The phase that introduces the type monster bands will use in Phase 19.
 
 ### Phase 24 — Floor generation
 
-Everything before this runs on hand-built floors, which is what makes them testable. The
-generator comes last because by now it is clear what it has to place.
+Everything before this runs on hand-built floors, so every spec can name the squares it asserts
+on. The generator comes last because by now it is clear what it has to place.
 
 * **Build** — Rooms and corridors from the seeded RNG. Doors where a corridor meets a room. Up
   and down stairs in different rooms. Rock type varying by region. Items, gold, monsters, bands
@@ -915,7 +915,7 @@ remembered terrain draws rather than the way lit terrain does.
 ### The machinery that needs
 
 * Planning in a `Fiber::ExecutionContext::Parallel`, off the fiber that owns the model and off
-  the one that draws, sized by `--threads`.
+  the drawing fiber, sized by `--threads`.
 * Plans that span several turns, each carrying the preconditions it depends on, validated by the
   owner each turn and cancelled when a dependency no longer holds.
 * A monster with no plan ready takes a cheap default action rather than stalling the turn, so a

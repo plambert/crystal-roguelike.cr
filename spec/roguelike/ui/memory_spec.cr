@@ -148,8 +148,8 @@ Spectator.describe "what the character remembers" do
       expect(fitting.try &.lit?).to be_true
     end
 
-    # This is the one the light cannot do on its own. The square goes dark
-    # the moment the sconce does, so nothing looks at it again.
+    # Light alone cannot record this. The square goes dark the moment the
+    # sconce does, so nothing looks at it again.
     it "is remembered out once it has been put out" do
       run = beside_it
       work_the_torch run

@@ -69,8 +69,8 @@ module Roguelike
   # device. It draws nothing. A spec plays a hundred turns with no widget
   # tree. A save file is one game written out.
   #
-  # Every game rule is in this class. `Session` reads the answer and draws it.
-  # `Session` decides nothing.
+  # Every game rule is in this class. `Session` reads what it did and draws
+  # that. `Session` decides nothing.
   class Game
     include JSON::Serializable
 
@@ -807,8 +807,8 @@ module Roguelike
 
     # Which bands notice the character, and which of their creatures did.
     #
-    # One creature is enough to wake a band. The first one found is the one
-    # named in the message.
+    # One creature is enough to wake a band. The message names the first one
+    # found.
     private def noticing(seen : Vision) : Hash(String, Monster)
       light = seen.light @player.x, @player.y
       stealth = @player.attributes.stealth

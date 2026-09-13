@@ -30,8 +30,9 @@ module Roguelike
     # Whether several of these are held as one entry with a count.
     #
     # Ammunition and thrown weapons stack because a person carries dozens.
-    # Potions and scrolls stack because two of the same are the same. Wands do
-    # not, because two wands have different charges left.
+    # Potions and scrolls stack because two potions of one kind are
+    # interchangeable. Wands do not, because two wands have different charges
+    # left.
     def stacks? : Bool
       ammunition? || thrown? || potion? || scroll? || treasure?
     end
