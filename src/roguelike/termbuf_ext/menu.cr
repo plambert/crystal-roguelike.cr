@@ -24,6 +24,8 @@ require "termbuf-widgets"
 #   page. Paging needs a second set of letters, which the caller assigns.
 # * Should an answer arrive as a `Message`? `#on_choose` runs as soon as a key
 #   arrives, the same way `Prompt#on_answer` does.
+# * Should the sideways scroll have a scrollbar? It has no mark of its own
+#   now. A row cut at the right edge is the only sign there is more.
 module TermBuf::Widgets
   # A list of rows, each answered by one keystroke.
   #
@@ -53,8 +55,46 @@ module TermBuf::Widgets
       LETTERS.index(letter) || -1
     end
 
-    # The most rows shown at once. More than this scrolls.
-    property max_rows : Int32 = 14
+    # The most rows shown at once, over and above what the screen allows.
+    # More than this scrolls.
+    #
+    # The screen bounds the box as well: a menu leaves `#row_margin` rows
+    # clear above and below itself. This is a second ceiling, for a caller
+    # that wants a short list on a tall screen. It is no ceiling at all by
+    # default.
+    property max_rows : Int32 = Int32::MAX
+
+    # How many cells a menu leaves clear to its left and to its right.
+    #
+    # The box grows to fit its widest row until it reaches this. Past that the
+    # rows scroll sideways.
+    property column_margin : Int32 = 10
+
+    # How many rows a menu leaves clear above and below itself.
+    property row_margin : Int32 = 3
+
+    # How narrow a menu may be, whatever the screen is.
+    MINIMUM_WIDTH = 20
+
+    # How short it may be: one row and the border around it.
+    MINIMUM_HEIGHT = 3
+
+    # How many cells the key and its separator take at the start of a row.
+    #
+    # `a - ` is four. The rows scroll under it and it does not move, so the
+    # key a person has to press stays where they can read it.
+    GUTTER = 4
+
+    # How many cells the rows have been scrolled sideways.
+    getter offset : Int32 = 0
+
+    # How many cells wide the rows are drawn, as `#fit_into` last worked it
+    # out.
+    #
+    # This is not read off the drawn rectangle. A menu sized again for a
+    # screen that changed has not been laid out at the new size yet, and the
+    # rectangle still holds the old one.
+    getter room : Int32 = 0
 
     # What a row that cannot be picked is drawn in.
     property disabled_style : Style = Style::DEFAULT.faint
@@ -71,19 +111,34 @@ module TermBuf::Widgets
     getter entries : Array(Entry) = [] of Entry
 
     # The list the rows are drawn through.
-    getter list : VirtualList(Entry)
+    getter list : Content
+
+    # The list inside a menu.
+    #
+    # `VirtualList` holds no widget per row, so it cannot be asked how wide
+    # its content is: it answers one cell whatever it holds. A menu measures
+    # its rows when it goes up and writes the answer here, which is what lets
+    # the box around it grow to fit them.
+    class Content < VirtualList(Entry)
+      # How wide the widest row is, in cells.
+      property widest : Int32 = 1
+
+      def intrinsic_width(policy : Unicode::WidthPolicy) : Layout::Intrinsic
+        Layout::Intrinsic.new 1, Math.max(@widest, 1)
+      end
+    end
 
     def initialize(z : Int32 = Z::DIALOG, style : Style? = nil)
-      @list = VirtualList(Entry).new Rows.of([] of Entry),
-        width: Layout::Sizing.grow,
+      @list = Content.new Rows.of([] of Entry),
+        width: Layout::Sizing.fit(min: 1),
         height: Layout::Sizing.fit(min: 1)
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
 
       @direction = Layout::Direction::Column
       @padding = Layout::Padding.new 0, 1, 0, 1
-      @width = Layout::Sizing.fit(min: 20)
-      @height = Layout::Sizing.fit
+      @width = Layout::Sizing.fit(min: MINIMUM_WIDTH)
+      @height = Layout::Sizing.fit(min: MINIMUM_HEIGHT)
       @border = Border.rounded
       @style = style
       @floating = Layout::Floating.on nil, Layout::AttachPoint::Center,
@@ -107,15 +162,73 @@ module TermBuf::Widgets
     # A menu already up is replaced. The scope it pushed is kept.
     def show(app : App, title : String?, entries : Enumerable(Entry)) : Nil
       @entries = entries.to_a
+      @offset = 0
       @list.rows = Rows.of @entries
       @list.select 0
-      @list.height = Layout::Sizing.fit(min: 1,
-        max: Math.max(Math.min(@entries.size, @max_rows), 1))
 
       self.title = title
+      fit_into app.tree.screen, app.tree.policy
       self.keymap = choices
 
       open app
+    end
+
+    # Sizes the box to its rows and to the screen.
+    #
+    # The box grows to fit its widest row and to hold every row at once. It
+    # stops at the screen less `#column_margin` cells on each side and
+    # `#row_margin` rows above and below. What does not fit then scrolls:
+    # sideways with the left and right keys, and down with the arrows and the
+    # page keys.
+    #
+    # The title is measured too. It is drawn in the top edge of the border,
+    # and a box narrower than its own title has the title cut instead.
+    private def fit_into(screen : Rect, policy : Unicode::WidthPolicy) : Nil
+      rows = @entries.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
+      @list.widest = Math.max rows, Menu.cells(title, policy)
+
+      widest = Math.max screen.width - 2 * @column_margin, MINIMUM_WIDTH
+      tallest = Math.max screen.height - 2 * @row_margin, MINIMUM_HEIGHT
+
+      self.width = Layout::Sizing.fit min: MINIMUM_WIDTH, max: widest
+      self.height = Layout::Sizing.fit min: MINIMUM_HEIGHT, max: tallest
+
+      @list.height = Layout::Sizing.fit min: 1,
+        max: Math.max(Math.min(@entries.size, @max_rows), 1)
+
+      @room = Math.min @list.widest, Math.max(widest - inset.horizontal, 0)
+    end
+
+    # Sizes the box again for a screen that has changed size.
+    #
+    # A menu that was up when the terminal was resized keeps the bounds the
+    # old screen gave it otherwise. Those bounds may be wider or taller than
+    # the screen now is.
+    def refit(screen : Rect, policy : Unicode::WidthPolicy) : Nil
+      return unless showing?
+
+      fit_into screen, policy
+      scroll_by 0
+    end
+
+    # How many cells *text* takes under *policy*. Nothing takes none.
+    def self.cells(text : String?, policy : Unicode::WidthPolicy) : Int32
+      return 0 if text.nil? || text.empty?
+
+      Layout::TextMeasure.measure(text, policy).width
+    end
+
+    # How many cells of a row are past the right edge of the box.
+    def hidden : Int32
+      Math.max @list.widest - @room, 0
+    end
+
+    # Moves the rows *cells* sideways. A negative number moves them back.
+    #
+    # The rows stop where the widest one ends. There is nothing past it to
+    # look at.
+    def scroll_by(cells : Int32) : Nil
+      @offset = (@offset + cells).clamp 0, hidden
     end
 
     # The title in the border, without the spaces around it.
@@ -162,6 +275,10 @@ module TermBuf::Widgets
         ->(_context : Context) { finish nil; nil }
       map.bind Key.named(Key::Name::Enter), "pick the highlighted row",
         ->(_context : Context) { pick_highlighted; nil }
+      map.bind Key.named(Key::Name::Left), "the rows sideways, back",
+        ->(_context : Context) { scroll_by -1; nil }
+      map.bind Key.named(Key::Name::Right), "the rows sideways, on",
+        ->(_context : Context) { scroll_by 1; nil }
 
       map
     end
@@ -175,12 +292,17 @@ module TermBuf::Widgets
     end
 
     # Draws one row as `a - what it is`.
+    #
+    # The text goes down first and the key over it. A row scrolled sideways
+    # slides its text under the key, so the key a person has to press stays
+    # where it is. `View#write` cuts whatever falls off either edge.
     private def draw_entry(view : View, entry : Entry, lit : Bool) : Nil
       plain = entry.enabled ? Style::DEFAULT : @disabled_style
       plain = plain.reverse if lit
 
-      view.write 0, 0, "#{entry.key}", entry.enabled ? @key_style : plain
-      view.write 1, 0, " - #{entry.text}", plain
+      view.write GUTTER - @offset, 0, entry.text, plain
+      view.write 0, 0, entry.key.to_s, entry.enabled ? @key_style : plain
+      view.write 1, 0, " - ", plain
     end
 
     # Takes the menu down. Runs `#on_choose` with *key*.

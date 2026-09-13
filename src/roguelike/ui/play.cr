@@ -666,11 +666,18 @@ module Roguelike::Ui
     end
 
     # Answers the layout to a screen of *columns* by *rows*.
+    #
+    # A menu that is up is sized again. The owner calls this before it tells
+    # the application about the new size, so the new rectangle is passed
+    # rather than read back off the tree.
     def fit(columns : Int32, rows : Int32) : Nil
       @columns = columns
       @rows = rows
       @screen.fit columns, rows
       @pager.resize Screen.log_width(columns), Screen::LOG_ROWS
+
+      app = @app
+      @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app
     end
 
     # Starts *command*. Finds the one door of *terrain* beside the character,
