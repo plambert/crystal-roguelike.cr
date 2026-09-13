@@ -173,6 +173,46 @@ Spectator.describe Roguelike::FieldOfView do
     end
   end
 
+  # Symmetric shadowcasting is strict about this and it is worth knowing
+  # rather than rediscovering. A one-wide corridor cuts the view to a narrow
+  # wedge, and a floor square needs its centre inside that wedge. An opening
+  # in the corridor's side wall a few squares along falls outside it.
+  #
+  # The rule holds both ways, which is the point: somebody standing in that
+  # opening cannot see along the corridor either.
+  describe "an opening in the side wall of a corridor" do
+    it "is out of sight from along the corridor" do
+      floor = spot [
+        "#############",
+        "#...........#",
+        "#####.#######",
+      ]
+
+      expect(Sight.from(floor, 1, 1).includes?(5, 2)).to be_false
+    end
+
+    it "is in sight from beside it" do
+      floor = spot [
+        "#############",
+        "#...........#",
+        "#####.#######",
+      ]
+
+      expect(Sight.from(floor, 4, 1).includes?(5, 2)).to be_true
+    end
+
+    # A shut door is a wall, and a wall is seen whenever the scan reaches it.
+    it "is in sight while it is a shut door" do
+      floor = spot [
+        "#############",
+        "#...........#",
+        "#####+#######",
+      ]
+
+      expect(Sight.from(floor, 1, 1).includes?(5, 2)).to be_true
+    end
+  end
+
   describe "#to_map" do
     it "writes the terrain where it is seen and the unseen mark elsewhere" do
       floor = spot [

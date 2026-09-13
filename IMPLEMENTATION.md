@@ -49,6 +49,8 @@ actually been run rather than reasoned about.
 | Shading | Five steps through `Widgets::Ramp`. The remembered step sits well below the four lit ones |
 | Palette brightness | A wall is drawn brighter than the floor beside it, and an item brighter than both |
 | Belief | `Knowledge` per believer per floor. `Game#look` is the one way anything gets in |
+| Flicker | Drawn, never played. It shifts a shade and decides nothing, so a seed still reproduces a run |
+| A creature in the dark | Seen by the light on it, or as a shape against light behind it |
 
 ## Ground rules
 
@@ -454,6 +456,18 @@ The phase that introduces the type monster bands will use in Phase 19.
   a dark corner with nothing behind it is not. The flicker is visible in ghostty, readable under
   `TERMBUF_CAPS=none,+color256`, and does not make the game redraw when nothing else changed. A
   spec asserts the silhouette rule on a fixture and that flicker is deterministic under a seed.
+* **Done.** `Line` walks a straight line, and `Line.beyond` carries on past a square, which is
+  what looks for light behind a creature. `Vision#backlit?` is the rule and `#shows?` is the two
+  rules together; `Game#can_see_creature?` is what Phase 16 will ask. There is nothing to draw
+  yet, because there are no monsters.
+  `Ui::Flicker` shifts which step of the ramp a flame-lit square draws at, and nothing else. A
+  square comes into sight or goes out of it by the turn, never by the clock, so a run started from
+  a seed plays out the same whatever the clock did while it was running. The shift comes from the
+  seed, the tick and the square, so it holds no state. `Lighting` records which sort of light is
+  on each square, which is what says whether a square wavers and what it is tinted with: firelight
+  warm, a magically lit room cold. `Session` advances the tick through `App#after`. Two seconds
+  idle sends fourteen frames and about thirty cells a frame with a torch lit, and nothing at all
+  with it out.
 
 ## Part 5: Things that fight back
 
@@ -675,7 +689,9 @@ Small things deliberately left out of the basic game, to be picked up once it ex
 * A full-screen map view for a floor larger than the pane.
 * A message history screen.
 * Mouse support for targeting and for the inventory, which `CellGrid#cell_at` already allows.
-* Glyph and colour themes.
+* Glyph and colour themes. `Palette::GROUND` is the first colour one would want to change.
+* A flicker that sleeps. The tick runs whether or not anything is burning. It sends no bytes with
+  every flame out, but it still lays out and draws the tree seven times a second.
 * A status bar that does not need 136 columns. It carries the hit points, armour class, weapon,
   level, experience, gold, turn, five attributes, position and mouse state on one row, and a
   wielded weapon's name pushes the last pairs off a narrower window. The five attributes belong

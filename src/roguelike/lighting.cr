@@ -74,8 +74,21 @@ module Roguelike
     # is where this comes from.
     getter ambient : Int32
 
+    # What sort of light is on each square: the kind of whichever source
+    # throws the most light on it.
+    #
+    # A square lit by a torch and by a magically lit room at once takes the
+    # one throwing more. What the square is drawn in follows from this, and so
+    # does whether it wavers.
+    getter kinds : Hash({Int32, Int32}, LightKind)
+
+    # The strongest single contribution each square has taken, for deciding
+    # which source wins `#kinds`.
+    @best = {} of {Int32, Int32} => Int32
+
     def initialize(@levels : Hash({Int32, Int32}, Int32) = {} of {Int32, Int32} => Int32,
-                   @ambient : Int32 = 0)
+                   @ambient : Int32 = 0,
+                   @kinds : Hash({Int32, Int32}, LightKind) = {} of {Int32, Int32} => LightKind)
     end
 
     # The light over *floor* from *sources*, plus whatever the floor glows on
@@ -90,6 +103,18 @@ module Roguelike
     # How much light *x*, *y* has.
     def level(x : Int32, y : Int32) : Int32
       @ambient + (@levels[{x, y}]? || 0)
+    end
+
+    # What sort of light is on *x*, *y*. `nil` for a square with none.
+    #
+    # A square lit only by the floor's own ambient level takes `Glimmer`. A
+    # floor lit throughout is lit by something, and nothing about it wavers.
+    def kind_at(x : Int32, y : Int32) : LightKind?
+      found = @kinds[{x, y}]?
+      return found if found
+      return LightKind::Glimmer if @ambient > 0
+
+      nil
     end
 
     # Whether *x*, *y* has any light on it at all.
@@ -107,11 +132,22 @@ module Roguelike
       @levels.size
     end
 
-    # Adds *amount* to what *x*, *y* has.
-    protected def add(x : Int32, y : Int32, amount : Int32) : Nil
+    # Adds *amount* of *kind* to what *x*, *y* has.
+    #
+    # The kind is recorded when this is the strongest single contribution the
+    # square has taken. A torch beside a magically lit room then leaves the
+    # squares nearest it reading as firelight and the rest as the room's.
+    protected def add(x : Int32, y : Int32, amount : Int32,
+                      kind : LightKind = LightKind::Glimmer) : Nil
       return if amount <= 0
 
-      @levels[{x, y}] = (@levels[{x, y}]? || 0) + amount
+      spot = {x, y}
+      @levels[spot] = (@levels[spot]? || 0) + amount
+
+      return unless amount > (@best[spot]? || 0)
+
+      @best[spot] = amount
+      @kinds[spot] = kind
     end
 
     # Adds the glow of *x*, *y* there and on the squares around it.
@@ -124,13 +160,13 @@ module Roguelike
     # The spill reaches one square. It does not reach past a wall into the
     # corridor behind it.
     protected def spill(floor : Floor, x : Int32, y : Int32, level : Int32) : Nil
-      add x, y, level
+      add x, y, level, LightKind::Glimmer
 
       Direction.values.each do |direction|
         spot = direction.from x, y
         next unless floor.contains? spot[0], spot[1]
 
-        add spot[0], spot[1], level
+        add spot[0], spot[1], level, LightKind::Glimmer
       end
     end
 
@@ -149,7 +185,7 @@ module Roguelike
         down = spot[1] - source.y
         away = Math.sqrt(across * across + down * down).round.to_i
 
-        add spot[0], spot[1], Math.max(source.radius - away + 1, 1)
+        add spot[0], spot[1], Math.max(source.radius - away + 1, 1), source.kind
       end
     end
 

@@ -1,5 +1,6 @@
 require "./field_of_view"
 require "./lighting"
+require "./line"
 
 module Roguelike
   # What a creature can actually see.
@@ -79,6 +80,60 @@ module Roguelike
 
         yield spot if includes? spot
       end
+    end
+
+    # How far behind a creature this looks for light to see them against.
+    #
+    # Far enough to reach across a room. A source further off than this
+    # throws too little light on the creature's back to pick out a shape.
+    BACKLIGHT = 12
+
+    # Whether a creature standing at *x*, *y* would show as a shape against
+    # light behind them.
+    #
+    # A creature on an unlit square is not seen by the light on them, because
+    # there is none. They are seen when something behind them is lit and the
+    # line from here to that light runs through their square. Movement
+    # between the viewer and a distant torch is what this catches.
+    #
+    # A creature on a lit square needs none of this. `#includes?` already
+    # says they can be seen.
+    def backlit?(floor : Floor, x : Int32, y : Int32) : Bool
+      return false unless @field.includes? x, y
+      return false if lit? x, y
+      return false if x == origin[0] && y == origin[1]
+
+      found = false
+
+      Line.beyond(origin, {x, y}, BACKLIGHT) do |spot|
+        break unless floor.contains? spot[0], spot[1]
+        break if floor.blocks_sight? spot[0], spot[1]
+
+        if lit? spot[0], spot[1]
+          found = true
+          break
+        end
+      end
+
+      found
+    end
+
+    # Whether a creature standing at *x*, *y* would be seen at all.
+    #
+    # By the light on them, or as a shape against light behind them.
+    def shows?(floor : Floor, x : Int32, y : Int32) : Bool
+      includes?(x, y) || backlit?(floor, x, y)
+    end
+
+    # Whether *x*, *y* has any light on it.
+    def lit?(x : Int32, y : Int32) : Bool
+      found = @lighting
+      found ? found.lit?(x, y) : true
+    end
+
+    # What sort of light is on *x*, *y*. `nil` for a square with none.
+    def light_kind(x : Int32, y : Int32) : LightKind?
+      @lighting.try &.kind_at(x, y)
     end
 
     # How much light *x*, *y* has. Zero when nothing lights it.

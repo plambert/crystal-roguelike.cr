@@ -63,6 +63,10 @@ module Roguelike::Ui
     # what is drawn does not.
     property knowledge : Knowledge? = nil
 
+    # How the flames waver. `nil` holds them still, which is what a pane with
+    # no game behind it does and what a spec that is not about flicker wants.
+    property flicker : Flicker? = nil
+
     # The square the examine cursor is on. `nil` when there is no cursor.
     #
     # The cursor draws over whatever is on the square. It does not replace it.
@@ -110,9 +114,21 @@ module Roguelike::Ui
     # seen, at the bottom of the ramp. A square nobody has ever seen draws
     # blank.
     private def looked_at(x : Int32, y : Int32, tile : Tile) : Look
-      return Palette.shaded live(x, y, tile), Palette.step(light x, y) if seen? x, y
+      return remembered x, y unless seen? x, y
 
-      remembered x, y
+      level = light x, y
+      kind = @sight.try &.light_kind(x, y)
+      step = Palette.step(level) + wavering(x, y, level, kind)
+
+      Palette.shaded live(x, y, tile), step, kind
+    end
+
+    # How far the flame on *x*, *y* has shifted the step it draws at.
+    private def wavering(x : Int32, y : Int32, level : Int32, kind : LightKind?) : Int32
+      found = @flicker
+      return 0 unless found
+
+      found.shift x, y, level, kind
     end
 
     # What is on *x*, *y* now, topmost first.

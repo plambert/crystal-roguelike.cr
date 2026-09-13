@@ -33,8 +33,7 @@ module Roguelike::Ui
     FLAME   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xB0, 0x50)).bold
     GLIMMER = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xFF)
 
-    # What each sort of light is drawn in. Phase 14 tints a lit square with
-    # it.
+    # What each sort of light is drawn in.
     LIGHTS = {
       LightKind::Flame   => FLAME,
       LightKind::Glimmer => GLIMMER,
@@ -44,6 +43,20 @@ module Roguelike::Ui
     def self.[](kind : LightKind) : Style
       LIGHTS[kind]
     end
+
+    # How far a lit square is tinted toward the colour of what lights it.
+    #
+    # Enough that firelight reads as warm and a magically lit room as cold.
+    # Not so far that a stone floor under a torch stops being stone.
+    TINT = 0.18
+
+    # One ramp of a single step per sort of light. `Ramp` caches what it makes
+    # and answers the same style for the same base, so tinting adds one style
+    # per look per step per kind and then stops.
+    TINTS = {
+      LightKind::Flame   => Widgets::Ramp.new([TINT], LIGHTS[LightKind::Flame].foreground),
+      LightKind::Glimmer => Widgets::Ramp.new([TINT], LIGHTS[LightKind::Glimmer].foreground),
+    }
 
     # What a square offered as an answer is drawn on.
     #
@@ -188,12 +201,20 @@ module Roguelike::Ui
       Math.min REMEMBERED + 1 + level // LIGHT_PER_STEP, STEPS - 1
     end
 
-    # *look* drawn at *step* of `RAMP`, on the map's own background.
+    # *look* drawn at *step* of `RAMP`, tinted by *kind* of light, on the
+    # map's own background.
     #
     # The background is put on after the ramp rather than into it. The ground
     # is the same everywhere. Only what stands on it is shaded.
-    def self.shaded(look : Look, step : Int32) : Look
-      Look.new look.glyph, RAMP[look.style, step].bg(GROUND)
+    #
+    # A square drawn from memory takes no tint. What lights it now says
+    # nothing about what it looked like when it was last seen.
+    def self.shaded(look : Look, step : Int32, kind : LightKind? = nil) : Look
+      shade = RAMP[look.style, step]
+      tint = kind.try { |lit| TINTS[lit] } if step > REMEMBERED
+      shade = tint[shade, 0] if tint
+
+      Look.new look.glyph, shade.bg(GROUND)
     end
   end
 end

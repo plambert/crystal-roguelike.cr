@@ -116,7 +116,7 @@ module Roguelike
 
     # splitmix64's finalizer. It spreads the bits of a counter into a usable
     # seed.
-    protected def self.mix(value : UInt64) : UInt64
+    def self.mix(value : UInt64) : UInt64
       value &+= 0x9e3779b97f4a7c15_u64
       value = (value ^ (value >> 30)) &* 0xbf58476d1ce4e5b9_u64
       value = (value ^ (value >> 27)) &* 0x94d049bb133111eb_u64

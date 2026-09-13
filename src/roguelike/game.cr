@@ -276,6 +276,15 @@ module Roguelike
       sight.includes? x, y
     end
 
+    # Whether a creature standing at *x*, *y* would be seen.
+    #
+    # By the light on them, or as a shape against light behind them. A
+    # creature crossing a lit doorway is seen from a dark corridor. The same
+    # creature in a dark corner with nothing behind them is not.
+    def can_see_creature?(x : Int32, y : Int32) : Bool
+      sight.shows? floor, x, y
+    end
+
     # Works out what the character can see, and remembers it.
     #
     # This is the one place anything gets into `Player#knowledge`. Whatever is

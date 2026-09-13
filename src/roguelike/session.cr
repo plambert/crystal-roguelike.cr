@@ -95,6 +95,23 @@ module Roguelike
       # has no middle to put anything in.
       @app.frame { }
       @play.look_at_player
+      waver
+    end
+
+    # Schedules the next tick of the flames, and the one after it.
+    #
+    # This is the one thing in the game driven by a clock rather than a turn.
+    # The timer arrives on the same channel as the keystrokes, in order with
+    # them, so a tick cannot land in the middle of a turn.
+    #
+    # It moves nothing the game decides. `Play#waver` shifts which shade a
+    # lit square draws at and no more, so the paint that follows sends the
+    # squares whose colour moved and nothing else.
+    private def waver : Nil
+      @app.after(Ui::Flicker::PERIOD) do
+        @play.waver
+        waver
+      end
     end
 
     # The run.

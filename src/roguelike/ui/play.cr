@@ -63,6 +63,9 @@ module Roguelike::Ui
     # The one-key question, when there is one.
     getter prompt : Widgets::Prompt
 
+    # How the flames waver. `Session` advances it on a timer.
+    getter flicker : Flicker
+
     # The application this play is drawn on.
     #
     # The owner sets this once it has built an `App`. A question and a held
@@ -110,6 +113,9 @@ module Roguelike::Ui
       @examiner = Examiner.new @map, @examine
       @examiner.lore = @game.lore
       @pointer = Pointer.new
+
+      @flicker = Flicker.new @game.world.seed
+      @map.flicker = @flicker
 
       @screen.scaffold @game.world.seed
 
@@ -702,6 +708,15 @@ module Roguelike::Ui
       @game.say "You gain #{amount} experience."
       @game.say "Welcome to level #{@game.player.level}." if gained > 0
       refresh
+    end
+
+    # Moves the flames on one tick.
+    #
+    # This changes nothing the game decides. No square comes into sight or
+    # goes out of it, nothing is remembered, and no turn is taken. The next
+    # frame draws the same map a shade differently.
+    def waver : Nil
+      @flicker.tick += 1
     end
 
     # Adds *line* to the log.
