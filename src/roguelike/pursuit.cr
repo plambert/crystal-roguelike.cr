@@ -103,9 +103,17 @@ module Roguelike
     #
     # A species that paths descends the band's map. One that does not walks
     # straight at the quarry.
+    #
+    # A creature that paths but is not on its own map walks straight at the
+    # quarry as well. That happens whenever it can see the character but has
+    # no route it knows of: standing in a dark corridor looking at somebody
+    # in a pool of light, the lit ground it knows about does not join up with
+    # the ground under its own feet. It heads the way it last saw them and
+    # feels along, and the map takes over as soon as what it learns joins up.
     private def self.walk(snapshot : Snapshot) : Direction?
-      found = snapshot.descent
-      return found.toward(snapshot.at[0], snapshot.at[1], snapshot.blocked) if found
+      downhill = snapshot.descent.try &.toward(
+        snapshot.at[0], snapshot.at[1], snapshot.blocked)
+      return downhill if downhill
 
       blunder snapshot
     end

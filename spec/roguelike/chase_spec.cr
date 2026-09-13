@@ -252,6 +252,96 @@ Spectator.describe "being chased" do
     end
   end
 
+  # A corridor with one pool of light in it, thrown by a torch lying on the
+  # floor rather than carried. The character stands in the light and the
+  # creature stands in the dark beyond it.
+  DARK = [
+    "####################",
+    "#............<.....#",
+    "####################",
+  ]
+
+  describe "a creature in the dark looking at a lit character" do
+    # Where the torch lies, two squares east of the character. It reaches six
+    # squares, so the corridor west of column nine is dark.
+    TORCH = {15, 1}
+
+    # Where the creature stands, in the dark end of the corridor. Nine
+    # squares off, which is as far as a goblin notices a character lit this
+    # brightly.
+    LURKING = {4, 1}
+
+    def corridor : {Game, Monster}
+      floor = Floor.parse "corridor", DARK
+      floor.drop TORCH[0], TORCH[1], Roguelike::Item.new(Roguelike::ItemKind::Torch, lit: true)
+
+      creature = Monster.new Species::Goblin, LURKING[0], LURKING[1], "band-one"
+      floor.place creature
+
+      player = Player.new floor.id, *Game.entrance(floor)
+      {Game.new(World.new(SEED, {floor.id => floor}), player), creature}
+    end
+
+    it "cannot be seen by the character it can see" do
+      game, creature = corridor
+      seen = game.sight
+
+      expect(seen.light(*game.player.at)).to be > 0
+      expect(seen.light(*creature.at)).to eq 0
+      expect(seen.shows? game.floor, creature.x, creature.y).to be_false
+    end
+
+    it "notices them" do
+      game, creature = corridor
+
+      game.step Direction::East
+
+      expect(game.floor.awareness creature).to eq Awareness::Hunting
+    end
+
+    # It sees nothing but the square under its own feet, so the lit squares
+    # it knows about do not join up with the one it is standing on. It walks
+    # anyway: a creature knows the ground it could reach out and touch.
+    it "walks toward them through the dark" do
+      game, creature = corridor
+      start = creature.at
+
+      game.step Direction::East
+
+      expect(creature.at).not_to eq start
+      expect(creature.x).to be > start[0]
+    end
+
+    it "reaches them" do
+      game, creature = corridor
+
+      wait game, 12
+
+      expect(Notice.touching? creature.at, game.player.at).to be_true
+    end
+
+    it "knows the ground beside it whether it can see it or not" do
+      game, creature = corridor
+
+      game.step Direction::East
+
+      found = knowledge game, creature
+      expect(found.seen? LURKING[0] + 1, LURKING[1]).to be_true
+      expect(found.seen? LURKING[0] - 1, LURKING[1]).to be_true
+    end
+
+    # It feels its way one square at a time. It does not come to know the
+    # whole dark corridor by standing in it.
+    it "learns no more of the dark than it is standing in" do
+      game, creature = corridor
+
+      game.step Direction::East
+      found = knowledge game, creature
+
+      expect(found.seen? 8, 1).to be_false
+    end
+  end
+
   describe "a creature that does not path" do
     # A slime walks straight at the character and comes up against the wall.
     # It has no idea the way round the end of it is there.

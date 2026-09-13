@@ -525,7 +525,25 @@ module Roguelike
 
         looking = Vision.new FieldOfView.from(floor, column, row),
           creature.species.darkvision? ? nil : lighting
-        band.knowledge(floor.id).learn floor, looking, @turn
+        knowledge = band.knowledge floor.id
+        knowledge.learn floor, looking, @turn
+        feel knowledge, column, row
+      end
+    end
+
+    # Records the ground *x*, *y* could be reached out and touched from.
+    #
+    # A creature standing in a dark corridor sees nothing but the square
+    # under its own feet. It can still feel the walls beside it and the floor
+    # in front of it, and a creature that knew only what it could see would
+    # never take the first step out of the dark: a `Descent` cannot reach a
+    # square nobody has looked at, so it would not be on its own map.
+    private def feel(knowledge : Knowledge, x : Int32, y : Int32) : Nil
+      knowledge.see floor, x, y, @turn
+
+      Direction.values.each do |direction|
+        spot = direction.from x, y
+        knowledge.see floor, spot[0], spot[1], @turn
       end
     end
 

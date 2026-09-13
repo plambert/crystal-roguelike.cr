@@ -612,6 +612,13 @@ The phase that introduces the type monster bands will use in Phase 19.
   what it learned of the floor. Being hit writes a sighting as well as waking a band, because a
   band woken with nowhere to go would give up the turn after.
 
+  Two things keep a creature moving when its map cannot help. It knows the ground it could reach
+  out and touch, seen or not, so it can take the first step out of a dark square. And a creature
+  that is not on its own map walks straight at what it last saw and feels along, which is what a
+  goblin in a dark corridor looking at somebody in a pool of light has to do: the lit ground it
+  knows about does not join up with the ground under its own feet. The map takes over as soon as
+  what it learns joins up.
+
   One gap, left for later: a creature cannot open a door. A shut door is impassable in a band's
   knowledge, so pursuit stops at one.
 
