@@ -89,6 +89,9 @@ actually been run rather than reasoned about.
 | A shape wavers | With the flame lighting the square behind it, not with its own square. Its own square has no light on it |
 | How far it wavers | One step up from the dimmest lit step, and never below it. A shape drawn dimmer than that reads as a memory |
 | Readying an item | The message follows the slot. A sword is held, a helmet is worn, and arrows go in the quiver |
+| Running | `Game#run` takes whole turns, so creatures act between steps. It never swings and never opens a door |
+| What stops a run | The run ending, a wound, a creature coming into sight, a message, a door underfoot, or a junction |
+| What counts as a corridor | Two cardinal ways off a square, facing each other. A room corner has two at right angles |
 | Naming a bow's slot | "Ranged weapon", never "launcher". `ItemClass::RangedWeapon` and `Player#ranged_weapon` say the same |
 
 ## Ground rules
@@ -201,7 +204,7 @@ none of it is fixed and a preset can rebind the lot.
 |---|---|
 | `h` `j` `k` `l` | Move west, south, north, east |
 | `y` `u` `b` `n` | Move northwest, northeast, southwest, southeast |
-| `G` + direction | Run that way until something is worth stopping for |
+| `G` + direction | Run that way until something stops the run |
 | `.` | Wait one turn |
 | `<` `>` | Up stairs, down stairs |
 | `,` | Pick up what is here |
@@ -785,6 +788,31 @@ The phase that introduces the type monster bands will use in Phase 19.
 * **Verify** — Run down a corridor and stop at the junction. Run into a room and stop at the
   doorway. Run with a goblin in a side passage and stop when it appears. A spec asserts the stop
   condition for each case on a fixture floor.
+* **Done.** `Game#run` walks one direction a step at a time and answers a `Running`: how far it
+  went and a `Halt` saying what stopped it. Every step is a whole turn, so the creatures on the
+  floor act between one step and the next and a run is as dangerous as walking the same squares
+  one key at a time. A run makes no decisions: it stops in front of a creature and in front of a
+  shut door rather than swinging or opening, and a run that takes no step at all writes the same
+  refusal one press of the movement key would have written.
+
+  The eight `Halt` members are the stop conditions, and `Game#stopped_by` asks about them in the
+  order a person would name them: the run ended, the character was hurt, a creature came into
+  sight, something was written to the log, the character stepped onto a door, the square has more
+  ways off it than the corridor behind it. A creature usually writes the message that would have
+  stopped the run on the same step, so the creature is asked about first.
+
+  `Game#corridor?` is the branch rule: a square is a length of corridor when two of its four
+  cardinal neighbours can be walked onto and the two face each other. The corner of a room has
+  two neighbours as well, at right angles, and counting that would stop a run along a room wall
+  on its first step. Diagonals are not counted, because two squares touching at a corner are not
+  a way between rooms and counting them would read every bend in a corridor as a junction.
+
+  `G` waits for a direction and the next movement key runs. Nothing is lit up while it waits:
+  `o` and `c` light the doors they would act on, and every direction is an answer to `G`. The
+  whole run happens inside the one key press and the screen is drawn once at the end, because
+  `Ui::Play` holds no terminal and cannot send a frame partway through a handler.
+  `spec/fixtures/running/ground.txt` holds where a run stops from every square of a small floor
+  in each of the four directions, so a change to any of the rules shows as a diff of two maps.
 
 ### Phase 24 — Floor generation
 

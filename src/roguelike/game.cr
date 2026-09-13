@@ -15,6 +15,7 @@ require "./lore"
 require "./message_log"
 require "./notice"
 require "./pursuit"
+require "./running"
 require "./player"
 require "./world"
 
@@ -298,6 +299,159 @@ module Roguelike
       arrived
       spend_turn
       Step::Moved
+    end
+
+    # ------------------------------------------------------------- running
+
+    # How many squares one run crosses before it stops on its own.
+    #
+    # A run moves in one direction, so it reaches the edge of any floor well
+    # inside this. The number is here so that a bug elsewhere cannot leave a
+    # run turning the crank forever.
+    FURTHEST = 60
+
+    # Walks *direction* until something is worth stopping for. Answers how
+    # far it went and what stopped it.
+    #
+    # Every step is a whole turn, so every other creature on the floor acts
+    # between one step and the next, and a run is as dangerous as walking the
+    # same squares one key at a time.
+    #
+    # A run never attacks and never opens a door. Either one is a decision,
+    # and a run makes none: it stops in front of a creature or a shut door
+    # and leaves the decision to the person.
+    #
+    # A run that takes no step at all says why, the way one press of the
+    # movement key against the same square would.
+    def run(direction : Direction) : Running
+      steps = 0
+      along = corridor? @player.at
+
+      while steps < FURTHEST
+        if blocked_ahead? direction
+          refuse_run direction if steps.zero?
+          return Running.new steps, Halt::Blocked
+        end
+
+        before = Watch.on self
+        return Running.new steps, Halt::Blocked unless step(direction).moved?
+
+        steps += 1
+        halt = stopped_by before, along
+        along = corridor? @player.at
+
+        return Running.new steps, halt if halt
+      end
+
+      Running.new steps, Halt::Spent
+    end
+
+    # Says why a run went nowhere.
+    #
+    # A creature in the way is named when the character can see it. One they
+    # cannot see is not: they have walked into something and do not know
+    # what. Anything else is the sentence a plain step writes.
+    private def refuse_run(direction : Direction) : Nil
+      wanted = direction.from @player.x, @player.y
+      creature = floor.monster wanted[0], wanted[1]
+      return say blocked_by direction unless creature
+
+      unless can_see_creature? wanted[0], wanted[1]
+        return say "There is something in the way."
+      end
+
+      say "The #{creature.label} is in the way."
+    end
+
+    # Whether the square one step *direction* stops a run.
+    #
+    # A creature standing there, or anything a character cannot walk onto. A
+    # shut door is one of those, so a run stops in front of it rather than
+    # opening it.
+    private def blocked_ahead?(direction : Direction) : Bool
+      wanted = direction.from @player.x, @player.y
+      return true if floor.monster wanted[0], wanted[1]
+
+      !floor.passable? wanted[0], wanted[1]
+    end
+
+    # What a run has to compare against to know whether a step changed
+    # anything.
+    #
+    # The log is compared by its length and its last line rather than by its
+    # whole contents. `MessageLog#add` drops a line identical to the one
+    # before it, so two of those in a row leave the log as it was and leave
+    # the screen as it was.
+    private record Watch,
+      health : Int32,
+      said : Int32,
+      last : String?,
+      seen : Array(Monster) do
+      def self.on(game : Game) : Watch
+        new game.player.hit_points, game.log.size, game.log.last?,
+          game.monsters_in_sight
+      end
+    end
+
+    # What stopped the run on this step. `nil` when nothing did.
+    #
+    # *before* is what `Watch.on` recorded before the step. *along* says
+    # whether the square the character stepped from was a length of corridor.
+    #
+    # Several can hold at once, and the order here is the order a person
+    # would name them. A creature coming into sight is usually what wrote the
+    # message on the same step, so it is asked about first.
+    private def stopped_by(before : Watch, along : Bool) : Halt?
+      return Halt::Over if @outcome.over?
+      return Halt::Hurt if @player.hit_points != before.health
+      return Halt::Creature if arrived_in_sight? before.seen
+      return Halt::Told if @log.size != before.said || @log.last? != before.last
+      return Halt::Doorway if standing_on.door?
+      return Halt::Branch if along && ways(@player.at).size > CORRIDOR
+
+      nil
+    end
+
+    # Whether any creature in sight now was out of sight before.
+    #
+    # A creature that was already in sight when the step began does not stop
+    # the run, or a run could not be started with one on the screen.
+    private def arrived_in_sight?(before : Array(Monster)) : Bool
+      monsters_in_sight.any? do |creature|
+        before.none? &.same?(creature)
+      end
+    end
+
+    # How many ways off a square a length of corridor has.
+    CORRIDOR = 2
+
+    # Whether *spot* is a length of corridor.
+    #
+    # Two ways off it, and the two face each other. The corner of a room also
+    # has two ways off it, at right angles to each other, and a run along the
+    # wall of a room would stop on its first step if that counted.
+    #
+    # A run stops when it steps off a corridor square onto a square with more
+    # ways off it. A run that starts anywhere else goes until something else
+    # stops it, so a run leaves a dead end and crosses a room.
+    private def corridor?(spot : {Int32, Int32}) : Bool
+      found = ways spot
+
+      found.size == CORRIDOR && found.first.opposite == found.last
+    end
+
+    # Which of the four squares beside *spot* can be walked onto.
+    #
+    # Cardinals only. Two squares that touch at a corner alone are not a way
+    # between rooms, and counting them would read every bend in a corridor as
+    # a junction.
+    private def ways(spot : {Int32, Int32}) : Array(Direction)
+      Direction.values.select do |direction|
+        next false if direction.diagonal?
+
+        where = direction.from spot[0], spot[1]
+        floor.passable? where[0], where[1]
+      end
     end
 
     # Records what the character has just had their hands on.

@@ -72,6 +72,8 @@ module Roguelike::Ui
     # it or asks for it.
     def self.acting(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("G"), "run until something stops you",
+          ->(_context : Widgets::Context) { play.start_running; nil }
         map.bind TermBuf::Key.parse("o"), "open a door",
           ->(_context : Widgets::Context) { play.open_door; nil }
         map.bind TermBuf::Key.parse("c"), "close a door",

@@ -4,20 +4,19 @@ module Roguelike::Ui
     Open
     Close
 
-    # What the command is called, for a message.
-    def verb : String
-      case self
-      in .open?  then "open"
-      in .close? then "close"
-      end
-    end
+    # `G`, running that way until something is worth stopping for.
+    Run
 
     # The terrain this command acts on. Every square holding it beside the
-    # character is an answer.
-    def terrain : Terrain
+    # character is an answer, and the map lights those squares up.
+    #
+    # `nil` for a command that takes any direction. Running takes all eight,
+    # so lighting up the ones it would take would light up the whole ring.
+    def terrain : Terrain?
       case self
       in .open?  then Terrain::ClosedDoor
       in .close? then Terrain::OpenDoor
+      in .run?   then nil
       end
     end
   end
@@ -333,6 +332,15 @@ module Roguelike::Ui
       done = @game.step direction
       @map.follow @game.player.x, @game.player.y unless done.blocked?
       refresh
+    end
+
+    # Waits for a direction to run in. `G` does this.
+    #
+    # Every direction is an answer, so there is nothing to find and nothing
+    # to light up. The next movement key runs rather than steps.
+    def start_running : Nil
+      @pending = Pending::Run
+      say "Run which way? Press a direction, or Escape."
     end
 
     # Opens a door.
@@ -896,7 +904,10 @@ module Roguelike::Ui
       waiting = @pending
       return unless waiting
 
-      @game.doors(waiting.terrain).each do |direction|
+      wanted = waiting.terrain
+      return unless wanted
+
+      @game.doors(wanted).each do |direction|
         spot = direction.from @game.player.x, @game.player.y
         @map.highlight spot[0], spot[1]
       end
@@ -995,9 +1006,20 @@ module Roguelike::Ui
       case command
       in .open?  then @game.open direction
       in .close? then @game.close direction
+      in .run?   then dash direction
       end
 
       refresh
+    end
+
+    # Runs *direction*. `G` and then a direction key does this.
+    #
+    # The whole run happens inside one key press, so the screen is drawn once
+    # at the end rather than once per step. `Play` holds no terminal and
+    # cannot send a frame partway through a handler.
+    private def dash(direction : Direction) : Nil
+      went = @game.run direction
+      @map.follow @game.player.x, @game.player.y if went.moved?
     end
 
     # Ends the run. Holds *line* on the screen until the person presses a key.
