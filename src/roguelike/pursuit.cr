@@ -105,11 +105,10 @@ module Roguelike
     # straight at the quarry.
     #
     # A creature that paths but is not on its own map walks straight at the
-    # quarry as well. That happens whenever it can see the character but has
-    # no route it knows of: standing in a dark corridor looking at somebody
-    # in a pool of light, the lit ground it knows about does not join up with
-    # the ground under its own feet. It heads the way it last saw them and
-    # feels along, and the map takes over as soon as what it learns joins up.
+    # quarry as well. A creature that can see the character is on its map,
+    # because seeing them writes down the ground between. One that has not
+    # seen them itself and was told where they are may not be, and heading
+    # that way beats standing still.
     private def self.walk(snapshot : Snapshot) : Direction?
       downhill = snapshot.descent.try &.toward(
         snapshot.at[0], snapshot.at[1], snapshot.blocked)

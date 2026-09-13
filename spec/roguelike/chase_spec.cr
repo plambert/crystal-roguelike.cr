@@ -299,9 +299,9 @@ Spectator.describe "being chased" do
       expect(game.floor.awareness creature).to eq Awareness::Hunting
     end
 
-    # It sees nothing but the square under its own feet, so the lit squares
-    # it knows about do not join up with the one it is standing on. It walks
-    # anyway: a creature knows the ground it could reach out and touch.
+    # It sees nothing but the square under its own feet. It can see across
+    # the dark squares between, though, because it can see the character
+    # through them.
     it "walks toward them through the dark" do
       game, creature = corridor
       start = creature.at
@@ -330,15 +330,114 @@ Spectator.describe "being chased" do
       expect(found.seen? LURKING[0] - 1, LURKING[1]).to be_true
     end
 
-    # It feels its way one square at a time. It does not come to know the
-    # whole dark corridor by standing in it.
-    it "learns no more of the dark than it is standing in" do
+    # A line that reached the character ran through every square on the way,
+    # so it knows that ground well enough to walk it.
+    it "learns the ground between it and the character" do
       game, creature = corridor
 
       game.step Direction::East
       found = knowledge game, creature
 
-      expect(found.seen? 8, 1).to be_false
+      (LURKING[0]..game.player.x).each do |column|
+        expect(found.seen? column, 1).to be_true
+      end
+    end
+
+    it "learns none of the dark off that line" do
+      game, creature = corridor
+
+      game.step Direction::East
+      found = knowledge game, creature
+
+      expect(found.seen? LURKING[0] - 3, 1).to be_false
+    end
+
+    # It goes on knowing the corridor after the light has gone.
+    it "keeps that ground after it loses sight of them" do
+      game, creature = corridor
+
+      game.step Direction::East
+      game.floor.each_pile { |_column, _row, pile| pile.each &.douse }
+      wait game, 2
+
+      expect(knowledge(game, creature).seen? 8, 1).to be_true
+    end
+
+    it "paths on its own map rather than feeling its way" do
+      game, creature = corridor
+
+      game.step Direction::East
+      map = Descent.toward knowledge(game, creature), game.player.at
+
+      expect(map[creature.at]).not_to be_nil
+    end
+  end
+
+  describe "what a creature knows by touch" do
+    # A dark room with a creature in the middle of it and a sword beside it.
+    TOUCHING = [
+      "#####",
+      "#...#",
+      "#...#",
+      "#.<.#",
+      "#####",
+    ]
+
+    def dark_room : {Game, Monster}
+      floor = Floor.parse "room", TOUCHING
+      creature = Monster.new Species::Goblin, 2, 1, "band-one"
+      floor.place creature
+      floor.drop 1, 1, Roguelike::Item.new(Roguelike::ItemKind::LongSword)
+      floor.drop 2, 1, Roguelike::Item.new(Roguelike::ItemKind::Dagger)
+
+      player = Player.new floor.id, *Game.entrance(floor)
+      game = Game.new World.new(SEED, {floor.id => floor}), player
+      floor.band(creature.band).try &.awareness = Awareness::Hunting
+
+      {game, creature}
+    end
+
+    it "knows the walls beside it as well as the floor" do
+      game, creature = dark_room
+
+      wait game, 2
+      found = knowledge game, creature
+
+      expect(found.seen? 1, 0).to be_true
+      expect(found.walkable? 1, 0).to be_false
+      expect(found.seen? 2, 2).to be_true
+      expect(found.walkable? 2, 2).to be_true
+    end
+
+    it "knows what is lying on the square it stands on" do
+      game, creature = dark_room
+
+      wait game, 2
+      found = knowledge game, creature
+
+      expect(found[2, 1].try &.item).not_to be_nil
+    end
+
+    # Reaching out in the dark says there is a wall there. It does not say
+    # there is a sword on the floor.
+    it "does not know what is lying on a dark square beside it" do
+      game, creature = dark_room
+
+      wait game, 2
+      found = knowledge game, creature
+
+      expect(found.seen? 1, 1).to be_true
+      expect(found[1, 1].try &.item).to be_nil
+    end
+
+    it "knows what is lying on a square it can see" do
+      game, creature = dark_room
+      game.floor.ambient = 1
+
+      wait game, 2
+      found = knowledge game, creature
+
+      expect(found[1, 1].try &.item).not_to be_nil
     end
   end
 

@@ -175,6 +175,25 @@ module Roguelike
         fitting.try(&.copy), pile.last?.try(&.copy), turn
     end
 
+    # Records what the terrain of *x*, *y* is, and nothing else on it.
+    #
+    # A creature that can see somebody across a square has seen the square
+    # well enough to know what it is made of. It has not seen what is lying
+    # on it, so whatever was remembered about that is kept rather than
+    # replaced.
+    #
+    # This records the terrain rather than deciding the square can be walked
+    # on. Everything a floor is made of blocks sight and movement together
+    # today, so the two readings agree. A chasm would not, and a band that
+    # had written down "walkable" rather than "chasm" would walk into it.
+    def glimpse(floor : Floor, x : Int32, y : Int32, turn : Int32 = 0) : Nil
+      return unless floor.contains? x, y
+
+      held = self[x, y]
+      @memories[Floor.spot x, y] = Memory.new floor.terrain(x, y),
+        held.try(&.fixture), held.try(&.item), turn
+    end
+
     # Records every square *vision* can see. This is the one way anything gets
     # in.
     def learn(floor : Floor, vision : Vision, turn : Int32 = 0) : Nil

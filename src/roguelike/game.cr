@@ -5,6 +5,7 @@ require "./equipment"
 require "./field_of_view"
 require "./floors"
 require "./lighting"
+require "./line"
 require "./vision"
 require "./items"
 require "./lore"
@@ -439,8 +440,8 @@ module Roguelike
       return if over?
 
       seen = sight
-      creatures_notice seen
-      creatures_look seen
+      noticed = creatures_notice seen
+      creatures_look seen, noticed
       creatures_act
     end
 
@@ -455,7 +456,8 @@ module Roguelike
     #
     # A band that notices writes down where the character is. Nothing reads
     # that until Phase 19 walks a band to the square.
-    private def creatures_notice(seen : Vision) : Nil
+    # Answers which bands noticed, and which of their creatures did it.
+    private def creatures_notice(seen : Vision) : Hash(String, Monster)
       found = noticing seen
 
       floor.each_band do |band|
@@ -474,6 +476,8 @@ module Roguelike
           give_up band if cold? band
         end
       end
+
+      found
     end
 
     # How many turns a band goes on looking after it has lost the character.
@@ -514,8 +518,13 @@ module Roguelike
     #
     # An asleep band looks at nothing. That is what bounds the work: a floor
     # of sleeping monsters costs one cast, the character's own.
-    private def creatures_look(seen : Vision) : Nil
+    private def creatures_look(seen : Vision, noticed : Hash(String, Monster)) : Nil
       lighting = seen.lighting
+
+      noticed.each do |id, creature|
+        band = floor.band id
+        trace band.knowledge(floor.id), creature.at if band
+      end
 
       floor.each_monster do |column, row, creature|
         next unless awake? creature
@@ -531,6 +540,22 @@ module Roguelike
       end
     end
 
+    # Records the ground between *from* and the character.
+    #
+    # A creature that can see the character can see that nothing solid stands
+    # between them. A line that reached them ran through every square on the
+    # way, so it knows that ground well enough to walk it, and it goes on
+    # knowing it after the light has gone.
+    #
+    # This is what lets a creature in a dark corridor walk toward somebody
+    # standing in a pool of light. The squares between are dark, so it never
+    # sees them, but it can see across them.
+    private def trace(knowledge : Knowledge, from : {Int32, Int32}) : Nil
+      Line.walk(from, @player.at) do |spot|
+        knowledge.glimpse floor, spot[0], spot[1], @turn
+      end
+    end
+
     # Records the ground *x*, *y* could be reached out and touched from.
     #
     # A creature standing in a dark corridor sees nothing but the square
@@ -538,12 +563,17 @@ module Roguelike
     # in front of it, and a creature that knew only what it could see would
     # never take the first step out of the dark: a `Descent` cannot reach a
     # square nobody has looked at, so it would not be on its own map.
+    #
+    # What it is standing on it knows whole, items and all. What is beside it
+    # it knows the shape of and no more. Reaching out in the dark tells a
+    # creature there is a wall there. It does not tell it there is a sword on
+    # the floor.
     private def feel(knowledge : Knowledge, x : Int32, y : Int32) : Nil
       knowledge.see floor, x, y, @turn
 
       Direction.values.each do |direction|
         spot = direction.from x, y
-        knowledge.see floor, spot[0], spot[1], @turn
+        knowledge.glimpse floor, spot[0], spot[1], @turn
       end
     end
 
