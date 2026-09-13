@@ -80,6 +80,15 @@ module Roguelike
       @known.includes? kind
     end
 
+    # A copy that knows every kind.
+    #
+    # The screen a run ends with names what the character was carrying whether
+    # or not they ever found out what it was. A person who died holding a wand
+    # they never zapped is told what it was.
+    def revealed : Lore
+      Lore.new @appearances.dup, ItemKind.values.to_set
+    end
+
     # Records that the character has found out what *kind* is. Answers whether
     # that was news.
     def learn(kind : ItemKind) : Bool

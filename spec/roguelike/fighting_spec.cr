@@ -220,6 +220,25 @@ Spectator.describe "fighting" do
 
       expect(game.log.lines.last).to eq "You die..."
     end
+
+    # The screen the run ends with names what killed the character. The
+    # creature is still on the floor, so the label is kept rather than the
+    # creature.
+    it "records what killed the character" do
+      game, _ = arena Species::Orc, health: 1
+      expect(game.killer).to be_nil
+
+      fight(game) { game.over? }
+
+      expect(game.killer).to eq "orc"
+    end
+
+    it "keeps that through serialization" do
+      game, _ = arena Species::Orc, health: 1
+      fight(game) { game.over? }
+
+      expect(Roguelike::Game.from_json(game.to_json).killer).to eq "orc"
+    end
   end
 
   describe "the rolls" do

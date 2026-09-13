@@ -29,7 +29,7 @@ module Playing
     end
 
     delegate game, screen, map, examine, examiner, nearby, pointer, prompt, pager, menu,
-      console, to: @play
+      console, placard, to: @play
 
     # Whether the run should end.
     def finished? : Bool
@@ -160,10 +160,15 @@ module Playing
   end
 
   # A run on *game*, drawn in a window of *columns* by *rows*.
+  #
+  # *title* puts the title screen up the way `Session` does. It is off by
+  # default: a spec that is not about the title screen presses its first key
+  # at the game rather than at a box asking to begin.
   def self.open(game : Roguelike::Game? = nil,
                 columns : Int32 = 80,
                 rows : Int32 = 24,
-                console : Bool = false) : Run
+                console : Bool = false,
+                title : Bool = false) : Run
     play = Roguelike::Ui::Play.new(
       game || Roguelike::Game.start(Roguelike::Rng.new(SEED)), console)
     play.fit columns, rows
@@ -191,6 +196,7 @@ module Playing
     # same.
     session.render
     play.look_at_player
+    play.show_title if title
     session.render
 
     Run.new play, session, told

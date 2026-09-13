@@ -109,6 +109,13 @@ module Roguelike
     # found out.
     getter lore : Lore
 
+    # What killed the character. `nil` while they are alive.
+    #
+    # The label rather than the creature. The end screen names what killed
+    # them, and a creature held here would be a second copy of one the floor
+    # already holds.
+    getter killer : String? = nil
+
     # The run's root generator, built from the world's seed.
     #
     # This is not written out. `World#seed` is, and this is a function of it.
@@ -812,7 +819,7 @@ module Roguelike
       if blow.hit?
         @player.hurt blow.damage
         say "The #{creature.label} hits you for #{blow.damage}."
-        character_died unless @player.alive?
+        character_died creature.label unless @player.alive?
       else
         say "The #{creature.label} misses you."
       end
@@ -820,9 +827,10 @@ module Roguelike
       blow
     end
 
-    # Ends the run. The character has been killed.
-    private def character_died : Nil
+    # Ends the run. *killer* is what did it.
+    private def character_died(killer : String) : Nil
       @outcome = Outcome::Died
+      @killer = killer
       say "You die..."
     end
 

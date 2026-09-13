@@ -86,6 +86,15 @@ module Roguelike::Ui
     # key that opens one is never bound.
     getter console : ConsolePane? = nil
 
+    # The title screen, and the screen the run ends with.
+    getter placard : Placard
+
+    # Whether the person asked for another run when this one ended.
+    #
+    # `Session` reads this once `#finished?` is true. A run that was quit
+    # rather than ended answers false.
+    getter? again : Bool = false
+
     # The application this play is drawn on.
     #
     # The owner sets this once it has built an `App`. A question and a held
@@ -129,8 +138,8 @@ module Roguelike::Ui
     # has moved it.
     @parked : {Int32, Int32}? = nil
 
-    # Whether the death screen has been put up.
-    @mourned : Bool = false
+    # Whether the screen the run ends with has been put up.
+    @ended : Bool = false
 
     # The size of the screen, as `#fit` was last told it.
     @columns : Int32 = 0
@@ -163,6 +172,7 @@ module Roguelike::Ui
       # is used.
       @prompt = Widgets::Prompt.new
       @menu = Widgets::Menu.new
+      @placard = Placard.new
 
       if console
         pane = ConsolePane.new @game
@@ -186,6 +196,21 @@ module Roguelike::Ui
         .merge(Keys.aiming(self))
 
       @console ? found.merge(Keys.debugging(self)) : found
+    end
+
+    # Puts the title screen up. The owner calls this once, before the run.
+    #
+    # `p` plays and `q` quits. A person who quits here leaves without a run
+    # having started, which `Game::Outcome::Playing` already says.
+    def show_title : Nil
+      @placard.on_answer = ->(key : Char?) do
+        @finished = true unless key == Placards::START_DEFAULT
+        nil
+      end
+
+      @placard.show application, Placards::NAME,
+        Placards.title(@game.world.seed), Placards::START_KEYS,
+        default: Placards::START_DEFAULT, footer: Placards::START_FOOTER
     end
 
     # Puts the debug console up, or takes it down. `` ` `` does this.
@@ -331,7 +356,7 @@ module Roguelike::Ui
     # page each do.
     def modal? : Bool
       @prompt.asking? || @menu.showing? || @pager.holding? ||
-        (@console.try &.showing? || false)
+        @placard.showing? || (@console.try &.showing? || false)
     end
 
     # Puts the camera on the character.
@@ -400,7 +425,7 @@ module Roguelike::Ui
         return
       end
 
-      finish "You climb down and out of the dungeon. You win.", 'y'
+      refresh
     end
 
     # Climbs out of the dungeon, after asking.
@@ -414,7 +439,7 @@ module Roguelike::Ui
         next unless key == 'y'
 
         @game.ascend
-        finish "You climb out and go home."
+        refresh
       end
     end
 
@@ -912,25 +937,34 @@ module Roguelike::Ui
       show_aim
       @pager.show @game.log.lines
       @status_line.show @game
-      show_death
+      show_ending
     end
 
-    # Puts the death screen up, once.
+    # Puts the screen the run ends with up, once.
     #
     # Everything that changes the game ends with `#refresh`, so this is the
-    # one place that has to notice. The run ends when the person presses the
-    # key.
+    # one place that has to notice. Dying, climbing down and climbing out all
+    # arrive here, and the heading is what tells them apart.
     #
     # An owner that has not built an `App` yet has nowhere to put a modal.
-    # `#initialize` refreshes before there is one, and a game cannot be over
-    # at that point anyway.
-    private def show_death : Nil
-      return unless @game.outcome.died?
-      return if @mourned || @app.nil?
+    # `#initialize` refreshes before there is one, and a run cannot be over at
+    # that point anyway.
+    private def show_ending : Nil
+      return unless @game.over?
+      return if @ended || @app.nil?
 
-      @mourned = true
+      @ended = true
       stop_aiming
-      finish "You die on turn #{@game.turn} at level #{@game.player.level}."
+
+      @placard.on_answer = ->(key : Char?) do
+        @again = key == 'y'
+        @finished = true
+        nil
+      end
+
+      @placard.show application, Placards.heading(@game.outcome),
+        Placards.ending(@game), Placards::AGAIN_KEYS,
+        default: Placards::AGAIN_DEFAULT, footer: Placards::AGAIN_FOOTER
     end
 
     # Lights up every square the command waiting for a direction would take.
@@ -993,6 +1027,8 @@ module Roguelike::Ui
       @screen.fit columns, rows
       @pager.resize Screen.log_width(columns), Screen::LOG_ROWS
       @nearby.budget = Play.nearby_budget rows
+
+      @placard.fit_into Rect.new(0, 0, columns, rows)
 
       app = @app
       @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app
@@ -1057,11 +1093,6 @@ module Roguelike::Ui
     private def dash(direction : Direction) : Nil
       went = @game.run direction
       @map.follow @game.player.x, @game.player.y if went.moved?
-    end
-
-    # Ends the run. Holds *line* on the screen until the person presses a key.
-    private def finish(line : String, key : Char = 'q') : Nil
-      ask(line, key.to_s, default: key) { @finished = true }
     end
 
     # Writes whether the terminal is reporting the mouse.

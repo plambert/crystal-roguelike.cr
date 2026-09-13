@@ -9,13 +9,19 @@ module Roguelike
   # specs drive it over a buffer. What is left here is the frame loop, the
   # mouse and the cursor.
   class Session
-    # Runs a game on the terminal. Gives the terminal back however the run
-    # ends. That includes an exception and a signal. The block form of
-    # `Terminal.open` does that.
+    # Runs games on the terminal until nobody asks for another. Gives the
+    # terminal back however the last one ends. That includes an exception and
+    # a signal. The block form of `Terminal.open` does that.
     #
-    # Answers the session that ran. Answers `nil` when the window is too small
-    # to play in. It writes the reason to stderr in that case. It does not
-    # take the terminal over at all.
+    # Answers the session that ran last, which is what the caller reports on.
+    # Answers `nil` when the window is too small to play in. It writes the
+    # reason to stderr in that case. It does not take the terminal over at
+    # all.
+    #
+    # *seed* is the run's seed, or `nil` for a fresh one. A person who asks
+    # for another run gets the same seed when one was named and a fresh seed
+    # when none was, so `--seed N` goes on reproducing N and a run started
+    # without it is a new dungeon every time.
     #
     # This method reads the size before it enters the alternate screen. The
     # message then stays where the person can read it. Handing the screen back
@@ -24,7 +30,7 @@ module Roguelike
     # `SizeDetector` is termbuf's internal tier. The stable API cannot answer
     # how big a terminal is without opening it. The other way to find out is
     # to enter the alternate screen and leave it again.
-    def self.open(rng : Rng, flicker : Bool = true,
+    def self.open(seed : UInt64?, flicker : Bool = true,
                   generate : Bool = true, console : Bool = false) : Session?
       size = TermBuf::SizeDetector.detect
 
@@ -35,8 +41,13 @@ module Roguelike
 
       ran = nil.as Session?
       TermBuf::Terminal.open do |terminal|
-        ran = new terminal, rng, flicker, generate, console
-        ran.try &.run
+        loop do
+          played = new terminal, Rng.for(seed), flicker, generate, console
+          ran = played
+          played.run
+
+          break unless played.again?
+        end
       end
 
       ran
@@ -101,6 +112,8 @@ module Roguelike
 
       @play.flicker.burning = flicker
       waver if flicker
+
+      @play.show_title
     end
 
     # Schedules the next tick of the flames, and the one after it.
@@ -122,6 +135,11 @@ module Roguelike
     # The run.
     def game : Game
       @play.game
+    end
+
+    # Whether the person asked for another run when this one ended.
+    def again? : Bool
+      @play.again?
     end
 
     # Draws, waits, and repeats until something ends the run.

@@ -865,6 +865,36 @@ on. The generator comes last because by now it is clear what it has to place.
 * **Verify** — Play a full game start to finish, twice, on the same seed and on a different one.
   Win once and die once. A spec drives a scripted game to a win and to a death and snapshots both
   screens.
+* **Done.** `Ui::Placard` is a box of lines answered by one keystroke. `Widgets::Prompt` asks a
+  question on one row, and both of the screens this phase adds are several rows of text with the
+  same one-keystroke answer under them. `Ui::Placards` holds the wording of both, so there is one
+  place to read what a person is told at the start and at the end of a run.
+
+  The title screen names the seed. `p` plays and `q` quits, and `Enter` plays. It goes up after the
+  first layout, over the map, so a person who has just started a run sees the floor they are about
+  to walk behind it.
+
+  One screen ends a run, whichever way it ended, and the heading is what tells the three apart: You
+  win, You died, You left the dungeon. Under it go what ended the run, the turn, the level and the
+  experience, the gold, what the character was carrying, and the seed. `Game#killer` is new and
+  holds the label of what killed the character, so the screen says "Killed by an orc" rather than
+  "You die". The label is kept rather than the creature, which is still standing on the floor.
+
+  The pack is listed through `Lore#revealed`, a copy of the run's lore that knows every kind. A
+  person who died holding a potion they never drank is told it was a potion of healing. The run is
+  over and there is nothing left for them to find out.
+
+  `y` on that screen starts another run and `n` quits, with `n` on `Enter`: a person pressing
+  `Enter` to get a screen out of the way is not asking to start a whole new run. `Session.open`
+  takes the seed rather than a generator and builds a fresh `Session` for each run, so another run
+  costs a new `Game`, a new `Ui::Play` and a new `Widgets::App` over the terminal that is already
+  open. A seed named on the command line is replayed every round and a run started without one
+  gets a fresh seed each round, so `--seed N` goes on reproducing N. The line printed after the
+  terminal is handed back names the last run's seed, which is the one to pass to `--seed` to play
+  it again.
+
+  `spec/fixtures/screens/` holds the title screen, the death screen and the victory screen drawn
+  out, so a change to any of the wording shows as a diff of three screens.
 
 ## Development tools
 

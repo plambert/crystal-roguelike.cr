@@ -49,28 +49,39 @@ Spectator.describe "the character dying on the screen" do
   it "puts the death screen up" do
     run = killed
 
-    expect(run.prompt.asking?).to be_true
-    expect(run.prompt.question).to contain "You die on turn"
-    expect(run.prompt.question).to contain "at level 1"
+    expect(run.placard.showing?).to be_true
+    expect(run.placard.heading).to eq "You died"
+    expect(run.placard.lines.first).to eq "Killed by an orc."
   end
 
   it "finishes the run when the key is pressed" do
     run = killed
     expect(run.finished?).to be_false
 
-    run.press "q"
+    run.press "n"
 
     expect(run.finished?).to be_true
+    expect(run.play.again?).to be_false
+  end
+
+  it "asks for another run when the key is pressed" do
+    run = killed
+
+    run.press "y"
+
+    expect(run.finished?).to be_true
+    expect(run.play.again?).to be_true
   end
 
   it "puts the death screen up once" do
     run = killed
-    run.press "q"
+    run.press "n"
 
-    # The prompt is answered and gone. A later refresh does not bring it back.
+    # The screen is answered and gone. A later refresh does not bring it
+    # back.
     run.play.refresh
 
-    expect(run.prompt.asking?).to be_false
+    expect(run.placard.showing?).to be_false
   end
 
   it "leaves the last thing that happened in the log" do

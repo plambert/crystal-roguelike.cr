@@ -1,0 +1,24 @@
+#########                                      │ Here
+#..o....#                                      │ ──────────────────────
+#..@...>#                                      │ staircase up
+#########                                      │
+          ╭─ You died ───────────────────────────────────────╮
+          │  Killed by an orc.                               │─────────
+          │                                                  │
+          │  turn 1                                          │
+          │  level 1, 0 experience                           │
+          │  37 gold                                         │─────────
+          │                                                  │map, or
+          │  You were carrying:                              │
+          │    a torch                                       │
+          │    a +1 long sword (weapon in hand)              │
+          │    12 arrows                                     │
+          │    a potion of healing                           │
+          │                                                  │
+          │  seed 20260915                                   │
+──────────│  Play again? y starts a new run, n quits.  [yN]  │──────────
+ hp: 0/8 |╰──────────────────────────────────────────────────╯ | gold:…
+ You miss the orc.
+ The orc notices you.
+ The orc hits you for 8.
+ You die...

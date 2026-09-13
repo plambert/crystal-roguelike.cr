@@ -185,8 +185,8 @@ Spectator.describe "doors, stairs and leaving" do
       run.press ">"
 
       expect(run.game.outcome).to eq Outcome::Won
-      expect(run.prompt.asking?).to be_true
-      expect(run.prompt.question).to contain "You win"
+      expect(run.placard.showing?).to be_true
+      expect(run.placard.heading).to eq "You win"
     end
 
     it "ends the run once the win is acknowledged" do
@@ -327,7 +327,7 @@ Spectator.describe "doors, stairs and leaving" do
 
       run.press ">"
       expect(run.game.outcome).to eq Outcome::Won
-      expect(run.prompt.question).to contain "You win"
+      expect(run.placard.heading).to eq "You win"
 
       run.press "Enter"
       expect(run.finished?).to be_true

@@ -63,6 +63,30 @@ Spectator.describe Roguelike::Lore do
     end
   end
 
+  describe "#revealed" do
+    it "knows every kind" do
+      known = lore.revealed
+
+      expect(Kind.values.all? { |kind| known.known? kind }).to be_true
+    end
+
+    it "names a potion nobody drank" do
+      expect(lore.name Item.new(Kind::HealingPotion)).not_to contain "healing"
+      expect(lore.revealed.name Item.new(Kind::HealingPotion))
+        .to eq "a potion of healing"
+    end
+
+    it "leaves the lore it was made from alone" do
+      lore.revealed
+
+      expect(lore.known?(Kind::HealingPotion)).to be_false
+    end
+
+    it "keeps the appearances" do
+      expect(lore.revealed.appearances).to eq lore.appearances
+    end
+  end
+
   describe "#known?" do
     it "knows a sword on sight" do
       expect(lore.known?(Kind::LongSword)).to be_true

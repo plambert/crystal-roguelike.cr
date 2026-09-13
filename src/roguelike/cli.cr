@@ -30,14 +30,17 @@ module Roguelike
       "Open a console with ` for commands that change the running game"
 
     def run
-      rng = Rng.for seed
-      session = Session.open rng, flicker: flicker, generate: generate,
+      session = Session.open seed, flicker: flicker, generate: generate,
         console: debug_console
 
       exit 1 unless session
 
       # These lines run after the terminal is restored. The alternate screen
       # is gone by then. They stay in the scrollback.
+      #
+      # The last run is the one reported on. A person who played four rounds
+      # is told how the fourth ended, and its seed, which is the one they
+      # would pass to `--seed` to play it again.
       game = session.game
       puts case game.outcome
       in .won?     then "You escaped with your life. You win."
@@ -45,7 +48,7 @@ module Roguelike
       in .died?    then "You died in the dungeon."
       in .playing? then "You left the dungeon where it was."
       end
-      puts "seed #{rng.seed}    turn #{game.turn}"
+      puts "seed #{session.rng.seed}    turn #{game.turn}"
     end
   end
 end
