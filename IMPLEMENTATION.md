@@ -768,6 +768,23 @@ The centre of the project, and the reason for the snapshot-and-action rule and f
 * Factions, so a goblin can be kited into a room of slimes and shut in, or two monsters shut in
   together.
 
+### Senses told apart
+
+Detection is one reach today. The light on the character raises it, which is what makes standing
+in the middle of a lit room or crossing a passage with a torch dangerous. Splitting it is a
+change to perception and a change to behaviour together.
+
+* Sight and hearing as separate senses, each with its own reach and its own rules. Light belongs
+  to the first and says nothing about the second.
+* A light noticed as a thing in its own right rather than only as what makes a creature visible.
+  A torch coming up a corridor is a fact about the corridor before it is a fact about whoever is
+  carrying it.
+* Noticing a light is then a behaviour a species has or does not. A slime round the corner does
+  not care that a torch is approaching. A goblin or an orc reads it as somebody arriving and acts
+  on that before anything is in sight.
+* What such a creature does with it: wait at the mouth of the corridor, move to somewhere it can
+  strike from, or fall back and tell the rest of the band.
+
 ### The machinery that needs
 
 * Planning in a `Fiber::ExecutionContext::Parallel`, off the fiber that owns the model and off
