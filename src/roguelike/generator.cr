@@ -65,19 +65,21 @@ module Roguelike
   # leaves every other room where it was.
   class Generator
     # How wide a floor is.
-    COLUMNS = 72
+    COLUMNS = 216
 
     # How tall a floor is.
-    ROWS = 28
-
-    # How many times a rectangle is cut in two.
-    #
-    # Four cuts make up to sixteen rectangles, and a floor this size then
-    # holds rooms of about the size Rogue's were.
-    CUTS = 4
+    ROWS = 84
 
     # The smallest room there is, in squares of floor.
     LEAST = {4, 3}
+
+    # The largest rectangle that holds one room, in squares.
+    #
+    # A rectangle larger than this on either side is cut again. So the number
+    # of rooms follows the size of the floor rather than a fixed count, and a
+    # floor twice as wide holds twice as many rooms of the same size rather
+    # than the same rooms stretched.
+    ROOMY = {20, 11}
 
     # Where along its longer side a rectangle is cut, out of a hundred.
     #
@@ -150,7 +152,7 @@ module Roguelike
     def dig : Floor
       whole = Area.new 0, 0, @floor.columns, @floor.rows
 
-      cut whole, CUTS
+      cut whole
       doors
       stairs
       rooms.each_with_index do |room, index|
@@ -161,27 +163,32 @@ module Roguelike
       @floor
     end
 
-    # Cuts *area* in two *left* times over, and joins the halves.
+    # Cuts *area* in two until each piece holds one room, and joins the
+    # halves.
     #
     # Answers one room from inside *area*, which is what the cut above joins
     # to. Any room in the rectangle would do: they are all joined to each
     # other by the time this answers.
-    private def cut(area : Area, left : Int32) : Area
-      return carve area if left.zero? || !splittable? area
+    private def cut(area : Area) : Area
+      return carve area unless splittable? area
 
       first, second = halves area
-      near = cut first, left - 1
-      far = cut second, left - 1
+      near = cut first
+      far = cut second
       join near, far
 
       near
     end
 
-    # Whether *area* is large enough to cut in two.
+    # Whether *area* is cut again rather than made into a room.
     #
-    # Each half has to hold the smallest room there is with a square of rock
-    # on every side of it.
+    # It has to be larger than one room wants on one side, and it has to have
+    # room for the smallest room there is on each side of the cut with a
+    # square of rock around it. A rectangle that is too large to leave alone
+    # and too small to cut is made into a room anyway.
     private def splittable?(area : Area) : Bool
+      return false unless area.columns > ROOMY[0] || area.rows > ROOMY[1]
+
       area.columns >= least(0) * 2 || area.rows >= least(1) * 2
     end
 

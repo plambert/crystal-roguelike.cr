@@ -10,10 +10,11 @@ Spectator.describe Roguelike::Generator do
 
   # How many floors the examples about every floor dig.
   #
-  # The Verify line for this phase asks for a thousand. One floor takes about
-  # two milliseconds to dig and a little more to walk, so a thousand is a
-  # second or two of the suite.
-  RUNS = 1000
+  # The Verify line for phase 24 asked for a thousand, when a floor was 72 by
+  # 28. A floor is nine times that area now, so this many covers more squares
+  # than a thousand of the old ones did, and digging and walking them takes
+  # about as long.
+  RUNS = 120
 
   # The first seed they dig from. A failure names a run somebody can start.
   FIRST = 1_u64
@@ -139,15 +140,21 @@ Spectator.describe Roguelike::Generator do
 
   # The Verify line for this phase, one example each.
   describe "every floor" do
+    # How many floors the two examples about the seed dig again.
+    #
+    # Fewer than `RUNS`. Both of these dig every floor a second time, and one
+    # of them holds every map in memory at once.
+    TWICE = 40
+
     # `--seed N` twice gives the identical floor.
     it "digs the same floor from the same seed" do
-      again = (0...200).map { |index| dug(FIRST + index).to_map }
+      again = (0...TWICE).map { |index| dug(FIRST + index).to_map }
 
-      expect(again).to eq DUG.first(200).map &.floor.to_map
+      expect(again).to eq DUG.first(TWICE).map &.floor.to_map
     end
 
     it "digs a different floor from a different seed" do
-      drawn = DUG.first(100).map &.floor.to_map.join
+      drawn = DUG.first(TWICE).map &.floor.to_map.join
 
       expect(drawn.uniq.size).to eq drawn.size
     end

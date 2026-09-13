@@ -829,11 +829,14 @@ on. The generator comes last because by now it is clear what it has to place.
   floors and asserts for each: every floor tile is reachable from the up stairs, both staircases
   exist and are not in the same room, no door is isolated, and no monster or item is inside rock.
 * **Done.** `Generator` cuts a floor by binary space partition. The whole floor starts as one
-  rectangle of solid rock, each rectangle is cut in two four times over, a room is carved in each
-  of the sixteen smallest rectangles, and the two halves of every cut are joined by a corridor of
-  two straight lengths meeting at a right angle. Joining at every cut is what makes every square
-  reachable from every other: the rooms form a tree, and a tree has a path between any two of its
-  leaves. No repair pass walks the floor looking for what was left stranded.
+  rectangle of solid rock, each rectangle is cut in two until it is no larger than `ROOMY`, a room
+  is carved in each of the smallest rectangles, and the two halves of every cut are joined by a
+  corridor of two straight lengths meeting at a right angle. Joining at every cut is what makes
+  every square reachable from every other: the rooms form a tree, and a tree has a path between
+  any two of its leaves. No repair pass walks the floor looking for what was left stranded.
+
+  Cutting to a rectangle size rather than to a fixed depth is what lets the floor grow without the
+  rooms growing with it. A floor twice as wide holds twice as many rooms of the same size.
 
   A room keeps a square of rock between itself and the edge of its rectangle, so two rooms never
   touch. Each rectangle takes its own rock, so what a wall is made of changes from one part of
@@ -851,11 +854,17 @@ on. The generator comes last because by now it is clear what it has to place.
 
   `Game.dug` plays a floor the generator cut and `Game.start` plays the floor that ships, which
   is what every spec about a named square still reads. `--no-generate` plays the shipped floor.
-  A dug floor holds sixteen rooms, about ten creatures, fifteen sconces, twenty-four doors and
-  seven hundred squares of open ground.
 
-  Every floor has the same sixteen rooms. Varying that means letting a rectangle hold no room,
-  and a rectangle with no room has nothing for the cut above it to join to.
+  A floor is 216 by 84 squares. A dug one holds about 175 rooms of about 35 squares each, 7000
+  squares of open ground, 108 creatures, 264 doors, 161 sconces and 200 things to pick up. The
+  window shows about a fortieth of it at once.
+
+  `Game::LITTER` is a rate rather than a count: items per hundred squares of open floor. So how
+  far a person walks between two things they can pick up does not change with the size of the
+  floor. Creatures are already per room and scale the same way.
+
+  A run asked for the field of view twice a step, and on a floor this size that was most of what a
+  step cost. `Game#run` works it out once and passes it to `Game#monsters_in_sight`.
 
 ### Phase 25 — Start, death, victory
 

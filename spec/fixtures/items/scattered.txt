@@ -4,17 +4,14 @@
  22,5   dagger
  37,5   stone
  13,6   short sword
- 31,6   gold piece
  18,7   gloves
  45,7   spear
- 57,7   dagger
  12,8   shield
  44,9   sling
  41,10  stone
  10,12  leather armour
   7,15  cap
  64,17  gold piece
- 66,18  stone
   9,19  long sword
  16,19  stone
  24,20  potion of healing
@@ -23,5 +20,4 @@
  56,21  stone
  68,21  gold piece
   7,22  dagger
- 64,23  cap
  60,24  gold piece

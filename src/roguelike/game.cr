@@ -175,8 +175,12 @@ module Roguelike
       start rng, Generator.floor(rng)
     end
 
-    # How many items a floor starts with.
-    LITTER = 24
+    # How many items a floor starts with, per hundred squares of open floor.
+    #
+    # A rate rather than a count. A floor nine times the area then holds nine
+    # times as much, so how far a person walks between two things they can
+    # pick up does not change with the size of the floor.
+    LITTER = 3
 
     # How much gold one pile holds.
     PURSE = 5..40
@@ -191,7 +195,7 @@ module Roguelike
       floor.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
       return if squares.empty?
 
-      LITTER.times do
+      (squares.size * LITTER // 100).times do
         spot = squares.sample stream
         item = stream.rand(4).zero? ? gold(stream) : Items.random(stream)
         floor.drop spot[0], spot[1], item
@@ -346,6 +350,7 @@ module Roguelike
     def run(direction : Direction) : Running
       steps = 0
       along = corridor? @player.at
+      seen = sight
 
       while steps < FURTHEST
         if blocked_ahead? direction
@@ -353,11 +358,12 @@ module Roguelike
           return Running.new steps, Halt::Blocked
         end
 
-        before = Watch.on self
+        before = Watch.on self, seen
         return Running.new steps, Halt::Blocked unless step(direction).moved?
 
         steps += 1
-        halt = stopped_by before, along
+        seen = sight
+        halt = stopped_by before, along, seen
         along = corridor? @player.at
 
         return Running.new steps, halt if halt
@@ -407,9 +413,9 @@ module Roguelike
       said : Int32,
       last : String?,
       seen : Array(Monster) do
-      def self.on(game : Game) : Watch
+      def self.on(game : Game, seen : Vision) : Watch
         new game.player.hit_points, game.log.size, game.log.last?,
-          game.monsters_in_sight
+          game.monsters_in_sight(seen)
       end
     end
 
@@ -421,10 +427,10 @@ module Roguelike
     # Several can hold at once, and the order here is the order a person
     # would name them. A creature coming into sight is usually what wrote the
     # message on the same step, so it is asked about first.
-    private def stopped_by(before : Watch, along : Bool) : Halt?
+    private def stopped_by(before : Watch, along : Bool, seen : Vision) : Halt?
       return Halt::Over if @outcome.over?
       return Halt::Hurt if @player.hit_points != before.health
-      return Halt::Creature if arrived_in_sight? before.seen
+      return Halt::Creature if arrived_in_sight? before.seen, seen
       return Halt::Told if @log.size != before.said || @log.last? != before.last
       return Halt::Doorway if standing_on.door?
       return Halt::Branch if along && ways(@player.at).size > CORRIDOR
@@ -436,8 +442,8 @@ module Roguelike
     #
     # A creature that was already in sight when the step began does not stop
     # the run, or a run could not be started with one on the screen.
-    private def arrived_in_sight?(before : Array(Monster)) : Bool
-      monsters_in_sight.any? do |creature|
+    private def arrived_in_sight?(before : Array(Monster), seen : Vision) : Bool
+      monsters_in_sight(seen).any? do |creature|
         before.none? &.same?(creature)
       end
     end
@@ -1163,7 +1169,15 @@ module Roguelike
 
     # Every monster on this floor the character can see.
     def monsters_in_sight : Array(Monster)
-      seen = sight
+      monsters_in_sight sight
+    end
+
+    # :ditto:, against a field of view that has already been worked out.
+    #
+    # Working out a field of view is most of what a turn on a large floor
+    # costs, and a run asks this twice a step. A caller with one in hand
+    # passes it rather than paying for another.
+    def monsters_in_sight(seen : Vision) : Array(Monster)
       found = [] of Monster
 
       floor.each_monster do |column, row, creature|
