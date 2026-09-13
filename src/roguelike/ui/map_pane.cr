@@ -157,10 +157,8 @@ module Roguelike::Ui
     # glyph for the size and one colour for every species, because a letter
     # and a colour each name a species and a shape against light names none.
     #
-    # A shape wavers with the flames lighting the square behind it rather
-    # than with any on its own square. Its own square has no light on it.
-    # Nothing on the creature is burning, and what is burning behind it is
-    # the whole reason it can be seen.
+    # A shape wavers with the flames lighting the square behind it. Its own
+    # square has no light on it and so has no flames reaching it.
     private def silhouette(x : Int32, y : Int32) : Look?
       return if seen? x, y
 
@@ -180,11 +178,11 @@ module Roguelike::Ui
     #
     # `Palette::SHAPE_STEP` while the flame holds still, and up to
     # `Palette::SHAPE_WAVER` above it while the flame flares. A guttering
-    # flame leaves the shape where it is: below `SHAPE_STEP` a shape is drawn
-    # the way a remembered square is drawn, and the two have to stay apart.
+    # flame leaves the shape where it is, because a step below `SHAPE_STEP`
+    # is the step a remembered square draws at.
     #
-    # A shape against a magically lit room does not move at all. Nothing is
-    # burning there, so `Flicker#shift` answers zero.
+    # A shape against a magically lit room does not move. Nothing is burning
+    # there, so `Flicker#shift` answers zero.
     private def shape_step(behind : {Int32, Int32}) : Int32
       base = Palette::SHAPE_STEP
 

@@ -189,9 +189,7 @@ module Roguelike
 
     # Puts ammunition for *weapon* on or near *spot*.
     #
-    # A bow with no arrows anywhere on the floor is a bow nobody can use.
-    # Whoever carried it down here carried arrows for it, and what is left of
-    # the two is lying where they fell.
+    # A bow with no ammunition anywhere on the floor cannot be fired.
     #
     # This rolls on a stream named by the square rather than on the litter's
     # own. The litter then falls where it always fell, and a floor from an

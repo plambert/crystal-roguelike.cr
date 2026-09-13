@@ -209,16 +209,15 @@ module Roguelike::Ui
     # The step of `RAMP` a shape draws at while the light behind it holds
     # still.
     #
-    # The dimmest lit step. A shape is a dark creature against light, so it
-    # is never drawn as brightly as the light it stands in front of.
+    # The dimmest lit step. A shape is a dark creature in front of a light,
+    # so it is drawn darker than the light behind it.
     SHAPE_STEP = REMEMBERED + 1
 
     # How far a flame behind a shape may lift it above `SHAPE_STEP`.
     #
-    # One step. A flame that flares picks the shape out, and the shape goes
-    # back to `SHAPE_STEP` when the flame settles. It never goes below
-    # `SHAPE_STEP`, because a shape drawn any dimmer than that is a shape
-    # drawn as a memory.
+    # One step. A flame that flares lifts the shape and the shape drops back
+    # when the flame settles. It never goes below `SHAPE_STEP`, because the
+    # step under that one is the step a remembered square draws at.
     SHAPE_WAVER = 1
 
     # How many points of light one step of the ramp is worth.

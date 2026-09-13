@@ -61,10 +61,9 @@ module Roguelike
 
     # What is said when *name* goes into this slot.
     #
-    # A sword is held, a helmet is worn, and arrows are neither. They go in
-    # the quiver. One sentence for every slot would have arrows announced the
-    # way a sword is, and somebody reading that would look for them in their
-    # hand.
+    # A sword is held, a helmet is worn, and arrows go in the quiver. One
+    # sentence for all three would say arrows are held, which would send a
+    # reader looking for them in their hand.
     def readied(name : String) : String
       case self
       in .quiver?                                  then "You put #{name} in your quiver."

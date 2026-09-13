@@ -107,9 +107,8 @@ module Roguelike
     # The first lit square along the line from here through that one, within
     # `BACKLIGHT`. `nil` when the creature would not show as a shape at all.
     #
-    # What is drawn on the creature's square follows from this square rather
-    # than from the creature's own. A shape is seen by the light behind it,
-    # so a flame guttering behind it is a flame guttering on it.
+    # `Ui::MapPane` draws the creature's square from the light on this one.
+    # The creature's own square has no light on it.
     def backlight(floor : Floor, x : Int32, y : Int32) : {Int32, Int32}?
       return unless @field.includes? x, y
       return if lit? x, y

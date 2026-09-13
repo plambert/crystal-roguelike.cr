@@ -80,7 +80,7 @@ actually been run rather than reasoned about.
 | An empty wand | Costs the turn and says nothing happened. A person cannot know a wand is spent until they try it |
 | Shutting a door | A doorway with a creature or a pile in it stays open. The door swings through that square |
 | Who says why | `Game` writes the refusal. `Play` never writes over it with a guess about what went wrong |
-| A scattered ranged weapon | Lands with ammunition it fires within three squares, most of the time. A bow nobody can shoot is scenery |
+| A scattered ranged weapon | Lands with ammunition it fires within three squares, most of the time |
 | The supply's stream | Named by the weapon's square, never the litter's own, so adding the rule moved nothing else on the floor |
 | Reading in the dark | Refused. A scroll is words on paper. The scroll is not spent and no turn is taken finding that out |
 | A shape against light | Drawn by `Species::Size`, in one colour for every species. A letter names a species and a shape names none |
