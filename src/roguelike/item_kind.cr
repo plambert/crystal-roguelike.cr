@@ -6,11 +6,11 @@ module Roguelike
   # What sort of thing an item is.
   #
   # The class decides what a character can do with an item. A `Melee` weapon
-  # goes in the hand. `Ammunition` goes in the quiver and needs a `Launcher`.
-  # `Thrown` needs nothing but an arm.
+  # goes in the hand. `Ammunition` goes in the quiver and needs a
+  # `RangedWeapon`. `Thrown` needs nothing but an arm.
   enum ItemClass
     Melee
-    Launcher
+    RangedWeapon
     Ammunition
     Thrown
     Armour
@@ -24,7 +24,7 @@ module Roguelike
 
     # Whether a `+N` means anything on this class.
     def enchantable? : Bool
-      melee? || launcher? || ammunition? || thrown? || armour?
+      melee? || ranged_weapon? || ammunition? || thrown? || armour?
     end
 
     # Whether several of these are held as one entry with a count.
@@ -122,7 +122,7 @@ module Roguelike
     damage : Dice = Dice::NONE,
     armour : Int32 = 0,
     slot : ArmourSlot? = nil,
-    launcher : ItemKind? = nil,
+    ranged_weapon : ItemKind? = nil,
     charges : Int32 = 0,
     weight : Int32 = 10,
     light : Int32 = 0,
@@ -193,7 +193,7 @@ module Roguelike
     Mace
     Spear
 
-    # Launchers and what they fire.
+    # RangedWeapons and what they fire.
     Sling
     Bow
     Stone
@@ -261,18 +261,18 @@ module Roguelike
     end
 
     # What fires it. `nil` for anything that is not ammunition.
-    def launcher : ItemKind?
-      facts.launcher
+    def ranged_weapon : ItemKind?
+      facts.ranged_weapon
     end
 
-    # What this fires. `nil` for anything that is not a launcher.
+    # What this fires. `nil` for anything that is not a ranged weapon.
     #
-    # The other way round from `#launcher`. The table names the launcher on
+    # The other way round from `#ranged_weapon`. The table names the weapon
     # the ammunition, because ammunition is what needs one.
     def ammunition : ItemKind?
-      return unless item_class.launcher?
+      return unless item_class.ranged_weapon?
 
-      ItemKind.values.find { |kind| kind.launcher == self }
+      ItemKind.values.find { |kind| kind.ranged_weapon == self }
     end
 
     # How many times it can be used before it is spent.
@@ -365,14 +365,14 @@ module Roguelike
       ItemKind::Spear => ItemFacts.new("spear", "spears", ItemClass::Melee,
         damage: Dice.new(1, 8), weight: 50),
 
-      ItemKind::Sling => ItemFacts.new("sling", "slings", ItemClass::Launcher,
-        weight: 5, range: 12),
-      ItemKind::Bow => ItemFacts.new("bow", "bows", ItemClass::Launcher,
-        weight: 30, range: 16),
+      ItemKind::Sling => ItemFacts.new("sling", "slings",
+        ItemClass::RangedWeapon, weight: 5, range: 12),
+      ItemKind::Bow => ItemFacts.new("bow", "bows",
+        ItemClass::RangedWeapon, weight: 30, range: 16),
       ItemKind::Stone => ItemFacts.new("stone", "stones", ItemClass::Ammunition,
-        damage: Dice.new(1, 4), launcher: ItemKind::Sling, weight: 5),
+        damage: Dice.new(1, 4), ranged_weapon: ItemKind::Sling, weight: 5),
       ItemKind::Arrow => ItemFacts.new("arrow", "arrows", ItemClass::Ammunition,
-        damage: Dice.new(1, 6), launcher: ItemKind::Bow, weight: 2),
+        damage: Dice.new(1, 6), ranged_weapon: ItemKind::Bow, weight: 2),
 
       ItemKind::Rock => ItemFacts.new("rock", "rocks", ItemClass::Thrown,
         damage: Dice.new(1, 3), weight: 10, range: 10),

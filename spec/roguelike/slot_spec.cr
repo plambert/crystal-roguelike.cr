@@ -43,7 +43,7 @@ Spectator.describe Roguelike::Slot do
       expect(Slot.for Item.new(Kind::Dart)).to eq Slot::Melee
     end
 
-    it "puts a launcher in the other hand" do
+    it "puts a ranged weapon in the other hand" do
       expect(Slot.for Item.new(Kind::Bow)).to eq Slot::Ranged
       expect(Slot.for Item.new(Kind::Sling)).to eq Slot::Ranged
     end
@@ -137,7 +137,7 @@ Spectator.describe Roguelike::Slot do
 
     it "says an empty hand is a hand holding nothing" do
       expect(Slot::Melee.vacant).to eq "You are not holding a weapon."
-      expect(Slot::Ranged.vacant).to eq "You are not holding a launcher."
+      expect(Slot::Ranged.vacant).to eq "You are not holding a ranged weapon."
     end
   end
 end

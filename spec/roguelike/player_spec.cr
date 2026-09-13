@@ -163,13 +163,13 @@ Spectator.describe Roguelike::Player do
       end
     end
 
-    describe "#wielded, #launcher and #quivered" do
+    describe "#wielded, #ranged_weapon and #quivered" do
       it "each answer what is in their slot" do
         player = armed [Item.new(Kind::Mace), Item.new(Kind::Sling),
                         Item.new(Kind::Stone, count: 12)]
 
         expect(player.wielded.try &.kind).to eq Kind::Mace
-        expect(player.launcher.try &.kind).to eq Kind::Sling
+        expect(player.ranged_weapon.try &.kind).to eq Kind::Sling
         expect(player.quivered.try &.kind).to eq Kind::Stone
       end
 
@@ -177,7 +177,7 @@ Spectator.describe Roguelike::Player do
         player = armed [] of Item
 
         expect(player.wielded).to be_nil
-        expect(player.launcher).to be_nil
+        expect(player.ranged_weapon).to be_nil
         expect(player.quivered).to be_nil
       end
     end

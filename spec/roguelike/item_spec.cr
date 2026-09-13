@@ -41,9 +41,9 @@ Spectator.describe Roguelike::Item do
 
     it "gives every piece of ammunition something that fires it" do
       Kind.of_class(Roguelike::ItemClass::Ammunition).each do |kind|
-        launcher = kind.launcher
-        expect(launcher).not_to be_nil
-        expect(launcher.try &.item_class.launcher?).to be_true
+        ranged_weapon = kind.ranged_weapon
+        expect(ranged_weapon).not_to be_nil
+        expect(ranged_weapon.try &.item_class.ranged_weapon?).to be_true
       end
     end
 

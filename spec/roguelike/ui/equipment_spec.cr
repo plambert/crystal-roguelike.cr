@@ -54,7 +54,7 @@ Spectator.describe "wielding, wearing and taking off" do
       run.press "w"
       run.press "a"
 
-      expect(run.game.player.launcher.try &.kind).to eq Kind::Bow
+      expect(run.game.player.ranged_weapon.try &.kind).to eq Kind::Bow
       expect(run.game.player.wielded).to be_nil
     end
 
@@ -115,7 +115,7 @@ Spectator.describe "wielding, wearing and taking off" do
       end
 
       expect(run.game.player.wielded.try &.kind).to eq Kind::Mace
-      expect(run.game.player.launcher.try &.kind).to eq Kind::Sling
+      expect(run.game.player.ranged_weapon.try &.kind).to eq Kind::Sling
       expect(run.game.player.quivered.try &.kind).to eq Kind::Stone
     end
 

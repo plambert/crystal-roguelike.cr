@@ -1,6 +1,6 @@
 require "../spec_helper"
 
-Spectator.describe "ammunition beside a scattered launcher" do
+Spectator.describe "ammunition beside a scattered ranged weapon" do
   alias Game = Roguelike::Game
   alias Kind = Roguelike::ItemKind
   alias Rng = Roguelike::Rng
@@ -12,7 +12,7 @@ Spectator.describe "ammunition beside a scattered launcher" do
   # start.
   FIRST = 1_u64
 
-  # One launcher and where it lies.
+  # One ranged weapon and where it lies.
   record Found, spot : {Int32, Int32}, kind : Kind
 
   # Everything lying on *game*'s floor, with the square it lies on.
@@ -39,48 +39,48 @@ Spectator.describe "ammunition beside a scattered launcher" do
     2 * Game::NEARBY * Game::NEARBY
   end
 
-  # Whether *launcher* has ammunition it fires within `Game::NEARBY`.
-  def supplied?(found : Array(Found), launcher : Found) : Bool
-    wanted = launcher.kind.ammunition
+  # Whether *weapon* has ammunition it fires within `Game::NEARBY`.
+  def supplied?(found : Array(Found), weapon : Found) : Bool
+    wanted = weapon.kind.ammunition
 
     found.any? do |lying|
-      lying.kind == wanted && squared(launcher.spot, lying.spot) <= within
+      lying.kind == wanted && squared(weapon.spot, lying.spot) <= within
     end
   end
 
-  # Every launcher on every floor from `RUNS` seeds, and what was near it.
+  # Every ranged weapon on every floor from `RUNS` seeds, and what was near it.
   def scattered : {Int32, Int32}
-    launchers = 0
+    weapons = 0
     supplied = 0
 
     RUNS.times do |index|
       found = lying Game.start(Rng.new FIRST + index)
 
-      found.select(&.kind.item_class.launcher?).each do |launcher|
-        launchers += 1
-        supplied += 1 if supplied? found, launcher
+      found.select(&.kind.item_class.ranged_weapon?).each do |weapon|
+        weapons += 1
+        supplied += 1 if supplied? found, weapon
       end
     end
 
-    {launchers, supplied}
+    {weapons, supplied}
   end
 
   describe "ItemKind#ammunition" do
-    it "names what a launcher fires" do
+    it "names what a ranged weapon fires" do
       expect(Kind::Bow.ammunition).to eq Kind::Arrow
       expect(Kind::Sling.ammunition).to eq Kind::Stone
     end
 
-    it "names nothing for anything that is not a launcher" do
-      Kind.values.reject(&.item_class.launcher?).each do |kind|
+    it "names nothing for anything that is not a ranged weapon" do
+      Kind.values.reject(&.item_class.ranged_weapon?).each do |kind|
         expect(kind.ammunition).to be_nil
       end
     end
 
-    it "is the other way round from ItemKind#launcher" do
-      Kind.values.select(&.item_class.launcher?).each do |launcher|
-        fired = launcher.ammunition
-        expect(fired.try &.launcher).to eq launcher
+    it "is the other way round from ItemKind#ranged_weapon" do
+      Kind.values.select(&.item_class.ranged_weapon?).each do |ranged_weapon|
+        fired = ranged_weapon.ammunition
+        expect(fired.try &.ranged_weapon).to eq ranged_weapon
       end
     end
   end
@@ -92,11 +92,11 @@ Spectator.describe "ammunition beside a scattered launcher" do
     # is about two and a half, so this is somewhat over two of them.
     TOLERANCE = 6.0
 
-    it "puts ammunition near most launchers it scatters" do
-      launchers, supplied = scattered
+    it "puts ammunition near most ranged weapons it scatters" do
+      weapons, supplied = scattered
 
-      expect(launchers).to be > 0
-      expect(supplied * 100.0 / launchers).to be_close Game::QUIVERED, TOLERANCE
+      expect(weapons).to be > 0
+      expect(supplied * 100.0 / weapons).to be_close Game::QUIVERED, TOLERANCE
     end
 
     it "puts the right ammunition near each one" do
@@ -104,7 +104,7 @@ Spectator.describe "ammunition beside a scattered launcher" do
         found = lying Game.start(Rng.new FIRST + index)
 
         found.select(&.kind.item_class.ammunition?).each do |shot|
-          expect(shot.kind.launcher).not_to be_nil
+          expect(shot.kind.ranged_weapon).not_to be_nil
         end
       end
     end

@@ -32,7 +32,7 @@ module Roguelike
     def label : String
       case self
       in .melee?  then "weapon"
-      in .ranged? then "launcher"
+      in .ranged? then "ranged weapon"
       in .quiver? then "quiver"
       in .head?   then "head"
       in .body?   then "body"
@@ -49,7 +49,7 @@ module Roguelike
     def note : String
       case self
       in .melee?  then "weapon in hand"
-      in .ranged? then "launcher in hand"
+      in .ranged? then "ranged weapon in hand"
       in .quiver? then "in quiver"
       in .head?   then "being worn"
       in .body?   then "being worn"
@@ -89,7 +89,7 @@ module Roguelike
     def vacant : String
       case self
       in .melee?                                   then "You are not holding a weapon."
-      in .ranged?                                  then "You are not holding a launcher."
+      in .ranged?                                  then "You are not holding a ranged weapon."
       in .quiver?                                  then "Your quiver is empty."
       in .head?, .body?, .hands?, .feet?, .shield? then "You have nothing on your #{label}."
       end
@@ -136,7 +136,7 @@ module Roguelike
     def self.for(item : Item) : Slot?
       case item.kind.item_class
       when .melee?, .thrown? then Melee
-      when .launcher?        then Ranged
+      when .ranged_weapon?   then Ranged
       when .ammunition?      then Quiver
       when .armour?          then item.kind.slot.try { |worn| Slot.for worn }
       else                        nil

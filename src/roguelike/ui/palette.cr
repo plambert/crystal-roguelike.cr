@@ -87,16 +87,16 @@ module Roguelike::Ui
     COIN   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xD8, 0x48)).bold
 
     ITEMS = {
-      ItemClass::Melee      => Look.new(')', WEAPON),
-      ItemClass::Launcher   => Look.new(')', WEAPON),
-      ItemClass::Ammunition => Look.new(')', WEAPON),
-      ItemClass::Thrown     => Look.new(')', WEAPON),
-      ItemClass::Armour     => Look.new('[', ARMOUR),
-      ItemClass::Potion     => Look.new('!', POTION),
-      ItemClass::Scroll     => Look.new('?', SCROLL),
-      ItemClass::Wand       => Look.new('/', WAND),
-      ItemClass::Light      => Look.new('(', TOOL),
-      ItemClass::Treasure   => Look.new('$', COIN),
+      ItemClass::Melee        => Look.new(')', WEAPON),
+      ItemClass::RangedWeapon => Look.new(')', WEAPON),
+      ItemClass::Ammunition   => Look.new(')', WEAPON),
+      ItemClass::Thrown       => Look.new(')', WEAPON),
+      ItemClass::Armour       => Look.new('[', ARMOUR),
+      ItemClass::Potion       => Look.new('!', POTION),
+      ItemClass::Scroll       => Look.new('?', SCROLL),
+      ItemClass::Wand         => Look.new('/', WAND),
+      ItemClass::Light        => Look.new('(', TOOL),
+      ItemClass::Treasure     => Look.new('$', COIN),
     }
 
     # How *item* is drawn where it lies.

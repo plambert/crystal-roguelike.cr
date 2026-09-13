@@ -80,8 +80,8 @@ actually been run rather than reasoned about.
 | An empty wand | Costs the turn and says nothing happened. A person cannot know a wand is spent until they try it |
 | Shutting a door | A doorway with a creature or a pile in it stays open. The door swings through that square |
 | Who says why | `Game` writes the refusal. `Play` never writes over it with a guess about what went wrong |
-| A scattered launcher | Lands with ammunition it fires within three squares, most of the time. A bow nobody can shoot is scenery |
-| The supply's stream | Named by the launcher's square, never the litter's own, so adding the rule moved nothing else on the floor |
+| A scattered ranged weapon | Lands with ammunition it fires within three squares, most of the time. A bow nobody can shoot is scenery |
+| The supply's stream | Named by the weapon's square, never the litter's own, so adding the rule moved nothing else on the floor |
 | Reading in the dark | Refused. A scroll is words on paper. The scroll is not spent and no turn is taken finding that out |
 | A shape against light | Drawn by `Species::Size`, in one colour for every species. A letter names a species and a shape names none |
 | Shooting at a shape | Allowed. `Tab` walks it and a bolt, an arrow or a rock flies at it. Seeing something move is enough to aim |
@@ -89,6 +89,7 @@ actually been run rather than reasoned about.
 | A shape wavers | With the flame lighting the square behind it, not with its own square. Its own square has no light on it |
 | How far it wavers | One step up from the dimmest lit step, and never below it. A shape drawn dimmer than that reads as a memory |
 | Readying an item | The message follows the slot. A sword is held, a helmet is worn, and arrows go in the quiver |
+| Naming a bow's slot | "Ranged weapon", never "launcher". `ItemClass::RangedWeapon` and `Player#ranged_weapon` say the same |
 
 ## Ground rules
 
@@ -821,7 +822,7 @@ Everything asked for in the basic game, against the phase that delivers it.
 | Armour slots: shield, body, feet, hands, head | 11 |
 | Terrain: three rock walls, stone floor, dirt floor, doors, stairs | 3 |
 | Stairs as the exit that wins the game | 6 |
-| Items: potions, ammunition, thrown weapons, melee, launchers, armour, scrolls, wands | 9 |
+| Items: potions, ammunition, thrown weapons, melee, ranged weapons, armour, scrolls, wands | 9 |
 | Item variants: appearance, `+N`, damaged and masterwork, blessed and cursed | 9 |
 | Enemy types: slime, goblin, orc | 16 |
 | Enemy pathfinding and attack | 17, 19 |

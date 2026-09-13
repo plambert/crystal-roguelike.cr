@@ -24,7 +24,7 @@ module Roguelike::Ui
 
   # A command waiting for a square to be aimed at.
   enum Aiming
-    # `f`, firing the readied launcher.
+    # `f`, firing the readied ranged weapon.
     Fire
 
     # `t`, throwing what the person chose.
@@ -488,7 +488,7 @@ module Roguelike::Ui
 
     # ------------------------------------------------------------- shooting
 
-    # Fires the readied launcher. `f` does this.
+    # Fires the readied ranged weapon. `f` does this.
     #
     # A second press looses the shot, so a person can press `f`, pick a
     # monster with `Tab` and press `f` again without reaching for `Enter`.

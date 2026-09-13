@@ -178,16 +178,16 @@ module Roguelike
       end
     end
 
-    # How often a launcher lands with ammunition for it nearby.
+    # How often a ranged weapon lands with ammunition for it nearby.
     QUIVERED = 85
 
-    # How far from the launcher that ammunition lands.
+    # How far from the ranged weapon that ammunition lands.
     NEARBY = 3
 
     # How many stacks of it land.
     SUPPLY = 1..2
 
-    # Puts ammunition for *launcher* on or near *spot*.
+    # Puts ammunition for *weapon* on or near *spot*.
     #
     # A bow with no arrows anywhere on the floor is a bow nobody can use.
     # Whoever carried it down here carried arrows for it, and what is left of
@@ -196,8 +196,8 @@ module Roguelike
     # This rolls on a stream named by the square rather than on the litter's
     # own. The litter then falls where it always fell, and a floor from an
     # old seed gains arrows without moving anything else.
-    private def supply(rng : Rng, spot : {Int32, Int32}, launcher : Item) : Nil
-      kind = launcher.kind.ammunition
+    private def supply(rng : Rng, spot : {Int32, Int32}, weapon : Item) : Nil
+      kind = weapon.kind.ammunition
       return unless kind
 
       stream = rng.derive "ammunition:#{floor.id}:#{spot[0]},#{spot[1]}"
@@ -211,7 +211,7 @@ module Roguelike
 
     # A floor square within `NEARBY` of *spot*, or *spot* itself.
     #
-    # The square the launcher is on counts. A quiver dropped beside its bow
+    # The square the ranged weapon is on counts. A quiver dropped beside its
     # and one dropped on top of it are the same story.
     private def near(rng : Rng, spot : {Int32, Int32}) : {Int32, Int32}
       found = [] of {Int32, Int32}
@@ -387,19 +387,19 @@ module Roguelike
     # `Play` asks this before it puts the targeting cursor up, so a person
     # with an empty quiver is told at once and spends no turn finding out.
     def cannot_fire : String?
-      launcher = @player.launcher
-      return "You have nothing readied to shoot with." unless launcher
+      ranged_weapon = @player.ranged_weapon
+      return "You have nothing readied to shoot with." unless ranged_weapon
 
       ammunition = @player.quivered
       return "Your quiver is empty." unless ammunition
-      return if ammunition.kind.launcher == launcher.kind
+      return if ammunition.kind.ranged_weapon == ranged_weapon.kind
 
-      "You cannot shoot #{name ammunition} from #{name launcher}."
+      "You cannot shoot #{name ammunition} from #{name ranged_weapon}."
     end
 
-    # How far the readied launcher shoots. Zero when nothing is readied.
+    # How far the readied ranged weapon shoots. Zero when nothing is readied.
     def firing_reach : Int32
-      @player.launcher.try(&.kind.reach) || 0
+      @player.ranged_weapon.try(&.kind.reach) || 0
     end
 
     # Where a thing let go at *target* with *reach* squares in it would stop.
@@ -409,7 +409,7 @@ module Roguelike
       Flight.toward floor, @player.at, target, reach
     end
 
-    # Fires the readied launcher at *target*. Answers whether it went.
+    # Fires the readied ranged weapon at *target*. Answers whether it went.
     #
     # One piece of ammunition leaves the quiver. It lands on the square the
     # shot stopped on, hit or miss, so a fight down a corridor leaves a line
@@ -421,21 +421,21 @@ module Roguelike
         return false
       end
 
-      launcher = @player.launcher
+      ranged_weapon = @player.ranged_weapon
       letter = @player.equipment[Slot::Quiver]
-      return false unless launcher && letter
+      return false unless ranged_weapon && letter
 
       ammunition = @player.inventory[letter]
       return false unless ammunition
 
-      bonus = @player.to_shoot launcher, ammunition
-      damage = @player.shot_damage launcher, ammunition
+      bonus = @player.to_shoot ranged_weapon, ammunition
+      damage = @player.shot_damage ranged_weapon, ammunition
 
       one = draw_one letter
       return false unless one
 
       say "You shoot #{name one}."
-      loose one, target, launcher.kind.reach, bonus, damage
+      loose one, target, ranged_weapon.kind.reach, bonus, damage
       true
     end
 
