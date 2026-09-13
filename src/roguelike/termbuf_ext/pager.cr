@@ -2,9 +2,8 @@ require "termbuf-widgets"
 
 # Extraction candidate: `TermBuf::Widgets::Pager`, for termbuf-widgets.cr.
 #
-# A pane of N rows shows the last N lines. A turn that produces six lines in a
-# four row pane loses two of them. Nobody reads what scrolled past before it
-# was drawn.
+# A pane of N rows shows the last N lines. A turn that produces six lines in
+# a four row pane loses two of them, and those two are never drawn at all.
 #
 # `less` solves this by holding at a page boundary. Roguelikes solve it the
 # same way and write `--More--` at the end of the line. The widget catalogue

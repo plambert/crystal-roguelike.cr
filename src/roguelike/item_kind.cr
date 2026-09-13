@@ -147,7 +147,7 @@ module Roguelike
     # shoot, and a dart and a rock say how far an arm sends them.
     #
     # Anything else goes as far as its weight allows. A dagger crosses a
-    # room. A suit of chain mail lands on the thrower's boots.
+    # room and a suit of chain mail goes one square.
     def reach : Int32
       return range if range > 0
 
@@ -193,7 +193,7 @@ module Roguelike
     Mace
     Spear
 
-    # RangedWeapons and what they fire.
+    # Ranged weapons and what they fire.
     Sling
     Bow
     Stone

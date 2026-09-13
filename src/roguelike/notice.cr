@@ -54,13 +54,12 @@ module Roguelike
     #
     # A species without darkvision sees by the light on what it is looking
     # at. A character standing on an unlit square is not noticed at all,
-    # however close. That is what a dark corridor is worth: a goblin can be
-    # walked past, and can be stabbed before it knows anything is there.
-    # Being hit wakes it, which is `Game#wake` rather than a rule here.
+    # however close, so a goblin in a dark corridor can be walked past and
+    # can be stabbed before it knows anything is there. Being hit wakes it,
+    # which is `Game#wake` rather than a rule here.
     #
-    # A character with light on them is noticed at arm's reach whatever their
-    # stealth. There is no creeping up on something you are standing beside
-    # while holding a torch.
+    # A character with light on them is noticed at arm's reach whatever
+    # their stealth.
     def self.notices?(species : Species, stealth : Int32, light : Int32,
                       from : {Int32, Int32}, to : {Int32, Int32},
                       line : Bool = true) : Bool
@@ -82,8 +81,8 @@ module Roguelike
     # Whether *to* is within *reach* of *from*.
     #
     # Straight line distance, so a reach is round. That is how `FieldOfView`
-    # cuts a radius and how a pool of light falls off. A reach shaped
-    # differently from those would be one more rule to hold in the head.
+    # cuts a radius and how a pool of light falls off, and a third shape
+    # would be a third rule to keep track of.
     def self.within?(from : {Int32, Int32}, to : {Int32, Int32},
                      reach : Int32) : Bool
       across = to[0] - from[0]

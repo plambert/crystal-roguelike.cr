@@ -1,9 +1,9 @@
 module Roguelike::Ui
   # What is on one square, written out in the sidebar.
   #
-  # This pane holds the last square it was pointed at. It does not blank when
-  # the pointer moves off the map. A panel that empties whenever the pointer
-  # crosses the log is a panel nobody can read.
+  # This pane holds the last square it was pointed at. It does not blank
+  # when the pointer moves off the map, because the pointer crosses the log
+  # on its way to anywhere else.
   class ExaminePane
     # The heading. It says what the pane is for while the pane is empty.
     HEADING = "Look"

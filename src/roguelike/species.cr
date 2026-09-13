@@ -36,18 +36,15 @@ module Roguelike
   # member name.
   enum Sharing
     # The band's knowledge seeds each member's own, and the two go their own
-    # ways after that. A tribe whose members have all walked these corridors
-    # before, and who each saw something different yesterday.
-    #
-    # This is what most bands are.
+    # ways after that. This is what most bands are.
     Inherited
 
-    # One mind in several bodies. What one member sees the band knows and
-    # every other member knows at once. A hive, and some slimes.
+    # What one member sees the band knows, and every other member knows it
+    # in the same turn.
     Hive
 
     # Each member keeps its own and passes it to whichever members of the
-    # band are near enough to be told. A pack that calls out.
+    # band are near enough to be told.
     Called
 
     # Whether what one member learns reaches the others in the same turn.
@@ -203,8 +200,8 @@ module Roguelike
     #
     # None of them is East Asian Ambiguous either. The map is a grid of one
     # cell per square, and a terminal set to draw ambiguous characters two
-    # cells wide would tear that grid. `∙` is the bullet operator rather than
-    # the bullet for exactly that reason. The two look the same.
+    # cells wide would tear that grid. `∙` is the bullet operator rather
+    # than the bullet for that reason. The two look the same.
     def glyph : Char
       case self
       in .small?  then '∙'

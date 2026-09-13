@@ -49,8 +49,7 @@ module Roguelike
   # Where somebody was last known to be.
   #
   # A monster that has seen the character remembers where, and how long ago.
-  # It goes to that square rather than to where the character is now, which is
-  # the difference between a creature that hunts and one that cheats.
+  # It goes to that square rather than to where the character is now.
   record Sighting, x : Int32, y : Int32, turn : Int32 do
     include JSON::Serializable
 

@@ -41,9 +41,8 @@ Spectator.describe Roguelike::FieldOfView do
     expect(sight.size).to eq 9
   end
 
-  # If A can see B then B can see A. That is what symmetric shadowcasting
-  # buys, and it is the property a player notices when it is missing: a
-  # monster that can shoot from a square you cannot shoot back at.
+  # If A can see B then B can see A. Without it a monster could shoot from a
+  # square the character cannot shoot back at.
   describe "symmetry" do
     it "holds over every pair of squares on a floor with walls in it" do
       floor = spot [
@@ -178,8 +177,8 @@ Spectator.describe Roguelike::FieldOfView do
   # wedge, and a floor square needs its centre inside that wedge. An opening
   # in the corridor's side wall a few squares along falls outside it.
   #
-  # The rule holds both ways, which is the point: somebody standing in that
-  # opening cannot see along the corridor either.
+  # The rule holds both ways, so somebody standing in that opening cannot
+  # see along the corridor either.
   describe "an opening in the side wall of a corridor" do
     it "is out of sight from along the corridor" do
       floor = spot [

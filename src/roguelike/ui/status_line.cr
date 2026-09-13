@@ -3,8 +3,8 @@ module Roguelike::Ui
   #
   # A `TermBuf::Widgets::StatusBar` cuts from the right when the row runs out
   # of width and marks the cut. So the pairs are added in the order they
-  # matter: hit points first, then advancement, then the five scores, then the
-  # things a person can work out for themselves.
+  # matter: hit points first, then advancement, then the five scores, then
+  # the values that are read least often.
   class StatusLine
     # What a low fraction of hit points is drawn in.
     HURT = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0x6C, 0x55)

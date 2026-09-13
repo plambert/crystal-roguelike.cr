@@ -139,8 +139,8 @@ Spectator.describe Roguelike::Loot do
   describe "how well made it is" do
     TOLERANCE = 3.0
 
-    # Most of what a monster carries is battered. That is what makes a
-    # masterwork piece off a dead orc worth something.
+    # Most of what a monster carries is battered, which is a different table
+    # from the one the floor litter rolls on.
     it "matches the condition table" do
       made = rolled(Species::Orc).flatten.select &.kind.enchantable?
       total = Loot::CONDITIONS.sum { |pair| pair[1] }

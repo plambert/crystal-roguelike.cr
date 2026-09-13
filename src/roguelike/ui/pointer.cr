@@ -52,8 +52,8 @@ module Roguelike::Ui
     # Records that the pointer is elsewhere. Answers the sequence to send, or
     # `nil`.
     #
-    # A terminal that was never told anything is told nothing now. A program
-    # restores what it changed. It changes nothing else.
+    # A terminal that was never told anything is told nothing now. This
+    # class restores only what it set.
     def away : String?
       @spot = nil
       @shape ? want(ELSEWHERE) : nil

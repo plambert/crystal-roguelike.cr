@@ -37,9 +37,8 @@ module Roguelike
 
     # The descent over *knowledge* toward *goal*, no further than *limit*.
     #
-    # The goal square goes in whatever is remembered of it. A creature walks
-    # to where it believes the character is standing, and the character is
-    # standing somewhere.
+    # The goal square goes in whatever is remembered of it, so a creature
+    # walks to where it believes the character is standing.
     def self.toward(knowledge : Knowledge, goal : {Int32, Int32},
                     limit : Int32 = LIMIT) : Descent
       steps = {goal => 0}

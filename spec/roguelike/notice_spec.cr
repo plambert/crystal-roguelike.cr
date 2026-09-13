@@ -93,8 +93,8 @@ Spectator.describe Roguelike::Notice do
       expect(found).to be_true
     end
 
-    # A goblin sees by the light on what it looks at. A character standing in
-    # the dark is not there at all, and that is what a doused torch buys.
+    # A goblin sees by the light on what it looks at, so a character on an
+    # unlit square is not noticed however close they stand.
     it "misses an unlit character however close they stand" do
       beside = Notice.notices? Species::Goblin, AVERAGE, 0, {5, 5}, {6, 5}
       away = Notice.notices? Species::Goblin, AVERAGE, 0, {5, 5}, {7, 5}

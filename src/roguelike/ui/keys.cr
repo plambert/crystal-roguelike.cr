@@ -131,8 +131,8 @@ module Roguelike::Ui
     # `M` turns mouse reporting on and off.
     #
     # This is a toggle. A terminal reporting the mouse no longer lets the
-    # person select and copy with it. Reading the screen is worth more than
-    # pointing at it often enough that the person must choose.
+    # person select and copy with it, so the two cannot both be had at
+    # once.
     def self.mousing(&on_toggle : -> Nil) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("M"), "turn the mouse on or off",

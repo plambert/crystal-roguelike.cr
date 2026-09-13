@@ -8,8 +8,8 @@ module Roguelike
   module Advancement
     # The highest level a character reaches.
     #
-    # The threshold doubles at every level, so the number at level 20 is five
-    # million. Anything past that is a number nobody reads.
+    # The threshold doubles at every level, so the number at level 20 is
+    # five million.
     MAX_LEVEL = 20
 
     # Hit points at level one, before constitution.
@@ -23,8 +23,8 @@ module Roguelike
 
     # Maximum hit points for a character of *level* with *constitution*.
     #
-    # Constitution counts once per level. A tough character pulls further
-    # ahead as they grow, which is what makes constitution worth having.
+    # Constitution counts once per level, so a tough character pulls further
+    # ahead as they grow.
     def self.max_hit_points(level : Int32, constitution : Int32) : Int32
       held = level.clamp 1, MAX_LEVEL
       bonus = Attributes.modifier(constitution) * held

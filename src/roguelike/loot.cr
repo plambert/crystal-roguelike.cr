@@ -38,8 +38,8 @@ module Roguelike
 
     # What a creature carrying a weapon has.
     #
-    # Weighted toward what a small green thing with a large knife would be
-    # holding. A rapier in a goblin's hand is something it took off somebody.
+    # Weighted toward the plain weapons. A goblin is far more likely to have
+    # a dagger than a rapier.
     WEAPONS = {
       ItemKind::Dagger     => 40,
       ItemKind::ShortSword => 25,
@@ -59,7 +59,7 @@ module Roguelike
       ItemKind::ChainMail     => 2,
     }
 
-    # What it is carrying for the light. It is alight: that is why it has it.
+    # What it is carrying for the light. It comes out alight.
     LIGHTS = {
       ItemKind::Torch  => 65,
       ItemKind::Candle => 35,
@@ -135,9 +135,8 @@ module Roguelike
 
     # What one draw produces. `nil` when it produces nothing.
     #
-    # Anything that burns comes out alight. A monster carrying a torch is
-    # carrying it for the light, and that is where `Game#lights` finds a
-    # carried source at last.
+    # Anything that burns comes out alight, and `Game#lights` reads it as a
+    # carried source.
     private def self.one(draw : Draw, rng : Rng) : Item?
       return unless rng.rand(100) < draw.chance
 

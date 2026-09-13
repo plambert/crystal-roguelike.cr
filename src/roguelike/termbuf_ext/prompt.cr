@@ -18,9 +18,9 @@ require "termbuf-widgets"
 #   answered and then dismissed. `#on_answer` runs as soon as a key arrives. A
 #   `Message` would arrive on the next pump.
 # * Should the answers be a keymap at all? A keymap lets a caller rebind them.
-#   The answers are the question's own text here, so a rebind would make the
-#   prompt lie. The keymap is built from the keys each time a question is
-#   asked.
+#   The answers are the question's own text here, so a rebind would leave
+#   the prompt offering keys that do nothing. The keymap is built from the
+#   keys each time a question is asked.
 module TermBuf::Widgets
   # A question answered by one keystroke.
   #

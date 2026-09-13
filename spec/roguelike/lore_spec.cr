@@ -44,8 +44,8 @@ Spectator.describe Roguelike::Lore do
       expect(described_class.roll(rng).appearances).to eq lore.appearances
     end
 
-    # Two kinds sharing a look would be a bug nobody could see. A person who
-    # drank one swirly potion would be told the other was identified too.
+    # A person who drank one swirly potion would be told the other kind was
+    # identified too.
     it "gives every disguised kind a look of its own" do
       looks = Kind.values.compact_map { |kind| lore.appearance kind }
 

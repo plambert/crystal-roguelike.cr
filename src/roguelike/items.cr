@@ -37,7 +37,7 @@ module Roguelike
     # The same, on a cursed item.
     #
     # A curse leans the other way. A cursed sword is usually worse than a
-    # plain one, which is what makes finding out worth the trouble.
+    # plain one.
     CURSED_ENCHANTMENTS = {
       {-3, 5},
       {-2, 20},

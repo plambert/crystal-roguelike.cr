@@ -21,8 +21,8 @@ module Roguelike
   # One creature's decision.
   #
   # An `Action` changes nothing. `Pursuit.decide` answers one and `Game`
-  # applies it, which is where the decision meets the floor and is checked
-  # against it. A creature that decides to walk into a wall walks nowhere.
+  # applies it, checking it against the floor. A creature that decides to
+  # walk into a wall walks nowhere.
   record Action, intent : Intent, direction : Direction? = nil do
     # Stay put.
     def self.wait : Action
@@ -53,20 +53,17 @@ module Roguelike
   # How a creature decides where to go.
   #
   # Nothing here holds state, opens a floor or writes anything. It reads a
-  # `Snapshot` and answers an `Action`. That is the rule the whole model is
-  # built to keep: an AI proposes, and the one owner of the game state
-  # applies.
+  # `Snapshot` and answers an `Action`. An AI proposes, and the one owner of
+  # the game state applies.
   module Pursuit
     # Everything an AI reads to decide one creature's action.
     #
     # There is no `Floor` here and no `Player`. What an AI knows about the
     # shape of the floor is `knowledge`, which is its band's belief, and what
     # it knows about where the character is is `quarry`, which is where the
-    # band last saw them. Neither of those is the truth, and a creature acts
-    # on the difference.
+    # band last saw them. Neither is necessarily what is on the floor now.
     #
-    # `blocked` is the one thing here that is not belief. A creature knows
-    # what it is standing against.
+    # `blocked` is the one thing here that is not belief.
     record Snapshot,
       at : {Int32, Int32},
       knowledge : Knowledge,

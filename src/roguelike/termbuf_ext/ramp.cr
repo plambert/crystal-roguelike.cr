@@ -30,8 +30,8 @@ module TermBuf::Widgets
     #
     # The last one is nearly always zero, which leaves the top step the style
     # itself. Giving these rather than working them out from two ends is what
-    # lets one step sit well below the rest: a square drawn from memory is
-    # not the dimmest lit square, it is something else.
+    # lets one step sit well below the rest, so that a square drawn from
+    # memory is not read as the dimmest lit square.
     getter fractions : Array(Float64)
 
     # What the deepest step moves toward.
@@ -103,9 +103,8 @@ module TermBuf::Widgets
       style = style.fg mix(base.foreground, part) unless base.foreground.default?
       style = style.bg mix(base.background, part) unless base.background.default?
 
-      # A dimmed style is not the bright one it came from. Bold on a dim
-      # colour reads as lit, which is the one thing the dimming says it is
-      # not.
+      # Bold is dropped. A bold dim colour reads as lit, which is what the
+      # dimming is there to say it is not.
       style.copy_with attributes: base.attributes & ~Attributes::Bold
     end
 

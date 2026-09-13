@@ -107,7 +107,8 @@ Spectator.describe Roguelike::Pursuit do
       expect(found.direction).to eq Direction::NorthWest
     end
 
-    # The whole point of the map. Straight at the character is a wall.
+    # Straight at the character is a wall, so a creature that paths goes
+    # round it.
     it "walks round a wall rather than into it" do
       found = Pursuit.decide snapshot({5, 1}, quarry: {3, 1})
 

@@ -126,7 +126,7 @@ Spectator.describe "noticing the character" do
 
   describe "a dim corridor" do
     # A floor with a glimmer of its own lights the character wherever they
-    # stand, so light is no longer what hides them. Stealth is.
+    # stand, so stealth is the only thing left that hides them.
     it "notices a loud character further off than a quiet one" do
       loud, first = corridor ambient: 1, stealth: 4
       quiet, second = corridor ambient: 1, stealth: 18
@@ -194,8 +194,8 @@ Spectator.describe "noticing the character" do
   end
 
   describe "a band that has not noticed" do
-    # The whole point of the phase. A creature that has not noticed the
-    # character does not swing at them, however close they walk.
+    # A creature that has not noticed the character does not swing at them,
+    # however close they walk.
     it "does not swing at a character walking round it in the dark" do
       game, creature = room
 

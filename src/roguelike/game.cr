@@ -209,8 +209,8 @@ module Roguelike
 
     # A floor square within `NEARBY` of *spot*, or *spot* itself.
     #
-    # The square the ranged weapon is on counts. A quiver dropped beside its
-    # and one dropped on top of it are the same story.
+    # The square the ranged weapon is on counts, so the ammunition may land
+    # on top of it.
     private def near(rng : Rng, spot : {Int32, Int32}) : {Int32, Int32}
       found = [] of {Int32, Int32}
 
@@ -309,8 +309,7 @@ module Roguelike
     # there the last time there was light on it.
     #
     # It records the shape of the square and what is fixed to it, and not
-    # what is lying on the floor. Working a door latch says nothing about
-    # what is under your feet on the far side of it.
+    # what is lying on the floor.
     private def handled(spot : {Int32, Int32}) : Nil
       @player.knowledge.touch floor, spot[0], spot[1], @turn
     end
@@ -365,8 +364,7 @@ module Roguelike
     # Takes *creature* off the floor and awards its experience.
     #
     # Whatever it was carrying lands on the square it died on. A lit torch
-    # goes on burning there, which is how a fight in a dark corridor leaves a
-    # light behind it.
+    # goes on burning there.
     private def kill(creature : Monster) : Nil
       floor.remove creature.x, creature.y
       creature.drop_everything.each do |item|
@@ -410,8 +408,7 @@ module Roguelike
     # Fires the readied ranged weapon at *target*. Answers whether it went.
     #
     # One piece of ammunition leaves the quiver. It lands on the square the
-    # shot stopped on, hit or miss, so a fight down a corridor leaves a line
-    # of arrows to walk back over.
+    # shot stopped on, hit or miss.
     def fire(target : {Int32, Int32}) : Bool
       complaint = cannot_fire
       if complaint
@@ -522,7 +519,7 @@ module Roguelike
     # Every check against what is actually there happens here.
     #
     # One `Descent` is built for each awake band rather than for each of its
-    # members. The band searches. The creatures walk downhill.
+    # members. Every creature in the band reads the same one.
     #
     # The list is taken before any of them acts. A creature that moves would
     # otherwise change the table being walked, and a swing can end the run.
@@ -596,9 +593,8 @@ module Roguelike
 
     # Does what *action* says, as far as the floor allows.
     #
-    # This is where a decision meets what is actually there. A creature that
-    # decided to walk into a wall walks nowhere and a creature that decided
-    # to swing at an empty square swings at nothing.
+    # A creature that decided to walk into a wall walks nowhere, and one
+    # that decided to swing at an empty square swings at nothing.
     private def perform(creature : Monster, action : Action) : Nil
       direction = action.direction
       return unless direction
@@ -728,8 +724,7 @@ module Roguelike
     # *band* stops looking and goes back to sleep.
     #
     # What it learned of the floor stays. Where it last saw the character
-    # does not: a band that wakes again looks for them where it finds them,
-    # not where they were half a dungeon ago.
+    # does not, so a band that wakes again starts from where it finds them.
     private def give_up(band : Band) : Nil
       band.awareness = Awareness::Asleep
       band.knowledge(floor.id).lost Knowledge::PLAYER
@@ -799,10 +794,8 @@ module Roguelike
     # never take the first step out of the dark: a `Descent` cannot reach a
     # square nobody has looked at, so it would not be on its own map.
     #
-    # What it is standing on it knows whole, items and all. What is beside it
-    # it knows the shape of and no more. Reaching out in the dark tells a
-    # creature there is a wall there. It does not tell it there is a sword on
-    # the floor.
+    # What it is standing on it knows whole, items and all. What is beside
+    # it it knows the shape of and no more.
     private def feel(knowledge : Knowledge, x : Int32, y : Int32) : Nil
       knowledge.see floor, x, y, @turn
 
@@ -1392,9 +1385,8 @@ module Roguelike
 
     # Writes the shape of the whole floor into what the character remembers.
     #
-    # The shape and no more. `Knowledge#touch` records the terrain and what is
-    # fixed to it, and keeps whatever item was already remembered there. A map
-    # shows a person the walls. It does not show them the loot.
+    # The shape and no more. `Knowledge#touch` records the terrain and what
+    # is fixed to it, and keeps whatever item was already remembered there.
     private def map_the_floor : Nil
       floor.each { |column, row, _tile| @player.knowledge.touch floor, column, row, @turn }
       say "The shape of the floor comes to you."

@@ -21,8 +21,8 @@ Spectator.describe Roguelike::Fixture do
       expect(fitting.light).to eq Kind::Sconce.light
     end
 
-    # A flame up on a wall clears the furniture. The same flame at ankle
-    # height does not.
+    # A flame up on a wall reaches further than the same flame at ankle
+    # height.
     it "throws less standing on its own foot" do
       fitting = described_class.new Kind::Sconce, true
 

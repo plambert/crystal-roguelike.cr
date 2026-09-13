@@ -14,8 +14,8 @@ module Roguelike::Ui
   # holds a name and a short description. Those read at a width that does not
   # change.
   #
-  # The status line is one row. The log is `LOG_ROWS` rows. Both run the whole
-  # width. A message cut off at the sidebar would be half a message.
+  # The status line is one row. The log is `LOG_ROWS` rows. Both run the
+  # whole width, so a long message is not cut off at the sidebar.
   #
   # This class opens no terminal. It reads no event. A `Screen` is a widget
   # tree. A spec builds one, renders it into a buffer, and reads the cells
@@ -29,9 +29,8 @@ module Roguelike::Ui
 
     # The narrowest screen that keeps the sidebar.
     #
-    # A map pane narrower than the sidebar beside it is not a map pane. Under
-    # this width the sidebar is hidden rather than squeezed. The number is the
-    # sidebar width plus enough map to play in.
+    # Under this width the sidebar is hidden rather than squeezed. The
+    # number is the sidebar width plus enough map to play in.
     SIDEBAR_MINIMUM_COLUMNS = 60
 
     # Rows the message log is given.
@@ -42,9 +41,9 @@ module Roguelike::Ui
 
     # The narrowest terminal the game is drawn in.
     #
-    # Under this width the log wraps to something nobody can read. The map
-    # shows less than one room. The notice is drawn instead of the game. The
-    # notice asks for a larger window.
+    # Under this width the log wraps most messages over several rows and the
+    # map shows less than one room. The notice is drawn instead of the game,
+    # asking for a larger window.
     MINIMUM_COLUMNS = 40
 
     # The shortest terminal the game is drawn in.
@@ -89,8 +88,8 @@ module Roguelike::Ui
     getter gutter : Widgets::Divider
 
     def initialize
-      # A map pane has no padding. A map is a grid of cells. A column given
-      # to a margin is a column of the floor nobody can see.
+      # A map pane has no padding. A map is a grid of cells, and a column
+      # given to a margin is one fewer column of the floor.
       @map = Widgets::Panel.new(
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)

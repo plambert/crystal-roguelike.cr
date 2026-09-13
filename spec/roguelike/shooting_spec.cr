@@ -252,7 +252,8 @@ Spectator.describe "shooting and throwing" do
       expect(game.floor.items(*EAST).map &.kind).to contain Kind::Dagger
     end
 
-    # Chain mail weighs three hundred. It lands on the character's boots.
+    # Chain mail weighs three hundred, which is over the weight that leaves
+    # anything but the shortest throw.
     it "drops something too heavy to throw one square away" do
       game = armed [Item.new(Kind::ChainMail)]
       game.throw 'a', EAST
@@ -286,8 +287,8 @@ Spectator.describe "shooting and throwing" do
       expect(game.log.last?.to_s).to contain "take"
     end
 
-    # A person holding a handful of darts throws one. Making them put the
-    # handful down first would be a rule nobody could guess.
+    # A person holding a handful of darts throws one of them. Only worn
+    # armour has to come off first.
     it "throws what the character is holding" do
       game = armed [Item.new(Kind::Dart, count: 4)]
       game.wield 'a'

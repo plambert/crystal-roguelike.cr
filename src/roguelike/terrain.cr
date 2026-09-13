@@ -21,8 +21,8 @@ module Roguelike
   # Digging will differ by rock. Sound through a wall will differ by rock. A
   # floor generator will pick a rock by depth.
   #
-  # No member here carries a glyph or a style. `Ui::Palette` holds both. A theme changes that table. A spec reads a floor with no
-  # terminal open.
+  # No member here carries a glyph or a style. `Ui::Palette` holds both. A
+  # theme changes that table. A spec reads a floor with no terminal open.
   enum Terrain
     Granite
     Sandstone

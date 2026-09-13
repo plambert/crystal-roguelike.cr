@@ -59,7 +59,7 @@ actually been run rather than reasoned about.
 | Combat rolls | Their own stream per swing, named by how many the run has rolled, so a save file holds a count |
 | Noticing | A band notices, not a monster. Reach is the species' own, less stealth, plus the light on the character, a square per point |
 | Seeing in the dark | An orc's reach ignores light. A goblin or a slime notices nothing unlit, however close it stands |
-| Pursuit | One `Descent` per band per turn, flooded over the band's own `Knowledge`. Its members step downhill |
+| Pursuit | One `Descent` per band per turn, flooded over the band's own `Knowledge`. Its members step to a neighbour nearer the goal |
 | A creature's decision | `Pursuit.decide` reads a snapshot holding no floor and no player, and answers an `Action` |
 | Seeing across a square | A creature that can see somebody writes down that the ground between can be crossed, and no more |
 | Touch | A creature knows the terrain of the eight squares round it and what is fixed to them. Items only where it stands |
@@ -149,13 +149,13 @@ Save and load themselves are future work. Serializability is not.
 
 ### Belief is modelled apart from truth
 
-What is on a floor and what somebody thinks is on a floor are two different things, and the
-second one is where the interesting behaviour lives. So there is a `Knowledge` type from the
-first moment anything needs to remember a floor: terrain seen, where things were when last seen,
+What is on a floor and what somebody thinks is on a floor are two different things, and what a
+creature does follows from the second. So there is a `Knowledge` type from the first moment
+anything needs to remember a floor: terrain seen, where things were when last seen,
 where somebody was last known to be, and how stale each of those is.
 
-The player's remembered map in Phase 14 is the same type a monster band uses in Phase 19. Writing
-it once, for the player, and reusing it is the whole point of putting it this early.
+The player's remembered map in Phase 14 is the same type a monster band uses in Phase 19. It is
+written once, for the player, and reused.
 
 ### One owner for game state, and AI that proposes rather than mutates
 
@@ -182,14 +182,13 @@ about it. `Band#sharing` decides how the second reaches the first:
 
 | `Sharing` | What it is |
 |---|---|
-| `Inherited` | The band's knowledge seeds a new member's own, and the two go their own ways. A tribe whose members have all walked these corridors before and who each saw something different yesterday. Most bands. |
-| `Hive` | One mind in several bodies. What one member sees, the band and every other member know in the same turn. A hive, and some slimes. |
-| `Called` | Each member keeps its own and passes it to whichever members are near enough to be told. A pack that calls out. |
+| `Inherited` | The band's knowledge seeds a new member's own, and the two go their own ways after that. Most bands. |
+| `Hive` | What one member sees, the band and every other member know in the same turn. |
+| `Called` | Each member keeps its own and passes it to whichever members are near enough to be told. |
 
 `Knowledge#sightings` is where each creature was last seen, by who, with the turn. A monster goes
-to where it saw the character rather than to where the character is, which is the difference
-between a creature that hunts and one that cheats. `Knowledge#copy` is what `Inherited` hands a
-new member.
+to where it saw the character rather than to where the character is. `Knowledge#copy` is what
+`Inherited` hands a new member.
 
 The fields are in place from Phase 16. Nothing reads them until Phase 19.
 
@@ -591,10 +590,9 @@ The phase that introduces the type monster bands will use in Phase 19.
   comparison against it. Two species traits decide how the last two are read. `Species#darkvision?`
   makes an orc's reach ignore light in both directions, so it reads the same in a lit room and a
   dark corridor. Without it a creature sees by the light on what it looks at, so a character
-  standing on an unlit square is not noticed at all, however close — which is what a doused torch
-  buys, and it is what makes the awake check in `Game#creatures_act` do real work rather than
-  never fire. Being hit wakes a band whatever the light, which is `Game#wake` rather than a rule
-  in `Notice`.
+  standing on an unlit square is not noticed at all, however close. Putting a torch out is then
+  worth doing, and the awake check in `Game#creatures_act` has cases where it fires. Being hit
+  wakes a band whatever the light, which is `Game#wake` rather than a rule in `Notice`.
 
   Line of sight costs nothing extra. The field of view is symmetric, so the cast the character
   already makes each turn answers which creatures have a line back, and one cast serves the whole
@@ -884,8 +882,7 @@ change to perception and a change to behaviour together.
 * Sight and hearing as separate senses, each with its own reach and its own rules. Light belongs
   to the first and says nothing about the second.
 * A light noticed as a thing in its own right rather than only as what makes a creature visible.
-  A torch coming up a corridor is a fact about the corridor before it is a fact about whoever is
-  carrying it.
+  A creature would notice a torch coming up a corridor without yet knowing who carries it.
 * Noticing a light is then a behaviour a species has or does not. A slime round the corner does
   not care that a torch is approaching. A goblin or an orc reads it as somebody arriving and acts
   on that before anything is in sight.

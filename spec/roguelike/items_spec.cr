@@ -140,8 +140,7 @@ Spectator.describe Roguelike::Items do
       500.times { expect(described_class.random(rng).blessing_known?).to be_false }
     end
 
-    # A cursed sword is usually worse than a plain one. That is what makes
-    # finding out worth the trouble.
+    # A cursed sword is usually worse than a plain one.
     it "leans a cursed item's plus the other way" do
       rng = stream
       totals = Hash(Roguelike::Blessing, Array(Int32)).new { |table, key| table[key] = [] of Int32 }

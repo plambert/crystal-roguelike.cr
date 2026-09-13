@@ -173,8 +173,8 @@ Spectator.describe "drinking, reading and zapping" do
       expect(named game, 'a').to eq "#{Lore.article look.to_s} #{look} potion"
     end
 
-    # This is the whole point of the disguise. One potion names every potion
-    # that looks the same.
+    # Identification is per kind, so one potion names every potion that
+    # looks the same.
     it "names every other potion of the same kind" do
       game = carrying [Item.new(Kind::HealingPotion, count: 3)]
       expect(named game, 'a').to contain "potion"
@@ -231,7 +231,8 @@ Spectator.describe "drinking, reading and zapping" do
       expect(game.knowledge[10, 4].try &.terrain).to eq game.floor.terrain 10, 4
     end
 
-    # A map shows a person the walls. It does not show them the loot.
+    # The scroll records the terrain and what is fixed to it, and nothing
+    # that is lying about.
     it "says nothing about what is lying on the floor" do
       game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
       game.floor.drop 10, 4, Item.new(Kind::LongSword)

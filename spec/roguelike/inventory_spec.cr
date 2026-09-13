@@ -40,8 +40,7 @@ Spectator.describe Roguelike::Inventory do
     end
   end
 
-  # A hand that has learned where c is should not have to learn again when b
-  # is dropped.
+  # Dropping b does not move what is under c.
   describe "the letters" do
     it "keeps a letter for as long as the item is carried" do
       bag.add Item.new(Kind::Dagger)

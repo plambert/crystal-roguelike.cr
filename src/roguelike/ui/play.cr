@@ -277,9 +277,8 @@ module Roguelike::Ui
     # hides it.
     #
     # The examine cursor wins. Both it and the pointer point at one readout,
-    # so a pointer over the map is on the examine cursor's own square anyway.
-    # A pointer that is resting while the keyboard moves the cursor is a
-    # pointer the person is not using.
+    # so a pointer over the map is on the examine cursor's own square
+    # anyway.
     #
     # The pointer takes it when there is no examine cursor. Reverse video
     # alone is easy to miss on a screen full of glyphs.
@@ -509,8 +508,8 @@ module Roguelike::Ui
 
     # Throws a carried item. `t` does this.
     #
-    # Anything can be thrown. A rock and a dart go furthest, and a suit of
-    # chain mail lands on the character's boots.
+    # Anything can be thrown. A rock and a dart go furthest, and anything
+    # not made for throwing goes a square or two.
     def throw : Nil
       if @aiming
         loose
@@ -891,8 +890,8 @@ module Roguelike::Ui
 
     # Lights up every square that answers the command waiting for a direction.
     #
-    # A person asked which way has to see which way. Four doors around one
-    # square are four answers, and the question is which of them.
+    # Four doors around one square are four answers, and a person has to see
+    # which is which before they pick one.
     private def offer_directions : Nil
       waiting = @pending
       return unless waiting

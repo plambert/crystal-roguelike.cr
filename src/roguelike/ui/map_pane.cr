@@ -69,9 +69,8 @@ module Roguelike::Ui
 
     # The square the examine cursor is on. `nil` when there is no cursor.
     #
-    # The cursor draws over whatever is on the square. It does not replace it.
-    # The cursor marks its square. It leaves the glyph on that square
-    # readable.
+    # The cursor marks its square rather than replacing what is on it, so
+    # the glyph under it stays readable.
     property cursor : {Int32, Int32}? = nil
 
     # What is standing on a square. It draws over the terrain. It is not
@@ -131,8 +130,7 @@ module Roguelike::Ui
       kind = @sight.try &.light_kind(x, y)
 
       # A lit square never falls to the step a remembered one draws at,
-      # however many flames gutter at once. Two things a person tells apart
-      # at a glance stay apart.
+      # however many flames gutter at once.
       step = (Palette.step(level) + wavering(x, y))
         .clamp Palette::REMEMBERED + 1, Palette::STEPS - 1
 

@@ -81,8 +81,8 @@ module Roguelike
 
     # How much less light a fixture standing on the floor throws.
     #
-    # A flame up on a wall clears the furniture and reaches further than the
-    # same flame at ankle height.
+    # A flame up on a wall reaches further than the same flame at ankle
+    # height.
     FLOOR_PENALTY = 1
 
     # How far this fixture throws light. Zero while it is not alight.

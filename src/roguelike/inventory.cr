@@ -5,8 +5,8 @@ module Roguelike
   # What a character carries, one letter at a time.
   #
   # Every entry has a letter. A person types the letter to choose the item.
-  # An item keeps its letter for as long as it is carried, so a hand that has
-  # learned where `c` is does not have to learn again when `b` is dropped.
+  # An item keeps its letter for as long as it is carried, so dropping `b`
+  # does not move what is under `c`.
   #
   # A new item takes the lowest free letter. Lower case runs first, then upper
   # case, which is what every roguelike does and what `LETTERS` spells out.

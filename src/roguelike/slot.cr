@@ -83,8 +83,7 @@ module Roguelike
 
     # What is said when somebody empties this slot and it is already empty.
     #
-    # `Game#cannot_fire` says the same thing about an empty quiver. A person
-    # who has read one of the two has read the other.
+    # `Game#cannot_fire` says the same thing about an empty quiver.
     def vacant : String
       case self
       in .melee?                                   then "You are not holding a weapon."

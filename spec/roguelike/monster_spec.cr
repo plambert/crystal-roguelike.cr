@@ -51,8 +51,8 @@ Spectator.describe Roguelike::Monster do
       expect(Band.new("band-one").faction).to eq Faction::Dungeon
     end
 
-    # Most bands are a tribe whose members have walked these corridors before
-    # and who each saw something different yesterday.
+    # A member starts from a copy of the band's knowledge, and the two go
+    # their own ways after that.
     it "passes what it knows down to each member by default" do
       expect(Band.new("band-one").sharing).to eq Roguelike::Sharing::Inherited
     end

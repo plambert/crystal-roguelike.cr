@@ -7,9 +7,8 @@ module Roguelike::Ui
   # come first, then items. Both are nearest first.
   #
   # Both sections read what is there now. Neither reads `Knowledge`. A
-  # creature that has walked out of sight leaves this pane. An item nobody
-  # has light on leaves it too. The map works the other way. The map draws
-  # what was last seen. This pane says what is seen.
+  # creature that has walked out of sight leaves this pane, and so does an
+  # item nobody has light on. The map instead draws what was last seen.
   #
   # `ExaminePane` is the other half of the sidebar. That pane describes one
   # square somebody pointed at. This pane writes both its sections without

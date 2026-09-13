@@ -7,8 +7,8 @@ module Roguelike
   #
   # A potion is a colour until somebody drinks one. The colour is rolled per
   # run, so a swirly potion is the same thing all game and a different thing
-  # in the next game. That is the whole point of the disguise. A person who
-  # learned the colours once would never have to learn them again.
+  # in the next game. A person who learned the colours once would otherwise
+  # never have to learn them again.
   #
   # Identification is per kind. Drinking one swirly potion names every swirly
   # potion.

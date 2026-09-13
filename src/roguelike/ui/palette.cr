@@ -6,7 +6,7 @@ module Roguelike::Ui
   #
   # This table sits apart from `Terrain`. What a square is made of is the
   # model's to say. What it looks like is the screen's. A theme is a different
-  # table here. A theme is not a change to the game.
+  # table here rather than a change to the game.
   #
   # Every style is a constant. The style table interns each one once. A style
   # built inside a draw call would intern one style per cell. One frame bounds
@@ -70,8 +70,8 @@ module Roguelike::Ui
     # What the square a shot would stop on is drawn on.
     #
     # A different colour from the rest of the line. The line says where the
-    # shot goes and this says how far it gets, and a person aiming past a wall
-    # has to see the two part company.
+    # shot goes and this says how far it gets. Somebody aiming past a wall
+    # has to see where the two stop agreeing.
     IMPACT = TermBuf::Color.rgb 0x6A, 0x2E, 0x2E
 
     # What each class of item is drawn as.
@@ -163,8 +163,8 @@ module Roguelike::Ui
     # What each sort of fixture is drawn as.
     #
     # The glyph does not change when it is lit. A burning bracket is the same
-    # bracket, and `!` is the potion glyph, which a sconce has no business
-    # borrowing. The colour says whether it is alight.
+    # bracket, and `!` is already the potion glyph. The colour says whether
+    # it is alight.
     FIXTURES = {
       FixtureKind::Sconce => '|',
     }
@@ -181,8 +181,6 @@ module Roguelike::Ui
     # turn the dim end of the ramp into the high-contrast end, and a terminal
     # that lightens a foreground to hold a contrast ratio against its own
     # background undoes the shading altogether.
-    #
-    # This is the one colour a theme would want to change first.
     GROUND = TermBuf::Color.rgb 0x0C, 0x0E, 0x12
 
     # The style that paints it.
@@ -195,8 +193,8 @@ module Roguelike::Ui
     #
     # Four lit steps and one below them. The gap between the bottom step and
     # the one above it is wider than any gap inside the lit range, because a
-    # square drawn from memory is not a dimly lit square. It is something
-    # else, and it has to read as something else at a glance.
+    # square drawn from memory has to be told from a dimly lit one at a
+    # glance.
     SHADES = [0.66, 0.44, 0.30, 0.15, 0.0]
 
     # How many steps there are between a remembered square and a brightly lit
