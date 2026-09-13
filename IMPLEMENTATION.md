@@ -72,7 +72,8 @@ actually been run rather than reasoned about.
 | Where it lands | On the square it stopped on, hit or miss. A fired arrow is on the floor to be picked up again |
 | How far it goes | A bow, a sling, a dart and a rock say. Anything else goes ten squares less one per twenty of weight |
 | Sidebar | Three sections: "Here" is the square underfoot, "Seen" is what is in sight now, "Look" is the square pointed at |
-| Here and Seen | What is there now, never `Knowledge`. The map draws what was last seen; these two say what is seen |
+| Here and Seen | What is there now, never `Knowledge`. The map draws what was last seen. These two say what is seen |
+| Naming the ground | "Here" always names the terrain underfoot. Nobody reads it standing still. Everybody notices it change |
 
 ## Ground rules
 

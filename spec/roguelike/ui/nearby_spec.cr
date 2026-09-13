@@ -56,10 +56,18 @@ Spectator.describe Roguelike::Ui::NearbyPane do
       expect(underfoot run).to contain "staircase up"
     end
 
-    it "says nothing on a bare floor" do
+    # Nobody reads the terrain while it says the same thing. Everybody
+    # notices it change.
+    it "names the floor when there is nothing else to name" do
       run = room at: {2, 2}
 
-      expect(underfoot run).to eq [NearbyPane::NOTHING]
+      expect(underfoot run).to eq ["stone floor"]
+    end
+
+    it "never says nothing" do
+      run = room at: {2, 2}
+
+      expect(underfoot run).not_to contain NearbyPane::NOTHING
     end
 
     it "lists what is lying on the square" do
@@ -92,12 +100,12 @@ Spectator.describe Roguelike::Ui::NearbyPane do
         World.new(Playing::SEED, {floor.id => floor}),
         Player.new(floor.id, 1, 2))
 
-      expect(underfoot(run).first).to contain "sconce"
+      expect(underfoot run).to contain "sconce"
     end
 
     it "says how many were left out of a deep pile" do
       run = room
-      12.times { run.game.floor.drop HERE[0], HERE[1], Item.new(Kind::Dagger) }
+      20.times { run.game.floor.drop HERE[0], HERE[1], Item.new(Kind::Dagger) }
       run.play.refresh
 
       expect(underfoot(run).size).to eq NearbyPane::MOST_HERE

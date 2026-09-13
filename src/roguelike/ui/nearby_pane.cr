@@ -1,19 +1,19 @@
 module Roguelike::Ui
   # What is underfoot and what is in sight, written out in the sidebar.
   #
-  # Two sections. "Here" is the square the character stands on: what is lying
-  # there, what is bolted to it, and the staircase if there is one. "Seen" is
-  # everything the character can see from that square, creatures first and
-  # then items, nearest first.
+  # Two sections. "Here" is the square the character stands on. It says what
+  # the square is made of, what is bolted to it, and what is lying there.
+  # "Seen" is everything the character can see from that square. Creatures
+  # come first, then items. Both are nearest first.
   #
-  # Both read what is there now. Neither reads `Knowledge`. A creature that
-  # walked out of sight and an item under a square nobody has light on are
-  # gone from this pane, which is what separates it from the map: the map
-  # draws what was last seen, and this says what is seen.
+  # Both sections read what is there now. Neither reads `Knowledge`. A
+  # creature that has walked out of sight leaves this pane. An item nobody
+  # has light on leaves it too. The map works the other way. The map draws
+  # what was last seen. This pane says what is seen.
   #
-  # `ExaminePane` is the other half of the sidebar. That one describes one
-  # square somebody pointed at. This one describes the two a person needs
-  # without pointing at anything.
+  # `ExaminePane` is the other half of the sidebar. That pane describes one
+  # square somebody pointed at. This pane writes both its sections without
+  # being pointed anywhere.
   class NearbyPane
     # The heading over what is underfoot.
     HERE = "Here"
@@ -21,7 +21,9 @@ module Roguelike::Ui
     # The heading over what is in sight.
     SEEN = "Seen"
 
-    # What a section says when it has nothing to list.
+    # What "Seen" says when it has nothing to list.
+    #
+    # "Here" never says this. It has the terrain to fall back on.
     NOTHING = "nothing"
 
     # How many rows the "Here" section takes before it elides.
@@ -109,13 +111,17 @@ module Roguelike::Ui
     end
 
     # Writes the "Here" section.
+    #
+    # The terrain always takes the first row. Nobody reads it while it goes
+    # on saying the same thing. Everybody notices it change. That is the turn
+    # somebody walked onto a staircase or into a doorway.
     private def underfoot(game : Game) : Nil
       floor = game.floor
       spot = game.player.at
       rows = [] of Widgets::Label
 
       terrain = floor.terrain spot[0], spot[1]
-      rows << row(terrain.label, Palette[terrain].style) if worth_saying? terrain
+      rows << row(terrain.label, Palette[terrain].style)
 
       fitting = floor.fixture spot[0], spot[1]
       rows << row(fitting.label, Palette[fitting].style) if fitting
@@ -125,15 +131,6 @@ module Roguelike::Ui
       end
 
       fill @here, rows, MOST_HERE
-    end
-
-    # Whether standing on *terrain* is worth a row of its own.
-    #
-    # A floor is not. A staircase is: it is the one square on the level worth
-    # coming back to, and a person who walked onto it in the dark has no other
-    # way to be told.
-    private def worth_saying?(terrain : Terrain) : Bool
-      terrain.stairs_down? || terrain.stairs_up?
     end
 
     # Writes the "Seen" section.
