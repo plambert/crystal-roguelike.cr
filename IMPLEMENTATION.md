@@ -50,7 +50,7 @@ actually been run rather than reasoned about.
 | Palette brightness | A wall is drawn brighter than the floor beside it, and an item brighter than both |
 | Belief | `Knowledge` per believer per floor. `Game#look` is the one way anything gets in |
 | Flicker | Drawn, never played. It shifts a shade and decides nothing, so a seed still reproduces a run |
-| One flame | Every square a flame lights takes the same shift on the same tick. `--no-flicker` turns it off |
+| One flame | Every square one flame lights takes its shift. Overlapping pools add. `--no-flicker` stops it |
 | A creature in the dark | Seen by the light on it, or as a shape against light behind it |
 
 ## Ground rules
@@ -464,8 +464,12 @@ The phase that introduces the type monster bands will use in Phase 19.
   `Ui::Flicker` shifts which step of the ramp a flame-lit square draws at, and nothing else. A
   square comes into sight or goes out of it by the turn, never by the clock, so a run started from
   a seed plays out the same whatever the clock did while it was running. One shift is worked out
-  per tick from the seed and the tick, and every square a flame lights takes it, so the pool
-  wavers as one flame rather than as a field of squares deciding for themselves. `Lighting`
+  per flame per tick, from the seed, the tick and where the flame stands, and every square that
+  flame lights takes it, so a pool wavers as one flame rather than as a field of squares deciding
+  for themselves. Two flames are not one flame and do not move together; where their pools overlap
+  the squares they share take both shifts, so two guttering at once drop that ground twice as far
+  and one guttering against the other flaring leaves it where it was. A lit square never falls to
+  the shade a remembered one draws at, however many flames gutter at once. `Lighting`
   records which sort of light is on each square, which is what says whether a square wavers and
   what it is tinted with: firelight warm, a magically lit room cold. `Session` advances the tick
   through `App#after`, and `--no-flicker` holds the flames still. Two seconds idle sends five or

@@ -86,9 +86,28 @@ module Roguelike
     # which source wins `#kinds`.
     @best = {} of {Int32, Int32} => Int32
 
+    # Where the flames reaching each square are standing.
+    #
+    # Only flames, because only a flame wavers. Two pools overlapping put two
+    # entries on the squares they share, so what is drawn there moves by what
+    # both flames are doing rather than by what one of them is.
+    #
+    # This says nothing about how much light a square has. `#level` is the
+    # light, and no flame changes it.
+    getter flames : Hash({Int32, Int32}, Array({Int32, Int32}))
+
     def initialize(@levels : Hash({Int32, Int32}, Int32) = {} of {Int32, Int32} => Int32,
                    @ambient : Int32 = 0,
-                   @kinds : Hash({Int32, Int32}, LightKind) = {} of {Int32, Int32} => LightKind)
+                   @kinds : Hash({Int32, Int32}, LightKind) = {} of {Int32, Int32} => LightKind,
+                   @flames : Hash({Int32, Int32}, Array({Int32, Int32})) = {} of {Int32, Int32} => Array({Int32, Int32}))
+    end
+
+    # No flame at all. What `#flames_at` answers for a square none reaches.
+    NO_FLAMES = [] of {Int32, Int32}
+
+    # Where the flames reaching *x*, *y* are standing.
+    def flames_at(x : Int32, y : Int32) : Array({Int32, Int32})
+      @flames[{x, y}]? || NO_FLAMES
     end
 
     # The light over *floor* from *sources*, plus whatever the floor glows on
@@ -186,6 +205,9 @@ module Roguelike
         away = Math.sqrt(across * across + down * down).round.to_i
 
         add spot[0], spot[1], Math.max(source.radius - away + 1, 1), source.kind
+        next unless source.kind.flame?
+
+        (@flames[spot] ||= [] of {Int32, Int32}) << source.at
       end
     end
 

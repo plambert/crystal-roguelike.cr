@@ -2,7 +2,10 @@ require "../../spec_helper"
 
 Spectator.describe Roguelike::Ui::Flicker do
   alias Flicker = Roguelike::Ui::Flicker
-  alias Kind = Roguelike::LightKind
+
+  # Two flames standing apart.
+  ONE = {3, 4}
+  TWO = {17, 9}
 
   subject(flicker) { Flicker.new 20260911_u64 }
 
@@ -12,29 +15,10 @@ Spectator.describe Roguelike::Ui::Flicker do
   end
 
   describe "what moves" do
-    it "moves nothing on a square with no light" do
+    it "moves nothing on a square no flame reaches" do
       (0...200).each do |tick|
         flicker.tick = tick
-        expect(flicker.shift 0, Kind::Flame).to eq 0
-      end
-    end
-
-    it "moves nothing lit by anything but a flame" do
-      (0...200).each do |tick|
-        flicker.tick = tick
-        expect(flicker.shift 3, Kind::Glimmer).to eq 0
-        expect(flicker.shift 3, nil).to eq 0
-      end
-    end
-
-    # The whole pool moves as one light. A square near the flame and a square
-    # at the edge of its reach move by the same step on the same tick.
-    it "moves every square a flame lights by the same step" do
-      (0...200).each do |tick|
-        flicker.tick = tick
-        wanted = flicker.step
-
-        (1..12).each { |level| expect(flicker.shift level, Kind::Flame).to eq wanted }
+        expect(flicker.shift [] of {Int32, Int32}).to eq 0
       end
     end
 
@@ -43,17 +27,73 @@ Spectator.describe Roguelike::Ui::Flicker do
 
       (0...600).each do |tick|
         flicker.tick = tick
-        seen << flicker.step
+        seen << flicker.step_at ONE[0], ONE[1]
       end
 
       expect(seen).to eq Set{-1, 0, 1}
     end
   end
 
-  describe "how often it moves" do
+  # Two torches in one room are not the same flame.
+  describe "two flames" do
+    it "do not move in step with one another" do
+      apart = (0...600).count do |tick|
+        flicker.tick = tick
+        flicker.step_at(ONE[0], ONE[1]) != flicker.step_at(TWO[0], TWO[1])
+      end
+
+      expect(apart).to be > 100
+    end
+
+    it "move together on some ticks all the same" do
+      together = (0...600).count do |tick|
+        flicker.tick = tick
+        flicker.step_at(ONE[0], ONE[1]) == flicker.step_at(TWO[0], TWO[1])
+      end
+
+      expect(together).to be > 100
+    end
+  end
+
+  # Where two pools overlap the squares they share take both shifts.
+  describe "where two pools overlap" do
+    it "adds what both flames are doing" do
+      (0...200).each do |tick|
+        flicker.tick = tick
+        both = flicker.step_at(ONE[0], ONE[1]) + flicker.step_at(TWO[0], TWO[1])
+
+        expect(flicker.shift [ONE, TWO]).to eq both
+      end
+    end
+
+    it "drops the ground twice as far when both gutter at once" do
+      found = (0...600).find do |tick|
+        flicker.tick = tick
+        flicker.step_at(ONE[0], ONE[1]) == -1 && flicker.step_at(TWO[0], TWO[1]) == -1
+      end
+      raise "the two flames never guttered at once" unless found
+
+      flicker.tick = found
+      expect(flicker.shift [ONE, TWO]).to eq -2
+    end
+
+    it "leaves it where it was when one gutters and the other flares" do
+      found = (0...600).find do |tick|
+        flicker.tick = tick
+        flicker.step_at(ONE[0], ONE[1]) + flicker.step_at(TWO[0], TWO[1]) == 0 &&
+          flicker.step_at(ONE[0], ONE[1]) != 0
+      end
+      raise "the two flames never pulled against each other" unless found
+
+      flicker.tick = found
+      expect(flicker.shift [ONE, TWO]).to eq 0
+    end
+  end
+
+  describe "how often one flame moves" do
     # A value that changed on every tick would read as a strobe.
     it "holds each step for more than one tick" do
-      steps = (0...40).map { |tick| flicker.tick = tick; flicker.step }
+      steps = (0...40).map { |tick| flicker.tick = tick; flicker.step_at ONE[0], ONE[1] }
 
       steps.each_slice(Flicker::HOLD) do |held|
         expect(held.uniq.size).to eq 1
@@ -61,7 +101,10 @@ Spectator.describe Roguelike::Ui::Flicker do
     end
 
     it "leaves the light where it is on about half the ticks" do
-      still = (0...4000).count { |tick| flicker.tick = tick; flicker.step.zero? }
+      still = (0...4000).count do |tick|
+        flicker.tick = tick
+        flicker.step_at(ONE[0], ONE[1]).zero?
+      end
 
       expect(still).to be > 1600
       expect(still).to be < 2400
@@ -69,7 +112,7 @@ Spectator.describe Roguelike::Ui::Flicker do
 
     # A flame drops more often than it jumps.
     it "gutters more often than it flares" do
-      steps = (0...4000).map { |tick| flicker.tick = tick; flicker.step }
+      steps = (0...4000).map { |tick| flicker.tick = tick; flicker.step_at ONE[0], ONE[1] }
 
       expect(steps.count(-1)).to be > steps.count(1)
     end
@@ -85,7 +128,7 @@ Spectator.describe Roguelike::Ui::Flicker do
       (0...200).each do |tick|
         one.tick = tick
         two.tick = tick
-        expect(one.step).to eq two.step
+        expect(one.shift [ONE, TWO]).to eq two.shift([ONE, TWO])
       end
     end
 
@@ -96,14 +139,14 @@ Spectator.describe Roguelike::Ui::Flicker do
       steps = (0...200).map do |tick|
         one.tick = tick
         two.tick = tick
-        {one.step, two.step}
+        {one.shift([ONE]), two.shift([ONE])}
       end
 
       expect(steps.any? { |pair| pair[0] != pair[1] }).to be_true
     end
 
     it "holds one tick still while it holds still" do
-      expect((0...20).map { flicker.step }.uniq!.size).to eq 1
+      expect((0...20).map { flicker.shift [ONE] }.uniq!.size).to eq 1
     end
   end
 
@@ -113,8 +156,8 @@ Spectator.describe Roguelike::Ui::Flicker do
 
       (0...200).each do |tick|
         still.tick = tick
-        expect(still.step).to eq 0
-        expect(still.shift 3, Kind::Flame).to eq 0
+        expect(still.step_at ONE[0], ONE[1]).to eq 0
+        expect(still.shift [ONE, TWO]).to eq 0
       end
     end
   end

@@ -118,17 +118,22 @@ module Roguelike::Ui
 
       level = light x, y
       kind = @sight.try &.light_kind(x, y)
-      step = Palette.step(level) + wavering(level, kind)
+
+      # A lit square never falls to the step a remembered one draws at,
+      # however many flames gutter at once. Two things a person tells apart
+      # at a glance stay apart.
+      step = (Palette.step(level) + wavering(x, y))
+        .clamp Palette::REMEMBERED + 1, Palette::STEPS - 1
 
       Palette.shaded live(x, y, tile), step, kind
     end
 
-    # How far the flame has shifted the step a square draws at.
-    private def wavering(level : Int32, kind : LightKind?) : Int32
+    # How far the flames reaching *x*, *y* have shifted the step it draws at.
+    private def wavering(x : Int32, y : Int32) : Int32
       found = @flicker
       return 0 unless found
 
-      found.shift level, kind
+      found.shift @sight.try(&.flames_at(x, y)) || Lighting::NO_FLAMES
     end
 
     # What is on *x*, *y* now, topmost first.

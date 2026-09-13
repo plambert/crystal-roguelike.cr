@@ -136,6 +136,14 @@ module Roguelike
       @lighting.try &.kind_at(x, y)
     end
 
+    # Where the flames reaching *x*, *y* are standing.
+    def flames_at(x : Int32, y : Int32) : Array({Int32, Int32})
+      found = @lighting
+      return Lighting::NO_FLAMES unless found
+
+      found.flames_at x, y
+    end
+
     # How much light *x*, *y* has. Zero when nothing lights it.
     def light(x : Int32, y : Int32) : Int32
       found = @lighting

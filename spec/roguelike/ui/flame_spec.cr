@@ -106,35 +106,57 @@ Spectator.describe "how a flame is drawn" do
   end
 
   describe "a tick of the flame" do
-    it "changes what some square is drawn in" do
-      run = burning
-      before = (0...20).map { |column| drawn_style(run, column, 2).foreground }
-
-      20.times do
-        run.play.waver
-        run.render
-      end
-
-      after = (0...20).map { |column| drawn_style(run, column, 2).foreground }
-      expect(after).not_to eq before
+    # A row of the pool, as it is drawn now.
+    def pool(run : Playing::Run) : Array(TermBuf::Color)
+      (0...20).map { |column| drawn_style(run, column, 2).foreground }
     end
 
-    # Every square a flame lights moves together, so a tick either changes
-    # the whole pool or none of it.
+    it "changes what some square is drawn in" do
+      run = burning
+      frames = [pool run]
+
+      24.times do
+        run.play.waver
+        run.render
+        frames << pool run
+      end
+
+      expect(frames.uniq!.size).to be > 1
+    end
+
+    # One flame lights this pool, so a tick either moves the whole of it or
+    # none of it. Two flames overlapping is what `Flicker` covers.
     it "moves the whole pool or none of it" do
       run = burning
-      still = (0...20).map { |column| drawn_style(run, column, 2).foreground }
+      still = pool run
 
       moved = (0...40).map do
         run.play.waver
         run.render
-        (0...20).map { |column| drawn_style(run, column, 2).foreground }
+        pool run
       end
 
-      # Every frame is either the still one or one shade off it throughout.
       whole = moved.count { |frame| frame == still }
       expect(whole).to be > 0
       expect(whole).to be < 40
+    end
+
+    # A tick moves the pool as one. The ends of the ramp hold some squares
+    # back: one already at the top cannot flare and one at the bottom of the
+    # lit range cannot gutter, so a frame moves most of the pool rather than
+    # all of it.
+    it "moves most of the pool at once or none of it" do
+      run = burning
+      still = pool run
+
+      apart = (0...40).map do
+        run.play.waver
+        run.render
+        pool(run).zip(still).count { |now, before| now != before }
+      end
+
+      expect(apart.any? &.zero?).to be_true
+      expect(apart.reject(&.zero?).min).to be > 3
     end
 
     # It shifts which shade a square draws at and no more.

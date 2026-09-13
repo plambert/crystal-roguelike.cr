@@ -1,10 +1,14 @@
 module Roguelike::Ui
   # How a flame wavers.
   #
-  # A burning light does not hold still. The whole pool brightens and gutters
-  # together, the way a flame does. Every square a flame lights moves by the
-  # same step on the same tick, so the light reads as one flame wavering
-  # rather than as each square deciding for itself.
+  # A burning light does not hold still. Its whole pool brightens and gutters
+  # together, the way one flame does.
+  #
+  # Each flame moves on its own. Two torches in one room are not the same
+  # flame and do not waver as one, so a shift is worked out per flame, from
+  # where it stands. Where two pools overlap the squares they share take both
+  # shifts: two flames guttering at once drop that ground twice as far, and
+  # one guttering while the other flares leaves it where it was.
   #
   # This is drawn rather than played. It shifts which step of `Palette::RAMP`
   # a square is drawn at and changes nothing the game decides: no square comes
@@ -54,41 +58,39 @@ module Roguelike::Ui
     def initialize(@seed : UInt64, @tick : Int32 = 0, @burning : Bool = true)
     end
 
-    # How far to shift the drawn step of a square with *level* light on it.
+    # How far the flames standing at *sources* have moved a square between
+    # them this tick.
     #
-    # A square with no flame on it does not move. Every square a flame lights
-    # moves by the same step, whatever the level, so the pool wavers as one
-    # light rather than as a field of squares.
-    def shift(level : Int32, kind : LightKind?) : Int32
+    # The shifts add. A square no flame reaches does not move.
+    def shift(sources : Array({Int32, Int32})) : Int32
       return 0 unless @burning
-      return 0 unless kind.try &.flame?
-      return 0 if level <= 0
+      return 0 if sources.empty?
 
-      step
+      sources.sum { |flame| step_at flame[0], flame[1] }
     end
 
-    # How far this tick has moved the light, whatever it falls on.
+    # How far the flame standing at *x*, *y* has moved this tick.
     #
     # Between minus one and one. Most ticks leave it where it is.
-    def step : Int32
+    def step_at(x : Int32, y : Int32) : Int32
       return 0 unless @burning
 
-      roll = roll_for @tick // HOLD
+      roll = roll_for @tick // HOLD, x, y
       drawn = (roll % SCALE).to_i
       return 0 if drawn < STILL
 
       (drawn - STILL) < GUTTER ? -1 : 1
     end
 
-    # The number *phase* draws.
+    # The number *phase* draws for a flame standing at *x*, *y*.
     #
-    # FNV-1a over the seed and the phase, then `Rng.mix`. The same derivation
-    # `Rng#derive` uses, and for the same reason: the answer has to depend on
-    # all of its inputs and on nothing else.
-    private def roll_for(phase : Int32) : UInt64
+    # FNV-1a over the seed, the phase and the flame, then `Rng.mix`. The same
+    # derivation `Rng#derive` uses, and for the same reason: the answer has to
+    # depend on all of its inputs and on nothing else.
+    private def roll_for(phase : Int32, x : Int32, y : Int32) : UInt64
       hash = 0xcbf29ce484222325_u64
 
-      {@seed, phase.to_u64!}.each do |part|
+      {@seed, phase.to_u64!, x.to_u64!, y.to_u64!}.each do |part|
         8.times do |byte|
           hash ^= (part >> (byte * 8)) & 0xff
           hash &*= 0x100000001b3_u64
