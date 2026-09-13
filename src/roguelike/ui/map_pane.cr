@@ -118,17 +118,17 @@ module Roguelike::Ui
 
       level = light x, y
       kind = @sight.try &.light_kind(x, y)
-      step = Palette.step(level) + wavering(x, y, level, kind)
+      step = Palette.step(level) + wavering(level, kind)
 
       Palette.shaded live(x, y, tile), step, kind
     end
 
-    # How far the flame on *x*, *y* has shifted the step it draws at.
-    private def wavering(x : Int32, y : Int32, level : Int32, kind : LightKind?) : Int32
+    # How far the flame has shifted the step a square draws at.
+    private def wavering(level : Int32, kind : LightKind?) : Int32
       found = @flicker
       return 0 unless found
 
-      found.shift x, y, level, kind
+      found.shift level, kind
     end
 
     # What is on *x*, *y* now, topmost first.

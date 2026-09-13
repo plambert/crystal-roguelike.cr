@@ -50,6 +50,7 @@ actually been run rather than reasoned about.
 | Palette brightness | A wall is drawn brighter than the floor beside it, and an item brighter than both |
 | Belief | `Knowledge` per believer per floor. `Game#look` is the one way anything gets in |
 | Flicker | Drawn, never played. It shifts a shade and decides nothing, so a seed still reproduces a run |
+| One flame | Every square a flame lights takes the same shift on the same tick. `--no-flicker` turns it off |
 | A creature in the dark | Seen by the light on it, or as a shape against light behind it |
 
 ## Ground rules
@@ -462,12 +463,13 @@ The phase that introduces the type monster bands will use in Phase 19.
   yet, because there are no monsters.
   `Ui::Flicker` shifts which step of the ramp a flame-lit square draws at, and nothing else. A
   square comes into sight or goes out of it by the turn, never by the clock, so a run started from
-  a seed plays out the same whatever the clock did while it was running. The shift comes from the
-  seed, the tick and the square, so it holds no state. `Lighting` records which sort of light is
-  on each square, which is what says whether a square wavers and what it is tinted with: firelight
-  warm, a magically lit room cold. `Session` advances the tick through `App#after`. Two seconds
-  idle sends fourteen frames and about thirty cells a frame with a torch lit, and nothing at all
-  with it out.
+  a seed plays out the same whatever the clock did while it was running. One shift is worked out
+  per tick from the seed and the tick, and every square a flame lights takes it, so the pool
+  wavers as one flame rather than as a field of squares deciding for themselves. `Lighting`
+  records which sort of light is on each square, which is what says whether a square wavers and
+  what it is tinted with: firelight warm, a magically lit room cold. `Session` advances the tick
+  through `App#after`, and `--no-flicker` holds the flames still. Two seconds idle sends five or
+  six frames of about ninety cells each with a torch lit, and nothing at all with it out.
 
 ## Part 5: Things that fight back
 

@@ -110,13 +110,31 @@ Spectator.describe "how a flame is drawn" do
       run = burning
       before = (0...20).map { |column| drawn_style(run, column, 2).foreground }
 
-      6.times do
+      20.times do
         run.play.waver
         run.render
       end
 
       after = (0...20).map { |column| drawn_style(run, column, 2).foreground }
       expect(after).not_to eq before
+    end
+
+    # Every square a flame lights moves together, so a tick either changes
+    # the whole pool or none of it.
+    it "moves the whole pool or none of it" do
+      run = burning
+      still = (0...20).map { |column| drawn_style(run, column, 2).foreground }
+
+      moved = (0...40).map do
+        run.play.waver
+        run.render
+        (0...20).map { |column| drawn_style(run, column, 2).foreground }
+      end
+
+      # Every frame is either the still one or one shade off it throughout.
+      whole = moved.count { |frame| frame == still }
+      expect(whole).to be > 0
+      expect(whole).to be < 40
     end
 
     # It shifts which shade a square draws at and no more.

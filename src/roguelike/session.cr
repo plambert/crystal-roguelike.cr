@@ -24,7 +24,7 @@ module Roguelike
     # `SizeDetector` is termbuf's internal tier. The stable API cannot answer
     # how big a terminal is without opening it. The other way to find out is
     # to enter the alternate screen and leave it again.
-    def self.open(rng : Rng) : Session?
+    def self.open(rng : Rng, flicker : Bool = true) : Session?
       size = TermBuf::SizeDetector.detect
 
       unless Ui::Screen.fits? size.columns, size.rows
@@ -34,7 +34,7 @@ module Roguelike
 
       ran = nil.as Session?
       TermBuf::Terminal.open do |terminal|
-        ran = new terminal, rng
+        ran = new terminal, rng, flicker
         ran.try &.run
       end
 
@@ -66,7 +66,7 @@ module Roguelike
     # person select text with it.
     getter? mousing : Bool = false
 
-    def initialize(@terminal : TermBuf::Terminal, @rng : Rng)
+    def initialize(@terminal : TermBuf::Terminal, @rng : Rng, flicker : Bool = true)
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
@@ -95,7 +95,9 @@ module Roguelike
       # has no middle to put anything in.
       @app.frame { }
       @play.look_at_player
-      waver
+
+      @play.flicker.burning = flicker
+      waver if flicker
     end
 
     # Schedules the next tick of the flames, and the one after it.

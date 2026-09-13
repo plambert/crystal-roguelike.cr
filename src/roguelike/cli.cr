@@ -18,9 +18,12 @@ module Roguelike
     flag threads : Int32 = 1, "--threads",
       "Threads for monster planning (not used yet)", range: 1..64
 
+    flag flicker : Bool = true, "--flicker",
+      "Let flames waver. --no-flicker holds them still"
+
     def run
       rng = Rng.for seed
-      session = Session.open rng
+      session = Session.open rng, flicker: flicker
 
       exit 1 unless session
 
