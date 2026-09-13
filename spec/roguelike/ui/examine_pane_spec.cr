@@ -6,6 +6,63 @@ Spectator.describe Roguelike::Ui::ExaminePane do
   let(floor) { Roguelike::Floor.parse "sample", "#####\n#.<+=\n#,,,%\n##>##" }
   subject(pane) { described_class.new }
 
+  # A dark hall with a goblin standing against a lit square behind it.
+  #
+  # The character is at the west end. The lit square at the east end is what
+  # the goblin shows against.
+  BACKLIT = [
+    "############",
+    "#<.....g..*#",
+    "############",
+  ]
+
+  # What a character at the west end of `BACKLIT` can see.
+  def against_the_light : {Roguelike::Floor, Roguelike::Vision}
+    floor = Roguelike::Floor.parse "backlit", BACKLIT
+    floor.place Roguelike::Monster.new(Roguelike::Species::Goblin, 7, 1, "band-one")
+
+    game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {floor.id => floor}),
+      Roguelike::Player.new(floor.id, 1, 1)
+
+    {floor, game.sight}
+  end
+
+  describe "a shape against the light" do
+    it "says its size rather than its name" do
+      floor, seen = against_the_light
+
+      pane.show floor, 7, 1, nil, seen
+
+      expect(pane.where.text).to eq "7, 1"
+      expect(pane.what.text).to eq Roguelike::Size::Small.label
+      expect(pane.detail.text).to eq Roguelike::Ui::ExaminePane::MOVING
+    end
+
+    it "says nothing about what it is doing" do
+      floor, seen = against_the_light
+
+      pane.show floor, 7, 1, nil, seen
+
+      expect(pane.doing.hidden?).to be_true
+    end
+
+    it "draws it in the colour every shape is drawn in" do
+      floor, seen = against_the_light
+
+      pane.show floor, 7, 1, nil, seen
+
+      expect(pane.what.style).to eq Roguelike::Ui::Palette::SHAPE
+    end
+
+    it "still says out of sight for a dark square with nothing on it" do
+      floor, seen = against_the_light
+
+      pane.show floor, 5, 1, nil, seen
+
+      expect(pane.what.text).to eq Roguelike::Ui::ExaminePane::UNSEEN
+    end
+  end
+
   describe "#show" do
     it "writes where, what, and a sentence about it" do
       pane.show floor, 2, 1

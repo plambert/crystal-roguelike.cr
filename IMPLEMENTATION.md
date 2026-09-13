@@ -83,6 +83,9 @@ actually been run rather than reasoned about.
 | A scattered launcher | Lands with ammunition it fires within three squares, most of the time. A bow nobody can shoot is scenery |
 | The supply's stream | Named by the launcher's square, never the litter's own, so adding the rule moved nothing else on the floor |
 | Reading in the dark | Refused. A scroll is words on paper. The scroll is not spent and no turn is taken finding that out |
+| A shape against light | Drawn by `Species::Size`, in one colour for every species. A letter names a species and a shape names none |
+| Shooting at a shape | Allowed. `Tab` walks it and a bolt, an arrow or a rock flies at it. Seeing something move is enough to aim |
+| Glyphs for a shape | `∙`, `▪` and `◼`. No letters, and none East Asian Ambiguous: a two-cell glyph would tear the map's grid |
 
 ## Ground rules
 

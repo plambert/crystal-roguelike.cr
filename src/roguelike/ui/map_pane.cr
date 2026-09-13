@@ -152,6 +152,10 @@ module Roguelike::Ui
     # It is seen as a shape against light behind it, so it draws at the
     # dimmest step there is light at. `nil` when no creature is there, when
     # the square is lit, or when there is nothing behind it to show against.
+    #
+    # The shape is what is drawn, not the creature. `Palette.shape` answers a
+    # glyph for the size and one colour for every species, because a letter
+    # and a colour each name a species and a shape against light names none.
     private def silhouette(x : Int32, y : Int32) : Look?
       return if seen? x, y
 
@@ -161,7 +165,7 @@ module Roguelike::Ui
       found = @sight
       return unless found && found.backlit?(floor, x, y)
 
-      Palette.shaded Palette[creature], Palette::REMEMBERED + 1
+      Palette.shaded Palette.shape(creature.species.size), Palette::REMEMBERED + 1
     end
 
     # What is on *x*, *y* now, topmost first.

@@ -68,11 +68,26 @@ Spectator.describe "monsters on the screen" do
     end
 
     # A creature on an unlit square with light behind it is a shape.
-    it "draws one standing against the light" do
+    #
+    # The shape is what is drawn, not the creature. A letter names a species
+    # and a shape against light names none.
+    it "draws one standing against the light as a shape of its size" do
       run = shown ["############", "#..<...g..*#", "############"], lit: false
 
       expect(run.game.sight.lit?(7, 1)).to be_false
       expect(run.game.can_see_creature?(7, 1)).to be_true
+      expect(run.row(1)[7]).to eq Roguelike::Size::Small.glyph
+    end
+
+    it "draws a large creature as a larger shape than a small one" do
+      expect(Roguelike::Size::Large.glyph).not_to eq Roguelike::Size::Small.glyph
+      expect(Roguelike::Species::Orc.size).to eq Roguelike::Size::Large
+      expect(Roguelike::Species::Goblin.size).to eq Roguelike::Size::Small
+    end
+
+    it "draws it by its own letter once there is light on it" do
+      run = shown ["############", "#..<...g..*#", "############"]
+
       expect(run.row(1)[7]).to eq 'g'
     end
 
@@ -272,7 +287,7 @@ Spectator.describe "monsters on the screen" do
 
       expect(run.game.sight.includes? 42, 20).to be_false
       expect(run.game.sight.backlit? run.game.floor, 42, 20).to be_true
-      expect(glyph_at run, 42, 20).to eq 'g'
+      expect(glyph_at run, 42, 20).to eq Roguelike::Size::Small.glyph
     end
 
     it "shows it lit once the carried torch reaches it" do

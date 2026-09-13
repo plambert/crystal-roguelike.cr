@@ -180,7 +180,48 @@ module Roguelike
     darkvision : Bool,
     paths : Bool,
     experience : Int32,
-    attributes : Attributes
+    attributes : Attributes,
+    size : Size = Size::Medium
+
+  # How big a creature is.
+  #
+  # This is what somebody makes out when they cannot see the creature itself.
+  # A shape against light behind it has a size and nothing else, so the size
+  # is what the map draws and what the readouts say.
+  #
+  # A member is never removed and never reordered. A save file holds the
+  # member name.
+  enum Size
+    Small
+    Medium
+    Large
+
+    # The glyph a creature of this size draws as when it is only a shape.
+    #
+    # None of the three is a letter. A letter names a species, and somebody
+    # who can only make out a shape has not been told which species it is.
+    #
+    # None of them is East Asian Ambiguous either. The map is a grid of one
+    # cell per square, and a terminal set to draw ambiguous characters two
+    # cells wide would tear that grid. `∙` is the bullet operator rather than
+    # the bullet for exactly that reason. The two look the same.
+    def glyph : Char
+      case self
+      in .small?  then '∙'
+      in .medium? then '▪'
+      in .large?  then '◼'
+      end
+    end
+
+    # What a shape this size is called, for a readout.
+    def label : String
+      case self
+      in .small?  then "a small shape"
+      in .medium? then "a shape"
+      in .large?  then "a large shape"
+      end
+    end
+  end
 
   # What sort of creature a monster is.
   #
@@ -234,6 +275,11 @@ module Roguelike
       facts.armour
     end
 
+    # How big one is. What somebody who can only make out a shape sees.
+    def size : Size
+      facts.size
+    end
+
     # How far one notices a character of average stealth on a square with no
     # light on it, before `Notice` adjusts either.
     def notice : Int32
@@ -282,6 +328,7 @@ module Roguelike
         "a puddle of acid that moves on its own",
         hit_points: 6, damage: Dice.new(1, 4), armour: 0,
         notice: 4, darkvision: false, paths: false, experience: 3,
+        size: Size::Medium,
         attributes: Attributes.new(strength: 8, dexterity: 4, constitution: 12,
           intelligence: 3, stealth: 6)),
 
@@ -289,6 +336,7 @@ module Roguelike
         "a small green thing with a large knife",
         hit_points: 9, damage: Dice.new(1, 6), armour: 2,
         notice: 8, darkvision: false, paths: true, experience: 7,
+        size: Size::Small,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 9, stealth: 13)),
 
@@ -296,6 +344,7 @@ module Roguelike
         "a heavy grey brute with a notched blade",
         hit_points: 14, damage: Dice.new(1, 8), armour: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
+        size: Size::Large,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 8, stealth: 8)),
     }

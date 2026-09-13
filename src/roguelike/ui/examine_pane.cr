@@ -22,6 +22,9 @@ module Roguelike::Ui
     # see. What is there now may be something else.
     REMEMBERED = "remembered"
 
+    # What the pane says about a shape against light behind it.
+    MOVING = "something moving against the light"
+
     # The widget itself. A caller puts it in a tree.
     getter root : Widgets::Panel
 
@@ -90,6 +93,12 @@ module Roguelike::Ui
     def show(floor : Floor, x : Int32, y : Int32, lore : Lore? = nil,
              sight : Vision? = nil, knowledge : Knowledge? = nil) : Nil
       unless sight.nil? || sight.includes?(x, y)
+        shape = sight.backlit?(floor, x, y) ? floor.monster(x, y) : nil
+        if shape
+          outlined x, y, shape
+          return
+        end
+
         recalled floor, x, y, lore, knowledge.try &.[](x, y)
         return
       end
@@ -121,6 +130,22 @@ module Roguelike::Ui
       pile = floor.items x, y
       @litter.hidden = pile.empty?
       @litter.text = listed pile, lore
+    end
+
+    # Says that *creature* is a shape and no more.
+    #
+    # Its size, because that is what somebody makes out. Not its name and not
+    # what it is doing: a shape against light says neither.
+    private def outlined(x : Int32, y : Int32, creature : Monster) : Nil
+      @where.text = "#{x}, #{y}"
+      @where.hidden = false
+      @what.text = creature.species.size.label
+      @what.style = Palette.shape(creature.species.size).style
+      @detail.text = MOVING
+      @doing.text = ""
+      @doing.hidden = true
+      @litter.text = ""
+      @litter.hidden = true
     end
 
     # Says what *x*, *y* looked like when it was last seen, or that it has

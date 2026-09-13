@@ -141,7 +141,7 @@ module Roguelike::Ui
       rows = [] of Widgets::Label
 
       creatures(game, sight).each do |creature|
-        rows << row(creature.label, Palette[creature].style)
+        rows << creature_row sight, creature
       end
 
       litter(game, sight).each do |item|
@@ -149,6 +149,18 @@ module Roguelike::Ui
       end
 
       fill @seen, rows, Math.max(@budget - @here.children.size, LEAST_SEEN)
+    end
+
+    # One row for *creature*.
+    #
+    # A creature on a square the character can see is named. One made out
+    # only as a shape against light behind it is not: its size is all that
+    # reaches the character, so its size is all this says.
+    private def creature_row(sight : Vision, creature : Monster) : Widgets::Label
+      return row(creature.label, Palette[creature].style) if sight.includes? creature.at
+
+      size = creature.species.size
+      row size.label, Palette.shape(size).style
     end
 
     # Every creature the character can see, nearest first.

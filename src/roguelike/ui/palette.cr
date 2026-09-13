@@ -104,6 +104,17 @@ module Roguelike::Ui
       ITEMS[item.kind.item_class]
     end
 
+    # What a creature nobody can see properly is drawn in.
+    #
+    # One colour for every species. A colour is as much a name as a letter
+    # is, and somebody who can only make out a shape has been told neither.
+    SHAPE = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0x9E, 0xA8)
+
+    # How a creature of *size* is drawn when it is only a shape.
+    def self.shape(size : Size) : Look
+      Look.new size.glyph, SHAPE
+    end
+
     # The character. Roguelikes have drawn the player as `@` since 1980. A
     # person who has played one looks for it first.
     PLAYER = Look.new '@', HERO

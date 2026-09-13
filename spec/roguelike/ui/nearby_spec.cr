@@ -39,6 +39,28 @@ Spectator.describe Roguelike::Ui::NearbyPane do
       World.new(Playing::SEED, {floor.id => floor}), player)
   end
 
+  # A dark hall with a goblin standing against a lit square behind it.
+  #
+  # The character is at the west end with no light of their own. The lit
+  # square at the east end is what the goblin shows against.
+  BACKLIT = [
+    "############",
+    "#<.....g..*#",
+    "############",
+  ]
+
+  # A run on `BACKLIT`, with the goblin in the light when *lit*.
+  def hall_shape(lit : Bool = false) : Playing::Run
+    floor = Roguelike::Floor.parse "backlit", BACKLIT
+    Playing.daylight floor if lit
+
+    player = Roguelike::Player.new floor.id, 1, 1
+    floor.place Roguelike::Monster.new(Species::Goblin, 7, 1, "band-one")
+
+    Playing.open Roguelike::Game.new(
+      World.new(Playing::SEED, {floor.id => floor}), player)
+  end
+
   # What the "Here" section says, row by row.
   def underfoot(run : Playing::Run) : Array(String)
     run.nearby.here.children.compact_map { |child| child.as?(Roguelike::Ui::Widgets::Label).try &.text }
@@ -186,6 +208,21 @@ Spectator.describe Roguelike::Ui::NearbyPane do
 
       expect(run.map.knowledge.try &.seen? 8, 3).to be_true
       expect(in_sight run).to eq [NearbyPane::NOTHING]
+    end
+
+    # A letter and a colour each name a species. A shape against light names
+    # none, so neither does this row.
+    it "calls a creature seen only as a shape by its size" do
+      run = hall_shape
+
+      expect(in_sight run).to contain Roguelike::Size::Small.label
+      expect(in_sight run).not_to contain "goblin"
+    end
+
+    it "names it once there is light on it" do
+      run = hall_shape lit: true
+
+      expect(in_sight run).to contain "goblin"
     end
 
     it "drops a creature that has walked out of sight" do

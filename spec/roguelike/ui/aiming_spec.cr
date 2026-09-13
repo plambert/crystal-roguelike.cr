@@ -162,6 +162,84 @@ Spectator.describe "aiming" do
     end
   end
 
+  # A creature made out only as a shape can still be shot at. A person can
+  # see something standing in a doorway without being told what it is.
+  describe "aiming at a shape against the light" do
+    # The hall with no light of its own and a lit square at the east end.
+    DARK = [
+      "############",
+      "#<.....g..*#",
+      "############",
+    ]
+
+    # A run on `DARK` with a bow readied, and nothing lighting the character.
+    def in_the_dark : Playing::Run
+      floor = Roguelike::Floor.parse "dark", DARK
+      player = Roguelike::Player.new floor.id, 1, 1, hit_points: 500
+      [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12)].each do |item|
+        player.inventory.add item
+      end
+
+      run = Playing.open Roguelike::Game.new(
+        Roguelike::World.new(Playing::SEED, {floor.id => floor}), player)
+      run.press "w", "a"
+      run.press "w", "b"
+
+      run.game.floor.place Monster.new(Species::Goblin, 7, 1, "band-one",
+        hit_points: 200)
+      run.play.refresh
+      run.render
+      run
+    end
+
+    it "is drawn as a shape rather than as a goblin" do
+      run = in_the_dark
+
+      expect(run.game.sight.includes? 7, 1).to be_false
+      expect(run.game.sight.backlit? run.game.floor, 7, 1).to be_true
+      expect(run.row(1)[7]).to eq Roguelike::Size::Small.glyph
+    end
+
+    it "is what f aims at" do
+      run = in_the_dark
+
+      run.press "f"
+
+      expect(run.examiner.spot).to eq({7, 1})
+    end
+
+    it "is what Tab cycles to" do
+      run = in_the_dark
+      run.press "f"
+      run.press "l"
+
+      run.press "Tab"
+
+      expect(run.examiner.spot).to eq({7, 1})
+    end
+
+    it "takes the arrow" do
+      run = in_the_dark
+
+      run.press "f"
+      run.press "Enter"
+
+      expect(run.log.join " ").to match /arrow (hits|misses) the goblin/
+      expect(run.game.player.quivered.try &.count).to eq 11
+    end
+
+    it "takes a thrown rock as well" do
+      run = in_the_dark
+      run.game.player.inventory.add Item.new(Kind::Rock, count: 3)
+      run.play.refresh
+
+      run.press "t", "c"
+      run.press "Enter"
+
+      expect(run.log.join " ").to match /rock (hits|misses) the goblin/
+    end
+  end
+
   describe "the movement keys while aiming" do
     it "moves the cursor rather than the character" do
       run = archer
