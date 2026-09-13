@@ -1467,7 +1467,7 @@ module Roguelike
         return false
       end
 
-      ready slot, letter, item, "You are now holding #{name item}."
+      ready slot, letter, item, slot.readied(name item)
     end
 
     # Puts on what is under *letter*. Answers whether it went on.
@@ -1490,7 +1490,7 @@ module Roguelike
         return false
       end
 
-      ready slot, letter, item, "You are now wearing #{name item}."
+      ready slot, letter, item, slot.readied(name item)
     end
 
     # Puts *letter* in *slot* and says *line*. Always answers true.
@@ -1513,7 +1513,7 @@ module Roguelike
     def take_off(slot : Slot) : Bool
       item = @player.in_slot slot
       unless item
-        say "You have nothing #{slot.armour? ? "on your" : "in your"} #{slot.label}."
+        say slot.vacant
         return false
       end
 
@@ -1524,7 +1524,7 @@ module Roguelike
       end
 
       @player.equipment.clear slot
-      say "You are no longer #{slot.armour? ? "wearing" : "holding"} #{name item}."
+      say slot.released(name item)
       spend_turn
       true
     end

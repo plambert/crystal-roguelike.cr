@@ -98,5 +98,46 @@ Spectator.describe Roguelike::Slot do
     it "says armour is being worn" do
       Slot.armours.each { |slot| expect(slot.note).to eq "being worn" }
     end
+
+    it "gives every slot a sentence for each of the three things" do
+      Slot.values.each do |slot|
+        expect(slot.readied "it").not_to be_empty
+        expect(slot.released "it").not_to be_empty
+        expect(slot.vacant).not_to be_empty
+      end
+    end
+
+    # Arrows are not held in the hand and they are not worn. Saying they are
+    # sends somebody looking in the wrong place for them.
+    it "puts what goes in the quiver in the quiver" do
+      expect(Slot::Quiver.readied "12 arrows").to eq "You put 12 arrows in your quiver."
+      expect(Slot::Quiver.released "12 arrows").to eq "You take 12 arrows out of your quiver."
+    end
+
+    it "holds what goes in a hand" do
+      expect(Slot::Melee.readied "a mace").to eq "You are now holding a mace."
+      expect(Slot::Ranged.readied "a bow").to eq "You are now holding a bow."
+    end
+
+    it "wears what goes on the body" do
+      Slot.armours.each do |slot|
+        expect(slot.readied "it").to eq "You are now wearing it."
+        expect(slot.released "it").to eq "You are no longer wearing it."
+      end
+    end
+
+    it "says an empty quiver the way Game#cannot_fire says it" do
+      expect(Slot::Quiver.vacant).to eq "Your quiver is empty."
+    end
+
+    it "names the part of the body an empty armour slot is on" do
+      expect(Slot::Head.vacant).to eq "You have nothing on your head."
+      expect(Slot::Feet.vacant).to eq "You have nothing on your feet."
+    end
+
+    it "says an empty hand is a hand holding nothing" do
+      expect(Slot::Melee.vacant).to eq "You are not holding a weapon."
+      expect(Slot::Ranged.vacant).to eq "You are not holding a launcher."
+    end
   end
 end

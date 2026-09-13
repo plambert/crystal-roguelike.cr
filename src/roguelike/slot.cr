@@ -59,6 +59,42 @@ module Roguelike
       end
     end
 
+    # What is said when *name* goes into this slot.
+    #
+    # A sword is held, a helmet is worn, and arrows are neither. They go in
+    # the quiver. One sentence for every slot would have arrows announced the
+    # way a sword is, and somebody reading that would look for them in their
+    # hand.
+    def readied(name : String) : String
+      case self
+      in .quiver?                                  then "You put #{name} in your quiver."
+      in .melee?, .ranged?                         then "You are now holding #{name}."
+      in .head?, .body?, .hands?, .feet?, .shield? then "You are now wearing #{name}."
+      end
+    end
+
+    # What is said when *name* comes out of this slot.
+    def released(name : String) : String
+      case self
+      in .quiver?                                  then "You take #{name} out of your quiver."
+      in .melee?, .ranged?                         then "You are no longer holding #{name}."
+      in .head?, .body?, .hands?, .feet?, .shield? then "You are no longer wearing #{name}."
+      end
+    end
+
+    # What is said when somebody empties this slot and it is already empty.
+    #
+    # `Game#cannot_fire` says the same thing about an empty quiver. A person
+    # who has read one of the two has read the other.
+    def vacant : String
+      case self
+      in .melee?                                   then "You are not holding a weapon."
+      in .ranged?                                  then "You are not holding a launcher."
+      in .quiver?                                  then "Your quiver is empty."
+      in .head?, .body?, .hands?, .feet?, .shield? then "You have nothing on your #{label}."
+      end
+    end
+
     # Whether this slot holds a weapon rather than armour.
     def weapon? : Bool
       melee? || ranged? || quiver?

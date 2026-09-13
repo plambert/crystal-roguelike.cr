@@ -67,6 +67,43 @@ Spectator.describe "wielding, wearing and taking off" do
       expect(run.game.player.quivered.try &.kind).to eq Kind::Arrow
     end
 
+    # One key readies all three weapon slots, so the message has to say which
+    # one it filled. Arrows announced as held read as arrows in the hand.
+    it "says arrows went in the quiver rather than in the hand" do
+      run = carrying [Item.new(Kind::Arrow, count: 12)]
+
+      run.press "w"
+      run.press "a"
+
+      expect(run.said).to contain "in your quiver"
+      expect(run.said).not_to contain "holding"
+    end
+
+    it "says a bow is held and its arrows are quivered" do
+      run = carrying [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12)]
+
+      run.press "w"
+      run.press row_for(run, "bow").to_s
+      first = run.said
+
+      run.press "w"
+      run.press row_for(run, "arrow").to_s
+
+      expect(first).to contain "now holding"
+      expect(run.said).to contain "in your quiver"
+    end
+
+    it "takes arrows out of the quiver rather than letting go of them" do
+      run = carrying [Item.new(Kind::Arrow, count: 12)]
+
+      run.press "w"
+      run.press "a"
+      run.press "T"
+
+      expect(run.game.player.quivered).to be_nil
+      expect(run.said).to contain "out of your quiver"
+    end
+
     # Everything readied at once. One key fills all three weapon slots.
     it "fills the three weapon slots from one key" do
       run = carrying [Item.new(Kind::Mace), Item.new(Kind::Sling),

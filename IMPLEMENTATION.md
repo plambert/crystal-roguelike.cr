@@ -88,6 +88,7 @@ actually been run rather than reasoned about.
 | Glyphs for a shape | `∙`, `▪` and `◼`. No letters, and none East Asian Ambiguous: a two-cell glyph would tear the map's grid |
 | A shape wavers | With the flame lighting the square behind it, not with its own square. Its own square has no light on it |
 | How far it wavers | One step up from the dimmest lit step, and never below it. A shape drawn dimmer than that reads as a memory |
+| Readying an item | The message follows the slot. A sword is held, a helmet is worn, and arrows go in the quiver |
 
 ## Ground rules
 
