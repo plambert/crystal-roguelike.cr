@@ -36,8 +36,12 @@ module Roguelike::Ui
     # Rows the message log is given.
     LOG_ROWS = 4
 
-    # How many rows are not the map. The rule, the status line and the log.
-    CHROME_ROWS = 1 + 1 + LOG_ROWS
+    # How many rows are not the map. The rule and the log.
+    #
+    # There was a status row between them. Everything on it is in the
+    # sidebar now, stacked, where there is room for it and for a bar beside
+    # each number.
+    CHROME_ROWS = 1 + LOG_ROWS
 
     # The narrowest terminal the game is drawn in.
     #
@@ -68,17 +72,11 @@ module Roguelike::Ui
     # The line in the notice that says how big the terminal is now.
     getter notice_text : Widgets::Label
 
-    # The status line's scaffolding, until phase 7 puts something real there.
-    getter status_text : Widgets::Label
-
     # Where the floor is drawn.
     getter map : Widgets::Panel
 
-    # What is under the pointer, and later the character summary.
+    # What the character is, and what is around them.
     getter sidebar : Widgets::Panel
-
-    # One row. It will hold hit points, attributes, depth and gold.
-    getter status : Widgets::Panel
 
     # What has just happened, oldest first.
     getter log : Widgets::Panel
@@ -104,12 +102,6 @@ module Roguelike::Ui
 
       @gutter = Widgets::Divider.new Widgets::Divider::Orientation::Vertical
 
-      @status_text = Widgets::Label.new ""
-      @status = Widgets::Panel.new(
-        width: Layout::Sizing.grow,
-        height: Layout::Sizing.fixed(1),
-        padding: Layout::Padding.symmetric(horizontal: 1))
-
       @log = Widgets::Panel.new(
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fixed(LOG_ROWS),
@@ -127,7 +119,6 @@ module Roguelike::Ui
         height: Layout::Sizing.grow)
       @playing.add upper,
         Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        @status,
         @log
 
       @notice_text = Widgets::Label.new "", align: TermBuf::Unicode::Align::Center
@@ -196,14 +187,6 @@ module Roguelike::Ui
       @map.add widget
     end
 
-    # Puts *widget* in the status row. Takes out whatever was there.
-    #
-    # `Ui::StatusLine` goes here.
-    def show_status(widget : Widgets::Widget) : Nil
-      @status.clear
-      @status.add widget
-    end
-
     # Puts *widget* in the log pane. Takes out whatever was there.
     #
     # `TermBuf::Widgets::Pager` goes here.
@@ -223,22 +206,12 @@ module Roguelike::Ui
     # Puts *widgets* in the sidebar, stacked in the order given. Takes out
     # whatever was there.
     #
-    # `Ui::NearbyPane` and `Ui::ExaminePane` go here.
+    # `Ui::CharacterPane` goes at the top, then `Ui::NearbyPane` and
+    # `Ui::ExaminePane`. What the character is does not move when what is in
+    # sight does, so the block a person reads every turn is the fixed one.
     def show_sidebar(*widgets : Widgets::Widget) : Nil
       @sidebar.clear
       widgets.each { |widget| @sidebar.add widget }
-    end
-
-    # Fills the regions that have nothing of their own yet.
-    #
-    # This is scaffolding. Phase 7 takes the status line. Phase 8 takes the
-    # log. This method goes when the second of those lands.
-    def scaffold(seed : UInt64) : Nil
-      @status_text.text = "seed #{seed}    turn 0"
-      @status.add @status_text
-
-      @log.add Widgets::Label.new(
-        "Welcome to the dungeon. ? for the keys, Q to leave.")
     end
 
     # Whether the sidebar is being shown.

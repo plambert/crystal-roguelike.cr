@@ -63,6 +63,7 @@ module Roguelike::Ui
 
       heading = Widgets::Label.new HEADING
       heading.style = Style::DEFAULT.bold
+      heading.height = Layout::Sizing.fixed 1
       @where.style = Style::DEFAULT.faint
       @where.hidden = true
 

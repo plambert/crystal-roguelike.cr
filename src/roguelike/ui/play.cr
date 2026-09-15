@@ -64,8 +64,8 @@ module Roguelike::Ui
     # What the mouse pointer is doing.
     getter pointer : Pointer
 
-    # What the character is, on one row.
-    getter status_line : StatusLine
+    # What the character is, stacked down the sidebar.
+    getter character : CharacterPane
 
     # What has just happened, held at a page boundary when a turn says more
     # than the pane shows at once.
@@ -150,20 +150,16 @@ module Roguelike::Ui
       @map = MapPane.new @game.floor
       @screen.show @map.grid
 
+      @character = CharacterPane.new
       @examine = ExaminePane.new
       @nearby = NearbyPane.new
-      @screen.show_sidebar @nearby.root, @examine.root
+      @screen.show_sidebar @character.root, @nearby.root, @examine.root
       @examiner = Examiner.new @map, @examine
       @examiner.lore = @game.lore
       @pointer = Pointer.new
 
       @flicker = Flicker.new @game.world.seed
       @map.flicker = @flicker
-
-      @screen.scaffold @game.world.seed
-
-      @status_line = StatusLine.new
-      @screen.show_status @status_line.bar
 
       @pager = Widgets::Pager.new
       @screen.show_log @pager
@@ -927,6 +923,13 @@ module Roguelike::Ui
       seen = @game.look
       @map.sight = seen
       @map.knowledge = @game.knowledge
+
+      # The character block writes itself, then gives up whatever rows the
+      # window has no room for. What is left over is what the two readouts
+      # under it get, so the order here decides the sidebar.
+      @character.show @game
+      @character.fit Play.character_rows @rows
+      @nearby.budget = Play.nearby_budget @rows, @character.height
       @nearby.show @game, seen
 
       # The pane reads the floor for what is lying about and the knowledge for
@@ -936,7 +939,6 @@ module Roguelike::Ui
       offer_directions
       show_aim
       @pager.show @game.log.lines
-      @status_line.show @game
       show_ending
     end
 
@@ -1026,12 +1028,13 @@ module Roguelike::Ui
       @rows = rows
       @screen.fit columns, rows
       @pager.resize Screen.log_width(columns), Screen::LOG_ROWS
-      @nearby.budget = Play.nearby_budget rows
 
       @placard.fit_into Rect.new(0, 0, columns, rows)
 
       app = @app
       @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app
+
+      refresh
     end
 
     # Starts *command*. Finds the one door of *terrain* beside the character,
@@ -1052,19 +1055,36 @@ module Roguelike::Ui
 
     # How many rows the sidebar's two lists get on a screen of *rows*.
     #
-    # Whatever the map pane has, less the headings and rules of all three
+    # Whatever the sidebar has left, less the headings and rules of the two
     # sections and the most `ExaminePane` writes. A shorter screen gives them
     # less, and `NearbyPane` elides what does not fit rather than pushing the
     # readout off the bottom.
-    def self.nearby_budget(rows : Int32) : Int32
-      Math.max Screen.map_rows(rows) - SIDEBAR_CHROME - EXAMINE_ROWS, 1
+    def self.nearby_budget(rows : Int32, character : Int32 = 0) : Int32
+      Math.max Screen.map_rows(rows) - character - SIDEBAR_CHROME - EXAMINE_ROWS, 2
+    end
+
+    # How many rows `CharacterPane` may take of a screen of *rows*.
+    #
+    # What is left over once the two readouts under it have what they need.
+    # The character block is the one that can give rows up: it knows what it
+    # would drop first, and a person who wants all of it can make the window
+    # taller.
+    def self.character_rows(rows : Int32) : Int32
+      Math.max Screen.map_rows(rows) - LEAST_READOUTS, CharacterPane::LEAST
     end
 
     # Rows the three sidebar headings and the rules under them take.
-    SIDEBAR_CHROME = 5
+    SIDEBAR_CHROME = 6
 
     # The most rows `ExaminePane` writes at once.
     EXAMINE_ROWS = 6
+
+    # The fewest rows the three readouts are left with.
+    #
+    # A heading, a rule and one row each for Here, Seen and Look, and the two
+    # blank rows between the three panes. The character block takes
+    # everything above that and gives rows back when there are not enough.
+    LEAST_READOUTS = SIDEBAR_CHROME + 3 + 3
 
     # Whether the log is holding a page that has not been read.
     def holding? : Bool
@@ -1095,10 +1115,16 @@ module Roguelike::Ui
       @map.follow @game.player.x, @game.player.y if went.moved?
     end
 
-    # Writes whether the terminal is reporting the mouse.
+    # Records whether the terminal is reporting the mouse.
+    #
+    # Nothing writes it on the screen now. The status row it was on is gone,
+    # and `M` says what it did in the log.
     def mousing=(wanted : Bool) : Nil
-      @status_line.mousing = wanted
+      @mousing = wanted
     end
+
+    # :ditto:
+    getter? mousing : Bool = false
 
     # Moves the flames on one tick.
     #

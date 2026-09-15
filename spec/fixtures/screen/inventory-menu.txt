@@ -1,23 +1,23 @@
-#####                                                  │ Here
-#...#                                                  │ ──────────────────────
-#.@.#                                                  │ staircase up
+#####                                                  │ Level 1
+#...#                                                  │ HP        12/12
+#.@.#                                                  │ XP        0/20
 #...#                                                  │
-#####                                                  │ Seen
-                                                       │ ──────────────────────
-                                                       │ nothing
+#####                                                  │ ac 0   au 0     t 2
                                                        │
+                                                       │ Here
+                                                       │ ──────────────────────
+                                                       │ staircase up
+                                                       │
+                              ╭─ Inventory ──────╮     │ Seen
+                              │ a - a dagger     │     │ ──────────────────────
+                              │ b - 9 arrows     │     │ nothing
+                              ╰──────────────────╯     │
                                                        │ Look
                                                        │ ──────────────────────
-                              ╭─ Inventory ──────╮     │ Point at the map, or
-                              │ a - a dagger     │     │ press x.
-                              │ b - 9 arrows     │     │
-                              ╰──────────────────╯     │
-                                                       │
-                                                       │
-                                                       │
+                                                       │ Point at the map, or
+                                                       │ press x.
                                                        │
 ────────────────────────────────────────────────────────────────────────────────
- hp: 12/12 | ac: 0 | wep: 1d2 | lv: 1 | xp: 0/20 | gold: 0 | turn: 2 | st: 10 …
  a - a dagger
  b - 9 arrows
 

@@ -168,7 +168,6 @@ Spectator.describe Roguelike::Ui::MapPane do
     it "draws what it drew last time" do
       screen = Roguelike::Ui::Screen.new
       screen.fit 80, 24
-      screen.scaffold 20260911_u64
 
       pane = described_class.new Roguelike::Floors.proving_ground
       screen.show pane.grid
@@ -181,7 +180,6 @@ Spectator.describe Roguelike::Ui::MapPane do
     it "draws what it drew last time with the camera on the down stairs" do
       screen = Roguelike::Ui::Screen.new
       screen.fit 80, 24
-      screen.scaffold 20260911_u64
 
       floor = Roguelike::Floors.proving_ground
       pane = described_class.new floor

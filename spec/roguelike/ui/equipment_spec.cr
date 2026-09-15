@@ -362,29 +362,44 @@ Spectator.describe "wielding, wearing and taking off" do
     end
   end
 
-  describe "the status line" do
+  describe "the character pane" do
+    # Which slot row the pane writes *slot* on.
+    def slot_row(run : Playing::Run, slot : Roguelike::Slot) : String
+      run.play.character.slot_row(slot).text
+    end
+
     it "shows the armour class" do
       run = carrying [Item.new Kind::ChainMail]
 
       run.press "W"
       run.press "a"
 
-      expect(run.rows.join).to contain "ac: 4"
+      expect(run.play.character.numbers.text).to contain "ac4"
     end
 
-    it "shows the wielded weapon and what it does" do
+    it "shows the wielded weapon on the weapon row" do
       run = carrying [Item.new Kind::LongSword]
 
       run.press "w"
       run.press "a"
 
-      expect(run.rows.join).to contain "wep: long sword 1d8"
+      expect(slot_row run, Roguelike::Slot::Melee).to eq "wpnlong swd"
     end
 
-    it "shows bare hands as the dice on their own" do
+    it "shows an empty slot rather than leaving the row out" do
       run = carrying
 
-      expect(run.rows.join).to contain "wep: 1d2"
+      expect(slot_row run, Roguelike::Slot::Melee)
+        .to eq "wpn#{Roguelike::Ui::CharacterPane::NOTHING}"
+    end
+
+    it "puts what is worn on the row for the slot it is worn in" do
+      run = carrying [Item.new Kind::ChainMail]
+
+      run.press "W"
+      run.press "a"
+
+      expect(slot_row run, Roguelike::Slot::Body).to eq "bodchain"
     end
   end
 end

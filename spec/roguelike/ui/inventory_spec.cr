@@ -183,13 +183,13 @@ Spectator.describe "picking up and dropping" do
     end
   end
 
-  describe "the status line" do
+  describe "the character pane" do
     it "counts the gold" do
       run = litter [Item.new(Kind::Gold, count: 25)]
 
       run.press ","
 
-      expect(run.play.status_line.bar["gold"]?.try &.text).to eq "25"
+      expect(run.play.character.numbers.text).to contain "au25"
     end
 
     it "leaves no letter for the gold" do

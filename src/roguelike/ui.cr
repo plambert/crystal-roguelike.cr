@@ -14,6 +14,7 @@ module Roguelike::Ui
   alias Layout = TermBuf::Widgets::Layout
   alias Style = TermBuf::Style
   alias Rect = TermBuf::Rect
+  alias View = TermBuf::View
 end
 
 require "./direction"
@@ -22,6 +23,10 @@ require "./item"
 require "./game"
 require "./floor"
 require "./ui/palette"
+require "./ui/line"
+require "./ui/meter"
+require "./ui/naming"
+require "./ui/character_pane"
 require "./ui/flicker"
 require "./ui/keys"
 require "./ui/map_pane"
@@ -29,7 +34,6 @@ require "./ui/examine_pane"
 require "./ui/nearby_pane"
 require "./ui/examiner"
 require "./ui/pointer"
-require "./ui/status_line"
 require "./ui/console_pane"
 require "./ui/placard"
 require "./ui/placards"

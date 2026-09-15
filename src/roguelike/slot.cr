@@ -42,6 +42,31 @@ module Roguelike
       end
     end
 
+    # Three columns or fewer, for the sidebar.
+    #
+    # The sidebar is 22 columns wide and an item's name needs all of them it
+    # can get. `#label` is the whole word, which the tooltip writes.
+    def short : String
+      case self
+      in .melee?  then "wpn"
+      in .ranged? then "rng"
+      in .quiver? then "qvr"
+      in .body?   then "bod"
+      in .head?   then "hd"
+      in .hands?  then "hnd"
+      in .feet?   then "ft"
+      in .shield? then "shd"
+      end
+    end
+
+    # The order the sidebar lists the slots in.
+    #
+    # What is in a hand first, then what is worn. The order never changes, so
+    # a person learns where to look rather than reading the labels.
+    def self.listed : Array(Slot)
+      [Melee, Ranged, Quiver, Body, Head, Hands, Feet, Shield]
+    end
+
     # What the inventory writes beside an item held here.
     #
     # NetHack's wording. A person reading the list has to see which sword is

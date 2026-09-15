@@ -1141,11 +1141,125 @@ Small things deliberately left out of the basic game, to be picked up once it ex
 * Glyph and colour themes. `Palette::GROUND` is the first colour one would want to change.
 * A flicker that sleeps. The tick runs whether or not anything is burning. It sends no bytes with
   every flame out, but it still lays out and draws the tree seven times a second.
-* A status bar that does not need 136 columns. It carries the hit points, armour class, weapon,
-  level, experience, gold, turn, five attributes, position and mouse state on one row, and a
-  wielded weapon's name pushes the last pairs off a narrower window. The five attributes belong
-  in the sidebar, which has room for them and is nearly empty.
 * A `--replay` mode that re-runs a recorded key sequence against a seed, which would make every
   bug report reproducible.
 * Move each of the five general-purpose pieces to `termbuf-widgets.cr` once settled, with the
   specs written here.
+
+## The sidebar
+
+Everything a person reads every turn is in one column on the right. There was a status row along
+the foot of the screen; it needed 150 columns to show every pair and cut the last of them on
+anything narrower. The map has that row back.
+
+`Ui::CharacterPane` stacks the level, the bars, the numbers that are not on a bar, the five scores,
+what is readied and what is in the pack. `Ui::NearbyPane` and `Ui::ExaminePane` sit under it, so
+the block that is read every turn is the one that never moves.
+
+`Ui::Meter` is one bar with the count inside it rather than beside it, which is one row instead of
+two. The fill runs from green through to red as it empties, mixed between the five levels in
+`Palette::HEALTH` rather than stepping at each one. Magic runs the same levels but ends at light
+orange: running out of magic is not the same as running out of blood, and the red is worth keeping
+for the one bar that means the run is about to end. The experience bar is one colour however full
+it is, because a bar that changes colour says something is wrong and nothing is wrong with being
+early in a level. Whether a bar shades or steps should be a person's own choice, and the levels are
+written down either way.
+
+`Ui::Naming.short` writes an item for a column: no article, the count in front, the noun singular,
+and every word shortened rather than left out, so `bls mwk +1 chain` is still four separate facts.
+A name too long for the column is cut and marked. The whole name belongs in a tooltip.
+
+`Ui::Line` is one row written at columns the caller picks, which is what keeps the numbers under
+each other. It is a fixed row rather than a `Widgets::Label` because the layout squeezes a label to
+nothing before it squeezes a row of fixed height, and a heading that vanishes under pressure leaves
+a rule over a list of nothing in particular.
+
+An empty equipment slot is drawn dimmed rather than left out, so a person learns which row the
+weapon is on instead of reading the labels. The pack is shut to begin with, because it is ten rows
+and the readouts under it want them.
+
+`CharacterPane#fit` decides what to show in the rows it is given, in the order a person would give
+things up: an open pack shuts, then the empty slots go, then the scores, then the pack heading,
+then the equipment. The level and the bars never go. At the shortest terminal the game runs in, the
+three readouts still keep a heading, a rule and one row each.
+
+## Asked for, not yet built
+
+Each of these was asked for and written down rather than built at the time. They are in the order
+they were raised, not in the order they should be done.
+
+### Where the camera lets the character get to
+
+The camera follows too late, so the character reaches the edge of the window before it scrolls. The
+character should move freely inside a box about half the width and half the height of the window,
+and leave that box only where the camera has run out of floor to scroll onto. The camera must never
+scroll past the edge of the floor: how much blank there is beyond the edge is one of the things a
+roguelike leaks about where you are.
+
+### The Seen list
+
+Hovering a row with the mouse should light the creature's square on the map. The list should be
+sorted by how far each creature is from the character.
+
+### An options screen, and a pickup filter
+
+Player preferences need somewhere to live. One of them is what to pick up without being asked.
+Rather than a switch for gold, it is an ordered list of rules: gold only, by default, and a person
+can add rules like "never pick up a cursed item", "pick up anything better than what I have",
+"never pick up a worse weapon", "always pick up anything worth more than 100 gold". What a rule can
+say is its own design question.
+
+Another preference: whether a bar's colour comes from the gradient or from the fixed bands.
+
+### A route drawn on the map
+
+Clicking a square draws a route to it from where the character stands. It prefers squares the
+character knows are walkable, and where it knows no way through it guesses at one. While a route is
+up, `G` runs along it. The route fades after a few seconds with no movement and no other click.
+Clicking a row of the Seen list draws a route to that creature the same way.
+
+### A minimap
+
+Braille characters give four by two squares per cell, which is enough to show a 216 by 84 floor in
+a corner of the screen. Where the terminal speaks the kitty graphics protocol, draw it as an image
+instead.
+
+### Kitty graphics for the bars
+
+Where the protocol is there, a bar could be three layers rather than a row of cells: a gray image
+the width of the bar at the lowest z, the filled part sized over it, and the text over that. The
+fill would then move by a pixel rather than by a cell.
+
+### A bot that plays well enough to trust
+
+`Trial::Bot` never retreats and never shuts a door, so what it measures is narrow. It needs to shut
+doors, brace and spike them, and decide whether a fight is worth having. Shutting doors looks like a
+large gain in survival now, and it will not be one once most creatures can open them, so the bot and
+the door rules have to arrive together.
+
+### Creatures that open doors
+
+A shut door currently ends a pursuit, because `Knowledge#walkable?` says a shut door cannot be
+walked onto and a band paths over what it knows. Most creatures should be able to open one. That is
+what makes bracing and spiking a door worth doing.
+
+### An action menu on an inventory letter
+
+`i` lists the pack with a letter against each row and the letters do nothing. A letter should open a
+menu of what can be done with that item: equip, take off, wear, quaff, read, throw, inspect,
+identify. The menu should be a fixed list with the entries that do not apply dimmed rather than
+left out, so the same key is in the same place every time.
+
+### Pathfinding that is not perfect
+
+A band walks a shortest path to where it believes the character is, every turn, without error. Every
+creature already carries the same five scores a character does, so intelligence is what should
+decide how often one steps somewhere other than the best square. A slime has intelligence 3 and
+should wander badly; an orc has 8 and should mostly get there. The roll belongs on the band's own
+stream so a wrong step does not shift anything else.
+
+### A note on where the game is drifting
+
+Light, stealth, detection range and shutting doors are the levers that move survival most, which
+pulls the game toward stealth. Whether that is wanted is open, and it should be looked at again once
+creatures have more to do than walk at the character and swing.

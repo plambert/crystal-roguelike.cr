@@ -167,25 +167,22 @@ Spectator.describe Roguelike::Ui::Play do
     end
   end
 
-  describe "the status line" do
-    it "says the turn and where the character is" do
+  describe "the character pane" do
+    it "says the turn" do
       run = Playing.open
       run.press "l"
-      bar = run.play.status_line.bar
 
-      expect(bar["turn"]?.try &.text).to eq "1"
-      expect(bar["at"]?.try &.text).to eq "#{run.at[0]},#{run.at[1]}"
+      expect(run.play.character.numbers.text).to contain "t1"
     end
 
-    it "says whether the mouse is on" do
+    it "holds whether the mouse is on" do
       run = Playing.open
-      bar = run.play.status_line.bar
 
       run.play.mousing = false
-      expect(bar["mouse"]?.try &.text).to eq "off"
+      expect(run.play.mousing?).to be_false
 
       run.play.mousing = true
-      expect(bar["mouse"]?.try &.text).to eq "on"
+      expect(run.play.mousing?).to be_true
     end
   end
 

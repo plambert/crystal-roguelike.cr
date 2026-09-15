@@ -86,6 +86,119 @@ module Roguelike::Ui
     TOOL   = Style::DEFAULT.fg TermBuf::Color.rgb(0xE4, 0xA8, 0x60)
     COIN   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xD8, 0x48)).bold
 
+    # ------------------------------------------------------------- readouts
+
+    # What a label beside a number is drawn in.
+    FAINT = Style::DEFAULT.fg TermBuf::Color.rgb(0x6A, 0x70, 0x7C)
+
+    # What an ordinary number is drawn in.
+    PLAIN = Style::DEFAULT.fg TermBuf::Color.rgb(0xDC, 0xE2, 0xEC)
+
+    # What a number worth reading first is drawn in.
+    STRONG = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bold
+
+    # What an empty equipment slot is drawn in.
+    VACANT = Style::DEFAULT.fg TermBuf::Color.rgb(0x4A, 0x4E, 0x58)
+
+    # ------------------------------------------------------------- meters
+
+    # The colours a bar passes through as it empties.
+    GREEN        = TermBuf::Color.rgb 0x4C, 0xAF, 0x50
+    LIGHT_GREEN  = TermBuf::Color.rgb 0x8B, 0xC3, 0x4A
+    YELLOW       = TermBuf::Color.rgb 0xD4, 0xB1, 0x06
+    ORANGE       = TermBuf::Color.rgb 0xE8, 0x83, 0x3A
+    LIGHT_ORANGE = TermBuf::Color.rgb 0xF0, 0xA8, 0x60
+    RED          = TermBuf::Color.rgb 0xD3, 0x2F, 0x2F
+
+    # What the empty part of a bar is drawn on.
+    EMPTY = TermBuf::Color.rgb 0x33, 0x36, 0x3C
+
+    # What text over the empty part is drawn in.
+    EMPTY_TEXT = TermBuf::Color.rgb 0x8A, 0x90, 0x9C
+
+    # What the hit point bar is at each level, as a percentage and a colour.
+    #
+    # Between two levels the colour is mixed from the two, so the bar shades
+    # as it empties rather than stepping at a boundary. Below the last level
+    # it stays at the last colour.
+    #
+    # Whether a bar shades or steps should be a person's own choice. It
+    # shades for now, and the levels are here either way.
+    HEALTH = [
+      {100, GREEN},
+      {80, LIGHT_GREEN},
+      {60, YELLOW},
+      {40, ORANGE},
+      {20, RED},
+    ]
+
+    # The same for magic.
+    #
+    # Light orange at the bottom rather than red. Running out of magic is not
+    # the same as running out of blood, and the red is worth keeping for the
+    # one bar that means the run is about to end.
+    MAGIC = [
+      {100, GREEN},
+      {80, LIGHT_GREEN},
+      {60, YELLOW},
+      {40, ORANGE},
+      {20, LIGHT_ORANGE},
+    ]
+
+    # The experience bar, which is one colour however full it is.
+    #
+    # A bar that changes colour says something is wrong. Nothing is wrong
+    # with being early in a level.
+    LEARNING = [{100, LIGHT_GREEN}, {0, LIGHT_GREEN}]
+
+    # What a bar of *levels* is drawn in at *percent* full.
+    #
+    # At or above the first level it is the first colour. Between two levels
+    # it is mixed from the two by how far between them it is. Below the last
+    # level it is the last colour.
+    def self.meter(levels : Array({Int32, TermBuf::Color}), percent : Int32) : TermBuf::Color
+      held = percent.clamp 0, 100
+      return levels.first[1] if held >= levels.first[0]
+
+      (1...levels.size).each do |index|
+        above = levels[index - 1]
+        below = levels[index]
+        next if held < below[0]
+
+        span = above[0] - below[0]
+        return below[1] if span <= 0
+
+        return mix below[1], above[1], (held - below[0]) / span.to_f
+      end
+
+      levels.last[1]
+    end
+
+    # *first* moved *part* of the way toward *second*.
+    def self.mix(first : TermBuf::Color, second : TermBuf::Color,
+                 part : Float64) : TermBuf::Color
+      return first unless first.rgb? && second.rgb?
+
+      held = part.clamp 0.0, 1.0
+      one = first.channels
+      other = second.channels
+
+      TermBuf::Color.rgb(
+        (one[0] + (other[0] - one[0]) * held).round.to_i,
+        (one[1] + (other[1] - one[1]) * held).round.to_i,
+        (one[2] + (other[2] - one[2]) * held).round.to_i)
+    end
+
+    # Black or white, whichever reads better on *colour*.
+    def self.readable_on(colour : TermBuf::Color) : TermBuf::Color
+      return TermBuf::Color.rgb(0xFF, 0xFF, 0xFF) unless colour.rgb?
+
+      red, green, blue = colour.channels
+      bright = 0.299 * red + 0.587 * green + 0.114 * blue
+
+      bright > 140 ? TermBuf::Color.rgb(0x10, 0x12, 0x16) : TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)
+    end
+
     ITEMS = {
       ItemClass::Melee        => Look.new(')', WEAPON),
       ItemClass::RangedWeapon => Look.new(')', WEAPON),

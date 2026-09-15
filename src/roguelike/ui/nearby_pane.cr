@@ -83,6 +83,11 @@ module Roguelike::Ui
       heading = Widgets::Label.new title
       heading.style = Style::DEFAULT.bold
 
+      # One row, always. A heading of its own height is the first thing the
+      # layout squeezes when the sidebar runs out, and a rule with no
+      # heading over it says nothing at all.
+      heading.height = Layout::Sizing.fixed 1
+
       panel = Widgets::Panel.new(
         direction: Layout::Direction::Column,
         width: Layout::Sizing.grow)

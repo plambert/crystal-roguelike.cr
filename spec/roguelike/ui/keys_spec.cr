@@ -11,7 +11,6 @@ Spectator.describe Roguelike::Ui::Keys do
   def wired(columns : Int32 = 80, rows : Int32 = 24) : Wired
     screen = Roguelike::Ui::Screen.new
     screen.fit columns, rows
-    screen.scaffold 20260911_u64
 
     session = Headless.open screen.root, columns, rows
     quits = [] of Bool
