@@ -147,6 +147,26 @@ Spectator.describe Roguelike::Game do
     end
   end
 
+  describe "#wait" do
+    it "takes a turn and moves nobody" do
+      start = game.player.at
+
+      game.wait
+
+      expect(game.player.at).to eq start
+      expect(game.turn).to eq 1
+    end
+
+    # Nothing acts once the run is over, and a turn spent after it would
+    # count against a character who is no longer playing.
+    it "takes no turn once the run is over" do
+      game.ascend
+      game.wait
+
+      expect(game.turn).to eq 0
+    end
+  end
+
   describe "#open" do
     it "opens a shut door and takes a turn" do
       shut = one_room "###\n#<+\n###", 1, 1

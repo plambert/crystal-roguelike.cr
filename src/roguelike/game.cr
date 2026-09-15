@@ -350,6 +350,20 @@ module Roguelike
       Step::Moved
     end
 
+    # Passes the turn. `.` does this.
+    #
+    # The character does nothing. Everything else on the floor acts, the same
+    # way it does after a step, so waiting is how a person lets something
+    # come to them rather than walking into it.
+    #
+    # A run that is over takes no turn. Nothing acts after the character has
+    # died, and a person reading the ending screen is not playing.
+    def wait : Nil
+      return if over?
+
+      spend_turn
+    end
+
     # ------------------------------------------------------------- running
 
     # How many squares one run crosses before it stops on its own.

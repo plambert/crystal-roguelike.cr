@@ -82,6 +82,50 @@ Spectator.describe Roguelike::Ui::Play do
     end
   end
 
+  describe "the wait key" do
+    it "takes a turn and moves nobody" do
+      run = Playing.open
+      start = run.at
+
+      run.press "."
+
+      expect(run.at).to eq start
+      expect(run.turn).to eq 1
+    end
+
+    it "takes one turn per press" do
+      run = Playing.open
+
+      run.press ".", ".", "."
+
+      expect(run.turn).to eq 3
+    end
+
+    # Everything else on the floor acts on the turn a person waits through.
+    # That is what waiting is for: something walks up rather than being
+    # walked into.
+    it "lets the floor act" do
+      run = Playing.open
+      before = run.game.floor.monsters.values.map &.at
+
+      12.times { run.press "." }
+
+      expect(run.game.floor.monsters.values.map(&.at)).not_to eq before
+    end
+
+    # A question is waiting for a direction, and a direction is what the
+    # key gives back. It is not the moment to spend a turn on nothing.
+    it "takes back a command waiting for a direction instead" do
+      run = Playing.open
+      run.press "G"
+
+      run.press "."
+
+      expect(run.play.pending).to be_nil
+      expect(run.turn).to eq 0
+    end
+  end
+
   describe "walking into something" do
     # The up staircase sits six squares from the room's west wall. Six steps
     # arrive. The seventh does not.
