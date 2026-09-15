@@ -189,6 +189,21 @@ Spectator.describe "when a run is written to the store" do
       expect(run.map.floor).to be run.game.floor
     end
 
+    # A name that would be written over somebody else is refused, so the
+    # question goes back up rather than the run starting.
+    it "refuses a name that would write over somebody else" do
+      store = Playing.store
+      kept = playing store, name: "Sparky the Bold"
+      kept.play.keep
+
+      run = playing store, name: ""
+      run.play.play_as "Sparky!the!Bold"
+
+      expect(run.play.entry.asking?).to be_true
+      expect(run.game.player.name).to eq ""
+      expect(store.characters.map &.name).to eq ["Sparky the Bold"]
+    end
+
     it "starts a run under a name the store has not got" do
       store = Playing.store
       run = playing store, name: ""

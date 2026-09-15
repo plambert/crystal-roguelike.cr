@@ -257,6 +257,42 @@ Spectator.describe Roguelike::Save do
       end
     end
 
+    describe "#taken_by" do
+      it "says nothing when there is no file" do
+        expect(store.taken_by "Sparky").to be_nil
+      end
+
+      # A person carrying their own character on is not in their own way.
+      it "says nothing for the character whose file it is" do
+        kept = store
+        kept.write named("Sparky")
+
+        expect(kept.taken_by "Sparky").to be_nil
+      end
+
+      # Two names can make one file name. The second one would be written
+      # over the first, and nobody types a new name expecting that.
+      it "names the character in the way" do
+        kept = store
+        kept.write named("Sparky the Bold")
+
+        expect(kept.taken_by "Sparky!the!Bold").to eq "Sparky the Bold"
+      end
+
+      # A file nobody can read is still a file a new run must not write over.
+      it "names the file when the file will not parse" do
+        kept = store
+        Dir.mkdir_p kept.directory
+        File.write kept.path("Broken"), "{ not json"
+
+        expect(kept.taken_by "Broken").to eq "Broken"
+      end
+
+      it "says nothing for a name that makes no file name" do
+        expect(store.taken_by "///").to be_nil
+      end
+    end
+
     describe "#holds?" do
       it "says whether there is a file" do
         kept = store

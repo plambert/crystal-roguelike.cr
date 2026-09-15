@@ -147,6 +147,27 @@ module Roguelike
         wanted
       end
 
+      # Who already has the file that *name* would be written to.
+      #
+      # Answers `nil` when there is no file, and `nil` when the file belongs
+      # to a character called exactly *name*. That character is the person
+      # carrying on rather than somebody in the way.
+      #
+      # Answers a name otherwise: the character's own when the file parses,
+      # and the file's own when it does not. A file nobody can read is still
+      # a file a new run must not write over.
+      def taken_by(name : String) : String?
+        found = path name
+        return unless File.exists? found
+
+        whose = held name
+        return if whose && whose.name == name
+
+        whose.try(&.name) || found.basename(EXTENSION)
+      rescue ArgumentError
+        nil
+      end
+
       # The character called *name*, or `nil` for one this store has not got.
       #
       # A file that will not parse answers `nil` as well. A save from a build

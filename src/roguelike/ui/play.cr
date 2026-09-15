@@ -301,22 +301,32 @@ module Roguelike::Ui
     # A name already in the store loads that character. Any other name starts
     # the run that was dug, under that name. `Escape` puts the title screen
     # back: a person who is not sure what to type has not decided to play.
-    private def ask_the_name : Nil
+    #
+    # *complaint* replaces the question when the last answer was refused, so
+    # the box says why rather than going blank and asking the same thing.
+    private def ask_the_name(complaint : String? = nil) : Nil
       @entry.on_answer = ->(typed : String?) do
         answered_the_name typed
         nil
       end
 
-      @entry.ask application, Placards::NAME_QUESTION,
+      @entry.ask application, complaint || Placards::NAME_QUESTION,
         placeholder: Placards::NAME_PLACEHOLDER
     end
 
     # What to do with what was typed at the name question.
+    #
+    # Two names can make one file name, so a name that would be written over
+    # somebody else's save is refused rather than taken. Nobody types a new
+    # character's name expecting to lose an old character.
     private def answered_the_name(typed : String?) : Nil
       return show_title if typed.nil?
 
       name = typed.strip
-      return ask_the_name if name.empty? || Save.slug(name).empty?
+      return ask_the_name Placards::NAME_UNUSABLE if Save.slug(name).empty?
+
+      whose = @store.try &.taken_by(name)
+      return ask_the_name Placards.taken(whose) if whose
 
       found = @store.try &.read(name)
       return start_as name unless found

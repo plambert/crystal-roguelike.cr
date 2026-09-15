@@ -175,7 +175,58 @@ Spectator.describe "how a run starts and ends" do
       run.press "Enter"
 
       expect(run.entry.asking?).to be_true
+      expect(run.entry.question).to eq Placards::NAME_UNUSABLE
       expect(run.game.player.name).to eq ""
+    end
+
+    # Two names can make one file name. The second one would be written over
+    # the first, and nobody types a new name expecting to lose a character.
+    it "refuses a name that would write over somebody else" do
+      store = Playing.store
+      kept = playing
+      kept.game.player.name = "Sparky the Bold"
+      store.write kept.game
+
+      run = playing title: true, store: store
+      run.press "p"
+      run.type "Sparky!the!Bold"
+      run.press "Enter"
+
+      expect(run.entry.asking?).to be_true
+      expect(run.entry.question).to eq Placards.taken("Sparky the Bold")
+      expect(run.game.player.name).to eq ""
+    end
+
+    it "leaves the file that was in the way where it was" do
+      store = Playing.store
+      kept = playing
+      kept.game.player.name = "Sparky the Bold"
+      store.write kept.game
+
+      run = playing title: true, store: store
+      run.press "p"
+      run.type "Sparky!the!Bold"
+      run.press "Enter"
+
+      expect(store.characters.map &.name).to eq ["Sparky the Bold"]
+    end
+
+    it "takes the name once the person types another" do
+      store = Playing.store
+      kept = playing
+      kept.game.player.name = "Sparky the Bold"
+      store.write kept.game
+
+      run = playing title: true, store: store
+      run.press "p"
+      run.type "Sparky!the!Bold"
+      run.press "Enter"
+      run.type "McGee"
+      run.press "Enter"
+
+      expect(run.entry.asking?).to be_false
+      expect(run.game.player.name).to eq "McGee"
+      expect(store.characters.size).to eq 2
     end
 
     it "carries on a character already in the store" do

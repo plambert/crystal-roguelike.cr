@@ -26,6 +26,19 @@ module Roguelike::Ui
     # The most saved characters the title screen lists.
     MOST_SAVED = 8
 
+    # What the name question asks again when the name has nothing in it that
+    # makes a file name.
+    NAME_UNUSABLE = "That name has no letters or digits in it. Try another."
+
+    # What it asks again when the file that name would be written to belongs
+    # to somebody else.
+    #
+    # The character in the way is named, so a person who meant to carry them
+    # on can see how their name is spelled.
+    def self.taken(whose : String) : String
+      "#{whose} is saved already. Try another name."
+    end
+
     # The keys the end screen answers.
     AGAIN_KEYS = "yn"
 

@@ -1272,16 +1272,21 @@ character becomes one dash, and a run of dashes becomes one. Letters keep their 
 accents, so `Gúnther the 👹` is kept in the file and the file is called `Gúnther-the.json`.
 
 This is not about what a filesystem allows, which is almost anything. It is about a name a person
-can type at a shell without quoting it, and one that cannot be mistaken for a path. Two names that
-slug the same way are one character. A name with nothing usable in it is refused and the question
-is asked again.
+can type at a shell without quoting it, and one that cannot be mistaken for a path.
+
+Two names can therefore make one file name. A name whose file belongs to somebody else is refused,
+and the question goes back up saying who is in the way, so a person who meant to carry that
+character on can see how their name is spelled. Nobody types a new character's name expecting to
+lose an old character. A file that will not parse counts as taken as well: a file nobody can read
+is still a file a new run must not write over. A name with nothing usable in it is refused the same
+way.
 
 ### Asking who is playing
 
 The title screen lists whatever is in the store, so a person can see which names are taken before
 they answer. `p` then asks the name through `Widgets::Entry`, a modal box with one line typed into
-it. A name already in the store carries that character on and the floor that was dug for the run is
-thrown away. Any other name starts that run under that name, and writes it at once, so a character
+it. The character's own name carries them on, and the floor that was dug for the run is thrown
+away. Any other name starts that run under that name, and writes it at once, so a character
 exists from the moment they are named. `Escape` puts the title screen back: a person who is not
 sure what to type has not decided to play.
 
