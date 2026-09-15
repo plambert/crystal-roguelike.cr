@@ -22,6 +22,15 @@ module Roguelike::Ui
     # The pieces, in the order they were written.
     getter spans : Array(Span) = [] of Span
 
+    # What runs when the pointer is over the row.
+    #
+    # It runs on every report the pointer makes, so whatever it does has to
+    # be cheap and has to be the same every time.
+    property on_point : Proc(Nil)? = nil
+
+    # What runs when a button goes down on the row.
+    property on_press : Proc(Nil)? = nil
+
     def initialize(width : Layout::Sizing = Layout::Sizing.grow)
       @width = width
       @height = Layout::Sizing.fixed 1
@@ -57,6 +66,27 @@ module Roguelike::Ui
 
     def height_for_width(width : Int32, policy : TermBuf::Unicode::WidthPolicy) : Int32
       1
+    end
+
+    # Takes the pointer. A row with neither hook takes nothing.
+    #
+    # A press is claimed, so nothing behind the sidebar answers a click that
+    # landed on a row. The pointer moving is not claimed: whatever is
+    # tracking where the pointer is has to hear about every report, including
+    # the ones that land here.
+    def handle(event : TermBuf::Event, context : Widgets::Context) : Nil
+      return unless event.is_a? TermBuf::Events::Mouse
+
+      if event.action.press? && !event.button.wheel?
+        pressed = @on_press
+        return unless pressed
+
+        pressed.call
+        context.consume
+        return
+      end
+
+      @on_point.try &.call
     end
 
     def draw(view : View) : Nil

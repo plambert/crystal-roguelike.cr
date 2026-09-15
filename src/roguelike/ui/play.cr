@@ -89,6 +89,16 @@ module Roguelike::Ui
     # The title screen, and the screen the run ends with.
     getter placard : Placard
 
+    # What hangs beside a sidebar row the pointer is over.
+    getter tooltip : Tooltip
+
+    # What the pointer is over in the sidebar, as the rows last reported it.
+    #
+    # A row records itself here when the pointer crosses it, and `#pointed`
+    # reads it once the event has been through the whole tree. That is the
+    # one place that decides whether the box goes up or comes down.
+    @detailed : {Widgets::Widget, Array(String)}? = nil
+
     # Whether the person asked for another run when this one ended.
     #
     # `Session` reads this once `#finished?` is true. A run that was quit
@@ -169,6 +179,8 @@ module Roguelike::Ui
       @prompt = Widgets::Prompt.new
       @menu = Widgets::Menu.new
       @placard = Placard.new
+      @tooltip = Tooltip.new
+      watch_the_sidebar
 
       if console
         pane = ConsolePane.new @game
@@ -176,6 +188,44 @@ module Roguelike::Ui
         @console = pane
       end
 
+      refresh
+    end
+
+    # Puts the pointer hooks on the rows of the character pane.
+    #
+    # A row says what it is about when the pointer crosses it. `#pointed`
+    # decides what to do with that once the event has been through the tree.
+    # The pack heading opens and shuts the pack when it is pressed.
+    private def watch_the_sidebar : Nil
+      Slot.listed.each do |slot|
+        row = @character.slot_row slot
+        row.on_point = -> { detail row, Detail.about(@game, slot); nil }
+      end
+
+      @character.pack.each_with_index do |row, index|
+        row.on_point = -> { detail row, carried_detail(index); nil }
+      end
+
+      @character.pack_heading.on_press = -> { open_pack; nil }
+      @character.pack_heading.on_point = -> { detail nil, nil; nil }
+    end
+
+    # What the pack row at *index* is about, or `nil` for an empty row.
+    private def carried_detail(index : Int32) : Array(String)?
+      found = @game.player.inventory.entries[index]?
+      return unless found
+
+      Detail.about @game, found[1]
+    end
+
+    # Records what the pointer is over. `nil` for a row about nothing.
+    private def detail(row : Widgets::Widget?, lines : Array(String)?) : Nil
+      @detailed = row && lines ? {row, lines} : nil
+    end
+
+    # Opens the pack, or shuts it, and lays the sidebar out again.
+    def open_pack : Nil
+      @character.toggle_pack
       refresh
     end
 
@@ -1001,6 +1051,20 @@ module Roguelike::Ui
       # is up.
       return pointer_away if modal?
 
+      # The sidebar rows have already had this event and written down what
+      # the pointer is over. A row with something to say puts the box up and
+      # takes the pointer off the map: the pointer is not on the map.
+      found = @detailed
+      @detailed = nil
+      app = @app
+
+      if found && app
+        @tooltip.show app, found[0], found[1]
+        return @pointer.away
+      end
+
+      @tooltip.hide
+
       if @examiner.cursoring? && !click
         # The shape still follows the pointer. The pointer is over the map,
         # whatever the readout is pointing at.
@@ -1014,7 +1078,11 @@ module Roguelike::Ui
 
     # Records that the pointer is off the map. Also used when the mouse is
     # turned off and when the run ends.
+    #
+    # The tooltip goes with it. A box left hanging over a map nobody is
+    # pointing at is a box in the way.
     def pointer_away : String?
+      @tooltip.hide
       @pointer.away
     end
 

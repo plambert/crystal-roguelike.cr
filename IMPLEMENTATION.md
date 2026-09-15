@@ -1183,6 +1183,21 @@ things up: an open pack shuts, then the empty slots go, then the scores, then th
 then the equipment. The level and the bars never go. At the shortest terminal the game runs in, the
 three readouts still keep a heading, a rule and one row each.
 
+### Pointing at the sidebar
+
+`Ui::Line` takes the pointer. A row says what it is about when the pointer crosses it, and
+`Ui::Play#pointed` decides what to do with that once the event has been through the whole tree. A
+press is claimed so that a click on the sidebar is not also a click on the map; the pointer moving
+is not claimed, because whatever tracks where the pointer is has to hear about every report.
+
+`Ui::Tooltip` hangs to the left of the row, over the map, so a person reading it can still see the
+row they are pointing at. It takes neither the keyboard nor the pointer: a pointer that crossed it
+could never reach the row under it, and the two would take turns. `Ui::Detail` writes what goes in
+it — the slot written out, the whole name, and what the character knows about the item. An
+unidentified potion is named by its colour and nothing is said about what drinking it would do.
+
+The triangle on the pack heading opens and shuts the pack when it is pressed.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
