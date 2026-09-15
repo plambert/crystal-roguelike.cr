@@ -158,13 +158,38 @@ module Roguelike
       floor = world.add ground
 
       player = Player.new floor.id, *entrance(floor)
-      player.inventory.add Item.new(ItemKind::Torch, lit: true)
+      outfit player
 
       game = new world, player, lore: Lore.roll(rng)
       game.scatter rng
       game.equip rng
-      game.say "You are in a dungeon, holding a lit torch. Press ? for the keys."
+      # Two lines rather than one. The log pane is four rows of about eighty
+      # columns, and one sentence saying all of this wraps onto two of them.
+      game.say "You are in a dungeon with a short sword, leather armour and a lit torch."
+      game.say "Press ? for the keys."
       game
+    end
+
+    # What the character starts with, readied.
+    #
+    # A short sword and leather armour. Bare hands are 1d2 against a goblin's
+    # armour, which is a fight a character at level one cannot win, and a
+    # character who cannot win the commonest fight cannot reach level two
+    # either. The torch is here because a dungeon is dark and somebody who
+    # arrived without a light would see one square.
+    #
+    # The slots are filled rather than wielded. `#wield` and `#wear` each
+    # spend a turn and write to the log, and neither has happened yet.
+    private def self.outfit(player : Player) : Nil
+      {
+        {Item.new(ItemKind::ShortSword), Slot::Melee},
+        {Item.new(ItemKind::LeatherArmour), Slot::Body},
+      }.each do |item, slot|
+        letter = player.inventory.add item
+        player.equipment.put slot, letter if letter
+      end
+
+      player.inventory.add Item.new(ItemKind::Torch, lit: true)
     end
 
     # A new run on *rng*, played on a floor dug from the same seed.

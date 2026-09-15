@@ -956,6 +956,45 @@ that keep a person alive. So the numbers are the pessimistic end of what the gam
 The size of a number here means little on its own. The difference between two sets of runs is what
 to read, and the seeds have to be the same in both.
 
+## Balance
+
+What the numbers are set to, and what was measured to set them. A change here is made against
+`--trial` over the same seeds, before and after, and both readings go in this section.
+
+### The level one curve
+
+A character starts at level one with twelve hit points, a short sword and leather armour, all
+readied, plus a lit torch. Turns to kill against turns to die, at average attributes:
+
+| | slime | goblin | orc |
+|---|---|---|---|
+| level 1 | 3.1 / 16.0 wins well | 5.7 / 6.9 wins narrowly | 11.4 / 5.9 loses |
+| level 3 | 3.1 / 26.7 wins well | 5.7 / 11.4 wins well | 11.4 / 9.9 loses |
+
+That shape is deliberate. A slime is safe, a goblin is a fight worth picking, and an orc is
+something to walk away from until a better weapon turns up. A long sword at level three beats an
+orc narrowly, so the answer to an orc is what is lying on the floor rather than another level.
+
+It did not start there. At eight hit points with bare hands, a level one character needed 13.3
+turns to kill a goblin and died in 3.8, and lost to all three species with the best common weapon.
+Goblins are 45 out of 100 of what is on a floor, so every fight was a loss and there was no way to
+reach level two. The bot reached level two in 1% of two hundred runs.
+
+Two hundred runs of at most 1500 turns from seed 5000, before and after:
+
+| | eight hit points, bare hands | twelve, short sword and leather |
+|---|---|---|
+| died | 87% | 79% |
+| turns until death, median | 67 | 96 |
+| squares from the start, median | 13 | 17 |
+| level reached, best | 2 | 3 |
+| gold, mean | 11.5 | 18.3 |
+| killed by | goblin 114, orc 33, slime 27 | goblin 104, orc 47, slime 8 |
+
+Slime deaths fell from 27 to 8, which is the change asked for. Orc deaths rose from 33 to 47
+because the bot now lives long enough to meet one. The death rate is still high because the bot
+never retreats; see the note on what `Trial::Bot` does not do.
+
 ## Feature checklist
 
 Everything asked for in the basic game, against the phase that delivers it.

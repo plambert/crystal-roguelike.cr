@@ -17,7 +17,7 @@
           │                                                  │
           │  seed 20260915                                   │
 ──────────│  Play again? y starts a new run, n quits.  [yN]  │──────────
- hp: 0/8 |╰──────────────────────────────────────────────────╯ | gold:…
+ hp: 0/12 ╰──────────────────────────────────────────────────╯0 | gold…
  You miss the orc.
  The orc notices you.
  The orc hits you for 8.

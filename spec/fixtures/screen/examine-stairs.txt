@@ -17,8 +17,8 @@
                                                        │
                                                        │
 ────────────────────────────────────────────────────────────────────────────────
- hp: 8/8 | ac: 0 | wep: 1d2 | lv: 1 | xp: 0/20 | gold: 0 | turn: 0 | st: 10 | …
- You are in a dungeon, holding a lit torch. Press ? for the keys.
-
+ hp: 12/12 | ac: 2 | wep: short sword 1d6 | lv: 1 | xp: 0/20 | gold: 0 | turn:…
+ You are in a dungeon with a short sword, leather armour and a lit torch.
+ Press ? for the keys.
 
 

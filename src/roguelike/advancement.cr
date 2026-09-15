@@ -13,7 +13,12 @@ module Roguelike
     MAX_LEVEL = 20
 
     # Hit points at level one, before constitution.
-    BASE_HIT_POINTS = 8
+    #
+    # A character of average constitution has to survive a fight with the
+    # commonest creature on the floor. At eight they did not: a goblin took
+    # them down in under four turns and needed six to fall, so every fight at
+    # level one was a loss and there was no way to reach level two.
+    BASE_HIT_POINTS = 12
 
     # Hit points added by each level after the first, before constitution.
     HIT_POINTS_PER_LEVEL = 4

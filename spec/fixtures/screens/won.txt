@@ -17,7 +17,7 @@
       │                                                           │
       │  seed 20260915                                            │
 ──────│  Play again? y starts a new run, n quits.  [yN]           │─────
- hp: 8╰───────────────────────────────────────────────────────────╯ld:…
+ hp: 1╰───────────────────────────────────────────────────────────╯gol…
  The orc notices you.
  The orc misses you.
  There is a staircase leading down here.

@@ -3,6 +3,14 @@ require "../../spec_helper"
 Spectator.describe Roguelike::Ui::StatusLine do
   alias Which = Roguelike::Attributes::Which
 
+  # How wide a window holds the whole row.
+  #
+  # The character starts with a short sword readied, and the weapon's name is
+  # on the row, so the row is as long as it ever is from turn zero. The pairs
+  # after the attributes are read least often, so they are cut first on
+  # anything narrower.
+  WHOLE = 150
+
   # The status row of a run, as the screen drew it.
   def written(run : Playing::Run) : String
     run.rows.find(&.includes?("hp:")) || ""
@@ -24,14 +32,14 @@ Spectator.describe Roguelike::Ui::StatusLine do
     end
 
     it "writes the turn" do
-      run = Playing.open
+      run = Playing.open columns: WHOLE, rows: 24
       run.press "l"
 
       expect(written(run)).to contain "turn: 1"
     end
 
     it "writes every score" do
-      run = Playing.open columns: 120, rows: 24
+      run = Playing.open columns: WHOLE, rows: 24
       line = written run
 
       Which.values.each do |which|
@@ -109,11 +117,8 @@ Spectator.describe Roguelike::Ui::StatusLine do
       expect(line).not_to contain "mouse"
     end
 
-    # The whole row comes to 133 columns with nothing wielded, and a wielded
-    # weapon's name adds to that. The pairs after the attributes are read
-    # least often, so they are cut first.
     it "keeps everything when there is room" do
-      run = Playing.open columns: 136, rows: 24
+      run = Playing.open columns: WHOLE, rows: 24
 
       expect(written(run)).not_to contain "…"
       expect(written(run)).to contain "mouse: on"
@@ -122,7 +127,7 @@ Spectator.describe Roguelike::Ui::StatusLine do
 
   describe "the mouse pair" do
     it "says what the terminal is doing" do
-      run = Playing.open columns: 136, rows: 24
+      run = Playing.open columns: WHOLE, rows: 24
       run.play.mousing = false
       run.render
 
