@@ -25,6 +25,12 @@ module Roguelike::Ui
     # What an empty slot says.
     NOTHING = "—"
 
+    # What the first row says for a character nobody has named.
+    #
+    # A run holds no name until the title screen has been answered, and a
+    # spec builds a character without going near the title screen.
+    NOBODY = "—"
+
     # Where an item's name starts on a slot row.
     #
     # There is no glyph on these rows. The slot word says what sort of thing
@@ -50,7 +56,7 @@ module Roguelike::Ui
     # The widget itself. A caller puts it in a tree.
     getter root : Widgets::Panel
 
-    # The first row: what the character is.
+    # The first row: who the character is, and what level they have reached.
     getter who : Line
 
     # The three bars.
@@ -244,8 +250,8 @@ module Roguelike::Ui
       player = game.player
 
       @who.clear
-      @who.put 0, "Level", Palette::FAINT
-      @who.put 6, player.level.to_s, Palette::STRONG
+      @who.put 0, player.name.empty? ? NOBODY : player.name, Palette::STRONG
+      @who.put_right "Lv #{player.level}", Palette::PLAIN
 
       @health.show player.hit_points, player.max_hit_points
       @magic.show 0, 0

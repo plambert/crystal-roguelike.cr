@@ -77,6 +77,17 @@ module Roguelike::Ui
     # The one-key question, when there is one.
     getter prompt : Widgets::Prompt
 
+    # The question a line is typed into, when there is one. The character's
+    # name is asked for through this.
+    getter entry : Widgets::Entry
+
+    # Where the run is saved, or `nil` for a run that is not saved.
+    #
+    # `Session` gives a run the store under the person's home. A spec gives
+    # one a store on a temporary directory, or none at all, so that nothing
+    # a spec does writes to a person's saved characters.
+    property store : Save::Store? = nil
+
     # How the flames waver. `Session` advances it on a timer.
     getter flicker : Flicker
 
@@ -184,6 +195,7 @@ module Roguelike::Ui
       # Both are floats. `Overlay#open` puts one in the tree the first time it
       # is used.
       @prompt = Widgets::Prompt.new
+      @entry = Widgets::Entry.new
       @menu = Widgets::Menu.new
       @placard = Placard.new
       @tooltip = Tooltip.new
@@ -255,15 +267,113 @@ module Roguelike::Ui
     #
     # `p` plays and `q` quits. A person who quits here leaves without a run
     # having started, which `Game::Outcome::Playing` already says.
+    #
+    # Playing asks for a name next. The title screen lists whatever is in the
+    # store, so a person can see which names are already taken before they
+    # type one.
     def show_title : Nil
       @placard.on_answer = ->(key : Char?) do
-        @finished = true unless key == Placards::START_DEFAULT
+        key == Placards::START_DEFAULT ? ask_the_name : (@finished = true)
         nil
       end
 
       @placard.show application, Placards::NAME,
-        Placards.title(@game.world.seed), Placards::START_KEYS,
+        Placards.title(@game.world.seed, saved), Placards::START_KEYS,
         default: Placards::START_DEFAULT, footer: Placards::START_FOOTER
+    end
+
+    # Starts as *name*, with no title screen and no question.
+    #
+    # `--character` passes a name from the command line. A name already in the
+    # store carries that character on; any other name starts the run that was
+    # dug, under that name.
+    def play_as(name : String) : Nil
+      answered_the_name name
+    end
+
+    # Every character in the store, or nothing when there is no store.
+    private def saved : Array(Save::Held)
+      @store.try(&.characters) || [] of Save::Held
+    end
+
+    # Asks who is playing.
+    #
+    # A name already in the store loads that character. Any other name starts
+    # the run that was dug, under that name. `Escape` puts the title screen
+    # back: a person who is not sure what to type has not decided to play.
+    private def ask_the_name : Nil
+      @entry.on_answer = ->(typed : String?) do
+        answered_the_name typed
+        nil
+      end
+
+      @entry.ask application, Placards::NAME_QUESTION,
+        placeholder: Placards::NAME_PLACEHOLDER
+    end
+
+    # What to do with what was typed at the name question.
+    private def answered_the_name(typed : String?) : Nil
+      return show_title if typed.nil?
+
+      name = typed.strip
+      return ask_the_name if name.empty? || Save.slug(name).empty?
+
+      found = @store.try &.read(name)
+      return start_as name unless found
+
+      resume found
+      say "Welcome back, #{found.player.name}. Turn #{found.turn}."
+    end
+
+    # Names the dug character and starts the run.
+    private def start_as(name : String) : Nil
+      @game.player.name = name
+      say "#{name} enters the dungeon."
+      keep
+    end
+
+    # Plays *game* instead of the one this was built on.
+    #
+    # Everything drawn is built from the game on each refresh, so the panes
+    # need no rebuilding. What does need resetting is the state that belongs
+    # to no game: a command waiting for a direction, a shot being aimed, and
+    # whether the screen a run ends with has been put up.
+    def resume(game : Game) : Nil
+      @game = game
+      @map.floor = game.floor
+      @examiner.lore = game.lore
+      @console.try &.game = game
+
+      @pending = nil
+      @aiming = nil
+      @chosen = nil
+      @reach = 0
+      @parked = nil
+      @detailed = nil
+      @listed.clear
+      @ended = false
+
+      refresh
+      look_at_player
+    end
+
+    # Writes the run to the store, if there is one.
+    #
+    # A character with no name is not written. A run holds none until the
+    # title screen has been answered, and a spec builds one that never will
+    # be.
+    #
+    # A store that will not take the file says so in the log and the run goes
+    # on. Losing the turn a person is playing because a disk is full is worse
+    # than losing the save.
+    def keep : Nil
+      store = @store
+      return unless store
+      return if @game.player.name.empty?
+
+      store.write @game
+    rescue error : File::Error | IO::Error | ArgumentError
+      @game.say "The game could not be saved: #{error.message}"
     end
 
     # Puts the debug console up, or takes it down. `` ` `` does this.
@@ -428,7 +538,10 @@ module Roguelike::Ui
     # Asks the person whether to leave. Leaves on yes.
     def confirm_quit : Nil
       ask("Really leave the dungeon?", "yn", default: 'n') do |key|
-        @finished = true if key == 'y'
+        next unless key == 'y'
+
+        keep
+        @finished = true
       end
     end
 
@@ -463,7 +576,7 @@ module Roguelike::Ui
     # Whether a box is holding the keyboard. A question, a list and a held
     # page each do.
     def modal? : Bool
-      @prompt.asking? || @menu.showing? || @pager.holding? ||
+      @prompt.asking? || @entry.asking? || @menu.showing? || @pager.holding? ||
         @placard.showing? || (@console.try &.showing? || false)
     end
 
@@ -549,6 +662,7 @@ module Roguelike::Ui
         return
       end
 
+      keep
       refresh
     end
 
@@ -563,6 +677,7 @@ module Roguelike::Ui
         next unless key == 'y'
 
         @game.ascend
+        keep
         refresh
       end
     end
@@ -586,6 +701,11 @@ module Roguelike::Ui
 
       if @prompt.asking?
         @prompt.cancel
+        return
+      end
+
+      if @entry.asking?
+        @entry.cancel
         return
       end
 
@@ -1110,6 +1230,7 @@ module Roguelike::Ui
 
       @ended = true
       stop_aiming
+      keep
 
       @placard.on_answer = ->(key : Char?) do
         @again = key == 'y'
@@ -1210,6 +1331,7 @@ module Roguelike::Ui
       @pager.resize Screen.log_width(columns), Screen::LOG_ROWS
 
       @placard.fit_into Rect.new(0, 0, columns, rows)
+      @entry.fit_into Rect.new(0, 0, columns, rows)
 
       app = @app
       @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app

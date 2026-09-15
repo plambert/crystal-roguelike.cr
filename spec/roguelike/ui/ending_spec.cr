@@ -33,7 +33,8 @@ Spectator.describe "how a run starts and ends" do
   # The sword is put in the hand rather than wielded. `Game#wield` spends a
   # turn, and a turn spent here is one the orc gets before the screen the
   # example is about goes up.
-  def playing(hit_points : Int32? = nil, title : Bool = false) : Playing::Run
+  def playing(hit_points : Int32? = nil, title : Bool = false,
+              store : Roguelike::Save::Store? = nil) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("room", ROOM)
     player = Roguelike::Player.new floor.id, *Roguelike::Game.entrance(floor)
     player.hurt player.hit_points - hit_points if hit_points
@@ -49,7 +50,7 @@ Spectator.describe "how a run starts and ends" do
     player.equipment.put Roguelike::Slot::Melee, 'b'
     player.take_gold 37
 
-    Playing.open game, WINDOW[0], WINDOW[1], title: title
+    Playing.open game, WINDOW[0], WINDOW[1], title: title, store: store
   end
 
   # How many swings a spec takes before it gives up waiting for one to land.
@@ -94,6 +95,106 @@ Spectator.describe "how a run starts and ends" do
       expect(run.finished?).to be_false
     end
 
+    it "asks who is playing once it is answered" do
+      run = playing title: true
+
+      run.press "p"
+
+      expect(run.entry.asking?).to be_true
+      expect(run.entry.question).to eq Placards::NAME_QUESTION
+    end
+
+    it "lists nothing to carry on when the store is empty" do
+      run = playing title: true, store: Playing.store
+
+      expect(run.placard.lines.any? &.includes?("Saved characters")).to be_false
+    end
+
+    it "lists what is in the store" do
+      store = Playing.store
+      kept = playing
+      kept.game.player.name = "Sparky"
+      store.write kept.game
+
+      run = playing title: true, store: store
+
+      expect(run.placard.lines.any? &.includes?("Sparky")).to be_true
+    end
+  end
+
+  describe "the name question" do
+    it "names the character with what was typed" do
+      run = playing title: true
+
+      run.press "p"
+      run.type "Sparky"
+      run.press "Enter"
+
+      expect(run.game.player.name).to eq "Sparky"
+      expect(run.entry.asking?).to be_false
+    end
+
+    it "says who came in" do
+      run = playing title: true
+
+      run.press "p"
+      run.type "Sparky"
+      run.press "Enter"
+
+      expect(run.log).to contain "Sparky enters the dungeon."
+    end
+
+    it "writes the character to the store at once" do
+      store = Playing.store
+      run = playing title: true, store: store
+
+      run.press "p"
+      run.type "Sparky"
+      run.press "Enter"
+
+      expect(store.holds? "Sparky").to be_true
+    end
+
+    # A name is asked for before the first turn, so a person who changes
+    # their mind has not lost anything by answering it.
+    it "goes back to the title screen on Escape" do
+      run = playing title: true
+
+      run.press "p"
+      run.press "Escape"
+
+      expect(run.placard.showing?).to be_true
+      expect(run.game.player.name).to eq ""
+    end
+
+    it "asks again for a name with nothing usable in it" do
+      run = playing title: true
+
+      run.press "p"
+      run.type "///"
+      run.press "Enter"
+
+      expect(run.entry.asking?).to be_true
+      expect(run.game.player.name).to eq ""
+    end
+
+    it "carries on a character already in the store" do
+      store = Playing.store
+      kept = playing
+      kept.game.player.name = "Sparky"
+      3.times { kept.press "." }
+      store.write kept.game
+
+      run = playing title: true, store: store
+      run.press "p"
+      run.type "Sparky"
+      run.press "Enter"
+
+      expect(run.game.turn).to eq 3
+      expect(run.game.player.name).to eq "Sparky"
+      expect(run.log.last).to contain "Welcome back, Sparky."
+    end
+
     it "plays on Enter" do
       run = playing title: true
 
@@ -121,10 +222,12 @@ Spectator.describe "how a run starts and ends" do
       expect(run.at).to eq before
     end
 
-    it "hands the keyboard back once it is answered" do
+    it "hands the keyboard back once the name is answered" do
       run = playing title: true
 
       run.press "p"
+      run.type "Sparky"
+      run.press "Enter"
       run.press "l"
 
       expect(run.at).not_to eq({3, 2})

@@ -20,6 +20,13 @@ module Roguelike
   class Player
     include JSON::Serializable
 
+    # What the person called this character.
+    #
+    # Empty for a character nobody has named, which is what a spec builds and
+    # what a run holds until the title screen has been answered. The save file
+    # is named after a slug of this, and the file's header holds it as typed.
+    property name : String = ""
+
     # Which level of the world the character stands on.
     property floor : String
 
@@ -66,7 +73,8 @@ module Roguelike
                    @inventory : Inventory = Inventory.new,
                    @gold : Int32 = 0,
                    @equipment : Equipment = Equipment.new,
-                   @memory : Hash(String, Knowledge) = {} of String => Knowledge)
+                   @memory : Hash(String, Knowledge) = {} of String => Knowledge,
+                   @name : String = "")
       @hit_points = hit_points || Advancement.max_hit_points(@level, @attributes.constitution)
     end
 

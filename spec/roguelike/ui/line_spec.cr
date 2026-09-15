@@ -35,6 +35,57 @@ Spectator.describe Roguelike::Ui::Line do
     end
   end
 
+  describe "#put_right" do
+    it "writes a piece against the right edge" do
+      line = Line.new
+      line.put 0, "Sparky"
+      line.put_right "Lv 3"
+
+      expect(drawn line).to eq "Sparky          Lv 3"
+    end
+
+    it "stacks two right pieces, the last one leftmost" do
+      line = Line.new
+      line.put_right "b"
+      line.put_right "a"
+
+      expect(drawn(line).rstrip).to eq "                 a b"
+    end
+
+    # A long piece has to stop before the one against the right edge rather
+    # than write over it.
+    it "cuts a left piece short of a right one" do
+      line = Line.new
+      line.put 0, "a name much too long for this"
+      line.put_right "Lv 3"
+
+      expect(drawn line).to eq "a name much to… Lv 3"
+    end
+
+    # The left piece stops one cell short of the right one, so the two never
+    # read as one word.
+    it "leaves a gap between the two" do
+      line = Line.new
+      line.put 0, "123456789012345"
+      line.put_right "Lv 3"
+
+      expect(drawn line).to eq "123456789012345 Lv 3"
+
+      over = Line.new
+      over.put 0, "1234567890123456"
+      over.put_right "Lv 3"
+
+      expect(drawn over).to eq "12345678901234… Lv 3"
+    end
+
+    it "writes nothing for a piece wider than the row" do
+      line = Line.new
+      line.put_right "much too long for a row this narrow"
+
+      expect(drawn(line, 10).strip).to eq ""
+    end
+  end
+
   describe "#text" do
     it "answers every piece in column order" do
       line = Line.new

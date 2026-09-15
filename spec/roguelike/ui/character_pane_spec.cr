@@ -8,8 +8,10 @@ Spectator.describe Roguelike::Ui::CharacterPane do
   alias Slot = Roguelike::Slot
 
   # A run on one open room, drawn in a window of *rows*.
-  def playing(rows : Int32 = 40, carrying : Array(Item) = [] of Item) : Playing::Run
+  def playing(rows : Int32 = 40, carrying : Array(Item) = [] of Item,
+              name : String = "") : Playing::Run
     game = Playing.field 30, 16
+    game.player.name = name
     carrying.each { |item| game.player.inventory.add item }
 
     Playing.open game, 80, rows
@@ -21,10 +23,36 @@ Spectator.describe Roguelike::Ui::CharacterPane do
   end
 
   describe "what it writes" do
-    it "heads it with the level" do
+    it "heads it with the name and the level" do
+      run = playing name: "Sparky"
+
+      expect(run.play.character.who.text).to eq "SparkyLv 1"
+    end
+
+    # A run holds no name until the title screen has been answered, and a
+    # spec builds a character that never goes near one.
+    it "heads a character nobody has named with a dash" do
       run = playing
 
-      expect(run.play.character.who.text).to eq "Level1"
+      expect(run.play.character.who.text).to eq "#{Pane::NOBODY}Lv 1"
+    end
+
+    it "draws the level against the right edge" do
+      run = playing name: "Sparky"
+      row = run.row run.play.character.who.rect.y
+
+      expect(row.rstrip).to end_with "Lv 1"
+      expect(row).to contain "Sparky"
+    end
+
+    # The level is what a person reads every turn. A long name gives way to
+    # it rather than pushing it off the row.
+    it "cuts a name too long for the row" do
+      run = playing name: "Bartholomew the Unreasonably Long"
+      row = run.row run.play.character.who.rect.y
+
+      expect(row.rstrip).to end_with "Lv 1"
+      expect(row).to contain Roguelike::Ui::Line::ELLIPSIS
     end
 
     it "writes the armour class, the gold and the turn" do
@@ -191,7 +219,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     it "shows everything but the pack at a tall terminal" do
       drawn = playing(rows: 50).text
 
-      expect(drawn).to contain "Level"
+      expect(drawn).to contain "Lv 1"
       expect(drawn).to contain "Worn/Wielded"
       expect(drawn).to contain "Pack"
       expect(drawn).to contain "Here"

@@ -16,8 +16,22 @@ module Roguelike::Ui
     # What marks a piece that ran off the right edge.
     ELLIPSIS = '…'
 
+    # Which edge a piece is placed from.
+    enum Edge
+      # From the left, at the column the caller named.
+      Left
+
+      # From the right, so the piece ends at the right edge of the row.
+      Right
+    end
+
     # One piece of the row.
-    record Span, column : Int32, text : String, style : Style
+    record Span, column : Int32, text : String, style : Style,
+      edge : Edge = Edge::Left
+
+    # How many cells are left clear between the last left piece and the first
+    # right one.
+    GAP = 1
 
     # The pieces, in the order they were written.
     getter spans : Array(Span) = [] of Span
@@ -44,6 +58,16 @@ module Roguelike::Ui
       column + text.size
     end
 
+    # Writes *text* against the right edge of the row.
+    #
+    # Where it lands is not known until the row is drawn, because it depends
+    # on how wide the row turned out. A left piece that would reach it is cut
+    # `GAP` cells short of it.
+    def put_right(text : String, style : Style = Style::DEFAULT) : Nil
+      @spans << Span.new 0, text, style, Edge::Right
+      invalidate_layout
+    end
+
     # Takes everything off the row.
     def clear : Nil
       return if @spans.empty?
@@ -54,12 +78,22 @@ module Roguelike::Ui
 
     # Everything on the row, in column order, with nothing between the
     # pieces. For a spec that reads what a row says.
+    #
+    # A right piece comes last, whatever column it was drawn at.
     def text : String
-      @spans.sort_by(&.column).map(&.text).join
+      left, right = @spans.partition &.edge.left?
+
+      (left.sort_by(&.column) + right).map(&.text).join
     end
 
     def intrinsic_width(policy : TermBuf::Unicode::WidthPolicy) : Layout::Intrinsic
-      wanted = @spans.max_of? { |span| span.column + span.text.size } || 0
+      wanted = @spans.sum do |span|
+        next span.text.size + GAP if span.edge.right?
+
+        0
+      end
+
+      wanted += @spans.max_of? { |span| span.edge.right? ? 0 : span.column + span.text.size } || 0
 
       Layout::Intrinsic.new 1, Math.max(wanted, 1)
     end
@@ -92,10 +126,24 @@ module Roguelike::Ui
     def draw(view : View) : Nil
       return if view.height <= 0
 
+      # The right pieces go down first and say where the left ones stop. They
+      # are placed from the right edge, so the last of them is the leftmost.
+      edge = view.width
       @spans.each do |span|
-        next if span.column >= view.width
+        next unless span.edge.right?
 
-        room = view.width - span.column
+        at = edge - span.text.size
+        next if at < 0
+
+        view.write at, 0, span.text, span.style
+        edge = at - GAP
+      end
+
+      @spans.each do |span|
+        next if span.edge.right?
+        next if span.column >= edge
+
+        room = edge - span.column
         text = span.text
         text = "#{text[0, Math.max(room - 1, 0)]}#{ELLIPSIS}" if text.size > room
 

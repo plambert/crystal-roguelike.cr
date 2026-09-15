@@ -24,6 +24,15 @@ module Roguelike
     flag generate : Bool = true, "--generate",
       "Dig a floor from the seed. --no-generate plays the floor that ships"
 
+    flag character : String?, "--character",
+      "Play as this character, carrying on from their save if there is one"
+
+    flag save : Bool = true, "--save",
+      "Write the run to the saves directory. --no-save leaves it unwritten"
+
+    flag saves : Bool = false, "--saves",
+      "List the saved characters and where they are kept, then stop"
+
     # A development tool. It is off unless this is passed, so a normal run has
     # neither the box nor the key that opens it.
     flag debug_console : Bool = false, "--debug-console",
@@ -38,10 +47,12 @@ module Roguelike
       "How many turns one --trial game is given", range: 1..1_000_000
 
     def run
+      return listed if saves
       return played if trial > 0
 
       session = Session.open seed, flicker: flicker, generate: generate,
-        console: debug_console
+        console: debug_console, store: save ? Save::Store.default : nil,
+        character: character
 
       exit 1 unless session
 
@@ -58,7 +69,24 @@ module Roguelike
       in .died?    then "You died in the dungeon."
       in .playing? then "You left the dungeon where it was."
       end
-      puts "seed #{session.rng.seed}    turn #{game.turn}"
+      puts "seed #{game.world.seed}    turn #{game.turn}"
+    end
+
+    # Prints the saved characters, newest first.
+    #
+    # The directory is printed whether or not there is anything in it, so a
+    # person who wants to back the files up or edit one is told where to look.
+    private def listed : Nil
+      store = Save::Store.default
+      puts store.directory
+
+      held = store.characters
+      return puts "no saved characters" if held.empty?
+
+      held.each do |one|
+        puts "#{one.name}\t#{Save.slug one.name}\tlevel #{one.level}" \
+             "\tturn #{one.turn}\t#{one.outcome.to_s.downcase}\t#{one.saved}"
+      end
     end
 
     # Plays `--trial` games and prints how they went.

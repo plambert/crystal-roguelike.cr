@@ -17,6 +17,15 @@ module Roguelike::Ui
     # What the title screen says the keys do.
     START_FOOTER = "p plays, q quits."
 
+    # What the name question asks.
+    NAME_QUESTION = "Who is playing? A name already saved carries on."
+
+    # What is drawn on the empty line, before anything is typed.
+    NAME_PLACEHOLDER = "a name"
+
+    # The most saved characters the title screen lists.
+    MOST_SAVED = 8
+
     # The keys the end screen answers.
     AGAIN_KEYS = "yn"
 
@@ -29,15 +38,46 @@ module Roguelike::Ui
     # What the end screen says the keys do.
     AGAIN_FOOTER = "Play again? y starts a new run, n quits."
 
-    # The title screen for a run on *seed*.
-    def self.title(seed : UInt64) : Array(String)
-      [
+    # The title screen for a run on *seed*, with *saved* offered to carry on.
+    #
+    # The saved characters are listed so that a person can see which names
+    # are taken before the name question asks for one. Typing one of them
+    # carries that character on and the dug dungeon is thrown away, so the
+    # seed is worth saying only for a run that is about to start fresh.
+    def self.title(seed : UInt64, saved : Array(Save::Held) = [] of Save::Held) : Array(String)
+      lines = [
         "",
         "A dungeon dug from seed #{seed}.",
         "",
-        "Press ? at any time for the list of keys.",
-        "",
       ]
+
+      lines.concat carrying_on saved unless saved.empty?
+      lines << "Press ? at any time for the list of keys."
+      lines << ""
+
+      lines
+    end
+
+    # The saved characters, one to a line, newest first.
+    private def self.carrying_on(saved : Array(Save::Held)) : Array(String)
+      lines = ["Saved characters:"]
+
+      saved.first(MOST_SAVED).each do |held|
+        lines << "  #{held.name}  #{standing held}"
+      end
+
+      left = saved.size - MOST_SAVED
+      lines << "  and #{left} more" if left > 0
+      lines << ""
+
+      lines
+    end
+
+    # How one saved character stood when it was written.
+    private def self.standing(held : Save::Held) : String
+      return "level #{held.level}, turn #{held.turn}" unless held.outcome.over?
+
+      "#{heading(held.outcome).downcase} on turn #{held.turn}"
     end
 
     # What the screen a run ends with is headed with.

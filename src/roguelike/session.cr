@@ -31,7 +31,8 @@ module Roguelike
     # how big a terminal is without opening it. The other way to find out is
     # to enter the alternate screen and leave it again.
     def self.open(seed : UInt64?, flicker : Bool = true,
-                  generate : Bool = true, console : Bool = false) : Session?
+                  generate : Bool = true, console : Bool = false,
+                  store : Save::Store? = nil, character : String? = nil) : Session?
       size = TermBuf::SizeDetector.detect
 
       unless Ui::Screen.fits? size.columns, size.rows
@@ -42,9 +43,14 @@ module Roguelike
       ran = nil.as Session?
       TermBuf::Terminal.open do |terminal|
         loop do
-          played = new terminal, Rng.for(seed), flicker, generate, console
+          played = new terminal, Rng.for(seed), flicker, generate, console,
+            store, character
           ran = played
           played.run
+
+          # The name was asked for once. A second run starts from the title
+          # screen again, so it asks again.
+          character = nil
 
           break unless played.again?
         end
@@ -80,11 +86,13 @@ module Roguelike
 
     def initialize(@terminal : TermBuf::Terminal, @rng : Rng,
                    flicker : Bool = true, generate : Bool = true,
-                   console : Bool = false)
+                   console : Bool = false, store : Save::Store? = nil,
+                   character : String? = nil)
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
       @play = Ui::Play.new(generate ? Game.dug(@rng) : Game.start(@rng), console)
+      @play.store = store
       @play.fit size.columns, size.rows
 
       @app = Ui::Widgets::App.new @terminal, @play.root, bounds,
@@ -113,7 +121,9 @@ module Roguelike
       @play.flicker.burning = flicker
       waver if flicker
 
-      @play.show_title
+      # `--character` says who is playing, so the title screen and the name
+      # question are both answered already.
+      character ? @play.play_as(character) : @play.show_title
     end
 
     # Schedules the next tick of the flames, and the one after it.

@@ -29,7 +29,7 @@ module Playing
     end
 
     delegate game, screen, map, examine, examiner, nearby, pointer, prompt, pager, menu,
-      console, placard, to: @play
+      console, placard, entry, store, to: @play
 
     # Whether the run should end.
     def finished? : Bool
@@ -159,18 +159,31 @@ module Playing
       Roguelike::Player.new(floor.id, *Roguelike::Game.entrance(floor))
   end
 
+  # A store on a directory of its own.
+  #
+  # Nothing a spec does is allowed to reach the person's own saved
+  # characters, so `open` takes no store unless a spec names one, and this is
+  # what a spec names.
+  def self.store : Roguelike::Save::Store
+    Roguelike::Save::Store.new Path[File.tempname "roguelike-spec", nil]
+  end
+
   # A run on *game*, drawn in a window of *columns* by *rows*.
   #
   # *title* puts the title screen up the way `Session` does. It is off by
   # default: a spec that is not about the title screen presses its first key
   # at the game rather than at a box asking to begin.
+  #
+  # *store* is where the run is saved. Nothing is saved without one.
   def self.open(game : Roguelike::Game? = nil,
                 columns : Int32 = 80,
                 rows : Int32 = 24,
                 console : Bool = false,
-                title : Bool = false) : Run
+                title : Bool = false,
+                store : Roguelike::Save::Store? = nil) : Run
     play = Roguelike::Ui::Play.new(
       game || Roguelike::Game.start(Roguelike::Rng.new(SEED)), console)
+    play.store = store
     play.fit columns, rows
 
     session = Headless.open play.root, columns, rows

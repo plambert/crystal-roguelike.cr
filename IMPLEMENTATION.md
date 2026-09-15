@@ -229,7 +229,7 @@ none of it is fixed and a preset can rebind the lot.
 
 ## Shard extraction
 
-Five pieces are general-purpose rather than roguelike-specific. They are built here first, in
+Six pieces are general-purpose rather than roguelike-specific. They are built here first, in
 `src/roguelike/termbuf_ext/`, with their own specs and no dependency on game types, and moved to
 `termbuf-widgets.cr` once their shape has settled. Each keeps a `# Extraction candidate:` comment
 naming what still has to be decided before it moves.
@@ -238,6 +238,7 @@ naming what still has to be decided before it moves.
 |---|---|---|
 | `Cells(T)` and `CellGrid(T)` | Phase 2 | A 2D addressable grid widget with a camera |
 | `Prompt` | Phase 6 | `[yn]` answered by one keystroke, in a modal overlay |
+| `Entry` | Saves | A question with one line typed into it, in a modal overlay |
 | `Pager` | Phase 7 | `--More--` held at a page boundary |
 | `Menu` | Phase 10 | A list addressed by letter rather than filtered |
 | `Ramp` | Phase 14 | A style per step between one style and a colour, from given fractions |
@@ -1224,6 +1225,79 @@ row it hangs off ends up, and a menu that has only just opened has not been laid
 with a box beside it also leaves twenty columns clear on each side rather than ten, so that there
 is somewhere for the box to go on an eighty column terminal. A wide screen never reaches that: the
 menu is as wide as its rows and no wider.
+
+## Saved characters
+
+One character is one file, under `$XDG_STATE_HOME/roguelike/saves` when that variable is set and
+absolute, and `~/.local/state/roguelike/saves` when it is not. `--saves` prints the directory and
+whatever is in it.
+
+### What a file holds
+
+The whole `Game` as pretty-printed JSON, under a header naming the character, the build that wrote
+it, when it was written, and how far they had got. The header comes first in the file, so `head` on
+one says whose it is without reading the rest. One floor is about 270 kilobytes.
+
+Nothing in the file is checked and nothing in it is a secret. A person who wants to edit their
+character opens the file and edits it.
+
+Three other ways of saving were weighed. A seed with the list of commands replayed against it makes
+a file of a few kilobytes, but every change to a roll, a probability, a domain name or the monster
+AI invalidates every save, and this repository changes those numbers constantly. It also costs
+about 1.4 milliseconds a turn to load, so the load gets slower the further a run gets. A checkpoint
+with the commands since it bounds that cost but inherits the same skew, and buys nothing, because
+reading a whole game is already about 1.3 milliseconds. A command log written beside the state file
+is still worth having later, for a replay viewer and for running the trial harness over real games
+rather than bot games; it is not built.
+
+### When it is written
+
+On the way down a staircase, on the way out of the dungeon, when the run ends, and when the person
+quits. Not on every turn: writing costs about a millisecond and a whole file, and a turn is worth
+less than that.
+
+The file is written beside itself and renamed over the old one, so a crash partway through leaves
+the last good save where it was rather than half of a new one. A store that will not take the file
+says so in the log and the run goes on. Losing the turn a person is playing because a disk is full
+is worse than losing the save.
+
+`Ui::Play` holds a `Save::Store` or holds none. A spec drives one on a directory of its own, so
+nothing a spec does can reach a person's own saved characters. `--no-save` plays without one.
+
+### The name
+
+`Player#name` is what the character is called, as it was typed. The file is named after
+`Save.slug` of it: a letter, a digit, a dash, an underscore and a dot survive, every other
+character becomes one dash, and a run of dashes becomes one. Letters keep their case and keep their
+accents, so `Gúnther the 👹` is kept in the file and the file is called `Gúnther-the.json`.
+
+This is not about what a filesystem allows, which is almost anything. It is about a name a person
+can type at a shell without quoting it, and one that cannot be mistaken for a path. Two names that
+slug the same way are one character. A name with nothing usable in it is refused and the question
+is asked again.
+
+### Asking who is playing
+
+The title screen lists whatever is in the store, so a person can see which names are taken before
+they answer. `p` then asks the name through `Widgets::Entry`, a modal box with one line typed into
+it. A name already in the store carries that character on and the floor that was dug for the run is
+thrown away. Any other name starts that run under that name, and writes it at once, so a character
+exists from the moment they are named. `Escape` puts the title screen back: a person who is not
+sure what to type has not decided to play.
+
+`--character NAME` answers both screens from the command line.
+
+`Ui::Play#resume` swaps one game for another. Everything drawn is built from the game on each
+refresh, so no pane is rebuilt; what is reset is the state belonging to no game, which is a command
+waiting for a direction, a shot being aimed, and whether the screen a run ends with has been put up.
+
+### The first row of the sidebar
+
+`Sparky             Lv 1`. The name is written from the left and the level against the right edge,
+through `Ui::Line#put_right`. A right piece is placed when the row is drawn, because where it lands
+depends on how wide the row turned out. A left piece is cut one cell short of it and marked, so a
+long name gives way to the level rather than pushing it off the row. A character nobody has named
+yet reads as a dash.
 
 ## Asked for, not yet built
 
