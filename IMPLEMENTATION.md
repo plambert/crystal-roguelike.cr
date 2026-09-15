@@ -940,6 +940,22 @@ words into an item, and matches a kind by its own label, by its member name, or 
 the words of its label, so `mwk sh sword` and `pot heal` each name one thing. Words that could
 name more than one thing make nothing and say what they could have meant.
 
+### The trial harness
+
+`--trial N` plays N games with a bot and prints how they went. No terminal is opened and nothing
+is drawn. `--trial-turns` caps one run and `--seed` names the first seed, so two builds are
+compared over the same dungeons.
+
+It is an instrument for tuning rather than a way to play. `Trial::Bot` plays badly and plays the
+same way every time: it takes the staircase down when it is standing on one, drinks when badly
+hurt, swings at whatever is next to it, picks up what is underfoot and holds the heaviest hitting
+weapon it is carrying, and otherwise steps to a neighbour it has not stood on. It never retreats,
+never shuts a door behind it, never shoots and never puts its torch out, which are the four things
+that keep a person alive. So the numbers are the pessimistic end of what the game is.
+
+The size of a number here means little on its own. The difference between two sets of runs is what
+to read, and the seeds have to be the same in both.
+
 ## Feature checklist
 
 Everything asked for in the basic game, against the phase that delivers it.

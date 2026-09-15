@@ -29,7 +29,17 @@ module Roguelike
     flag debug_console : Bool = false, "--debug-console",
       "Open a console with ` for commands that change the running game"
 
+    # A development tool. It takes no terminal and plays no game a person
+    # sees. `Trial` says what the numbers mean and what they do not.
+    flag trial : Int32 = 0, "--trial",
+      "Play this many games with a bot and print how they went", range: 0..100_000
+
+    flag trial_turns : Int32 = Trial::TURNS, "--trial-turns",
+      "How many turns one --trial game is given", range: 1..1_000_000
+
     def run
+      return played if trial > 0
+
       session = Session.open seed, flicker: flicker, generate: generate,
         console: debug_console
 
@@ -49,6 +59,17 @@ module Roguelike
       in .playing? then "You left the dungeon where it was."
       end
       puts "seed #{session.rng.seed}    turn #{game.turn}"
+    end
+
+    # Plays `--trial` games and prints how they went.
+    #
+    # No terminal is opened. A run starts from `--seed` when one was named, so
+    # two builds are compared over the same dungeons.
+    private def played : Nil
+      first = seed || Trial::FIRST
+
+      puts "from seed #{first}, at most #{trial_turns} turns a run"
+      print Trial.play(trial, first, trial_turns)
     end
   end
 end
