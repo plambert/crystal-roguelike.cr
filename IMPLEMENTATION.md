@@ -817,6 +817,12 @@ The phase that introduces the type monster bands will use in Phase 19.
   `spec/fixtures/running/ground.txt` holds where a run stops from every square of a small floor
   in each of the four directions, so a change to any of the rules shows as a diff of two maps.
 
+  `.` is the other half of that. `Game#wait` spends one turn and moves nobody, so everything else
+  on the floor acts and the character does not. A person waits to let something come to them
+  rather than walking into it. A run that is over takes no turn: nothing acts after the character
+  has died. A command already waiting for a direction takes the key back instead, the way a
+  movement key does.
+
 ### Phase 24 — Floor generation
 
 Everything before this runs on hand-built floors, so every spec can name the squares it asserts
@@ -1197,6 +1203,27 @@ it — the slot written out, the whole name, and what the character knows about 
 unidentified potion is named by its colour and nothing is said about what drinking it would do.
 
 The triangle on the pack heading opens and shuts the pack when it is pressed.
+
+### Pointing at a menu
+
+Every menu that lists carried items hangs the same box off the row the highlight is on: `i`, `d`,
+`w`, `W`, `T`, `q`, `r`, `z`, `a`, `,` and the second question a scroll of identify asks. The box
+is up the moment the menu is, because the highlight is always on a row. The arrows move it and so
+does the pointer crossing a row, so a person reading the list with either one reads the same thing.
+
+`Widgets::Menu::Content` works out which row the pointer is on from how far down the list the
+report landed, because a menu row is not a widget and there is nothing under the pointer to ask. A
+wheel notch reports as well as a keystroke does: the row did not change but where it is on the
+screen did, and the box has to follow it.
+
+The box is painted a layer above a dialog. A box under the menu it belongs to would be covered by
+the menu, and dimmed by the wash the menu puts over everything painted below it.
+
+It is sized when the layout asks rather than when it goes up. Where it may sit depends on where the
+row it hangs off ends up, and a menu that has only just opened has not been laid out yet. A menu
+with a box beside it also leaves twenty columns clear on each side rather than ten, so that there
+is somewhere for the box to go on an eighty column terminal. A wide screen never reaches that: the
+menu is as wide as its rows and no wider.
 
 ## Asked for, not yet built
 

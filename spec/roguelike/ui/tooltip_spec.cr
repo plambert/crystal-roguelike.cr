@@ -134,6 +134,109 @@ Spectator.describe Roguelike::Ui::Tooltip do
     end
   end
 
+  describe "a menu row" do
+    alias Entry = TermBuf::Widgets::Menu::Entry
+
+    it "puts the box up on the row the menu opens with" do
+      run = playing
+
+      run.press "i"
+
+      expect(run.play.tooltip.showing?).to be_true
+      expect(run.play.tooltip.written).to eq [
+        "a masterwork +1 long sword", "damage 1d8+2", "thrown 8 squares",
+        "weight 40",
+      ]
+    end
+
+    it "follows the highlight down the list" do
+      run = playing
+
+      run.press "i"
+      run.press "Down"
+
+      expect(run.play.tooltip.written.first).to contain "potion"
+    end
+
+    # The box is about one row, so it has to be level with that row and clear
+    # of the list the row is in.
+    it "sits level with the row and clear of the menu" do
+      run = playing
+
+      run.press "i"
+      run.press "Down"
+
+      box = run.play.tooltip.rect
+      expect(box.y).to eq run.menu.list.rect.y + 1
+      expect(box.x + box.width).to be <= run.menu.rect.x
+    end
+
+    # The menu is a modal overlay, which dims everything painted below it.
+    # A box painted below would be dimmed and covered both.
+    it "draws over the menu" do
+      run = playing
+
+      run.press "i"
+
+      expect(run.text).to contain "damage 1d8+2"
+    end
+
+    it "moves with the pointer across the rows" do
+      run = playing
+      run.press "i"
+      list = run.menu.list.rect
+
+      run.hover list.x + 1, list.y + 1
+
+      expect(run.menu.list.selected).to eq 1
+      expect(run.play.tooltip.written.first).to contain "potion"
+    end
+
+    it "goes down with the menu" do
+      run = playing
+
+      run.press "i"
+      run.press "Escape"
+
+      expect(run.play.tooltip.showing?).to be_false
+    end
+
+    it "goes down when a row is picked" do
+      run = playing
+
+      run.press "d"
+      run.press "b"
+
+      expect(run.play.tooltip.showing?).to be_false
+    end
+
+    # The apply menu has one row per wall sconce, and a sconce is a fixture
+    # rather than something carried. There is nothing to write about it.
+    it "hangs nothing off a row about nothing carried" do
+      run = playing
+
+      run.play.choose("Apply what?", [Entry.new('a', "the sconce beside you")]) { }
+      run.render
+
+      expect(run.play.tooltip.showing?).to be_false
+    end
+
+    # The scroll menu is the same code as the inventory menu, and `r` is what
+    # a person reaches for when they want to know what a scroll is.
+    it "writes what is known about a scroll nobody has read" do
+      run = playing
+      run.game.player.inventory.add Item.new(Kind::MappingScroll)
+      run.play.refresh
+
+      run.press "r"
+
+      written = run.play.tooltip.written
+      expect(written.first).to contain "scroll"
+      expect(written.first).not_to contain "magic mapping"
+      expect(written).to contain "nobody has found out what this is"
+    end
+  end
+
   describe "the pack heading" do
     it "opens the pack when it is pressed" do
       run = playing

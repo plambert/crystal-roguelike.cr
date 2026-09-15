@@ -9,12 +9,12 @@
                                                        │ staircase up
                                                        │
                               ╭─ Inventory ──────╮     │ Seen
-                              │ a - a dagger     │     │ ──────────────────────
-                              │ b - 9 arrows     │     │ nothing
-                              ╰──────────────────╯     │
-                                                       │ Look
-                                                       │ ──────────────────────
-                                                       │ Point at the map, or
+        ╭───────────────────╮ │ a - a dagger     │     │ ──────────────────────
+        │ a dagger          │ │ b - 9 arrows     │     │ nothing
+        │ damage 1d4        │ ╰──────────────────╯     │
+        │ thrown 10 squares │                          │ Look
+        │ weight 10         │                          │ ──────────────────────
+        ╰───────────────────╯                          │ Point at the map, or
                                                        │ press x.
                                                        │
 ────────────────────────────────────────────────────────────────────────────────

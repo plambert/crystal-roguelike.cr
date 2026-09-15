@@ -99,6 +99,13 @@ module Roguelike::Ui
     # one place that decides whether the box goes up or comes down.
     @detailed : {Widgets::Widget, Array(String)}? = nil
 
+    # What the rows of the menu now up are about, by the key that picks each.
+    #
+    # A row with no item behind it is not in here. The apply menu has one row
+    # per wall sconce, and a sconce is a fixture rather than something
+    # carried.
+    @listed : Hash(Char, Item) = {} of Char => Item
+
     # Whether the person asked for another run when this one ended.
     #
     # `Session` reads this once `#finished?` is true. A run that was quit
@@ -298,9 +305,23 @@ module Roguelike::Ui
     end
 
     # Puts *entries* up under *title*. Runs *chosen* with the key pressed.
+    #
+    # *about* is what each row is about, by the key that picks it. A row named
+    # in it hangs a box of detail beside the list while the highlight is on
+    # it. A menu with nothing in *about* hangs no box at all.
     def choose(title : String, entries : Enumerable(Widgets::Menu::Entry),
+               about : Hash(Char, Item)? = nil,
                &chosen : Char? -> Nil) : Nil
+      @listed = about || {} of Char => Item
+      @menu.column_margin = @listed.empty? ? Widgets::Menu::COLUMN_MARGIN : MENU_MARGIN
+      @menu.on_highlight = ->(entry : Widgets::Menu::Entry?) do
+        listed_detail entry
+        nil
+      end
+
       @menu.on_choose = ->(key : Char?) do
+        @listed.clear
+        @tooltip.hide
         park_camera_back
         chosen.call key
         nil
@@ -308,6 +329,47 @@ module Roguelike::Ui
 
       clear_the_character
       @menu.show application, title, entries
+    end
+
+    # How many columns a menu with a box beside it leaves clear on each side.
+    #
+    # The box hangs off the list, so the list cannot have the whole screen.
+    # This is the narrowest box worth reading, and the gap between it and the
+    # menu's border. A wide screen never reaches this: the menu is as wide as
+    # its rows and no wider.
+    MENU_MARGIN = Tooltip::LEAST_WIDTH + 4
+
+    # Hangs the box off the row the menu highlight is on, or takes it down.
+    #
+    # The box goes to the left of the list, clear of the border and the
+    # padding, and level with the row. A row scrolled out of the window takes
+    # the box with it, because the offset is from the top of the window rather
+    # than from the top of the list.
+    private def listed_detail(entry : Widgets::Menu::Entry?) : Nil
+      app = @app
+      item = entry ? @listed[entry.key]? : nil
+      unless app && item
+        @tooltip.hide
+        return
+      end
+
+      list = @menu.list
+      @tooltip.show app, list, Detail.about(@game, item),
+        dx: -1 - @menu.gutter, dy: list.selected - list.scroll_y
+    end
+
+    # The items *entries* are about, by the letter each is carried under.
+    private def about(entries : Array({Char, Item})) : Hash(Char, Item)
+      found = {} of Char => Item
+      entries.each { |letter, item| found[letter] = item }
+      found
+    end
+
+    # The same for a list whose rows are numbered rather than lettered.
+    private def about(items : Array(Item)) : Hash(Char, Item)
+      found = {} of Char => Item
+      items.each_with_index { |item, index| found[Widgets::Menu.letter index] = item }
+      found
     end
 
     # Moves the camera so that a modal box does not cover the character.
@@ -442,6 +504,22 @@ module Roguelike::Ui
       refresh
     end
 
+    # Passes the turn. `.` does this.
+    #
+    # A command waiting for a direction takes the key back instead, the way a
+    # movement key does. Nothing else waits: a person reading the floor with
+    # the examine cursor is not spending turns.
+    def wait : Nil
+      if @pending
+        @pending = nil
+        refresh
+        return
+      end
+
+      @game.wait
+      refresh
+    end
+
     # Waits for a direction to run in. `G` does this.
     #
     # Every direction is an answer, so there is nothing to find and nothing
@@ -545,7 +623,7 @@ module Roguelike::Ui
         Widgets::Menu::Entry.new Widgets::Menu.letter(index), @game.name(item)
       end
 
-      choose("Pick up what?", entries) do |key|
+      choose("Pick up what?", entries, about(pile)) do |key|
         next unless key
 
         index = Widgets::Menu.index key
@@ -565,7 +643,7 @@ module Roguelike::Ui
         return
       end
 
-      choose("Drop what?", carried) do |key|
+      choose("Drop what?", carried, carried_about) do |key|
         next unless key
 
         @game.drop key
@@ -580,12 +658,17 @@ module Roguelike::Ui
         return
       end
 
-      choose("Inventory", carried) { |_key| refresh }
+      choose("Inventory", carried, carried_about) { |_key| refresh }
     end
 
     # Every carried entry, as a menu row.
     private def carried : Array(Widgets::Menu::Entry)
       rows @game.player.inventory.entries
+    end
+
+    # The same rows, by the letter each is carried under.
+    private def carried_about : Hash(Char, Item)
+      about @game.player.inventory.entries
     end
 
     # *entries* as menu rows, each marked with the slot holding it.
@@ -803,7 +886,7 @@ module Roguelike::Ui
         return
       end
 
-      choose("Identify what?", rows(found)) do |key|
+      choose("Identify what?", rows(found), about(found)) do |key|
         @game.read letter, key
         refresh
       end
@@ -879,7 +962,7 @@ module Roguelike::Ui
           "#{slot.label}: #{@game.name item}"
       end
 
-      choose("Take off what?", entries) do |key|
+      choose("Take off what?", entries, about(held.map &.[1])) do |key|
         next unless key
 
         found = held[Widgets::Menu.index key]?
@@ -914,7 +997,7 @@ module Roguelike::Ui
         Widgets::Menu::Entry.new Widgets::Menu.letter(index), applying(target)
       end
 
-      choose("Apply what?", entries) do |key|
+      choose("Apply what?", entries, applying_about(found)) do |key|
         next unless key
 
         target = found[Widgets::Menu.index key]?
@@ -923,6 +1006,26 @@ module Roguelike::Ui
         @game.apply target
         refresh
       end
+    end
+
+    # What each row of the apply menu is about.
+    #
+    # A row for a wall sconce is about no carried item, so it is left out and
+    # the highlight on it hangs no box.
+    private def applying_about(found : Array(Apply)) : Hash(Char, Item)
+      detail = {} of Char => Item
+
+      found.each_with_index do |target, index|
+        letter = target.letter
+        next unless letter
+
+        item = @game.player.inventory[letter]
+        next unless item
+
+        detail[Widgets::Menu.letter index] = item
+      end
+
+      detail
     end
 
     # What one row of the apply menu says.
@@ -953,7 +1056,7 @@ module Roguelike::Ui
         return
       end
 
-      choose(title, rows(found)) do |key|
+      choose(title, rows(found), about(found)) do |key|
         next unless key
 
         chosen.call key
@@ -1047,8 +1150,17 @@ module Roguelike::Ui
     # keyboard. A pointer brushing past would take the cursor off what they
     # are reading. So while the cursor is on the map, only a click moves it.
     def pointed(x : Int32, y : Int32, click : Bool = false) : String?
-      # A modal box owns the screen. Nothing else answers a pointer while one
-      # is up.
+      # A menu owns the screen while it is up, and it puts its own box up
+      # from the row the highlight is on. The report has already moved that
+      # highlight, so this leaves the box where the menu put it. What the
+      # sidebar rows wrote down is dropped: they are behind the menu.
+      if @menu.showing?
+        @detailed = nil
+        return @pointer.away
+      end
+
+      # Every other modal box owns the screen the same way, and none of them
+      # has a box of its own to keep up.
       return pointer_away if modal?
 
       # The sidebar rows have already had this event and written down what

@@ -64,11 +64,15 @@ module TermBuf::Widgets
     # default.
     property max_rows : Int32 = Int32::MAX
 
+    # How many cells a menu leaves clear to its left and to its right unless
+    # a caller asks for more.
+    COLUMN_MARGIN = 10
+
     # How many cells a menu leaves clear to its left and to its right.
     #
     # The box grows to fit its widest row until it reaches this. Past that the
     # rows scroll sideways.
-    property column_margin : Int32 = 10
+    property column_margin : Int32 = COLUMN_MARGIN
 
     # How many rows a menu leaves clear above and below itself.
     property row_margin : Int32 = 3
@@ -107,6 +111,13 @@ module TermBuf::Widgets
     # The argument is the key. It is `nil` when the person pressed `Escape`.
     property on_choose : Proc(Char?, Nil)? = nil
 
+    # What runs when the highlight moves, with the row it is on now.
+    #
+    # The arrows move it, and so does the pointer crossing a row. It runs once
+    # when the menu goes up, with the first row. A caller hangs a box of
+    # detail off it.
+    property on_highlight : Proc(Entry?, Nil)? = nil
+
     # The rows, in the order they are drawn.
     getter entries : Array(Entry) = [] of Entry
 
@@ -123,8 +134,52 @@ module TermBuf::Widgets
       # How wide the widest row is, in cells.
       property widest : Int32 = 1
 
+      # What runs when the highlight moves, or when the window scrolls under
+      # it, with the row the highlight is on.
+      #
+      # Both count, because a box hung off a row has to follow the row up and
+      # down the screen. Nothing runs when a key or a pointer picks the row
+      # the highlight was already on.
+      property on_select : Proc(Int32, Nil)? = nil
+
       def intrinsic_width(policy : Unicode::WidthPolicy) : Layout::Intrinsic
         Layout::Intrinsic.new 1, Math.max(@widest, 1)
+      end
+
+      def select(index : Int32) : Nil
+        before = @selected
+        super
+        moved unless @selected == before
+      end
+
+      def scroll_by(dx : Int32, dy : Int32) : Nil
+        before = @scroll
+        super
+        moved unless @scroll == before
+      end
+
+      # Says the highlight is somewhere else on the screen than it was.
+      private def moved : Nil
+        @on_select.try &.call @selected
+      end
+
+      # Puts the highlight on the row the pointer is over.
+      #
+      # A row is not a widget, so there is nothing under the pointer to ask.
+      # The row is worked out from how far down the list the report landed.
+      #
+      # A report is not claimed. Whatever is tracking where the pointer is has
+      # to hear about every one, including the ones that land here.
+      def handle(event : Event, context : Context) : Nil
+        return unless event.is_a? Events::Mouse
+
+        if scroll_wheel event
+          context.consume
+          return
+        end
+
+        row = scroll_y + event.y - content.y
+        self.select row if row >= 0 && row < @rows.size
       end
     end
 
@@ -149,6 +204,8 @@ module TermBuf::Widgets
         nil
       end
 
+      @list.on_select = ->(_index : Int32) { highlighted; nil }
+
       add @list
     end
 
@@ -171,6 +228,21 @@ module TermBuf::Widgets
       self.keymap = choices
 
       open app
+      highlighted
+    end
+
+    # Tells `#on_highlight` which row the highlight is on now.
+    private def highlighted : Nil
+      @on_highlight.try &.call @list.current
+    end
+
+    # How many cells there are between the left edge of the rows and the left
+    # edge of the menu.
+    #
+    # The border and the padding. Something hung off a row by its own left
+    # edge has to clear both of them as well as the row.
+    def gutter : Int32
+      inset.left
     end
 
     # Sizes the box to its rows and to the screen.

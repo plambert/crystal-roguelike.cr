@@ -221,6 +221,62 @@ Spectator.describe TermBuf::Widgets::Menu do
     end
   end
 
+  describe "the highlight" do
+    # A caller hangs a box of detail off this, and the box has to be up the
+    # moment the menu is.
+    it "is reported when the menu goes up" do
+      seen = [] of String?
+      menu = Widgets::Menu.new
+      menu.on_highlight = ->(entry : Entry?) { seen << entry.try(&.text); nil }
+
+      root = Widgets::Panel.new(
+        width: Widgets::Layout::Sizing.grow,
+        height: Widgets::Layout::Sizing.grow)
+      root.add menu
+      session = Headless.open root, 60, 20
+      menu.show session.app, "Inventory",
+        [Entry.new('a', "one"), Entry.new('b', "two")]
+
+      expect(seen).to eq ["one"]
+    end
+
+    it "is reported as the arrows move it" do
+      seen = [] of String?
+      run = shown ["one", "two", "three"]
+      run.menu.on_highlight = ->(entry : Entry?) { seen << entry.try(&.text); nil }
+
+      run.session.press "Down"
+      run.session.press "Down"
+      run.session.press "Up"
+
+      expect(seen).to eq ["two", "three", "two"]
+    end
+
+    it "is not reported when it stays where it is" do
+      seen = [] of String?
+      run = shown ["one", "two"]
+      run.menu.on_highlight = ->(entry : Entry?) { seen << entry.try(&.text); nil }
+
+      run.session.press "Up"
+
+      expect(seen).to be_empty
+    end
+
+    # A row is not a widget, so the row under the pointer is worked out from
+    # how far down the list the report landed.
+    it "follows the pointer across the rows" do
+      run = shown ["one", "two", "three"]
+      list = run.menu.list.rect
+
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::None, list.x + 1, list.y + 2,
+        TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Motion)
+
+      expect(run.menu.list.selected).to eq 2
+    end
+  end
+
   describe "picking a row" do
     it "answers the letter pressed" do
       run = shown ["one", "two"]
