@@ -105,11 +105,12 @@ Spectator.describe Roguelike::Save do
 
   describe Save::Store do
     describe ".default" do
-      it "puts the saves under the state directory" do
+      it "puts the two directories under the state directory" do
         ENV["XDG_STATE_HOME"] = "/somewhere/state"
 
-        expect(Save::Store.default.directory.to_s)
-          .to eq "/somewhere/state/roguelike/saves"
+        kept = Save::Store.default
+        expect(kept.directory.to_s).to eq "/somewhere/state/roguelike/saves"
+        expect(kept.ended.to_s).to eq "/somewhere/state/roguelike/deaths"
       ensure
         ENV.delete "XDG_STATE_HOME"
       end
@@ -304,6 +305,101 @@ Spectator.describe Roguelike::Save do
 
       it "says no for a name that makes no file name" do
         expect(store.holds? "///").to be_false
+      end
+    end
+
+    describe "#ending" do
+      it "puts the time the run ended after the slug" do
+        kept = store
+        at = Time.local 2026, 9, 15, 23, 45, 0
+
+        expect(kept.ending("Sparky the Bold", at).basename)
+          .to eq "Sparky-the-Bold-20260915-234500.json"
+      end
+
+      # One name can end many times, and every ending is kept.
+      it "counts a second ending in the same second" do
+        kept = store
+        at = Time.local 2026, 9, 15, 23, 45, 0
+        Dir.mkdir_p kept.ended
+        File.write kept.ending("Sparky", at), "{}"
+
+        expect(kept.ending("Sparky", at).basename)
+          .to eq "Sparky-20260915-234500-2.json"
+      end
+
+      it "refuses a name that makes no file name" do
+        kept = store
+
+        expect { kept.ending "///" }.to raise_error ArgumentError, /file name/
+      end
+    end
+
+    describe "#retire" do
+      it "moves the file out of the saves" do
+        kept = store
+        kept.write named("Sparky")
+
+        kept.retire "Sparky"
+
+        expect(kept.holds? "Sparky").to be_false
+        expect(kept.characters).to be_empty
+      end
+
+      it "answers where the file went" do
+        kept = store
+        kept.write named("Sparky")
+
+        where = kept.retire "Sparky"
+        raise "the file went nowhere" unless where
+
+        expect(File.exists? where).to be_true
+        expect(where.parent).to eq kept.ended
+      end
+
+      it "keeps everything the file held" do
+        kept = store
+        kept.write named("Sparky", turn: 6)
+
+        kept.retire "Sparky"
+
+        expect(kept.endings.size).to eq 1
+        expect(kept.endings.first.name).to eq "Sparky"
+        expect(kept.endings.first.turn).to eq 6
+      end
+
+      # The name is what a new character wants back.
+      it "frees the name" do
+        kept = store
+        kept.write named("Sparky")
+        kept.retire "Sparky"
+
+        expect(kept.taken_by "Sparky").to be_nil
+      end
+
+      it "says nothing for a character it has not got" do
+        expect(store.retire "Nobody").to be_nil
+      end
+
+      it "says nothing for a name that makes no file name" do
+        expect(store.retire "///").to be_nil
+      end
+    end
+
+    describe "#endings" do
+      it "answers nothing for a directory that is not there" do
+        expect(store.endings).to be_empty
+      end
+
+      it "answers every character whose run is over" do
+        kept = store
+        kept.write named("Sparky")
+        kept.retire "Sparky"
+        kept.write named("McGee")
+        kept.retire "McGee"
+
+        expect(kept.endings.map(&.name).sort!).to eq ["McGee", "Sparky"]
+        expect(kept.characters).to be_empty
       end
     end
 

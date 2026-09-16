@@ -1261,9 +1261,10 @@ context around the cursor that walking wants around the character.
 
 ## Saved characters
 
-One character is one file, under `$XDG_STATE_HOME/roguelike/saves` when that variable is set and
-absolute, and `~/.local/state/roguelike/saves` when it is not. `--saves` prints the directory and
-whatever is in it.
+One character is one file, under `$XDG_STATE_HOME/roguelike` when that variable is set and
+absolute, and `~/.local/state/roguelike` when it is not. There are two directories under it:
+`saves/` holds the characters still being played, and `deaths/` holds the ones whose run is over.
+`--saves` prints both, and whatever is in them.
 
 ### What a file holds
 
@@ -1289,12 +1290,27 @@ On the way down a staircase, on the way out of the dungeon, when the run ends, a
 quits. Not on every turn: writing costs about a millisecond and a whole file, and a turn is worth
 less than that.
 
+A run that is over is written and then retired: the file moves to `deaths/` and takes the time it
+ended with it, so `Sparky.json` becomes `Sparky-20260915-234500.json`. One name can end many times
+and every ending is kept; a second ending in the same second takes a count as well.
+
+The name is free once that happens. A person whose character died starts again under the same name,
+and the run that ended is still on disk for them to read. A won character and one who climbed back
+out are retired the same way. A run that is over is over however it ended, and leaving one in
+`saves/` would hold a name that nobody can play and offer a game that opens on its own ending
+screen.
+
+A run that ends on a staircase reaches `#keep` twice, once from the command that ended it and once
+from the screen that reports it. `Ui::Play` writes it out once, or two endings would be on disk for
+one death.
+
 The file is written beside itself and renamed over the old one, so a crash partway through leaves
 the last good save where it was rather than half of a new one. A store that will not take the file
 says so in the log and the run goes on. Losing the turn a person is playing because a disk is full
 is worse than losing the save.
 
-`Ui::Play` holds a `Save::Store` or holds none. A spec drives one on a directory of its own, so
+`Ui::Play` holds a `Save::Store` or holds none. A store is the pair of directories rather than one
+of them, so `Save::Store.under` is what builds one. A spec drives one on a temporary directory, so
 nothing a spec does can reach a person's own saved characters. `--no-save` plays without one.
 
 ### The name
@@ -1307,12 +1323,14 @@ accents, so `Gúnther the 👹` is kept in the file and the file is called `Gún
 This is not about what a filesystem allows, which is almost anything. It is about a name a person
 can type at a shell without quoting it, and one that cannot be mistaken for a path.
 
-Two names can therefore make one file name. A name whose file belongs to somebody else is refused,
+Two names can therefore make one file name. A name whose save belongs to somebody else is refused,
 and the question goes back up saying who is in the way, so a person who meant to carry that
 character on can see how their name is spelled. Nobody types a new character's name expecting to
 lose an old character. A file that will not parse counts as taken as well: a file nobody can read
 is still a file a new run must not write over. A name with nothing usable in it is refused the same
 way.
+
+Only `saves/` is consulted. An ended character holds no name.
 
 ### Asking who is playing
 

@@ -165,7 +165,7 @@ module Playing
   # characters, so `open` takes no store unless a spec names one, and this is
   # what a spec names.
   def self.store : Roguelike::Save::Store
-    Roguelike::Save::Store.new Path[File.tempname "roguelike-spec", nil]
+    Roguelike::Save::Store.under Path[File.tempname "roguelike-spec", nil]
   end
 
   # A run on *game*, drawn in a window of *columns* by *rows*.

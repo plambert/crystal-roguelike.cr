@@ -92,28 +92,41 @@ module Roguelike
       char.letter? || char.number? || char == '-' || char == '_' || char == '.'
     end
 
-    # A directory of saved characters.
+    # Two directories of characters: the ones still being played, and the ones
+    # whose run is over.
     #
-    # A caller holds one of these. Nothing in the game reaches for the
-    # default directory on its own, so a spec drives a store on a temporary
+    # A caller holds one of these. Nothing in the game reaches for the default
+    # directories on its own, so a spec drives a store on a temporary
     # directory and a run drives the one under the person's home.
     class Store
-      # Where the files are.
+      # Where a character still being played is written.
       getter directory : Path
+
+      # Where a character goes once their run is over.
+      getter ended : Path
 
       # What one file is called, after the character's slug.
       EXTENSION = ".json"
 
-      def initialize(@directory : Path)
+      # What the two directories are called under the game's own.
+      SAVES  = "saves"
+      DEATHS = "deaths"
+
+      def initialize(@directory : Path, @ended : Path)
       end
 
       # The store this game saves to, under the XDG state directory.
       #
-      # `$XDG_STATE_HOME/roguelike/saves` when that is set and absolute, and
-      # `~/.local/state/roguelike/saves` when it is not. That is what the XDG
-      # base directory specification says to do.
+      # `$XDG_STATE_HOME/roguelike` when that is set and absolute, and
+      # `~/.local/state/roguelike` when it is not. That is what the XDG base
+      # directory specification says to do.
       def self.default : Store
-        new Path[Save.state_home].join("roguelike", "saves")
+        under Path[Save.state_home] / "roguelike"
+      end
+
+      # A store on the two directories under *root*.
+      def self.under(root : Path) : Store
+        new root / SAVES, root / DEATHS
       end
 
       # Where the character called *name* is written.
@@ -196,9 +209,14 @@ module Roguelike
       # A file that will not parse is left out. The list is what a person is
       # offered, and offering a file that cannot be loaded helps nobody.
       def characters : Array(Held)
-        return [] of Held unless Dir.exists? @directory
+        listed @directory
+      end
 
-        found = Dir.glob @directory / "*#{EXTENSION}"
+      # Every character in *where*, the most recently written first.
+      private def listed(where : Path) : Array(Held)
+        return [] of Held unless Dir.exists? where
+
+        found = Dir.glob where / "*#{EXTENSION}"
         found.sort_by! { |name| -File.info(name).modification_time.to_unix_ms }
 
         found.compact_map { |name| Held.from_json File.read(name) rescue nil }
@@ -209,6 +227,51 @@ module Roguelike
         File.delete? path(name)
       rescue ArgumentError
         false
+      end
+
+      # Takes the character called *name* out of the saves and puts them among
+      # the endings. Answers where they went, or `nil` when there was no file.
+      #
+      # The name is free afterwards. A person whose character died starts
+      # again under the same name, and the run that ended is still on disk for
+      # them to read.
+      def retire(name : String, at : Time = Time.local) : Path?
+        from = path name
+        return unless File.exists? from
+
+        Dir.mkdir_p @ended
+        wanted = ending name, at
+        File.rename from, wanted
+
+        wanted
+      rescue ArgumentError
+        nil
+      end
+
+      # What a retired character's file is called.
+      #
+      # The slug with the time the run ended after it, so one name can end
+      # many times and every ending is kept. A second ending in the same
+      # second takes a count as well.
+      def ending(name : String, at : Time = Time.local) : Path
+        slug = Save.slug name
+        raise ArgumentError.new "#{name.inspect} makes no file name" if slug.empty?
+
+        stamp = at.to_s "%Y%m%d-%H%M%S"
+        wanted = @ended / "#{slug}-#{stamp}#{EXTENSION}"
+
+        count = 2
+        while File.exists? wanted
+          wanted = @ended / "#{slug}-#{stamp}-#{count}#{EXTENSION}"
+          count += 1
+        end
+
+        wanted
+      end
+
+      # Every character whose run is over, the most recently written first.
+      def endings : Array(Held)
+        listed @ended
       end
     end
 

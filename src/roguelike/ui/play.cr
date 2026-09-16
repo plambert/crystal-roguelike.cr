@@ -169,6 +169,13 @@ module Roguelike::Ui
     # Whether the screen the run ends with has been put up.
     @ended : Bool = false
 
+    # Whether the run has been written out since it ended.
+    #
+    # A run that ends on a staircase is saved twice: once by the command that
+    # ended it and once by the screen that reports it. Retiring twice would
+    # leave two endings on disk for one death.
+    @retired : Bool = false
+
     # The size of the screen, as `#fit` was last told it.
     @columns : Int32 = 0
     @rows : Int32 = 0
@@ -362,6 +369,7 @@ module Roguelike::Ui
       @detailed = nil
       @listed.clear
       @ended = false
+      @retired = false
 
       refresh
       look_at_player
@@ -373,6 +381,10 @@ module Roguelike::Ui
     # title screen has been answered, and a spec builds one that never will
     # be.
     #
+    # A run that is over is written and then retired, so the last state of it
+    # is kept and the name it used is free. A person whose character died
+    # starts again under the same name.
+    #
     # A store that will not take the file says so in the log and the run goes
     # on. Losing the turn a person is playing because a disk is full is worse
     # than losing the save.
@@ -381,7 +393,13 @@ module Roguelike::Ui
       return unless store
       return if @game.player.name.empty?
 
+      return if @retired
+
       store.write @game
+      return unless @game.over?
+
+      store.retire @game.player.name
+      @retired = true
     rescue error : File::Error | IO::Error | ArgumentError
       @game.say "The game could not be saved: #{error.message}"
     end

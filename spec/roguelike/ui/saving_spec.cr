@@ -47,6 +47,15 @@ Spectator.describe "when a run is written to the store" do
     found
   end
 
+  # The most recently ended character in *store*, or a failure saying there
+  # is none.
+  def retired(store : Save::Store) : Save::Held
+    found = store.endings.first?
+    raise "#{store.ended} holds no ended character" unless found
+
+    found
+  end
+
   describe "#keep" do
     it "writes the run" do
       store = Playing.store
@@ -79,7 +88,7 @@ Spectator.describe "when a run is written to the store" do
     # Losing the turn a person is playing because a disk is full is worse
     # than losing the save.
     it "says so in the log rather than stopping the run" do
-      store = Save::Store.new Path["/proc/nowhere/roguelike"]
+      store = Save::Store.under Path["/proc/nowhere/roguelike"]
       run = playing store
 
       run.play.keep
@@ -97,7 +106,7 @@ Spectator.describe "when a run is written to the store" do
 
       run.press ">"
 
-      expect(saved(store).outcome.won?).to be_true
+      expect(retired(store).outcome.won?).to be_true
     end
 
     it "writes on the way out of the dungeon" do
@@ -107,7 +116,7 @@ Spectator.describe "when a run is written to the store" do
       run.press "<"
       run.press "y"
 
-      expect(saved(store).outcome.left?).to be_true
+      expect(retired(store).outcome.left?).to be_true
     end
 
     it "writes when the person quits" do
@@ -142,7 +151,67 @@ Spectator.describe "when a run is written to the store" do
       end
 
       expect(run.game.outcome.died?).to be_true
-      expect(saved(store).outcome.died?).to be_true
+      expect(retired(store).outcome.died?).to be_true
+    end
+  end
+
+  describe "a run that is over" do
+    # A dead character is not a character to carry on. Their file goes where
+    # it can be read and their name goes back to whoever wants it.
+    it "is taken out of the saves" do
+      store = Playing.store
+      run = playing store, map: FIGHT, hit_points: 1
+
+      SWINGS.times do
+        break if run.game.over?
+
+        run.press "k"
+      end
+
+      expect(store.holds? "Sparky").to be_false
+      expect(store.characters).to be_empty
+    end
+
+    it "is kept among the endings" do
+      store = Playing.store
+      run = playing store, map: FIGHT, hit_points: 1
+
+      SWINGS.times do
+        break if run.game.over?
+
+        run.press "k"
+      end
+
+      expect(store.endings.map &.name).to eq ["Sparky"]
+      expect(retired(store).turn).to eq run.game.turn
+    end
+
+    it "leaves the name free for somebody new" do
+      store = Playing.store
+      run = playing store
+      run.press "<"
+      run.press "y"
+
+      again = playing store, name: ""
+      again.play.play_as "Sparky"
+
+      expect(again.play.entry.asking?).to be_false
+      expect(again.game.player.name).to eq "Sparky"
+      expect(store.holds? "Sparky").to be_true
+    end
+
+    # One name can end many times, and every ending is kept.
+    it "keeps an earlier ending under the same name" do
+      store = Playing.store
+
+      2.times do
+        run = playing store
+        run.press "<"
+        run.press "y"
+      end
+
+      expect(store.endings.size).to eq 2
+      expect(store.endings.map &.name).to eq ["Sparky", "Sparky"]
     end
   end
 
