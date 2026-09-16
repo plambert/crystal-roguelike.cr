@@ -92,8 +92,8 @@ module Roguelike
       char.letter? || char.number? || char == '-' || char == '_' || char == '.'
     end
 
-    # Two directories of characters: the ones still being played, and the ones
-    # whose run is over.
+    # Three directories of characters: the ones still being played, the ones
+    # who died, and the ones who came out alive.
     #
     # A caller holds one of these. Nothing in the game reaches for the default
     # directories on its own, so a spec drives a store on a temporary
@@ -102,17 +102,21 @@ module Roguelike
       # Where a character still being played is written.
       getter directory : Path
 
-      # Where a character goes once their run is over.
-      getter ended : Path
+      # Where a character who died goes.
+      getter deaths : Path
+
+      # Where a character who came out alive goes.
+      getter wins : Path
 
       # What one file is called, after the character's slug.
       EXTENSION = ".json"
 
-      # What the two directories are called under the game's own.
+      # What the three directories are called under the game's own.
       SAVES  = "saves"
       DEATHS = "deaths"
+      WINS   = "wins"
 
-      def initialize(@directory : Path, @ended : Path)
+      def initialize(@directory : Path, @deaths : Path, @wins : Path)
       end
 
       # The store this game saves to, under the XDG state directory.
@@ -124,9 +128,19 @@ module Roguelike
         under Path[Save.state_home] / "roguelike"
       end
 
-      # A store on the two directories under *root*.
+      # A store on the three directories under *root*.
       def self.under(root : Path) : Store
-        new root / SAVES, root / DEATHS
+        new root / SAVES, root / DEATHS, root / WINS
+      end
+
+      # Where a run that ended with *outcome* is kept.
+      #
+      # A character who died goes among the deaths. Everyone else goes among
+      # the wins. A character who climbed down and out won, and one who
+      # climbed back out the way they came in is alive, which is the thing the
+      # two directories tell apart.
+      def ended(outcome : Outcome) : Path
+        outcome.died? ? @deaths : @wins
       end
 
       # Where the character called *name* is written.
@@ -229,18 +243,21 @@ module Roguelike
         false
       end
 
-      # Takes the character called *name* out of the saves and puts them among
-      # the endings. Answers where they went, or `nil` when there was no file.
+      # Takes the character called *name* out of the saves and puts them where
+      # a run that ended with *outcome* goes. Answers where they went, or
+      # `nil` when there was no file.
       #
       # The name is free afterwards. A person whose character died starts
       # again under the same name, and the run that ended is still on disk for
       # them to read.
-      def retire(name : String, at : Time = Time.local) : Path?
+      def retire(name : String, outcome : Outcome,
+                 at : Time = Time.local) : Path?
         from = path name
         return unless File.exists? from
 
-        Dir.mkdir_p @ended
-        wanted = ending name, at
+        where = ended outcome
+        Dir.mkdir_p where
+        wanted = ending name, outcome, at
         File.rename from, wanted
 
         wanted
@@ -253,25 +270,32 @@ module Roguelike
       # The slug with the time the run ended after it, so one name can end
       # many times and every ending is kept. A second ending in the same
       # second takes a count as well.
-      def ending(name : String, at : Time = Time.local) : Path
+      def ending(name : String, outcome : Outcome,
+                 at : Time = Time.local) : Path
         slug = Save.slug name
         raise ArgumentError.new "#{name.inspect} makes no file name" if slug.empty?
 
+        where = ended outcome
         stamp = at.to_s "%Y%m%d-%H%M%S"
-        wanted = @ended / "#{slug}-#{stamp}#{EXTENSION}"
+        wanted = where / "#{slug}-#{stamp}#{EXTENSION}"
 
         count = 2
         while File.exists? wanted
-          wanted = @ended / "#{slug}-#{stamp}-#{count}#{EXTENSION}"
+          wanted = where / "#{slug}-#{stamp}-#{count}#{EXTENSION}"
           count += 1
         end
 
         wanted
       end
 
-      # Every character whose run is over, the most recently written first.
-      def endings : Array(Held)
-        listed @ended
+      # Every character who died, the most recently written first.
+      def died : Array(Held)
+        listed @deaths
+      end
+
+      # Every character who came out alive, the most recently written first.
+      def won : Array(Held)
+        listed @wins
       end
     end
 

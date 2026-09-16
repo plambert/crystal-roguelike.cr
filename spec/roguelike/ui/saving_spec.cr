@@ -47,11 +47,11 @@ Spectator.describe "when a run is written to the store" do
     found
   end
 
-  # The most recently ended character in *store*, or a failure saying there
-  # is none.
-  def retired(store : Save::Store) : Save::Held
-    found = store.endings.first?
-    raise "#{store.ended} holds no ended character" unless found
+  # The most recently ended character in *held*, or a failure saying there is
+  # none.
+  def retired(held : Array(Save::Held)) : Save::Held
+    found = held.first?
+    raise "no character has ended" unless found
 
     found
   end
@@ -106,7 +106,7 @@ Spectator.describe "when a run is written to the store" do
 
       run.press ">"
 
-      expect(retired(store).outcome.won?).to be_true
+      expect(retired(store.won).outcome.won?).to be_true
     end
 
     it "writes on the way out of the dungeon" do
@@ -116,7 +116,7 @@ Spectator.describe "when a run is written to the store" do
       run.press "<"
       run.press "y"
 
-      expect(retired(store).outcome.left?).to be_true
+      expect(retired(store.won).outcome.left?).to be_true
     end
 
     it "writes when the person quits" do
@@ -151,7 +151,7 @@ Spectator.describe "when a run is written to the store" do
       end
 
       expect(run.game.outcome.died?).to be_true
-      expect(retired(store).outcome.died?).to be_true
+      expect(retired(store.died).outcome.died?).to be_true
     end
   end
 
@@ -172,7 +172,7 @@ Spectator.describe "when a run is written to the store" do
       expect(store.characters).to be_empty
     end
 
-    it "is kept among the endings" do
+    it "is kept among the deaths" do
       store = Playing.store
       run = playing store, map: FIGHT, hit_points: 1
 
@@ -182,8 +182,9 @@ Spectator.describe "when a run is written to the store" do
         run.press "k"
       end
 
-      expect(store.endings.map &.name).to eq ["Sparky"]
-      expect(retired(store).turn).to eq run.game.turn
+      expect(store.died.map &.name).to eq ["Sparky"]
+      expect(retired(store.died).turn).to eq run.game.turn
+      expect(store.won).to be_empty
     end
 
     it "leaves the name free for somebody new" do
@@ -210,8 +211,8 @@ Spectator.describe "when a run is written to the store" do
         run.press "y"
       end
 
-      expect(store.endings.size).to eq 2
-      expect(store.endings.map &.name).to eq ["Sparky", "Sparky"]
+      expect(store.won.size).to eq 2
+      expect(store.won.map &.name).to eq ["Sparky", "Sparky"]
     end
   end
 

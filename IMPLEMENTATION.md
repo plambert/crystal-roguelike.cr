@@ -1262,9 +1262,9 @@ context around the cursor that walking wants around the character.
 ## Saved characters
 
 One character is one file, under `$XDG_STATE_HOME/roguelike` when that variable is set and
-absolute, and `~/.local/state/roguelike` when it is not. There are two directories under it:
-`saves/` holds the characters still being played, and `deaths/` holds the ones whose run is over.
-`--saves` prints both, and whatever is in them.
+absolute, and `~/.local/state/roguelike` when it is not. There are three directories under it:
+`saves/` holds the characters still being played, `deaths/` the ones who died, and `wins/` the ones
+who came out alive. `--saves` prints all three, and whatever is in them.
 
 ### What a file holds
 
@@ -1290,15 +1290,17 @@ On the way down a staircase, on the way out of the dungeon, when the run ends, a
 quits. Not on every turn: writing costs about a millisecond and a whole file, and a turn is worth
 less than that.
 
-A run that is over is written and then retired: the file moves to `deaths/` and takes the time it
-ended with it, so `Sparky.json` becomes `Sparky-20260915-234500.json`. One name can end many times
-and every ending is kept; a second ending in the same second takes a count as well.
+A run that is over is written and then retired: the file moves out of `saves/` and takes the time
+it ended with it, so `Sparky.json` becomes `Sparky-20260915-234500.json`. One name can end many
+times and every ending is kept; a second ending in the same second takes a count as well.
+
+`Save::Store#ended` says which directory it goes to. A character who died goes among the deaths.
+Everyone else goes among the wins: a character who climbed down and out won, and one who climbed
+back out the way they came in is alive, which is the thing the two directories tell apart.
 
 The name is free once that happens. A person whose character died starts again under the same name,
-and the run that ended is still on disk for them to read. A won character and one who climbed back
-out are retired the same way. A run that is over is over however it ended, and leaving one in
-`saves/` would hold a name that nobody can play and offer a game that opens on its own ending
-screen.
+and the run that ended is still on disk for them to read. Leaving a finished run in `saves/` would
+hold a name nobody can play and offer a game that opens on its own ending screen.
 
 A run that ends on a staircase reaches `#keep` twice, once from the command that ended it and once
 from the screen that reports it. `Ui::Play` writes it out once, or two endings would be on disk for
@@ -1309,8 +1311,8 @@ the last good save where it was rather than half of a new one. A store that will
 says so in the log and the run goes on. Losing the turn a person is playing because a disk is full
 is worse than losing the save.
 
-`Ui::Play` holds a `Save::Store` or holds none. A store is the pair of directories rather than one
-of them, so `Save::Store.under` is what builds one. A spec drives one on a temporary directory, so
+`Ui::Play` holds a `Save::Store` or holds none. A store is the three directories rather than one of
+them, so `Save::Store.under` is what builds one. A spec drives one on a temporary directory, so
 nothing a spec does can reach a person's own saved characters. `--no-save` plays without one.
 
 ### The name

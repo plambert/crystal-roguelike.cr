@@ -3,6 +3,7 @@ require "../spec_helper"
 Spectator.describe Roguelike::Save do
   alias Item = Roguelike::Item
   alias Kind = Roguelike::ItemKind
+  alias Outcome = Roguelike::Outcome
   alias Save = Roguelike::Save
 
   # A store on a directory of its own, and a game to put in it.
@@ -105,12 +106,13 @@ Spectator.describe Roguelike::Save do
 
   describe Save::Store do
     describe ".default" do
-      it "puts the two directories under the state directory" do
+      it "puts the three directories under the state directory" do
         ENV["XDG_STATE_HOME"] = "/somewhere/state"
 
         kept = Save::Store.default
         expect(kept.directory.to_s).to eq "/somewhere/state/roguelike/saves"
-        expect(kept.ended.to_s).to eq "/somewhere/state/roguelike/deaths"
+        expect(kept.deaths.to_s).to eq "/somewhere/state/roguelike/deaths"
+        expect(kept.wins.to_s).to eq "/somewhere/state/roguelike/wins"
       ensure
         ENV.delete "XDG_STATE_HOME"
       end
@@ -308,30 +310,51 @@ Spectator.describe Roguelike::Save do
       end
     end
 
+    describe "#ended" do
+      # A character who climbed back out the way they came in is alive. That
+      # is the thing the two directories tell apart.
+      it "sends a death to the deaths and everything else to the wins" do
+        kept = store
+
+        expect(kept.ended Outcome::Died).to eq kept.deaths
+        expect(kept.ended Outcome::Won).to eq kept.wins
+        expect(kept.ended Outcome::Left).to eq kept.wins
+      end
+    end
+
     describe "#ending" do
       it "puts the time the run ended after the slug" do
         kept = store
         at = Time.local 2026, 9, 15, 23, 45, 0
 
-        expect(kept.ending("Sparky the Bold", at).basename)
+        expect(kept.ending("Sparky the Bold", Outcome::Died, at).basename)
           .to eq "Sparky-the-Bold-20260915-234500.json"
+      end
+
+      it "puts it in the directory the outcome names" do
+        kept = store
+        at = Time.local 2026, 9, 15, 23, 45, 0
+
+        expect(kept.ending("Sparky", Outcome::Died, at).parent).to eq kept.deaths
+        expect(kept.ending("Sparky", Outcome::Won, at).parent).to eq kept.wins
       end
 
       # One name can end many times, and every ending is kept.
       it "counts a second ending in the same second" do
         kept = store
         at = Time.local 2026, 9, 15, 23, 45, 0
-        Dir.mkdir_p kept.ended
-        File.write kept.ending("Sparky", at), "{}"
+        Dir.mkdir_p kept.deaths
+        File.write kept.ending("Sparky", Outcome::Died, at), "{}"
 
-        expect(kept.ending("Sparky", at).basename)
+        expect(kept.ending("Sparky", Outcome::Died, at).basename)
           .to eq "Sparky-20260915-234500-2.json"
       end
 
       it "refuses a name that makes no file name" do
         kept = store
 
-        expect { kept.ending "///" }.to raise_error ArgumentError, /file name/
+        expect { kept.ending "///", Outcome::Died }
+          .to raise_error ArgumentError, /file name/
       end
     end
 
@@ -340,7 +363,7 @@ Spectator.describe Roguelike::Save do
         kept = store
         kept.write named("Sparky")
 
-        kept.retire "Sparky"
+        kept.retire "Sparky", Outcome::Died
 
         expect(kept.holds? "Sparky").to be_false
         expect(kept.characters).to be_empty
@@ -350,55 +373,69 @@ Spectator.describe Roguelike::Save do
         kept = store
         kept.write named("Sparky")
 
-        where = kept.retire "Sparky"
+        where = kept.retire "Sparky", Outcome::Died
         raise "the file went nowhere" unless where
 
         expect(File.exists? where).to be_true
-        expect(where.parent).to eq kept.ended
+        expect(where.parent).to eq kept.deaths
+      end
+
+      it "puts a character who came out alive among the wins" do
+        kept = store
+        kept.write named("Sparky")
+
+        kept.retire "Sparky", Outcome::Won
+
+        expect(kept.won.map &.name).to eq ["Sparky"]
+        expect(kept.died).to be_empty
       end
 
       it "keeps everything the file held" do
         kept = store
         kept.write named("Sparky", turn: 6)
 
-        kept.retire "Sparky"
+        kept.retire "Sparky", Outcome::Died
 
-        expect(kept.endings.size).to eq 1
-        expect(kept.endings.first.name).to eq "Sparky"
-        expect(kept.endings.first.turn).to eq 6
+        expect(kept.died.size).to eq 1
+        expect(kept.died.first.name).to eq "Sparky"
+        expect(kept.died.first.turn).to eq 6
       end
 
       # The name is what a new character wants back.
       it "frees the name" do
         kept = store
         kept.write named("Sparky")
-        kept.retire "Sparky"
+        kept.retire "Sparky", Outcome::Died
 
         expect(kept.taken_by "Sparky").to be_nil
       end
 
       it "says nothing for a character it has not got" do
-        expect(store.retire "Nobody").to be_nil
+        expect(store.retire "Nobody", Outcome::Died).to be_nil
       end
 
       it "says nothing for a name that makes no file name" do
-        expect(store.retire "///").to be_nil
+        expect(store.retire "///", Outcome::Died).to be_nil
       end
     end
 
-    describe "#endings" do
-      it "answers nothing for a directory that is not there" do
-        expect(store.endings).to be_empty
+    describe "#died and #won" do
+      it "answer nothing for a directory that is not there" do
+        kept = store
+
+        expect(kept.died).to be_empty
+        expect(kept.won).to be_empty
       end
 
-      it "answers every character whose run is over" do
+      it "keep the two apart" do
         kept = store
         kept.write named("Sparky")
-        kept.retire "Sparky"
+        kept.retire "Sparky", Outcome::Died
         kept.write named("McGee")
-        kept.retire "McGee"
+        kept.retire "McGee", Outcome::Won
 
-        expect(kept.endings.map(&.name).sort!).to eq ["McGee", "Sparky"]
+        expect(kept.died.map &.name).to eq ["Sparky"]
+        expect(kept.won.map &.name).to eq ["McGee"]
         expect(kept.characters).to be_empty
       end
     end

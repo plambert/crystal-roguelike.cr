@@ -398,7 +398,7 @@ module Roguelike::Ui
       store.write @game
       return unless @game.over?
 
-      store.retire @game.player.name
+      store.retire @game.player.name, @game.outcome
       @retired = true
     rescue error : File::Error | IO::Error | ArgumentError
       @game.say "The game could not be saved: #{error.message}"

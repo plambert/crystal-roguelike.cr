@@ -72,17 +72,19 @@ module Roguelike
       puts "seed #{game.world.seed}    turn #{game.turn}"
     end
 
-    # Prints the saved characters and the ended ones, newest first.
+    # Prints the saved characters, the dead ones and the ones who came out,
+    # newest first.
     #
-    # Both directories are printed whether or not there is anything in them,
-    # so a person who wants to back the files up or edit one is told where to
-    # look.
+    # Every directory is printed whether or not there is anything in it, so a
+    # person who wants to back the files up or edit one is told where to look.
     private def listed : Nil
       store = Save::Store.default
 
-      print_held store.directory, store.characters, "no saved characters"
+      print_held store.directory, store.characters, "nobody is playing"
       puts
-      print_held store.ended, store.endings, "no characters have ended yet"
+      print_held store.deaths, store.died, "nobody has died"
+      puts
+      print_held store.wins, store.won, "nobody has come out alive"
     end
 
     # Prints *held*, under the directory it came out of.
