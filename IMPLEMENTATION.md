@@ -322,6 +322,15 @@ The one piece of shard-shaped work that has to come before anything can be drawn
   reported. Hovering a map cell puts what is there into the sidebar — the terrain's name and
   description, and, once Phase 10 exists, everything lying on that square. It is a permanent
   readout, not a tooltip: it holds the last thing hovered rather than blanking on the way past.
+
+  What it holds is written again on every refresh, through `Examiner#restate`. It used to be
+  written only when the pointer or the cursor landed on a square, so everything on that square
+  could change without the readout hearing: a creature killed, an item picked up, a door opened.
+  The pointer is over a cell of the screen rather than over a square of the floor, so a refresh
+  also points it at whatever the camera has slid under the pointer since. The keyboard cursor is
+  exempt from that second part: it is held to a square, and `Examiner#move` brings that square into
+  view rather than letting the camera carry it off.
+
   `x` does the same thing from the keyboard with a cursor moved by the movement keys, and `M`
   turns mouse reporting off and on, since a terminal reporting the mouse no longer lets the
   person select text with it. While the pointer is over the map the terminal's own cursor sits

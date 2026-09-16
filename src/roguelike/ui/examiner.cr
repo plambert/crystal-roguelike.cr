@@ -35,7 +35,7 @@ module Roguelike::Ui
       return false unless @map.floor.contains? x, y
 
       @spot = {x, y}
-      refresh
+      restate
       true
     end
 
@@ -76,7 +76,7 @@ module Roguelike::Ui
       return unless @cursoring
 
       @cursoring = false
-      refresh
+      restate
     end
 
     # Starts the cursor when it is off. Stops it when it is on.
@@ -113,12 +113,20 @@ module Roguelike::Ui
 
       @spot = wanted
       @map.follow wanted[0], wanted[1]
-      refresh
+      restate
       true
     end
 
-    # Writes the readout. Puts the cursor where it belongs.
-    private def refresh : Nil
+    # Writes the readout again, against the floor as it is now.
+    #
+    # The readout is written when the pointer or the cursor lands on a square.
+    # Everything on that square can change afterwards without the readout
+    # hearing about it: a creature dies, an item is picked up, a door opens.
+    # So the owner calls this on every refresh, the way it writes the rest of
+    # the sidebar again.
+    #
+    # It puts the cursor where it belongs as well.
+    def restate : Nil
       here = @spot
 
       if here

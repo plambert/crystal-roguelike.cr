@@ -114,6 +114,124 @@ Spectator.describe Roguelike::Ui::Examiner do
     end
   end
 
+  describe "the readout once the game moves on" do
+    alias Monster = Roguelike::Monster
+
+    # One lit room with the character on the up staircase and an orc two
+    # squares east.
+    ROOM = [
+      "#######",
+      "#.....#",
+      "#.<.o.+",
+      "#.....#",
+      "#######",
+    ]
+
+    def watching : Playing::Run
+      floor = Playing.daylight Roguelike::Floor.parse("room", ROOM)
+      player = Roguelike::Player.new floor.id, *Roguelike::Game.entrance(floor)
+
+      Playing.open Roguelike::Game.new(
+        Roguelike::World.new(Playing::SEED, {floor.id => floor}), player), 60, 20
+    end
+
+    # The screen cell square *x*, *y* of the floor is drawn in.
+    def cell(run : Playing::Run, x : Int32, y : Int32) : {Int32, Int32}
+      found = run.map.screen_of x, y
+      raise "#{x}, #{y} is not in the window" unless found
+
+      found
+    end
+
+    # The readout is written when the pointer lands on a square. What is on
+    # that square goes on changing after that, and nothing else tells the
+    # readout.
+    it "stops naming a creature that has been killed" do
+      run = watching
+      run.hover *cell(run, 4, 2)
+      expect(run.examine.what.text).to eq "orc"
+
+      creature = run.game.floor.monster 4, 2
+      run.game.kill creature if creature
+      run.play.refresh
+
+      expect(run.examine.what.text).to eq "stone floor"
+    end
+
+    it "stops naming an item that has been picked up" do
+      run = watching
+      here = run.at
+      run.game.floor.drop here[0], here[1],
+        Roguelike::Item.new(Roguelike::ItemKind::Dagger)
+      run.play.refresh
+
+      run.hover *cell(run, here[0], here[1])
+      expect(run.examine.litter.text).to contain "dagger"
+
+      run.press ","
+
+      expect(run.examine.litter.hidden?).to be_true
+    end
+
+    it "names a door that has been opened" do
+      run = watching
+      run.hover *cell(run, 6, 2)
+      expect(run.examine.what.text).to eq "closed door"
+
+      run.game.floor.set 6, 2, Roguelike::Terrain::OpenDoor
+      run.play.refresh
+
+      expect(run.examine.what.text).to eq "open door"
+    end
+
+    # The pointer sits over a cell of the screen rather than over a square of
+    # the floor. Walking scrolls the camera under it, so the square it is on
+    # is whatever the camera slid there.
+    it "follows the pointer when the camera scrolls under it" do
+      run = Playing.open Playing.field(200, 60)
+      here = run.at
+      spot = cell run, here[0] + 3, here[1]
+
+      run.hover *spot
+      expect(run.examiner.spot).to eq({here[0] + 3, here[1]})
+
+      40.times { run.press "l" }
+
+      expect(run.examiner.spot).to eq run.map.cell_at_screen(spot[0], spot[1])
+      expect(run.examine.where.text).to eq "#{run.examiner.spot.try &.[](0)}, #{here[1]}"
+    end
+
+    # The readout belongs to the cursor while the cursor is on the map. A
+    # pointer resting over some other square must not take it back.
+    it "leaves the keyboard cursor where it is" do
+      run = Playing.open Playing.field(200, 60)
+      here = run.at
+      run.hover *cell(run, here[0] + 3, here[1])
+
+      run.press "x"
+      expect(run.examiner.spot).to eq here
+
+      run.play.refresh
+
+      expect(run.examiner.spot).to eq here
+    end
+
+    # The square under the cursor changes the same way any other does.
+    it "restates the square the keyboard cursor is on" do
+      run = watching
+      run.press "x"
+      run.press "l"
+      run.press "l"
+      expect(run.examine.what.text).to eq "orc"
+
+      creature = run.game.floor.monster 4, 2
+      run.game.kill creature if creature
+      run.play.refresh
+
+      expect(run.examine.what.text).to eq "stone floor"
+    end
+  end
+
   describe "x" do
     it "puts a cursor on the character" do
       run = Playing.open

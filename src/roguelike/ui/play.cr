@@ -1214,6 +1214,7 @@ module Roguelike::Ui
       @character.fit Play.character_rows @rows
       @nearby.budget = Play.nearby_budget @rows, @character.height
       @nearby.show @game, seen
+      restate_examine
 
       # The pane reads the floor for what is lying about and the knowledge for
       # what was lying about. A mark is something standing on a square, which
@@ -1223,6 +1224,24 @@ module Roguelike::Ui
       show_aim
       @pager.show @game.log.lines
       show_ending
+    end
+
+    # Writes the readout under the pointer again.
+    #
+    # Two things go stale between one refresh and the next. What is on the
+    # square changes: a creature dies, an item is picked up, a door opens. And
+    # the camera moves under a pointer that did not, so the cell the pointer
+    # sits over is no longer the square the readout names.
+    #
+    # The keyboard cursor is moved by neither. It is held to a square rather
+    # than to a cell, and `Examiner#move` brings that square into view rather
+    # than letting the camera carry it off.
+    private def restate_examine : Nil
+      here = @pointer.spot
+      return @examiner.restate if @examiner.cursoring? || here.nil?
+      return if @examiner.point_at_screen here[0], here[1]
+
+      @examiner.restate
     end
 
     # Puts the screen the run ends with up, once.
