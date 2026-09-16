@@ -124,6 +124,41 @@ Spectator.describe Roguelike::Monster do
     end
   end
 
+  describe "how a species chases" do
+    # An orc follows a cold trail for a long time and a goblin gives up
+    # quickly. That is what decides whether a person can run away.
+    it "gives every species its own patience" do
+      expect(Species::Orc.persistence).to be > Species::Goblin.persistence
+      expect(Species::Goblin.persistence).to be > Species::Slime.persistence
+    end
+
+    it "makes an orc much more persistent than a goblin" do
+      expect(Species::Orc.persistence).to be > Species::Goblin.persistence * 3
+    end
+
+    # Persistence is not intelligence. A goblin is quicker than an orc and
+    # knows perfectly well where you went; it would simply rather not follow.
+    it "keeps persistence apart from intelligence" do
+      expect(Species::Goblin.attributes.intelligence)
+        .to be > Species::Orc.attributes.intelligence
+    end
+
+    # How often it puts a foot wrong falls as intelligence rises.
+    it "makes a slime clumsier than anything that thinks" do
+      expect(Species::Slime.clumsiness).to be > Species::Goblin.clumsiness
+      expect(Species::Slime.clumsiness).to be > Species::Orc.clumsiness
+    end
+
+    # Nothing is perfect. A creature that never put a foot wrong could never
+    # be shaken off in open ground, whatever its persistence.
+    it "leaves everything something to get wrong" do
+      Species.values.each do |species|
+        expect(species.clumsiness).to be > 0
+        expect(species.clumsiness).to be < 50
+      end
+    end
+  end
+
   describe "serialization" do
     it "round-trips through JSON" do
       goblin.hurt 3

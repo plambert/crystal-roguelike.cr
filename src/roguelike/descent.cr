@@ -1,5 +1,6 @@
 require "./direction"
 require "./knowledge"
+require "./line"
 
 module Roguelike
   # A number on every square saying how many steps it is from a goal.
@@ -100,29 +101,92 @@ module Roguelike
     # distance off. A creature whose way down is taken waits for it to clear
     # rather than stepping sideways and coming back the turn after.
     #
-    # Ties go to whichever direction `Direction` names first, so a band walks
-    # the same way twice from the same seed.
+    # Several neighbours are usually the same distance nearer, because a
+    # diagonal step costs what a straight one does. `.nearest` picks between
+    # them, and ties there go to whichever direction `Direction` names first,
+    # so a band walks the same way twice from the same seed.
     def toward(x : Int32, y : Int32,
                blocked : Set({Int32, Int32}) = EMPTY) : Direction?
+      Descent.nearest downhill(x, y, blocked), {x, y}, @goal
+    end
+
+    # Every direction from *x*, *y* that is as near the goal as any is.
+    #
+    # Empty when nothing beside the square is nearer than the square itself.
+    def downhill(x : Int32, y : Int32,
+                 blocked : Set({Int32, Int32}) = EMPTY) : Array(Direction)
       here = @steps[{x, y}]?
-      return unless here
-      return if here.zero?
+      return NOWHERE if here.nil? || here.zero?
 
       best = here
-      found = nil.as(Direction?)
+      found = [] of Direction
 
       Direction.values.each do |direction|
         wanted = direction.from x, y
         next if blocked.includes? wanted
 
         away = @steps[wanted]?
-        next unless away && away < best
+        next unless away && away < here
 
-        best = away
-        found = direction
+        if away < best
+          best = away
+          found.clear
+        end
+
+        found << direction if away == best
       end
 
       found
+    end
+
+    # Every direction from *x*, *y* that leaves the square as far from the
+    # goal as the one it is standing on.
+    #
+    # A creature that puts a foot wrong takes one of these. It has not gone
+    # the wrong way, it has gone sideways, and whatever it is chasing has
+    # gained a square. There are none of these in a corridor, which is why
+    # nothing can be shaken off in one.
+    def sideways(x : Int32, y : Int32,
+                 blocked : Set({Int32, Int32}) = EMPTY) : Array(Direction)
+      here = @steps[{x, y}]?
+      return NOWHERE if here.nil? || here.zero?
+
+      found = [] of Direction
+
+      Direction.values.each do |direction|
+        wanted = direction.from x, y
+        next if blocked.includes? wanted
+        next unless @steps[wanted]? == here
+
+        found << direction
+      end
+
+      found
+    end
+
+    # No way down at all. What `#downhill` answers for a dead end.
+    NOWHERE = [] of Direction
+
+    # Which of *found* heads most nearly along the line from *at* to *goal*.
+    #
+    # Every one of them is the same number of steps from the goal, so the map
+    # has nothing left to say. What decides it is which of them looks like
+    # walking at the goal: a creature that picks by the order the directions
+    # happen to be declared walks diagonally until one axis lines up and
+    # straight after that, which is the same number of turns and reads as a
+    # creature heading somewhere else.
+    def self.nearest(found : Array(Direction), at : {Int32, Int32},
+                     goal : {Int32, Int32}) : Direction?
+      return if found.empty?
+      return found.first if found.size == 1
+
+      step = Line.step at, goal
+      return found.first unless step
+
+      wanted = {step[0] - at[0], step[1] - at[1]}
+      found.min_by do |direction|
+        (direction.dx - wanted[0]).abs + (direction.dy - wanted[1]).abs
+      end
     end
 
     # Nothing standing anywhere. What `#toward` reads when a caller names no

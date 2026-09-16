@@ -28,6 +28,18 @@ Spectator.describe "being chased" do
     "##########",
   ]
 
+  # Two rooms with no way between them.
+  #
+  # A creature shut in the right one can never reach the character in the
+  # left one, so what it does is go on looking until its patience runs out
+  # and no more. A spec about giving up is not a spec about being caught.
+  SEALED = [
+    "############",
+    "#.<....#...#",
+    "#......#...#",
+    "############",
+  ]
+
   # One room with nothing in it.
   OPEN = [
     "##########",
@@ -167,16 +179,47 @@ Spectator.describe "being chased" do
       game, creature = chase
       game.floor.ambient = 0
 
-      wait_aside game, Game::PATIENCE + 6
+      wait_aside game, Species::Goblin.persistence + 6
 
       expect(game.floor.awareness creature).to eq Awareness::Asleep
+    end
+
+    # How long it keeps looking is the species, not one number for every
+    # creature there is. This is what decides whether a person can run away.
+    it "keeps looking for as long as its species does" do
+      [Species::Slime, Species::Goblin, Species::Orc].each do |species|
+        game, creature = chase SEALED, species: species, at: {9, 1}
+        game.floor.ambient = 0
+
+        wait game, species.persistence - 1
+        expect(game.floor.awareness creature).not_to eq Awareness::Asleep
+
+        wait game, 3
+        expect(game.floor.awareness creature).to eq Awareness::Asleep
+      end
+    end
+
+    # The number belongs to the creature. A band with nobody left on the
+    # floor has nobody to ask, and falls back on one.
+    it "falls back on one number for a band with nobody on the floor" do
+      game, creature = chase
+      game.floor.ambient = 0
+      game.kill creature
+
+      wait_aside game, Game::PATIENCE + 6
+
+      expect(game.floor.band("band-one").try &.awareness).to eq Awareness::Asleep
+    end
+
+    it "lets an orc follow a cold trail far longer than a goblin" do
+      expect(Species::Orc.persistence).to be > Species::Goblin.persistence * 3
     end
 
     it "forgets where they were when it gives up" do
       game, creature = chase
       game.floor.ambient = 0
 
-      wait_aside game, Game::PATIENCE + 6
+      wait_aside game, Species::Goblin.persistence + 6
 
       expect(knowledge(game, creature).sighting Knowledge::PLAYER).to be_nil
     end
@@ -185,7 +228,7 @@ Spectator.describe "being chased" do
       game, creature = chase
       game.floor.ambient = 0
 
-      wait_aside game, Game::PATIENCE + 6
+      wait_aside game, Species::Goblin.persistence + 6
       resting = creature.at
       wait game, 6
 
@@ -196,7 +239,7 @@ Spectator.describe "being chased" do
       game, creature = chase
       game.floor.ambient = 0
 
-      wait_aside game, Game::PATIENCE + 6
+      wait_aside game, Species::Goblin.persistence + 6
 
       expect(knowledge(game, creature).empty?).to be_false
     end

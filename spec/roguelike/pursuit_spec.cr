@@ -37,7 +37,8 @@ Spectator.describe Roguelike::Pursuit do
                stale : Int32 = 0,
                paths : Bool = true,
                knowledge : Knowledge? = nil,
-               blocked : Array({Int32, Int32}) = [] of {Int32, Int32}) : Pursuit::Snapshot
+               blocked : Array({Int32, Int32}) = [] of {Int32, Int32},
+               stumble : Bool = false) : Pursuit::Snapshot
     held = knowledge || known
     taken = Set({Int32, Int32}).new
     blocked.each { |spot| taken << spot }
@@ -48,8 +49,26 @@ Spectator.describe Roguelike::Pursuit do
       quarry: quarry,
       stale: stale,
       descent: quarry && paths ? Descent.toward(held, quarry) : nil,
-      blocked: taken)
+      blocked: taken,
+      stumble: stumble)
   end
+
+  # One open room, for a chase with somewhere to go sideways.
+  OPEN = [
+    "###########",
+    "#.........#",
+    "#.........#",
+    "#.........#",
+    "#.........#",
+    "###########",
+  ]
+
+  # One corridor, where there is nowhere to go but on or back.
+  TUNNEL = [
+    "#########",
+    "#.......#",
+    "#########",
+  ]
 
   describe "a creature that has never seen the character" do
     it "waits" do
@@ -177,6 +196,57 @@ Spectator.describe Roguelike::Pursuit do
         blocked: [{2, 2}])
 
       expect(found).to eq Action.wait
+    end
+  end
+
+  describe "a creature that puts a foot wrong" do
+    # It has not gone the wrong way. It has gone sideways, and what it is
+    # chasing has gained a square.
+    it "steps sideways rather than nearer" do
+      held = known OPEN
+      steady = Pursuit.decide snapshot({8, 2}, quarry: {2, 2}, knowledge: held)
+      astray = Pursuit.decide snapshot({8, 2}, quarry: {2, 2}, knowledge: held,
+        stumble: true)
+
+      descent = Descent.toward held, {2, 2}
+      expect(steady.intent).to eq Intent::Step
+      expect(astray.intent).to eq Intent::Step
+      expect(astray.direction).not_to eq steady.direction
+
+      where = astray.direction
+      raise "it went nowhere" unless where
+
+      expect(descent[where.from 8, 2]).to eq descent[8, 2]
+    end
+
+    # Nothing is shaken off in a corridor. Every square beside a creature in
+    # one is nearer the quarry or further from it, and there is no third
+    # choice.
+    it "walks on properly where there is nowhere sideways to go" do
+      held = known TUNNEL
+      steady = Pursuit.decide snapshot({6, 1}, quarry: {1, 1}, knowledge: held)
+      astray = Pursuit.decide snapshot({6, 1}, quarry: {1, 1}, knowledge: held,
+        stumble: true)
+
+      expect(astray).to eq steady
+      expect(astray.direction).to eq Direction::West
+    end
+
+    # A slime has no map to step sideways on. Losing the turn is what a
+    # mistake costs it.
+    it "stays where it is when it does not path" do
+      found = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, paths: false,
+        stumble: true)
+
+      expect(found).to eq Action.wait
+    end
+
+    # A creature with its hand already on you does not fumble the swing. What
+    # is being modelled is finding the way, not fighting.
+    it "still swings at a character beside it" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {3, 3}, stumble: true)
+
+      expect(found.intent).to eq Intent::Strike
     end
   end
 

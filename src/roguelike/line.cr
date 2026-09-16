@@ -33,6 +33,29 @@ module Roguelike
       end
     end
 
+    # The second square of the line from *from* to *to*, which is one step
+    # along it. `nil` when the two are the same square.
+    #
+    # This is what makes a creature look as though it is coming at you. A
+    # step chosen from the sign of the difference goes diagonally until one
+    # axis lines up and straight after that, which is the same number of
+    # turns and reads as a creature walking at forty-five degrees to wherever
+    # it is going. A step along the line spreads the diagonals out, so the
+    # creature crosses the ground the way a thrown dagger does.
+    def self.step(from : {Int32, Int32}, to : {Int32, Int32}) : {Int32, Int32}?
+      return if from == to
+
+      found = nil.as({Int32, Int32}?)
+      walk(from, to) do |spot|
+        next if spot == from
+
+        found = spot
+        break
+      end
+
+      found
+    end
+
     # :ditto:, as an array.
     def self.between(from : {Int32, Int32}, to : {Int32, Int32}) : Array({Int32, Int32})
       found = [] of {Int32, Int32}

@@ -106,6 +106,130 @@ Spectator.describe Roguelike::Descent do
     end
   end
 
+  # One wide open room, for a path with room to bend.
+  FIELD = [
+    "########################",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "#......................#",
+    "########################",
+  ]
+
+  # The squares a creature at *at* walks through on its way to *goal*.
+  def walked(at : {Int32, Int32}, goal : {Int32, Int32},
+             lines : Array(String) = FIELD) : Array({Int32, Int32})
+    _floor, knowledge = known lines
+    map = Descent.toward knowledge, goal
+
+    path = [at]
+    60.times do
+      break if path.last == goal
+
+      direction = map.toward path.last[0], path.last[1]
+      break unless direction
+
+      path << direction.from(path.last[0], path.last[1])
+    end
+
+    path
+  end
+
+  describe "#downhill" do
+    # A diagonal step costs what a straight one does, so several neighbours
+    # are usually the same distance nearer.
+    it "answers every way that is as near as any is" do
+      _floor, knowledge = known FIELD
+      map = Descent.toward knowledge, {2, 4}
+
+      expect(map.downhill(20, 4).map(&.to_s).sort!)
+        .to eq ["NorthWest", "SouthWest", "West"]
+    end
+
+    it "answers nothing on the goal" do
+      _floor, knowledge = known FIELD
+      map = Descent.toward knowledge, {2, 4}
+
+      expect(map.downhill 2, 4).to be_empty
+    end
+
+    it "leaves out a square something is standing on" do
+      _floor, knowledge = known FIELD
+      map = Descent.toward knowledge, {2, 4}
+      blocked = Set({Int32, Int32}).new
+      blocked << {19, 4}
+
+      expect(map.downhill(20, 4, blocked).map &.to_s).not_to contain "West"
+    end
+  end
+
+  describe "#sideways" do
+    it "answers every way that is neither nearer nor further" do
+      _floor, knowledge = known FIELD
+      map = Descent.toward knowledge, {2, 4}
+
+      map.sideways(20, 4).each do |direction|
+        expect(map[direction.from 20, 4]).to eq map[20, 4]
+      end
+      expect(map.sideways 20, 4).not_to be_empty
+    end
+
+    # Every square beside a creature in a corridor is nearer the goal or
+    # further from it. There is no third choice, which is why nothing can be
+    # shaken off in one.
+    it "answers nothing in a corridor" do
+      _floor, knowledge = known ["#########", "#.......#", "#########"]
+      map = Descent.toward knowledge, {1, 1}
+
+      expect(map.sideways 6, 1).to be_empty
+    end
+
+    it "answers nothing on the goal" do
+      _floor, knowledge = known FIELD
+      map = Descent.toward knowledge, {2, 4}
+
+      expect(map.sideways 2, 4).to be_empty
+    end
+  end
+
+  describe "the shape of a path" do
+    # A creature that picks by the order the directions happen to be declared
+    # walks diagonally until one axis lines up and straight after that. That
+    # is the same number of turns and reads as a creature heading somewhere
+    # else.
+    it "spreads the diagonal steps along the way" do
+      path = walked({21, 1}, {2, 7})
+
+      diagonals = path.each_cons(2).count { |pair| pair[0][1] != pair[1][1] }
+      expect(diagonals).to eq 6
+
+      # The first and last diagonal are far apart, which is what spread
+      # means. Taken together at one end they would be six steps apart.
+      first = path.each_cons(2).index { |pair| pair[0][1] != pair[1][1] }
+      last = path.each_cons(2).to_a.rindex { |pair| pair[0][1] != pair[1][1] }
+      raise "no diagonal at all" unless first && last
+
+      expect(last - first).to be >= 10
+    end
+
+    it "takes no longer than the map says" do
+      _floor, knowledge = known FIELD
+      map = Descent.toward knowledge, {2, 7}
+      path = walked({21, 1}, {2, 7})
+
+      expect(path.size - 1).to eq map[21, 1]
+    end
+
+    it "walks straight at a goal on the same row" do
+      path = walked({20, 4}, {2, 4})
+
+      expect(path.map &.[](1)).to all eq 4
+    end
+  end
+
   describe "#toward" do
     it "answers the way downhill" do
       _floor, knowledge = known

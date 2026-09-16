@@ -102,6 +102,15 @@ module Roguelike
     # must not shift the swings that follow it.
     getter uses : Int32
 
+    # How many times a creature has been asked whether it puts a foot wrong.
+    #
+    # The same idea again, on a third stream. A creature blundering must not
+    # shift the numbers the next swing draws.
+    #
+    # It has a default, so a save written before this counter existed loads
+    # and carries on from zero.
+    getter wanders : Int32 = 0
+
     # What has just happened.
     getter log : MessageLog
 
@@ -127,7 +136,8 @@ module Roguelike
                    @log : MessageLog = MessageLog.new,
                    @lore : Lore = Lore.new,
                    @blows : Int32 = 0,
-                   @uses : Int32 = 0)
+                   @uses : Int32 = 0,
+                   @wanders : Int32 = 0)
     end
 
     # What *item* is called, as this character would call it.
@@ -795,7 +805,20 @@ module Roguelike
         quarry: quarry.try(&.at),
         stale: quarry.try(&.age(@turn)) || 0,
         descent: creature.species.paths? ? maps[creature.band]? : nil,
-        blocked: standing_on_squares(creature))
+        blocked: standing_on_squares(creature),
+        stumble: stumbles?(creature))
+    end
+
+    # Whether *creature* puts a foot wrong this turn.
+    #
+    # How often is `Species#clumsiness`, which falls as intelligence rises. A
+    # creature that never put a foot wrong could never be shaken off in open
+    # ground, whatever else it is like.
+    private def stumbles?(creature : Monster) : Bool
+      chance = creature.species.clumsiness
+      return false unless chance > 0
+
+      wander.rand(100) < chance
     end
 
     # Every square beside *creature* that something else is standing on.
@@ -931,10 +954,10 @@ module Roguelike
       found
     end
 
-    # How many turns a band goes on looking after it has lost the character.
+    # How many turns a band with nobody left on this floor goes on looking.
     #
-    # It walks to the square it last saw them on, and then casts about there
-    # until this runs out.
+    # Every band that has a member takes the member's own number instead. This
+    # is only what is left when there is nobody to ask.
     PATIENCE = 10
 
     # Whether the trail *band* is following has gone cold.
@@ -942,7 +965,28 @@ module Roguelike
       seen = band.knowledge(floor.id).sighting Knowledge::PLAYER
       return true unless seen
 
-      seen.age(@turn) > PATIENCE
+      seen.age(@turn) > patience(band)
+    end
+
+    # How many turns *band* goes on looking after it has lost the character.
+    #
+    # The most persistent of its members decides. A band is one species now,
+    # and when it is more than one the member that will not let go is what
+    # keeps the whole band looking.
+    #
+    # This is what decides whether a person can run away. An orc follows a
+    # cold trail for a long time and a goblin gives up quickly.
+    private def patience(band : Band) : Int32
+      most = nil.as(Int32?)
+
+      floor.each_monster do |_column, _row, creature|
+        next unless creature.band == band.id
+
+        found = creature.species.persistence
+        most = found if most.nil? || found > most
+      end
+
+      most || PATIENCE
     end
 
     # *band* stops looking and goes back to sleep.
@@ -1100,6 +1144,18 @@ module Roguelike
       root = (@root ||= Rng.new @world.seed)
       found = root.derive "use", @uses
       @uses += 1
+
+      found
+    end
+
+    # The generator for the next creature asked whether it blunders.
+    #
+    # A stream of its own, so how many creatures are on the floor and how
+    # often they put a foot wrong changes nothing about what a swing rolls.
+    private def wander : Rng
+      root = (@root ||= Rng.new @world.seed)
+      found = root.derive "wander", @wanders
+      @wanders += 1
 
       found
     end

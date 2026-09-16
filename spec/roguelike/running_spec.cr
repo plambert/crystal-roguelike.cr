@@ -227,13 +227,12 @@ Spectator.describe "running" do
       expect(went.steps).to be > 0
     end
 
-    # The orc stands off the line the character runs along, so a run goes on
-    # past it rather than stopping in front of it. The first run stops on the
-    # message it makes when it notices. The next one steps into its reach and
-    # is stopped by the blow.
+    # The orc stands beside the line the character runs along rather than on
+    # it, so it reaches them without standing in their way. A creature the run
+    # is walking into stops the run without a blow.
     it "stops when the character is hurt" do
       game = walking HALL
-      game.floor.place Monster.new(Species::Orc, 4, 1, "band-one",
+      game.floor.place Monster.new(Species::Orc, 2, 1, "band-one",
         hit_points: 200)
       full = game.player.hit_points
       reasons = [] of Halt
@@ -251,7 +250,7 @@ Spectator.describe "running" do
     # end of the run rather than the wound.
     it "stops because the run ended when a blow kills the character" do
       game = walking HALL
-      game.floor.place Monster.new(Species::Orc, 4, 1, "band-one",
+      game.floor.place Monster.new(Species::Orc, 2, 1, "band-one",
         hit_points: 200)
       game.player.hurt game.player.hit_points - 1
       reasons = [] of Halt

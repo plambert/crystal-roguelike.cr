@@ -179,6 +179,7 @@ module Roguelike
     paths : Bool,
     experience : Int32,
     attributes : Attributes,
+    persistence : Int32,
     size : Size = Size::Medium
 
   # How big a creature is.
@@ -312,6 +313,30 @@ module Roguelike
       facts.attributes
     end
 
+    # How many turns one goes on looking after it has lost the character.
+    #
+    # It walks to the square it last saw them on and casts about there until
+    # this runs out, and then it gives up and goes back to sleep. This is what
+    # decides whether a person can run away: an orc follows a cold trail for a
+    # long time and a goblin gives up quickly.
+    #
+    # This is not intelligence. A goblin is quicker than an orc and knows
+    # perfectly well where you went; it would simply rather not follow you.
+    def persistence : Int32
+      facts.persistence
+    end
+
+    # How often one steps somewhere other than the best square, as a
+    # percentage of its steps.
+    #
+    # Inversely proportional to intelligence, so a slime blunders about and a
+    # goblin rarely puts a foot wrong. Nothing is perfect: a creature that
+    # never made a mistake would be a creature nobody could ever shake off in
+    # open ground, whatever its persistence.
+    def clumsiness : Int32
+      (Kinds::CLUMSY - attributes.intelligence).clamp 0, 100
+    end
+
     # Which species a floor file's *mark* names. `nil` for a character that
     # names none.
     def self.from_mark?(mark : Char) : Species?
@@ -321,12 +346,18 @@ module Roguelike
 
   # The table behind `Species`. An enum body cannot hold it.
   module Kinds
+    # The intelligence at which a creature stops putting a foot wrong.
+    #
+    # This lives here rather than in the enum because a name in an enum body
+    # with a number after it is a member of the enum, not a constant.
+    CLUMSY = 18
+
     FACTS = {
       Species::Slime => SpeciesFacts.new('j', "slime", "slimes",
         "a puddle of acid that moves on its own",
         hit_points: 6, damage: Dice.new(1, 4), armour: 0,
         notice: 4, darkvision: false, paths: false, experience: 3,
-        size: Size::Medium,
+        size: Size::Medium, persistence: 4,
         attributes: Attributes.new(strength: 8, dexterity: 4, constitution: 12,
           intelligence: 3, stealth: 6)),
 
@@ -334,7 +365,7 @@ module Roguelike
         "a small green thing with a large knife",
         hit_points: 9, damage: Dice.new(1, 6), armour: 2,
         notice: 8, darkvision: false, paths: true, experience: 7,
-        size: Size::Small,
+        size: Size::Small, persistence: 6,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 9, stealth: 13)),
 
@@ -342,7 +373,7 @@ module Roguelike
         "a heavy grey brute with a notched blade",
         hit_points: 14, damage: Dice.new(1, 8), armour: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
-        size: Size::Large,
+        size: Size::Large, persistence: 30,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 8, stealth: 8)),
     }

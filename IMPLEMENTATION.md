@@ -1235,6 +1235,57 @@ with a box beside it also leaves twenty columns clear on each side rather than t
 is somewhere for the box to go on an eighty column terminal. A wide screen never reaches that: the
 menu is as wide as its rows and no wider.
 
+## How a creature comes at you
+
+### The angle it comes from
+
+`Descent#toward` used to take the first neighbour, in the order the directions happen to be
+declared, that was nearer the goal than the square the creature stood on. A diagonal step costs what
+a straight one does, so three or more neighbours are usually the same distance nearer and the
+declaration order decided between them. That gave a creature a diagonal leg followed by a straight
+one: the same number of turns as a line, and it read as a creature walking at forty-five degrees to
+wherever it was going.
+
+`Descent#downhill` now answers every neighbour that is as near as any is, and `Descent.nearest`
+picks between them by which one heads most nearly along the line from the creature to the goal.
+`Line.step` gives that line, which is Bresenham and is the line an arrow and a thrown dagger already
+follow. The diagonal steps are spread along the way instead of taken at one end, so a creature
+crosses the ground the way a missile does.
+
+A species that does not path had the same fault for a different reason: it stepped by the sign of
+the difference, which is a pure diagonal until one axis lines up. `Pursuit.straight` walks the line
+instead.
+
+### Putting a foot wrong
+
+`Species#clumsiness` is how often a creature steps somewhere other than the best square, as a
+percentage. It falls as intelligence rises: a slime blunders 15 percent of its steps, a goblin 9 and
+an orc 10. `Game#stumbles?` rolls it on a `wander` stream of its own with its own counter, so how
+many creatures are on the floor and how often they trip changes nothing about what a swing rolls.
+`Pursuit` rolls nothing; `Snapshot#stumble` arrives already decided.
+
+A creature putting a foot wrong steps sideways rather than nearer, so what it is chasing gains a
+square. `Descent#sideways` answers the neighbours that are neither nearer nor further. There are
+none of those in a corridor, and a creature in one walks on properly: nothing is shaken off in a
+corridor. A species that does not path has no map to step sideways on and loses the turn instead.
+
+Over forty steps of running away across open ground, that opens a gap of about five squares. That is
+what makes breaking the line of sight possible in the first place.
+
+A creature already beside the character still swings. What is being modelled is finding the way, not
+fighting.
+
+### Whether it gives up
+
+`Species#persistence` is how many turns a creature goes on looking after it has lost the character:
+slime 4, goblin 6, orc 30. `Game#patience` takes the most persistent member of the band, and
+`Game::PATIENCE` is only what is left for a band with nobody on the floor to ask.
+
+This is not intelligence, and it cannot be: a goblin is quicker than an orc by that measure and
+knows perfectly well where you went. It would simply rather not follow you. Persistence is what
+decides whether a person can run away, and an orc follows a cold trail five times as long as a
+goblin.
+
 ## Where the camera lets the character get to
 
 The character walks about a box in the middle of the window and the camera holds still. The camera
@@ -1415,14 +1466,6 @@ what makes bracing and spiking a door worth doing.
 menu of what can be done with that item: equip, take off, wear, quaff, read, throw, inspect,
 identify. The menu should be a fixed list with the entries that do not apply dimmed rather than
 left out, so the same key is in the same place every time.
-
-### Pathfinding that is not perfect
-
-A band walks a shortest path to where it believes the character is, every turn, without error. Every
-creature already carries the same five scores a character does, so intelligence is what should
-decide how often one steps somewhere other than the best square. A slime has intelligence 3 and
-should wander badly; an orc has 8 and should mostly get there. The roll belongs on the band's own
-stream so a wrong step does not shift anything else.
 
 ### A note on where the game is drifting
 

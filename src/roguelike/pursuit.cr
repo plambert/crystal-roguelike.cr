@@ -1,6 +1,7 @@
 require "./descent"
 require "./direction"
 require "./knowledge"
+require "./line"
 
 module Roguelike
   # What a creature has decided to do.
@@ -64,13 +65,17 @@ module Roguelike
     # band last saw them. Neither is necessarily what is on the floor now.
     #
     # `blocked` is the only field here that is not belief.
+    #
+    # `stumble` says this creature is about to put a foot wrong. `Game` rolls
+    # it, because nothing here rolls anything.
     record Snapshot,
       at : {Int32, Int32},
       knowledge : Knowledge,
       quarry : {Int32, Int32}? = nil,
       stale : Int32 = 0,
       descent : Descent? = nil,
-      blocked : Set({Int32, Int32}) = Descent::EMPTY
+      blocked : Set({Int32, Int32}) = Descent::EMPTY,
+      stumble : Bool = false
 
     # How many turns old a sighting may be and still be worth swinging at.
     #
@@ -116,29 +121,56 @@ module Roguelike
     # because seeing them writes down the ground between. One that has not
     # seen them itself and was told where they are may not be, and heading
     # that way beats standing still.
+    #
+    # A creature that is putting a foot wrong steps sideways rather than
+    # nearer, so what it is chasing gains a square. That is what being shaken
+    # off looks like from the other side. There is nowhere sideways to go in a
+    # corridor, and a creature there walks on properly: nothing is shaken off
+    # in a corridor.
     private def self.walk(snapshot : Snapshot) : Direction?
-      downhill = snapshot.descent.try &.toward(
-        snapshot.at[0], snapshot.at[1], snapshot.blocked)
-      return downhill if downhill
+      descent = snapshot.descent
+      if descent
+        astray = wrong_foot descent, snapshot
+        return astray if astray
+
+        downhill = Descent.nearest(
+          descent.downhill(snapshot.at[0], snapshot.at[1], snapshot.blocked),
+          snapshot.at, descent.goal)
+        return downhill if downhill
+      end
+
+      return if snapshot.stumble
 
       blunder snapshot
     end
 
+    # The sideways step a creature that is putting a foot wrong takes, or
+    # `nil` when it is not or when there is nowhere sideways to go.
+    private def self.wrong_foot(descent : Descent,
+                                snapshot : Snapshot) : Direction?
+      return unless snapshot.stumble
+
+      Descent.nearest descent.sideways(
+        snapshot.at[0], snapshot.at[1], snapshot.blocked),
+        snapshot.at, descent.goal
+    end
+
     # The step a creature that does not path takes.
     #
-    # Straight at the quarry, and nothing at all when what is that way cannot
-    # be walked on. A slime does this. It comes up against a wall and stays
-    # against it, because it has no idea the corridor round the corner is
-    # there.
+    # Along the line to the quarry, and nothing at all when what is that way
+    # cannot be walked on. A slime does this. It comes up against a wall and
+    # stays against it, because it has no idea the corridor round the corner
+    # is there.
+    #
+    # The line rather than the sign of the difference. A step chosen from the
+    # sign goes diagonally until one axis lines up and straight after that,
+    # which is the same number of turns and reads as a creature walking at
+    # forty-five degrees to wherever it is going.
     private def self.blunder(snapshot : Snapshot) : Direction?
       quarry = snapshot.quarry
       return unless quarry
 
-      across = (quarry[0] - snapshot.at[0]).sign
-      down = (quarry[1] - snapshot.at[1]).sign
-      direction = Direction.values.find do |found|
-        found.dx == across && found.dy == down
-      end
+      direction = straight snapshot.at, quarry
       return unless direction
 
       wanted = direction.from snapshot.at[0], snapshot.at[1]
@@ -146,6 +178,17 @@ module Roguelike
       return unless snapshot.knowledge.walkable? wanted[0], wanted[1]
 
       direction
+    end
+
+    # Which way one step along the line from *at* to *quarry* goes.
+    def self.straight(at : {Int32, Int32}, quarry : {Int32, Int32}) : Direction?
+      step = Line.step at, quarry
+      return unless step
+
+      across = step[0] - at[0]
+      down = step[1] - at[1]
+
+      Direction.values.find { |found| found.dx == across && found.dy == down }
     end
   end
 end
