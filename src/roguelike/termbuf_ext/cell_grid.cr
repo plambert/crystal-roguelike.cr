@@ -169,22 +169,34 @@ module TermBuf::Widgets
     # Moves the camera as little as it takes to leave *x*, *y* at least
     # *margin* cells from every edge of the window.
     #
+    # *margin_y* gives the rows a margin of their own. It is the same as
+    # *margin* when it is not given. A window is usually much wider than it is
+    # tall, and a cell is usually about twice as tall as it is wide, so the
+    # two axes rarely want the same number of cells.
+    #
     # This is a dead zone. A player walking about the middle of the screen
     # moves the camera not at all. The view follows once they near an edge.
     #
     # A margin wider than half the window has no position that satisfies it.
-    # This method centres instead.
-    def reveal(x : Int32, y : Int32, margin : Int32 = 0) : Nil
+    # This method centres on that axis instead.
+    def reveal(x : Int32, y : Int32, margin : Int32 = 0,
+               margin_y : Int32? = nil) : Nil
       room = viewport_size
       return if room[0] <= 0 || room[1] <= 0
 
-      if margin * 2 >= room[0] || margin * 2 >= room[1]
-        center_on x, y
-        return
-      end
+      down = margin_y || margin
 
-      scroll_to axis(@camera_x, x, room[0], margin),
-        axis(@camera_y, y, room[1], margin)
+      scroll_to across(@camera_x, x, room[0], margin),
+        across(@camera_y, y, room[1], down)
+    end
+
+    # Where the camera goes on one axis, centring when the margin leaves it
+    # nowhere else to go.
+    private def across(camera : Int32, spot : Int32, room : Int32,
+                       margin : Int32) : Int32
+      return spot - room // 2 if margin * 2 >= room
+
+      axis camera, spot, room, margin
     end
 
     # Moves the camera so that *x*, *y* and *margin* cells around it fall

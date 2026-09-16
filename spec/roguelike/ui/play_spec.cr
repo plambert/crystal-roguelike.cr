@@ -209,6 +209,40 @@ Spectator.describe Roguelike::Ui::Play do
       expect(camera[0] + room[0]).to be <= columns
       expect(camera[1] + room[1]).to be <= rows
     end
+
+    # The character walks freely about a box half the window across, and the
+    # camera moves once they reach the edge of it. How much blank there is
+    # beyond the edge of the floor is one of the things a roguelike leaks
+    # about where you are, so the camera never scrolls past it.
+    it "holds still until the character is half a window from the middle" do
+      run = Playing.open Playing.field(200, 120), 120, 40
+      run.play.look_at_player
+      room = run.map.grid.viewport_size
+      before = run.map.camera
+
+      (room[0] // 4 - 1).times { run.press "l" }
+      expect(run.map.camera).to eq before
+
+      run.press "l"
+      run.press "l"
+      expect(run.map.camera[0]).to be > before[0]
+    end
+
+    # The camera has run out of floor before the character runs out of room,
+    # so they walk on to the edge of the window and the camera holds.
+    it "lets the character reach the edge of the window at the edge of the floor" do
+      run = Playing.open Playing.field(200, 120), 120, 40
+      run.play.look_at_player
+
+      300.times { run.press "j" }
+      room = run.map.grid.viewport_size
+      spot = run.map.screen_of *run.at
+
+      raise "the character is not in the window" unless spot
+
+      expect(run.map.camera[1] + room[1]).to eq run.game.floor.rows
+      expect(spot[1]).to be >= run.map.grid.rect.y + room[1] - 2
+    end
   end
 
   describe "the character pane" do

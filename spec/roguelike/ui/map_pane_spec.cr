@@ -66,6 +66,40 @@ Spectator.describe Roguelike::Ui::MapPane do
     end
   end
 
+  describe "#margin" do
+    alias Pane = Roguelike::Ui::MapPane
+
+    # The box is half the window, so a quarter is left on each side.
+    it "leaves a quarter of the window on each side" do
+      pane = described_class.new Roguelike::Floors.proving_ground
+
+      expect(pane.margin 100).to eq 25
+      expect(pane.margin 40).to eq 10
+    end
+
+    # A count of cells cannot do this job. Six cells is most of the height of
+    # a short terminal and a sliver of a tall one.
+    it "grows with the window" do
+      pane = described_class.new Roguelike::Floors.proving_ground
+
+      expect(pane.margin 120).to be > pane.margin(60)
+    end
+
+    it "follows the box it is given" do
+      pane = described_class.new Roguelike::Floors.proving_ground
+      pane.box = 100
+
+      expect(pane.margin 100).to eq 0
+    end
+
+    it "never asks for less than nothing" do
+      pane = described_class.new Roguelike::Floors.proving_ground
+
+      expect(pane.margin 1).to eq 0
+      expect(pane.margin 0).to eq 0
+    end
+  end
+
   describe "#follow" do
     it "does not move for somewhere well inside the window" do
       run = shown Roguelike::Floors.proving_ground, 40, 16
@@ -94,6 +128,40 @@ Spectator.describe Roguelike::Ui::MapPane do
 
         expect(run.pane.grid.view_of(spot[0], spot[1])).not_to be_nil
       end
+    end
+
+    # The box is the same share of the window whatever size the window is,
+    # rather than the same number of cells.
+    it "holds a square for a quarter of the window on each side" do
+      run = shown Roguelike::Floors.proving_ground, 40, 16
+      room = run.pane.grid.viewport_size
+      run.pane.center_on 36, 14
+      before = run.pane.camera
+      here = run.pane.screen_of 36, 14
+
+      raise "36, 14 is not in the window" unless here
+
+      run.pane.follow 36 + (room[0] // 4 - 1), 14
+      expect(run.pane.camera).to eq before
+
+      run.pane.follow 36 + room[0] // 2, 14
+      expect(run.pane.camera[0]).to be > before[0]
+    end
+
+    # A window is much wider than it is tall and a cell is about twice as
+    # tall as it is wide, so the two axes never want the same count.
+    it "gives the rows a margin of their own" do
+      run = shown Roguelike::Floors.proving_ground, 60, 12
+      run.pane.center_on 36, 14
+      before = run.pane.camera
+
+      # Five columns is inside a sixty column window's margin of fifteen.
+      # Five rows is outside a twelve row window's margin of three.
+      run.pane.follow 41, 14
+      expect(run.pane.camera).to eq before
+
+      run.pane.follow 36, 19
+      expect(run.pane.camera[1]).to be > before[1]
     end
   end
 

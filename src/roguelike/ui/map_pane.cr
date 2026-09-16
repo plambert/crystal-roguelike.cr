@@ -39,9 +39,21 @@ module Roguelike::Ui
     # The widget itself. A caller puts it in a tree.
     getter grid : Widgets::CellGrid(Tile)
 
-    # Cells kept between the followed square and the edge of the window. The
-    # camera does not move while the square is further in than this.
-    property margin : Int32 = 6
+    # How much of the window the followed square moves freely inside, as a
+    # percentage of the window on each axis.
+    #
+    # The character walks about a box this big in the middle of the window and
+    # the camera holds still. The camera moves once they reach the edge of it,
+    # and stops once it has run out of floor to scroll onto, so a character in
+    # a corner of the floor stands in a corner of the window.
+    #
+    # A count of cells cannot do this job. Six cells is most of the height of
+    # a short terminal and a sliver of a tall one, so the same number gives
+    # two windows two different games.
+    property box : Int32 = BOX
+
+    # What `#box` starts at. Half the window on each axis.
+    BOX = 50
 
     # Squares kept clear around the character when a modal box covers part of
     # the window.
@@ -305,10 +317,21 @@ module Roguelike::Ui
       floor
     end
 
-    # Moves the camera as little as it takes to keep *x*, *y* off the edge of
-    # the window. Following the character uses this.
+    # Moves the camera as little as it takes to keep *x*, *y* inside the box
+    # in the middle of the window. Following the character uses this.
     def follow(x : Int32, y : Int32) : Nil
-      @grid.reveal x, y, margin: @margin
+      room = @grid.viewport_size
+
+      @grid.reveal x, y, margin: margin(room[0]), margin_y: margin(room[1])
+    end
+
+    # How many cells the camera keeps between the followed square and the edge
+    # of a window *room* cells across.
+    #
+    # Half of whatever the box leaves over, because the box sits in the middle
+    # and the leftover is split between the two sides.
+    def margin(room : Int32) : Int32
+      Math.max (room - room * @box // 100) // 2, 0
     end
 
     # Moves the camera so that *x*, *y* and the squares around it fall outside

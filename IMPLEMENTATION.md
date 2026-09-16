@@ -350,8 +350,8 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 ### Phase 5 — The player moves
 
 * **Build** — A `Player` with a position. The eight movement bindings. Walls and closed doors
-  block. The camera follows with a dead zone via `CellGrid#reveal`. A turn counter that advances
-  on a move and not on a blocked one.
+  block. The camera follows with a dead zone via `CellGrid#reveal`, sized in "Where the camera lets
+  the character get to" below. A turn counter that advances on a move and not on a blocked one.
 * **Verify** — Walk around the test floor in all eight directions. Walking into a wall does not
   move and does not burn a turn. The camera holds still until the player nears an edge, then
   follows. A spec feeds a scripted key sequence into the app and asserts the final position and
@@ -1235,6 +1235,30 @@ with a box beside it also leaves twenty columns clear on each side rather than t
 is somewhere for the box to go on an eighty column terminal. A wide screen never reaches that: the
 menu is as wide as its rows and no wider.
 
+## Where the camera lets the character get to
+
+The character walks about a box in the middle of the window and the camera holds still. The camera
+moves once they reach the edge of that box, and stops once it has run out of floor to scroll onto,
+so a character in a corner of the floor stands in a corner of the window. How much blank there is
+beyond the edge of the floor is one of the things a roguelike leaks about where you are.
+
+`MapPane#box` is a percentage of the window on each axis rather than a count of cells, and starts
+at 50. `MapPane#margin` turns it into the cells kept clear on one side, which is half of whatever
+the box leaves over. In a 95 by 35 map pane that is 24 columns and 9 rows, so the character crosses
+23 squares from the middle before the camera moves.
+
+A count of cells cannot do this job, and the six cells it used to be were the bug. Six cells is
+most of the height of a short terminal and a sliver of a tall one, so the same number gave two
+windows two different games; on a wide terminal the character reached the edge of the window before
+anything scrolled.
+
+`CellGrid#reveal` therefore takes a margin per axis. A window is much wider than it is tall and a
+cell is about twice as tall as it is wide, so the two axes never want the same count. A margin at
+least half its axis leaves no position that satisfies it, and that axis centres instead.
+
+The examine cursor is followed the same way. Reading the map from the keyboard wants the same
+context around the cursor that walking wants around the character.
+
 ## Saved characters
 
 One character is one file, under `$XDG_STATE_HOME/roguelike/saves` when that variable is set and
@@ -1317,14 +1341,6 @@ yet reads as a dash.
 
 Each of these was asked for and written down rather than built at the time. They are in the order
 they were raised, not in the order they should be done.
-
-### Where the camera lets the character get to
-
-The camera follows too late, so the character reaches the edge of the window before it scrolls. The
-character should move freely inside a box about half the width and half the height of the window,
-and leave that box only where the camera has run out of floor to scroll onto. The camera must never
-scroll past the edge of the floor: how much blank there is beyond the edge is one of the things a
-roguelike leaks about where you are.
 
 ### The Seen list
 
