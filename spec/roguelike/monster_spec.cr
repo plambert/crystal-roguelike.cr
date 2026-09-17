@@ -136,17 +136,21 @@ Spectator.describe Roguelike::Monster do
       expect(Species::Orc.persistence).to be > Species::Goblin.persistence * 3
     end
 
-    # Persistence is not intelligence. A goblin is quicker than an orc and
-    # knows perfectly well where you went; it would simply rather not follow.
+    # Persistence is not read off intelligence. Three points of intelligence
+    # separate a goblin from an orc; five times as much patience separates
+    # them as well, and one does not follow from the other.
     it "keeps persistence apart from intelligence" do
-      expect(Species::Goblin.attributes.intelligence)
-        .to be > Species::Orc.attributes.intelligence
+      spread = Species::Orc.attributes.intelligence -
+               Species::Goblin.attributes.intelligence
+
+      expect(spread).to be < 5
+      expect(Species::Orc.persistence).to be > Species::Goblin.persistence * 3
     end
 
     # How often it puts a foot wrong falls as intelligence rises.
-    it "makes a slime clumsier than anything that thinks" do
+    it "ranks them by how often they put a foot wrong" do
       expect(Species::Slime.clumsiness).to be > Species::Goblin.clumsiness
-      expect(Species::Slime.clumsiness).to be > Species::Orc.clumsiness
+      expect(Species::Goblin.clumsiness).to be > Species::Orc.clumsiness
     end
 
     # Nothing is perfect. A creature that never put a foot wrong could never

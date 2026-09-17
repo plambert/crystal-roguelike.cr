@@ -367,7 +367,7 @@ module Roguelike
         notice: 8, darkvision: false, paths: true, experience: 7,
         size: Size::Small, persistence: 6,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
-          intelligence: 9, stealth: 13)),
+          intelligence: 7, stealth: 13)),
 
       Species::Orc => SpeciesFacts.new('o', "orc", "orcs",
         "a heavy grey brute with a notched blade",
@@ -375,7 +375,7 @@ module Roguelike
         notice: 8, darkvision: true, paths: true, experience: 14,
         size: Size::Large, persistence: 30,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
-          intelligence: 8, stealth: 8)),
+          intelligence: 10, stealth: 8)),
     }
 
     # Every character a floor file may hold for a monster.

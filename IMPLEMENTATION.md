@@ -1259,8 +1259,8 @@ instead.
 ### Putting a foot wrong
 
 `Species#clumsiness` is how often a creature steps somewhere other than the best square, as a
-percentage. It falls as intelligence rises: a slime blunders 15 percent of its steps, a goblin 9 and
-an orc 10. `Game#stumbles?` rolls it on a `wander` stream of its own with its own counter, so how
+percentage. It falls as intelligence rises: a slime blunders 15 percent of its steps, a goblin 11
+and an orc 8. `Game#stumbles?` rolls it on a `wander` stream of its own with its own counter, so how
 many creatures are on the floor and how often they trip changes nothing about what a swing rolls.
 `Pursuit` rolls nothing; `Snapshot#stumble` arrives already decided.
 
@@ -1269,8 +1269,9 @@ square. `Descent#sideways` answers the neighbours that are neither nearer nor fu
 none of those in a corridor, and a creature in one walks on properly: nothing is shaken off in a
 corridor. A species that does not path has no map to step sideways on and loses the turn instead.
 
-Over forty steps of running away across open ground, that opens a gap of about five squares. That is
-what makes breaking the line of sight possible in the first place.
+Over forty steps of running away across open ground, that opens a gap of about five squares from a
+goblin and four from an orc. That is what makes breaking the line of sight possible in the first
+place.
 
 A creature already beside the character still swings. What is being modelled is finding the way, not
 fighting.
@@ -1281,10 +1282,11 @@ fighting.
 slime 4, goblin 6, orc 30. `Game#patience` takes the most persistent member of the band, and
 `Game::PATIENCE` is only what is left for a band with nobody on the floor to ask.
 
-This is not intelligence, and it cannot be: a goblin is quicker than an orc by that measure and
-knows perfectly well where you went. It would simply rather not follow you. Persistence is what
-decides whether a person can run away, and an orc follows a cold trail five times as long as a
-goblin.
+This is not read off intelligence. Three points of intelligence separate a goblin from an orc and
+five times as much patience separates them as well; neither number follows from the other. A goblin
+is quick and scatterbrained and gives up; an orc keeps its footing and will not let go. Persistence
+is what decides whether a person can run away, and an orc follows a cold trail five times as long as
+a goblin.
 
 ## Where the camera lets the character get to
 
