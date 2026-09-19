@@ -3,22 +3,22 @@
  #....|.....                                           │ XP        0/20
  #..........                                           │
  #..........                                           │ ac 2   au 0     t 0
- #)...@......                                          │
+ #....@......                                          │
  #..........                                           │ Here
- #.)........                                           │ ──────────────────────
+ #..........                                           │ ──────────────────────
  #...|......                                           │ staircase up
   ########+                                            │
                                                        │ Seen
                       ╭──────────────────────────────────╮─────────────────────
-                      │  Really leave the dungeon? [yN]  │ spear
-                      ╰──────────────────────────────────╯ short sword
-                                                       │
+                      │  Really leave the dungeon? [yN]  │othing
+                      ╰──────────────────────────────────╯
                                                        │ Look
                                                        │ ──────────────────────
                                                        │ Point at the map, or
+                                                       │ press x.
                                                        │
 ────────────────────────────────────────────────────────────────────────────────
  You are in a dungeon with a short sword, leather armour and a lit torch.
- Press ? for the keys.
+ You carry three iron spikes. Press ? for the keys.
 
 

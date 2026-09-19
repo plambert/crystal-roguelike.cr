@@ -91,6 +91,24 @@ Spectator.describe Roguelike::Items do
       expect(counts[Condition::Plain]).to be > counts[Condition::Masterwork]
     end
 
+    # Two tables between them decide this: the blessing, and the enchantment
+    # that blessing leans toward. Both were halved together.
+    it "gives fewer than one enchantable item in twelve a minus" do
+      rng = stream
+      enchantable = 0
+      minus = 0
+
+      20_000.times do
+        item = described_class.random rng
+        next unless item.kind.enchantable?
+
+        enchantable += 1
+        minus += 1 if item.enchantment < 0
+      end
+
+      expect(minus).to be < enchantable // 12
+    end
+
     it "rolls nothing more often than any plus" do
       rng = stream
       plain = 0
@@ -123,15 +141,25 @@ Spectator.describe Roguelike::Items do
         .to be > counts[Roguelike::Blessing::Blessed] * 4
     end
 
-    it "blesses about as often as it curses" do
+    it "blesses about twice as often as it curses" do
       rng = stream
       counts = Hash(Roguelike::Blessing, Int32).new 0
       20_000.times { counts[described_class.random(rng).blessing] += 1 }
 
       ratio = counts[Roguelike::Blessing::Blessed] /
               counts[Roguelike::Blessing::Cursed].to_f
-      expect(ratio).to be > 0.7
-      expect(ratio).to be < 1.4
+      expect(ratio).to be > 1.6
+      expect(ratio).to be < 2.5
+    end
+
+    # An item that cannot be put down again is the harshest thing a floor
+    # hands out, so it hands one out rarely.
+    it "curses fewer than one item in fifteen" do
+      rng = stream
+      cursed = 0
+      20_000.times { cursed += 1 if described_class.random(rng).cursed? }
+
+      expect(cursed).to be < 20_000 // 15
     end
 
     it "hides the blessing on everything it rolls" do

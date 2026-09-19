@@ -176,9 +176,12 @@ module Roguelike
       # Two lines rather than one. The log pane is four rows of about eighty
       # columns, and one sentence saying all of this wraps onto two of them.
       game.say "You are in a dungeon with a short sword, leather armour and a lit torch."
-      game.say "Press ? for the keys."
+      game.say "You carry three iron spikes. Press ? for the keys."
       game
     end
+
+    # How many spikes the character starts with.
+    SPIKES = 3
 
     # What the character starts with, readied.
     #
@@ -187,6 +190,10 @@ module Roguelike
     # character who cannot win the commonest fight cannot reach level two
     # either. The torch is here because a dungeon is dark and somebody who
     # arrived without a light would see one square.
+    #
+    # The spikes are here because a floor hands them out rarely. A person who
+    # had to find one before learning what it is for would mostly never find
+    # one.
     #
     # The slots are filled rather than wielded. `#wield` and `#wear` each
     # spend a turn and write to the log, and neither has happened yet.
@@ -200,6 +207,7 @@ module Roguelike
       end
 
       player.inventory.add Item.new(ItemKind::Torch, lit: true)
+      player.inventory.add Item.new(ItemKind::Spike, count: SPIKES)
     end
 
     # A new run on *rng*, played on a floor dug from the same seed.

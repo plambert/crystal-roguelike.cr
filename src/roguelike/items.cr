@@ -17,18 +17,24 @@ module Roguelike
 
     # How often each blessing comes up.
     #
-    # Most things nobody has touched. A blessed item is about as common as a
-    # cursed one.
+    # Most things nobody has touched. A blessing is twice as common as a
+    # curse. Both were equally common and the curse was halved, because an
+    # item that cannot be put down again is the harshest thing a floor hands
+    # out and it was handing one out every tenth item.
     BLESSINGS = {
-      {Blessing::Cursed, 10},
-      {Blessing::Uncursed, 80},
+      {Blessing::Cursed, 5},
+      {Blessing::Uncursed, 85},
       {Blessing::Blessed, 10},
     }
 
     # How often each enchantment comes up on an item nobody has touched.
+    #
+    # The minus was halved along with the curse above. Between them they take
+    # the share of enchantable items carrying a minus from 11.8 out of 100 to
+    # 6.1.
     ENCHANTMENTS = {
-      {-1, 6},
-      {0, 78},
+      {-1, 3},
+      {0, 81},
       {1, 12},
       {2, 3},
       {3, 1},
@@ -63,6 +69,7 @@ module Roguelike
       ItemKind::Stone => 6..15,
       ItemKind::Rock  => 2..6,
       ItemKind::Dart  => 3..8,
+      ItemKind::Spike => 2..4,
     }
 
     # How often each kind turns up, out of the total of all of them.
@@ -100,6 +107,8 @@ module Roguelike
 
       ItemKind::Torch  => 22,
       ItemKind::Candle => 18,
+
+      ItemKind::Spike => 7,
     }
 
     # One item of *kind*, with its variants rolled on *rng*.

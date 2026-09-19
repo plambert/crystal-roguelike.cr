@@ -70,8 +70,19 @@ Spectator.describe Roguelike::Item do
     it "stacks what a person carries dozens of" do
       expect(Kind::Arrow.stacks?).to be_true
       expect(Kind::HealingPotion.stacks?).to be_true
+      expect(Kind::Spike.stacks?).to be_true
       expect(Kind::LightWand.stacks?).to be_false
       expect(Kind::LongSword.stacks?).to be_false
+    end
+
+    # A spike is used on a door rather than worn, drunk or swung, so it takes
+    # no plus, hides nothing and goes in no slot.
+    it "keeps a tool out of the slots and off the variants" do
+      expect(Kind::Spike.item_class.tool?).to be_true
+      expect(Kind::Spike.enchantable?).to be_false
+      expect(Kind::Spike.disguised?).to be_false
+      expect(Kind::Spike.slot).to be_nil
+      expect(Roguelike::Slot.for(described_class.new(Kind::Spike))).to be_nil
     end
 
     it "disguises what has to be found out" do

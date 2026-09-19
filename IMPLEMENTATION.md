@@ -1011,6 +1011,33 @@ Slime deaths fell from 27 to 8, which is the change asked for. Orc deaths rose f
 because the bot now lives long enough to meet one. The death rate is still high because the bot
 never retreats; see the note on what `Trial::Bot` does not do.
 
+### How often a floor curses what it hands out
+
+Two tables decide this. `Items::BLESSINGS` says how often a curse lands at all, and
+`Items::ENCHANTMENTS` says how often an item nobody has touched carries a minus. A cursed item
+rolls its plus on `Items::CURSED_ENCHANTMENTS` instead, which is where most of the minuses come
+from.
+
+Both were halved. `Blessing::Cursed` went from 10 to 5 against the other two, and the `-1` entry in
+`ENCHANTMENTS` went from 6 to 3. Five hundred thousand rolls of `Items.random`, before and after:
+
+| | before | after |
+|---|---|---|
+| items carrying a curse | 10.0 out of 100 | 5.0 out of 100 |
+| enchantable items carrying a minus | 11.8 out of 100 | 6.1 out of 100 |
+
+Two hundred runs of at most 1500 turns from seed 5000 read the same either way, which is what was
+expected. The bot dies to the first goblin it cannot beat, and that fight is decided by what it
+started with rather than by what it found.
+
+| | before | after |
+|---|---|---|
+| died | 77% | 77% |
+| turns until death, median | 96 | 97 |
+| squares from the start, median | 18 | 18 |
+| gold, mean | 19.9 | 21.1 |
+| killed by | goblin 103, orc 47, slime 5 | goblin 94, orc 53, slime 7 |
+
 ## Feature checklist
 
 Everything asked for in the basic game, against the phase that delivers it.
@@ -1148,8 +1175,6 @@ remembered terrain draws rather than the way lit terrain does.
 
 Small things deliberately left out of the basic game, to be picked up once it exists.
 
-* Save and load. The model already serializes; this is the file format, the slot, and the rule
-  that a save is removed on load.
 * Numpad decoding, once there is a keypad to test it on.
 * A full-screen map view for a floor larger than the pane.
 * A message history screen.
@@ -1409,6 +1434,20 @@ through `Ui::Line#put_right`. A right piece is placed when the row is drawn, bec
 depends on how wide the row turned out. A left piece is cut one cell short of it and marked, so a
 long name gives way to the level rather than pushing it off the row. A character nobody has named
 yet reads as a dash.
+
+## Spikes
+
+An iron spike is a carryable item. It is the first member of `ItemClass::Tool`, which is the class
+for a thing used on something else rather than worn, drunk or swung. A tool takes no `+N`, hides
+nothing behind an appearance, and `Slot.for` puts it in no slot. Spikes stack, because one spike is
+the same as another, so three of them are one inventory entry rather than three letters.
+
+Nothing drives one under a door yet. That verb arrives with bracing and with creatures that open
+doors, which are listed below as three entries that have to land together.
+
+The character starts with three. A floor hands them out at a weight of 7 against a table totalling
+460, which is 1.5 out of every 100 items it scatters, in stacks of two to four. At that rate a
+person who had to find one before learning what it is for would mostly never find one.
 
 ## Asked for, not yet built
 

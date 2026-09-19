@@ -209,6 +209,7 @@ module Roguelike::Ui
       ItemClass::Scroll       => Look.new('?', SCROLL),
       ItemClass::Wand         => Look.new('/', WAND),
       ItemClass::Light        => Look.new('(', TOOL),
+      ItemClass::Tool         => Look.new('(', TOOL),
       ItemClass::Treasure     => Look.new('$', COIN),
     }
 

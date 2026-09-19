@@ -31,6 +31,24 @@ Spectator.describe Roguelike::Game do
     it "puts the character on the floor the world holds" do
       expect(game.floor.id).to eq game.player.floor
     end
+
+    it "hands out a short sword, leather armour, a lit torch and spikes" do
+      carried = game.player.inventory.entries.map { |_letter, item| item.kind }
+
+      expect(carried).to contain Roguelike::ItemKind::ShortSword
+      expect(carried).to contain Roguelike::ItemKind::LeatherArmour
+      expect(carried).to contain Roguelike::ItemKind::Torch
+      expect(carried).to contain Roguelike::ItemKind::Spike
+    end
+
+    # A floor hands out spikes rarely, so a character who had to find one
+    # before learning what it is for would mostly never find one.
+    it "hands out three spikes as one entry" do
+      spikes = game.player.inventory.select &.kind.spike?
+
+      expect(spikes.size).to eq 1
+      expect(spikes.first[1].count).to eq(Roguelike::Game::SPIKES)
+    end
   end
 
   describe ".entrance" do

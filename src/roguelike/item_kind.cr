@@ -19,6 +19,10 @@ module Roguelike
     Wand
     Light
 
+    # Used on something else rather than worn, drunk or swung. A spike is
+    # one. Nothing here goes in a slot.
+    Tool
+
     # Coins. A character counts them rather than carrying them.
     Treasure
 
@@ -31,10 +35,10 @@ module Roguelike
     #
     # Ammunition and thrown weapons stack because a person carries dozens.
     # Potions and scrolls stack because two potions of one kind are
-    # interchangeable. Wands do not, because two wands have different charges
-    # left.
+    # interchangeable. Tools stack because one spike is the same as another.
+    # Wands do not, because two wands have different charges left.
     def stacks? : Bool
-      ammunition? || thrown? || potion? || scroll? || treasure?
+      ammunition? || thrown? || potion? || scroll? || tool? || treasure?
     end
 
     # Whether a character has to find out what one of these is.
@@ -226,6 +230,9 @@ module Roguelike
     # Counted rather than carried.
     Gold
 
+    # Driven under a door.
+    Spike
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -416,6 +423,9 @@ module Roguelike
 
       ItemKind::Gold => ItemFacts.new("gold piece", "gold pieces", ItemClass::Treasure,
         weight: 1),
+
+      ItemKind::Spike => ItemFacts.new("iron spike", "iron spikes", ItemClass::Tool,
+        weight: 8),
     }
   end
 end
