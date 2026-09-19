@@ -1,7 +1,7 @@
                                                        │ —                 Lv 1
   ###################                                  │ HP        12/12
  #....|.........|....#                                 │ XP        0/20
- #...................#                                 │
+ #............[......#                                 │
  #...................#                                 │ ac 2   au 0     t 13
  #....<..............+                                 │
  #...................#                                 │ Here
@@ -11,7 +11,7 @@
                                                        │
                                                        │ Seen
                                                        │ ──────────────────────
-                                                       │ nothing
+                                                       │ a shield
                                                        │
                                                        │ Look
                                                        │ ──────────────────────
@@ -20,5 +20,5 @@
 ────────────────────────────────────────────────────────────────────────────────
  You are in a dungeon with a short sword, leather armour and a lit torch.
  You carry three iron spikes. Press ? for the keys.
+ You have handled uncursed leather armour long enough. It is uncursed.
  The granite blocks your way.
-

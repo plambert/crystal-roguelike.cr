@@ -111,6 +111,14 @@ module Roguelike
     # and carries on from zero.
     getter wanders : Int32 = 0
 
+    # How many turns have asked what the character has noticed about what
+    # they carry.
+    #
+    # A fourth stream, so learning that a sword is cursed does not shift what
+    # the next swing rolls. It has a default, so a save written before this
+    # counter existed loads and carries on from zero.
+    getter handled : Int32 = 0
+
     # What has just happened.
     getter log : MessageLog
 
@@ -143,6 +151,18 @@ module Roguelike
     # What *item* is called, as this character would call it.
     def name(item : Item) : String
       @lore.name item
+    end
+
+    # What everything under *letter* is called, counted together.
+    #
+    # A letter holding twelve arrows and three more that differ only in a
+    # hidden curse is "15 arrows". The character cannot tell them apart, so
+    # neither does the line that names them.
+    def name_under(letter : Char) : String
+      item = @player.inventory[letter]
+      return "nothing" unless item
+
+      @lore.name item.with_count(@player.inventory.count letter)
     end
 
     # Adds *line* to the log.
@@ -593,6 +613,8 @@ module Roguelike
         say "You miss the #{creature.label}."
       end
 
+      jar
+
       wake creature if creature.alive?
       spend_turn
       blow
@@ -625,7 +647,9 @@ module Roguelike
     # with an empty quiver is told at once and spends no turn finding out.
     def cannot_fire : String?
       ranged_weapon = @player.ranged_weapon
-      return "You have nothing readied to shoot with." unless ranged_weapon
+      unless ranged_weapon && ranged_weapon.kind.item_class.ranged_weapon?
+        return "You have nothing readied to shoot with."
+      end
 
       ammunition = @player.quivered
       return "Your quiver is empty." unless ammunition
@@ -636,7 +660,10 @@ module Roguelike
 
     # How far the readied ranged weapon shoots. Zero when nothing is readied.
     def firing_reach : Int32
-      @player.ranged_weapon.try(&.kind.reach) || 0
+      found = @player.ranged_weapon
+      return 0 unless found && found.kind.item_class.ranged_weapon?
+
+      found.kind.reach
     end
 
     # Where a thing let go at *target* with *reach* squares in it would stop.
@@ -682,12 +709,13 @@ module Roguelike
       item = @player.inventory[letter]
       return false unless item
 
-      if item.sticks? && item.blessing_known?
+      slot = slot_of letter
+      if slot && item.sticks?
+        item.reveal_blessing
         say "You cannot let go of #{name item}."
         return false
       end
 
-      slot = slot_of letter
       if slot && slot.armour?
         say "You have to take #{name item} off first."
         return false
@@ -919,6 +947,7 @@ module Roguelike
     # notices the character this turn swings on the same turn it noticed.
     private def spend_turn : Nil
       @turn += 1
+      handle_items
       return if over?
 
       seen = sight
@@ -1164,6 +1193,18 @@ module Roguelike
       root = (@root ||= Rng.new @world.seed)
       found = root.derive "wander", @wanders
       @wanders += 1
+
+      found
+    end
+
+    # The generator for this turn's question about what is carried.
+    #
+    # One stream for the whole turn, drawn from once per item. A pack with
+    # forty things in it advances this counter as far as an empty one does.
+    private def noticing : Rng
+      root = (@root ||= Rng.new @world.seed)
+      found = root.derive "handling", @handled
+      @handled += 1
 
       found
     end
@@ -1492,15 +1533,14 @@ module Roguelike
       taken
     end
 
-    # Puts what is under *letter* on the floor. Answers whether it went.
+    # Puts everything under *letter* on the floor. Answers whether it went.
+    #
+    # A curse holds what is in a slot and nothing else, so the slot check
+    # below is the whole rule. A cursed dagger at the bottom of the pack goes
+    # on the floor like any other.
     def drop(letter : Char) : Bool
       item = @player.inventory[letter]
       return false unless item
-
-      if item.sticks? && item.blessing_known?
-        say "You cannot let go of #{name item}."
-        return false
-      end
 
       slot = slot_of letter
       if slot
@@ -1508,10 +1548,11 @@ module Roguelike
         return false
       end
 
-      @player.inventory.remove letter
+      dropped = name_under letter
+      held = @player.inventory.remove letter
       @player.equipment.clean @player.inventory
-      floor.drop @player.x, @player.y, item
-      say "You drop #{name item}."
+      held.each { |one| floor.drop @player.x, @player.y, one }
+      say "You drop #{dropped}."
       spend_turn
       true
     end
@@ -1574,6 +1615,77 @@ module Roguelike
       end
     end
 
+    # Whether reading the scroll under *letter* will ask for a carried item.
+    #
+    # A scroll of identify always asks. A scroll of blessing asks only when
+    # nothing has touched it: a blessed one reaches everything and a cursed
+    # one picks its own target.
+    def choice_needed?(letter : Char) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      effect = item.kind.effect
+      return true if effect.identify?
+      return false unless effect.marks?
+
+      item.blessing.uncursed?
+    end
+
+    # Whether the scroll under *letter* has to show the character something
+    # before it asks.
+    #
+    # The marks are half of what a scroll of blessing does, and picking
+    # without them is picking blind.
+    def marks_first?(letter : Char) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      item.kind.effect.marks? && choice_needed? letter
+    end
+
+    # Reads the scroll under *letter* as far as its question.
+    #
+    # The scroll is used up, the marks are made and the turn is spent.
+    # Answers the scroll, which `#finish_reading` needs, or `nil` when it
+    # could not be read at all.
+    #
+    # The two halves are separate because the marks have to be on screen
+    # before the character picks. Nothing is held between the two calls:
+    # a game saved while the question is up has spent the scroll and the
+    # turn, and has given up whatever the second half would have done.
+    def start_reading(letter : Char) : Item?
+      complaint = cannot_read
+      if complaint
+        say complaint
+        return
+      end
+
+      item = @player.inventory[letter]
+      return unless item && item.kind.item_class.scroll?
+
+      used = @player.inventory.take letter, 1
+      return unless used
+      @player.equipment.clean @player.inventory
+
+      used.reveal_blessing unless used.blessing.uncursed?
+      say "You read #{name used}."
+      found_out used.kind
+      mark_for used
+      spend_turn
+      used
+    end
+
+    # Does what *scroll* answered for. Spends no turn.
+    #
+    # `#start_reading` has already used the scroll up and spent the turn.
+    # A character who picked nothing gets nothing.
+    def finish_reading(scroll : Item, choice : Char?) : Bool
+      return false unless scroll.kind.effect.marks?
+
+      anoint_one scroll, choice
+      true
+    end
+
     # Zaps what is under *letter*. Answers whether anything came out of it.
     #
     # *target* is the square an offensive wand is aimed at. A wand of light
@@ -1591,8 +1703,20 @@ module Roguelike
         return false
       end
 
+      if dormant? item
+        say "#{name(item).capitalize} is cracked and does nothing."
+        return false
+      end
+
+      if item.sticks? && free_hand.nil?
+        item.reveal_blessing
+        say "Neither hand is free."
+        return false
+      end
+
       unless item.spend
         say "You zap #{name item}. Nothing happens."
+        cool item
         spend_turn
         return true
       end
@@ -1600,8 +1724,139 @@ module Roguelike
       say "You zap #{name item}."
       work item.kind.effect, item, target: target
       found_out item.kind
+      grasp letter, item
+      cool item
       spend_turn
       true
+    end
+
+    # ------------------------------------------------ what the character can tell
+
+    # Asks what the character has noticed about what they carry.
+    #
+    # Every item they have not placed gains what this turn was worth and then
+    # rolls. `Handling` holds the numbers.
+    #
+    # The rolls are collected before any of them is acted on. Noticing a
+    # blessing moves the item to a letter of its own, and moving things about
+    # while walking them is how entries get missed.
+    private def handle_items : Nil
+      stream = noticing
+      found = [] of {Char, Item}
+
+      @player.inventory.each_item do |letter, item|
+        next if item.blessing_known?
+
+        gain = @player.equipment.readied?(letter) ? Handling::WORN : Handling::CARRIED
+        item.handle gain
+        next if item.handling < Handling::LEAST
+        next unless stream.rand(Handling::SPAN) < gain
+
+        found << {letter, item}
+      end
+
+      found.each { |letter, item| noticed letter, item }
+    end
+
+    # Says the character has worked out what *item* is, and sorts the pack.
+    private def noticed(letter : Char, item : Item) : Nil
+      return unless item.reveal_blessing
+
+      say "You have handled #{name item} long enough. It is #{item.blessing.label}."
+      settle letter, item
+    end
+
+    # Records that the character has found out *item*'s blessing, and sorts
+    # the pack. Answers whether that was news.
+    private def learned(letter : Char, item : Item) : Bool
+      return false unless item.reveal_blessing
+
+      settle letter, item
+      true
+    end
+
+    # Moves *item* to a letter of its own, now that it no longer looks like
+    # what it was sitting with.
+    #
+    # With every letter taken there is nowhere for it to go. What it was
+    # sitting with goes on the floor instead, and what the character has just
+    # worked out keeps the letter.
+    private def settle(letter : Char, item : Item) : Nil
+      return if @player.inventory.relocate letter, item
+
+      rest = @player.inventory.strip letter, item
+      return if rest.empty?
+
+      rest.each { |one| floor.drop @player.x, @player.y, one }
+      @player.equipment.clean @player.inventory
+      say "You have no letter left to keep them apart, and put the rest down."
+    end
+
+    # ---------------------------------------------------------- cursed wands
+
+    # How often in a hundred swings a wand in the hand cracks.
+    BRITTLE = 8
+
+    # Whether *item* is a wand that has cracked.
+    #
+    # A cracked wand does nothing and holds nothing. It is the way out of a
+    # curse that never ran out of charges.
+    private def dormant?(item : Item) : Bool
+      item.kind.item_class.wand? && item.condition.damaged?
+    end
+
+    # Which hand a cursed wand can take. `nil` when both are held.
+    #
+    # The weapon hand first, and the one that holds a bow when a curse has
+    # the weapon hand already. A slot counts as free when it is empty or
+    # when what is in it is not cursed, whether or not the character knows
+    # that yet.
+    private def free_hand : Slot?
+      {Slot::Melee, Slot::Ranged}.find do |slot|
+        item = @player.in_slot slot
+        item.nil? || !item.sticks?
+      end
+    end
+
+    # Puts a cursed wand in the character's hand.
+    #
+    # Zapping a cursed wand is how a wand gets into a hand at all. `w` does
+    # not offer one, because `Slot.for` puts a wand in no slot.
+    #
+    # Whatever it displaces goes back to being carried. It is not readied
+    # again when the wand leaves; the character does that.
+    private def grasp(letter : Char, item : Item) : Nil
+      return unless item.sticks?
+      return if @player.equipment.readied? letter
+
+      slot = free_hand
+      return unless slot
+
+      item.reveal_blessing
+      @player.equipment.clear slot
+      @player.equipment.put slot, letter
+      say "#{name(item).capitalize} twists into your hand."
+    end
+
+    # Takes the curse off a wand that has nothing left.
+    #
+    # An empty wand has nothing to hold anybody with. The character watched
+    # it let go, so they know.
+    private def cool(item : Item) : Nil
+      return unless item.sticks? && item.spent?
+      return unless item.uncurse
+
+      say "#{name(item).capitalize} goes cold and lets go."
+    end
+
+    # Rolls whether the wand in the hand cracks on this swing.
+    private def jar : Nil
+      item = @player.wielded
+      return unless item && item.kind.item_class.wand?
+      return unless draught.rand(100) < BRITTLE
+      return unless item.crack
+
+      say "#{name(item).capitalize} cracks."
     end
 
     # Uses one of what is under *letter*, which has to be of *item_class*.
@@ -1622,6 +1877,12 @@ module Roguelike
       return false unless used
       @player.equipment.clean @player.inventory
 
+      # A curse or a blessing on a thing that is used up shows in what it
+      # does, so the character learns what this one was as they use it. An
+      # uncursed one has nothing to show. The rest of the stack keeps its
+      # secret either way.
+      used.reveal_blessing unless used.blessing.uncursed?
+
       yield used
       work used.kind.effect, used, choice: choice
       found_out used.kind
@@ -1638,13 +1899,158 @@ module Roguelike
                      choice : Char? = nil,
                      target : {Int32, Int32}? = nil) : Nil
       case effect
-      in .none?      then say "Nothing happens."
-      in .heal?      then mend item
-      in .identify?  then name_one choice
-      in .map_floor? then map_the_floor
-      in .light?     then light_up
-      in .strike?    then bolt item, target
+      in .none?         then say "Nothing happens."
+      in .heal?         then mend item
+      in .identify?     then name_one choice
+      in .map_floor?    then map_the_floor
+      in .light?        then light_up
+      in .strike?       then bolt item, target
+      in .bless?        then anoint item, choice
+      in .remove_curse? then anoint item, choice
       end
+    end
+
+    # ------------------------------------------------- blessing and uncursing
+
+    # How often in a hundred a cursed scroll looks at everything carried
+    # rather than at what it could change.
+    STRAY = 25
+
+    # What a scroll of blessing or of remove curse does.
+    #
+    # An uncursed one marks what a god has touched and then works on the one
+    # item the character picked. A blessed one marks and works on everything
+    # carried and everything lying underfoot. A cursed one marks nothing and
+    # picks its own target, which it often cannot change at all.
+    private def anoint(scroll : Item, choice : Char?) : Nil
+      return anoint_astray scroll if scroll.cursed?
+
+      mark_for scroll
+
+      if scroll.blessed?
+        anoint_all scroll
+      else
+        anoint_one scroll, choice
+      end
+    end
+
+    # Reveals the blessing on everything within the scroll's reach that has
+    # one.
+    #
+    # A scroll of blessing shows what a god has touched either way. A scroll
+    # of remove curse shows only the curses. An uncursed item is left
+    # unmarked, which says what it is to anybody counting.
+    private def mark_for(scroll : Item) : Int32
+      marked = 0
+
+      within(scroll).each do |letter, item|
+        next if item.blessing_known?
+        next unless scroll.kind.effect.remove_curse? ? item.cursed? : !item.blessing.uncursed?
+
+        marked += 1
+        letter ? learned(letter, item) : item.reveal_blessing
+      end
+
+      say marked > 0 ? "Marks appear on #{marked} of them." : "No marks appear."
+      marked
+    end
+
+    # Everything the scroll reaches, by letter.
+    #
+    # A blessed scroll reaches what is lying on the character's own square as
+    # well, and those have no letter.
+    private def within(scroll : Item) : Array({Char?, Item})
+      found = [] of {Char?, Item}
+      @player.inventory.each_item { |letter, item| found << {letter.as(Char?), item} }
+      return found unless scroll.blessed?
+
+      floor.items(@player.x, @player.y).each { |item| found << {nil.as(Char?), item} }
+      found
+    end
+
+    # Whether *item* is something this scroll could change.
+    private def changes?(scroll : Item, item : Item) : Bool
+      scroll.kind.effect.remove_curse? ? item.cursed? : !item.blessed?
+    end
+
+    # Does what the scroll does to *item*. Answers whether anything changed.
+    private def anoint_it(scroll : Item, item : Item) : Bool
+      scroll.kind.effect.remove_curse? ? item.uncurse : item.bless
+    end
+
+    # A blessed scroll, which works on everything it reaches.
+    private def anoint_all(scroll : Item) : Nil
+      changed = 0
+
+      within(scroll).each do |letter, item|
+        next unless anoint_it scroll, item
+
+        changed += 1
+        settle letter, item if letter
+      end
+
+      if changed.zero?
+        say "There was nothing here for it to do."
+        return
+      end
+
+      say "#{changed} of them are #{anointed scroll}."
+    end
+
+    # What a scroll leaves something as.
+    private def anointed(scroll : Item) : String
+      scroll.kind.effect.remove_curse? ? "free of a curse" : "blessed"
+    end
+
+    # The same, for a line that is still running on.
+    private def lifts(scroll : Item) : String
+      scroll.kind.effect.remove_curse? ? "lifts a curse" : "blesses it"
+    end
+
+    # An uncursed scroll, which works on the one item the character picked.
+    private def anoint_one(scroll : Item, choice : Char?) : Nil
+      item = choice ? @player.inventory[choice] : nil
+      unless item && choice
+        say "The writing fades with nothing to settle on."
+        return
+      end
+
+      told = name item
+      unless anoint_it scroll, item
+        say "Nothing about #{told} changes."
+        return
+      end
+
+      say "#{told.capitalize} is #{anointed scroll}."
+      settle choice, item
+    end
+
+    # A cursed scroll, which picks its own target.
+    #
+    # Three times in four it picks among the things it could change. The
+    # fourth time it picks among everything carried, and lands often enough
+    # on something it does nothing to.
+    private def anoint_astray(scroll : Item) : Nil
+      stream = draught
+      carried = @player.inventory.items
+      wanted = carried.select { |_letter, item| changes? scroll, item }
+
+      pool = stream.rand(100) < STRAY || wanted.empty? ? carried : wanted
+      if pool.empty?
+        say "The writing fades with nothing to settle on."
+        return
+      end
+
+      letter, item = pool[stream.rand pool.size]
+      picked = "The scroll picks out #{letter}, #{name item}"
+
+      unless anoint_it scroll, item
+        say "#{picked}, to no effect."
+        return
+      end
+
+      say "#{picked}, and #{lifts scroll}."
+      settle letter, item
     end
 
     # Records that the character has found out what *kind* is, and says so.
@@ -1660,7 +2066,9 @@ module Roguelike
 
     # Puts hit points back.
     private def mend(item : Item) : Nil
-      put_back = @player.heal item.kind.power.roll(draught)
+      rolled = item.kind.power.roll draught
+      strength = Math.max rolled * item.blessing.potency // 100, 1
+      put_back = @player.heal strength
 
       say put_back > 0 ? "You feel better." : "You feel no different."
     end
@@ -1668,13 +2076,13 @@ module Roguelike
     # Names the carried item under *choice*, and whether it is cursed.
     private def name_one(choice : Char?) : Nil
       item = choice ? @player.inventory[choice] : nil
-      unless item
+      unless item && choice
         say "You feel knowledgeable, and the feeling passes."
         return
       end
 
       news = @lore.learn item.kind
-      item.reveal_blessing
+      learned choice, item
 
       say news ? "It is #{name item}." : "You knew that already. It is #{name item}."
     end
@@ -1803,7 +2211,7 @@ module Roguelike
         return false
       end
 
-      if item.sticks?
+      if item.sticks? && !dormant?(item)
         item.reveal_blessing
         say "You cannot let go of #{name item}."
         return false

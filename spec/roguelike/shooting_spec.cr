@@ -270,13 +270,24 @@ Spectator.describe "shooting and throwing" do
       expect(game.turn).to eq before + 1
     end
 
-    it "refuses to let go of a cursed item the character knows about" do
+    # A curse holds what is in a slot. A cursed dagger in the pack throws
+    # like any other; one in the hand does not leave it.
+    it "throws a cursed item that is only carried" do
       cursed = Item.new Kind::Dagger, blessing: Blessing::Cursed
       cursed.reveal_blessing
       game = armed [cursed]
 
+      expect(game.throw 'a', EAST).to be_true
+    end
+
+    it "refuses to let go of a cursed item in the hand" do
+      cursed = Item.new Kind::Dagger, blessing: Blessing::Cursed
+      game = armed [cursed]
+      game.wield 'a'
+
       expect(game.throw 'a', EAST).to be_false
       expect(game.player.inventory.has? 'a').to be_true
+      expect(game.log.last?.to_s).to contain "cannot let go"
     end
 
     it "refuses to throw what is being worn" do

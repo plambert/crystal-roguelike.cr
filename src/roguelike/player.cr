@@ -153,9 +153,17 @@ module Roguelike
     def to_hit : Int32
       bonus = @attributes.modifier Attributes::Which::Dexterity
       held = wielded
-      return bonus unless held
+      return bonus unless held && Player.swung?(held)
 
       bonus + held.enchantment + held.condition.modifier
+    end
+
+    # Whether what is in the hand is swung for its own dice.
+    #
+    # A thing with no dice of its own hits like a fist. A cursed wand puts
+    # itself in the hand, and swinging a wand is swinging a stick.
+    def self.swung?(item : Item) : Bool
+      !item.kind.damage.none?
     end
 
     # What the character hits for in melee.
@@ -165,7 +173,7 @@ module Roguelike
     # and its condition.
     def damage : Dice
       held = wielded
-      dice = held ? held.damage : UNARMED
+      dice = held && Player.swung?(held) ? held.damage : UNARMED
 
       dice.with_bonus @attributes.modifier(Attributes::Which::Strength)
     end

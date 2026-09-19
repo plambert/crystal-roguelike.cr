@@ -30,16 +30,18 @@ module Roguelike::Ui
     #
     # Everything else keeps its label. A dagger is a dagger in both.
     KINDS = {
-      ItemKind::ShortSword     => "short swd",
-      ItemKind::LongSword      => "long swd",
-      ItemKind::LeatherArmour  => "leather",
-      ItemKind::ChainMail      => "chain",
-      ItemKind::HealingPotion  => "healing potion",
-      ItemKind::IdentifyScroll => "identify scroll",
-      ItemKind::MappingScroll  => "mapping scroll",
-      ItemKind::LightWand      => "light wand",
-      ItemKind::StrikingWand   => "striking wand",
-      ItemKind::Gold           => "gold",
+      ItemKind::ShortSword        => "short swd",
+      ItemKind::LongSword         => "long swd",
+      ItemKind::LeatherArmour     => "leather",
+      ItemKind::ChainMail         => "chain",
+      ItemKind::HealingPotion     => "healing potion",
+      ItemKind::IdentifyScroll    => "identify scroll",
+      ItemKind::MappingScroll     => "mapping scroll",
+      ItemKind::BlessingScroll    => "blessing scroll",
+      ItemKind::RemoveCurseScroll => "uncurse scroll",
+      ItemKind::LightWand         => "light wand",
+      ItemKind::StrikingWand      => "striking wand",
+      ItemKind::Gold              => "gold",
     }
 
     # What *item* is called, as *lore* knows it, short enough for a column.

@@ -117,6 +117,19 @@ module Roguelike
     def sticks? : Bool
       cursed?
     end
+
+    # What this does to how strongly an item works, as a percentage.
+    #
+    # A cursed potion of healing puts back half and a blessed one puts back
+    # double. The item still works: a curse makes a thing worse rather than
+    # useless.
+    def potency : Int32
+      case self
+      in .cursed?   then 50
+      in .uncursed? then 100
+      in .blessed?  then 200
+      end
+    end
   end
 
   # Everything one kind of item is.
@@ -232,6 +245,12 @@ module Roguelike
 
     # Driven under a door.
     Spike
+
+    # Read to bless one thing, or everything.
+    BlessingScroll
+
+    # Read to take a curse off.
+    RemoveCurseScroll
 
     # What this kind is.
     def facts : ItemFacts
@@ -426,6 +445,13 @@ module Roguelike
 
       ItemKind::Spike => ItemFacts.new("iron spike", "iron spikes", ItemClass::Tool,
         weight: 8),
+
+      ItemKind::BlessingScroll => ItemFacts.new("scroll of blessing",
+        "scrolls of blessing", ItemClass::Scroll, weight: 5,
+        effect: Effect::Bless),
+      ItemKind::RemoveCurseScroll => ItemFacts.new("scroll of remove curse",
+        "scrolls of remove curse", ItemClass::Scroll, weight: 5,
+        effect: Effect::RemoveCurse),
     }
   end
 end

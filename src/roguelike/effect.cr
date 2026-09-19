@@ -26,14 +26,34 @@ module Roguelike
     # Hits whatever it is aimed at.
     Strike
 
+    # Blesses one carried item, or everything within reach.
+    Bless
+
+    # Takes a curse off one carried item, or off everything within reach.
+    RemoveCurse
+
     # Whether using this needs a square to aim at.
     def aimed? : Bool
       strike?
     end
 
-    # Whether using this needs a carried item to work on.
+    # Whether using this may need a carried item to work on.
+    #
+    # Whether it does is not settled here. A blessed scroll of blessing
+    # reaches everything and asks nothing, and a cursed one picks its own
+    # target. `Game#choice_needed?` reads the item as well as the effect.
     def chosen? : Bool
-      identify?
+      identify? || bless? || remove_curse?
+    end
+
+    # Whether the character has to see what they are choosing between before
+    # they choose.
+    #
+    # A scroll of blessing marks what it finds first. The marks are half of
+    # what the scroll does, and choosing without them is choosing blind. A
+    # scroll of identify names one kind and needs nothing shown first.
+    def marks? : Bool
+      bless? || remove_curse?
     end
   end
 end

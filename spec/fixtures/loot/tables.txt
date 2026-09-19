@@ -2,11 +2,13 @@ slime over 10000 of them
    70.3% of the time (70% stated)
     gold piece       100.0%
     7.7% of the time (8% stated)
-    potion of healing  49.0%
-    scroll of identify  18.4%
-    scroll of magic mapping  13.5%
-    wand of light     10.2%
-    wand of striking   9.0%
+    potion of healing  44.0%
+    scroll of identify  14.7%
+    scroll of magic mapping  10.7%
+    scroll of remove curse   9.4%
+    scroll of blessing   6.8%
+    wand of light      7.8%
+    wand of striking   6.6%
 goblin over 10000 of them
    79.5% of the time (80% stated)
     dagger            39.4%

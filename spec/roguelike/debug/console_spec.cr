@@ -134,7 +134,8 @@ Spectator.describe Roguelike::Debug::Console do
     it "drops what it made when every letter is taken" do
       game, console = playing
       Roguelike::Inventory::LETTERS.each do |letter|
-        game.player.inventory.slots[letter] = Item.new Kind::Dagger
+        game.player.inventory.slots[letter] =
+          Roguelike::Inventory::Stack.of Item.new(Kind::Dagger)
       end
 
       console.run "spawn bow", game

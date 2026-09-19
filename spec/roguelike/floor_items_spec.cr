@@ -163,24 +163,26 @@ Spectator.describe "items on the floor" do
       expect(game.turn).to eq 0
     end
 
-    # Phase 11 will stop a cursed item being taken off. A character who does
-    # not know it is cursed can still put it down.
-    it "refuses a cursed item once the character knows" do
+    # A curse holds what is in a slot and nothing else. A cursed dagger at
+    # the bottom of the pack goes on the floor like any other.
+    it "lets a cursed item go while it is only carried" do
       game = bare
       cursed = Item.new Kind::Dagger, blessing: Roguelike::Blessing::Cursed,
         blessing_known: true
       game.player.inventory.add cursed
 
-      expect(game.drop('a')).to be_false
-      expect(game.log.last?).to contain "cannot let go"
+      expect(game.drop('a')).to be_true
     end
 
-    it "lets a cursed item go while the character does not know" do
+    it "refuses a cursed item that is wielded" do
       game = bare
-      cursed = Item.new Kind::Dagger, blessing: Roguelike::Blessing::Cursed
+      cursed = Item.new Kind::Dagger, blessing: Roguelike::Blessing::Cursed,
+        blessing_known: true
       game.player.inventory.add cursed
+      game.wield 'a'
 
-      expect(game.drop('a')).to be_true
+      expect(game.drop('a')).to be_false
+      expect(game.log.last?).to contain "take"
     end
   end
 

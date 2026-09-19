@@ -1,4 +1,5 @@
 require "json"
+require "./handling"
 require "./item_kind"
 
 module Roguelike
@@ -40,6 +41,13 @@ module Roguelike
     # burn.
     getter? lit : Bool
 
+    # How much attention this item has had.
+    #
+    # `Handling` says what a turn is worth and how much is enough to tell a
+    # blessing from a curse. It has a default, so an item written before this
+    # field existed loads and starts from nothing.
+    getter handling : Int32 = 0
+
     def initialize(@kind : ItemKind,
                    @enchantment : Int32 = 0,
                    @condition : Condition = Condition::Plain,
@@ -47,7 +55,8 @@ module Roguelike
                    charges : Int32? = nil,
                    @blessing : Blessing = Blessing::Uncursed,
                    @blessing_known : Bool = false,
-                   lit : Bool = false)
+                   lit : Bool = false,
+                   @handling : Int32 = 0)
       @lit = @kind.light? && lit
       @count = @kind.stacks? ? Math.max(count, 1) : 1
       @charges = charges || (@kind.charges > 0 ? @kind.charges : nil)
@@ -55,9 +64,18 @@ module Roguelike
       @condition = @kind.enchantable? ? @condition : Condition::Plain
     end
 
-    # Whether this item refuses to be taken off or put down.
+    # Whether a curse holds this item.
+    #
+    # A curse holds what is in a slot and nothing else. This says only that
+    # the item is cursed. `Game` is what knows whether it is in one, and the
+    # two together decide whether it can be let go of.
     def sticks? : Bool
       @blessing.sticks?
+    end
+
+    # Adds *gain* to how much attention this item has had.
+    def handle(gain : Int32) : Nil
+      @handling += gain
     end
 
     # How far this item throws light. Zero while it is not alight.
@@ -113,6 +131,30 @@ module Roguelike
       true
     end
 
+    # Marks this item damaged. Answers whether that was a change.
+    #
+    # The constructor refuses a condition on a kind that cannot carry one, so
+    # `Items.make` never rolls one onto a wand. This is the only way one gets
+    # there. A cursed wand that cracks in the hand goes dormant.
+    def crack : Bool
+      return false if @condition.damaged?
+
+      @condition = Condition::Damaged
+      true
+    end
+
+    # Blesses this item. Answers whether that was a change.
+    #
+    # The blessing is left known. A character who watched a god touch a thing
+    # knows it has been touched.
+    def bless : Bool
+      return false if @blessing.blessed?
+
+      @blessing = Blessing::Blessed
+      @blessing_known = true
+      true
+    end
+
     # Records that the character has found out the blessing. Answers whether
     # that was news.
     def reveal_blessing : Bool
@@ -141,11 +183,18 @@ module Roguelike
       @kind.facts.weight * @count
     end
 
-    # Whether this item and *other* could be held as one entry.
+    # Whether this item and *other* are one and the same thing.
     #
-    # Everything but the count has to match. A `+1` arrow does not stack with
-    # a plain one, because a person firing them would want to know which is
-    # which.
+    # Everything but the count has to match, the hidden blessing included. A
+    # `+1` arrow does not stack with a plain one, because a person firing
+    # them would want to know which is which.
+    #
+    # `Inventory` holds these inside a letter. Which letter they go under is
+    # `#looks_like?`, which compares less.
+    #
+    # `handling` is left out. It is what the character has noticed about the
+    # item rather than a property of the item, and two stacks that merge take
+    # the larger through `#merge`.
     def stacks_with?(other : Item) : Bool
       @kind.stacks? && @kind == other.kind &&
         @enchantment == other.enchantment && @condition == other.condition &&
@@ -153,10 +202,37 @@ module Roguelike
         @lit == other.lit?
     end
 
+    # Whether *other* would sit under the same letter as this.
+    #
+    # Everything the character can see has to match. The blessing counts only
+    # once they know it, so two arrows that differ in a hidden curse share a
+    # letter until one of them is noticed. Two letters would say something
+    # differs without saying what.
+    #
+    # A kind that does not stack keeps a letter to itself. `Equipment` names
+    # a slot's contents by letter, and two swords under one letter would
+    # leave no way to say which is wielded.
+    def looks_like?(other : Item) : Bool
+      @kind.stacks? && @kind == other.kind &&
+        @enchantment == other.enchantment && @condition == other.condition &&
+        @lit == other.lit? &&
+        @blessing_known == other.blessing_known? &&
+        (!@blessing_known || @blessing == other.blessing)
+    end
+
+    # This item and *other* held as one, with the larger handling of the two.
+    #
+    # The caller has already decided they stack.
+    def merge(other : Item) : Item
+      found = with_count @count + other.count
+      found.handle Math.max(@handling, other.handling) - @handling
+      found
+    end
+
     # A copy of this item with *count* of them.
     def with_count(count : Int32) : Item
       Item.new @kind, @enchantment, @condition, count, @charges,
-        @blessing, @blessing_known, @lit
+        @blessing, @blessing_known, @lit, @handling
     end
 
     # A separate item with the same state.

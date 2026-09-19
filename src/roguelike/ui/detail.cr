@@ -26,7 +26,7 @@ module Roguelike::Ui
 
       lines.concat facts(item)
       lines << "weight #{item.weight}"
-      lines << "cursed: it will not come off" if item.blessing_known? && item.cursed?
+      lines << "cursed: it will not leave a slot" if item.blessing_known? && item.cursed?
 
       unless game.lore.known? kind
         lines << "nobody has found out what this is"

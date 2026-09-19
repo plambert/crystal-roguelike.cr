@@ -228,6 +228,121 @@ Spectator.describe Roguelike::Item do
     end
   end
 
+  describe "#looks_like?" do
+    # The character cannot see a hidden curse, so it does not decide which
+    # letter a thing goes under.
+    it "ignores a blessing nobody has found out" do
+      plain = described_class.new Kind::Arrow, count: 5
+      cursed = described_class.new Kind::Arrow, count: 5,
+        blessing: Roguelike::Blessing::Cursed
+
+      expect(plain.looks_like?(cursed)).to be_true
+      expect(plain.stacks_with?(cursed)).to be_false
+    end
+
+    it "reads a blessing once it is known" do
+      plain = described_class.new Kind::Arrow, count: 5
+      cursed = described_class.new Kind::Arrow, count: 5,
+        blessing: Roguelike::Blessing::Cursed, blessing_known: true
+
+      expect(plain.looks_like?(cursed)).to be_false
+    end
+
+    it "keeps a kind that does not stack to itself" do
+      one = described_class.new Kind::LongSword
+      two = described_class.new Kind::LongSword
+
+      expect(one.looks_like?(two)).to be_false
+    end
+
+    it "reads what the character can see" do
+      plain = described_class.new Kind::Arrow, count: 5
+      sharp = described_class.new Kind::Arrow, 1, count: 5
+
+      expect(plain.looks_like?(sharp)).to be_false
+    end
+  end
+
+  describe "#merge" do
+    it "adds the counts" do
+      one = described_class.new Kind::Arrow, count: 5
+      two = described_class.new Kind::Arrow, count: 7
+
+      expect(one.merge(two).count).to eq 12
+    end
+
+    it "keeps the larger handling" do
+      one = described_class.new Kind::Arrow, count: 5
+      one.handle 40
+      two = described_class.new Kind::Arrow, count: 7
+      two.handle 9
+
+      expect(one.merge(two).handling).to eq 40
+      expect(two.merge(one).handling).to eq 40
+    end
+  end
+
+  describe "#crack" do
+    # The constructor refuses a condition on a wand, so this is the only way
+    # one gets there.
+    it "marks a wand damaged" do
+      wand = described_class.new Kind::LightWand
+
+      expect(wand.crack).to be_true
+      expect(wand.condition.damaged?).to be_true
+    end
+
+    it "does nothing twice" do
+      wand = described_class.new Kind::LightWand
+      wand.crack
+
+      expect(wand.crack).to be_false
+    end
+  end
+
+  describe "#bless" do
+    it "blesses and says so" do
+      item = described_class.new Kind::LongSword
+
+      expect(item.bless).to be_true
+      expect(item.blessed?).to be_true
+      expect(item.blessing_known?).to be_true
+    end
+
+    it "does nothing to something already blessed" do
+      item = described_class.new Kind::LongSword,
+        blessing: Roguelike::Blessing::Blessed
+
+      expect(item.bless).to be_false
+    end
+  end
+
+  describe "handling" do
+    it "starts at nothing and adds up" do
+      item = described_class.new Kind::LongSword
+      expect(item.handling).to eq 0
+
+      item.handle 3
+      item.handle 1
+
+      expect(item.handling).to eq 4
+    end
+
+    it "rides along when a stack is split" do
+      item = described_class.new Kind::Arrow, count: 12
+      item.handle 30
+
+      expect(item.with_count(4).handling).to eq 30
+    end
+
+    it "round-trips through a save file" do
+      item = described_class.new Kind::Arrow, count: 12
+      item.handle 30
+
+      expect(described_class.from_json(item.to_json).handling).to eq 30
+    end
+  end
+
   describe "#stacks_with?" do
     it "joins two of the same" do
       one = described_class.new Kind::Arrow, count: 3

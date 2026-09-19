@@ -99,11 +99,13 @@ module Roguelike
       ItemKind::Boots         => 16,
       ItemKind::Shield        => 12,
 
-      ItemKind::HealingPotion  => 34,
-      ItemKind::IdentifyScroll => 16,
-      ItemKind::MappingScroll  => 10,
-      ItemKind::LightWand      => 8,
-      ItemKind::StrikingWand   => 5,
+      ItemKind::HealingPotion     => 34,
+      ItemKind::IdentifyScroll    => 16,
+      ItemKind::MappingScroll     => 10,
+      ItemKind::RemoveCurseScroll => 8,
+      ItemKind::BlessingScroll    => 6,
+      ItemKind::LightWand         => 8,
+      ItemKind::StrikingWand      => 5,
 
       ItemKind::Torch  => 22,
       ItemKind::Candle => 18,

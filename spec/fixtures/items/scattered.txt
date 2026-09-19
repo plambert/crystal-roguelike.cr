@@ -1,21 +1,20 @@
- 45,4   gold piece
-  5,5   cap
- 17,5   stone
- 22,5   long sword
- 37,5   dagger
- 17,6   potion of healing
- 49,6   torch
- 37,7   bow
- 44,7   long sword
- 37,8   gold piece
- 40,10  arrow
- 10,12  chain mail
-  7,15  scroll of identify
- 12,16  boots
+ 11,2   cap
+  6,4   torch
+ 22,5   shield
+ 34,5   boots
+ 37,5   stone
+ 37,7   potion of healing
+ 45,7   dart
+ 49,9   stone
+ 10,12  cap
+ 57,14  short sword
+  7,15  dagger
+ 69,15  gold piece
+ 12,16  long sword
  61,16  dagger
- 67,19  candle
-  8,20  shield
- 57,20  potion of healing
+ 15,17  gold piece
+ 69,17  dart
+  8,20  short sword
  59,20  gold piece
- 18,23  scroll of identify
- 58,24  gold piece
+  7,22  leather armour
+ 60,24  gold piece

@@ -67,11 +67,13 @@ module Roguelike
 
     # What a slime has swallowed and not digested.
     SWALLOWED = {
-      ItemKind::HealingPotion  => 50,
-      ItemKind::IdentifyScroll => 18,
-      ItemKind::MappingScroll  => 12,
-      ItemKind::LightWand      => 12,
-      ItemKind::StrikingWand   => 8,
+      ItemKind::HealingPotion     => 44,
+      ItemKind::IdentifyScroll    => 16,
+      ItemKind::MappingScroll     => 10,
+      ItemKind::RemoveCurseScroll => 8,
+      ItemKind::BlessingScroll    => 6,
+      ItemKind::LightWand         => 10,
+      ItemKind::StrikingWand      => 6,
     }
 
     # Coins. One kind, so the weight says nothing; the count is what varies.

@@ -823,9 +823,9 @@ module Roguelike::Ui
     #
     # A person reading the list has to see which sword is in their hand.
     private def rows(entries : Array({Char, Item})) : Array(Widgets::Menu::Entry)
-      entries.map do |letter, item|
+      entries.map do |letter, _item|
         slot = @game.slot_of letter
-        label = @game.name item
+        label = @game.name_under letter
         label = "#{label} (#{slot.note})" if slot
 
         Widgets::Menu::Entry.new letter, label
@@ -1009,10 +1009,65 @@ module Roguelike::Ui
 
       offer "Read what?", "You have nothing to read.",
         ->(item : Item) { item.kind.item_class.scroll? } do |letter|
-        if @game.effect_of(letter).chosen?
+        if @game.marks_first? letter
+          bless_with letter
+        elsif @game.choice_needed? letter
           identify_with letter
         else
           @game.read letter
+        end
+      end
+    end
+
+    # Reads a scroll of blessing or of remove curse, then asks what it works
+    # on.
+    #
+    # The scroll is spent and the marks are made before the question goes up,
+    # because the marks are what the character picks by. `#refresh` between
+    # the two puts them on screen.
+    private def bless_with(letter : Char) : Nil
+      scroll = @game.start_reading letter
+      refresh
+      return unless scroll
+
+      ask_the_target scroll
+    end
+
+    # Asks which carried item the spent *scroll* works on.
+    #
+    # Backing out of this gives up what the scroll had left to do, so it asks
+    # again before it lets go.
+    private def ask_the_target(scroll : Item) : Nil
+      found = @game.player.inventory.entries
+      if found.empty?
+        @game.finish_reading scroll, nil
+        refresh
+        return
+      end
+
+      title = scroll.kind.effect.remove_curse? ? "Lift a curse from what?" : "Bless what?"
+      choose(title, rows(found), about(found)) do |key|
+        if key
+          @game.finish_reading scroll, key
+          refresh
+        else
+          confirm_giving_up scroll
+        end
+      end
+    end
+
+    # Checks that backing out of the scroll's question was meant.
+    #
+    # The scroll is gone either way. What is being given up is the one thing
+    # it had left to do.
+    private def confirm_giving_up(scroll : Item) : Nil
+      ask("Give up what the scroll has left? The marks stay either way.",
+        "yn", default: 'n') do |key|
+        if key == 'y'
+          @game.finish_reading scroll, nil
+          refresh
+        else
+          ask_the_target scroll
         end
       end
     end

@@ -1435,6 +1435,102 @@ depends on how wide the row turned out. A left piece is cut one cell short of it
 long name gives way to the level rather than pushing it off the row. A character nobody has named
 yet reads as a dash.
 
+## Blessings and curses
+
+A blessing is hidden on each item until the character finds out. There are now three ways they do:
+a scroll of identify names one, a scroll of blessing or of remove curse marks what it finds, and
+carrying a thing long enough is its own answer.
+
+### A letter holds a list
+
+`Inventory` holds an ordered list under each letter rather than one item. Which letter a thing goes
+under is `Item#looks_like?`, which compares only what the character can see: the kind, the `+N`, the
+condition, whether it is alight, and the blessing once they know it. Twelve arrows and three more
+that differ only in a hidden curse are one row reading "15 arrows".
+
+Inside the letter the items stay apart, decided by `Item#stacks_with?`, which compares the hidden
+blessing as well. The list is in the order it was picked up and everything that takes one item takes
+the first, so a quiver empties its oldest arrows first.
+
+The letter splits the moment the character works one of them out. What they noticed moves to a
+letter of its own. With every letter taken there is nowhere for it to go, so what it was sitting
+with goes on the floor and what they noticed keeps the letter.
+
+This replaced a rule that compared the hidden blessing when handing out letters. Two arrows that
+differed in a curse took two letters under it, which told the player something differed without
+telling them what.
+
+### Handling
+
+`Handling` holds four numbers. A turn in a slot is worth 3 and a turn merely carried is worth 1.
+Nothing is noticed below 10, and the roll past that is set so the average at which it is noticed is
+100. The roll is geometric, so the median is about 72. A worn item is worked out in about 34 turns
+and a carried one in about 100.
+
+`Game#handle_items` runs on every turn, on a stream of its own named by `#handled`, so learning that
+a sword is cursed does not shift what the next swing rolls. The rolls are collected before any of
+them is acted on, because acting on one moves items about.
+
+### A curse holds what is in a slot
+
+`Item#sticks?` says only that an item is cursed. Whether it can be let go of is `Game`'s to decide,
+and the rule is that a curse holds what is in a slot and nothing else. A cursed spike, potion,
+scroll, wand or torch drops at will. A cursed sword in the hand does not.
+
+This replaced a rule that read the item's class. The two give the same answer for everything that
+can be readied, and the slot rule also covers a wand, which gets into a hand only through a curse.
+
+### What a curse does to a thing that is used
+
+`Blessing#potency` is a percentage: cursed 50, uncursed 100, blessed 200. A cursed potion of healing
+puts back half and a blessed one puts back double. The item still works. Using it reveals its
+blessing, because what it did gives that away. An uncursed one has nothing to give away and stays
+unmarked.
+
+### A cursed wand takes your hand
+
+Zapping a cursed wand works at full strength, and then the wand puts itself in the weapon hand. It
+takes the hand that holds a bow when a curse has the weapon hand already, and with both held the zap
+is refused before it spends a charge or a turn. Whatever it displaces goes back to being carried.
+
+While it is in the hand it cannot be taken off, dropped or thrown, and swinging it hits like a fist:
+`Player#damage` and `#to_hit` treat anything with no dice of its own as bare hands. A wand in the
+ranged slot stops the character shooting, which `#cannot_fire` and `#firing_reach` both check for.
+
+There are two ways out. The last charge uncurses it. Each swing has `BRITTLE` in a hundred of
+cracking it, and a cracked wand is dormant: it does nothing, holds nothing, and comes off.
+
+`w` needs no change to keep a wand out of the hand by any other route. `Slot.for` already puts a
+wand in no slot, so `Play#wield` never offers one.
+
+### The two scrolls
+
+| | cursed | uncursed | blessed |
+|---|---|---|---|
+| **blessing** | blesses one item it picks itself | marks every blessed and cursed item in the pack; blesses the chosen item | marks them in the pack and on the square; blesses all of them |
+| **remove curse** | uncurses one item it picks itself | marks every cursed item in the pack; uncurses the chosen item | marks them in the pack and on the square; uncurses all of them |
+
+A cursed scroll helps rather than harms, and aims badly. Three times in four it draws from the items
+it could change. The fourth time, set by `STRAY`, it draws from everything carried and often lands
+on something it does nothing to. A cursed scroll of remove curse over a pack with nothing cursed
+always reads "to no effect".
+
+A blessed scroll of blessing is what an uncursed one makes of a second scroll of blessing. Two of
+them are worth more than one read twice.
+
+### Reading in two halves
+
+The marks are half of what a scroll of blessing does, and picking without them is picking blind. So
+`Play` reads the scroll in two calls. `Game#start_reading` uses the scroll up, makes the marks and
+spends the turn. `Play` redraws, puts the question up, and calls `Game#finish_reading`.
+
+`Game` holds nothing between the two, so a game saved while the question is up has spent the scroll
+and the turn and given up what the second half would have done. Backing out of the question does the
+same, and asks first so it is never done by accident.
+
+A scroll of identify stays one call. Its choice needs no marks, and taking a scroll off somebody who
+changed their mind would be worse.
+
 ## Spikes
 
 An iron spike is a carryable item. It is the first member of `ItemClass::Tool`, which is the class
