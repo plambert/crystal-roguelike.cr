@@ -813,11 +813,17 @@ module Roguelike
       held.each do |creature|
         break if over?
         next unless awake? creature
-        next unless creature.pace.ready?
-        next unless floor.monster?(creature.x, creature.y)
 
-        creature.pace.spend Costs::TURN
-        perform creature, plan(creature, maps)
+        # A creature that has banked more than one action takes them all
+        # here. One at half again the character's speed acts twice on every
+        # other tick, which is what being that fast is.
+        while creature.pace.ready?
+          break if over?
+          break unless floor.monster? creature.x, creature.y
+
+          creature.pace.spend Costs::TURN
+          perform creature, plan(creature, maps)
+        end
       end
     end
 
@@ -982,12 +988,19 @@ module Roguelike
     # so one that notices the character on this tick swings on it.
     private def tick : Nil
       @turn += 1
-      bank_energy
       wear_off
       handle_items
       blink
-      return if over?
+      act_on_the_floor unless over?
 
+      # Last, so that nothing acts on energy it earned during the same tick.
+      # An actor spends what it came in with and banks what this tick paid
+      # it, which is what keeps a normal actor to one action a tick.
+      bank_energy
+    end
+
+    # Lets every band look, and the awake ones act.
+    private def act_on_the_floor : Nil
       seen = sight
       noticed = creatures_notice seen
       creatures_look seen, noticed
@@ -1008,8 +1021,18 @@ module Roguelike
     end
 
     # Counts a haste and a slow down one tick, on everything that has one.
+    #
+    # The character is told when their own runs out. A creature is not: the
+    # character has no way to tell a creature that has slowed down from one
+    # that is waiting for them.
     private def wear_off : Nil
+      hurried = @player.pace.hurried?
+      dragging = @player.pace.dragging?
       @player.pace.pass
+
+      say "You slow down again." if hurried && !@player.pace.hurried?
+      say "Your feet come free." if dragging && !@player.pace.dragging?
+
       floor.each_monster { |_column, _row, creature| creature.pace.pass }
     end
 
@@ -2096,6 +2119,9 @@ module Roguelike
       in .blind?           then blind_with item, target
       in .teleport?        then teleport_with item, target
       in .repair?          then patch item, choice
+      in .haste?           then hurry_up item
+      in .slow?            then drag_with item, target
+      in .haste_other?     then hurry_with item, target
       end
     end
 
@@ -2469,6 +2495,107 @@ module Roguelike
     private def blind_creature(creature : Monster, stream : Rng) : Nil
       creature.blind CREATURE_BLINDING.roll(stream)
       say "The #{creature.label} claws at its eyes."
+    end
+
+    # --------------------------------------------------------------- speed
+
+    # Hurries the character. A potion of haste does this.
+    #
+    # How long it lasts is the potion's own dice, scaled by what has touched
+    # it the way a potion of healing scales what it puts back. A second
+    # draught lasts longer rather than going faster.
+    private def hurry_up(item : Item) : Nil
+      rolled = item.kind.power.roll draught
+      ticks = Math.max rolled * item.blessing.potency // 100, 1
+      going = @player.pace.hurried?
+      @player.pace.hurry ticks
+
+      say going ? "The hurry in you runs on." : "You speed up."
+    end
+
+    # Holds back whatever a scroll of slow monster found.
+    #
+    # An uncursed one takes the creature it was aimed at. A blessed one takes
+    # every creature in sight. A cursed one takes the reader.
+    private def drag_with(scroll : Item, target : {Int32, Int32}?) : Nil
+      stream = draught
+      return drag_myself scroll, stream if scroll.cursed?
+      return drag_everything scroll, stream if scroll.blessed?
+
+      creature = target ? floor.monster(target[0], target[1]) : nil
+      unless creature
+        say "The words settle on nothing."
+        return
+      end
+
+      drag_creature creature, scroll, stream
+    end
+
+    # Holds the character back.
+    private def drag_myself(scroll : Item, stream : Rng) : Nil
+      @player.pace.drag scroll.kind.power.roll(stream)
+      say "Your own feet drag."
+    end
+
+    # Holds every creature in sight back.
+    private def drag_everything(scroll : Item, stream : Rng) : Nil
+      seen = monsters_in_sight
+      if seen.empty?
+        say "The words settle on nothing."
+        return
+      end
+
+      seen.each { |creature| drag_creature creature, scroll, stream }
+    end
+
+    # Holds one creature back.
+    private def drag_creature(creature : Monster, scroll : Item, stream : Rng) : Nil
+      creature.pace.drag scroll.kind.power.roll(stream)
+      say "The #{creature.label} slows to a crawl."
+    end
+
+    # Hurries whatever a scroll of haste monster found.
+    #
+    # An uncursed one takes the creature it was aimed at, which is a poor
+    # thing to do. A blessed one turns on the reader instead. A cursed one
+    # takes every creature in sight.
+    private def hurry_with(scroll : Item, target : {Int32, Int32}?) : Nil
+      stream = draught
+      return hurry_myself scroll, stream if scroll.blessed?
+      return hurry_everything scroll, stream if scroll.cursed?
+
+      creature = target ? floor.monster(target[0], target[1]) : nil
+      unless creature
+        say "The words settle on nothing."
+        return
+      end
+
+      hurry_creature creature, scroll, stream
+    end
+
+    # Hurries the character.
+    private def hurry_myself(scroll : Item, stream : Rng) : Nil
+      going = @player.pace.hurried?
+      @player.pace.hurry scroll.kind.power.roll(stream)
+
+      say going ? "The hurry in you runs on." : "You speed up."
+    end
+
+    # Hurries every creature in sight.
+    private def hurry_everything(scroll : Item, stream : Rng) : Nil
+      seen = monsters_in_sight
+      if seen.empty?
+        say "The words settle on nothing."
+        return
+      end
+
+      seen.each { |creature| hurry_creature creature, scroll, stream }
+    end
+
+    # Hurries one creature.
+    private def hurry_creature(creature : Monster, scroll : Item, stream : Rng) : Nil
+      creature.pace.hurry scroll.kind.power.roll(stream)
+      say "The #{creature.label} speeds up."
     end
 
     # ------------------------------------------------------------ teleport

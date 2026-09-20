@@ -1858,6 +1858,49 @@ again when the loop stops, so the cost lands after the action rather than as a w
 `Trial::Bot` never wears armour, so the trial report cannot see this change. Two hundred runs from
 seed 5000 print what they printed for the species speeds.
 
+### The three items that change a speed
+
+A potion of haste adds `Pace::HASTE` to the drinker for `3d6+12` ticks. `Blessing#potency` scales
+the duration the way it scales what a potion of healing puts back, so a cursed one lasts half as
+long and a blessed one twice. A second draught runs the timer on rather than raising the speed
+again: five potions are five times the time, not five times the speed.
+
+A scroll of slow monster takes `Pace::SLOW` off for `4d6+20` ticks. A scroll of haste monster adds
+`Pace::HASTE` for the same. Neither duration is scaled, because the blessing already decides who it
+lands on.
+
+| | slow monster | haste monster |
+| --- | --- | --- |
+| uncursed | the creature aimed at | the creature aimed at |
+| blessed | every creature in sight | the reader |
+| cursed | the reader | every creature in sight |
+
+Both are read and then aimed, which is `Effect#aims_after?` and the path a scroll of blindness
+already takes. `Game#target_needed?` needed nothing new: it asks for a square when the scroll is
+uncursed and for none otherwise, which is what these two want.
+
+The character is told when their own haste or slow runs out. A creature is not, the same way a
+creature is not told about its blindness: the character cannot tell one that has slowed down from
+one that is waiting for them.
+
+A creature that has banked more than one action takes them all in the same tick.
+`Game#creatures_act` loops while the creature is ready rather than acting once. `Game#tick` banks
+energy last, after everything has acted, so nothing spends energy it earned on the tick it is
+spending it in.
+
+Two hundred trial runs from seed 5000, with the three kinds in the tables and without them:
+
+| | without | with |
+| --- | --- | --- |
+| died | 76% | 77% |
+| turns until death, median | 102 | 117 |
+| squares from start, furthest | 76 | 151 |
+| killed by a slime | 7 | 11 |
+
+`Trial::Bot` drinks a potion when it is badly hurt and does not read what it is holding, so it
+swallows a potion of haste in place of a heal and covers more ground before it dies. Some of the
+rest is the tables having three more kinds in them, which moves what every roll after them lands on.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

@@ -10,6 +10,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Potion of haste. It speeds the drinker up for a while. Blessed it lasts
+  twice as long, cursed half.
+* Scroll of slow monster. Uncursed it slows the creature aimed at, blessed
+  every creature in sight, cursed the reader.
+* Scroll of haste monster. Uncursed it hurries the creature aimed at,
+  blessed the reader, cursed every creature in sight.
 * Scroll of repair. It mends one damaged carried item. Blessed, it mends everything carried, worn
   and lying underfoot. Cursed, it damages one item that was undamaged.
 * Scroll of treasure detection, scroll of item detection, scroll of darkness, scroll of blindness

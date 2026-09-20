@@ -2,19 +2,22 @@ slime over 10000 of them
    70.3% of the time (70% stated)
     gold piece       100.0%
     7.7% of the time (8% stated)
-    potion of healing  35.0%
-    scroll of identify  11.6%
-    scroll of magic mapping   6.6%
-    scroll of remove curse   5.3%
-    scroll of blessing   3.1%
-    scroll of treasure detection   6.8%
-    scroll of item detection   3.6%
-    scroll of darkness   3.1%
-    scroll of blindness   4.3%
-    scroll of minor teleport   5.1%
-    scroll of repair   4.7%
-    wand of light      7.2%
-    wand of striking   3.5%
+    potion of healing  29.4%
+    scroll of identify   9.8%
+    scroll of magic mapping   5.5%
+    scroll of remove curse   4.4%
+    scroll of blessing   5.2%
+    scroll of treasure detection   4.9%
+    scroll of item detection   4.7%
+    scroll of darkness   3.8%
+    scroll of blindness   3.8%
+    scroll of minor teleport   3.3%
+    scroll of repair   6.1%
+    potion of haste    5.1%
+    scroll of slow monster   3.6%
+    scroll of haste monster   1.6%
+    wand of light      4.4%
+    wand of striking   4.4%
 goblin over 10000 of them
    79.5% of the time (80% stated)
     dagger            39.4%

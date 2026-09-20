@@ -114,6 +114,9 @@ module Roguelike
       ItemKind::BlindnessScroll   => 7,
       ItemKind::TeleportScroll    => 8,
       ItemKind::RepairScroll      => 8,
+      ItemKind::HastePotion       => 10,
+      ItemKind::SlowScroll        => 7,
+      ItemKind::HasteScroll       => 4,
       ItemKind::LightWand         => 8,
       ItemKind::StrikingWand      => 5,
 

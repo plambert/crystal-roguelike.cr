@@ -52,6 +52,15 @@ module Roguelike
     # reach.
     Repair
 
+    # Hurries whoever used it.
+    Haste
+
+    # Holds a creature back, or the reader.
+    Slow
+
+    # Hurries a creature, or the reader.
+    HasteOther
+
     # Whether using this needs a square to aim at.
     #
     # A wand of striking is aimed before it is used. A scroll that needs a
@@ -66,7 +75,7 @@ module Roguelike
     # reading rather than before it. Which square, and whether one is wanted
     # at all, depends on the scroll's own blessing.
     def aims_after? : Bool
-      blind? || teleport?
+      blind? || teleport? || slow? || haste_other?
     end
 
     # Whether using this may need a carried item to work on.

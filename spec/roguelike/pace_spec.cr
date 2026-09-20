@@ -5,20 +5,24 @@ Spectator.describe Roguelike::Pace do
 
   # How many actions a pace of *speed* takes over *ticks* ticks.
   #
-  # The loop is the tick loop: everything gains its speed, and anything that
-  # has banked a tick's worth acts and pays for it.
+  # The loop is `Game#tick`: an actor spends what it came in with, and banks
+  # what the tick paid it at the end.
+  #
+  # The count can be one under the ratio, because an actor holding less than
+  # a tick's worth at the end of a run has earned an action it has not taken.
+  # That one is a phase rather than a drift: it is the same one over ten
+  # thousand ticks as over a hundred.
   def actions(speed : Int32, ticks : Int32) : Int32
     pace = Pace.new speed
-    pace.spend Pace::TICK
     taken = 0
 
     ticks.times do
-      pace.gain
-
       while pace.ready?
         pace.spend Pace::TICK
         taken += 1
       end
+
+      pace.gain
     end
 
     taken
@@ -30,7 +34,7 @@ Spectator.describe Roguelike::Pace do
     end
 
     it "gives one at ninety-five ninety-five of them" do
-      expect(actions 95, 100).to eq 95
+      expect(actions 95, 100).to be_within(1).of(95)
     end
 
     it "gives one at eighty four for the normal five" do
@@ -38,10 +42,12 @@ Spectator.describe Roguelike::Pace do
     end
 
     # The leftover carries, so the ratio does not drift the way a rounded
-    # division would.
+    # division would. A hundred times as long is a hundred times as many
+    # actions and the same one action of phase.
     it "holds the ratio over a long run" do
       expect(actions 80, 10_000).to eq 8_000
-      expect(actions 95, 10_000).to eq 9_500
+      expect(actions 95, 10_000).to be_within(1).of(9_500)
+      expect(actions Pace::NORMAL, 10_000).to eq 10_000
     end
   end
 

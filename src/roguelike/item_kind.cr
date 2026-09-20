@@ -270,6 +270,15 @@ module Roguelike
     # Read to take the damage out of something.
     RepairScroll
 
+    # Drunk to move faster for a while.
+    HastePotion
+
+    # Read to hold a creature back.
+    SlowScroll
+
+    # Read to hurry one along.
+    HasteScroll
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -488,6 +497,15 @@ module Roguelike
       ItemKind::RepairScroll => ItemFacts.new("scroll of repair",
         "scrolls of repair", ItemClass::Scroll, weight: 5,
         effect: Effect::Repair),
+      ItemKind::HastePotion => ItemFacts.new("potion of haste",
+        "potions of haste", ItemClass::Potion, weight: 20,
+        effect: Effect::Haste, power: Dice.new(3, 6, 12)),
+      ItemKind::SlowScroll => ItemFacts.new("scroll of slow monster",
+        "scrolls of slow monster", ItemClass::Scroll, weight: 5,
+        effect: Effect::Slow, power: Dice.new(4, 6, 20)),
+      ItemKind::HasteScroll => ItemFacts.new("scroll of haste monster",
+        "scrolls of haste monster", ItemClass::Scroll, weight: 5,
+        effect: Effect::HasteOther, power: Dice.new(4, 6, 20)),
     }
   end
 end
