@@ -104,6 +104,10 @@ jobs:
               mkdir -p build
               crystal build --release --no-debug --static \
                 -o build/crystal-roguelike src/main.cr
+
+              # --no-debug covers what the compiler emits. The musl and libgc
+              # objects linked in bring their own, about a megabyte of it.
+              strip build/crystal-roguelike
             '
 
       - uses: crystal-lang/install-crystal@v1
