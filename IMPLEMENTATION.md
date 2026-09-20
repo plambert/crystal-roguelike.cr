@@ -1845,6 +1845,19 @@ The death rate does not move. `Trial::Bot` never retreats, so a bot that is fast
 chasing it walks into the next fight instead of the same one. Orc deaths fall by a fifth, and
 goblin deaths rise by the same runs arriving somewhere else to die.
 
+### What an action costs
+
+`Costs` holds the table. Everything costs one tick but getting a suit of body armour on or off,
+which costs three. A cap goes on in a turn and chain mail does not, so changing armour with
+something in the room is a decision rather than a keystroke.
+
+An action that costs three ticks leaves the character three ticks in debt, and `Game#spend` runs
+three ticks to pay it off. Anything standing beside them swings three times. The character is ready
+again when the loop stops, so the cost lands after the action rather than as a wait in front of it.
+
+`Trial::Bot` never wears armour, so the trial report cannot see this change. Two hundred runs from
+seed 5000 print what they printed for the species speeds.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

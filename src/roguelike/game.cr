@@ -2950,7 +2950,7 @@ module Roguelike
         say "#{name(item).capitalize} welds itself to you."
       end
 
-      spend_turn
+      spend Costs.donning(slot)
       true
     end
 
@@ -2970,7 +2970,7 @@ module Roguelike
 
       @player.equipment.clear slot
       say slot.released(name item)
-      spend_turn
+      spend Costs.donning(slot)
       true
     end
 

@@ -207,6 +207,70 @@ Spectator.describe "the tick loop" do
     end
   end
 
+  describe "an action of more than one tick" do
+    alias Item = Roguelike::Item
+    alias Kind = Roguelike::ItemKind
+
+    # A game with *kind* carried, and its letter.
+    def holding(kind : Kind) : {Roguelike::Game, Char}
+      game = bare
+      letter = game.player.inventory.add Item.new(kind)
+      raise "no room" unless letter
+
+      {game, letter}
+    end
+
+    it "takes three turns to put a suit of armour on" do
+      game, letter = holding Kind::ChainMail
+      before = game.turn
+
+      game.wear letter
+
+      expect(game.turn).to eq before + Roguelike::Costs::BODY // Pace::TICK
+    end
+
+    it "takes one turn to put a cap on" do
+      game, letter = holding Kind::Cap
+      before = game.turn
+
+      game.wear letter
+
+      expect(game.turn).to eq before + 1
+    end
+
+    it "takes three turns to get a suit of armour off" do
+      game, letter = holding Kind::ChainMail
+      game.wear letter
+      before = game.turn
+
+      game.take_off Roguelike::Slot::Body
+
+      expect(game.turn).to eq before + 3
+    end
+
+    # Three turns of the world, so three swings from whatever is beside you.
+    it "gives a creature beside you three actions" do
+      game, letter = holding Kind::ChainMail
+      goblin = creature game, Species::Goblin, 4, 3
+      rouse game, goblin
+      before = goblin.pace.energy
+
+      game.wear letter
+
+      expect(before - goblin.pace.energy).to eq 3 * Pace::TICK - 3 * goblin.pace.base
+    end
+
+    # The character is three ticks in debt and pays it off before acting
+    # again, rather than waiting three ticks in front of the action.
+    it "leaves the character ready when it is done" do
+      game, letter = holding Kind::ChainMail
+
+      game.wear letter
+
+      expect(game.player.pace.ready?).to be_true
+    end
+  end
+
   describe "written out" do
     it "carries the energy through a save" do
       game = bare

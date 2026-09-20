@@ -34,6 +34,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   costs energy, so an actor can be faster or slower than another.
 * A slime takes four actions for the character's five. An orc takes
   nineteen for twenty. A goblin keeps pace.
+* Putting a suit of body armour on, or taking it off, takes three turns.
+  Every other action takes one.
 * A scroll of magic mapping writes down the walls only. Room and corridor floors stay unknown until
   somebody walks them.
 * A blessed weapon adds 1 to hit. Damage is unchanged.
