@@ -2,6 +2,7 @@ require "json"
 require "./attributes"
 require "./dice"
 require "./knowledge"
+require "./pace"
 
 module Roguelike
   # Who fights whom.
@@ -180,7 +181,8 @@ module Roguelike
     experience : Int32,
     attributes : Attributes,
     persistence : Int32,
-    size : Size = Size::Medium
+    size : Size = Size::Medium,
+    speed : Int32 = Pace::NORMAL
 
   # How big a creature is.
   #
@@ -311,6 +313,15 @@ module Roguelike
     # What one is made of.
     def attributes : Attributes
       facts.attributes
+    end
+
+    # What one of these gains in a tick.
+    #
+    # `Pace::NORMAL` is the character's own speed. A creature under that
+    # takes fewer actions than the character does over the same stretch of
+    # time, and one over it takes more.
+    def speed : Int32
+      facts.speed
     end
 
     # How many turns one goes on looking after it has lost the character.

@@ -14,6 +14,8 @@ end
 require "./roguelike/rng"
 require "./roguelike/direction"
 require "./roguelike/line"
+require "./roguelike/pace"
+require "./roguelike/costs"
 require "./roguelike/attributes"
 require "./roguelike/advancement"
 require "./roguelike/terrain"

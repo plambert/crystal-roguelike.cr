@@ -1773,6 +1773,44 @@ have to be deleted before a person could type their own, and most people have th
 an empty line takes the offer. A question that comes back after a refusal comes back empty, with a
 fresh offer.
 
+## Time, speed and ticks
+
+The clock runs in ticks. Every actor gains energy on every tick and every action costs energy.
+`Pace::TICK` is 100, which is both what a normal actor gains in a tick and what a one-tick action
+costs. `Pace` holds an actor's base speed and its banked energy, and `Player` and `Monster` each
+carry one.
+
+Energy rather than division. Dividing a cost by a speed rounds on every action and the error
+accumulates, so "twenty percent slower" would stop being twenty percent over a long run. Leftover
+energy carries to the next tick instead, and the ratio holds exactly however long the run is. An
+actor at 80 takes 8000 actions in 10000 ticks, not 7998.
+
+`Game#spend` is what a player action ends with. It takes the cost off the character and then runs
+ticks until the character can act again. One action of theirs is followed by however many actions
+everything else has earned in the meantime.
+
+`Game#tick` counts the turn, banks energy, counts the timers down, and then lets every band look and
+the awake ones act. `Game#creatures_act` skips a creature that has not banked a tick's worth, and
+takes the cost off the ones that do act.
+
+A creature whose band is asleep is held at one action's worth rather than banking. It acts on the
+tick it wakes, which is what the order of `#tick` already gave it: a band that notices the character
+on a tick swings on that tick. A band that slept for a hundred turns would otherwise wake with a
+hundred actions in hand.
+
+An actor is ready when it has banked `TICK` or more, and an action may cost more than that. A
+three-tick action leaves the actor two ticks in debt and it pays that off before it acts again. So
+an expensive action delays what comes after it rather than requiring a wait in front of it.
+
+Speed is clamped to `Pace::LEAST`. An actor at no speed at all would never act again and the loop in
+`#spend` would not end.
+
+`Game#turn` counts ticks rather than player actions. With every actor at normal speed and every
+action at one tick those are the same number, which is why nothing else had to change.
+`Memory#turn`, sighting ages, `PATIENCE`, `FRESH`, `Species#persistence`, blindness and `Handling`
+all keep the units they had. A save written before any of this loads with a pace at normal speed
+and an action in hand.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

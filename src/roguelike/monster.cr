@@ -1,6 +1,7 @@
 require "json"
 require "./item"
 require "./knowledge"
+require "./pace"
 require "./species"
 
 module Roguelike
@@ -65,6 +66,13 @@ module Roguelike
     # with every creature able to see.
     getter blinded : Int32 = 0
 
+    # How fast it is, and how much of its next action it has paid for.
+    #
+    # It has a default, so a save written before this field existed loads a
+    # creature at normal speed. `#after_initialize` takes the base from the
+    # species again on the way in, which is where it came from.
+    getter pace : Pace = Pace.new
+
     def initialize(@species : Species, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
@@ -73,6 +81,15 @@ module Roguelike
                    @carrying : Array(Item) = [] of Item)
       @hit_points = hit_points || @species.hit_points
       @attributes = attributes || @species.attributes
+      @pace = Pace.new @species.speed
+    end
+
+    # Takes the speed from the species after a load.
+    #
+    # The base belongs to the species rather than to the creature, so a save
+    # written before creatures had a pace still loads a slime that oozes.
+    def after_initialize : Nil
+      @pace.base = @species.speed
     end
 
     # Whether this creature cannot see.

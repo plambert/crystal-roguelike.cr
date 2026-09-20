@@ -1,6 +1,7 @@
 require "json"
 require "./apply"
 require "./combat"
+require "./costs"
 require "./effect"
 require "./equipment"
 require "./field_of_view"
@@ -782,7 +783,7 @@ module Roguelike
       blow
     end
 
-    # Gives every awake creature on the floor its turn.
+    # Gives every awake creature that has earned an action its turn.
     #
     # Each one reads a `Pursuit::Snapshot` and answers an `Action`, and this
     # method applies it. The snapshot holds no floor and no player: what a
@@ -805,8 +806,10 @@ module Roguelike
       held.each do |creature|
         break if over?
         next unless awake? creature
+        next unless creature.pace.ready?
         next unless floor.monster?(creature.x, creature.y)
 
+        creature.pace.spend Costs::TURN
         perform creature, plan(creature, maps)
       end
     end
@@ -941,15 +944,39 @@ module Roguelike
       say "You die..."
     end
 
-    # Counts one turn and gives every other creature on the floor its own.
+    # Takes one turn for what the character just did.
     #
     # Every action that takes a turn ends with this, after it has said what
     # it did. What the character did is then read before what was done back.
-    #
-    # Every band looks first and then the awake ones act, so a band that
-    # notices the character this turn swings on the same turn it noticed.
     private def spend_turn : Nil
+      spend Costs::TURN
+    end
+
+    # Takes *cost* off the character and runs the world on until they can act
+    # again.
+    #
+    # The character pays first and the world catches up after, so one action
+    # of theirs is followed by however many actions everything else has
+    # earned in that time. A character at normal speed doing a one-tick
+    # action gets one tick of world, which is one action from every awake
+    # creature at normal speed.
+    private def spend(cost : Int32) : Nil
+      @player.pace.spend cost
+
+      until @player.pace.ready? || over?
+        tick
+      end
+    end
+
+    # One tick of the world.
+    #
+    # Everything gains its speed in energy, the timers count down, and then
+    # every band looks and the awake ones act. A band looks before it acts,
+    # so one that notices the character on this tick swings on it.
+    private def tick : Nil
       @turn += 1
+      bank_energy
+      wear_off
       handle_items
       blink
       return if over?
@@ -958,6 +985,25 @@ module Roguelike
       noticed = creatures_notice seen
       creatures_look seen, noticed
       creatures_act
+    end
+
+    # Gives every actor on the floor a tick's worth of energy.
+    #
+    # A creature whose band is asleep is held at one action's worth instead
+    # of banking. It acts on the tick it wakes, and a band that slept for a
+    # hundred turns does not wake with a hundred actions in hand.
+    private def bank_energy : Nil
+      @player.pace.gain
+
+      floor.each_monster do |_column, _row, creature|
+        awake?(creature) ? creature.pace.gain : creature.pace.rest
+      end
+    end
+
+    # Counts a haste and a slow down one tick, on everything that has one.
+    private def wear_off : Nil
+      @player.pace.pass
+      floor.each_monster { |_column, _row, creature| creature.pace.pass }
     end
 
     # ------------------------------------------------------------ detection

@@ -4,6 +4,7 @@ require "./attributes"
 require "./equipment"
 require "./inventory"
 require "./knowledge"
+require "./pace"
 
 module Roguelike
   # The character the person plays.
@@ -53,6 +54,12 @@ module Roguelike
     # It has a default, so a save written before this field existed loads
     # with the character able to see.
     getter blinded : Int32 = 0
+
+    # How fast the character is, and how much of the next action is paid for.
+    #
+    # It has a default, so a save written before this field existed loads a
+    # character at normal speed with an action in hand.
+    getter pace : Pace = Pace.new
 
     # What the character carries.
     getter inventory : Inventory
