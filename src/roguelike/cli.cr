@@ -46,6 +46,16 @@ module Roguelike
     flag trial_turns : Int32 = Trial::TURNS, "--trial-turns",
       "How many turns one --trial game is given", range: 1..1_000_000
 
+    flag trial_cautious : Bool = false, "--trial-cautious",
+      "Play --trial with the bot that backs away when it is badly hurt"
+
+    # A measurement rather than a game. Every species moves at this instead
+    # of its own speed, which is how the death rate is read as a curve
+    # against how fast the floor is.
+    flag trial_speed : Int32 = 0, "--trial-speed",
+      "Move every species at this speed during --trial. 100 is the character",
+      range: 0..300
+
     def run
       return listed if saves
       return played if trial > 0
@@ -105,9 +115,13 @@ module Roguelike
     # two builds are compared over the same dungeons.
     private def played : Nil
       first = seed || Trial::FIRST
+      Kinds.override = trial_speed if trial_speed > 0
 
       puts "from seed #{first}, at most #{trial_turns} turns a run"
-      print Trial.play(trial, first, trial_turns)
+      puts "every species at speed #{trial_speed}" if trial_speed > 0
+      puts "the bot backs away when it is badly hurt" if trial_cautious
+
+      print Trial.play(trial, first, trial_turns, trial_cautious)
     end
   end
 end

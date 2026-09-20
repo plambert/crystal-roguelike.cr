@@ -321,7 +321,7 @@ module Roguelike
     # takes fewer actions than the character does over the same stretch of
     # time, and one over it takes more.
     def speed : Int32
-      facts.speed
+      Kinds.override || facts.speed
     end
 
     # How many turns one goes on looking after it has lost the character.
@@ -357,6 +357,13 @@ module Roguelike
 
   # The table behind `Species`. An enum body cannot hold it.
   module Kinds
+    # What every species moves at instead of its own speed, or `nil`.
+    #
+    # `--trial-speed` sets this and nothing else does. It is for sweeping the
+    # speed of the whole floor across a set of runs to see what the death
+    # rate does. A run with this set is a measurement rather than a game.
+    class_property override : Int32? = nil
+
     # The intelligence at which a creature stops putting a foot wrong.
     #
     # This lives here rather than in the enum because a name in an enum body

@@ -1901,6 +1901,42 @@ Two hundred trial runs from seed 5000, with the three kinds in the tables and wi
 swallows a potion of haste in place of a heal and covers more ground before it dies. Some of the
 rest is the tables having three more kinds in them, which moves what every roll after them lands on.
 
+### Measuring what a speed is worth
+
+`--trial-speed N` moves every species at `N` instead of its own speed. `--trial-cautious` plays
+`Trial::Cautious`, which is `Trial::Bot` with one step in front of the swing: below `Bot::HURT` out
+of a hundred hit points, with something beside it, it steps to whichever square takes it furthest
+from that creature. The plain bot never retreats, so it takes the same beating whether it could
+outwalk what is hitting it or not.
+
+Two hundred runs from seed 5000, every species at one speed:
+
+| every species at | died | turns until death, median |
+| --- | --- | --- |
+| 70 | 71% | 147 |
+| 85 | 75% | 97 |
+| 100 | 76% | 95 |
+| 115 | 78% | 97 |
+| 130 | 83% | 93 |
+
+Above 85 the death rate rises about a point for every five points of speed. The shipped speeds come
+out at 77%, between the 85 and the 100 rows, because a goblin is at 100 and goblins are most of
+what is on a floor.
+
+The same two hundred runs with the bot that backs away:
+
+| | reckless | cautious |
+| --- | --- | --- |
+| died, shipped speeds | 77% | 79% |
+| died, every species at 100 | 76% | 79% |
+| turns until death, shipped | 117 | 106 |
+
+Retreating does not pay. A goblin holds whatever distance it has, so backing away from one is
+taking hits without giving any, and a goblin is forty-five out of every hundred creatures on a
+floor. The speeds here only buy something against a slime, which is the least dangerous of the
+three to begin with. Making the difference matter means slowing what is common rather than what is
+rare, or giving the character a way to get faster, which is what the potion of haste is.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

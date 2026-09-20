@@ -104,14 +104,18 @@ module Roguelike
     TURNS = 1500
 
     # Plays *runs* games from *first* and answers how they went.
+    #
+    # *cautious* plays the bot that backs away when it is badly hurt rather
+    # than the one that never retreats.
     def self.play(runs : Int32, first : UInt64 = FIRST,
-                  turns : Int32 = TURNS) : Report
-      Report.new (0...runs).map { |index| one first + index, turns }
+                  turns : Int32 = TURNS, cautious : Bool = false) : Report
+      Report.new (0...runs).map { |index| one first + index, turns, cautious }
     end
 
     # Plays one game from *seed* and answers how it went.
-    def self.one(seed : UInt64, turns : Int32 = TURNS) : Played
-      bot = Bot.new seed
+    def self.one(seed : UInt64, turns : Int32 = TURNS,
+                 cautious : Bool = false) : Played
+      bot = cautious ? Cautious.new(seed) : Bot.new(seed)
 
       turns.times do
         break if bot.game.over?
@@ -174,11 +178,18 @@ module Roguelike
         wander
       end
 
-      # Drinks something when badly hurt. Answers whether it did.
-      private def drank : Bool
+      # Whether it is below `HURT` out of a hundred hit points.
+      protected def hurt? : Bool
         player = @game.player
-        return false unless player.hit_points * 100 // player.max_hit_points < HURT
 
+        player.hit_points * 100 // player.max_hit_points < HURT
+      end
+
+      # Drinks something when badly hurt. Answers whether it did.
+      protected def drank : Bool
+        return false unless hurt?
+
+        player = @game.player
         found = player.inventory.entries.find do |_letter, item|
           item.kind.item_class.potion?
         end
@@ -189,7 +200,7 @@ module Roguelike
       end
 
       # Swings at whatever is standing next to it. Answers whether it did.
-      private def swung : Bool
+      protected def swung : Bool
         beside = @game.adjacent.first?
         return false unless beside
 
@@ -204,7 +215,7 @@ module Roguelike
       end
 
       # Takes what is underfoot. Answers whether it did.
-      private def took : Bool
+      protected def took : Bool
         pile = @game.here
         return false if pile.empty?
 
@@ -230,7 +241,7 @@ module Roguelike
       #
       # Walking into a shut door opens it, so this is all the door handling
       # the bot needs.
-      private def wander : Nil
+      protected def wander : Nil
         here = @game.player.at
         @been << here
 
@@ -246,6 +257,58 @@ module Roguelike
         end
 
         @game.step (fresh.empty? ? ways : fresh).sample(@rng)
+      end
+    end
+
+    # A bot that backs away from a fight it is losing.
+    #
+    # The same rule as `Bot` with one step in front of the swing: when it is
+    # below `Bot::HURT` out of a hundred hit points and something is standing
+    # next to it, it steps to whichever square takes it furthest from that
+    # creature.
+    #
+    # It is here to measure what a speed is worth. A bot that never retreats
+    # takes the same beating whether it can outwalk what is hitting it or
+    # not, so the gap between these two sets of runs is what being faster
+    # buys somebody who uses it.
+    class Cautious < Bot
+      def turn : Nil
+        return if @game.over?
+        return if @game.descend
+        return if drank
+        return if fled
+        return if swung
+        return if took
+
+        wander
+      end
+
+      # Steps away from whatever is beside it. Answers whether it did.
+      #
+      # It answers false when no square takes it further off, so a bot in a
+      # corner turns and fights rather than standing still to be hit.
+      private def fled : Bool
+        return false unless hurt?
+
+        beside = @game.adjacent.first?
+        return false unless beside
+
+        here = @game.player.at
+        gap = Notice.apart here, beside.at
+
+        away = Direction.values.select do |direction|
+          spot = direction.from here[0], here[1]
+          @game.floor.passable?(spot[0], spot[1]) &&
+            !@game.floor.monster?(spot[0], spot[1])
+        end.max_by? do |direction|
+          Notice.apart direction.from(here[0], here[1]), beside.at
+        end
+        return false unless away
+
+        return false unless Notice.apart(away.from(here[0], here[1]), beside.at) > gap
+
+        @game.step away
+        true
       end
     end
   end

@@ -125,4 +125,55 @@ Spectator.describe Roguelike::Trial do
       expect(bot.game.turn).to eq before
     end
   end
+
+  describe Roguelike::Trial::Cautious do
+    # A hall, the character at one end on their last few hit points, and a
+    # goblin standing next to them.
+    def cornered : Trial::Cautious
+      bot = Trial::Cautious.new Trial::FIRST
+      game = bot.game
+      game.player.hurt game.player.hit_points - 1
+
+      spot = Roguelike::Direction::East.from game.player.x, game.player.y
+      game.floor.place Roguelike::Monster.new(
+        Roguelike::Species::Goblin, spot[0], spot[1], "band-beside")
+
+      bot
+    end
+
+    # It steps rather than swings. Whether that opens a gap is the creature's
+    # business: a goblin keeps pace and is beside it again by the end of the
+    # turn, which is what these runs are measured to find out.
+    it "steps away rather than swinging when it is badly hurt" do
+      bot = cornered
+      goblin = bot.game.adjacent.first
+      where = bot.game.player.at
+      health = goblin.hit_points
+
+      bot.turn
+
+      expect(bot.game.player.at).not_to eq where
+      expect(goblin.hit_points).to eq health
+    end
+
+    # A bot that never swung would never kill anything.
+    it "swings while it is in good health" do
+      bot = Trial::Cautious.new Trial::FIRST
+      game = bot.game
+      spot = Roguelike::Direction::East.from game.player.x, game.player.y
+      game.floor.place Roguelike::Monster.new(
+        Roguelike::Species::Goblin, spot[0], spot[1], "band-beside")
+      where = game.player.at
+
+      bot.turn
+
+      expect(game.player.at).to eq where
+    end
+
+    it "plays a whole set of runs" do
+      report = Trial.play RUNS, Trial::FIRST, TURNS, cautious: true
+
+      expect(report.runs).to eq RUNS
+    end
+  end
 end
