@@ -51,6 +51,15 @@ module Roguelike::Ui
     # What the end screen says the keys do.
     AGAIN_FOOTER = "Play again? y starts a new run, n quits."
 
+    # What the title screen says the build is.
+    #
+    # `Roguelike::VERSION` is read out of `shard.yml` when the game is
+    # compiled. A released binary carries the tag it was built from, so a
+    # person reporting a run can say which build they played.
+    def self.build : String
+      "version #{Roguelike::VERSION}"
+    end
+
     # The title screen for a run on *seed*, with *saved* offered to carry on.
     #
     # The saved characters are listed so that a person can see which names
@@ -60,6 +69,7 @@ module Roguelike::Ui
     def self.title(seed : UInt64, saved : Array(Save::Held) = [] of Save::Held) : Array(String)
       lines = [
         "",
+        build,
         "A dungeon dug from seed #{seed}.",
         "",
       ]

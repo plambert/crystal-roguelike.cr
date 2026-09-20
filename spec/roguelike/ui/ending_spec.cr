@@ -86,6 +86,12 @@ Spectator.describe "how a run starts and ends" do
       expect(run.placard.lines.any? &.includes?("seed #{SEED}")).to be_true
     end
 
+    it "names the version it was built from" do
+      run = playing title: true
+
+      expect(run.placard.lines).to contain "version #{Roguelike::VERSION}"
+    end
+
     it "plays on p" do
       run = playing title: true
 
@@ -385,10 +391,19 @@ Spectator.describe "how a run starts and ends" do
   end
 
   describe "drawn" do
+    # The version is compiled in, so the title screen changes with every
+    # release. The number is blanked before the comparison, and blanked to
+    # its own width, so the fixture holds the layout and not the build.
+    def without_version(drawn : String) : String
+      blank = "version".ljust Placards.build.size
+
+      drawn.sub Placards.build, blank
+    end
+
     # Each screen written out, so a change to any of the wording shows as a
     # diff of two screens rather than as one failed expectation.
     it "draws the title screen the way it drew it last time" do
-      drawn = playing(title: true).text
+      drawn = without_version playing(title: true).text
 
       expect(drawn).to eq Fixture.expected("screens/title.txt", drawn)
     end

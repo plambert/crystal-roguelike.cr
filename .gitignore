@@ -18,3 +18,6 @@
 *.db
 .DS_Store
 .tmp
+/build/
+/dist/
+/.static-libs/

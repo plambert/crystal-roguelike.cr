@@ -1,0 +1,210 @@
+# Builds a binary for every platform the game ships on, and attaches them to
+# a GitHub release.
+#
+# A tag of the form vX.Y.Z releases. Anything else run by hand builds the same
+# binaries and stops there, so the build can be exercised without cutting a
+# tag.
+#
+# The version a binary reports comes from shard.yml, which the compiler reads
+# through the VERSION macro. The first job refuses a tag that says something
+# else, so a release named v1.2.3 cannot contain a binary that calls itself
+# 1.2.2.
+name: release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CRYSTAL_VERSION: '1.21.0'
+
+jobs:
+  # Settles what version is being built before anything spends a runner on it.
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.settle.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: settle
+        name: Read shard.yml and check it against the tag
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version: *//p' shard.yml | head -1 | tr -d "\"' ")
+
+          if [ -z "$version" ]; then
+            echo "::error file=shard.yml::no version in shard.yml"
+            exit 1
+          fi
+
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            tagged="${GITHUB_REF_NAME#v}"
+            if [ "$tagged" != "$version" ]; then
+              echo "::error file=shard.yml::tag $GITHUB_REF_NAME wants version $tagged, shard.yml says $version"
+              exit 1
+            fi
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "building $version"
+
+  build:
+    needs: version
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux builds run in the Crystal project's Alpine image and link
+          # statically, so one binary runs on any distribution. The build runs
+          # under docker rather than in a job container: the checkout and the
+          # artifact upload then run on the host, where they have the glibc
+          # they are built against.
+          - platform: linux-x86_64
+            runner: ubuntu-24.04
+            builder: docker
+          - platform: linux-aarch64
+            runner: ubuntu-24.04-arm
+            builder: docker
+          # macOS cannot link libSystem statically. The two libraries that are
+          # not part of the OS are linked from their archives instead, which
+          # leaves a binary that needs nothing from Homebrew.
+          - platform: macos-aarch64
+            runner: macos-15
+            builder: native
+
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      PLATFORM: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build in the Alpine image, statically linked
+        if: matrix.builder == 'docker'
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --volume "$PWD:/workspace" \
+            --workdir /workspace \
+            "crystallang/crystal:${CRYSTAL_VERSION}-alpine" \
+            sh -euxc '
+              git config --global --add safe.directory /workspace
+              shards install --production --frozen
+              crystal build --release --no-debug --static \
+                -o build/crystal-roguelike src/main.cr
+            '
+
+      - uses: crystal-lang/install-crystal@v1
+        if: matrix.builder == 'native'
+        with:
+          crystal: ${{ env.CRYSTAL_VERSION }}
+
+      - name: Build for macOS, linking the collector and pcre2 from their archives
+        if: matrix.builder == 'native'
+        run: |
+          set -euo pipefail
+          # Crystal itself pulls these in when Homebrew installs it. The
+          # action may install Crystal from a tarball instead, so ask for
+          # them by name, and only when they are not already here.
+          for formula in bdw-gc pcre2; do
+            brew list "$formula" > /dev/null 2>&1 || brew install "$formula"
+          done
+
+          # The linker takes the first directory that holds a match. A
+          # directory holding only the archives is searched first, so the
+          # dylibs beside them in Homebrew are never reached.
+          mkdir -p .static-libs
+          cp "$(brew --prefix bdw-gc)/lib/libgc.a" .static-libs/
+          cp "$(brew --prefix pcre2)/lib/libpcre2-8.a" .static-libs/
+
+          shards install --production --frozen
+          crystal build --release --no-debug \
+            -o build/crystal-roguelike src/main.cr \
+            --link-flags "-L$PWD/.static-libs"
+
+          otool -L build/crystal-roguelike
+
+      # Every runner is the architecture it built for, so the binary can be
+      # run here. It reports the version it was compiled with, which is the
+      # last place a mismatch could still appear.
+      - name: Run it and check what it says it is
+        run: |
+          set -euo pipefail
+          said=$(./build/crystal-roguelike --version)
+          want="crystal-roguelike $VERSION"
+
+          if [ "$said" != "$want" ]; then
+            echo "::error::the binary says '$said', the build is '$want'"
+            exit 1
+          fi
+
+          echo "$said"
+
+      - name: Pack it with the licence and the readme
+        run: |
+          set -euo pipefail
+          name="crystal-roguelike-$VERSION-$PLATFORM"
+
+          mkdir -p "dist/$name"
+          cp build/crystal-roguelike "dist/$name/"
+          cp README.md LICENSE "dist/$name/"
+
+          tar --create --gzip --directory dist --file "dist/$name.tar.gz" "$name"
+          rm -rf "dist/$name"
+
+          if command -v sha256sum > /dev/null; then
+            (cd dist && sha256sum "$name.tar.gz" > "$name.tar.gz.sha256")
+          else
+            (cd dist && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
+          fi
+
+          cat "dist/$name.tar.gz.sha256"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist-${{ matrix.platform }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    if: github.ref_type == 'tag'
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+
+      # The per-platform files are already in sha256sum's own format, so the
+      # concatenation is a file `sha256sum --check` reads.
+      - name: Gather the checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          cat ./*.tar.gz.sha256 > SHA256SUMS
+          rm -f ./*.tar.gz.sha256
+          sha256sum --check SHA256SUMS
+          ls -l
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          fail_on_unmatched_files: true
+          generate_release_notes: true
