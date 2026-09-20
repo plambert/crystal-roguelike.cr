@@ -101,6 +101,7 @@ jobs:
             sh -euxc '
               git config --global --add safe.directory /workspace
               shards install --production --frozen
+              mkdir -p build
               crystal build --release --no-debug --static \
                 -o build/crystal-roguelike src/main.cr
             '
@@ -129,6 +130,10 @@ jobs:
           cp "$(brew --prefix pcre2)/lib/libpcre2-8.a" .static-libs/
 
           shards install --production --frozen
+
+          # The linker writes the output file. It does not make the directory
+          # it goes in.
+          mkdir -p build
           crystal build --release --no-debug \
             -o build/crystal-roguelike src/main.cr \
             --link-flags "-L$PWD/.static-libs"
