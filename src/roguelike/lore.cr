@@ -106,8 +106,11 @@ module Roguelike
     #     3 cursed arrows
     #     a swirly potion
     #     a potion of healing
-    def name(item : Item) : String
-      noun = noun_for item
+    # *blessing* false leaves the blessing word out, however much the
+    # character knows. A line that has already said a thing is cursed does
+    # not want to call it "a cursed dagger" as well.
+    def name(item : Item, blessing : Bool = true) : String
+      noun = noun_for item, blessing
       return "#{item.count} #{noun}" if item.count > 1
       return noun if item.kind.uncountable?
 
@@ -115,16 +118,16 @@ module Roguelike
     end
 
     # :ditto:, without the article or the count.
-    def noun_for(item : Item) : String
+    def noun_for(item : Item, blessing : Bool = true) : String
       kind = item.kind
       plural = item.count > 1
 
       unless known? kind
-        return disguised_noun item, plural
+        return disguised_noun item, plural, blessing
       end
 
       words = [] of String
-      words << item.blessing.label if item.blessing_known?
+      words << item.blessing.label if blessing && item.blessing_known?
       words << (item.condition.label || "") unless item.condition.plain?
       words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
       words << (plural ? kind.plural : kind.label)
@@ -136,7 +139,8 @@ module Roguelike
     #
     # A known blessing still shows. A character can be told a potion is cursed
     # without being told what is in it.
-    private def disguised_noun(item : Item, plural : Bool) : String
+    private def disguised_noun(item : Item, plural : Bool,
+                               blessing : Bool = true) : String
       kind = item.kind
       look = appearance kind
       noun = if look
@@ -150,7 +154,7 @@ module Roguelike
                plural ? kind.plural : kind.label
              end
 
-      item.blessing_known? ? "#{item.blessing.label} #{noun}" : noun
+      blessing && item.blessing_known? ? "#{item.blessing.label} #{noun}" : noun
     end
 
     # `+1`, `-2`, and so on.

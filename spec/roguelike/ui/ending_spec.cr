@@ -129,6 +129,54 @@ Spectator.describe "how a run starts and ends" do
   end
 
   describe "the name question" do
+    it "offers a name on the empty line" do
+      run = playing title: true
+
+      run.press "p"
+
+      expect(run.entry.field.placeholder).not_to be_empty
+      expect(run.entry.text).to be_empty
+    end
+
+    # The offer sits where the placeholder goes rather than on the line, so
+    # somebody with a name of their own types it without deleting anything
+    # first.
+    it "takes the offered name on an empty line" do
+      run = playing title: true
+
+      run.press "p"
+      offered = run.entry.field.placeholder
+      run.press "Enter"
+
+      expect(run.game.player.name).to eq offered
+      expect(run.entry.asking?).to be_false
+    end
+
+    it "offers a different name after a refusal" do
+      run = playing title: true
+
+      run.press "p"
+      first = run.entry.field.placeholder
+      run.type "!!!"
+      run.press "Enter"
+
+      expect(run.entry.asking?).to be_true
+      expect(run.entry.field.placeholder).not_to eq first
+    end
+
+    it "offers a name nothing is saved under" do
+      store = Playing.store
+      kept = playing
+      kept.game.player.name = Roguelike::Names.roll(
+        Roguelike::Rng.new(Playing::SEED).derive "name", 0)
+      store.write kept.game
+
+      run = playing title: true, store: store
+      run.press "p"
+
+      expect(run.entry.field.placeholder).not_to eq kept.game.player.name
+    end
+
     it "names the character with what was typed" do
       run = playing title: true
 

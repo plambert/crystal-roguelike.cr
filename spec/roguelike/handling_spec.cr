@@ -155,6 +155,41 @@ Spectator.describe Roguelike::Handling do
       expect(ratio).to be < 0.5
     end
 
+    describe "what it says" do
+      # One stack of three says "are" and a single dagger says "is".
+      it "agrees the verb with the count" do
+        lore = Roguelike::Lore.new
+        one = Item.new Kind::Dagger, blessing_known: true
+        several = Item.new Kind::Arrow, count: 3, blessing_known: true
+
+        expect(Roguelike::Game.worked_out lore, one)
+          .to eq "You are certain that a dagger is not cursed."
+        expect(Roguelike::Game.worked_out lore, several)
+          .to eq "You are certain that 3 arrows are not cursed."
+      end
+
+      it "leaves the blessing word out of the name" do
+        lore = Roguelike::Lore.new
+        cursed = Item.new Kind::Spike, blessing: Blessing::Cursed,
+          blessing_known: true
+        blessed = Item.new Kind::Spike, count: 3, blessing: Blessing::Blessed,
+          blessing_known: true
+
+        expect(Roguelike::Game.worked_out lore, cursed)
+          .to eq "You realize that an iron spike is cursed!"
+        expect(Roguelike::Game.worked_out lore, blessed)
+          .to eq "You realize that 3 iron spikes are blessed!"
+      end
+
+      it "reads an uncountable kind as one thing" do
+        lore = Roguelike::Lore.new
+        armour = Item.new Kind::LeatherArmour, blessing_known: true
+
+        expect(Roguelike::Game.worked_out lore, armour)
+          .to eq "You are certain that leather armour is not cursed."
+      end
+    end
+
     it "says what it worked out" do
       game = bare
       item = Item.new Kind::Dagger, blessing: Blessing::Cursed

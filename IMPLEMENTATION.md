@@ -1471,6 +1471,21 @@ and a carried one in about 100.
 a sword is cursed does not shift what the next swing rolls. The rolls are collected before any of
 them is acted on, because acting on one moves items about.
 
+### What the character says when they work it out
+
+The verb agrees with the count, because one stack of three says "are" and a single dagger says
+"is". The name leaves the blessing word out either way, because the sentence is what says it.
+
+```text
+You are certain that 3 iron spikes are not cursed.
+You realize that an iron spike is cursed!
+You realize that 3 iron spikes are blessed!
+```
+
+A curse or a blessing is news and the line ends in a mark. An uncursed item is not news and the
+line is flat. `Lore#name` takes a `blessing` argument for this, false meaning leave the word out
+however much the character knows.
+
 ### A curse holds what is in a slot
 
 `Item#sticks?` says only that an item is cursed. Whether it can be let go of is `Game`'s to decide,
@@ -1544,6 +1559,22 @@ doors, which are listed below as three entries that have to land together.
 The character starts with three. A floor hands them out at a weight of 7 against a table totalling
 460, which is 1.5 out of every 100 items it scatters, in stacks of two to four. At that rate a
 person who had to find one before learning what it is for would mostly never find one.
+
+## A name to start with
+
+The name question offers one. `Names.roll` builds it from a syllable start, one or two vowel
+groups, and an ending: "Kaeld", "Brizaend", "Shadioss". Nothing shorter than four letters is
+offered, because three letters comes out an English word about as often as not. Nothing here holds
+state, and it rolls on an `Rng` derived from the run's own seed, so `--seed N` twice offers the same
+name twice.
+
+`Names.free` rolls past a name the store already holds, because the question would otherwise refuse
+its own offer.
+
+The offer sits where the placeholder goes, dimmed, rather than on the line. A name on the line would
+have to be deleted before a person could type their own, and most people have their own. `Enter` on
+an empty line takes the offer. A question that comes back after a refusal comes back empty, with a
+fresh offer.
 
 ## Asked for, not yet built
 

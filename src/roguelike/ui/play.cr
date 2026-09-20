@@ -176,6 +176,15 @@ module Roguelike::Ui
     # leave two endings on disk for one death.
     @retired : Bool = false
 
+    # How many times the name question has been asked this run.
+    #
+    # It names the stream the offered name is rolled from, so every question
+    # offers a different one.
+    @suggested : Int32 = 0
+
+    # The name the question is offering. `Enter` on an empty line takes it.
+    @offered : String = ""
+
     # The size of the screen, as `#fit` was last told it.
     @columns : Int32 = 0
     @rows : Int32 = 0
@@ -311,14 +320,42 @@ module Roguelike::Ui
     #
     # *complaint* replaces the question when the last answer was refused, so
     # the box says why rather than going blank and asking the same thing.
+    # Asks who is playing, with a name offered for somebody who has not
+    # thought of one.
+    #
+    # The offer sits where the placeholder goes, dimmed, rather than on the
+    # line. A name on the line would have to be deleted before a person could
+    # type their own, and most people have their own. `Enter` on an empty
+    # line takes the offer.
+    #
+    # A question that was refused comes back with an empty line and a fresh
+    # offer, rather than with what was refused still on it. Somebody told
+    # their name is taken is about to type a different one.
     private def ask_the_name(complaint : String? = nil) : Nil
-      @entry.on_answer = ->(typed : String?) do
-        answered_the_name typed
+      @offered = suggestion
+
+      @entry.on_answer = ->(answer : String?) do
+        answered_the_name answer
         nil
       end
 
       @entry.ask application, complaint || Placards::NAME_QUESTION,
-        placeholder: Placards::NAME_PLACEHOLDER
+        placeholder: @offered
+    end
+
+    # A name to offer somebody who has not thought of one.
+    #
+    # It is rolled from the run's own seed, so `--seed N` twice offers the
+    # same name twice. A name already saved under is rolled past rather than
+    # offered, because the question would then refuse its own offer.
+    #
+    # The counter moves on with every question, so a person who does not like
+    # what is offered can back out to the title screen and come in again.
+    private def suggestion : String
+      found = Rng.new(@game.world.seed).derive "name", @suggested
+      @suggested += 1
+
+      Names.free found, @store
     end
 
     # What to do with what was typed at the name question.
@@ -330,6 +367,7 @@ module Roguelike::Ui
       return show_title if typed.nil?
 
       name = typed.strip
+      name = @offered if name.empty?
       return ask_the_name Placards::NAME_UNUSABLE if Save.slug(name).empty?
 
       whose = @store.try &.taken_by(name)

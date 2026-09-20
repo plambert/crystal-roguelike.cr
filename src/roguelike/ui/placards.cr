@@ -18,10 +18,10 @@ module Roguelike::Ui
     START_FOOTER = "p plays, q quits."
 
     # What the name question asks.
-    NAME_QUESTION = "Who is playing? A name already saved carries on."
-
-    # What is drawn on the empty line, before anything is typed.
-    NAME_PLACEHOLDER = "a name"
+    #
+    # The empty line holds a name the game rolled, dimmed. `Enter` takes it,
+    # which is what "or take this one" points at.
+    NAME_QUESTION = "Who is playing? Enter takes the name offered."
 
     # The most saved characters the title screen lists.
     MOST_SAVED = 8
