@@ -1811,6 +1811,40 @@ action at one tick those are the same number, which is why nothing else had to c
 all keep the units they had. A save written before any of this loads with a pace at normal speed
 and an action in hand.
 
+### What each species is worth
+
+| species | speed | actions per hundred of the character's |
+| --- | --- | --- |
+| character | 100 | 100 |
+| goblin | 100 | 100 |
+| orc | 95 | 95 |
+| slime | 80 | 80 |
+
+A slime can be walked away from. An orc gains a square every twenty turns on somebody who stops,
+and a goblin holds whatever distance it has. Walking forty squares away from a creature three
+squares behind leaves the slime thirty squares back, the orc four and the goblin three. The slime
+loses sight of the character at four squares and gives up, which is `Species#persistence` doing its
+own job on top of the speed.
+
+`Game#creatures_act` sorts the awake creatures by square, north to south and west to east.
+`Floor#walk` takes a creature out of the table and puts it back, so the order they were held in
+followed what had moved rather than what was there. Two creatures never share a square, so the sort
+is total.
+
+Two hundred trial runs from seed 5000, at parity against these speeds:
+
+| | parity | speeds |
+| --- | --- | --- |
+| died | 76% | 76% |
+| turns until death, median | 98 | 102 |
+| squares from start, median | 17 | 18 |
+| killed by an orc | 51 | 42 |
+| killed by a goblin | 96 | 104 |
+
+The death rate does not move. `Trial::Bot` never retreats, so a bot that is faster than what is
+chasing it walks into the next fight instead of the same one. Orc deaths fall by a fifth, and
+goblin deaths rise by the same runs arriving somewhere else to die.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

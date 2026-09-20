@@ -30,6 +30,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Time runs on ticks. Every actor gains energy each tick and every action
+  costs energy, so an actor can be faster or slower than another.
+* A slime takes four actions for the character's five. An orc takes
+  nineteen for twenty. A goblin keeps pace.
 * A scroll of magic mapping writes down the walls only. Room and corridor floors stay unknown until
   somebody walks them.
 * A blessed weapon adds 1 to hit. Damage is unchanged.

@@ -368,7 +368,7 @@ module Roguelike
         "a puddle of acid that moves on its own",
         hit_points: 6, damage: Dice.new(1, 4), armour: 0,
         notice: 4, darkvision: false, paths: false, experience: 3,
-        size: Size::Medium, persistence: 4,
+        size: Size::Medium, persistence: 4, speed: 80,
         attributes: Attributes.new(strength: 8, dexterity: 4, constitution: 12,
           intelligence: 3, stealth: 6)),
 
@@ -384,7 +384,7 @@ module Roguelike
         "a heavy grey brute with a notched blade",
         hit_points: 14, damage: Dice.new(1, 8), armour: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
-        size: Size::Large, persistence: 30,
+        size: Size::Large, persistence: 30, speed: 95,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 10, stealth: 8)),
     }

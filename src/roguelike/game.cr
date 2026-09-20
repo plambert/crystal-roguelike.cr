@@ -796,12 +796,19 @@ module Roguelike
     #
     # The list is taken before any of them acts. A creature that moves would
     # otherwise change the table being walked, and a swing can end the run.
+    #
+    # It is sorted by square, north to south and west to east. `Floor#walk`
+    # takes a creature out of the table and puts it back, so the order it is
+    # held in follows what has moved rather than what is there. Two creatures
+    # never share a square, so the sort is total and one tick plays out the
+    # same way from the same seed.
     private def creatures_act : Nil
       return if over?
 
       maps = descents
       held = [] of Monster
       floor.each_monster { |_column, _row, creature| held << creature }
+      held.sort_by! { |creature| {creature.y, creature.x} }
 
       held.each do |creature|
         break if over?
