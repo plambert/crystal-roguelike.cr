@@ -207,6 +207,15 @@ module Roguelike
         floor.fixture(x, y).try(&.copy), held.try(&.item), turn
     end
 
+    # Writes *memory* down at *x*, *y*, over whatever was there.
+    #
+    # Everything else here builds a memory from what a creature looked at.
+    # This is for a caller that has built one of its own: a scroll that says
+    # where something is without saying how the square got that way.
+    def remember(x : Int32, y : Int32, memory : Memory) : Nil
+      @memories[Floor.spot x, y] = memory
+    end
+
     # Records that *x*, *y* can be crossed, and nothing else about it.
     #
     # This is what seeing somebody across a square gives. The line that

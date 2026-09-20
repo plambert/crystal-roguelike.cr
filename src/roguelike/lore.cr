@@ -28,7 +28,8 @@ module Roguelike
 
     # What is written on a scroll.
     SCROLL_LOOKS = %w[ZELGO MER JUYED GARVEN THARR VENZAR KIRJE ELBIB YLOH
-      VERR PRIRUTSENIE ANDOVA]
+      VERR PRIRUTSENIE ANDOVA HACKEM MUCK VELOX NEB DAIYEN FOOLS XIXAXA
+      XOXAXA GNIK SISI TEMOV FOOBIE BLETCH]
 
     # What each disguised kind looks like this run.
     getter appearances : Hash(ItemKind, String)
@@ -109,8 +110,13 @@ module Roguelike
     # *blessing* false leaves the blessing word out, however much the
     # character knows. A line that has already said a thing is cursed does
     # not want to call it "a cursed dagger" as well.
-    def name(item : Item, blessing : Bool = true) : String
-      noun = noun_for item, blessing
+    # *identified* true names the kind whether or not the character has found
+    # it out, and teaches them nothing by it. A scroll that says what it
+    # destroyed says what it was; it does not say what colour that kind comes
+    # in for the rest of the run.
+    def name(item : Item, blessing : Bool = true,
+             identified : Bool = false) : String
+      noun = noun_for item, blessing, identified
       return "#{item.count} #{noun}" if item.count > 1
       return noun if item.kind.uncountable?
 
@@ -118,16 +124,18 @@ module Roguelike
     end
 
     # :ditto:, without the article or the count.
-    def noun_for(item : Item, blessing : Bool = true) : String
+    def noun_for(item : Item, blessing : Bool = true,
+                 identified : Bool = false) : String
       kind = item.kind
       plural = item.count > 1
 
-      unless known? kind
+      unless identified || known?(kind)
         return disguised_noun item, plural, blessing
       end
 
       words = [] of String
-      words << item.blessing.label if blessing && item.blessing_known?
+      words << item.blessing.label if blessing &&
+                                      (identified || item.blessing_known?)
       words << (item.condition.label || "") unless item.condition.plain?
       words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
       words << (plural ? kind.plural : kind.label)

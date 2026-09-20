@@ -252,6 +252,21 @@ module Roguelike
     # Read to take a curse off.
     RemoveCurseScroll
 
+    # Read to find the gold.
+    TreasureScroll
+
+    # Read to find what is lying about.
+    DetectionScroll
+
+    # Read to put the lights out.
+    DarknessScroll
+
+    # Read to blind something.
+    BlindnessScroll
+
+    # Read to go somewhere else on this floor.
+    TeleportScroll
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -452,6 +467,21 @@ module Roguelike
       ItemKind::RemoveCurseScroll => ItemFacts.new("scroll of remove curse",
         "scrolls of remove curse", ItemClass::Scroll, weight: 5,
         effect: Effect::RemoveCurse),
+      ItemKind::TreasureScroll => ItemFacts.new("scroll of treasure detection",
+        "scrolls of treasure detection", ItemClass::Scroll, weight: 5,
+        effect: Effect::DetectTreasure),
+      ItemKind::DetectionScroll => ItemFacts.new("scroll of item detection",
+        "scrolls of item detection", ItemClass::Scroll, weight: 5,
+        effect: Effect::DetectItems),
+      ItemKind::DarknessScroll => ItemFacts.new("scroll of darkness",
+        "scrolls of darkness", ItemClass::Scroll, weight: 5,
+        effect: Effect::Darkness),
+      ItemKind::BlindnessScroll => ItemFacts.new("scroll of blindness",
+        "scrolls of blindness", ItemClass::Scroll, weight: 5,
+        effect: Effect::Blind),
+      ItemKind::TeleportScroll => ItemFacts.new("scroll of minor teleport",
+        "scrolls of minor teleport", ItemClass::Scroll, weight: 5,
+        effect: Effect::Teleport),
     }
   end
 end

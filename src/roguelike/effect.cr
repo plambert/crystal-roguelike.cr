@@ -32,9 +32,37 @@ module Roguelike
     # Takes a curse off one carried item, or off everything within reach.
     RemoveCurse
 
+    # Writes down where the gold on this floor is.
+    DetectTreasure
+
+    # Writes down what is lying about, within an oval or over the whole
+    # floor.
+    DetectItems
+
+    # Puts out the lights nearby, and takes the glow off the squares.
+    Darkness
+
+    # Blinds a creature, the character, or everything in sight.
+    Blind
+
+    # Puts the character somewhere else on this floor.
+    Teleport
+
     # Whether using this needs a square to aim at.
+    #
+    # A wand of striking is aimed before it is used. A scroll that needs a
+    # square is read first and aimed after, which `#aims_after?` says.
     def aimed? : Bool
       strike?
+    end
+
+    # Whether using this needs a square picked once it has been used.
+    #
+    # A scroll is read and then takes effect, so the question comes after the
+    # reading rather than before it. Which square, and whether one is wanted
+    # at all, depends on the scroll's own blessing.
+    def aims_after? : Bool
+      blind? || teleport?
     end
 
     # Whether using this may need a carried item to work on.

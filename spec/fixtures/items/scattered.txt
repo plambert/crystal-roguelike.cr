@@ -1,20 +1,23 @@
- 11,2   cap
-  6,4   torch
- 22,5   shield
- 34,5   boots
- 37,5   stone
- 37,7   potion of healing
- 45,7   dart
- 49,9   stone
- 10,12  cap
- 57,14  short sword
-  7,15  dagger
- 69,15  gold piece
- 12,16  long sword
- 61,16  dagger
- 15,17  gold piece
- 69,17  dart
-  8,20  short sword
- 59,20  gold piece
-  7,22  leather armour
- 60,24  gold piece
+ 30,3   bow
+ 30,4   arrow
+  5,5   dagger
+ 17,5   short sword
+ 22,5   scroll of magic mapping
+ 37,5   leather armour
+ 17,6   gloves
+ 12,8   scroll of minor teleport
+ 60,12  rock
+ 57,14  potion of healing
+ 12,16  scroll of remove curse
+ 56,17  gold piece
+ 61,19  arrow
+ 63,19  gold piece
+ 67,19  cap
+  8,20  long sword
+ 61,20  bow
+ 56,21  torch
+ 66,22  leather armour
+ 13,23  rock
+ 18,23  arrow
+ 59,23  arrow
+ 67,24  scroll of identify

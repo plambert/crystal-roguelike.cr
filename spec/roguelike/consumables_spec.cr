@@ -212,23 +212,85 @@ Spectator.describe "drinking, reading and zapping" do
     end
   end
 
+  # Whether *x*, *y* has something walkable beside it.
+  def walling?(game : Roguelike::Game, x : Int32, y : Int32) : Bool
+    Roguelike::Direction.values.any? do |direction|
+      beside = direction.from x, y
+      game.floor.passable? beside[0], beside[1]
+    end
+  end
+
   describe "a scroll of magic mapping" do
-    it "remembers the shape of the whole floor" do
+    # The walls and nothing else, so what a person has walked is still what
+    # they can tell apart from what they have only been told about.
+    it "remembers every wall" do
       game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
 
       game.read 'a'
 
-      every = game.floor.columns * game.floor.rows
-      expect(game.knowledge.size).to eq every
+      walls = 0
+      game.floor.each do |column, row, tile|
+        next unless tile.terrain.rock?
+        next unless walling? game, column, row
+
+        walls += 1
+        expect(game.knowledge.seen? column, row).to be_true
+      end
+
+      expect(walls).to be > 0
     end
 
-    it "remembers a square the character has never seen" do
+    it "remembers a wall the character has never seen" do
       game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
-      expect(game.knowledge.seen? 10, 4).to be_false
+      wall = nil.as({Int32, Int32}?)
+      game.floor.each do |column, row, tile|
+        next if wall
+        next unless tile.terrain.rock?
+        next if game.knowledge.seen? column, row
+
+        wall = {column, row} if walling? game, column, row
+      end
+      raise "no unseen wall" unless wall
 
       game.read 'a'
 
-      expect(game.knowledge[10, 4].try &.terrain).to eq game.floor.terrain 10, 4
+      expect(game.knowledge[wall[0], wall[1]].try &.terrain)
+        .to eq game.floor.terrain(wall[0], wall[1])
+    end
+
+    it "says nothing about the floors and the doors" do
+      game = carrying [Item.new(Kind::MappingScroll)], dark: true, torch: true
+      before = game.knowledge.size
+
+      game.read 'a'
+
+      learned = 0
+      game.floor.each do |column, row, tile|
+        next unless game.knowledge.seen? column, row
+
+        learned += 1
+        expect(tile.terrain.rock?).to be_true
+      end
+
+      expect(learned).to be > before
+      expect(learned).to be < game.floor.columns * game.floor.rows
+    end
+
+    # A floor cut out of thick rock. The shipped one is an outline one
+    # square thick, so every wall in it touches something walkable.
+    it "says nothing about the rock behind the walls" do
+      floor = Floor.parse "block", "#####\n#####\n##.##\n#####\n#####"
+      Playing.daylight floor
+      player = Player.new floor.id, 2, 2
+      game = Game.new World.new(SEED, {floor.id => floor}), player,
+        lore: Lore.roll(Rng.new SEED)
+      player.inventory.add Item.new(Kind::MappingScroll)
+
+      game.read 'a'
+
+      expect(game.knowledge.seen? 1, 1).to be_true
+      expect(game.knowledge.seen? 0, 0).to be_false
+      expect(game.knowledge.seen? 4, 4).to be_false
     end
 
     # The scroll records the terrain and what is fixed to it, and nothing

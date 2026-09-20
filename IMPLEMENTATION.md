@@ -1435,6 +1435,88 @@ depends on how wide the row turned out. A left piece is cut one cell short of it
 long name gives way to the level rather than pushing it off the row. A character nobody has named
 yet reads as a dash.
 
+## What a scroll of magic mapping tells you
+
+The walls, and nothing else. A square is written down when it is rock with something walkable
+beside it, so the rooms and the corridors come through as outlines and their floors stay unknown
+until somebody walks them.
+
+It used to write down every square on the floor. That made a map that had been read
+indistinguishable from a floor that had been walked, which is the one thing a map should not do.
+The rock behind the walls is left out too: deep rock is not a wall, and writing it down would draw
+the whole floor in one colour.
+
+## The rest of the scrolls
+
+Five more, each doing three things depending on what has touched it.
+
+### Treasure detection
+
+Writes down where every pile of gold on the floor is. Blessed, it brings the lot to the
+character's feet instead. Cursed, it ruins half of what it finds, leaving one coin of each ruined
+pile behind and saying how much went; what survives is written down like the rest.
+
+### Item detection
+
+Writes down what is lying inside an oval round the character, `DETECTION_SPAN` of the floor across
+and the same fraction down. An oval rather than a circle, because a floor is wider than it is tall
+and a circle on one reaches the top and bottom edges while leaving the sides alone. Blessed, it
+reaches the whole floor. Cursed, it destroys `DETECTION_RUIN` of what it found, rounded up, so it
+always destroys something.
+
+Gold is left out. A scroll of treasure detection is what finds that, and a scroll that found both
+would make one of the two pointless.
+
+The list names what it destroyed first, in full, and marks it destroyed. A thing that no longer
+exists has no secret left to keep. Naming it teaches nothing: `Lore` is not told, so the colour
+that kind comes in still means nothing for the rest of the run. `Lore#name` takes an `identified`
+argument for exactly this. The rest are named as the character already knows them, nearest first —
+nothing in the game has a price yet, so distance is what orders them.
+
+### Darkness
+
+Puts out every sconce, every burning item on the floor and everything the character is carrying
+within `DARKNESS`, and takes the glow off those squares. Cursed, it destroys what it puts out
+rather than dousing it, and takes the sconces off the walls; a blessing on a carried thing saves
+it, and nothing saves what is lying on the floor, because a blessing holds a thing to its owner and
+a thing on the floor has none.
+
+Blessed, it survives being read `DARKNESS_KEPT` times in a hundred. It is the only scroll that
+does. `Game#use` has already taken it out of the pack, so `#keep_scroll` puts it back.
+
+### Blindness
+
+Blinds the creature it is aimed at. Cursed, it blinds the reader for `BLINDING`. Blessed, it blinds
+every creature in sight.
+
+`Player#blinded` and `Monster#blinded` count the turns down, and `Game#blink` passes one of them
+each turn. A blind character's `Game#sight` is `Vision.blind`, which holds their own square and
+nothing else, so nothing is in line and nothing shows as a shape against a light behind it either.
+A blind creature is skipped by `#noticing`, so its band never hears the character.
+
+The character is told when their sight comes back. A creature is not: the character has no way to
+tell one that is blind from one that is looking elsewhere.
+
+### Minor teleport
+
+Puts the character on a random square at least `TELEPORT_LEAST` away. Blessed, it puts them where
+they said. Cursed, it puts them beside whatever on the floor is worth the most experience, or does
+nothing at all when the floor is empty.
+
+### Reading and then aiming
+
+A scroll of blindness and a blessed scroll of minor teleport both want a square, and neither
+question can be asked before the scroll is read: what the scroll does depends on the blessing, and
+reading it is how the character finds that out.
+
+So `Game#start_aiming_read` spends the scroll and the turn, `Play` puts the targeting cursor up,
+and `Game#aim_reading` does the rest with no second turn. It is the shape `#start_reading` and
+`#finish_reading` already had for a scroll of blessing, and `Game` holds nothing between the two
+calls either way.
+
+Backing out of the aim does what the scroll does with nothing to aim at, which says so. The scroll
+is spent whichever way it goes, and being told it found nothing beats losing it in silence.
+
 ## Gold underfoot
 
 Stepping onto a square with gold on it puts the gold in the purse. `Game#arrived` does it, before

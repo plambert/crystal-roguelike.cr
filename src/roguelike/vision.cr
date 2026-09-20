@@ -50,6 +50,19 @@ module Roguelike
       new FieldOfView.from(floor, x, y)
     end
 
+    # What somebody who cannot see sees: their own square and nothing else.
+    #
+    # The field holds the origin and no more, so nothing is in line and
+    # nothing shows as a shape against a light behind it either.
+    def self.blind(x : Int32, y : Int32) : Vision
+      new FieldOfView.new({x, y}), Lighting.new
+    end
+
+    # :ditto:
+    def self.blind(spot : {Int32, Int32}) : Vision
+      blind spot[0], spot[1]
+    end
+
     # Whether *x*, *y* can be seen.
     def includes?(x : Int32, y : Int32) : Bool
       return true if {x, y} == origin

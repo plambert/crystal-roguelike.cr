@@ -59,6 +59,12 @@ module Roguelike
     # where Phase 13's carried source finally has a carrier.
     getter carrying : Array(Item)
 
+    # How many turns this creature cannot see for.
+    #
+    # It has a default, so a save written before this field existed loads
+    # with every creature able to see.
+    getter blinded : Int32 = 0
+
     def initialize(@species : Species, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
@@ -67,6 +73,28 @@ module Roguelike
                    @carrying : Array(Item) = [] of Item)
       @hit_points = hit_points || @species.hit_points
       @attributes = attributes || @species.attributes
+    end
+
+    # Whether this creature cannot see.
+    def blind? : Bool
+      @blinded > 0
+    end
+
+    # Takes this creature's sight away for *turns*.
+    def blind(turns : Int32) : Bool
+      return false if turns <= @blinded
+
+      @blinded = turns
+      true
+    end
+
+    # Passes one turn of being unable to see. Answers whether sight came
+    # back on this one.
+    def blink : Bool
+      return false unless blind?
+
+      @blinded -= 1
+      @blinded.zero?
     end
 
     # What this creature believes about the floor *id*, empty until it learns

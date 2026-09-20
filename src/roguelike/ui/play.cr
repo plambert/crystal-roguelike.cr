@@ -31,6 +31,9 @@ module Roguelike::Ui
 
     # `z`, zapping a wand that needs a square to aim at.
     Zap
+
+    # `r`, a scroll already read that wants a square.
+    Read
   end
 
   # Everything the game shows. Everything the keys do. No device anywhere.
@@ -188,6 +191,9 @@ module Roguelike::Ui
     # Which saved character each title row carries on, by the key that picks
     # it. The row that starts a new character is in no key here.
     @carrying : Hash(Char, String) = {} of Char => String
+
+    # The scroll that has been read and is waiting for a square.
+    @aimed : Item? = nil
 
     # The name the last run ended under, offered once to the next one.
     #
@@ -998,14 +1004,17 @@ module Roguelike::Ui
       command = @aiming
       target = @examiner.spot
       letter = @chosen
+      scroll = @aimed
       return unless command && target
 
+      @aimed = nil
       stop_aiming
 
       case command
       in .fire?  then @game.fire target
       in .throw? then @game.throw letter, target if letter
       in .zap?   then @game.zap letter, target if letter
+      in .read?  then scroll.try { |found| @game.aim_reading found, target }
       end
 
       refresh
@@ -1033,6 +1042,12 @@ module Roguelike::Ui
       @chosen = nil
       @reach = 0
 
+      # A scroll that was read and then backed out of does what it does with
+      # nothing to aim at. It is spent either way, and being told it found
+      # nothing beats losing it in silence.
+      @aimed.try { |scroll| @game.aim_reading scroll, nil }
+      @aimed = nil
+
       @examiner.stop
       @examine.aiming = nil
       @map.clear_flight
@@ -1059,6 +1074,7 @@ module Roguelike::Ui
       @examine.aiming = nil
 
       return unless @aiming
+      return if @aiming.try &.read?
 
       target = @examiner.spot
       return unless target
@@ -1111,12 +1127,29 @@ module Roguelike::Ui
         ->(item : Item) { item.kind.item_class.scroll? } do |letter|
         if @game.marks_first? letter
           bless_with letter
+        elsif @game.target_needed? letter
+          aim_with letter
         elsif @game.choice_needed? letter
           identify_with letter
         else
           @game.read letter
         end
       end
+    end
+
+    # Reads a scroll that wants a square, then puts the cursor up.
+    #
+    # The scroll is spent and the turn is taken before the question, because
+    # what the scroll wants a square for depends on the blessing on it, and
+    # reading it is how the character finds that out. Backing out of the aim
+    # gives up what the scroll had left to do.
+    private def aim_with(letter : Char) : Nil
+      scroll = @game.start_aiming_read letter
+      refresh
+      return unless scroll
+
+      @aimed = scroll
+      start_aiming Aiming::Read, nil, 0
     end
 
     # Reads a scroll of blessing or of remove curse, then asks what it works

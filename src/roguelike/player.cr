@@ -48,6 +48,12 @@ module Roguelike
     # Hit points left. The character dies at zero.
     getter hit_points : Int32
 
+    # How many turns the character cannot see for.
+    #
+    # It has a default, so a save written before this field existed loads
+    # with the character able to see.
+    getter blinded : Int32 = 0
+
     # What the character carries.
     getter inventory : Inventory
 
@@ -264,6 +270,32 @@ module Roguelike
     # Experience still needed to reach the next level. `nil` at the last one.
     def to_next_level : Int32?
       Advancement.to_next @experience
+    end
+
+    # Whether the character cannot see.
+    def blind? : Bool
+      @blinded > 0
+    end
+
+    # Takes the character's sight away for *turns*. Answers whether that was
+    # longer than they were already blinded for.
+    #
+    # A second helping does not stack. What it does is set a floor: whichever
+    # is longer wins.
+    def blind(turns : Int32) : Bool
+      return false if turns <= @blinded
+
+      @blinded = turns
+      true
+    end
+
+    # Passes one turn of being unable to see. Answers whether sight came
+    # back on this one.
+    def blink : Bool
+      return false unless blind?
+
+      @blinded -= 1
+      @blinded.zero?
     end
 
     # Takes *amount* off the hit points. Answers how many are left.

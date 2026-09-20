@@ -950,6 +950,7 @@ module Roguelike
     private def spend_turn : Nil
       @turn += 1
       handle_items
+      blink
       return if over?
 
       seen = sight
@@ -1123,6 +1124,7 @@ module Roguelike
 
       floor.each_monster do |column, row, creature|
         next if found.has_key? creature.band
+        next if creature.blind?
         next unless Notice.notices? creature.species, stealth, light,
                       {column, row}, @player.at, seen.field.includes?(column, row)
 
@@ -1296,6 +1298,8 @@ module Roguelike
     # touches a few hundred squares. A cache goes in when a profile asks for
     # one.
     def sight : Vision
+      return Vision.blind @player.at if @player.blind?
+
       Vision.from floor, @player.at, lights
     end
 
@@ -1658,6 +1662,21 @@ module Roguelike
       item.blessing.uncursed?
     end
 
+    # Whether reading the scroll under *letter* will ask for a square.
+    #
+    # A scroll of blindness aims at a creature, and a blessed scroll of minor
+    # teleport goes where the character says. Neither question can be asked
+    # before the scroll is read, because what the scroll does depends on the
+    # blessing on it and reading it is how the character finds that out.
+    def target_needed?(letter : Char) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+      return false unless item.kind.effect.aims_after?
+      return false if item.cursed?
+
+      item.kind.effect.teleport? ? item.blessed? : !item.blessed?
+    end
+
     # Whether the scroll under *letter* has to show the character something
     # before it asks.
     #
@@ -1710,6 +1729,41 @@ module Roguelike
       return false unless scroll.kind.effect.marks?
 
       anoint_one scroll, choice
+      true
+    end
+
+    # Reads the scroll under *letter* as far as its aim.
+    #
+    # The scroll is used up and the turn is spent, the same way
+    # `#start_reading` does it. Answers the scroll, which `#aim_reading`
+    # needs. The square is asked for afterwards, because until the scroll is
+    # read the character does not know what it wants one for.
+    def start_aiming_read(letter : Char) : Item?
+      complaint = cannot_read
+      if complaint
+        say complaint
+        return
+      end
+
+      item = @player.inventory[letter]
+      return unless item && item.kind.item_class.scroll?
+
+      used = @player.inventory.take letter, 1
+      return unless used
+      @player.equipment.clean @player.inventory
+
+      used.reveal_blessing unless used.blessing.uncursed?
+      say "You read #{name used}."
+      found_out used.kind
+      spend_turn
+      used
+    end
+
+    # Does what *scroll* was aimed at. Spends no turn.
+    def aim_reading(scroll : Item, target : {Int32, Int32}?) : Bool
+      return false unless scroll.kind.effect.aims_after?
+
+      work scroll.kind.effect, scroll, target: target
       true
     end
 
@@ -1927,8 +1981,8 @@ module Roguelike
       used.reveal_blessing unless used.blessing.uncursed?
 
       yield used
-      work used.kind.effect, used, choice: choice
       found_out used.kind
+      work used.kind.effect, used, choice: choice
       spend_turn
       true
     end
@@ -1942,15 +1996,485 @@ module Roguelike
                      choice : Char? = nil,
                      target : {Int32, Int32}? = nil) : Nil
       case effect
-      in .none?         then say "Nothing happens."
-      in .heal?         then mend item
-      in .identify?     then name_one choice
-      in .map_floor?    then map_the_floor
-      in .light?        then light_up
-      in .strike?       then bolt item, target
-      in .bless?        then anoint item, choice
-      in .remove_curse? then anoint item, choice
+      in .none?            then say "Nothing happens."
+      in .heal?            then mend item
+      in .identify?        then name_one choice
+      in .map_floor?       then map_the_floor
+      in .light?           then light_up
+      in .strike?          then bolt item, target
+      in .bless?           then anoint item, choice
+      in .remove_curse?    then anoint item, choice
+      in .detect_treasure? then find_treasure item
+      in .detect_items?    then find_items item
+      in .darkness?        then put_out item
+      in .blind?           then blind_with item, target
+      in .teleport?        then teleport_with item, target
       end
+    end
+
+    # Passes one turn of anything that cannot see.
+    #
+    # The character is told when their sight comes back. A creature is not:
+    # what a creature can see is its own business, and the character has no
+    # way to tell one that is blind from one that is looking elsewhere.
+    private def blink : Nil
+      say "You can see again." if @player.blink
+
+      floor.each_monster { |_column, _row, creature| creature.blink }
+    end
+
+    # ------------------------------------------------------------- detection
+
+    # How much of the floor across and down a scroll of item detection
+    # reaches, out of a hundred.
+    #
+    # An oval rather than a circle, because a floor is wider than it is tall
+    # and a circle on one reaches most of the way to the top and bottom edges
+    # while leaving the sides untouched.
+    DETECTION_SPAN = 25
+
+    # How much of the gold a cursed scroll of treasure detection ruins, out
+    # of a hundred.
+    TREASURE_RUIN = 50
+
+    # How much of what it found a cursed scroll of item detection destroys,
+    # out of a hundred. It rounds up, so it always destroys something.
+    DETECTION_RUIN = 20
+
+    # What a ruined pile of gold is left holding.
+    RUINED = 1
+
+    # Writes down where the gold on this floor is.
+    #
+    # A cursed one ruins half of what it finds on the way past, leaving a
+    # single coin behind and saying how much went. A blessed one brings it
+    # all to the character's feet rather than writing it down.
+    private def find_treasure(scroll : Item) : Nil
+      piles = [] of {Int32, Int32, Item}
+      floor.each_pile do |column, row, pile|
+        pile.each do |item|
+          piles << {column, row, item} if item.kind.item_class.treasure?
+        end
+      end
+
+      if piles.empty?
+        say "Nothing here is worth anything."
+        return
+      end
+
+      return gather_treasure piles if scroll.blessed?
+      return ruin_treasure piles if scroll.cursed?
+
+      piles.each { |column, row, item| detect column, row, item }
+      say "You know where #{Game.piles piles.size}."
+    end
+
+    # *count* piles of gold, with the verb that agrees with them.
+    def self.piles(count : Int32) : String
+      count == 1 ? "1 pile of gold is" : "#{count} piles of gold are"
+    end
+
+    # A blessed scroll, which brings the gold to the character.
+    private def gather_treasure(piles : Array({Int32, Int32, Item})) : Nil
+      total = 0
+
+      piles.each do |column, row, item|
+        next unless floor.take column, row, item
+
+        @player.take_gold item.count
+        total += item.count
+      end
+
+      say "#{piles.size} piles of gold teleport to your location, " \
+          "totalling #{total} gp."
+    end
+
+    # A cursed scroll, which ruins half of what it finds.
+    #
+    # What is left is written down like the rest. A person who read it knows
+    # where the gold was and what it is worth now.
+    private def ruin_treasure(piles : Array({Int32, Int32, Item})) : Nil
+      stream = draught
+      lost = 0
+      ruined = 0
+
+      piles.each do |column, row, item|
+        unless stream.rand(100) < TREASURE_RUIN
+          detect column, row, item
+          next
+        end
+
+        gone = item.count - RUINED
+        next if gone <= 0
+
+        floor.take column, row, item
+        left = item.with_count RUINED
+        floor.drop column, row, left
+        detect column, row, left
+
+        lost += gone
+        ruined += 1
+      end
+
+      say "#{ruined} piles crumble, and #{lost} gp with them."
+    end
+
+    # Writes down what is lying about.
+    #
+    # An oval round the character, a quarter of the floor across and a
+    # quarter down. A blessed one reaches the whole floor. A cursed one
+    # destroys a fifth of what it found, rounded up, and says what it was.
+    #
+    # Gold is left out. A scroll of treasure detection is what finds that,
+    # and a scroll that found both would make one of the two pointless.
+    private def find_items(scroll : Item) : Nil
+      found = [] of {Int32, Int32, Item}
+
+      floor.each_pile do |column, row, pile|
+        next unless scroll.blessed? || within_oval?(column, row)
+
+        pile.each do |item|
+          next if item.kind.item_class.treasure?
+
+          found << {column, row, item}
+        end
+      end
+
+      if found.empty?
+        say "Nothing is lying anywhere you can feel."
+        return
+      end
+
+      destroyed = scroll.cursed? ? destroy_some(found) : [] of Item
+      found.each { |column, row, item| detect column, row, item }
+      list_detected found, destroyed
+    end
+
+    # Whether *x*, *y* is inside the oval a scroll of item detection reaches.
+    #
+    # An oval rather than a circle. A floor is wider than it is tall, and a
+    # circle on one reaches the top and bottom edges while leaving the sides
+    # alone.
+    private def within_oval?(x : Int32, y : Int32) : Bool
+      across = Math.max floor.columns * DETECTION_SPAN // 100, 1
+      down = Math.max floor.rows * DETECTION_SPAN // 100, 1
+
+      dx = (x - @player.x) / across.to_f
+      dy = (y - @player.y) / down.to_f
+
+      dx * dx + dy * dy <= 1.0
+    end
+
+    # Destroys a fifth of *found*, rounded up, and takes those off the floor.
+    #
+    # Answers what went, which the list names in full. The entries it took
+    # are taken out of *found* as well, so nothing is written down as lying
+    # somewhere it no longer is.
+    private def destroy_some(found : Array({Int32, Int32, Item})) : Array(Item)
+      stream = draught
+      wanted = (found.size * DETECTION_RUIN + 99) // 100
+      gone = [] of Item
+
+      found.shuffle(stream).first(wanted).each do |column, row, item|
+        next unless floor.take column, row, item
+
+        gone << item
+      end
+
+      found.reject! { |_column, _row, item| gone.any? &.same?(item) }
+      gone
+    end
+
+    # Says what the scroll found, and what it destroyed on the way.
+    #
+    # What it destroyed goes first and is named in full, because a thing that
+    # no longer exists has no secret left to keep. Naming it teaches nothing:
+    # `Lore` is not told, so the colour that potion came in still means
+    # nothing for the rest of the run.
+    #
+    # The rest are named as the character knows them, nearest first. Nothing
+    # in the game has a price yet, so distance is what orders them.
+    private def list_detected(found : Array({Int32, Int32, Item}),
+                              destroyed : Array(Item)) : Nil
+      destroyed.each do |item|
+        say "#{@lore.name(item, identified: true).capitalize} - destroyed!"
+      end
+
+      found.sort_by! do |column, row, _item|
+        Notice.apart({column, row}, @player.at)
+      end
+
+      found.each { |_column, _row, item| say "You feel #{name item}." }
+    end
+
+    # ---------------------------------------------------------------- dark
+
+    # How far a scroll of darkness reaches.
+    DARKNESS = 25
+
+    # How often in a hundred a blessed scroll of darkness survives being
+    # read.
+    DARKNESS_KEPT = 50
+
+    # Puts out the lights nearby and takes the glow off the squares.
+    #
+    # A cursed one destroys what it puts out rather than dousing it, the
+    # carried ones with it. A blessing on a thing carried saves it.
+    private def put_out(scroll : Item) : Nil
+      doused = douse_fixtures scroll
+      doused += douse_piles scroll
+      doused += douse_carried scroll
+      darkened = unglow
+
+      if doused.zero? && darkened.zero?
+        say "The dark here is already as deep as it goes."
+        keep_scroll scroll
+        return
+      end
+
+      said = scroll.cursed? ? "The light is eaten, and what held it with it." : "The light goes out."
+      say said
+      keep_scroll scroll
+    end
+
+    # Puts a blessed scroll of darkness back in the pack, half the time.
+    #
+    # It is the only scroll that survives being read. `#use` has already
+    # taken it out, so this puts it back rather than holding it there.
+    private def keep_scroll(scroll : Item) : Nil
+      return unless scroll.blessed?
+      return unless draught.rand(100) < DARKNESS_KEPT
+      return unless @player.inventory.add scroll
+
+      say "The writing is still on it."
+    end
+
+    # Whether *x*, *y* is near enough for the scroll to reach.
+    private def near?(x : Int32, y : Int32) : Bool
+      Notice.within? @player.at, {x, y}, DARKNESS
+    end
+
+    # Puts out the sconces in reach. A cursed scroll takes them off the wall.
+    private def douse_fixtures(scroll : Item) : Int32
+      doused = 0
+      broken = [] of {Int32, Int32}
+
+      floor.each_fixture do |column, row, fitting|
+        next unless near? column, row
+        next unless fitting.lit?
+
+        fitting.douse
+        doused += 1
+        broken << {column, row} if scroll.cursed?
+      end
+
+      broken.each { |spot| floor.set_fixture spot[0], spot[1], nil }
+      doused
+    end
+
+    # Puts out what is burning on the floor in reach.
+    private def douse_piles(scroll : Item) : Int32
+      doused = 0
+      burned = [] of {Int32, Int32, Item}
+
+      floor.each_pile do |column, row, pile|
+        next unless near? column, row
+
+        pile.each do |item|
+          next unless item.lit?
+
+          item.douse
+          doused += 1
+          burned << {column, row, item} if scroll.cursed?
+        end
+      end
+
+      burned.each { |column, row, item| floor.take column, row, item }
+      doused
+    end
+
+    # Puts out what the character is carrying.
+    #
+    # A cursed scroll burns those up as well, and a blessing on one saves it.
+    # Nothing saves what is lying on the floor: a blessing holds a thing to
+    # its owner, and a thing on the floor has none.
+    private def douse_carried(scroll : Item) : Int32
+      doused = 0
+      burned = [] of {Char, Item}
+
+      @player.inventory.items.each do |letter, item|
+        next unless item.lit?
+
+        item.douse
+        doused += 1
+        burned << {letter, item} if scroll.cursed? && !item.blessed?
+      end
+
+      burned.each do |letter, item|
+        say "#{name(item).capitalize} burns away to nothing."
+        @player.inventory.relocate letter, item
+        @player.inventory.strip letter, item
+        @player.inventory.remove letter if @player.inventory[letter].try(&.same? item)
+        @player.equipment.clean @player.inventory
+      end
+
+      doused
+    end
+
+    # Takes the glow off every square in reach. Answers how many went dark.
+    private def unglow : Int32
+      wanted = [] of {Int32, Int32}
+      floor.each_glow do |column, row, _level|
+        wanted << {column, row} if near? column, row
+      end
+
+      wanted.each { |spot| floor.set_glow spot[0], spot[1], 0 }
+      wanted.size
+    end
+
+    # ----------------------------------------------------------- blindness
+
+    # How many turns a cursed scroll of blindness takes the character's sight
+    # away for.
+    BLINDING = Dice.new 2, 6
+
+    # How many turns it takes a creature's sight away for.
+    CREATURE_BLINDING = Dice.new 3, 6
+
+    # Blinds what the scroll is aimed at.
+    #
+    # A cursed one blinds the reader. A blessed one blinds everything they
+    # can see. An uncursed one blinds the creature on *target*.
+    private def blind_with(scroll : Item, target : {Int32, Int32}?) : Nil
+      stream = draught
+      return blind_myself stream if scroll.cursed?
+      return blind_everything stream if scroll.blessed?
+
+      creature = target ? floor.monster(target[0], target[1]) : nil
+      unless creature
+        say "The dark settles on nothing."
+        return
+      end
+
+      blind_creature creature, stream
+    end
+
+    # Takes the character's own sight away.
+    private def blind_myself(stream : Rng) : Nil
+      @player.blind BLINDING.roll(stream)
+      say "The dark closes over your eyes."
+    end
+
+    # Blinds every creature in sight.
+    private def blind_everything(stream : Rng) : Nil
+      seen = monsters_in_sight
+      if seen.empty?
+        say "The dark settles on nothing."
+        return
+      end
+
+      seen.each { |creature| blind_creature creature, stream }
+    end
+
+    # Takes one creature's sight away.
+    private def blind_creature(creature : Monster, stream : Rng) : Nil
+      creature.blind CREATURE_BLINDING.roll(stream)
+      say "The #{creature.label} claws at its eyes."
+    end
+
+    # ------------------------------------------------------------ teleport
+
+    # The nearest a scroll of minor teleport will put the character.
+    TELEPORT_LEAST = 15
+
+    # Puts the character somewhere else on this floor.
+    #
+    # An uncursed one picks a square at random, no nearer than
+    # `TELEPORT_LEAST`. A blessed one goes where they chose. A cursed one
+    # puts them beside whatever on the floor is worth the most experience.
+    private def teleport_with(scroll : Item, target : {Int32, Int32}?) : Nil
+      return teleport_to_trouble if scroll.cursed?
+
+      if scroll.blessed?
+        return arrive_at target if target && standable? target
+
+        say "The writing fades with nowhere to go."
+        return
+      end
+
+      spots = teleport_spots
+      if spots.empty?
+        say "The writing fades with nowhere to go."
+        return
+      end
+
+      arrive_at spots.sample(draught)
+    end
+
+    # Whether the character could stand on *spot*.
+    private def standable?(spot : {Int32, Int32}) : Bool
+      floor.passable?(spot[0], spot[1]) && !floor.monster?(spot[0], spot[1])
+    end
+
+    # Every square a scroll of minor teleport would put the character on.
+    private def teleport_spots : Array({Int32, Int32})
+      found = [] of {Int32, Int32}
+
+      floor.each do |column, row, tile|
+        next unless tile.terrain.passable?
+        next unless standable?({column, row})
+        next if Notice.within? @player.at, {column, row}, TELEPORT_LEAST - 1
+
+        found << {column, row}
+      end
+
+      found
+    end
+
+    # Puts the character beside the strongest thing on the floor.
+    private def teleport_to_trouble : Nil
+      worst = nil.as Monster?
+      floor.each_monster do |_column, _row, creature|
+        worst = creature if worst.nil? ||
+                            creature.species.experience > worst.species.experience
+      end
+
+      unless worst
+        say "The writing fades with nothing to fear."
+        return
+      end
+
+      beside = Direction.values.map(&.from(worst.x, worst.y))
+        .find { |spot| standable? spot }
+
+      unless beside
+        say "The writing fades with nowhere to go."
+        return
+      end
+
+      arrive_at beside
+      say "Something large is standing right there."
+    end
+
+    # Puts the character on *spot* and looks around.
+    private def arrive_at(spot : {Int32, Int32}) : Nil
+      @player.move_to spot
+      say "The floor lurches, and you are somewhere else."
+      arrived
+    end
+
+    # Writes *item* down at *column*, *row* without claiming anything else
+    # about the square.
+    #
+    # The terrain goes in because a `Memory` holds one, and something lying
+    # on a square says the square can be walked on whatever else it is. What
+    # is already remembered wins, so a scroll never rewrites a square the
+    # character has looked at.
+    private def detect(column : Int32, row : Int32, item : Item) : Nil
+      held = @player.knowledge[column, row]
+      @player.knowledge.remember column, row,
+        Memory.new(held.try(&.terrain) || floor.terrain(column, row),
+          held.try(&.fixture), item.copy, held.try(&.turn) || @turn)
     end
 
     # ------------------------------------------------- blessing and uncursing
@@ -2135,8 +2659,27 @@ module Roguelike
     # The shape and no more. `Knowledge#touch` records the terrain and what
     # is fixed to it, and keeps whatever item was already remembered there.
     private def map_the_floor : Nil
-      floor.each { |column, row, _tile| @player.knowledge.touch floor, column, row, @turn }
+      floor.each do |column, row, _tile|
+        next unless wall? column, row
+
+        @player.knowledge.touch floor, column, row, @turn
+      end
+
       say "The shape of the floor comes to you."
+    end
+
+    # Whether *x*, *y* is rock with something walkable beside it.
+    #
+    # The walls of the rooms and the corridors, and not the rock behind them.
+    # Deep rock is not a wall, and a map that wrote it down would be a map of
+    # the whole floor drawn in one colour.
+    private def wall?(x : Int32, y : Int32) : Bool
+      return false unless floor.terrain(x, y).rock?
+
+      Direction.values.any? do |direction|
+        beside = direction.from x, y
+        floor.passable? beside[0], beside[1]
+      end
     end
 
     # How far a wand of light makes the floor glow.

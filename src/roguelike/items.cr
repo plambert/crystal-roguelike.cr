@@ -108,6 +108,11 @@ module Roguelike
       ItemKind::MappingScroll     => 10,
       ItemKind::RemoveCurseScroll => 8,
       ItemKind::BlessingScroll    => 6,
+      ItemKind::TreasureScroll    => 9,
+      ItemKind::DetectionScroll   => 9,
+      ItemKind::DarknessScroll    => 6,
+      ItemKind::BlindnessScroll   => 7,
+      ItemKind::TeleportScroll    => 8,
       ItemKind::LightWand         => 8,
       ItemKind::StrikingWand      => 5,
 

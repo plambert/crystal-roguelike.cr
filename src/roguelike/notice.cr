@@ -78,6 +78,17 @@ module Roguelike
       Math.max((to[0] - from[0]).abs, (to[1] - from[1]).abs) <= TOUCH
     end
 
+    # How far apart *from* and *to* are, squared.
+    #
+    # Squared, because nothing here needs the root and comparing two of these
+    # orders them the same way comparing the roots would.
+    def self.apart(from : {Int32, Int32}, to : {Int32, Int32}) : Int32
+      across = to[0] - from[0]
+      down = to[1] - from[1]
+
+      across * across + down * down
+    end
+
     # Whether *to* is within *reach* of *from*.
     #
     # Straight line distance, so a reach is round. That is how `FieldOfView`
@@ -85,10 +96,7 @@ module Roguelike
     # would be a third rule to keep track of.
     def self.within?(from : {Int32, Int32}, to : {Int32, Int32},
                      reach : Int32) : Bool
-      across = to[0] - from[0]
-      down = to[1] - from[1]
-
-      across * across + down * down <= reach * reach
+      apart(from, to) <= reach * reach
     end
   end
 end
