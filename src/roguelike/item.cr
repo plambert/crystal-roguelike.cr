@@ -164,9 +164,26 @@ module Roguelike
       true
     end
 
+    # What a blessing adds to a swing or a shot landing.
+    #
+    # It adds nothing to the damage, so it never shows in a number the
+    # character is told. A blessed sword reads as a plain one and lands more
+    # often than one.
+    BLESSED_AIM = 1
+
+    # What this item adds to a swing or a shot landing.
+    #
+    # The enchantment, the condition, and a blessing. Nothing here asks
+    # whether the character knows about the blessing: a blessed sword swings
+    # the way it swings.
+    def aim : Int32
+      @enchantment + @condition.modifier + (blessed? ? BLESSED_AIM : 0)
+    end
+
     # What this item does to whatever it hits.
     #
-    # The kind's dice, plus the enchantment and the condition.
+    # The kind's dice, plus the enchantment and the condition. A blessing is
+    # not in it. See `#aim`.
     def damage : Dice
       @kind.damage.with_bonus @enchantment + @condition.modifier
     end

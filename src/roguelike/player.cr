@@ -148,14 +148,14 @@ module Roguelike
 
     # What the character adds to a swing.
     #
-    # The dexterity modifier, plus the wielded weapon's enchantment and its
-    # condition. Bare hands add the modifier and nothing else.
+    # The dexterity modifier, plus what the wielded weapon adds. Bare hands
+    # add the modifier and nothing else.
     def to_hit : Int32
       bonus = @attributes.modifier Attributes::Which::Dexterity
       held = wielded
       return bonus unless held && Player.swung?(held)
 
-      bonus + held.enchantment + held.condition.modifier
+      bonus + held.aim
     end
 
     # Whether what is in the hand is swung for its own dice.
@@ -180,12 +180,11 @@ module Roguelike
 
     # What the character adds to a shot from *weapon* with *ammunition*.
     #
-    # The dexterity modifier, plus the enchantment and the condition of each
-    # of the two. A masterwork bow and a bent arrow both count.
+    # The dexterity modifier, plus what each of the two adds. A masterwork
+    # bow and a bent arrow both count, and so does a blessing on either.
     def to_shoot(weapon : Item, ammunition : Item) : Int32
       @attributes.modifier(Attributes::Which::Dexterity) +
-        weapon.enchantment + weapon.condition.modifier +
-        ammunition.enchantment + ammunition.condition.modifier
+        weapon.aim + ammunition.aim
     end
 
     # What a shot of *ammunition* from *weapon* hits for.
@@ -199,8 +198,7 @@ module Roguelike
 
     # What the character adds to a throw of *item*.
     def to_throw(item : Item) : Int32
-      @attributes.modifier(Attributes::Which::Dexterity) +
-        item.enchantment + item.condition.modifier
+      @attributes.modifier(Attributes::Which::Dexterity) + item.aim
     end
 
     # What *item* hits for when it is thrown.

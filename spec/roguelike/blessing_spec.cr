@@ -275,6 +275,95 @@ Spectator.describe "blessing and uncursing" do
     end
   end
 
+  describe "a blessed weapon" do
+    # A blessing adds nothing to the damage, so it never shows in a number
+    # the character is told. It shows in how often a swing lands.
+    it "adds to a swing landing and not to what it does" do
+      plain = Item.new Kind::LongSword
+      blessed = Item.new Kind::LongSword, blessing: Blessing::Blessed
+
+      expect(blessed.aim - plain.aim).to eq Item::BLESSED_AIM
+      expect(blessed.damage).to eq plain.damage
+    end
+
+    it "reads the same in the detail pane" do
+      game = bare
+      plain = Item.new Kind::LongSword
+      blessed = Item.new Kind::LongSword, blessing: Blessing::Blessed
+
+      expect(Roguelike::Ui::Detail.about game, blessed)
+        .to contain "damage #{plain.damage}"
+    end
+
+    it "counts whether or not the character knows" do
+      hidden = Item.new Kind::LongSword, blessing: Blessing::Blessed
+      shown = Item.new Kind::LongSword, blessing: Blessing::Blessed,
+        blessing_known: true
+
+      expect(hidden.aim).to eq shown.aim
+    end
+
+    it "lands more often in the hand" do
+      game = bare
+      letter = game.player.inventory.add Item.new(Kind::LongSword)
+      raise "no room" unless letter
+      game.wield letter
+      plain = game.player.to_hit
+
+      game.take_off Roguelike::Slot::Melee
+      blessed = game.player.inventory.add Item.new(Kind::LongSword,
+        blessing: Blessing::Blessed)
+      raise "no room" unless blessed
+      game.wield blessed
+
+      expect(game.player.to_hit - plain).to eq Item::BLESSED_AIM
+    end
+
+    it "counts on a bow and on its arrows alike" do
+      player = Roguelike::Player.new "room", 2, 2
+      bow = Item.new Kind::Bow
+      arrow = Item.new Kind::Arrow, count: 5
+      blessed_bow = Item.new Kind::Bow, blessing: Blessing::Blessed
+      blessed_arrow = Item.new Kind::Arrow, count: 5,
+        blessing: Blessing::Blessed
+
+      plain = player.to_shoot bow, arrow
+
+      expect(player.to_shoot(blessed_bow, arrow) - plain)
+        .to eq Item::BLESSED_AIM
+      expect(player.to_shoot(bow, blessed_arrow) - plain)
+        .to eq Item::BLESSED_AIM
+      expect(player.to_shoot(blessed_bow, blessed_arrow) - plain)
+        .to eq Item::BLESSED_AIM * 2
+    end
+
+    it "counts on a thrown weapon" do
+      player = Roguelike::Player.new "room", 2, 2
+      plain = Item.new Kind::Dart, count: 5
+      blessed = Item.new Kind::Dart, count: 5, blessing: Blessing::Blessed
+
+      expect(player.to_throw(blessed) - player.to_throw(plain))
+        .to eq Item::BLESSED_AIM
+    end
+
+    # A blessing leans the plus the way a curse leans the minus, and harder.
+    it "is usually found with a plus on it" do
+      rng = Roguelike::Rng.new(Playing::SEED).derive "loot"
+      plus = 0
+      total = 0
+
+      20_000.times do
+        item = Roguelike::Items.make rng, Kind::LongSword
+        next unless item.blessed?
+
+        total += 1
+        plus += 1 if item.enchantment > 0
+      end
+
+      expect(plus * 100 // total).to be > 80
+    end
+  end
+
   describe "a potion" do
     it "puts back half as much when it is cursed" do
       expect(Blessing::Cursed.potency).to eq 50

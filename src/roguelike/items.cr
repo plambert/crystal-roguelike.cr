@@ -52,11 +52,15 @@ module Roguelike
     }
 
     # The same, on a blessed item.
+    #
+    # A blessing leans a plus the way a curse leans a minus, and harder. 85
+    # out of 100 blessed weapons carry a plus, for a mean of +1.37 against
+    # +0.18 on one nobody has touched.
     BLESSED_ENCHANTMENTS = {
-      {0, 30},
+      {0, 15},
       {1, 45},
-      {2, 20},
-      {3, 5},
+      {2, 28},
+      {3, 12},
     }
 
     # How many of a stacking kind turn up at once.

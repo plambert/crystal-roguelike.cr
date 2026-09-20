@@ -6,15 +6,15 @@
                                                │
                                                │ Here
                                                │ ──────────────────────
-             ╭─ crystal-roguelike ─────────────────────────╮p
-             │                                             │
-             │  version                                    │
-             │  A dungeon dug from seed 20260915.          │───────────
-             │                                             │
-             │  Press ? at any time for the list of keys.  │
-             │                                             │
-             │  p plays, q quits.  [Pq]                    │───────────
-             ╰─────────────────────────────────────────────╯e map, or
+                                               │ staircase up
+                                               │
+          ╭─ crystal-roguelike version       · seed 20260915 ─╮
+          │ a - new character                                 │────────
+          │ Q - quit                                          │
+          ╰───────────────────────────────────────────────────╯
+                                               │ Look
+                                               │ ──────────────────────
+                                               │ Point at the map, or
                                                │ press x.
                                                │
 ────────────────────────────────────────────────────────────────────────

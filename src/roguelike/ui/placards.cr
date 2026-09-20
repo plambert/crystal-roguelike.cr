@@ -8,23 +8,29 @@ module Roguelike::Ui
     # What the title screen is headed with.
     NAME = "crystal-roguelike"
 
-    # The keys the title screen answers.
-    START_KEYS = "pq"
+    # The key the row that starts a new character takes.
+    #
+    # It is the first row, so a person who presses `Enter` at the title
+    # screen starts a new character.
+    NEW_KEY = 'a'
 
-    # The one `Enter` answers with.
-    START_DEFAULT = 'p'
+    # What that row says.
+    NEW_ROW = "new character"
 
-    # What the title screen says the keys do.
-    START_FOOTER = "p plays, q quits."
+    # The key the row that leaves takes.
+    #
+    # Upper case, so it is never handed to a saved character however many of
+    # them there are. `Escape` does the same thing.
+    QUIT_KEY = 'Q'
+
+    # What that row says.
+    QUIT_ROW = "quit"
 
     # What the name question asks.
     #
     # The empty line holds a name the game rolled, dimmed. `Enter` takes it,
     # which is what "or take this one" points at.
     NAME_QUESTION = "Who is playing? Enter takes the name offered."
-
-    # The most saved characters the title screen lists.
-    MOST_SAVED = 8
 
     # What the name question asks again when the name has nothing in it that
     # makes a file name.
@@ -60,40 +66,17 @@ module Roguelike::Ui
       "version #{Roguelike::VERSION}"
     end
 
-    # The title screen for a run on *seed*, with *saved* offered to carry on.
+    # What the title menu is headed with.
     #
-    # The saved characters are listed so that a person can see which names
-    # are taken before the name question asks for one. Typing one of them
-    # carries that character on and the dug dungeon is thrown away, so the
-    # seed is worth saying only for a run that is about to start fresh.
-    def self.title(seed : UInt64, saved : Array(Save::Held) = [] of Save::Held) : Array(String)
-      lines = [
-        "",
-        build,
-        "A dungeon dug from seed #{seed}.",
-        "",
-      ]
-
-      lines.concat carrying_on saved unless saved.empty?
-      lines << "Press ? at any time for the list of keys."
-      lines << ""
-
-      lines
+    # The seed goes in it, because that is what a bug report needs and the
+    # title screen is where somebody reads it.
+    def self.title_bar(seed : UInt64) : String
+      "#{NAME} #{build} · seed #{seed}"
     end
 
-    # The saved characters, one to a line, newest first.
-    private def self.carrying_on(saved : Array(Save::Held)) : Array(String)
-      lines = ["Saved characters:"]
-
-      saved.first(MOST_SAVED).each do |held|
-        lines << "  #{held.name}  #{standing held}"
-      end
-
-      left = saved.size - MOST_SAVED
-      lines << "  and #{left} more" if left > 0
-      lines << ""
-
-      lines
+    # What one saved character's row says.
+    def self.saved_row(held : Save::Held) : String
+      "#{held.name} — #{standing held}"
     end
 
     # How one saved character stood when it was written.

@@ -77,54 +77,88 @@ Spectator.describe "how a run starts and ends" do
     run
   end
 
+  # One saved character in *store*, named *name*, written now.
+  def kept(store : Roguelike::Save::Store, name : String) : Nil
+    run = playing
+    run.game.player.name = name
+    store.write run.game
+  end
+
   describe "the title screen" do
-    it "names the seed" do
+    it "names the seed and the version it was built from" do
       run = playing title: true
 
-      expect(run.placard.showing?).to be_true
-      expect(run.placard.heading).to eq Placards::NAME
-      expect(run.placard.lines.any? &.includes?("seed #{SEED}")).to be_true
+      expect(run.menu.showing?).to be_true
+      expect(run.menu.title.to_s).to contain "seed #{SEED}"
+      expect(run.menu.title.to_s).to contain Roguelike::VERSION
     end
 
-    it "names the version it was built from" do
+    it "offers a new character first" do
       run = playing title: true
 
-      expect(run.placard.lines).to contain "version #{Roguelike::VERSION}"
+      expect(run.menu.entries.first.key).to eq Placards::NEW_KEY
+      expect(run.menu.entries.first.text).to eq Placards::NEW_ROW
     end
 
-    it "plays on p" do
+    it "asks who is playing on that row" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
 
-      expect(run.placard.showing?).to be_false
-      expect(run.finished?).to be_false
-    end
-
-    it "asks who is playing once it is answered" do
-      run = playing title: true
-
-      run.press "p"
-
+      expect(run.menu.showing?).to be_false
       expect(run.entry.asking?).to be_true
       expect(run.entry.question).to eq Placards::NAME_QUESTION
     end
 
-    it "lists nothing to carry on when the store is empty" do
+    it "offers only a new character and leaving when the store is empty" do
       run = playing title: true, store: Playing.store
 
-      expect(run.placard.lines.any? &.includes?("Saved characters")).to be_false
+      expect(run.menu.entries.map &.key).to eq [Placards::NEW_KEY,
+                                                Placards::QUIT_KEY]
     end
 
-    it "lists what is in the store" do
+    it "offers what is in the store" do
       store = Playing.store
-      kept = playing
-      kept.game.player.name = "Sparky"
-      store.write kept.game
+      kept store, "Sparky"
 
       run = playing title: true, store: store
 
-      expect(run.placard.lines.any? &.includes?("Sparky")).to be_true
+      expect(run.menu.entries.size).to eq 3
+      expect(run.menu.entries[1].text).to contain "Sparky"
+      expect(run.menu.entries.last.key).to eq Placards::QUIT_KEY
+    end
+
+    # The one played most recently is the one most likely wanted next.
+    it "offers the saves most recently played first" do
+      store = Playing.store
+      kept store, "Older"
+      sleep 10.milliseconds
+      kept store, "Newer"
+
+      run = playing title: true, store: store
+
+      expect(run.menu.entries[1].text).to contain "Newer"
+      expect(run.menu.entries[2].text).to contain "Older"
+    end
+
+    it "carries a saved character on when its row is picked" do
+      store = Playing.store
+      kept store, "Sparky"
+
+      run = playing title: true, store: store
+      run.press run.menu.entries[1].key.to_s
+
+      expect(run.menu.showing?).to be_false
+      expect(run.entry.asking?).to be_false
+      expect(run.game.player.name).to eq "Sparky"
+    end
+
+    it "leaves on Escape" do
+      run = playing title: true
+
+      run.press "Escape"
+
+      expect(run.finished?).to be_true
     end
   end
 
@@ -132,7 +166,7 @@ Spectator.describe "how a run starts and ends" do
     it "offers a name on the empty line" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
 
       expect(run.entry.field.placeholder).not_to be_empty
       expect(run.entry.text).to be_empty
@@ -144,7 +178,7 @@ Spectator.describe "how a run starts and ends" do
     it "takes the offered name on an empty line" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       offered = run.entry.field.placeholder
       run.press "Enter"
 
@@ -155,7 +189,7 @@ Spectator.describe "how a run starts and ends" do
     it "offers a different name after a refusal" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       first = run.entry.field.placeholder
       run.type "!!!"
       run.press "Enter"
@@ -170,7 +204,7 @@ Spectator.describe "how a run starts and ends" do
       run = playing title: true
       run.play.previous_name = "Sparky"
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
 
       expect(run.entry.field.placeholder).to eq "Sparky"
     end
@@ -179,7 +213,7 @@ Spectator.describe "how a run starts and ends" do
       run = playing title: true
       run.play.previous_name = "Sparky"
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.press "Enter"
 
       expect(run.game.player.name).to eq "Sparky"
@@ -190,7 +224,7 @@ Spectator.describe "how a run starts and ends" do
       run = playing title: true
       run.play.previous_name = "Sparky"
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "!!!"
       run.press "Enter"
 
@@ -210,7 +244,7 @@ Spectator.describe "how a run starts and ends" do
       run = playing title: true, store: store
       run.play.previous_name = "Sparky"
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
 
       expect(run.entry.field.placeholder).not_to eq "Sparky"
     end
@@ -223,7 +257,7 @@ Spectator.describe "how a run starts and ends" do
       store.write kept.game
 
       run = playing title: true, store: store
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
 
       expect(run.entry.field.placeholder).not_to eq kept.game.player.name
     end
@@ -231,7 +265,7 @@ Spectator.describe "how a run starts and ends" do
     it "names the character with what was typed" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "Sparky"
       run.press "Enter"
 
@@ -242,7 +276,7 @@ Spectator.describe "how a run starts and ends" do
     it "says who came in" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "Sparky"
       run.press "Enter"
 
@@ -253,7 +287,7 @@ Spectator.describe "how a run starts and ends" do
       store = Playing.store
       run = playing title: true, store: store
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "Sparky"
       run.press "Enter"
 
@@ -265,17 +299,17 @@ Spectator.describe "how a run starts and ends" do
     it "goes back to the title screen on Escape" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.press "Escape"
 
-      expect(run.placard.showing?).to be_true
+      expect(run.menu.showing?).to be_true
       expect(run.game.player.name).to eq ""
     end
 
     it "asks again for a name with nothing usable in it" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "///"
       run.press "Enter"
 
@@ -293,7 +327,7 @@ Spectator.describe "how a run starts and ends" do
       store.write kept.game
 
       run = playing title: true, store: store
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "Sparky!the!Bold"
       run.press "Enter"
 
@@ -309,7 +343,7 @@ Spectator.describe "how a run starts and ends" do
       store.write kept.game
 
       run = playing title: true, store: store
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "Sparky!the!Bold"
       run.press "Enter"
 
@@ -323,7 +357,7 @@ Spectator.describe "how a run starts and ends" do
       store.write kept.game
 
       run = playing title: true, store: store
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "Sparky!the!Bold"
       run.press "Enter"
       run.type "McGee"
@@ -342,7 +376,7 @@ Spectator.describe "how a run starts and ends" do
       store.write kept.game
 
       run = playing title: true, store: store
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "Sparky"
       run.press "Enter"
 
@@ -359,10 +393,10 @@ Spectator.describe "how a run starts and ends" do
       expect(run.finished?).to be_false
     end
 
-    it "leaves on q" do
+    it "leaves on the row that leaves" do
       run = playing title: true
 
-      run.press "q"
+      run.press Placards::QUIT_KEY.to_s
 
       expect(run.finished?).to be_true
       expect(run.play.again?).to be_false
@@ -381,7 +415,7 @@ Spectator.describe "how a run starts and ends" do
     it "hands the keyboard back once the name is answered" do
       run = playing title: true
 
-      run.press "p"
+      run.press Placards::NEW_KEY.to_s
       run.type "Sparky"
       run.press "Enter"
       run.press "l"

@@ -186,6 +186,69 @@ Spectator.describe "items on the floor" do
     end
   end
 
+  describe "gold underfoot" do
+    alias Direction = Roguelike::Direction
+
+    # Nobody walks over coins and leaves them, and asking would be a
+    # keystroke for every pile.
+    it "goes into the purse on the step onto the square" do
+      game = bare
+      game.floor.drop 3, 2, Item.new(Kind::Gold, count: 12)
+
+      game.step Direction::East
+
+      expect(game.player.gold).to eq 12
+      expect(game.floor.items?(3, 2)).to be_false
+    end
+
+    it "costs no turn of its own" do
+      game = bare
+      game.floor.drop 3, 2, Item.new(Kind::Gold, count: 12)
+
+      game.step Direction::East
+
+      expect(game.turn).to eq 1
+    end
+
+    it "says how much was taken" do
+      game = bare
+      game.floor.drop 3, 2, Item.new(Kind::Gold, count: 12)
+
+      game.step Direction::East
+
+      expect(game.log.lines.any? &.includes?("12 gold pieces")).to be_true
+    end
+
+    it "counts one coin as one piece" do
+      game = bare
+      game.floor.drop 3, 2, Item.new(Kind::Gold, count: 1)
+
+      game.step Direction::East
+
+      expect(game.log.lines.any? &.includes?("1 gold piece.")).to be_true
+    end
+
+    it "leaves everything else where it is" do
+      game = bare
+      game.floor.drop 3, 2, Item.new(Kind::Gold, count: 12)
+      game.floor.drop 3, 2, Item.new(Kind::Dagger)
+
+      game.step Direction::East
+
+      expect(game.player.gold).to eq 12
+      expect(game.here.map &.kind).to eq [Kind::Dagger]
+    end
+
+    it "says nothing on a square with no gold on it" do
+      game = bare
+      game.floor.drop 3, 2, Item.new(Kind::Dagger)
+
+      game.step Direction::East
+
+      expect(game.log.lines.any? &.includes?("gold")).to be_false
+    end
+  end
+
   describe "Game#drop_gold" do
     it "puts gold on the floor" do
       game = bare

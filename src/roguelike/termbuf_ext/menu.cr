@@ -45,6 +45,13 @@ module TermBuf::Widgets
     # The letters a menu hands out when the caller has none of its own.
     LETTERS = ('a'..'z').to_a + ('A'..'Z').to_a
 
+    # How many cells the box keeps clear beyond its title.
+    #
+    # The title is drawn in the top edge of the border with a space on each
+    # side and a corner beyond that. A box sized to the title exactly has the
+    # last letter or two of it cut.
+    TITLE_SLACK = 2
+
     # The letter for the row at *index*.
     def self.letter(index : Int32) : Char
       LETTERS[index % LETTERS.size]
@@ -283,7 +290,7 @@ module TermBuf::Widgets
     # and a box narrower than its own title has the title cut instead.
     private def fit_into(screen : Rect, policy : Unicode::WidthPolicy) : Nil
       rows = @entries.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
-      @list.widest = Math.max rows, Menu.cells(title, policy)
+      @list.widest = Math.max rows, Menu.cells(title, policy) + TITLE_SLACK
 
       widest = Math.max screen.width - 2 * @column_margin, MINIMUM_WIDTH
       tallest = Math.max screen.height - 2 * @row_margin, MINIMUM_HEIGHT

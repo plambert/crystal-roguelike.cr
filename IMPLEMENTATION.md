@@ -1435,6 +1435,35 @@ depends on how wide the row turned out. A left piece is cut one cell short of it
 long name gives way to the level rather than pushing it off the row. A character nobody has named
 yet reads as a dash.
 
+## Gold underfoot
+
+Stepping onto a square with gold on it puts the gold in the purse. `Game#arrived` does it, before
+it describes what is left lying there, and the step onto the square is the turn. Gold is counted
+rather than carried, so there is no pack to fill and no way for it to refuse.
+
+Everything else on the square stays where it is and is still picked up with `,`.
+
+A run stops on the line this writes, the same as it stops on "You see a dagger here." Anything
+written to the log stops a run, and what is underfoot is what a run is for noticing.
+
+## The title screen
+
+It is a menu. The first row starts a new character, which is what `Enter` takes. Every row after it
+is a saved character to carry on, most recently played first, which is the order `Store#characters`
+already answers in. The last row leaves, and so does `Escape`.
+
+The two ends keep their keys whatever is in the store: `a` starts a new character and `Q` leaves.
+The saves take the letters left over, so a store with thirty characters in it still has a row that
+leaves.
+
+Picking a save carries it on. A name is picked rather than typed, so somebody coming back to a
+character no longer has to spell it the way they spelled it the first time.
+
+The seed and the version go in the menu's title, because that is what a bug report needs and the
+title screen is where somebody reads it. `Menu::TITLE_SLACK` keeps the box two cells wider than its
+own title, which it did not before: a box sized to its title exactly had the last letter of it cut
+by the border corner.
+
 ## Blessings and curses
 
 A blessing is hidden on each item until the character finds out. There are now three ways they do:
@@ -1485,6 +1514,21 @@ You realize that 3 iron spikes are blessed!
 A curse or a blessing is news and the line ends in a mark. An uncursed item is not news and the
 line is flat. `Lore#name` takes a `blessing` argument for this, false meaning leave the word out
 however much the character knows.
+
+### What a blessing does to a weapon
+
+`Item#aim` is what an item adds to a swing or a shot landing: the enchantment, the condition, and
+`BLESSED_AIM` for a blessing. `Player#to_hit`, `#to_shoot` and `#to_throw` all read it, so a
+blessed bow and a blessed arrow each count.
+
+It adds nothing to the damage. `Item#damage` reads the enchantment and the condition and stops
+there, so a blessed sword reads as a plain one in the detail pane and lands more often than one.
+Nothing shows a to-hit number anywhere, so the bonus is invisible by construction rather than by
+being hidden.
+
+`BLESSED_ENCHANTMENTS` leans harder than it did: 85 out of 100 blessed weapons carry a plus, for a
+mean of +1.37 against +0.18 on one nobody has touched. A blessing found on the floor is therefore
+worth about a point and a half; a blessing put on with a scroll is worth the one point of aim.
 
 ### A curse holds what is in a slot
 

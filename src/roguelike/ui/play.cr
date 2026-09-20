@@ -185,6 +185,10 @@ module Roguelike::Ui
     # The name the question is offering. `Enter` on an empty line takes it.
     @offered : String = ""
 
+    # Which saved character each title row carries on, by the key that picks
+    # it. The row that starts a new character is in no key here.
+    @carrying : Hash(Char, String) = {} of Char => String
+
     # The name the last run ended under, offered once to the next one.
     #
     # A character who died or won has had their file moved out of the way, so
@@ -289,21 +293,64 @@ module Roguelike::Ui
 
     # Puts the title screen up. The owner calls this once, before the run.
     #
-    # `p` plays and `q` quits. A person who quits here leaves without a run
-    # having started, which `Game::Outcome::Playing` already says.
+    # It is a menu. The first row starts a new character, which is what
+    # `Enter` takes, and every row after it is a saved character to carry on,
+    # most recently played first. `Escape` quits, and a person who quits here
+    # leaves without a run having started, which `Outcome::Playing` already
+    # says.
     #
-    # Playing asks for a name next. The title screen lists whatever is in the
-    # store, so a person can see which names are already taken before they
-    # type one.
+    # The saves are rows rather than a list to read, so a name is picked
+    # rather than typed. A person carrying a character on no longer has to
+    # spell it the way they spelled it the first time.
     def show_title : Nil
-      @placard.on_answer = ->(key : Char?) do
-        key == Placards::START_DEFAULT ? ask_the_name : (@finished = true)
+      held = saved
+      @carrying = {} of Char => String
+
+      @menu.on_choose = ->(key : Char?) do
+        chose_at_title key
         nil
       end
 
-      @placard.show application, Placards::NAME,
-        Placards.title(@game.world.seed, saved), Placards::START_KEYS,
-        default: Placards::START_DEFAULT, footer: Placards::START_FOOTER
+      # A narrow margin. The title screen is the whole screen, the title in
+      # its border carries the seed, and a long character name should show
+      # rather than scroll.
+      @menu.column_margin = TITLE_MARGIN
+      @menu.on_highlight = nil
+      @menu.show application, Placards.title_bar(@game.world.seed),
+        title_rows(held)
+    end
+
+    # The rows the title menu offers.
+    #
+    # A new character first, every saved character after it, and leaving
+    # last. The two ends keep their keys whatever is in the store, so the
+    # saves take what is left.
+    private def title_rows(held : Array(Save::Held)) : Array(Widgets::Menu::Entry)
+      rows = [Widgets::Menu::Entry.new Placards::NEW_KEY, Placards::NEW_ROW]
+      keys = Widgets::Menu::LETTERS.reject do |key|
+        key == Placards::NEW_KEY || key == Placards::QUIT_KEY
+      end
+
+      held.each_with_index do |found, index|
+        key = keys[index]?
+        break unless key
+
+        @carrying[key] = found.name
+        rows << Widgets::Menu::Entry.new key, Placards.saved_row(found)
+      end
+
+      rows << Widgets::Menu::Entry.new Placards::QUIT_KEY, Placards::QUIT_ROW
+      rows
+    end
+
+    # What the row picked at the title screen does.
+    private def chose_at_title(key : Char?) : Nil
+      return @finished = true if key.nil? || key == Placards::QUIT_KEY
+
+      name = @carrying[key]?
+      return ask_the_name unless name
+
+      answered_the_name name
     end
 
     # Starts as *name*, with no title screen and no question.
@@ -526,6 +573,9 @@ module Roguelike::Ui
     # menu's border. A wide screen never reaches this: the menu is as wide as
     # its rows and no wider.
     MENU_MARGIN = Tooltip::LEAST_WIDTH + 4
+
+    # How many columns the title menu leaves clear on each side.
+    TITLE_MARGIN = 2
 
     # Hangs the box off the row the menu highlight is on, or takes it down.
     #

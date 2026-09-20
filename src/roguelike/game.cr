@@ -584,6 +584,8 @@ module Roguelike
       ground = standing_on
       say "There is #{ground.description} here." if ground.stairs?
 
+      take_coins
+
       pile = here
       return if pile.empty?
 
@@ -1503,7 +1505,7 @@ module Roguelike
 
       if item.kind.item_class.treasure?
         @player.take_gold item.count
-        say "You pick up #{item.count} gold pieces."
+        say "You pick up #{Game.coins item.count}."
         spend_turn
         return true
       end
@@ -1518,6 +1520,31 @@ module Roguelike
       say "#{letter} - #{name item}"
       spend_turn
       true
+    end
+
+    # Takes any gold on the square, without a turn of its own.
+    #
+    # The step onto the square is the turn. Nobody walks over coins and
+    # leaves them, and asking would be a keystroke for every pile.
+    #
+    # Gold is counted rather than carried, so there is no pack to fill and no
+    # way for this to refuse.
+    private def take_coins : Nil
+      taken = 0
+
+      here.select(&.kind.item_class.treasure?).each do |item|
+        next unless floor.take @player.x, @player.y, item
+
+        @player.take_gold item.count
+        taken += item.count
+      end
+
+      say "You pick up #{Game.coins taken}." if taken > 0
+    end
+
+    # *total* gold pieces, written so one of them is one piece.
+    def self.coins(total : Int32) : String
+      total == 1 ? "1 gold piece" : "#{total} gold pieces"
     end
 
     # Picks up everything on the square. Answers how many entries were taken.
