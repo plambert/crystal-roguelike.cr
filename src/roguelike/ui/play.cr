@@ -185,6 +185,14 @@ module Roguelike::Ui
     # The name the question is offering. `Enter` on an empty line takes it.
     @offered : String = ""
 
+    # The name the last run ended under, offered once to the next one.
+    #
+    # A character who died or won has had their file moved out of the way, so
+    # the name is free again. Somebody who answered "play again" usually
+    # wants the same name, and typing it out a second time is work the game
+    # can do for them.
+    property previous_name : String? = nil
+
     # The size of the screen, as `#fit` was last told it.
     @columns : Int32 = 0
     @rows : Int32 = 0
@@ -352,6 +360,10 @@ module Roguelike::Ui
     # The counter moves on with every question, so a person who does not like
     # what is offered can back out to the title screen and come in again.
     private def suggestion : String
+      carried = @previous_name
+      @previous_name = nil
+      return carried if carried && !(@store.try(&.holds? carried) || false)
+
       found = Rng.new(@game.world.seed).derive "name", @suggested
       @suggested += 1
 

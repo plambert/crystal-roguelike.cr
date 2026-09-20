@@ -41,16 +41,21 @@ module Roguelike
       end
 
       ran = nil.as Session?
+      previous = nil.as String?
+
       TermBuf::Terminal.open do |terminal|
         loop do
           played = new terminal, Rng.for(seed), flicker, generate, console,
-            store, character
+            store, character, previous
           ran = played
           played.run
 
           # The name was asked for once. A second run starts from the title
-          # screen again, so it asks again.
+          # screen again, so it asks again. What it asks offers the name the
+          # run that just ended was under, because that is what somebody who
+          # answered "play again" usually wants.
           character = nil
+          previous = played.play.game.player.name.presence
 
           break unless played.again?
         end
@@ -87,12 +92,13 @@ module Roguelike
     def initialize(@terminal : TermBuf::Terminal, @rng : Rng,
                    flicker : Bool = true, generate : Bool = true,
                    console : Bool = false, store : Save::Store? = nil,
-                   character : String? = nil)
+                   character : String? = nil, previous : String? = nil)
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
       @play = Ui::Play.new(generate ? Game.dug(@rng) : Game.start(@rng), console)
       @play.store = store
+      @play.previous_name = previous
       @play.fit size.columns, size.rows
 
       @app = Ui::Widgets::App.new @terminal, @play.root, bounds,

@@ -164,6 +164,57 @@ Spectator.describe "how a run starts and ends" do
       expect(run.entry.field.placeholder).not_to eq first
     end
 
+    # Somebody who answered "play again" usually wants the same name, and
+    # the file of the character who died is out of the way by then.
+    it "offers the name the last run ended under" do
+      run = playing title: true
+      run.play.previous_name = "Sparky"
+
+      run.press "p"
+
+      expect(run.entry.field.placeholder).to eq "Sparky"
+    end
+
+    it "takes that name on an empty line" do
+      run = playing title: true
+      run.play.previous_name = "Sparky"
+
+      run.press "p"
+      run.press "Enter"
+
+      expect(run.game.player.name).to eq "Sparky"
+    end
+
+    # A person who did not want it back has to be able to get past it.
+    it "offers it once and rolls one after that" do
+      run = playing title: true
+      run.play.previous_name = "Sparky"
+
+      run.press "p"
+      run.type "!!!"
+      run.press "Enter"
+
+      expect(run.entry.asking?).to be_true
+      expect(run.entry.field.placeholder).not_to eq "Sparky"
+    end
+
+    # A name the store still holds belongs to somebody. The run that ended
+    # under it had its file moved out of the way, so this is a name that was
+    # taken since.
+    it "rolls one instead when that name is taken" do
+      store = Playing.store
+      kept = playing
+      kept.game.player.name = "Sparky"
+      store.write kept.game
+
+      run = playing title: true, store: store
+      run.play.previous_name = "Sparky"
+
+      run.press "p"
+
+      expect(run.entry.field.placeholder).not_to eq "Sparky"
+    end
+
     it "offers a name nothing is saved under" do
       store = Playing.store
       kept = playing

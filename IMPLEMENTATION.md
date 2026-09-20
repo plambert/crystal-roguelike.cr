@@ -1582,6 +1582,14 @@ name twice.
 `Names.free` rolls past a name the store already holds, because the question would otherwise refuse
 its own offer.
 
+A run that has ended offers the name it ended under, rather than a rolled one. A character who
+died or won has had their file moved to `deaths/` or `wins/`, so the name is free again, and
+somebody who answered "play again" usually wants the same name. It is offered once: a second
+question rolls one, so a person who wanted a change can get past it. A name the store has taken
+since is rolled past like any other.
+
+`Session.open` carries it across the loop, because each run is a new `Play`.
+
 The offer sits where the placeholder goes, dimmed, rather than on the line. A name on the line would
 have to be deleted before a person could type their own, and most people have their own. `Enter` on
 an empty line takes the offer. A question that comes back after a refusal comes back empty, with a
