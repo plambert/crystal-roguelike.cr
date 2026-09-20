@@ -84,6 +84,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.pick_up; nil }
         map.bind TermBuf::Key.parse("d"), "drop something",
           ->(_context : Widgets::Context) { play.drop; nil }
+        map.bind TermBuf::Key.parse(HistoryPane::TOGGLE), "read the messages again",
+          ->(_context : Widgets::Context) { play.toggle_history; nil }
         map.bind TermBuf::Key.parse("i"), "look at what you are carrying",
           ->(_context : Widgets::Context) { play.show_inventory; nil }
         map.bind TermBuf::Key.parse("w"), "wield a weapon",

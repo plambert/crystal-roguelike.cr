@@ -38,6 +38,8 @@ module TermBuf::Widgets
   # an event to a widget's `#handle`, so an application binding would answer
   # before the pager saw the key.
   class Pager < Widget
+    include Scrolls
+
     # What the pager draws at the end of a page when more lines remain.
     property marker : String = "--More--"
 
@@ -55,6 +57,20 @@ module TermBuf::Widgets
 
     # How many lines the person has seen.
     getter read : Int32 = 0
+
+    # How many lines back from the newest the window sits.
+    #
+    # Zero is the bottom, which is where the pane stands until somebody
+    # scrolls it. A line arriving puts it back to zero: what just happened is
+    # what a person wants to see, and a pane left where it was scrolled to
+    # would go quietly stale.
+    getter back : Int32 = 0
+
+    # How many lines one notch of the wheel moves.
+    #
+    # One. The pane is four rows, and three lines a notch would jump most of
+    # it.
+    property wheel : Int32 = 1
 
     # The application this pager is drawn on.
     #
@@ -76,7 +92,11 @@ module TermBuf::Widgets
     # Sets the size of the pane. Wraps the text again when the width changed.
     def resize(columns : Int32, rows : Int32) : Nil
       @rows = rows
-      return if columns == @columns
+
+      if columns == @columns
+        settle
+        return
+      end
 
       @columns = columns
       rewrap
@@ -86,8 +106,15 @@ module TermBuf::Widgets
     #
     # A line already shown stays shown. The read mark moves only when the
     # person has seen a line.
+    #
+    # The same lines a second time change nothing. An owner redraws on every
+    # frame, and rewrapping text that has not moved would throw away a
+    # scrolled window several times a second.
     def show(source : Array(String)) : Nil
+      return if @source == source
+
       @source = source.dup
+      @back = 0
       rewrap
     end
 
@@ -123,17 +150,66 @@ module TermBuf::Widgets
       @read = @lines.size
     end
 
+    # Puts the window back on the newest line.
+    #
+    # An owner calls this when what the pane is beside has moved on. A pane
+    # scrolled back is showing what was happening rather than what is.
+    def to_newest : Nil
+      @back = 0
+    end
+
     # The lines this pane shows now.
     #
     # While the pager holds, this is one page starting at the read mark.
-    # Otherwise it is the last `#rows` lines, so older text stays as context.
+    # Otherwise it is the `#rows` lines ending `#back` lines above the
+    # newest, so older text stays as context and the wheel reaches further
+    # back.
     def showing : Array(String)
       return [] of String if @rows <= 0
 
       return @lines[@read, page] if holding?
 
-      first = Math.max @lines.size - @rows, 0
-      @lines[first..]
+      @lines[scroll_y, @rows]
+    end
+
+    # Lines there are, and cells across.
+    def content_size : {Int32, Int32}
+      {@columns, @lines.size}
+    end
+
+    # Lines that fit.
+    def viewport_size : {Int32, Int32}
+      {@columns, @rows}
+    end
+
+    # A pane is a window down, never across.
+    def clip_x? : Bool
+      false
+    end
+
+    # :ditto:
+    def clip_y? : Bool
+      true
+    end
+
+    # Always nothing: the text is wrapped rather than scrolled sideways.
+    def scroll_x : Int32
+      0
+    end
+
+    # Which line is at the top of the window.
+    def scroll_y : Int32
+      Math.max @lines.size - @rows - @back, 0
+    end
+
+    # Moves the window, stopping at either end.
+    #
+    # A held page is not scrolled. What is showing then is a page that has
+    # not been read, and moving it is how a line goes unread.
+    def scroll_by(dx : Int32, dy : Int32) : Nil
+      return if holding?
+
+      @back = (@back - dy).clamp 0, max_scroll[1]
     end
 
     # The keyboard lands here while the pager holds. It lands nowhere else.
@@ -150,12 +226,28 @@ module TermBuf::Widgets
     end
 
     # Takes every key while the pager holds. Any key shows the next page.
+    #
+    # A wheel notch is answered whether it holds or not. While it holds, a
+    # notch down shows the next page, which is what the marker is asking
+    # for. Otherwise the notch moves the window over the lines already read.
     def handle(event : Event, context : Context) : Nil
-      return unless holding?
-      return unless event.is_a? Events::Key
+      case event
+      when Events::Mouse
+        return unless event.button.wheel?
 
-      context.consume
-      advance
+        context.consume
+
+        if holding?
+          advance if event.button.wheel_down?
+        else
+          scroll_wheel event
+        end
+      when Events::Key
+        return unless holding?
+
+        context.consume
+        advance
+      end
     end
 
     def draw(view : View) : Nil
@@ -193,6 +285,7 @@ module TermBuf::Widgets
     private def settle : Nil
       @read = @read.clamp 0, @lines.size
       @read = @lines.size unless holding?
+      @back = @back.clamp 0, max_scroll[1]
 
       holding? ? grab : release
     end

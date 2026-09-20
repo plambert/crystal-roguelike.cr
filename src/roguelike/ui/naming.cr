@@ -44,6 +44,7 @@ module Roguelike::Ui
       ItemKind::DarknessScroll    => "dark scroll",
       ItemKind::BlindnessScroll   => "blind scroll",
       ItemKind::TeleportScroll    => "teleport scroll",
+      ItemKind::RepairScroll      => "repair scroll",
       ItemKind::LightWand         => "light wand",
       ItemKind::StrikingWand      => "striking wand",
       ItemKind::Gold              => "gold",

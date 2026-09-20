@@ -585,6 +585,7 @@ module Roguelike
       say "There is #{ground.description} here." if ground.stairs?
 
       take_coins
+      take_ammunition
 
       pile = here
       return if pile.empty?
@@ -1546,6 +1547,38 @@ module Roguelike
       say "You pick up #{Game.coins taken}." if taken > 0
     end
 
+    # Takes any ammunition the readied quiver would hold, without a turn of
+    # its own.
+    #
+    # The step onto the square is the turn, the same as it is for gold. What
+    # a character is shooting is what they walk over picking up, and an
+    # arrow fired at something and then walked past is the whole reason for
+    # it.
+    #
+    # Only what would sit under the quiver's own letter is taken. A `+1`
+    # arrow beside a plain one looks different and is left where it lies,
+    # because taking it would move the quiver's letter to a stack the
+    # character never asked for.
+    private def take_ammunition : Nil
+      readied = @player.quivered
+      return unless readied
+
+      here.select { |item| readied.looks_like? item }.each do |item|
+        next unless floor.take @player.x, @player.y, item
+
+        # The quiver's own letter holds anything that looks like what is in
+        # it, so there is always somewhere for this to go. The pack being
+        # full is checked anyway, because a thing taken off the floor with
+        # nowhere to put it would be gone.
+        unless @player.inventory.add item
+          floor.drop @player.x, @player.y, item
+          next
+        end
+
+        say "You pick up #{name item}."
+      end
+    end
+
     # *total* gold pieces, written so one of them is one piece.
     def self.coins(total : Int32) : String
       total == 1 ? "1 gold piece" : "#{total} gold pieces"
@@ -1648,16 +1681,16 @@ module Roguelike
 
     # Whether reading the scroll under *letter* will ask for a carried item.
     #
-    # A scroll of identify always asks. A scroll of blessing asks only when
-    # nothing has touched it: a blessed one reaches everything and a cursed
-    # one picks its own target.
+    # A scroll of identify always asks. A scroll of blessing, of remove curse
+    # or of repair asks only when nothing has touched it: a blessed one
+    # reaches everything and a cursed one picks its own target.
     def choice_needed?(letter : Char) : Bool
       item = @player.inventory[letter]
       return false unless item
 
       effect = item.kind.effect
       return true if effect.identify?
-      return false unless effect.marks?
+      return false unless effect.picks_one?
 
       item.blessing.uncursed?
     end
@@ -2009,6 +2042,7 @@ module Roguelike
       in .darkness?        then put_out item
       in .blind?           then blind_with item, target
       in .teleport?        then teleport_with item, target
+      in .repair?          then patch item, choice
       end
     end
 
@@ -2619,6 +2653,82 @@ module Roguelike
       end
 
       say "#{picked}, and #{lifts scroll}."
+      settle letter, item
+    end
+
+    # ------------------------------------------------------------- repairing
+
+    # What a scroll of repair does.
+    #
+    # An uncursed one takes the damage out of the one item the character
+    # picked. A blessed one mends everything carried and everything lying
+    # underfoot, which is what `#within` already answers for a blessed
+    # scroll. A cursed one breaks something that was whole instead.
+    private def patch(scroll : Item, choice : Char?) : Nil
+      return damage_one if scroll.cursed?
+      return patch_all scroll if scroll.blessed?
+
+      patch_one choice
+    end
+
+    # A blessed scroll, which mends everything it reaches.
+    private def patch_all(scroll : Item) : Nil
+      mended = 0
+      within(scroll).each { |_letter, item| mended += 1 if item.repair }
+
+      if mended.zero?
+        say "Nothing within reach was broken."
+        return
+      end
+
+      say "#{mended} of them are as good as new."
+    end
+
+    # An uncursed scroll, which mends the one item the character picked.
+    #
+    # The name is taken before the mending, because the word the mending
+    # takes out is the word that says what was wrong with it.
+    private def patch_one(choice : Char?) : Nil
+      item = choice ? @player.inventory[choice] : nil
+      unless item && choice
+        say "The writing fades with nothing to settle on."
+        return
+      end
+
+      told = name item
+      unless item.repair
+        say "Nothing about #{told} changes."
+        return
+      end
+
+      say "#{told.capitalize} #{item.count > 1 ? "are" : "is"} as good as new."
+      settle choice, item
+    end
+
+    # A cursed scroll, which breaks something whole.
+    #
+    # It picks among the things a condition means something on. A character
+    # carrying nothing but potions and scrolls loses the scroll and no more.
+    #
+    # A letter is broken whole. A stack holds what looks alike, and one arrow
+    # of twelve going dull is not something the character could point at.
+    private def damage_one : Nil
+      stream = draught
+      whole = @player.inventory.items.select do |_letter, item|
+        item.mendable? && !item.condition.damaged?
+      end
+
+      if whole.empty?
+        say "The writing fades with nothing to settle on."
+        return
+      end
+
+      letter, item = whole[stream.rand whole.size]
+      told = name item
+      item.crack
+
+      said = item.count > 1 ? "buckle and crack" : "buckles and cracks"
+      say "#{told.capitalize} #{said}."
       settle letter, item
     end
 

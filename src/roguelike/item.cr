@@ -143,6 +143,26 @@ module Roguelike
       true
     end
 
+    # Takes the damage out. Answers whether that was a change.
+    #
+    # A damaged thing is made plain rather than better than it was. A scroll
+    # of repair undoes wear; it does not make a smith out of the reader.
+    def repair : Bool
+      return false unless @condition.damaged?
+
+      @condition = Condition::Plain
+      true
+    end
+
+    # Whether the damage in this item is damage a repair could take out.
+    #
+    # A wand is left out. The only way a wand is damaged at all is a cursed
+    # one cracking in the hand, and that crack is the way out of the curse.
+    # Mending it would hand the character back to it.
+    def mendable? : Bool
+      @kind.enchantable?
+    end
+
     # Blesses this item. Answers whether that was a change.
     #
     # The blessing is left known. A character who watched a god touch a thing

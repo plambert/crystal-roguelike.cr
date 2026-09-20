@@ -121,6 +121,41 @@ Spectator.describe "the message log" do
       expect(run.at).to eq start
     end
 
+    # The case that asked for this: one scroll says a dozen things, and the
+    # pane is four rows.
+    it "holds on the list a scroll of item detection writes" do
+      kinds = [Roguelike::ItemKind::Dagger, Roguelike::ItemKind::Mace,
+               Roguelike::ItemKind::Cap, Roguelike::ItemKind::Boots]
+
+      game = Playing.field columns: 40, rows: 20
+      x, y = game.player.at
+      12.times do |number|
+        game.floor.drop x - 2 + (number % 5), y - 1 + (number // 5),
+          Roguelike::Item.new(kinds[number % 4], enchantment: number % 3)
+      end
+      letter = game.player.inventory.add(
+        Roguelike::Item.new Roguelike::ItemKind::DetectionScroll)
+
+      run = Playing.open game
+      run.press "r"
+      run.press letter.to_s
+
+      expect(run.pager.holding?).to be_true
+      expect(run.rows[23]).to contain "--More--"
+
+      lines = [] of String
+      while run.pager.holding?
+        lines.concat run.pager.showing
+        run.press "Enter"
+      end
+      lines.concat run.pager.showing
+
+      # Nothing the scroll said went past unseen, which is the whole point
+      # of holding.
+      everything = run.game.log.lines
+      everything.each { |said| expect(lines).to contain said }
+    end
+
     it "gives the keys back once the reading is done" do
       run = Playing.open
       start = run.at
@@ -132,6 +167,65 @@ Spectator.describe "the message log" do
       run.press "l"
 
       expect(run.at).to eq({start[0] + 1, start[1]})
+    end
+  end
+
+  describe "scrolling the pane" do
+    # Where a notch of the wheel lands on the log pane of an eighty by
+    # twenty-four window.
+    OVER_THE_LOG = {10, 21}
+
+    # A run with *count* messages said and every held page read.
+    def talkative(count : Int32 = 12) : Playing::Run
+      run = Playing.open
+      run.clear_monsters
+      count.times { |number| run.game.say "Something number #{number} happened." }
+      run.play.refresh
+      run.render
+
+      while run.pager.holding?
+        run.press "."
+      end
+
+      run
+    end
+
+    it "shows the lines above the pane on a notch of the wheel" do
+      run = talkative
+      newest = run.rows[23]
+
+      3.times { run.wheel *OVER_THE_LOG, up: true }
+
+      expect(run.pager.back).to eq 3
+      expect(run.rows[23]).not_to eq newest
+    end
+
+    it "comes back down on a notch the other way" do
+      run = talkative
+      3.times { run.wheel *OVER_THE_LOG, up: true }
+
+      3.times { run.wheel *OVER_THE_LOG, up: false }
+
+      expect(run.pager.back).to eq 0
+    end
+
+    it "walks the character nowhere" do
+      run = talkative
+      start = run.at
+
+      run.wheel *OVER_THE_LOG, up: true
+
+      expect(run.at).to eq start
+    end
+
+    it "goes back to the newest when a turn says something" do
+      run = talkative
+      3.times { run.wheel *OVER_THE_LOG, up: true }
+
+      run.press "."
+
+      expect(run.pager.back).to eq 0
+      expect(run.rows[23]).to contain run.said
     end
   end
 

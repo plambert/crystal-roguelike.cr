@@ -94,6 +94,9 @@ module Roguelike::Ui
     # How the flames waver. `Session` advances it on a timer.
     getter flicker : Flicker
 
+    # Every message of the run, in a box.
+    getter history : HistoryPane
+
     # The debug console. `nil` unless `--debug-console` was passed.
     #
     # Nothing is built when it is off, so there is no box in the tree and the
@@ -203,6 +206,14 @@ module Roguelike::Ui
     # can do for them.
     property previous_name : String? = nil
 
+    # Which turn the log pane was last drawn for.
+    #
+    # A pane scrolled back goes to the newest line when the turn moves on,
+    # because what it is showing then is what was happening rather than what
+    # is. A turn that says nothing counts: the character walked, and the
+    # pane is beside a floor that has moved.
+    @shown_turn : Int32 = 0
+
     # The size of the screen, as `#fit` was last told it.
     @columns : Int32 = 0
     @rows : Int32 = 0
@@ -231,6 +242,7 @@ module Roguelike::Ui
       @prompt = Widgets::Prompt.new
       @entry = Widgets::Entry.new
       @menu = Widgets::Menu.new
+      @history = HistoryPane.new
       @placard = Placard.new
       @tooltip = Tooltip.new
       watch_the_sidebar
@@ -507,6 +519,15 @@ module Roguelike::Ui
       @game.say "The game could not be saved: #{error.message}"
     end
 
+    # Puts every message of the run up, or takes the box down.
+    # `Ctrl+P` does this.
+    #
+    # The box is filled from the log each time it opens, so what it shows is
+    # what has been said up to now.
+    def toggle_history : Nil
+      @history.toggle application, @game.log.lines
+    end
+
     # Puts the debug console up, or takes it down. `` ` `` does this.
     #
     # Nothing happens in a run opened without the console, because the key is
@@ -711,7 +732,7 @@ module Roguelike::Ui
     # page each do.
     def modal? : Bool
       @prompt.asking? || @entry.asking? || @menu.showing? || @pager.holding? ||
-        @placard.showing? || (@console.try &.showing? || false)
+        @placard.showing? || @history.showing? || (@console.try &.showing? || false)
     end
 
     # Puts the camera on the character.
@@ -1130,7 +1151,7 @@ module Roguelike::Ui
         elsif @game.target_needed? letter
           aim_with letter
         elsif @game.choice_needed? letter
-          identify_with letter
+          @game.effect_of(letter).repair? ? repair_with(letter) : identify_with(letter)
         else
           @game.read letter
         end
@@ -1207,14 +1228,35 @@ module Roguelike::Ui
 
     # Asks which carried item the scroll under *letter* names.
     #
-    # The scroll itself is not offered. It is about to be used up, and a
-    # person who spent it naming it would have learned nothing.
-    #
-    # Nothing else to name reads the scroll anyway. It is used up either way,
-    # and saying so is clearer than refusing to read it.
+    # Only what the character has not found out is offered. A person who
+    # spent the scroll on something already named would have learned nothing.
     private def identify_with(letter : Char) : Nil
+      ask_which letter, "Identify what?" do |item|
+        !@game.lore.known? item.kind
+      end
+    end
+
+    # Asks which carried item the scroll under *letter* mends.
+    #
+    # Only what is damaged is offered. A condition is written into an item's
+    # name, so this is a list the character can already read off their own
+    # pack, and there is nothing to be gained by offering what is whole.
+    private def repair_with(letter : Char) : Nil
+      ask_which letter, "Repair what?" do |item|
+        item.mendable? && item.condition.damaged?
+      end
+    end
+
+    # Asks which carried item answering the block the scroll under *letter*
+    # works on, then reads the scroll.
+    #
+    # The scroll itself is not offered. It is about to be used up.
+    #
+    # Nothing to work on reads the scroll anyway. It is used up either way,
+    # and saying so is clearer than refusing to read it.
+    private def ask_which(letter : Char, title : String, & : Item -> Bool) : Nil
       found = @game.player.inventory.entries.select do |held, item|
-        held != letter && !@game.lore.known?(item.kind)
+        held != letter && yield item
       end
 
       if found.empty?
@@ -1222,7 +1264,7 @@ module Roguelike::Ui
         return
       end
 
-      choose("Identify what?", rows(found), about(found)) do |key|
+      choose(title, rows(found), about(found)) do |key|
         @game.read letter, key
         refresh
       end
@@ -1429,6 +1471,11 @@ module Roguelike::Ui
       offer_directions
       show_aim
       @pager.show @game.log.lines
+      if @shown_turn != @game.turn
+        @shown_turn = @game.turn
+        @pager.to_newest
+      end
+
       show_ending
     end
 
@@ -1570,6 +1617,12 @@ module Roguelike::Ui
 
       app = @app
       @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app
+
+      # A box of messages holds its lines wrapped to the width it was opened
+      # at, so a window that changed size is filled again rather than sized
+      # again. It goes back to the newest message, which is where a box just
+      # opened stands anyway.
+      @history.show application, @game.log.lines if app && @history.showing?
 
       refresh
     end

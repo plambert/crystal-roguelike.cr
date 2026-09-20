@@ -1448,7 +1448,7 @@ the whole floor in one colour.
 
 ## The rest of the scrolls
 
-Five more, each doing three things depending on what has touched it.
+Six more, each doing three things depending on what has touched it.
 
 ### Treasure detection
 
@@ -1504,6 +1504,23 @@ Puts the character on a random square at least `TELEPORT_LEAST` away. Blessed, i
 they said. Cursed, it puts them beside whatever on the floor is worth the most experience, or does
 nothing at all when the floor is empty.
 
+### Repair
+
+Takes the damage out of one carried item, leaving it plain rather than better than plain. Mending
+undoes wear; it does not make a smith out of the reader, so a masterwork piece is left as it is.
+
+The list offered holds only what is damaged. A condition is written into an item's name, so that is
+a list the character can already read off their own pack, and a scroll spent on something whole
+would be spent on nothing.
+
+Blessed, it mends everything carried and everything lying on the character's own square, which is
+what `Game#within` already answers for a blessed scroll. Cursed, it breaks something whole instead,
+picked from what a condition means anything on. A wand is left out of that: the only way a wand is
+damaged at all is a cursed one cracking in the hand, and that crack is the way out of the curse.
+
+A letter is mended or broken whole. A stack holds what looks alike, and one arrow of twelve going
+dull is not something the character could point at.
+
 ### Reading and then aiming
 
 A scroll of blindness and a blessed scroll of minor teleport both want a square, and neither
@@ -1528,6 +1545,40 @@ Everything else on the square stays where it is and is still picked up with `,`.
 
 A run stops on the line this writes, the same as it stops on "You see a dagger here." Anything
 written to the log stops a run, and what is underfoot is what a run is for noticing.
+
+## Ammunition underfoot
+
+The same, for what the readied quiver holds. An arrow fired at something and then walked past is
+the whole reason for it.
+
+Only what would sit under the quiver's own letter is taken, which `Item#looks_like?` decides. A `+1`
+arrow beside a plain one reads differently in the pack, and taking it would move the quiver's letter
+to a stack the character never asked for. A character with an empty quiver picks up nothing.
+
+## Reading the messages again
+
+The log pane is four rows. Three things now keep a message from going past unread.
+
+`Widgets::Pager` holds at a page boundary and writes `--More--` on the last row, which it already
+did. A turn that says twelve things shows three at a time and takes any key for the next page.
+
+The wheel scrolls the pane back over what has already been read. `Pager` is a `Scrolls` now, so the
+notch is the one the rest of the widgets answer, and `#back` is how many lines above the newest the
+window sits. A held page is not scrolled: what is showing then has not been read, and moving it is
+how a line goes unread. A notch down while it holds shows the next page, because that is what the
+marker is asking for.
+
+The window goes back to the newest line when a line arrives, and when the turn moves on. A pane left
+where it was scrolled to would quietly go stale, and a character who has walked three squares is not
+reading about the room they left.
+
+`Ctrl+P` puts every message of the run in a box. It is `Ui::HistoryPane`, a `VirtualList` over the
+log wrapped to the box, opened on the newest message and scrolled with the arrows, `jk`, the page
+keys, the space bar, `Home`, `End` and the wheel. `Escape`, `q` and `Ctrl+P` close it. The lines are
+wrapped rather than cut: a message longer than the box is a message with its end missing.
+
+The box is filled from the log each time it opens, so it holds no copy of anything between one
+opening and the next.
 
 ## The title screen
 

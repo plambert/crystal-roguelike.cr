@@ -186,4 +186,97 @@ Spectator.describe TermBuf::Widgets::Pager do
       expect(run.pager.advance).to be_false
     end
   end
+
+  describe "scrolling back" do
+    # A notch of the wheel over the pane.
+    #
+    # The pane is drawn first. A widget the tree has not laid out yet sits
+    # nowhere, and a report lands on nothing.
+    def notch(run : Paged, up : Bool) : Nil
+      run.session.render
+      button = up ? TermBuf::Input::Mouse::Button::WheelUp : TermBuf::Input::Mouse::Button::WheelDown
+
+      run.session.send TermBuf::Events::Mouse.new(
+        button, 1, 1, TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+      run.session.render
+    end
+
+    it "shows the lines above the pane" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+      run.pager.scroll_by 0, -2
+
+      expect(run.pager.back).to eq 2
+      expect(run.pager.showing.first).to eq "Message number 4."
+      expect(run.pager.showing.last).to eq "Message number 7."
+    end
+
+    it "stops at the oldest line" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+      run.pager.scroll_by 0, -40
+
+      expect(run.pager.showing.first).to eq "Message number 1."
+    end
+
+    it "stops at the newest" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+      run.pager.scroll_by 0, 40
+
+      expect(run.pager.back).to eq 0
+      expect(run.pager.showing.last).to eq "Message number 9."
+    end
+
+    it "answers a notch of the wheel" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+
+      notch run, up: true
+
+      expect(run.pager.back).to eq 1
+      expect(run.session.row(3)).to eq "Message number 8."
+    end
+
+    # What just happened is what a person wants to see. A pane left where it
+    # was scrolled to would go quietly stale.
+    it "goes back to the newest when a line arrives" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+      run.pager.scroll_by 0, -3
+      run.pager.show messages(10)
+
+      expect(run.pager.back).to eq 0
+      expect(run.pager.showing.last).to eq "Message number 10."
+    end
+
+    it "changes nothing while the pager holds" do
+      run = paged
+      run.pager.show messages(9)
+
+      run.pager.scroll_by 0, -2
+      notch run, up: true
+
+      expect(run.pager.back).to eq 0
+      expect(run.pager.showing.first).to eq "Message number 1."
+    end
+
+    # The marker is asking for a key. A notch down is as good an answer as
+    # one.
+    it "takes a notch down as a page while it holds" do
+      run = paged
+      run.pager.show messages(9)
+
+      notch run, up: false
+
+      expect(run.pager.read).to eq 3
+      expect(run.pager.showing.first).to eq "Message number 4."
+    end
+  end
 end

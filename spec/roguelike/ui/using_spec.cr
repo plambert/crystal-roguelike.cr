@@ -102,6 +102,39 @@ Spectator.describe "quaffing, reading and zapping" do
       expect(run.game.player.inventory.has? 'a').to be_false
     end
 
+    it "offers only what is damaged to a scroll of repair" do
+      run = carrying [Item.new(Kind::RepairScroll),
+                      Item.new(Kind::Mace, condition: Roguelike::Condition::Damaged),
+                      Item.new(Kind::Cap)]
+
+      run.press "r", "a"
+
+      expect(run.menu.showing?).to be_true
+      expect(offered run).to eq ['b']
+    end
+
+    it "mends the one that was chosen" do
+      run = carrying [Item.new(Kind::RepairScroll),
+                      Item.new(Kind::Mace, condition: Roguelike::Condition::Damaged)]
+
+      run.press "r", "a"
+      run.press "b"
+
+      expect(run.game.player.inventory['b'].try &.condition)
+        .to eq Roguelike::Condition::Plain
+      expect(run.game.player.inventory.has? 'a').to be_false
+    end
+
+    it "reads a scroll of repair anyway when nothing is damaged" do
+      run = carrying [Item.new(Kind::RepairScroll), Item.new(Kind::Mace)]
+
+      run.press "r", "a"
+
+      expect(run.menu.showing?).to be_false
+      expect(run.game.player.inventory.has? 'a').to be_false
+      expect(run.said).to contain "writing fades"
+    end
+
     it "says so in the dark, without offering anything" do
       run = carrying [Item.new Kind::MappingScroll], dark: true
 

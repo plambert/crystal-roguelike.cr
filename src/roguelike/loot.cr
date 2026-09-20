@@ -77,6 +77,7 @@ module Roguelike
       ItemKind::DarknessScroll    => 5,
       ItemKind::BlindnessScroll   => 6,
       ItemKind::TeleportScroll    => 7,
+      ItemKind::RepairScroll      => 7,
       ItemKind::LightWand         => 10,
       ItemKind::StrikingWand      => 6,
     }

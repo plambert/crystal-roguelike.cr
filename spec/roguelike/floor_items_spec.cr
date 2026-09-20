@@ -249,6 +249,80 @@ Spectator.describe "items on the floor" do
     end
   end
 
+  describe "ammunition underfoot" do
+    alias Direction = Roguelike::Direction
+    alias Slot = Roguelike::Slot
+
+    # A game with *quivered* readied, and *lying* on the square to the east.
+    def shooting(quivered : Item, lying : Array(Item)) : Roguelike::Game
+      game = bare
+      letter = game.player.inventory.add quivered
+      raise "no room" unless letter
+      game.player.equipment.put Slot::Quiver, letter
+      lying.each { |item| game.floor.drop 3, 2, item }
+      game
+    end
+
+    it "goes into the quiver on the step onto the square" do
+      game = shooting Item.new(Kind::Arrow, count: 5),
+        [Item.new(Kind::Arrow, count: 3)]
+
+      game.step Direction::East
+
+      expect(game.player.quivered.try &.count).to eq 8
+      expect(game.floor.items?(3, 2)).to be_false
+    end
+
+    it "costs no turn of its own" do
+      game = shooting Item.new(Kind::Arrow, count: 5),
+        [Item.new(Kind::Arrow, count: 3)]
+
+      game.step Direction::East
+
+      expect(game.turn).to eq 1
+    end
+
+    it "says what was taken" do
+      game = shooting Item.new(Kind::Arrow, count: 5),
+        [Item.new(Kind::Arrow, count: 3)]
+
+      game.step Direction::East
+
+      expect(game.log.lines.any? &.includes?("You pick up 3 arrows.")).to be_true
+    end
+
+    # A `+1` arrow reads differently in the pack, and taking it would put it
+    # under a letter the character never asked for.
+    it "leaves ammunition that looks different" do
+      game = shooting Item.new(Kind::Arrow, count: 5),
+        [Item.new(Kind::Arrow, count: 2, enchantment: 1)]
+
+      game.step Direction::East
+
+      expect(game.player.quivered.try &.count).to eq 5
+      expect(game.here.size).to eq 1
+    end
+
+    it "leaves what the quiver does not fire" do
+      game = shooting Item.new(Kind::Arrow, count: 5),
+        [Item.new(Kind::Stone, count: 4), Item.new(Kind::Dagger)]
+
+      game.step Direction::East
+
+      expect(game.player.quivered.try &.count).to eq 5
+      expect(game.here.size).to eq 2
+    end
+
+    it "leaves everything where it is with an empty quiver" do
+      game = bare
+      game.floor.drop 3, 2, Item.new(Kind::Arrow, count: 3)
+
+      game.step Direction::East
+
+      expect(game.here.size).to eq 1
+    end
+  end
+
   describe "Game#drop_gold" do
     it "puts gold on the floor" do
       game = bare

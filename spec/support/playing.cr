@@ -100,6 +100,16 @@ module Playing
       @session.render
     end
 
+    # A wheel notch at *x*, *y* of the buffer. *up* rolls it back.
+    def wheel(x : Int32, y : Int32, up : Bool = true) : Nil
+      button = up ? TermBuf::Input::Mouse::Button::WheelUp : TermBuf::Input::Mouse::Button::WheelDown
+
+      @session.send TermBuf::Events::Mouse.new(
+        button, x, y, TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+      @session.render
+    end
+
     # Takes every creature off the floor.
     #
     # A spec about doors, drawing or the log is not about being chased.

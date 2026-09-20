@@ -267,6 +267,9 @@ module Roguelike
     # Read to go somewhere else on this floor.
     TeleportScroll
 
+    # Read to take the damage out of something.
+    RepairScroll
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -482,6 +485,9 @@ module Roguelike
       ItemKind::TeleportScroll => ItemFacts.new("scroll of minor teleport",
         "scrolls of minor teleport", ItemClass::Scroll, weight: 5,
         effect: Effect::Teleport),
+      ItemKind::RepairScroll => ItemFacts.new("scroll of repair",
+        "scrolls of repair", ItemClass::Scroll, weight: 5,
+        effect: Effect::Repair),
     }
   end
 end

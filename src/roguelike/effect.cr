@@ -48,6 +48,10 @@ module Roguelike
     # Puts the character somewhere else on this floor.
     Teleport
 
+    # Takes the damage out of one carried item, or out of everything within
+    # reach.
+    Repair
+
     # Whether using this needs a square to aim at.
     #
     # A wand of striking is aimed before it is used. A scroll that needs a
@@ -71,7 +75,16 @@ module Roguelike
     # reaches everything and asks nothing, and a cursed one picks its own
     # target. `Game#choice_needed?` reads the item as well as the effect.
     def chosen? : Bool
-      identify? || bless? || remove_curse?
+      identify? || picks_one?
+    end
+
+    # Whether the uncursed one works on the one item the character picked.
+    #
+    # A blessed one of these reaches everything within reach and asks
+    # nothing. A cursed one picks its own target. So what the question
+    # depends on is the blessing, which `Game#choice_needed?` reads.
+    def picks_one? : Bool
+      bless? || remove_curse? || repair?
     end
 
     # Whether the character has to see what they are choosing between before
