@@ -2025,8 +2025,8 @@ module Roguelike
 
     # ------------------------------------------------------------- detection
 
-    # How much of the floor across and down a scroll of item detection
-    # reaches, out of a hundred.
+    # How far across and down the oval a scroll of item detection reaches is,
+    # as a share of the floor out of a hundred.
     #
     # An oval rather than a circle, because a floor is wider than it is tall
     # and a circle on one reaches most of the way to the top and bottom edges
@@ -2156,8 +2156,10 @@ module Roguelike
     # circle on one reaches the top and bottom edges while leaving the sides
     # alone.
     private def within_oval?(x : Int32, y : Int32) : Bool
-      across = Math.max floor.columns * DETECTION_SPAN // 100, 1
-      down = Math.max floor.rows * DETECTION_SPAN // 100, 1
+      # The span is how far across the whole oval is, so the reach from the
+      # middle to the edge is half of it.
+      across = Math.max floor.columns * DETECTION_SPAN // 200, 1
+      down = Math.max floor.rows * DETECTION_SPAN // 200, 1
 
       dx = (x - @player.x) / across.to_f
       dy = (y - @player.y) / down.to_f

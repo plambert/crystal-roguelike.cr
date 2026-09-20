@@ -1458,8 +1458,9 @@ pile behind and saying how much went; what survives is written down like the res
 
 ### Item detection
 
-Writes down what is lying inside an oval round the character, `DETECTION_SPAN` of the floor across
-and the same fraction down. An oval rather than a circle, because a floor is wider than it is tall
+Writes down what is lying inside an oval round the character. The oval is `DETECTION_SPAN` of the
+floor across and the same share of it down, so it reaches half that far from the character in each
+direction. An oval rather than a circle, because a floor is wider than it is tall
 and a circle on one reaches the top and bottom edges while leaving the sides alone. Blessed, it
 reaches the whole floor. Cursed, it destroys `DETECTION_RUIN` of what it found, rounded up, so it
 always destroys something.

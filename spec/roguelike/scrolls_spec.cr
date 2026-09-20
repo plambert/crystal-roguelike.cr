@@ -118,6 +118,8 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
       expect(game.knowledge[4, 5].try &.item.try &.kind).to eq Kind::LongSword
     end
 
+    # The oval is a quarter of the floor across and a quarter down, so it
+    # reaches an eighth of each way from the character.
     it "leaves what is far off alone" do
       game = bare
       game.floor.drop 20, 1, Item.new(Kind::LongSword)
@@ -148,7 +150,7 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
 
     it "names what it found, nearest first" do
       game = bare
-      game.floor.drop 8, 5, Item.new(Kind::Mace)
+      game.floor.drop 5, 5, Item.new(Kind::Mace)
       game.floor.drop 4, 5, Item.new(Kind::LongSword)
 
       game.read reading(game, Kind::DetectionScroll)
@@ -160,9 +162,11 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
     end
 
     describe "cursed" do
+      # A sword does not stack, so ten of them on one square are ten
+      # entries.
       it "destroys a fifth of what it found, rounded up" do
         game = bare
-        10.times { |index| game.floor.drop 1 + index, 5, Item.new(Kind::LongSword) }
+        10.times { game.floor.drop 4, 5, Item.new(Kind::LongSword) }
 
         game.read reading(game, Kind::DetectionScroll, Blessing::Cursed)
 
