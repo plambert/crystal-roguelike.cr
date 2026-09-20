@@ -32,7 +32,8 @@ Spectator.describe TermBuf::Widgets::Menu do
   end
 
   def shown(texts : Array(String), columns : Int32 = 60, rows : Int32 = 20,
-            title : String? = "Inventory") : Shown
+            title : String? = "Inventory",
+            disabled : Array(Int32) = [] of Int32) : Shown
     menu = Widgets::Menu.new
     chosen = [] of Char?
     menu.on_choose = ->(key : Char?) { chosen << key; nil }
@@ -44,7 +45,7 @@ Spectator.describe TermBuf::Widgets::Menu do
 
     session = Headless.open root, columns, rows
     entries = texts.each_with_index.map do |text, index|
-      Entry.new Widgets::Menu.letter(index), text
+      Entry.new Widgets::Menu.letter(index), text, !disabled.includes?(index)
     end
 
     menu.show session.app, title, entries
@@ -274,6 +275,75 @@ Spectator.describe TermBuf::Widgets::Menu do
         TermBuf::Input::Mouse::Action::Motion)
 
       expect(run.menu.list.selected).to eq 2
+    end
+
+    # The pointer moves the highlight and the button picks what it is on, so
+    # a click does what typing that row's letter does.
+    it "picks the row a button goes down on" do
+      run = shown ["one", "two", "three"]
+      list = run.menu.list.rect
+
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::Left, list.x + 1, list.y + 2,
+        TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+
+      expect(run.chosen).to eq ['c']
+      expect(run.menu.showing?).to be_false
+    end
+
+    it "picks nothing when the button goes down past the rows" do
+      run = shown ["one", "two"]
+      list = run.menu.list.rect
+
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::Left, list.x + 1, list.y + 5,
+        TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+
+      expect(run.chosen).to be_empty
+      expect(run.menu.showing?).to be_true
+    end
+
+    it "picks nothing on a row that cannot be picked" do
+      run = shown ["one", "two"], disabled: [1]
+      list = run.menu.list.rect
+
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::Left, list.x + 1, list.y + 1,
+        TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+
+      expect(run.chosen).to be_empty
+      expect(run.menu.showing?).to be_true
+    end
+
+    # A release is not a second answer to a press, and the other buttons mean
+    # nothing on a row.
+    it "picks nothing when the button comes back up" do
+      run = shown ["one", "two"]
+      list = run.menu.list.rect
+
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::Left, list.x + 1, list.y + 1,
+        TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Release)
+
+      expect(run.chosen).to be_empty
+      expect(run.menu.showing?).to be_true
+    end
+
+    it "picks nothing on the right button" do
+      run = shown ["one", "two"]
+      list = run.menu.list.rect
+
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::Right, list.x + 1, list.y + 1,
+        TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+
+      expect(run.chosen).to be_empty
+      expect(run.menu.showing?).to be_true
     end
   end
 

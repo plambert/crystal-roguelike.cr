@@ -1560,6 +1560,17 @@ The character starts with three. A floor hands them out at a weight of 7 against
 460, which is 1.5 out of every 100 items it scatters, in stacks of two to four. At that rate a
 person who had to find one before learning what it is for would mostly never find one.
 
+## Clicking a menu row
+
+The pointer crossing a row already moves the highlight. A button going down on a row now picks it,
+which does what typing that row's letter does. `Menu::Content#handle` moves the highlight first and
+then runs `on_click`, which the menu wires to `pick_highlighted`, so the two paths end in the same
+place and a row that cannot be picked is left alone by both.
+
+Only the left button, and only the press. A release is not a second answer to a press, and a press
+that lands past the last row is not a row. A press that picks is claimed; a bare motion report is
+not, because whatever is tracking where the pointer is has to hear about every one of those.
+
 ## A name to start with
 
 The name question offers one. `Names.roll` builds it from a syllable start, one or two vowel

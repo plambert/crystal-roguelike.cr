@@ -142,6 +142,12 @@ module TermBuf::Widgets
       # the highlight was already on.
       property on_select : Proc(Int32, Nil)? = nil
 
+      # What runs when a button is pressed on a row.
+      #
+      # The highlight has already moved to that row, so whatever this does
+      # acts on the row that was clicked.
+      property on_click : Proc(Nil)? = nil
+
       def intrinsic_width(policy : Unicode::WidthPolicy) : Layout::Intrinsic
         Layout::Intrinsic.new 1, Math.max(@widest, 1)
       end
@@ -163,13 +169,15 @@ module TermBuf::Widgets
         @on_select.try &.call @selected
       end
 
-      # Puts the highlight on the row the pointer is over.
+      # Puts the highlight on the row the pointer is over, and picks the row
+      # a button goes down on.
       #
       # A row is not a widget, so there is nothing under the pointer to ask.
       # The row is worked out from how far down the list the report landed.
       #
-      # A report is not claimed. Whatever is tracking where the pointer is has
-      # to hear about every one, including the ones that land here.
+      # A bare report is not claimed. Whatever is tracking where the pointer
+      # is has to hear about every one, including the ones that land here. A
+      # press is claimed, because it has been answered.
       def handle(event : Event, context : Context) : Nil
         return unless event.is_a? Events::Mouse
 
@@ -179,7 +187,21 @@ module TermBuf::Widgets
         end
 
         row = scroll_y + event.y - content.y
-        self.select row if row >= 0 && row < @rows.size
+        return unless row >= 0 && row < @rows.size
+
+        self.select row
+        return unless Content.clicked? event
+
+        context.consume
+        @on_click.try &.call
+      end
+
+      # Whether *event* is a button going down on a row.
+      #
+      # The left button and nothing else. A release is not a second answer to
+      # a press, and the middle and right buttons mean nothing here.
+      def self.clicked?(event : Events::Mouse) : Bool
+        event.button.left? && event.action.press?
       end
     end
 
@@ -205,6 +227,10 @@ module TermBuf::Widgets
       end
 
       @list.on_select = ->(_index : Int32) { highlighted; nil }
+
+      # Clicking a row does what typing its letter does. The pointer has
+      # already put the highlight on it.
+      @list.on_click = -> { pick_highlighted; nil }
 
       add @list
     end
