@@ -308,6 +308,7 @@ module Roguelike::Ui
     # Shows *floor* instead, from its top left corner.
     def floor=(floor : Floor) : Floor
       @cells.floor = floor
+      @drifting = nil
       @grid.scroll_to 0, 0
       clear_marks
       clear_highlights
@@ -319,10 +320,66 @@ module Roguelike::Ui
 
     # Moves the camera as little as it takes to keep *x*, *y* inside the box
     # in the middle of the window. Following the character uses this.
+    #
+    # A drift in progress is dropped. The character moving is what the window
+    # is for, and a camera still sliding toward a staircase would drag it off
+    # them.
     def follow(x : Int32, y : Int32) : Nil
+      @drifting = nil
       room = @grid.viewport_size
 
       @grid.reveal x, y, margin: margin(room[0]), margin_y: margin(room[1])
+    end
+
+    # Where the camera is heading. `nil` when it is where it belongs.
+    getter drifting : {Int32, Int32}? = nil
+
+    # Whether the camera is still on its way somewhere.
+    def drifting? : Bool
+      !@drifting.nil?
+    end
+
+    # Starts the camera moving toward the corner that brings *x*, *y* into
+    # view. Answers whether it has anywhere to go.
+    #
+    # The camera slides a cell at a time rather than jumping. A map that jumps
+    # leaves the person hunting for where they were, and the point of pointing
+    # at a staircase is that they can see how to walk to it.
+    def drift_to(x : Int32, y : Int32) : Bool
+      wanted = camera_for x, y
+      return false if wanted == camera
+
+      @drifting = wanted
+      true
+    end
+
+    # Moves the camera one cell along. Answers whether it has further to go.
+    def drift : Bool
+      wanted = @drifting
+      return false unless wanted
+
+      here = camera
+      self.camera = {here[0] + (wanted[0] <=> here[0]),
+                     here[1] + (wanted[1] <=> here[1])}
+
+      # `#camera=` clears the drift, because putting the camera somewhere is
+      # what stops one. This move is the drift, so it is put back.
+      @drifting = camera == wanted ? nil : wanted
+      drifting?
+    end
+
+    # Where the camera would be if it followed *x*, *y* now.
+    #
+    # It is worked out by following and putting the camera back. The grid
+    # owns the clamping against the edges of the floor, and working it out a
+    # second time here would be a second copy of that rule.
+    private def camera_for(x : Int32, y : Int32) : {Int32, Int32}
+      held = camera
+      follow x, y
+      found = camera
+      self.camera = held
+
+      found
     end
 
     # How many cells the camera keeps between the followed square and the edge
@@ -340,14 +397,16 @@ module Roguelike::Ui
       @grid.avoid x, y, area, margin: @avoid_margin
     end
 
-    # Puts the camera back where *camera* had it.
+    # Puts the camera back where *camera* had it. Stops a drift.
     def camera=(camera : {Int32, Int32}) : Nil
+      @drifting = nil
       @grid.scroll_to camera[0], camera[1]
     end
 
     # Puts *x*, *y* in the middle of the window. Stops at the edges of the
-    # floor.
+    # floor, and stops a drift.
     def center_on(x : Int32, y : Int32) : Nil
+      @drifting = nil
       @grid.center_on x, y
     end
 

@@ -129,6 +129,31 @@ module Roguelike::Ui
     # rather than ended answers false.
     getter? again : Bool = false
 
+    # What the map is pointing at, and the way there.
+    #
+    # *route* starts on the character's own square and is empty when no way
+    # there is known. *goal* is the square the person picked, which is not the
+    # last square of the route when the way stops short of it. *turn* is when
+    # it was worked out.
+    private record Pointing,
+      goal : {Int32, Int32},
+      route : Array({Int32, Int32}),
+      turn : Int32 do
+      # Whether the route is worth walking.
+      def walkable? : Bool
+        @route.size > 1
+      end
+    end
+
+    # Where the map is pointing. `nil` when it points nowhere.
+    #
+    # This is a plan rather than part of the run, so a turn passing drops it.
+    # The floor it was worked out over has moved on by then.
+    @pointing : Pointing? = nil
+
+    # How long the camera rests on each cell while it slides.
+    GLIDE = 25.milliseconds
+
     # The application this play is drawn on.
     #
     # The owner sets this once it has built an `App`. A question and a held
@@ -811,9 +836,11 @@ module Roguelike::Ui
     end
 
     # Goes down the staircase the character stands on.
+    #
+    # A character standing anywhere else is shown the one they remember.
     def descend : Nil
       unless @game.descend
-        say "There is no staircase down here."
+        point_out Terrain::StairsDown, "down"
         return
       end
 
@@ -824,7 +851,7 @@ module Roguelike::Ui
     # Climbs out of the dungeon, after asking.
     def ascend : Nil
       unless @game.standing_on.stairs_up?
-        say "There is no staircase up here."
+        point_out Terrain::StairsUp, "up"
         return
       end
 
@@ -834,6 +861,57 @@ module Roguelike::Ui
         @game.ascend
         keep
         refresh
+      end
+    end
+
+    # Shows where the character remembers the staircase *terrain* is.
+    #
+    # The way there is lit up when they know one. Only the staircase itself
+    # is lit up when they do not: they have seen it across a room and have
+    # not found a way round yet. The camera slides to it when it is off the
+    # window.
+    #
+    # No turn is taken. This answers a question about the map.
+    private def point_out(terrain : Terrain, way : String) : Nil
+      spot = @game.remembered_stairs terrain
+      unless spot
+        say "There is no staircase #{way} here."
+        return
+      end
+
+      aim_at spot, @game.way_to(spot)
+      say "The stairs are here."
+      reveal spot
+      @pager.hold
+    end
+
+    # Points the map at *goal*, along *route*.
+    private def aim_at(goal : {Int32, Int32},
+                       route : Array({Int32, Int32})) : Nil
+      @pointing = Pointing.new goal, route, @game.turn
+    end
+
+    # Brings *spot* into view, a cell at a time.
+    private def reveal(spot : {Int32, Int32}) : Nil
+      return unless @map.drift_to spot[0], spot[1]
+
+      glide
+    end
+
+    # Moves the camera one cell and arms the next move.
+    #
+    # An application with no clock cannot arm one, so the camera arrives at
+    # once instead. A spec then reads the camera where it belongs without
+    # having to drive a timer.
+    private def glide : Nil
+      app = @app
+
+      if app
+        armed = app.after(GLIDE) { glide if @map.drift }
+        return if armed
+      end
+
+      while @map.drift
       end
     end
 
@@ -1451,6 +1529,10 @@ module Roguelike::Ui
     def refresh : Nil
       @map.clear_marks
       @map.clear_highlights
+
+      # A turn passing takes the map's pointer off. The route was worked out
+      # over a floor that has since moved.
+      @pointing = nil unless @pointing.try(&.turn) == @game.turn
       seen = @game.look
       @map.sight = seen
       @map.knowledge = @game.knowledge
@@ -1469,6 +1551,7 @@ module Roguelike::Ui
       # is the character now and the monsters later.
       @map.mark @game.player.x, @game.player.y, Palette::PLAYER
       offer_directions
+      show_route
       show_aim
       @pager.show @game.log.lines
       if @shown_turn != @game.turn
@@ -1523,6 +1606,24 @@ module Roguelike::Ui
       @placard.show application, Placards.heading(@game.outcome),
         Placards.ending(@game), Placards::AGAIN_KEYS,
         default: Placards::AGAIN_DEFAULT, footer: Placards::AGAIN_FOOTER
+    end
+
+    # Lights up the way to wherever the map is pointing.
+    #
+    # The square the person picked is lit whether or not a way there is
+    # known, so a staircase with no route to it is still marked. The
+    # character's own square is left alone: they can see where they are.
+    private def show_route : Nil
+      found = @pointing
+      return unless found
+
+      @map.highlight found.goal[0], found.goal[1]
+
+      found.route.each_with_index do |spot, index|
+        next if index.zero?
+
+        @map.highlight spot[0], spot[1]
+      end
     end
 
     # Lights up every square the command waiting for a direction would take.
@@ -1588,7 +1689,53 @@ module Roguelike::Ui
 
       return pointer_away unless @examiner.point_at_screen x, y
 
+      walk_toward @examiner.spot if click
+
       @pointer.over x, y
+    end
+
+    # Answers a click on a square of the map.
+    #
+    # The first click draws the way there. A second click on the same square
+    # walks it. A click on any other square draws the way to that one
+    # instead, so changing your mind costs one click rather than two.
+    #
+    # A square the character knows nothing about is read out and no more.
+    # There is no way to a square nobody has seen.
+    private def walk_toward(goal : {Int32, Int32}?) : Nil
+      return if goal.nil? || @game.over?
+      return if goal == @game.player.at
+
+      found = @pointing
+      return walk found if found && found.goal == goal && found.walkable?
+
+      draw_route goal
+    end
+
+    # Works out the way to *goal* and lights it up. No turn is taken.
+    private def draw_route(goal : {Int32, Int32}) : Nil
+      return unless @game.knowledge.walkable? goal
+
+      route = @game.route_to goal
+      if route.size < 2
+        say "You know no way there."
+        return
+      end
+
+      aim_at goal, route
+      refresh
+    end
+
+    # Walks the route the map is pointing along.
+    #
+    # The pointer comes off first. The run takes turns, and a route drawn
+    # before them is stale by the time they are over.
+    private def walk(pointing : Pointing) : Nil
+      @pointing = nil
+
+      went = @game.follow pointing.route
+      @map.follow @game.player.x, @game.player.y if went.moved?
+      refresh
     end
 
     # Records that the pointer is off the map. Also used when the mouse is

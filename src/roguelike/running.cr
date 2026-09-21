@@ -32,6 +32,11 @@ module Roguelike
 
     # The run went `Game::FURTHEST` squares without any of the others.
     Spent
+
+    # The route ran out. The character is standing on the square they picked.
+    # Only `Game#follow` answers this: a run in a direction has no end to
+    # reach.
+    Arrived
   end
 
   # What one run did.

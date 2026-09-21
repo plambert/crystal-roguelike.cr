@@ -17,6 +17,7 @@ require "./lore"
 require "./message_log"
 require "./notice"
 require "./pursuit"
+require "./route"
 require "./running"
 require "./player"
 require "./world"
@@ -139,6 +140,22 @@ module Roguelike
     # This is not written out. `World#seed` is, and this is a function of it.
     @[JSON::Field(ignore: true)]
     @root : Rng? = nil
+
+    # Squares the character already remembered something lying on when the
+    # run now going began.
+    #
+    # A run does not stop for what is on one of these. Somebody who set a run
+    # going across a square with a dagger drawn on it is not surprised by the
+    # dagger. It is empty whenever no run is going.
+    @[JSON::Field(ignore: true)]
+    @familiar : Set({Int32, Int32}) = Set({Int32, Int32}).new
+
+    # How many lines the step just taken wrote about one of those squares.
+    #
+    # `#told?` subtracts these before it decides whether the run heard
+    # anything worth stopping for.
+    @[JSON::Field(ignore: true)]
+    @forgiven : Int32 = 0
 
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
@@ -362,6 +379,7 @@ module Roguelike
     # A step into any other impassable square moves nothing. It counts no
     # turn.
     def step(direction : Direction) : Step
+      @forgiven = 0
       wanted = direction.from @player.x, @player.y
 
       blocking_creature = floor.monster wanted[0], wanted[1]
@@ -429,6 +447,7 @@ module Roguelike
       steps = 0
       along = corridor? @player.at
       seen = sight
+      @familiar = piles_in_mind
 
       while steps < FURTHEST
         if blocked_ahead? direction
@@ -441,13 +460,80 @@ module Roguelike
 
         steps += 1
         seen = sight
-        halt = stopped_by before, along, seen
+        halt = stopped_by before, seen, along: along
         along = corridor? @player.at
 
         return Running.new steps, halt if halt
       end
 
       Running.new steps, Halt::Spent
+    ensure
+      forget_the_run
+    end
+
+    # Walks *route* until something is worth stopping for. Answers how far it
+    # went and what stopped it.
+    #
+    # *route* is the squares to cross, the one the character stands on first.
+    # `Route.chosen` answers one of these. Every step is a whole turn, the
+    # same as `#run`, so a route is as dangerous as walking it a key at a
+    # time.
+    #
+    # A doorway and a junction do not stop a route. The person picked a
+    # square on the far side of both, and a route that stopped at every door
+    # between here and there would be a key press a door. What stops it is
+    # what they had not seen when they picked: a creature arriving, a blow
+    # landing, a message about something they did not know was there.
+    #
+    # A route onto a square something has since walked onto stops against it,
+    # the way a run does.
+    def follow(route : Array({Int32, Int32})) : Running
+      return Running.new 0, Halt::Blocked if route.size < 2
+      return Running.new 0, Halt::Blocked unless route.first == @player.at
+
+      steps = 0
+      seen = sight
+      @familiar = piles_in_mind
+
+      while steps + 1 < route.size
+        direction = Direction.between @player.at, route[steps + 1]
+        return Running.new steps, Halt::Blocked unless direction
+
+        if blocked_ahead? direction
+          refuse_run direction if steps.zero?
+          return Running.new steps, Halt::Blocked
+        end
+
+        before = Watch.on self, seen
+        return Running.new steps, Halt::Blocked unless step(direction).moved?
+
+        steps += 1
+        seen = sight
+        halt = stopped_by before, seen, along: false, doors: false
+
+        return Running.new steps, halt if halt
+      end
+
+      Running.new steps, Halt::Arrived
+    ensure
+      forget_the_run
+    end
+
+    # The squares the character remembers something lying on.
+    #
+    # What they remember rather than what is there. A dagger dropped on a
+    # square they walked past yesterday is not on their map, so a run stops
+    # when they find it.
+    private def piles_in_mind : Set({Int32, Int32})
+      found = Set({Int32, Int32}).new
+      knowledge.each { |column, row, memory| found << {column, row} if memory.item }
+      found
+    end
+
+    # Drops what only a run in progress needs.
+    private def forget_the_run : Nil
+      @familiar = Set({Int32, Int32}).new
+      @forgiven = 0
     end
 
     # Says why a run went nowhere.
@@ -509,15 +595,28 @@ module Roguelike
     # Losing hit points stops a run. Gaining one does not: a character
     # knitting on the way down a corridor would otherwise stop every twenty
     # steps for good news.
-    private def stopped_by(before : Watch, along : Bool, seen : Vision) : Halt?
+    private def stopped_by(before : Watch, seen : Vision, along : Bool,
+                           doors : Bool = true) : Halt?
       return Halt::Over if @outcome.over?
       return Halt::Hurt if @player.hit_points < before.health
       return Halt::Creature if arrived_in_sight? before.seen, seen
-      return Halt::Told if @log.size != before.said || @log.last? != before.last
-      return Halt::Doorway if standing_on.door?
+      return Halt::Told if told? before
+      return Halt::Doorway if doors && standing_on.door?
       return Halt::Branch if along && ways(@player.at).size > CORRIDOR
 
       nil
+    end
+
+    # Whether the step wrote anything worth stopping for.
+    #
+    # Lines about a pile the character already had on their map do not count.
+    # `#announce_pile` counts those into `@forgiven`, and a step whose only
+    # new lines are those reads as a step that said nothing.
+    private def told?(before : Watch) : Bool
+      fresh = @log.size - before.said
+      return false if fresh > 0 && fresh == @forgiven
+
+      fresh != 0 || @log.last? != before.last
     end
 
     # Whether any creature in sight now was out of sight before.
@@ -591,15 +690,29 @@ module Roguelike
 
       take_coins
       take_ammunition
+      announce_pile
+    end
 
+    # Says what is lying on the square, and records whether a run has to stop
+    # for it.
+    #
+    # A pile the character already remembered is still named. It is the run
+    # that treats it differently: `#told?` subtracts these lines, so a run
+    # crosses a square whose dagger was on the map when it started and stops
+    # on one whose dagger was not.
+    private def announce_pile : Nil
       pile = here
       return if pile.empty?
+
+      before = @log.size
 
       if pile.size == 1
         say "You see #{name pile.first} here."
       else
         say "There are #{pile.size} things here."
       end
+
+      @forgiven = @log.size - before if @familiar.includes? @player.at
     end
 
     # ------------------------------------------------------------- fighting
@@ -1459,6 +1572,26 @@ module Roguelike
     # What the character remembers of the floor they are on.
     def knowledge : Knowledge
       @player.knowledge
+    end
+
+    # The route the character would walk to reach *goal*.
+    #
+    # Empty when they can reach nothing that way. `Route.chosen` says what
+    # counts as reaching it.
+    def route_to(goal : {Int32, Int32}) : Array({Int32, Int32})
+      Route.chosen knowledge, sight, goal
+    end
+
+    # The route the character would walk to reach *goal*, without settling
+    # for somewhere near it. Empty when they know no way there.
+    def way_to(goal : {Int32, Int32}) : Array({Int32, Int32})
+      Route.known knowledge, sight, goal
+    end
+
+    # Where the character remembers the nearest staircase of *terrain*. `nil`
+    # when they have never seen one.
+    def remembered_stairs(terrain : Terrain) : {Int32, Int32}?
+      knowledge.where(terrain).min_by? { |spot| Route.apart spot, @player.at }
     end
 
     # ----------------------------------------------------------------- light

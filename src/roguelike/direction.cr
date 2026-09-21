@@ -42,6 +42,12 @@ module Roguelike
       {x + dx, y + dy}
     end
 
+    # Which way one step from *from* to *to* goes. `nil` when the two are not
+    # beside each other.
+    def self.between(from : {Int32, Int32}, to : {Int32, Int32}) : Direction?
+      values.find { |found| found.from(from[0], from[1]) == to }
+    end
+
     # The direction back.
     def opposite : Direction
       Direction.new (value + 4) % 8

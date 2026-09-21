@@ -10,6 +10,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Clicking a square lights up the way there. Clicking it again walks it. The route crosses doorways
+  and junctions without stopping, and stops for anything the character had not seen.
+* `>` and `<` away from a staircase light up the one the character remembers, and the way there
+  when they know one. The map slides to it. No turn is taken.
 * The character puts a hit point back on their own. Nothing knits for ten
   turns after a wound. How long a point takes after that comes from
   constitution: eight turns at eighteen, twenty at ten, thirty-two at
@@ -51,6 +55,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A blessed weapon adds 1 to hit. Damage is unchanged.
 * Messages agree in number: "3 iron spikes are not cursed", "1 iron spike is cursed".
 * Linux release binaries are stripped, which takes about a megabyte off each.
+* A run no longer stops for an item that was already drawn on the character's map. It still stops
+  for one that was not.
 
 ### Fixed
 

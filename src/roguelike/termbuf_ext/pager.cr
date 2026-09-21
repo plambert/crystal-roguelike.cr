@@ -82,6 +82,10 @@ module TermBuf::Widgets
     # The focus scope holding pushed.
     @scope : Focus::Scope? = nil
 
+    # Whether an owner asked for a hold that the line count does not call
+    # for. `#hold` sets it and `#advance` clears it.
+    @insisted = false
+
     def initialize(style : Style? = nil)
       @width = Layout::Sizing.grow
       @height = Layout::Sizing.grow
@@ -123,9 +127,24 @@ module TermBuf::Widgets
       @lines.size - @read
     end
 
-    # Whether more lines arrived than one page holds.
+    # Whether more lines arrived than one page holds, or an owner asked to
+    # hold anyway.
     def holding? : Bool
-      @rows > 0 && unread > @rows
+      @rows > 0 && (@insisted || unread > @rows)
+    end
+
+    # Holds at the newest page, however few lines arrived.
+    #
+    # An owner calls this when one line has to be read before anything else
+    # happens. The pane goes on showing the newest page and writes the marker
+    # under it, and the next key clears it the way it clears any other hold.
+    def hold : Bool
+      return false unless @rows > 0
+
+      @insisted = true
+      @read = Math.max @lines.size - page, 0
+      settle
+      true
     end
 
     # How many lines one page shows while the pager holds.
@@ -140,6 +159,7 @@ module TermBuf::Widgets
     def advance : Bool
       return false unless holding?
 
+      @insisted = false
       @read += page
       settle
       true

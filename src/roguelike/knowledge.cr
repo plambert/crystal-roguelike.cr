@@ -233,6 +233,17 @@ module Roguelike
       vision.each { |spot| see floor, spot[0], spot[1], turn }
     end
 
+    # Every square remembered as *terrain*.
+    #
+    # The staircase a character has walked past is found this way. What is on
+    # the floor now is not asked about: a route is walked over what somebody
+    # remembers, and so is the arrow that points at it.
+    def where(terrain : Terrain) : Array({Int32, Int32})
+      found = [] of {Int32, Int32}
+      each { |column, row, memory| found << {column, row} if memory.terrain == terrain }
+      found
+    end
+
     # Yields every square that has been seen, with what was on it.
     def each(& : Int32, Int32, Memory ->) : Nil
       @memories.each do |spot, memory|

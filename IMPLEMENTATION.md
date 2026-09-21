@@ -1988,6 +1988,82 @@ It is worth more to the bot that retreats, which is what it is for. Scaling the 
 constitution moves neither number, because every character the trial plays has a constitution of
 ten.
 
+## Pointing at a square
+
+Two things ask the same question: where would the character walk to get there, and what does that
+look like on the map.
+
+### The route
+
+`Route` floods outward from the character with `Descent`, over `Knowledge` rather than over the
+floor. The flood runs once and every question is answered off it. A route to a square is read by
+walking downhill from that square, which arrives at the character, and turning the list round.
+
+A band of monsters floods toward what it is chasing. The character is the other way round: they
+pick a square and want the squares between. One flood from the character answers any number of
+picks, and the fallbacks below need the whole flood anyway.
+
+`Route.chosen` tries three things in order.
+
+1. Over what the character remembers. A square they have never seen is not walked through, and
+   neither is a door they remember as shut.
+2. Over that plus the squares a line of sight crossed. Light that reached the eye ran through those
+   squares, so nothing solid stands in them. This is what reaches a lit room on the far side of a
+   dark one: the room is seen and the dark ground between it and the character is not.
+3. To whichever square the second flood reached that is nearest the pick. A route to somewhere
+   unreachable walks as far as it can rather than refusing.
+
+The inference is written into a copy of `Knowledge` and thrown away. What the character remembers
+does not change because they worked out a route. A square on an inferred line is still unseen, and
+the map still draws it blank.
+
+The line stops one square short of what was seen. A field of view holds every wall its scan
+reached, and a wall is not somewhere to walk. The square at the far end needs nothing from the
+inference anyway: looking at it is what put it in `Knowledge`.
+
+Symmetric shadowcasting and Bresenham's line disagree about a square that clips the corner of a
+wall, so an inferred route can run into one. `Game#follow` checks each square as it steps onto it
+and stops against the wall, which is what it does for a square something has walked onto since.
+
+### Walking it
+
+`Game#follow` is `Game#run` with a list of squares instead of a direction. Every step is a whole
+turn, so a route is as dangerous as walking it a key at a time.
+
+A doorway and a junction stop a run. They do not stop a route: the person picked a square on the
+far side of both, and a route that stopped at every door would be a key press a door. What stops a
+route is what the person had not seen when they picked.
+
+What is lying on the floor was reworked for both. A run used to stop on any message, and walking
+onto a square with a dagger on it writes one. `Game` now records which squares the character
+remembered something lying on when the run began, and `#told?` subtracts the lines about those
+before it decides whether anything was said. The line is still written. Somebody who set a run
+going across a square with a dagger drawn on it is not surprised by the dagger, and somebody who
+finds one that was not on their map is.
+
+### On the screen
+
+`Play` holds one `Pointing`: the square picked, the squares to walk, and the turn it was worked out
+on. A turn passing drops it, because the floor it was worked out over has moved.
+
+The first click on a square lights the way there. A second click on the same square walks it. A
+click anywhere else lights the way to that square instead, so changing your mind costs one click
+rather than two. A square the character knows nothing about is read out and no more.
+
+`>` and `<` away from a staircase do the same thing without a click. The staircase the character
+remembers is lit up, and the way there with it when they know one. A staircase they have seen but
+cannot yet reach is still marked: `Route.known` stops at the second try rather than settling for
+somewhere near it.
+
+The camera slides a cell at a time rather than jumping, on a timer armed through `App#after`, the
+same clock the flames run on. A map that jumps leaves the person hunting for where they were. An
+application with no clock finishes the slide at once, which is what a spec sees. The character
+moving drops a slide in progress: the window is for them.
+
+`Pager#hold` holds the newest page however few lines arrived, so `The stairs are here.` waits behind
+`--More--` until a key is pressed. Nothing else in the game needs one line read before the next
+thing happens, so this is the first caller.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
@@ -2008,12 +2084,11 @@ say is its own design question.
 
 Another preference: whether a bar's colour comes from the gradient or from the fixed bands.
 
-### A route drawn on the map
+### The rest of the route on the map
 
-Clicking a square draws a route to it from where the character stands. It prefers squares the
-character knows are walkable, and where it knows no way through it guesses at one. While a route is
-up, `G` runs along it. The route fades after a few seconds with no movement and no other click.
-Clicking a row of the Seen list draws a route to that creature the same way.
+A route is drawn and walked by clicking. Two pieces of what was asked for are not built. The route
+should fade after a few seconds with no movement and no other click, rather than waiting for a turn
+to pass. Clicking a row of the Seen list should draw a route to that creature.
 
 ### A minimap
 
