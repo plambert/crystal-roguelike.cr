@@ -2109,6 +2109,85 @@ pane hold part way through and leave the run's own scope buried. `Pager#deferred
 them apart: while it is set the pane holds nothing and counts nothing as read, so the lines pile up
 unread and the hold happens when the run is over and the person has the keyboard back.
 
+## How well something is made out
+
+Seeing a thing and knowing what it is are two different things, and until now the game treated them
+as one. A spear at the far end of a lit hall was drawn as a spear and named "a cursed -2 spear", and
+a creature the character could only make out as an outline against a torch behind it was drawn as a
+shape and still called a goblin in every readout. `Regard` is the one answer both of those ask for.
+
+`Regard` is a model type rather than a `Ui` one. How near somebody has to stand to read a label is a
+rule of the game: it decides what the map draws, what the `Seen` list says, what the `Look` readout
+says and what a tooltip says, and those four have to agree. A rule kept in the drawing code would be
+four copies of it.
+
+### The four members
+
+`Regard::Nothing` is a thing the character has never laid eyes on. `Regard::Shape` is a size and no
+more, which is what a creature showing against light behind it gives. `Regard::Kind` is what sort of
+thing it is and nothing about which one: a spear, a scroll, a potion. `Regard::Everything` is what
+standing over a thing gives.
+
+The members run from least made out to most, so `Regard#at_least` can take the better of two looks
+and `<` compares them. A member is never removed and never reordered: a save file holds the member
+name.
+
+### Eight squares
+
+`Regards::READING` is eight. A torch throws light six squares, so a character carrying one makes a
+thing out a step or two before they stand on it. A lit room is wider than eight squares across, so
+the far side of one still holds things the character can see and cannot name, which is the point: a
+room should be worth walking into. Eight is also what a goblin and an orc notice at, so a person
+reads a label at about the range they are noticed at.
+
+The constant lives in `Regards` rather than in the enum because an enum body cannot hold one: a name
+with a number after it in one is a member of the enum. `Species` and `Kinds` are split the same way.
+`Regards.of_item` is the rule itself, and it takes either a number of steps or two squares.
+
+### What is remembered
+
+`Memory` carries a `regard`, which says how well the item on that square was made out. It has a
+default of `Regard::Everything`, so a square written before the field existed loads as one the
+character made everything out on. That is what those saves meant: the name was written in full
+whatever the distance.
+
+`Knowledge#see` takes a regard and `Knowledge#learn` works one out per square from how far it is
+from where the creature stands. A worse look never undoes a better one. A square whose item has not
+changed keeps the best regard it has ever been seen with, so walking away from a spear the character
+has stood over does not turn a cursed -2 spear back into a spear. The item has to be the same one:
+a square where somebody swapped the spear for a potion starts again from whatever the new look
+gives.
+
+### What the game answers
+
+`Game#regard_of` takes a creature. A creature with light on them is `Regard::Everything`, one
+showing against light behind them is `Regard::Shape`, and one that cannot be seen at all is
+`Regard::Nothing`. `Game#regard_of_item` takes a square. A square the character can see is answered
+by how far off it is, held up against what they remember of it; a square they cannot see is answered
+by what they remember alone. Both have an overload taking a `Vision` that has already been worked
+out, because working one out is most of what a turn costs and a pane asks this once per row.
+
+### What the names look like
+
+`Lore#name` and `Ui::Naming.short` both take a regard, and both default to `Regard::Everything`.
+Nothing that names an item the character is holding passes one, so the pack, every menu and every
+message read as they always have. Anything short of `Regard::Everything` writes the kind and no
+more: "a spear" rather than "a cursed -2 spear", "a scroll" rather than "a scroll labelled YLOH",
+"a potion" rather than "a swirly potion". `Lore.bare_noun` is where that wording lives. A thing that
+is what it looks like keeps its own name, because a spear is a spear from any distance; a potion, a
+wand and a scroll are a bottle, a stick and a sheet until somebody is near enough to read them.
+
+`Size#label` already wrote a shape in full: "a small shape", "a shape", "a large shape".
+`Size#short` writes the same thing for a column, shortened to the three letters the sidebar already
+uses for a condition and a blessing: "sml shape", "med shape", "lrg shape".
+
+### Nothing calls it yet
+
+This is the foundation and no more. Nothing outside its own specs passes a regard, so the game draws
+and says exactly what it said before. What goes on top of it is the `Seen` list, the `Look` readout
+and the tooltips saying a size rather than a species, and an item on the floor named by its kind
+until the character has walked up to it.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

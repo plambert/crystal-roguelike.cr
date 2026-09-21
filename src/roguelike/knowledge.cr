@@ -1,6 +1,7 @@
 require "json"
 require "./fixture"
 require "./item"
+require "./regard"
 require "./terrain"
 
 module Roguelike
@@ -24,8 +25,20 @@ module Roguelike
     # Which turn this was seen on.
     getter turn : Int32
 
+    # How well the item on the square was made out.
+    #
+    # `Regard::Everything` for an item looked at from close enough to read.
+    # `Regard::Kind` for one seen from further off than `Regards::READING`:
+    # the character made out a scroll and not what was written on it.
+    #
+    # It has a default, so a square remembered before this field existed
+    # loads as one the character made everything out on. That is what those
+    # saves meant: the name was written in full whatever the distance.
+    getter regard : Regard = Regard::Everything
+
     def initialize(@terrain : Terrain, @fixture : Fixture? = nil,
-                   @item : Item? = nil, @turn : Int32 = 0)
+                   @item : Item? = nil, @turn : Int32 = 0,
+                   @regard : Regard = Regard::Everything)
     end
 
     # How many turns ago this was seen, as of *turn*.
@@ -35,13 +48,14 @@ module Roguelike
 
     def ==(other : Memory) : Bool
       @terrain == other.terrain && @fixture == other.fixture &&
-        @item == other.item && @turn == other.turn
+        @item == other.item && @turn == other.turn && @regard == other.regard
     end
 
     def to_s(io : IO) : Nil
       io << "Memory(" << @terrain
       io << " +" << @fixture if @fixture
       io << " +" << @item if @item
+      io << ' ' << @regard unless @regard.everything?
       io << " turn " << @turn << ')'
     end
   end
@@ -180,14 +194,28 @@ module Roguelike
     #
     # Whatever was remembered before is replaced. A square looked at again
     # shows what is there now, not what was there before.
-    def see(floor : Floor, x : Int32, y : Int32, turn : Int32 = 0) : Nil
+    #
+    # *regard* says how well the item lying there was made out. The default
+    # makes everything out, which is what a caller that says nothing about
+    # distance means.
+    #
+    # A worse look does not undo a better one. A square whose item has not
+    # changed keeps the best regard it has ever been seen with, so glancing
+    # back at a spear from across a hall does not turn a cursed -2 spear back
+    # into a spear.
+    def see(floor : Floor, x : Int32, y : Int32, turn : Int32 = 0,
+            regard : Regard = Regard::Everything) : Nil
       return unless floor.contains? x, y
 
       fitting = floor.fixture x, y
-      pile = floor.items x, y
+      lying = floor.items(x, y).last?.try(&.copy)
+
+      held = self[x, y]
+      made_out = regard
+      made_out = made_out.at_least held.regard if held && held.item == lying
 
       @memories[Floor.spot x, y] = Memory.new floor.terrain(x, y),
-        fitting.try(&.copy), pile.last?.try(&.copy), turn
+        fitting.try(&.copy), lying, turn, made_out
     end
 
     # Records the shape of *x*, *y* and what is fixed to it, and no more.
@@ -204,7 +232,8 @@ module Roguelike
 
       held = self[x, y]
       @memories[Floor.spot x, y] = Memory.new floor.terrain(x, y),
-        floor.fixture(x, y).try(&.copy), held.try(&.item), turn
+        floor.fixture(x, y).try(&.copy), held.try(&.item), turn,
+        held.try(&.regard) || Regard::Nothing
     end
 
     # Writes *memory* down at *x*, *y*, over whatever was there.
@@ -229,8 +258,16 @@ module Roguelike
 
     # Records every square *vision* can see. This is the one way anything gets
     # in.
+    #
+    # How well the item on each square was made out comes from how far the
+    # square is from where the creature stands. `Regards.of_item` is the
+    # rule.
     def learn(floor : Floor, vision : Vision, turn : Int32 = 0) : Nil
-      vision.each { |spot| see floor, spot[0], spot[1], turn }
+      origin = vision.origin
+
+      vision.each do |spot|
+        see floor, spot[0], spot[1], turn, Regards.of_item(origin, spot)
+      end
     end
 
     # Every square remembered as *terrain*.

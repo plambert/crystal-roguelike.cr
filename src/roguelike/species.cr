@@ -222,6 +222,19 @@ module Roguelike
       in .large?  then "a large shape"
       end
     end
+
+    # What a shape this size is called where there is only a column.
+    #
+    # `Ui::Naming` shortens an item to fit the sidebar. A creature nobody has
+    # made out goes in the same column, so its size is shortened the same
+    # way and to the same three letters.
+    def short : String
+      case self
+      in .small?  then "sml shape"
+      in .medium? then "med shape"
+      in .large?  then "lrg shape"
+      end
+    end
   end
 
   # What sort of creature a monster is.
