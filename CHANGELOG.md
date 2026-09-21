@@ -10,35 +10,35 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
-* Clicking a square lights up the way there. Clicking it again walks it. The route crosses doorways
-  and junctions without stopping, and stops for anything the character had not seen.
-* `>` and `<` away from a staircase light up the one the character remembers, and the way there
-  when they know one. The map slides to it. No turn is taken.
-* The character puts a hit point back on their own. Nothing knits for ten
-  turns after a wound. How long a point takes after that comes from
-  constitution: eight turns at eighteen, twenty at ten, thirty-two at
-  three.
+* Clicking a square highlights the route to it. Clicking it again walks the route. The route
+  crosses doorways and junctions without stopping, and stops for anything the character has not
+  seen.
+* `>` and `<` pressed away from a staircase highlight the remembered staircase and the route to it,
+  and scroll the map to it. Neither costs a turn.
+* The character regenerates hit points. Regeneration stops for ten turns after taking damage. The
+  interval per point then comes from constitution: eight turns at 18, twenty at 10, thirty-two at
+  3.
 * Potion of haste. It speeds the drinker up for a while. Blessed it lasts
   twice as long, cursed half.
-* Scroll of slow monster. Uncursed it slows the creature aimed at, blessed
-  every creature in sight, cursed the reader.
-* Scroll of haste monster. Uncursed it hurries the creature aimed at,
-  blessed the reader, cursed every creature in sight.
+* Scroll of slow monster. Uncursed, it slows the targeted creature. Blessed, it slows every
+  creature in sight. Cursed, it slows the reader.
+* Scroll of haste monster. Uncursed, it hastes the targeted creature. Blessed, it hastes the
+  reader. Cursed, it hastes every creature in sight.
 * Scroll of repair. It mends one damaged carried item. Blessed, it mends everything carried, worn
   and lying underfoot. Cursed, it damages one item that was undamaged.
 * Scroll of treasure detection, scroll of item detection, scroll of darkness, scroll of blindness
-  and scroll of minor teleport. Each does something different blessed and cursed.
+  and scroll of minor teleport.
 * Blindness, for the character and for a creature. A blind character sees only their own square.
-* `Ctrl+P` opens a box holding every message of the run. Arrows, `jk`, the page keys, space, `Home`,
-  `End` and the wheel scroll it.
+* `Ctrl+P` opens a scrollable pager over every message of the run. Arrows, `jk`, the page keys,
+  space, `Home`, `End` and the wheel scroll it.
 * The mouse wheel scrolls the message pane back over earlier lines.
 * Ammunition matching the readied quiver is picked up on the step onto its square, with no turn of
   its own.
 * Gold is picked up on the step onto its square, with no turn of its own.
-* The title screen lists saved characters, and picking one carries it on.
+* The title screen lists saved characters. Picking one resumes that run.
 * Playing again after a run ends offers the name of the character that just finished.
 * Clicking a menu row picks it, the same as typing the row's letter.
-* The name question offers a rolled name.
+* The name prompt suggests a randomly generated name.
 * Installation instructions in the README: the Homebrew tap, a release binary, or building from
   source.
 
@@ -46,12 +46,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * Time runs on ticks. Every actor gains energy each tick and every action
   costs energy, so an actor can be faster or slower than another.
-* A slime takes four actions for the character's five. An orc takes
-  nineteen for twenty. A goblin keeps pace.
+* The speeds of creatures relative to the character are 80% for the slime, 95% for the orc, and
+  100% for the goblin.
 * Putting a suit of body armour on, or taking it off, takes three turns.
   Every other action takes one.
-* A scroll of magic mapping writes down the walls only. Room and corridor floors stay unknown until
-  somebody walks them.
+* A scroll of magic mapping reveals walls only. Room and corridor floors stay unknown until the
+  character walks them.
 * A blessed weapon adds 1 to hit. Damage is unchanged.
 * Messages agree in number: "3 iron spikes are not cursed", "1 iron spike is cursed".
 * Linux release binaries are stripped, which takes about a megabyte off each.
@@ -64,8 +64,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * Carrying a saved character on no longer pages through their whole message history before showing
   where they are. The log comes back whole and counts as read.
-* Healing a character who is above their maximum hit points no longer pulls
-  them down to it.
+* Healing a character who is above their maximum hit points no longer reduces them to their
+  maximum.
 * The oval a scroll of item detection reaches was twice the stated size. The span is the width of
   the oval, not its radius.
 
@@ -83,15 +83,16 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
 * **Sight and light.** Symmetric shadowcasting for the field of view. Torches, candles, wall
   sconces, magically lit rooms and a floor-wide ambient level. A square is seen when it is in the
   field of view and lit. Remembered terrain is drawn dimmer than lit terrain, and a creature on an
-  unlit square with light behind it is drawn as a silhouette. Flames waver, and `--no-flicker`
-  holds them still.
+  unlit square with light behind it is drawn as a silhouette. Flames flicker, and `--no-flicker`
+  disables the animation.
 * **Items.** Twenty-five kinds: weapons, ranged weapons and ammunition, thrown weapons, armour,
   potions, scrolls, wands, light sources, iron spikes and gold. Each carries an enchantment, a
   condition and a blessing. Potions, scrolls and wands are disguised until found out. Items are
   carried under a letter, dropped, picked up and scattered on the floor.
-* **Blessings and curses.** Hidden per item. Carrying a thing long enough works it out. A scroll of
-  identify names one kind, a scroll of blessing and a scroll of remove curse mark what they find. A
-  curse holds an item that is in a slot, and a cursed wand takes the hand that zaps it.
+* **Blessings and curses.** Hidden per item. Carrying an item long enough reveals its blessed or
+  cursed status. A scroll of identify names one kind, a scroll of blessing and a scroll of remove
+  curse mark what they find. A cursed item cannot be removed from its slot, and zapping a cursed
+  wand welds it into a free hand slot and returns whatever was readied there to the pack.
 * **Equipment.** Eight slots: melee, ranged, quiver, head, body, hands, feet and shield. `w`, `W`
   and `T` ready, wear and remove.
 * **Combat.** Melee by walking into a creature, ranged with `f`, thrown with `t`, aimed with a
@@ -105,8 +106,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
 * **Saved characters.** One JSON file each under the state directory. A finished run moves to the
   deaths or wins directory and frees its name.
 * **The screen.** A map pane, a sidebar holding the character block, what is nearby and what is
-  under the pointer, and a message log that holds at a page boundary with `--More--`. Tooltips on
-  the sidebar and on menu rows. Mouse hover and a keyboard examine cursor, with `M` to turn mouse
+  under the pointer, and a message log that pauses at each page with `--More--`. Tooltips on the
+  sidebar and on menu rows. Mouse hover and a keyboard examine cursor, with `M` to turn mouse
   reporting off.
 * **Start, death and victory screens**, each naming the seed.
 * **Tooling.** `--seed` reproduces a run, `--trial N` plays N games with a bot for tuning,
