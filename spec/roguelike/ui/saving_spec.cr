@@ -56,6 +56,57 @@ Spectator.describe "when a run is written to the store" do
     found
   end
 
+  describe "carrying a character on" do
+    # A run whose log is far longer than the pane, written out and read back.
+    def carried_on(lines : Int32 = 40) : Playing::Run
+      store = Playing.store
+      first = playing store
+      lines.times { |written| first.game.say "Line number #{written}." }
+      first.play.keep
+
+      later = Playing.open nil, 80, 24, store: store
+      later.play.play_as "Sparky"
+      later
+    end
+
+    # The log comes back whole. The person read it in the session that wrote
+    # it, so none of it waits behind `--More--`.
+    it "does not page through the history that came back with it" do
+      run = carried_on
+
+      expect(run.pager.holding?).to be_false
+      expect(run.text).not_to contain "--More--"
+    end
+
+    it "counts every restored line as read" do
+      run = carried_on
+
+      expect(run.pager.unread).to eq 0
+    end
+
+    it "shows the newest lines rather than the oldest" do
+      run = carried_on
+
+      expect(run.pager.showing.last).to contain "Welcome back, Sparky."
+    end
+
+    it "gives the keyboard back to the game" do
+      run = carried_on
+      before = run.at
+
+      run.press "h"
+
+      expect(run.at).not_to eq before
+    end
+
+    # A run written before anything filled the log still reads as a run.
+    it "holds nothing when the log is short" do
+      run = carried_on 1
+
+      expect(run.pager.holding?).to be_false
+    end
+  end
+
   describe "#keep" do
     it "writes the run" do
       store = Playing.store

@@ -62,6 +62,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Carrying a saved character on no longer pages through their whole message history before showing
+  where they are. The log comes back whole and counts as read.
 * Healing a character who is above their maximum hit points no longer pulls
   them down to it.
 * The oval a scroll of item detection reaches was twice the stated size. The span is the width of

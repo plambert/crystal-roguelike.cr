@@ -512,6 +512,12 @@ module Roguelike::Ui
       @retired = false
 
       refresh
+
+      # The log came back with the run. The person read those lines in the
+      # session that wrote them, so the pane does not hold a page at a time
+      # through the whole history before it shows where they are now.
+      @pager.catch_up
+
       look_at_player
     end
 

@@ -165,9 +165,15 @@ module TermBuf::Widgets
       true
     end
 
-    # Marks every line as seen.
+    # Marks every line as seen, and drops a hold an owner asked for.
+    #
+    # An owner calls this when the lines it has just handed over are lines the
+    # person has already read. Restoring a saved run does that: the log comes
+    # back whole, and none of it is news.
     def catch_up : Nil
+      @insisted = false
       @read = @lines.size
+      settle
     end
 
     # Puts the window back on the newest line.
