@@ -115,6 +115,7 @@ module Roguelike
     # it out, and teaches them nothing by it. A scroll that says what it
     # destroyed says what it was; it does not say what colour that kind comes
     # in for the rest of the run.
+    #
     # *regard* says how well the character has made the item out. Anything
     # short of `Regard::Everything` writes the kind and no more: "a spear"
     # rather than "a cursed -2 spear", and "a scroll" rather than "a scroll
