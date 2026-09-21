@@ -35,8 +35,12 @@ module Roguelike
 
     # A development tool. It is off unless this is passed, so a normal run has
     # neither the box nor the key that opens it.
+    #
+    # It is hidden, so it is in neither the help nor the shell completions. It
+    # is for whoever works on the game rather than for whoever plays it.
     flag debug_console : Bool = false, "--debug-console",
-      "Open a console with ` for commands that change the running game"
+      "Open a console with ` for commands that change the running game",
+      hidden: true
 
     # A development tool. It takes no terminal and plays no game a person
     # sees. `Trial` says what the numbers mean and what they do not.
@@ -122,6 +126,25 @@ module Roguelike
       puts "the bot backs away when it is badly hurt" if trial_cautious
 
       print Trial.play(trial, first, trial_turns, trial_cautious)
+    end
+  end
+end
+
+module Roguelike
+  # The flags that belong to whoever works on the game rather than to whoever
+  # plays it.
+  class Cli
+    # The spellings kept out of the shell completions.
+    #
+    # `hidden: true` takes a flag out of `--help`. The completion candidates
+    # are generated from the same declarations and do not read it yet, so the
+    # ones named here come off the list afterwards. This goes when the shard
+    # reads `hidden` in both places.
+    UNLISTED = ["--debug-console", "--no-debug-console"]
+
+    def self.completion_candidates(words : Array(String), cword : Int32,
+                                   current : String, prev : String) : Array(String)
+      previous_def.reject { |found| UNLISTED.includes? found }
     end
   end
 end

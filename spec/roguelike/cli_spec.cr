@@ -11,6 +11,37 @@ Spectator.describe Roguelike::Cli do
     end
   end
 
+  # A development tool. It works, and it is in neither the help nor the
+  # completions: whoever plays the game has no use for it.
+  describe "--debug-console" do
+    it "is off unless it is passed" do
+      expect(described_class.parse(%w[]).debug_console).to be_false
+    end
+
+    it "is on when it is passed" do
+      expect(described_class.parse(%w[--debug-console]).debug_console).to be_true
+    end
+
+    it "is not in the help" do
+      expect(described_class.help).not_to contain "--debug-console"
+    end
+
+    it "is not offered as a completion" do
+      offered = described_class.completion_candidates(
+        ["crystal-roguelike", "--"], 1, "--", "crystal-roguelike")
+
+      expect(offered).not_to contain "--debug-console"
+      expect(offered).not_to contain "--no-debug-console"
+    end
+
+    it "offers the flags that are not hidden" do
+      offered = described_class.completion_candidates(
+        ["crystal-roguelike", "--"], 1, "--", "crystal-roguelike")
+
+      expect(offered).to contain "--seed"
+    end
+  end
+
   describe "--seed" do
     it "is nil when nobody asked for one" do
       expect(described_class.parse(%w[]).seed).to be_nil

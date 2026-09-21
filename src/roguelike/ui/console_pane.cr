@@ -25,6 +25,15 @@ module Roguelike::Ui
     # What the box says before any command has been run.
     OPENING = "Type help for the commands. Escape closes this."
 
+    # The version and the commit, on the first line of the scrollback.
+    #
+    # A screenshot of the box then says which build it came from.
+    # `Roguelike::BUILD` carries a "+" when the build had changes in it that
+    # the commit does not.
+    def self.stamp : String
+      "version #{Roguelike::VERSION} build #{Roguelike::BUILD}"
+    end
+
     # How many cells the box leaves clear to its left and to its right.
     COLUMN_MARGIN = 4
 
@@ -90,6 +99,7 @@ module Roguelike::Ui
       @rows.each { |row| add row }
       add @field
 
+      @console.say ConsolePane.stamp
       @console.say OPENING
     end
 

@@ -9,6 +9,18 @@ module Roguelike
   {% command = "shards version '" + __DIR__.gsub(%r{'}, "'\\''") + "'" %}
   VERSION = {{ `#{command.id}`.strip.stringify }}
   {% end %}
+
+  # The commit this binary was built from.
+  #
+  # `script/build-id` answers it: the short hash, with a "+" after it when a
+  # tracked file differed from that commit, and "unknown" when there was no
+  # repository to ask. The debug console prints it beside `VERSION`, so a
+  # screenshot of a failure says which build it came from.
+  {% begin %}
+  {% root = __DIR__.gsub(%r{'}, "'\\''") %}
+  {% command = "sh '" + root + "/../script/build-id' '" + root + "'" %}
+  BUILD = {{ `#{command.id}`.strip.stringify }}
+  {% end %}
 end
 
 require "./roguelike/rng"

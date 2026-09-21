@@ -932,6 +932,20 @@ they are needed rather than in the sequence above.
 is running. Without the flag nothing is built: there is no box in the widget tree and the key is
 not bound, so a normal run cannot reach any of it.
 
+The flag itself is hidden. It is in neither `--help` nor the shell completions, because whoever
+plays the game has no use for it. `hidden: true` takes it out of the help; the completion
+candidates are generated from the same declarations and do not read that yet, so `Cli` filters its
+own spellings out afterwards.
+
+The box opens with `version X build Y` on its first line. `Y` is the short commit the binary was
+built from, with a `+` after it when a tracked file differed from that commit. `script/build-id`
+answers it and `src/crystal-roguelike.cr` runs that while the compiler expands its macros, beside
+the `shards version` call that fills `VERSION`. A build from a release tarball has no repository to
+ask and gets `unknown`. Untracked files are not counted: nothing untracked reaches the binary
+unless a tracked file was edited to require it, and counting them would mark every working tree
+that has a stray note in it. The compiler caches macro expansion, so a rebuild that changes no
+source carries the stamp the last full build wrote.
+
 The reason for it is the cost of finding the thing to test. Firing a bow needs a bow and arrows to
 turn up on the floor, and a seed that drops them there drops something else after the next change
 to the generator. `spawn bow` and `spawn 20 +1 arrow` take two lines instead of twenty minutes of

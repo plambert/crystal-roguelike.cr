@@ -55,6 +55,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A blessed weapon adds 1 to hit. Damage is unchanged.
 * Messages agree in number: "3 iron spikes are not cursed", "1 iron spike is cursed".
 * Linux release binaries are stripped, which takes about a megabyte off each.
+* The build records the commit it was built from. `script/build-id` answers it while the compiler
+  runs, and a build with no repository to ask records `unknown` rather than failing.
 * A run no longer stops for an item that was already drawn on the character's map. It still stops
   for one that was not.
 

@@ -17,6 +17,48 @@ Spectator.describe "the debug console on the keyboard" do
     found
   end
 
+  describe "what the box says before anything is typed" do
+    it "names the version and the build on its first line" do
+      run = debugging
+
+      run.press ConsolePane::TOGGLE
+
+      expect(pane(run).console.lines.first).to eq ConsolePane.stamp
+    end
+
+    it "says it once however many times the box is opened" do
+      run = debugging
+
+      run.press ConsolePane::TOGGLE
+      run.press ConsolePane::TOGGLE
+      run.press ConsolePane::TOGGLE
+
+      said = pane(run).console.lines.count ConsolePane.stamp
+      expect(said).to eq 1
+    end
+
+    it "puts the stamp on the screen" do
+      run = debugging
+
+      run.press ConsolePane::TOGGLE
+
+      expect(run.text).to contain ConsolePane.stamp
+    end
+  end
+
+  describe ConsolePane.stamp do
+    it "reads as a version and a build" do
+      expect(ConsolePane.stamp)
+        .to eq "version #{Roguelike::VERSION} build #{Roguelike::BUILD}"
+    end
+
+    # `script/build-id` answers "unknown" where there is no repository. It
+    # answers something either way.
+    it "always has a build in it" do
+      expect(Roguelike::BUILD).not_to be_empty
+    end
+  end
+
   describe "with --debug-console" do
     it "opens on the backquote" do
       run = debugging
