@@ -309,7 +309,7 @@ module Roguelike
     #
     # `Game#regenerate` reads it. It has a default, so a save written before
     # this field existed loads a character who was hurt a moment ago and has
-    # to stand still for a while before anything comes back.
+    # to go unhurt for a while before they regenerate.
     getter rested : Int32 = 0
 
     # Counts one tick of going unhurt. Answers how many there have been.
@@ -317,7 +317,7 @@ module Roguelike
       @rested += 1
     end
 
-    # Ticks one hit point takes to come back, from constitution.
+    # Ticks one hit point of regeneration takes, from constitution.
     def regeneration : Int32
       Advancement.regeneration @attributes.constitution
     end
@@ -325,7 +325,7 @@ module Roguelike
     # Takes *amount* off the hit points. Answers how many are left.
     #
     # Being hurt puts the rest count back to nothing, so a character hit once
-    # a turn never gets anything back.
+    # a turn never regenerates.
     def hurt(amount : Int32) : Int32
       @rested = 0
       @hit_points = Math.max @hit_points - amount, 0

@@ -26,7 +26,7 @@ module Roguelike
     # Experience needed to reach level two.
     FIRST_THRESHOLD = 20
 
-    # Ticks one hit point takes to come back at average constitution.
+    # Ticks one hit point of regeneration takes at average constitution.
     REGENERATION = 20
 
     # Ticks taken off that by each point of the constitution modifier.
@@ -39,11 +39,11 @@ module Roguelike
     # The fastest anything regenerates, however tough it is.
     REGENERATION_LEAST = 5
 
-    # Ticks one hit point takes to come back at *constitution*.
+    # Ticks one hit point of regeneration takes at *constitution*.
     #
     # Constitution already decides how many hit points there are. This is the
-    # other half of the same idea: a tough character has more of them and
-    # gets them back sooner.
+    # other half of the same idea: a tough character has more hit points and
+    # regenerates them faster.
     def self.regeneration(constitution : Int32) : Int32
       found = REGENERATION -
               Attributes.modifier(constitution) * REGENERATION_PER_POINT

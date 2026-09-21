@@ -1951,15 +1951,17 @@ floor. The speeds here only buy something against a slime, which is the least da
 three to begin with. Making the difference matter means slowing what is common rather than what is
 rare, or giving the character a way to get faster, which is what the potion of haste is.
 
-## Hit points coming back on their own
+## Regeneration
 
-`Player#rested` counts ticks since the last wound. `Player#hurt` puts it back to nothing, so a
-character being hit once a turn never gets anything back. `Game#regenerate` runs on every tick:
-past `Game::REST` ticks of going unhurt, one hit point goes back every `Player#regeneration` ticks.
+`Player#rested` counts ticks since the last wound. `Player#hurt` sets it back to nothing, so a
+character being hit once a turn never regenerates. `Game#regenerate` runs on every tick: past
+`Game::REST` ticks of going unhurt, the character regenerates one hit point every
+`Player#regeneration` ticks.
 
-Ten turns whatever the character is made of, and then a rate that comes from constitution.
-`Advancement.regeneration` is `REGENERATION` less `REGENERATION_PER_POINT` for each point of the
-constitution modifier, with a floor of `REGENERATION_LEAST`.
+Regeneration starts ten turns after a wound whatever the character is made of, and the rate after
+that comes from constitution. `Advancement.regeneration` is `REGENERATION` less
+`REGENERATION_PER_POINT` for each point of the constitution modifier, with a floor of
+`REGENERATION_LEAST`.
 
 | constitution | ticks a hit point |
 | --- | --- |
@@ -1970,19 +1972,20 @@ constitution modifier, with a floor of `REGENERATION_LEAST`.
 | 18 | 8 |
 
 Constitution already decides how many hit points there are. This is the other half of the same
-idea: a tough character has more of them and gets them back sooner. At average constitution a
-character at one hit point out of twelve is two hundred and twenty turns of going unhurt from full,
-which is long enough that walking away from a fight is a decision rather than a free heal.
+idea: a tough character has more hit points and regenerates them faster. At average constitution a
+character at one hit point out of twelve regenerates to full in two hundred and twenty turns of
+going unhurt, which is long enough that walking away from a fight is a decision rather than a free
+heal.
 
 It lives in `Advancement` beside the hit point table, because both are constitution turning into
 health and neither rolls anything.
 
-Nothing rolls attributes yet. Every character starts at ten across the board, so this rate is
-twenty for everybody who plays today and the table above is waiting for a character who is not
-average.
+Nothing rolls attributes yet. Every character starts at ten across the board, so every character
+regenerates a hit point every twenty ticks today, and the table above is waiting for a character
+who is not average.
 
-Nothing is said about it. A line a turn saying the character is a little better would fill the log,
-and anything written to the log stops a run.
+Regeneration writes nothing to the log. A line a turn saying the character is a little better would
+fill the log, and anything written to the log stops a run.
 
 Only the character regenerates. A creature that lost the character and healed while it looked for
 them would undo what hitting it and walking away buys, which is the one thing a slower creature

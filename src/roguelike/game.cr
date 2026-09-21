@@ -1227,14 +1227,15 @@ module Roguelike
       end
     end
 
-    # How many ticks of going unhurt it takes before anything comes back.
+    # How many ticks of going unhurt it takes before regeneration starts.
     REST = 10
 
-    # Puts one hit point back when the character has gone unhurt long enough.
+    # Regenerates one hit point when the character has gone unhurt long
+    # enough.
     #
-    # How long one takes is `Player#regeneration`, which comes from
-    # constitution. Ten ticks of going unhurt first, whatever the character
-    # is made of.
+    # `Player#regeneration` is how many ticks one hit point takes, and it
+    # comes from constitution. Regeneration starts after `REST` ticks of
+    # going unhurt, whatever the character is made of.
     #
     # Nothing is said. A line a turn saying the character is a little better
     # would fill the log and stop every run, because anything written to the

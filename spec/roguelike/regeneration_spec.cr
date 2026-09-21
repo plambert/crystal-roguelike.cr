@@ -1,6 +1,6 @@
 require "../spec_helper"
 
-Spectator.describe "hit points coming back on their own" do
+Spectator.describe "regeneration" do
   alias Direction = Roguelike::Direction
   alias Species = Roguelike::Species
   alias Monster = Roguelike::Monster
@@ -13,7 +13,7 @@ Spectator.describe "hit points coming back on their own" do
           "#....................#",
           "######################"]
 
-  # Ticks a hit point takes at average constitution.
+  # Ticks one hit point of regeneration takes at average constitution.
   RATE = Roguelike::Advancement::REGENERATION
 
   # A game with the character *down* hit points and *constitution*.
@@ -40,7 +40,7 @@ Spectator.describe "hit points coming back on their own" do
   end
 
   describe "while nothing has hurt the character" do
-    it "puts nothing back inside the first ten turns" do
+    it "regenerates nothing inside the first ten turns" do
       game = bare 6
       before = game.player.hit_points
 
@@ -49,7 +49,7 @@ Spectator.describe "hit points coming back on their own" do
       expect(game.player.hit_points).to eq before
     end
 
-    it "puts one hit point back at the end of the first stretch" do
+    it "regenerates one hit point after twenty ticks" do
       game = bare 6
       before = game.player.hit_points
 
@@ -58,7 +58,7 @@ Spectator.describe "hit points coming back on their own" do
       expect(game.player.hit_points).to eq before + 1
     end
 
-    it "puts one back every twenty turns after that" do
+    it "regenerates one more every twenty ticks after that" do
       game = bare 6
       before = game.player.hit_points
 
@@ -67,7 +67,7 @@ Spectator.describe "hit points coming back on their own" do
       expect(game.player.hit_points).to eq before + 3
     end
 
-    it "says nothing about it" do
+    it "writes nothing to the log" do
       game = bare 6
       mark_time game, RATE
 
@@ -98,7 +98,7 @@ Spectator.describe "hit points coming back on their own" do
       {game, creature}
     end
 
-    it "puts the count back to nothing" do
+    it "sets the count back to nothing" do
       game = bare 6
       mark_time game, Game::REST
       game.player.hurt 1
@@ -106,7 +106,7 @@ Spectator.describe "hit points coming back on their own" do
       expect(game.player.rested).to eq 0
     end
 
-    it "puts nothing back while it is being hit" do
+    it "regenerates nothing while it is being hit" do
       game, _creature = beset 6
       before = game.player.hit_points
       mark_time game, RATE
@@ -127,7 +127,7 @@ Spectator.describe "hit points coming back on their own" do
   end
 
   describe "constitution" do
-    it "comes back sooner for a tough character" do
+    it "regenerates faster for a tough character" do
       tough = bare 6, constitution: 18
       weak = bare 6, constitution: 3
 
@@ -138,7 +138,7 @@ Spectator.describe "hit points coming back on their own" do
     # Eight ticks a point at eighteen against thirty-two at three. The first
     # point waits for the first multiple of the rate past the ten ticks of
     # going unhurt, so forty turns is four points against one.
-    it "puts back four points to a weak character's one" do
+    it "regenerates four points to a weak character's one" do
       tough = bare 6, constitution: 18
       weak = bare 6, constitution: 3
       started = {tough.player.hit_points, weak.player.hit_points}
@@ -150,7 +150,7 @@ Spectator.describe "hit points coming back on their own" do
       expect(weak.player.hit_points - started[1]).to eq 1
     end
 
-    it "leaves an average character where it was" do
+    it "regenerates at the base rate at average constitution" do
       game = bare 6
 
       mark_time game, 40
@@ -160,7 +160,7 @@ Spectator.describe "hit points coming back on their own" do
 
     # A modifier so high that the rate reached nothing would heal a point
     # every tick and then some.
-    it "never comes back faster than the floor allows" do
+    it "never regenerates faster than the floor allows" do
       expect(Roguelike::Advancement.regeneration 100)
         .to eq Roguelike::Advancement::REGENERATION_LEAST
     end
