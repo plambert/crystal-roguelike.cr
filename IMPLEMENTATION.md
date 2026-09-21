@@ -1954,12 +1954,12 @@ rare, or giving the character a way to get faster, which is what the potion of h
 ## Hit points coming back on their own
 
 `Player#rested` counts ticks since the last wound. `Player#hurt` puts it back to nothing, so a
-character being hit once a turn never knits anything. `Game#knit` runs on every tick: past
-`Game::REST` ticks of going unhurt, one hit point goes back every `Player#knitting` ticks.
+character being hit once a turn never gets anything back. `Game#regenerate` runs on every tick:
+past `Game::REST` ticks of going unhurt, one hit point goes back every `Player#regeneration` ticks.
 
 Ten turns whatever the character is made of, and then a rate that comes from constitution.
-`Advancement.knitting` is `KNITTING` less `KNITTING_PER_POINT` for each point of the constitution
-modifier, with a floor of `KNITTING_LEAST`.
+`Advancement.regeneration` is `REGENERATION` less `REGENERATION_PER_POINT` for each point of the
+constitution modifier, with a floor of `REGENERATION_LEAST`.
 
 | constitution | ticks a hit point |
 | --- | --- |
@@ -1984,14 +1984,14 @@ average.
 Nothing is said about it. A line a turn saying the character is a little better would fill the log,
 and anything written to the log stops a run.
 
-Only the character knits. A creature that lost the character and healed while it looked for them
-would undo what hitting it and walking away buys, which is the one thing a slower creature leaves
-open.
+Only the character regenerates. A creature that lost the character and healed while it looked for
+them would undo what hitting it and walking away buys, which is the one thing a slower creature
+leaves open.
 
-Losing hit points stops a run. Gaining one does not, or a character knitting along a corridor would
-stop every twenty steps for good news.
+Losing hit points stops a run. Gaining one does not, or a character regenerating along a corridor
+would stop every twenty steps for good news.
 
-Two hundred trial runs from seed 5000, without knitting and with it:
+Two hundred trial runs from seed 5000, without regeneration and with it:
 
 | | without | with |
 | --- | --- | --- |

@@ -682,8 +682,8 @@ module Roguelike
     # message on the same step, so it is asked about first.
     #
     # Losing hit points stops a run. Gaining one does not: a character
-    # knitting on the way down a corridor would otherwise stop every twenty
-    # steps for good news.
+    # regenerating on the way down a corridor would otherwise stop every
+    # twenty steps for good news.
     private def stopped_by(before : Watch, seen : Vision, along : Bool,
                            doors : Bool = true) : Halt?
       return Halt::Over if @outcome.over?
@@ -1197,7 +1197,7 @@ module Roguelike
       wear_off
       handle_items
       blink
-      knit
+      regenerate
       act_on_the_floor unless over?
 
       # Last, so that nothing acts on energy it earned during the same tick.
@@ -1227,25 +1227,26 @@ module Roguelike
       end
     end
 
-    # How many ticks of going unhurt it takes before anything knits.
+    # How many ticks of going unhurt it takes before anything comes back.
     REST = 10
 
     # Puts one hit point back when the character has gone unhurt long enough.
     #
-    # How long one takes is `Player#knitting`, which comes from constitution.
-    # Ten ticks of going unhurt first, whatever the character is made of.
+    # How long one takes is `Player#regeneration`, which comes from
+    # constitution. Ten ticks of going unhurt first, whatever the character
+    # is made of.
     #
     # Nothing is said. A line a turn saying the character is a little better
     # would fill the log and stop every run, because anything written to the
     # log stops a run.
     #
-    # Only the character knits. A creature that lost the character and healed
-    # while it looked for them would undo what hitting it and walking away
-    # buys, and that is the one thing a slower creature leaves open.
-    private def knit : Nil
+    # Only the character regenerates. A creature that lost the character and
+    # healed while it looked for them would undo what hitting it and walking
+    # away buys, and that is the one thing a slower creature leaves open.
+    private def regenerate : Nil
       rested = @player.rest
       return if rested < REST
-      return unless (rested % @player.knitting).zero?
+      return unless (rested % @player.regeneration).zero?
 
       @player.heal 1
     end

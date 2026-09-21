@@ -307,9 +307,9 @@ module Roguelike
 
     # Ticks since the last wound.
     #
-    # `Game#knit` reads it. It has a default, so a save written before this
-    # field existed loads a character who was hurt a moment ago and has to
-    # stand still for a while before anything knits.
+    # `Game#regenerate` reads it. It has a default, so a save written before
+    # this field existed loads a character who was hurt a moment ago and has
+    # to stand still for a while before anything comes back.
     getter rested : Int32 = 0
 
     # Counts one tick of going unhurt. Answers how many there have been.
@@ -318,14 +318,14 @@ module Roguelike
     end
 
     # Ticks one hit point takes to come back, from constitution.
-    def knitting : Int32
-      Advancement.knitting @attributes.constitution
+    def regeneration : Int32
+      Advancement.regeneration @attributes.constitution
     end
 
     # Takes *amount* off the hit points. Answers how many are left.
     #
     # Being hurt puts the rest count back to nothing, so a character hit once
-    # a turn never knits anything.
+    # a turn never gets anything back.
     def hurt(amount : Int32) : Int32
       @rested = 0
       @hit_points = Math.max @hit_points - amount, 0

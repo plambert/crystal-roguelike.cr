@@ -14,7 +14,7 @@ Spectator.describe "hit points coming back on their own" do
           "######################"]
 
   # Ticks a hit point takes at average constitution.
-  KNIT = Roguelike::Advancement::KNITTING
+  RATE = Roguelike::Advancement::REGENERATION
 
   # A game with the character *down* hit points and *constitution*.
   def bare(down : Int32 = 0,
@@ -49,11 +49,11 @@ Spectator.describe "hit points coming back on their own" do
       expect(game.player.hit_points).to eq before
     end
 
-    it "puts one hit point back at the first knitting" do
+    it "puts one hit point back at the end of the first stretch" do
       game = bare 6
       before = game.player.hit_points
 
-      mark_time game, KNIT
+      mark_time game, RATE
 
       expect(game.player.hit_points).to eq before + 1
     end
@@ -62,14 +62,14 @@ Spectator.describe "hit points coming back on their own" do
       game = bare 6
       before = game.player.hit_points
 
-      mark_time game, 3 * KNIT
+      mark_time game, 3 * RATE
 
       expect(game.player.hit_points).to eq before + 3
     end
 
     it "says nothing about it" do
       game = bare 6
-      mark_time game, KNIT
+      mark_time game, RATE
 
       expect(game.log.lines.any? &.includes?("heal")).to be_false
       expect(game.log.lines.any? &.includes?("better")).to be_false
@@ -77,7 +77,7 @@ Spectator.describe "hit points coming back on their own" do
 
     it "stops at full health" do
       game = bare 1
-      mark_time game, 10 * KNIT
+      mark_time game, 10 * RATE
 
       expect(game.player.hit_points).to eq game.player.max_hit_points
     end
@@ -106,33 +106,33 @@ Spectator.describe "hit points coming back on their own" do
       expect(game.player.rested).to eq 0
     end
 
-    it "knits nothing while it is being hit" do
+    it "puts nothing back while it is being hit" do
       game, _creature = beset 6
       before = game.player.hit_points
-      mark_time game, KNIT
+      mark_time game, RATE
 
       expect(game.player.hit_points).to be <= before
     end
 
     it "starts the count again from the last wound" do
       game = bare 6
-      mark_time game, KNIT - 1
+      mark_time game, RATE - 1
       game.player.hurt 1
       before = game.player.hit_points
 
-      mark_time game, KNIT - 1
+      mark_time game, RATE - 1
 
       expect(game.player.hit_points).to eq before
     end
   end
 
   describe "constitution" do
-    it "knits sooner for a tough character" do
+    it "comes back sooner for a tough character" do
       tough = bare 6, constitution: 18
       weak = bare 6, constitution: 3
 
-      expect(tough.player.knitting).to be < KNIT
-      expect(weak.player.knitting).to be > KNIT
+      expect(tough.player.regeneration).to be < RATE
+      expect(weak.player.regeneration).to be > RATE
     end
 
     # Eight ticks a point at eighteen against thirty-two at three. The first
@@ -155,14 +155,14 @@ Spectator.describe "hit points coming back on their own" do
 
       mark_time game, 40
 
-      expect(game.player.knitting).to eq KNIT
+      expect(game.player.regeneration).to eq RATE
     end
 
     # A modifier so high that the rate reached nothing would heal a point
     # every tick and then some.
-    it "never knits faster than the floor allows" do
-      expect(Roguelike::Advancement.knitting 100)
-        .to eq Roguelike::Advancement::KNITTING_LEAST
+    it "never comes back faster than the floor allows" do
+      expect(Roguelike::Advancement.regeneration 100)
+        .to eq Roguelike::Advancement::REGENERATION_LEAST
     end
   end
 
@@ -177,7 +177,7 @@ Spectator.describe "hit points coming back on their own" do
       game = bare 6
       game.player.pace.hurry 1000
 
-      mark_time game, 3 * KNIT
+      mark_time game, 3 * RATE
 
       expect(game.player.rested).to eq game.turn
     end
