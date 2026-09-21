@@ -63,12 +63,12 @@ Spectator.describe Roguelike::Ui::NearbyPane do
 
   # What the "Here" section says, row by row.
   def underfoot(run : Playing::Run) : Array(String)
-    run.nearby.here.children.compact_map { |child| child.as?(Roguelike::Ui::Widgets::Label).try &.text }
+    run.nearby.here.children.compact_map { |child| child.as?(Roguelike::Ui::Line).try &.text }
   end
 
   # What the "Seen" section says, row by row.
   def in_sight(run : Playing::Run) : Array(String)
-    run.nearby.seen.children.compact_map { |child| child.as?(Roguelike::Ui::Widgets::Label).try &.text }
+    run.nearby.seen.children.compact_map { |child| child.as?(Roguelike::Ui::Line).try &.text }
   end
 
   describe "Here" do

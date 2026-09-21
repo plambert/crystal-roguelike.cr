@@ -1,13 +1,18 @@
 module Roguelike::Ui
-  # Everything the character knows about one item, written out.
+  # Everything the character knows about one thing, written out.
   #
-  # The sidebar writes an item in sixteen columns. This is the other half of
+  # The sidebar writes a row in sixteen columns. This is the other half of
   # that bargain: point at a row and read the whole thing, with no
   # abbreviation and nothing left out.
   #
   # It says only what the character has found out. An unidentified potion is
   # named by its colour and nothing is said about what drinking it would do.
+  # A creature the character makes out only as a shape is a shape here too:
+  # its species, its hit points and what it is doing all wait for light on it.
   module Detail
+    # What is written about a thing too far off to make out more of.
+    TOO_FAR = "too far off to make out more"
+
     # What to write about the item in *slot*, or `nil` for an empty slot.
     #
     # The first line is the slot, written out, so a person who pointed at
@@ -20,8 +25,17 @@ module Roguelike::Ui
     end
 
     # What to write about *item*.
-    def self.about(game : Game, item : Item) : Array(String)
-      lines = [game.name item]
+    #
+    # *regard* says how well the character has made it out. Short of
+    # `Regard::Everything` this writes the kind and no more: a spear across
+    # the room is a spear, and the notch in its blade and the curse on it
+    # wait until somebody stands over it.
+    def self.about(game : Game, item : Item,
+                   regard : Regard = Regard::Everything) : Array(String)
+      name = game.name item, regard: regard
+      return [name, TOO_FAR] unless regard.everything?
+
+      lines = [name]
       kind = item.kind
 
       lines.concat facts(item)
@@ -33,6 +47,36 @@ module Roguelike::Ui
       end
 
       lines
+    end
+
+    # What to write about *creature*, as far as the character has made it out.
+    #
+    # `Regard::Shape` is a creature standing against light behind it. Its size
+    # is what reaches the character, so its size and that it is moving are all
+    # this says. Its species, its hit points and what it is doing all wait for
+    # light on it.
+    #
+    # `nil` for a creature the character cannot see at all.
+    def self.about(game : Game, creature : Monster, regard : Regard) : Array(String)?
+      return unless regard.made_out?
+      return [creature.species.size.label, ExaminePane::MOVING] unless regard.everything?
+
+      [
+        creature.label,
+        creature.description,
+        "hit points #{creature.hit_points}/#{creature.max_hit_points}",
+        game.floor.awareness(creature).label,
+      ]
+    end
+
+    # What to write about *fitting*.
+    def self.about(fitting : Fixture) : Array(String)
+      [fitting.label, fitting.description]
+    end
+
+    # What to write about *terrain*.
+    def self.about(terrain : Terrain) : Array(String)
+      [terrain.label, terrain.description]
     end
 
     # The lines about what the item does, which depend on what it is.
