@@ -2191,6 +2191,103 @@ and says exactly what it said before. What goes on top of it is the `Seen` list,
 and the tooltips saying a size rather than a species, and an item on the floor named by its kind
 until the character has walked up to it.
 
+## The creature the character is fighting
+
+The sidebar carries a fourth bar under the character's own three. It is the hit points of the
+creature the character last traded blows with, and it is there only while that fight is going on.
+A person swinging at something in a dark corridor could read how hurt it was only by counting the
+damage numbers in the log. The bar says it.
+
+### Red at full, yellow at zero
+
+`Palette::THREAT` runs the other way from `Palette::HEALTH`. Red is a creature at full strength and
+yellow is one about to fall. The character's own bar is green at full because it is about their
+safety. This one is about a threat going away, and the two read the same way round once that is
+said: green and yellow are good news, red is trouble.
+
+There are three levels rather than the five `HEALTH` has. The bar is one row about one creature and
+the only question it answers is how much is left, so the colour has to move far enough to be read
+at a glance rather than in small steps.
+
+### What the bar says
+
+The label outside the bar is `vs`, two columns, the way `HP`, `MP` and `XP` are. A creature's name
+does not fit in two columns, so it goes inside the bar in front of the count: `goblin 7/12`.
+
+`Ui::Naming.creature` writes it. A creature the character has made out to `Regard::Kind` or better
+is named by its species. One they have only made out as an outline is named by `Size#short`: `med
+shape 7/12`. That is the same wording the sidebar already uses for a shortened item, so the column
+reads the same way down its whole length.
+
+### What counts as an exchange
+
+Every blow either way, landed or missed. A miss is a blow aimed at something, and a person who has
+just missed wants to know how much is left in what they missed as much as a person who hit does.
+
+A shot counts too. `Game#hit` is where an arrow, a thrown rock and a bolt from a wand all land, so
+hooking that one method covers all three. Shooting a creature across a room is trading blows with
+it at a distance, and the reading is worth the same there as it is in reach. A wand of light aimed
+at a creature is not a blow and does not go through `Game#hit`, so it raises nothing: the
+distinction falls out of the code rather than having to be written down as a rule.
+
+### Eight turns
+
+`Game::FIGHT_LASTS` is eight. A creature that breaks off and comes back inside eight turns is the
+same fight rather than a new one. Eight turns is long enough to walk the width of a lit room, so a
+creature that has not swung in that time is somewhere else. It is also what a goblin and an orc
+notice at, so the bar holds for about as long as the creature would need to close again. Every
+exchange either way writes the turn down again, so a fight that goes on holds the bar.
+
+### When the bar goes
+
+`Game#fought` answers the creature while it is worth showing and `nil` otherwise. It is `nil` once
+the creature is dead, once it is no longer standing where the game last saw it, and once
+`FIGHT_LASTS` turns have gone by. A creature that walks out of sight is still answered: the
+character has been hitting it, knows it is there, and how hurt it was is worth reading whether or
+not they can see it now.
+
+The "standing where the game last saw it" test is what covers a floor change. The creature is
+looked for on the floor the character is on, so one left behind on another floor is not found.
+Descending ends the run today and there is no second floor to go to, and the rule is already right
+for the day there is.
+
+### Naming the creature across a save
+
+`Game` is `JSON::Serializable` and the floor already holds the creature. A second copy in the save
+would load as a second creature, and the bar would follow the copy while the floor ran the
+original. `#killer` had the same problem and holds a label rather than a creature.
+
+The creature is named by the square it stands on. Two creatures never share a square, so a square
+and the floor the character is on name one of them. `@fought` is the live reference and is not
+written out. `Game#fought_at` is the square, and `#tick` writes it again at the end of every turn,
+after everything has moved, so it still names the creature after it has walked.
+`Game#after_initialize` looks the square up and finds it again. A square with nobody on it means the
+creature died or the character went elsewhere while the save was cold, and the fight is over either
+way.
+
+`Game#fought_regard` is written out too. It keeps the best look the character has had of the
+creature, the way a remembered square keeps the closer of two looks. A creature seen in the light
+is the same creature once it steps into the dark, so the bar goes on naming it. A blow at a
+different creature starts that again.
+
+All three fields carry defaults in their declarations, so a save written before they existed loads
+with no fight going.
+
+### Where the bar sits, and what gives way
+
+The bar is a block of its own between the character's vitals and the row of numbers, so a blank row
+keeps the creature's hit points from being read as the character's.
+
+`CharacterPane#fit` gives it up last of all, after the pack, the empty slots, the scores and the
+equipment. A person in a fight reads how much is left in the thing hitting them more often than
+they read what is in their hands. It does go, though: the level, the hit points and the experience
+come before it, and `CharacterPane::LEAST` is what it would have pushed off. An eighty by
+twenty-four terminal has room for it. Anything shorter drops it.
+
+`#fit` cannot read the row to find out whether there is a fight, because `#fit` is what decides
+whether the row is hidden. `#show` records it in `@fighting`, which is the same arrangement
+`@filled` already uses for the equipment rows.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

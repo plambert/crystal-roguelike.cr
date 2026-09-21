@@ -8,6 +8,8 @@ module Roguelike::Ui
   # differently here.
   #
   # A tooltip and every menu write the whole name. This is for the column.
+  #
+  # A creature goes in the same column, so it is named here too.
   module Naming
     # What each condition is shortened to.
     CONDITIONS = {
@@ -82,6 +84,20 @@ module Roguelike::Ui
       end
 
       words.reject(&.empty?).join ' '
+    end
+
+    # What *creature* is called, as *regard* has made it out, for a column.
+    #
+    #     goblin
+    #     med shape
+    #
+    # A creature the character has made out to its kind or better is named by
+    # its species. One they have only made out as an outline is named by how
+    # big it is, because that is all that has reached them.
+    def self.creature(creature : Monster, regard : Regard) : String
+      return creature.label if regard >= Regard::Kind
+
+      creature.species.size.short
     end
 
     # What *item* is, without the count and without the variants.

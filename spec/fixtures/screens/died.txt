@@ -2,21 +2,21 @@
 #..o....#                                      │ HP        0/12
 #..@...>#                                      │ XP        0/20
 #########                                      │
-          ╭─ You died ───────────────────────────────────────╮   t 1
+          ╭─ You died ───────────────────────────────────────╮4/14
           │  Killed by an orc.                               │
-          │                                                  │
-          │  turn 1                                          │─────────
+          │                                                  │   t 1
+          │  turn 1                                          │
           │  level 1, 0 experience                           │
-          │  37 gold                                         │
+          │  37 gold                                         │─────────
           │                                                  │
-          │  You were carrying:                              │─────────
+          │  You were carrying:                              │
           │    a torch                                       │
-          │    a +1 long sword (weapon in hand)              │
+          │    a +1 long sword (weapon in hand)              │─────────
           │    12 arrows                                     │
-          │    a potion of healing                           │─────────
-          │                                                  │map, or
-          │  seed 20260915                                   │
-          │  Play again? y starts a new run, n quits.  [yN]  │
+          │    a potion of healing                           │
+          │                                                  │
+          │  seed 20260915                                   │─────────
+          │  Play again? y starts a new run, n quits.  [yN]  │map, or
 ──────────╰──────────────────────────────────────────────────╯──────────
  You miss the orc.
  The orc notices you.

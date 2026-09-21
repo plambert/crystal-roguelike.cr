@@ -145,6 +145,23 @@ module Roguelike::Ui
       {20, LIGHT_ORANGE},
     ]
 
+    # What the bar for the creature being fought is at each level.
+    #
+    # It runs the other way from `HEALTH`. Red is a creature at full strength
+    # and yellow is one about to fall, because this bar is about a threat
+    # going away rather than about the character's own safety. A person who
+    # reads the two side by side reads both as "green and yellow are good,
+    # red is trouble".
+    #
+    # Three levels rather than five. The bar is one row about one creature
+    # and the question it answers is how much is left, so the colour has to
+    # move far enough to be read at a glance rather than in small steps.
+    THREAT = [
+      {100, RED},
+      {50, ORANGE},
+      {0, YELLOW},
+    ]
+
     # The experience bar, which is one colour however full it is.
     #
     # A bar that changes colour says something is wrong. Nothing is wrong
