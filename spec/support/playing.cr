@@ -38,6 +38,9 @@ module Playing
 
     delegate render, rows, row, text, buffer, to: @session
 
+    # Drives the clock. A run opened without one has nothing to drive.
+    delegate tick, run_timers, armed, to: @session
+
     # Where the character is.
     def at : {Int32, Int32}
       game.player.at
@@ -185,11 +188,16 @@ module Playing
   # at the game rather than at a box asking to begin.
   #
   # *store* is where the run is saved. Nothing is saved without one.
+  # *clock* gives the application timers a spec fires by hand. Without it
+  # `App#after` arms nothing, and anything drawn on a timer happens inside the
+  # call that started it. Most specs want that: they press a key and read what
+  # it did.
   def self.open(game : Roguelike::Game? = nil,
                 columns : Int32 = 80,
                 rows : Int32 = 24,
                 console : Bool = false,
                 title : Bool = false,
+                clock : Bool = false,
                 store : Roguelike::Save::Store? = nil) : Run
     play = Roguelike::Ui::Play.new(
       game || Roguelike::Game.start(Roguelike::Rng.new(SEED)), console)
@@ -197,6 +205,7 @@ module Playing
     play.fit columns, rows
 
     session = Headless.open play.root, columns, rows
+    session.clock if clock
     play.app = session.app
     told = [] of String
 

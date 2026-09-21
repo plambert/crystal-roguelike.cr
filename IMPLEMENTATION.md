@@ -2076,7 +2076,38 @@ moving drops a slide in progress: the window is for them.
 
 `Pager#hold` holds the newest page however few lines arrived, so `The stairs are here.` waits behind
 `--More--` until a key is pressed. Nothing else in the game needs one line read before the next
-thing happens, so this is the first caller.
+thing happens, so this is the first caller. The key that lets that page go takes the route off the
+map with it: reading the line is what the route was up for. `Pager#on_release` is what says so, and
+it runs only for a hold somebody asked for. A page held because more lines arrived than fit is
+nobody's question.
+
+### One step at a time
+
+A run used to happen inside one key press. `Play` holds no terminal and cannot send a frame partway
+through a handler, so the whole thing was drawn once at the end and the character appeared at the
+far end of the corridor without having crossed it.
+
+`Game::Walk` is a run in progress: where it is going, how far it has got, what could be seen before
+the last step, and which squares had something on them the character already knew about.
+`Game#stride` takes one step of one. `Game#run` and `Game#follow` build a walk and stride it until
+it stops, which is what a spec and the trial harness want and is what they always did. `Play`
+strides it on a timer instead, one step every `STRIDE`, which is about what holding a movement key
+down gives.
+
+A walk carries everything one step needs to know about the step before it, so nothing about a run
+is kept on the game and a walk abandoned part way leaves nothing behind.
+
+`Ui::Interrupt` holds the keyboard while a run is drawn. It is a widget with no cells that pushes a
+focus scope rooted at itself, which is how `Pager` grabs the keyboard while it holds a page:
+`Router` reads the top scope's keymap and the chain under it, and a scope rooted at a widget with
+neither puts every binding the application has out of reach. Any key then reaches
+`Interrupt#handle`, which stops the run and does nothing else. A click does the same.
+
+Both of those push onto one focus stack, and a stack is only unwound from the top, so only one of
+them may have a scope up at a time. A run whose steps write a line each would otherwise let the
+pane hold part way through and leave the run's own scope buried. `Pager#deferred` is what keeps
+them apart: while it is set the pane holds nothing and counts nothing as read, so the lines pile up
+unread and the hold happens when the run is over and the person has the keyboard back.
 
 ## Asked for, not yet built
 

@@ -430,6 +430,142 @@ module Roguelike
     # run turning the crank forever.
     FURTHEST = 60
 
+    # A run in progress, and how far it has got.
+    #
+    # `Game#stride` takes one step of one of these. `#run` and `#follow` build
+    # one and step it until it stops, which is what a spec and the trial
+    # harness want. `Ui::Play` steps it on a timer instead, so the screen is
+    # drawn between one step and the next and a key can stop it.
+    #
+    # A walk holds no floor and decides nothing. `Game` is still the one class
+    # that changes a run.
+    class Walk
+      # The squares to cross, the character's own first. `nil` for a run in
+      # one direction.
+      getter route : Array({Int32, Int32})?
+
+      # Which way a run in one direction goes. `nil` for a route.
+      getter direction : Direction?
+
+      # The squares the character already remembered something lying on when
+      # the run began. What is on one of these does not stop it.
+      getter familiar : Set({Int32, Int32})
+
+      # How far it has gone.
+      property steps : Int32 = 0
+
+      # Why it stopped. `nil` while it is still going.
+      property halt : Halt? = nil
+
+      # Whether the square last stepped from was a length of corridor.
+      property? along : Bool = false
+
+      # What could be seen before the step being taken.
+      property seen : Vision
+
+      def initialize(@seen : Vision, @familiar : Set({Int32, Int32}),
+                     @direction : Direction? = nil,
+                     @route : Array({Int32, Int32})? = nil,
+                     @along : Bool = false)
+      end
+
+      # Whether this is a run in one direction rather than along a route.
+      #
+      # A doorway and a junction stop the first and not the second. The
+      # person who picked a square picked one on the far side of both.
+      def straight? : Bool
+        @route.nil?
+      end
+
+      # Whether it has stopped.
+      def over? : Bool
+        !@halt.nil?
+      end
+
+      # What it did, for a caller that wanted the whole run at once.
+      def running : Running
+        Running.new @steps, @halt || Halt::Spent
+      end
+    end
+
+    # A run in *direction*, ready to be stepped.
+    def running(direction : Direction) : Walk
+      Walk.new sight, piles_in_mind, direction: direction,
+        along: corridor?(@player.at)
+    end
+
+    # A run along *route*, ready to be stepped.
+    #
+    # A route that does not start where the character stands is refused. So is
+    # one with nowhere to go.
+    def walking(route : Array({Int32, Int32})) : Walk
+      walk = Walk.new sight, piles_in_mind, route: route
+      walk.halt = Halt::Blocked if route.size < 2 || route.first != @player.at
+
+      walk
+    end
+
+    # Takes one step of *walk*. Answers whether it is still going.
+    #
+    # Everything one step needs to know about the step before it is on the
+    # walk. Nothing about it is kept on the game, so a walk that is abandoned
+    # part way leaves nothing behind.
+    def stride(walk : Walk) : Bool
+      return false if walk.over?
+
+      direction = heading walk
+      return false unless direction
+
+      @familiar = walk.familiar
+      @forgiven = 0
+
+      if blocked_ahead? direction
+        refuse_run direction if walk.steps.zero?
+        walk.halt = Halt::Blocked
+        return false
+      end
+
+      before = Watch.on self, walk.seen
+      unless step(direction).moved?
+        walk.halt = Halt::Blocked
+        return false
+      end
+
+      walk.steps += 1
+      walk.seen = sight
+      walk.halt = stopped_by before, walk.seen,
+        along: walk.along?, doors: walk.straight?
+      walk.along = walk.straight? && corridor?(@player.at)
+
+      !walk.over?
+    ensure
+      @familiar = NO_PILES
+      @forgiven = 0
+    end
+
+    # Which way the next step of *walk* goes.
+    #
+    # `nil` when there is no step to take, and the walk is given the reason
+    # before this answers.
+    private def heading(walk : Walk) : Direction?
+      route = walk.route
+      unless route
+        walk.halt = Halt::Spent if walk.steps >= FURTHEST
+
+        return walk.over? ? nil : walk.direction
+      end
+
+      if walk.steps + 1 >= route.size
+        walk.halt = Halt::Arrived
+        return
+      end
+
+      found = Direction.between @player.at, route[walk.steps + 1]
+      walk.halt = Halt::Blocked unless found
+
+      found
+    end
+
     # Walks *direction* until something is worth stopping for. Answers how
     # far it went and what stopped it.
     #
@@ -444,31 +580,11 @@ module Roguelike
     # A run that takes no step at all says why, the way one press of the
     # movement key against the same square would.
     def run(direction : Direction) : Running
-      steps = 0
-      along = corridor? @player.at
-      seen = sight
-      @familiar = piles_in_mind
-
-      while steps < FURTHEST
-        if blocked_ahead? direction
-          refuse_run direction if steps.zero?
-          return Running.new steps, Halt::Blocked
-        end
-
-        before = Watch.on self, seen
-        return Running.new steps, Halt::Blocked unless step(direction).moved?
-
-        steps += 1
-        seen = sight
-        halt = stopped_by before, seen, along: along
-        along = corridor? @player.at
-
-        return Running.new steps, halt if halt
+      walk = running direction
+      while stride walk
       end
 
-      Running.new steps, Halt::Spent
-    ensure
-      forget_the_run
+      walk.running
     end
 
     # Walks *route* until something is worth stopping for. Answers how far it
@@ -488,35 +604,11 @@ module Roguelike
     # A route onto a square something has since walked onto stops against it,
     # the way a run does.
     def follow(route : Array({Int32, Int32})) : Running
-      return Running.new 0, Halt::Blocked if route.size < 2
-      return Running.new 0, Halt::Blocked unless route.first == @player.at
-
-      steps = 0
-      seen = sight
-      @familiar = piles_in_mind
-
-      while steps + 1 < route.size
-        direction = Direction.between @player.at, route[steps + 1]
-        return Running.new steps, Halt::Blocked unless direction
-
-        if blocked_ahead? direction
-          refuse_run direction if steps.zero?
-          return Running.new steps, Halt::Blocked
-        end
-
-        before = Watch.on self, seen
-        return Running.new steps, Halt::Blocked unless step(direction).moved?
-
-        steps += 1
-        seen = sight
-        halt = stopped_by before, seen, along: false, doors: false
-
-        return Running.new steps, halt if halt
+      walk = walking route
+      while stride walk
       end
 
-      Running.new steps, Halt::Arrived
-    ensure
-      forget_the_run
+      walk.running
     end
 
     # The squares the character remembers something lying on.
@@ -530,11 +622,8 @@ module Roguelike
       found
     end
 
-    # Drops what only a run in progress needs.
-    private def forget_the_run : Nil
-      @familiar = Set({Int32, Int32}).new
-      @forgiven = 0
-    end
+    # No square worth forgiving. What the game holds while nothing is running.
+    NO_PILES = Set({Int32, Int32}).new
 
     # Says why a run went nowhere.
     #

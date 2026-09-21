@@ -10,11 +10,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
-* Clicking a square highlights the route to it. Clicking it again walks the route. The route
-  crosses doorways and junctions without stopping, and stops for anything the character has not
-  seen.
+* Clicking a square highlights the route to it. Clicking it again walks the route, one step at a
+  time. The route crosses doorways and junctions without stopping, and stops for anything the
+  character has not seen.
 * `>` and `<` pressed away from a staircase highlight the remembered staircase and the route to it,
-  and scroll the map to it. Neither costs a turn.
+  and scroll the map to it. Neither costs a turn. The highlight clears when the `--More--` prompt
+  is dismissed.
 * The character regenerates hit points. Regeneration stops for ten turns after taking damage. The
   interval per point then comes from constitution: eight turns at 18, twenty at 10, thirty-two at
   3.
@@ -59,6 +60,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   runs, and a build with no repository to ask records `unknown` rather than failing.
 * A run no longer stops for an item that was already drawn on the character's map. It still stops
   for one that was not.
+* `G` and a walked route are drawn one step at a time, at about the rate of a held movement key,
+  rather than all at once. Any key stops a run in progress and does nothing else.
 
 ### Fixed
 

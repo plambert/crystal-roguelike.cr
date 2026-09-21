@@ -75,6 +75,50 @@ module Headless
       end
     end
 
+    # Timers armed and not yet fired, oldest first.
+    getter armed : Array(UInt64) = [] of UInt64
+
+    # The nonce the last timer was armed under.
+    @nonce : UInt64 = 0
+
+    # Gives the application a clock it can arm timers on.
+    #
+    # `App#after` needs one and a terminal is what usually provides it. This
+    # one arms nothing real: `#tick` sends the timer event back by hand, so a
+    # spec drives an animation a step at a time instead of waiting on a
+    # wall clock.
+    def clock : Nil
+      @app.after = ->(_span : Time::Span) do
+        @nonce += 1
+        @armed << @nonce
+        @nonce
+      end
+
+      @app.cancel = ->(nonce : UInt64) { @armed.delete nonce; nil }
+    end
+
+    # Fires the timer armed first. Answers whether there was one.
+    def tick : Bool
+      nonce = @armed.shift?
+      return false unless nonce
+
+      send TermBuf::Input::Events::Timer.new(nonce)
+      true
+    end
+
+    # Fires timers until none is armed. Answers how many went off.
+    #
+    # *most* is a stop against an animation that arms a timer every time one
+    # goes off and never finishes.
+    def run_timers(most : Int32 = 500) : Int32
+      fired = 0
+      while fired < most && tick
+        fired += 1
+      end
+
+      fired
+    end
+
     # Lays the application out at a new size. A resize does the same.
     def resize(columns : Int32, rows : Int32) : Nil
       @buffer.resize columns, rows

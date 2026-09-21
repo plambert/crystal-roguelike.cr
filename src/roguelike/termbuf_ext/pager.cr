@@ -82,6 +82,12 @@ module TermBuf::Widgets
     # The focus scope holding pushed.
     @scope : Focus::Scope? = nil
 
+    # What to run when a hold an owner asked for is let go.
+    #
+    # A hold the line count called for runs nothing: nobody asked for it, so
+    # nobody is waiting on it. `#hold` is what arms this.
+    property on_release : Proc(Nil)? = nil
+
     # Whether an owner asked for a hold that the line count does not call
     # for. `#hold` sets it and `#advance` clears it.
     @insisted = false
@@ -129,8 +135,29 @@ module TermBuf::Widgets
 
     # Whether more lines arrived than one page holds, or an owner asked to
     # hold anyway.
+    #
+    # A pane an owner has deferred holds nothing at all. See `#deferred?`.
     def holding? : Bool
+      return false if @deferred
+
       @rows > 0 && (@insisted || unread > @rows)
+    end
+
+    # Whether an owner has asked the pane not to hold for now.
+    #
+    # `Ui::Play` sets it while a run is drawn a step at a time. Lines pile up
+    # during the run and the hold is for when the person has the keyboard
+    # back: a hold part way through would take the keyboard from the run and
+    # leave two things pushing focus scopes at once.
+    getter? deferred : Bool = false
+
+    # :ditto:
+    def deferred=(wanted : Bool) : Bool
+      return wanted if wanted == @deferred
+
+      @deferred = wanted
+      settle
+      wanted
     end
 
     # Holds at the newest page, however few lines arrived.
@@ -159,9 +186,12 @@ module TermBuf::Widgets
     def advance : Bool
       return false unless holding?
 
+      asked = @insisted
       @insisted = false
       @read += page
       settle
+      @on_release.try &.call if asked
+
       true
     end
 
@@ -310,7 +340,11 @@ module TermBuf::Widgets
     # keyboard as holding starts or stops.
     private def settle : Nil
       @read = @read.clamp 0, @lines.size
-      @read = @lines.size unless holding?
+
+      # A deferred pane does not hold, and it does not count the lines as
+      # read either. They pile up unread until the owner lets it hold again,
+      # which is the whole point of deferring it.
+      @read = @lines.size unless @deferred || holding?
       @back = @back.clamp 0, max_scroll[1]
 
       holding? ? grab : release

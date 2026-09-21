@@ -109,7 +109,19 @@ Spectator.describe "pointing at a square" do
       expect(run.pager.holding?).to be_false
     end
 
-    it "takes the highlight off once a turn has been taken" do
+    # Reading the line is what the route was up for.
+    it "takes the highlight off with the held page" do
+      run = walking
+
+      run.press ">"
+      expect(run.map.highlighted? 13, 1).to be_true
+
+      run.press "Space"
+
+      expect(run.map.highlights).to be_empty
+    end
+
+    it "leaves it off once a turn has been taken" do
       run = walking
 
       run.press ">"
@@ -117,6 +129,17 @@ Spectator.describe "pointing at a square" do
       run.press "l"
 
       expect(run.map.highlights).to be_empty
+    end
+
+    # The key that lets the page go does nothing else. It does not walk.
+    it "takes no turn when the page is let go" do
+      run = walking
+      before = run.turn
+
+      run.press ">"
+      run.press "Space"
+
+      expect(run.turn).to eq before
     end
 
     # The staircase is a hundred and ninety squares east of a window sixty
@@ -174,6 +197,18 @@ Spectator.describe "pointing at a square" do
 
       expect(run.map.highlighted? 10, 1).to be_true
       expect(run.map.highlighted? 5, 1).to be_true
+    end
+
+    # A click holds no page, so nothing is waiting to be read and the way
+    # stays up until it is walked or the character does something else.
+    it "leaves the way up with no page held" do
+      run = walking
+      spot = on_screen run, {10, 1}
+
+      run.click spot[0], spot[1]
+
+      expect(run.pager.holding?).to be_false
+      expect(run.map.highlighted? 10, 1).to be_true
     end
 
     it "takes no turn for the first click" do
