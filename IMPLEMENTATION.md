@@ -2184,12 +2184,25 @@ wand and a scroll are a bottle, a stick and a sheet until somebody is near enoug
 `Size#short` writes the same thing for a column, shortened to the three letters the sidebar already
 uses for a condition and a blessing: "sml shape", "med shape", "lrg shape".
 
-### Nothing calls it yet
+### What names an item on the floor
 
-This is the foundation and no more. Nothing outside its own specs passes a regard, so the game draws
-and says exactly what it said before. What goes on top of it is the `Seen` list, the `Look` readout
-and the tooltips saying a size rather than a species, and an item on the floor named by its kind
-until the character has walked up to it.
+The `Look` readout and the `Seen` list both ask `Game#regard_of_item` and hand what it answers to
+`Lore#name`. `Look` covers a square the character is pointing at, whether they can see it or only
+remember it: `Examiner` asks the game against the field of view the map was drawn from, and
+`ExaminePane` writes the name it gets back for the pile that is lying there and for the item the
+square remembers alike. `Seen` asks once per item, because each one is lying on a square of its own,
+so a spear four squares off and a scroll twelve squares off read differently in the same list.
+
+The `Here` section passes nothing, and neither does the menu that asks which of a pile to pick up.
+Both are about the square the character stands on, which is nought steps off and
+`Regard::Everything` by the rule. The pack, the equipment slots, every other menu, every tooltip and
+every log message pass nothing either: each of those is about a thing the character is holding.
+
+### What is left
+
+A creature is still named in full in every readout, whether the character can see them or can only
+make out a shape against light behind them, and a tooltip still says a species where it should say a
+size. `Regard` answers both of those. Neither asks it yet.
 
 ## Asked for, not yet built
 

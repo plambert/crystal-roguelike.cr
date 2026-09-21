@@ -141,6 +141,9 @@ module Roguelike::Ui
     #
     # Creatures first, then items, each nearest first. The square the
     # character stands on is left out: "Here" has already said what is on it.
+    #
+    # An item further off than `Regards::READING` is named by its kind alone.
+    # The character can see it lying there and cannot read what is on it.
     private def in_sight(game : Game, sight : Vision) : Nil
       rows = [] of Widgets::Label
 
@@ -148,8 +151,10 @@ module Roguelike::Ui
         rows << creature_row sight, creature
       end
 
-      litter(game, sight).each do |item|
-        rows << row(game.name(item), Palette[item].style)
+      litter(game, sight).each do |lying|
+        item = lying.item
+        regard = game.regard_of_item lying.spot[0], lying.spot[1], sight
+        rows << row(game.name(item, regard), Palette[item].style)
       end
 
       fill @seen, rows, Math.max(@budget - @here.children.size, LEAST_SEEN)
@@ -182,7 +187,11 @@ module Roguelike::Ui
     # Every item lying on a square the character can see, nearest first.
     #
     # The character's own square is not one of them. "Here" has it.
-    private def litter(game : Game, sight : Vision) : Array(Item)
+    #
+    # The square comes back with the item. How well the character has made
+    # the item out depends on how far off it is lying, so the row that names
+    # it needs to know where it is.
+    private def litter(game : Game, sight : Vision) : Array(Lying)
       here = game.player.at
       found = [] of Lying
 
@@ -194,10 +203,9 @@ module Roguelike::Ui
       end
 
       found.sort_by! { |lying| NearbyPane.order here, lying.spot }
-      found.map &.item
     end
 
-    # One item and the square it is lying on, while the list is being sorted.
+    # One item and the square it is lying on.
     record Lying, spot : {Int32, Int32}, item : Item
 
     # How far *there* is from *here*, and which of two equally far squares

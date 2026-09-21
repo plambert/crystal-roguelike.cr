@@ -91,8 +91,14 @@ module Roguelike::Ui
     # *lore* names whatever is lying there, because the name depends on what
     # the character has found out. *sight* says which squares the character
     # can see. A `nil` *sight* sees everything.
+    #
+    # *regard* says how well the character has made out what is lying there.
+    # Anything short of `Regard::Everything` is named by its kind: "a spear"
+    # rather than "a cursed -2 spear". The default makes everything out, so a
+    # caller with no game behind it writes the whole name.
     def show(floor : Floor, x : Int32, y : Int32, lore : Lore? = nil,
-             sight : Vision? = nil, knowledge : Knowledge? = nil) : Nil
+             sight : Vision? = nil, knowledge : Knowledge? = nil,
+             regard : Regard = Regard::Everything) : Nil
       unless sight.nil? || sight.includes?(x, y)
         shape = sight.backlit?(floor, x, y) ? floor.monster(x, y) : nil
         if shape
@@ -100,7 +106,7 @@ module Roguelike::Ui
           return
         end
 
-        recalled floor, x, y, lore, knowledge.try &.[](x, y)
+        recalled floor, x, y, lore, knowledge.try &.[](x, y), regard
         return
       end
 
@@ -130,7 +136,7 @@ module Roguelike::Ui
 
       pile = floor.items x, y
       @litter.hidden = pile.empty?
-      @litter.text = listed pile, lore
+      @litter.text = listed pile, lore, regard
     end
 
     # Says that *creature* is a shape and no more.
@@ -152,7 +158,8 @@ module Roguelike::Ui
     # Says what *x*, *y* looked like when it was last seen, or that it has
     # never been seen.
     private def recalled(floor : Floor, x : Int32, y : Int32, lore : Lore?,
-                         memory : Memory?) : Nil
+                         memory : Memory?,
+                         regard : Regard = Regard::Everything) : Nil
       @where.text = "#{x}, #{y}"
       @where.hidden = false
       @doing.text = ""
@@ -176,15 +183,19 @@ module Roguelike::Ui
       return unless item
 
       @litter.hidden = false
-      @litter.text = lore ? "Here: #{lore.name item}" : "Here: something"
+      @litter.text = lore ? "Here: #{lore.name(item, regard: regard)}" : "Here: something"
     end
 
     # What is lying on a square, written out.
-    private def listed(pile : Array(Item), lore : Lore?) : String
+    #
+    # One regard covers the pile. It is one square, and the character is as
+    # far from everything on it as from anything on it.
+    private def listed(pile : Array(Item), lore : Lore?,
+                       regard : Regard = Regard::Everything) : String
       return "" if pile.empty?
       return "Here: #{pile.size} things" unless lore
 
-      named = pile.map { |item| lore.name(item).as(String) }
+      named = pile.map { |item| lore.name(item, regard: regard).as(String) }
       "Here: #{named.join ", "}"
     end
 

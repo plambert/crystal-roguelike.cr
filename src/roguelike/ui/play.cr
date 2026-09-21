@@ -267,6 +267,7 @@ module Roguelike::Ui
       @screen.show_sidebar @character.root, @nearby.root, @examine.root
       @examiner = Examiner.new @map, @examine
       @examiner.lore = @game.lore
+      @examiner.game = @game
       @pointer = Pointer.new
 
       @flicker = Flicker.new @game.world.seed
@@ -518,6 +519,7 @@ module Roguelike::Ui
       @game = game
       @map.floor = game.floor
       @examiner.lore = game.lore
+      @examiner.game = game
       @console.try &.game = game
 
       @pending = nil

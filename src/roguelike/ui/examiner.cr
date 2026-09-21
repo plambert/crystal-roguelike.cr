@@ -17,6 +17,12 @@ module Roguelike::Ui
     # What names the items on a square. `nil` names none of them.
     property lore : Lore? = nil
 
+    # The game the readout asks how well a square has been made out.
+    #
+    # `nil` makes everything out. A spec driving the pane over a floor of its
+    # own has no game to ask, and reads the whole name.
+    property game : Game? = nil
+
     # Where the readout points, in the floor's own coordinates. `nil` before
     # anything has been looked at.
     getter spot : {Int32, Int32}?
@@ -130,12 +136,29 @@ module Roguelike::Ui
       here = @spot
 
       if here
-        @pane.show @map.floor, here[0], here[1], @lore, @map.sight, @map.knowledge
+        @pane.show @map.floor, here[0], here[1], @lore, @map.sight,
+          @map.knowledge, regard_at(here[0], here[1])
       else
         @pane.clear
       end
 
       @map.cursor = @cursoring ? here : nil
+    end
+
+    # How well the character has made out whatever lies on *x*, *y*.
+    #
+    # The game holds the rule, so the readout asks it rather than working the
+    # distance out again. The window's own field of view is passed in: it is
+    # the one the map was drawn from, and working another out costs a turn's
+    # worth of tracing.
+    private def regard_at(x : Int32, y : Int32) : Regard
+      game = @game
+      return Regard::Everything unless game
+
+      seen = @map.sight
+      return game.regard_of_item x, y unless seen
+
+      game.regard_of_item x, y, seen
     end
   end
 end
