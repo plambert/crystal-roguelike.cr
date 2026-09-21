@@ -62,6 +62,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   for one that was not.
 * `G` and a walked route are drawn one step at a time, at about the rate of a held movement key,
   rather than all at once. Any key stops a run in progress and does nothing else.
+* An item lying more than eight squares off is named by its kind in the `Look` readout and the
+  `Seen` list: "a spear" rather than "a cursed -2 spear", "a scroll" rather than "a scroll labelled
+  YLOH", "a potion" rather than "a swirly potion". Walking within eight squares of it names it in
+  full from then on.
 
 ### Fixed
 
