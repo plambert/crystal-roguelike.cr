@@ -10,6 +10,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* A hit point bar in the sidebar for the creature the character last traded blows with. It is red
+  at full strength and shades to yellow as the creature falls, the other way round from the
+  character's own bar. It names the creature by its species when the character can see it, and by
+  the size of the shape when the creature is only an outline. A swing, a shot and a blow taken all
+  raise it, whether they land or miss. It goes when the creature dies and after eight turns with no
+  blow either way.
 * Clicking a square highlights the route to it. Clicking it again walks the route, one step at a
   time. The route crosses doorways and junctions without stopping, and stops for anything the
   character has not seen.

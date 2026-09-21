@@ -135,6 +135,52 @@ module Roguelike
     # already holds.
     getter killer : String? = nil
 
+    # How many turns the sidebar goes on showing the creature the character
+    # last traded blows with.
+    #
+    # Eight. A creature that breaks off and comes back inside eight turns is
+    # the same fight, and eight turns is long enough to walk the width of a
+    # lit room, so one that has not swung in that time is somewhere else.
+    # Eight is also what a goblin and an orc notice at, so the bar holds for
+    # about as long as the creature would need to close again.
+    FIGHT_LASTS = 8
+
+    # The creature the character last traded blows with.
+    #
+    # This is not written out. A creature held here would be a second copy of
+    # one the floor already holds, which is why `#killer` holds a label
+    # rather than a creature. `#fought_at` names it in the save instead, and
+    # `#after_initialize` finds it again.
+    @[JSON::Field(ignore: true)]
+    @fought : Monster? = nil
+
+    # Where that creature stood when the turn last ended.
+    #
+    # Two creatures never share a square, so a square names one creature on
+    # the floor the character is on. `#tick` writes this again every turn, so
+    # it still names the creature after it has walked.
+    #
+    # It has a default, so a save written before this field existed loads
+    # with no fight going.
+    getter fought_at : {Int32, Int32}? = nil
+
+    # The turn the last blow either way was struck on.
+    #
+    # It has a default, so a save written before this field existed loads at
+    # turn zero, which `FIGHT_LASTS` turns are long past by the time anything
+    # reads it.
+    getter fought_turn : Int32 = 0
+
+    # How well the character has made that creature out.
+    #
+    # It keeps the best look the character has had of it, the way a square
+    # keeps the closer of two looks. A creature seen in the light is the same
+    # creature once it steps into the dark, so the bar goes on naming it.
+    #
+    # It has a default, so a save written before this field existed loads
+    # with nothing made out.
+    getter fought_regard : Regard = Regard::Nothing
+
     # The run's root generator, built from the world's seed.
     #
     # This is not written out. `World#seed` is, and this is a function of it.
@@ -164,6 +210,18 @@ module Roguelike
                    @blows : Int32 = 0,
                    @uses : Int32 = 0,
                    @wanders : Int32 = 0)
+    end
+
+    # Finds the creature the character was fighting again after a load.
+    #
+    # The save holds the square it stood on rather than the creature itself.
+    # Two creatures never share a square, so the square names it. A square
+    # with nobody on it means the creature died or the character went
+    # somewhere else while the save was cold, and the fight is over either
+    # way.
+    def after_initialize : Nil
+      spot = @fought_at
+      @fought = spot ? floor.monster(spot[0], spot[1]) : nil
     end
 
     # What *item* is called, as this character would call it.
@@ -810,12 +868,52 @@ module Roguelike
 
     # ------------------------------------------------------------- fighting
 
+    # The creature the character last traded blows with, while the fight is
+    # still worth showing.
+    #
+    # `nil` once the creature has died, once it has left the floor the
+    # character is on, and once `FIGHT_LASTS` turns have gone by with no blow
+    # either way. The sidebar asks this and draws whatever it answers.
+    #
+    # A creature that walks out of sight is still answered. The character has
+    # just been hitting it and knows it is there, and how hurt it was is
+    # worth reading whether or not they can see it now.
+    def fought : Monster?
+      creature = @fought
+      return unless creature && creature.alive?
+      return if @turn - @fought_turn >= FIGHT_LASTS
+
+      standing = floor.monster creature.x, creature.y
+      return unless standing && standing.same? creature
+
+      creature
+    end
+
+    # Writes down that the character and *creature* have traded a blow.
+    #
+    # Every blow either way comes here, landed or missed. Aiming a swing at
+    # something is dealing with it, and a person who has just missed wants to
+    # know how much is left in what they missed.
+    #
+    # A blow at a different creature starts the count again and forgets what
+    # was made out of the last one.
+    private def fought_with(creature : Monster) : Nil
+      held = @fought
+      @fought_regard = Regard::Nothing unless held && held.same? creature
+
+      @fought = creature
+      @fought_at = creature.at
+      @fought_turn = @turn
+      @fought_regard = @fought_regard.at_least regard_of(creature)
+    end
+
     # The character swings at *creature*. Answers what the swing did.
     #
     # A swing takes a turn whether it lands or not. A creature left at zero
     # hit points is taken off the floor and what killing it is worth is
     # awarded.
     def attack(creature : Monster) : Blow
+      fought_with creature
       blow = Combat.swing exchange, @player.to_hit,
         creature.armour_class, @player.damage
 
@@ -979,6 +1077,7 @@ module Roguelike
     # is what the message calls it.
     private def hit(creature : Monster, noun : String, bonus : Int32,
                     damage : Dice) : Blow
+      fought_with creature
       blow = Combat.swing exchange, bonus, creature.armour_class, damage
 
       if blow.hit?
@@ -1146,6 +1245,7 @@ module Roguelike
 
     # *creature* swings at the character. Answers what the swing did.
     private def strike(creature : Monster) : Blow
+      fought_with creature
       blow = Combat.swing exchange, creature.to_hit,
         @player.armour_class, creature.damage
 
@@ -1208,6 +1308,13 @@ module Roguelike
       # An actor spends what it came in with and banks what this tick paid
       # it, which is what keeps a normal actor to one action a tick.
       bank_energy
+
+      # After everything has moved, so the square written down is where the
+      # creature stands now. A fight that is over is dropped here rather than
+      # left to be filtered out on every read.
+      held = fought
+      @fought = held
+      @fought_at = held.try &.at
     end
 
     # Lets every band look, and the awake ones act.

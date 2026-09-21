@@ -42,6 +42,13 @@ module Roguelike::Ui
     PACK_GLYPH = 2
     PACK_NAME  = 4
 
+    # What the bar for the creature being fought is labelled.
+    #
+    # Two columns, the way `HP`, `MP` and `XP` are. The creature's name will
+    # not fit in two columns, so it goes inside the bar with the count and
+    # the label says who the bar is about instead.
+    THREAT_LABEL = "vs"
+
     # The fewest rows the pane ever takes.
     #
     # The level, the hit points and the experience, a blank row, and the
@@ -64,6 +71,9 @@ module Roguelike::Ui
     getter magic : Meter
     getter learning : Meter
 
+    # The bar for the creature the character is fighting.
+    getter threat : Meter
+
     # Armour class, gold and the turn.
     getter numbers : Line
 
@@ -83,6 +93,7 @@ module Roguelike::Ui
 
     # The blocks, in the order they are stacked.
     getter vitals : Widgets::Panel
+    getter fight : Widgets::Panel
     getter tally : Widgets::Panel
     getter scoring : Widgets::Panel
     getter worn : Widgets::Panel
@@ -108,11 +119,18 @@ module Roguelike::Ui
     # is what decides whether they are hidden.
     @filled : Array(Bool) = Array.new(Slot.listed.size, false)
 
+    # Whether there was a fight to show when `#show` last ran.
+    #
+    # `#fit` reads this for the same reason it reads `@filled`. It cannot
+    # read the row: it is what decides whether the row is hidden.
+    @fighting : Bool = false
+
     def initialize
       @who = Line.new
       @health = Meter.new "HP", levels: Palette::HEALTH
       @magic = Meter.new "MP", levels: Palette::MAGIC
       @learning = Meter.new "XP", levels: Palette::LEARNING
+      @threat = Meter.new THREAT_LABEL, levels: Palette::THREAT
       @numbers = Line.new
       @score_names = Line.new
       @scores = Line.new
@@ -126,6 +144,8 @@ module Roguelike::Ui
       @magic.hidden = true
 
       @vitals = CharacterPane.block @who, @health, @magic, @learning
+      @fight = CharacterPane.block @threat
+      @fight.hidden = true
       @tally = CharacterPane.block @numbers
       @scoring = CharacterPane.block @score_names, @scores
 
@@ -145,7 +165,7 @@ module Roguelike::Ui
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fit,
         gap: 1)
-      @root.add @vitals, @tally, @scoring, @worn, @packed
+      @root.add @vitals, @fight, @tally, @scoring, @worn, @packed
       @pack_rows.hidden = true
     end
 
@@ -177,7 +197,7 @@ module Roguelike::Ui
     # How many rows the pane takes as it stands.
     def height : Int32
       rows = 0
-      {@vitals, @tally, @scoring, @worn, @packed}.each do |block|
+      {@vitals, @fight, @tally, @scoring, @worn, @packed}.each do |block|
         next if block.hidden?
 
         rows += CharacterPane.rows(block) + (rows.zero? ? 0 : 1)
@@ -202,10 +222,17 @@ module Roguelike::Ui
     # first, because it is a list they can open again. Empty slots go next,
     # because a slot with nothing in it says nothing. The scores go next,
     # because they change a few times in a run. The pack heading and then the
-    # equipment go last. The level and the bars never go.
+    # equipment go after those.
+    #
+    # The bar for the creature being fought goes last of all, after the
+    # equipment. A person in a fight reads how much is left in the thing
+    # hitting them more often than they read what is in their hands. It does
+    # go, though: the level and the character's own bars come before it, and
+    # a window with no room for those has no room for the game.
     # Run it after `#show`, which is what records how much there is to fit.
     def fit(room : Int32) : Nil
       {@scoring, @worn, @packed}.each &.hidden=(false)
+      @fight.hidden = !@fighting
       vacant true
       @pack_rows.hidden = !@showing_pack
       return if height <= room
@@ -223,6 +250,9 @@ module Roguelike::Ui
       return if height <= room
 
       @worn.hidden = true
+      return if height <= room
+
+      @fight.hidden = true
     end
 
     # Shows or hides the rows of the slots with nothing in them.
@@ -256,6 +286,7 @@ module Roguelike::Ui
       @health.show player.hit_points, player.max_hit_points
       @magic.show 0, 0
       learned player
+      fought game
 
       @numbers.clear
       @numbers.put 0, "ac", Palette::FAINT
@@ -299,6 +330,26 @@ module Roguelike::Ui
 
       @learning.show player.experience - here, span,
         "#{player.experience}/#{player.experience + wanted}"
+    end
+
+    # The bar for the creature the character is fighting.
+    #
+    # `Game` says which creature that is, how hurt it is and how well the
+    # character has made it out. The row is hidden while there is no fight.
+    #
+    # The name goes inside the bar in front of the count, because the label
+    # outside it is two columns wide. A creature the character can see is
+    # named by its species. One they have only made out as an outline is
+    # named by how big it is.
+    private def fought(game : Game) : Nil
+      creature = game.fought
+      @fighting = !creature.nil?
+      @fight.hidden = !@fighting
+      return unless creature
+
+      name = Naming.creature creature, game.fought_regard
+      @threat.show creature.hit_points, creature.max_hit_points,
+        "#{name} #{creature.hit_points}/#{creature.max_hit_points}"
     end
 
     # The five scores, with their names over them.
