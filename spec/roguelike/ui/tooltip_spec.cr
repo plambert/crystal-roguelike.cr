@@ -4,7 +4,10 @@ Spectator.describe Roguelike::Ui::Tooltip do
   alias Condition = Roguelike::Condition
   alias Item = Roguelike::Item
   alias Kind = Roguelike::ItemKind
+  alias Monster = Roguelike::Monster
+  alias Size = Roguelike::Size
   alias Slot = Roguelike::Slot
+  alias Species = Roguelike::Species
 
   # A run carrying a readied sword and a potion nobody has drunk.
   #
@@ -32,6 +35,60 @@ Spectator.describe Roguelike::Ui::Tooltip do
   # Points at the row *row* and draws.
   def point_at(run : Playing::Run, row : Roguelike::Ui::Line) : Nil
     run.hover row.rect.x + 1, row.rect.y
+  end
+
+  # One lit room with the character on the staircase in the middle.
+  ROOM = [
+    "###########",
+    "#.........#",
+    "#.........#",
+    "#....<....#",
+    "#.........#",
+    "#.........#",
+    "###########",
+  ]
+
+  # A run on `ROOM`, drawn once.
+  def room : Playing::Run
+    on Playing.daylight(Roguelike::Floor.parse "room", ROOM), 5, 3
+  end
+
+  # A dark hall with a goblin standing against a lit square behind it.
+  #
+  # The character is at the west end with no light of their own. The lit
+  # square at the east end is what the goblin shows against.
+  BACKLIT = [
+    "############",
+    "#<.....g..*#",
+    "############",
+  ]
+
+  # A run on `BACKLIT`, with light on the goblin when *lit*.
+  def hall(lit : Bool = false) : Playing::Run
+    floor = Roguelike::Floor.parse "backlit", BACKLIT
+    Playing.daylight floor if lit
+    floor.place Monster.new(Species::Goblin, 7, 1, "band-one")
+
+    on floor, 1, 1
+  end
+
+  # A run on *floor*, with the character at *x*, *y*.
+  def on(floor : Roguelike::Floor, x : Int32, y : Int32) : Playing::Run
+    run = Playing.open Roguelike::Game.new(
+      Roguelike::World.new(Playing::SEED, {floor.id => floor}),
+      Roguelike::Player.new(floor.id, x, y)), 80, 44
+    run.render
+    run
+  end
+
+  # The rows of one section of the nearby pane, in the order they are written.
+  def rows_of(section : Roguelike::Ui::Widgets::Panel) : Array(Roguelike::Ui::Line)
+    section.children.compact_map &.as?(Roguelike::Ui::Line)
+  end
+
+  # What the "Seen" section says, row by row.
+  def in_sight(run : Playing::Run) : Array(String)
+    rows_of(run.nearby.seen).map &.text
   end
 
   describe "pointing at an equipment row" do
@@ -268,6 +325,136 @@ Spectator.describe Roguelike::Ui::Tooltip do
       run.click heading.rect.x, heading.rect.y
 
       expect(run.examiner.spot).to eq before
+    end
+  end
+
+  describe "pointing at a Here row" do
+    it "writes what the terrain under the character is" do
+      run = room
+
+      point_at run, rows_of(run.nearby.here).first
+
+      expect(run.play.tooltip.written).to eq [
+        "staircase up", "a staircase leading up",
+      ]
+    end
+
+    it "writes what is lying on the square" do
+      run = room
+      run.game.floor.drop 5, 3, Item.new(Kind::LongSword)
+      run.play.refresh
+      run.render
+
+      point_at run, rows_of(run.nearby.here).last
+
+      expect(run.play.tooltip.written).to eq [
+        "a long sword", "damage 1d8", "thrown 8 squares", "weight 40",
+      ]
+    end
+
+    it "writes what a fixture on the square is" do
+      run = on Playing.daylight(Roguelike::Floor.parse "sconce", [
+        "#####",
+        "#...#",
+        "#|..#",
+        "#..<#",
+        "#####",
+      ]), 1, 2
+
+      point_at run, rows_of(run.nearby.here)[1]
+
+      written = run.play.tooltip.written
+      expect(written.first).to eq "sconce"
+      expect(written[1]).to contain "torch"
+    end
+  end
+
+  describe "pointing at a Seen row" do
+    it "writes what a creature with light on it is" do
+      run = room
+      run.game.floor.place Monster.new(Species::Goblin, 8, 3, "band-one")
+      run.play.refresh
+      run.render
+
+      point_at run, rows_of(run.nearby.seen).first
+
+      expect(run.play.tooltip.written).to eq [
+        "goblin", "a small green thing with a large knife",
+        "hit points 9/9", "asleep",
+      ]
+    end
+
+    it "writes what an item across the room is" do
+      run = room
+      run.game.floor.drop 8, 3, Item.new(Kind::Dagger)
+      run.play.refresh
+      run.render
+
+      point_at run, rows_of(run.nearby.seen).first
+
+      expect(run.play.tooltip.written.first).to eq "a dagger"
+    end
+
+    # The row saying the character can see nothing is about nothing.
+    it "says nothing about the row that says nothing" do
+      run = room
+
+      point_at run, rows_of(run.nearby.seen).first
+
+      expect(run.play.tooltip.showing?).to be_false
+    end
+  end
+
+  # The map draws a creature against light behind it by its size alone. What
+  # the words say has to hide what the picture hides.
+  describe "a creature made out only as a shape" do
+    it "reads as its size in the Seen list" do
+      run = hall
+
+      expect(in_sight run).to contain Size::Small.label
+      expect(in_sight run).not_to contain "goblin"
+    end
+
+    it "reads as its size in the readout" do
+      run = hall
+
+      run.hover 7, 1
+
+      expect(run.examine.what.text).to eq Size::Small.label
+      expect(run.examine.detail.text).to eq Roguelike::Ui::ExaminePane::MOVING
+    end
+
+    it "reads as its size in its tooltip" do
+      run = hall
+
+      point_at run, rows_of(run.nearby.seen).first
+
+      expect(run.play.tooltip.written).to eq [
+        Size::Small.label, Roguelike::Ui::ExaminePane::MOVING,
+      ]
+    end
+
+    it "gives away neither its species nor its hit points" do
+      run = hall
+
+      point_at run, rows_of(run.nearby.seen).first
+      written = run.play.tooltip.written
+
+      expect(written.any?(&.includes? "goblin")).to be_false
+      expect(written.any?(&.includes? "hit points")).to be_false
+    end
+
+    it "is a goblin in all three once there is light on it" do
+      run = hall lit: true
+
+      point_at run, rows_of(run.nearby.seen).first
+
+      expect(in_sight run).to contain "goblin"
+      expect(run.play.tooltip.written.first).to eq "goblin"
+
+      run.hover 7, 1
+
+      expect(run.examine.what.text).to eq "goblin"
     end
   end
 end

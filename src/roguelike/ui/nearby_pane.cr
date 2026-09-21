@@ -10,6 +10,10 @@ module Roguelike::Ui
   # creature that has walked out of sight leaves this pane, and so does an
   # item nobody has light on. The map instead draws what was last seen.
   #
+  # Pointing at a row raises a tooltip about what is on it: the creature, the
+  # item, the fixture or the terrain the row names. The pane writes the lines
+  # and `Play` puts the box up.
+  #
   # `ExaminePane` is the other half of the sidebar. That pane describes one
   # square somebody pointed at. This pane writes both its sections without
   # being pointed anywhere.
@@ -46,6 +50,13 @@ module Roguelike::Ui
 
     # The rows under "Seen".
     getter seen : Widgets::Panel
+
+    # What runs when the pointer crosses a row.
+    #
+    # `Play` puts the lines up in a tooltip beside the row. A row about
+    # nothing in particular, such as the one saying how much was left out,
+    # hands over `nil` and takes any box that was up back down.
+    property on_point : Proc(Line, Array(String)?, Nil)? = nil
 
     # How many rows the two sections may take between them.
     #
@@ -108,7 +119,7 @@ module Roguelike::Ui
 
     # Puts the pane back to the state before there was a game.
     def clear : Nil
-      empty = [] of Widgets::Label
+      empty = [] of Line
 
       fill @here, empty, MOST_HERE
       fill @seen, empty, LEAST_SEEN
@@ -122,16 +133,17 @@ module Roguelike::Ui
     private def underfoot(game : Game) : Nil
       floor = game.floor
       spot = game.player.at
-      rows = [] of Widgets::Label
+      rows = [] of Line
 
       terrain = floor.terrain spot[0], spot[1]
-      rows << row(terrain.label, Palette[terrain].style)
+      rows << row(terrain.label, Palette[terrain].style, Detail.about(terrain))
 
       fitting = floor.fixture spot[0], spot[1]
-      rows << row(fitting.label, Palette[fitting].style) if fitting
+      rows << row(fitting.label, Palette[fitting].style, Detail.about(fitting)) if fitting
 
+      # The character stands on these, so they have made all of them out.
       floor.items(spot[0], spot[1]).each do |item|
-        rows << row(game.name(item), Palette[item].style)
+        rows << row(game.name(item), Palette[item].style, Detail.about(game, item))
       end
 
       fill @here, rows, MOST_HERE
@@ -145,16 +157,17 @@ module Roguelike::Ui
     # An item further off than `Regards::READING` is named by its kind alone.
     # The character can see it lying there and cannot read what is on it.
     private def in_sight(game : Game, sight : Vision) : Nil
-      rows = [] of Widgets::Label
+      rows = [] of Line
 
       creatures(game, sight).each do |creature|
-        rows << creature_row sight, creature
+        rows << creature_row game, sight, creature
       end
 
       litter(game, sight).each do |lying|
         item = lying.item
         regard = game.regard_of_item lying.spot[0], lying.spot[1], sight
-        rows << row(game.name(item, regard), Palette[item].style)
+        rows << row(game.name(item, regard), Palette[item].style,
+          Detail.about(game, item, regard))
       end
 
       fill @seen, rows, Math.max(@budget - @here.children.size, LEAST_SEEN)
@@ -165,11 +178,13 @@ module Roguelike::Ui
     # A creature on a square the character can see is named. One made out
     # only as a shape against light behind it is not: its size is all that
     # reaches the character, so its size is all this says.
-    private def creature_row(sight : Vision, creature : Monster) : Widgets::Label
-      return row(creature.label, Palette[creature].style) if sight.includes? creature.at
+    private def creature_row(game : Game, sight : Vision, creature : Monster) : Line
+      regard = game.regard_of creature, sight
+      lines = Detail.about game, creature, regard
+      return row(creature.label, Palette[creature].style, lines) if regard.everything?
 
       size = creature.species.size
-      row size.label, Palette.shape(size).style
+      row size.label, Palette.shape(size).style, lines
     end
 
     # Every creature the character can see, nearest first.
@@ -184,13 +199,14 @@ module Roguelike::Ui
       found.sort_by! { |creature| NearbyPane.order here, creature.at }
     end
 
-    # Every item lying on a square the character can see, nearest first.
+    # Every item lying on a square the character can see, nearest first,
+    # each with the square it lies on.
     #
     # The character's own square is not one of them. "Here" has it.
     #
     # The square comes back with the item. How well the character has made
-    # the item out depends on how far off it is lying, so the row that names
-    # it needs to know where it is.
+    # the item out depends on how far off it is lying, so both the row that
+    # names it and the box that hangs off that row need to know where it is.
     private def litter(game : Game, sight : Vision) : Array(Lying)
       here = game.player.at
       found = [] of Lying
@@ -224,7 +240,7 @@ module Roguelike::Ui
     #
     # A row saying how many were left out goes on the end when there were
     # more. An empty list says so rather than leaving a gap under the rule.
-    private def fill(panel : Widgets::Panel, rows : Array(Widgets::Label),
+    private def fill(panel : Widgets::Panel, rows : Array(Line),
                      most : Int32) : Nil
       panel.clear
 
@@ -241,10 +257,28 @@ module Roguelike::Ui
     end
 
     # One row of a section.
-    private def row(text : String, style : Style?) : Widgets::Label
-      label = Widgets::Label.new text
-      label.style = style
-      label
+    #
+    # *lines* is what a tooltip says about what is on the row. A row about
+    # nothing in particular passes none, and pointing at it takes down
+    # whatever box was up.
+    private def row(text : String, style : Style?,
+                    lines : Array(String)? = nil) : Line
+      line = Line.new
+
+      # One row at most, and none when the sidebar has run out of room. A row
+      # that could not be squeezed would take its cell off the log below it.
+      line.height = Layout::Sizing.fit max: 1
+      line.put 0, text, style || Style::DEFAULT
+      line.on_point = -> { pointed line, lines }
+      line
+    end
+
+    # Hands *lines* to whoever is watching the pane.
+    #
+    # The hook is read here rather than closed over, so a pane whose rows
+    # were built before the hook was put on still reports.
+    private def pointed(line : Line, lines : Array(String)?) : Nil
+      @on_point.try &.call(line, lines)
     end
   end
 end

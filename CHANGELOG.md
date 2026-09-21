@@ -16,6 +16,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   the size of the shape when the creature is only an outline. A swing, a shot and a blow taken all
   raise it, whether they land or miss. It goes when the creature dies and after eight turns with no
   blow either way.
+* Pointing at a row of the `Here` or `Seen` sections writes out what is on it. A creature gives its
+  name, a sentence about it, its hit points and what it is doing; an item gives its whole name and
+  what it does; a fixture and the terrain each give a sentence.
+* A creature the character makes out only as a shape against light behind it reads as its size in
+  its tooltip, as it already does in the `Seen` list and the `Look` readout. The tooltip says
+  nothing about its species, its hit points or what it is doing.
 * Clicking a square highlights the route to it. Clicking it again walks the route, one step at a
   time. The route crosses doorways and junctions without stopping, and stops for anything the
   character has not seen.
@@ -51,6 +57,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* A name too long for the `Here` or `Seen` column is cut at the edge and marked with an ellipsis,
+  the same as every other row of the sidebar.
 * Time runs on ticks. Every actor gains energy each tick and every action
   costs energy, so an actor can be faster or slower than another.
 * The speeds of creatures relative to the character are 80% for the slime, 95% for the orc, and

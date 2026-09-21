@@ -301,12 +301,18 @@ module Roguelike::Ui
       refresh
     end
 
-    # Puts the pointer hooks on the rows of the character pane.
+    # Puts the pointer hooks on the rows of the sidebar.
     #
     # A row says what it is about when the pointer crosses it. `#pointed`
     # decides what to do with that once the event has been through the tree.
     # The pack heading opens and shuts the pack when it is pressed.
+    #
+    # `NearbyPane` builds its rows afresh every turn, so the hook goes on the
+    # pane rather than on the rows, and the pane hands over whichever row the
+    # pointer found.
     private def watch_the_sidebar : Nil
+      @nearby.on_point = ->(row : Line, lines : Array(String)?) { detail row, lines }
+
       Slot.listed.each do |slot|
         row = @character.slot_row slot
         row.on_point = -> { detail row, Detail.about(@game, slot); nil }

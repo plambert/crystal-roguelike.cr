@@ -5,7 +5,7 @@ Spectator.describe "naming an item lying on the floor" do
   alias Floor = Roguelike::Floor
   alias Item = Roguelike::Item
   alias Kind = Roguelike::ItemKind
-  alias Label = Roguelike::Ui::Widgets::Label
+  alias Line = Roguelike::Ui::Line
   alias Player = Roguelike::Player
   alias Regard = Roguelike::Regard
   alias World = Roguelike::World
@@ -74,12 +74,12 @@ Spectator.describe "naming an item lying on the floor" do
 
   # What the "Here" section says, row by row.
   def underfoot(run : Playing::Run) : Array(String)
-    run.nearby.here.children.compact_map { |child| child.as?(Label).try &.text }
+    run.nearby.here.children.compact_map { |child| child.as?(Line).try &.text }
   end
 
   # What the "Seen" section says, row by row.
   def in_sight(run : Playing::Run) : Array(String)
-    run.nearby.seen.children.compact_map { |child| child.as?(Label).try &.text }
+    run.nearby.seen.children.compact_map { |child| child.as?(Line).try &.text }
   end
 
   # What the "Look" readout says is lying on *x*, *y*.

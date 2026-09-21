@@ -2198,11 +2198,12 @@ Both are about the square the character stands on, which is nought steps off and
 `Regard::Everything` by the rule. The pack, the equipment slots, every other menu, every tooltip and
 every log message pass nothing either: each of those is about a thing the character is holding.
 
-### What is left
+### What names a creature
 
-A creature is still named in full in every readout, whether the character can see them or can only
-make out a shape against light behind them, and a tooltip still says a species where it should say a
-size. `Regard` answers both of those. Neither asks it yet.
+The `Seen` list, the `Look` readout and the tooltip that hangs off a `Seen` row all ask
+`Game#regard_of`, so all three say a size where the map draws a shape. The bar for the creature the
+character is fighting asks as well. Each of them is handed the field of view the map was drawn from
+rather than working out another, because one cast is most of what a turn costs.
 
 ## The creature the character is fighting
 
@@ -2300,6 +2301,57 @@ twenty-four terminal has room for it. Anything shorter drops it.
 `#fit` cannot read the row to find out whether there is a fight, because `#fit` is what decides
 whether the row is hidden. `#show` records it in `@fighting`, which is the same arrangement
 `@filled` already uses for the equipment rows.
+
+## Tooltips on the Here and Seen rows
+
+The `Worn/Wielded` and `Pack` rows raised a tooltip and the `Here` and `Seen` rows did not, which
+made the sidebar answer two different ways to the same gesture. Now every row of it answers.
+
+### Rows that take the pointer
+
+`NearbyPane` wrote its rows as `Widgets::Label`, which has nowhere to hang a pointer hook.
+They are `Ui::Line` instead, the same widget the character pane writes its rows on, and a `Line`
+takes `on_point`. A name too long for the column is now cut with an ellipsis rather than wrapped
+away, which is what the rest of the sidebar already did.
+
+The hook goes on the pane rather than on the rows. The character pane holds one row per slot for
+the life of the run and `Play` hooks each of them once. `NearbyPane` builds its rows afresh every
+turn, so a hook put on a row would be a hook on last turn's row. `NearbyPane#on_point` is read at
+the moment the pointer crosses a row, and the pane hands over the row and the lines to write beside
+it. `Play#detail` then does what it does for every other sidebar row.
+
+A row about nothing in particular, such as the one saying how much was left out, hands over `nil`
+and takes down whatever box was up.
+
+Each row is one cell tall at most and may be squeezed to none. A row that could not be squeezed
+would take its cell off the message log on a short screen, which is what the heading of each
+section already guards against.
+
+### What a row says
+
+`Ui::Detail` knew about items alone. It knows about four things now:
+
+| Row | What the box says |
+| --- | --- |
+| Terrain | What it is called, and a sentence about it |
+| Fixture | What it is called, lit or not, and a sentence about it |
+| Item | Its whole name, what it does, what it weighs, whether it is cursed |
+| Creature | Its name, a sentence about it, its hit points, what it is doing |
+
+An item the character has not made everything out of writes its bare kind and one line saying they
+are too far off to make out more. A creature they make out only as a shape writes its size and the
+sentence the `Look` readout writes for one, and nothing else at all: its species, its hit points and
+what it is doing all wait for light on it. A creature they cannot see writes nothing, and the pane
+raises no box.
+
+Both panes write the same sentence for a shape because `Detail` reads `ExaminePane::MOVING`. Two
+copies of it would drift.
+
+### One field of view per pass
+
+`NearbyPane#show` is already handed the `Vision` the map was drawn from. Every row it writes passes
+that same one to `Game#regard_of` and `Game#regard_of_item`, because working a field of view out is
+most of what a turn costs and a pane draws twenty rows.
 
 ## Asked for, not yet built
 
