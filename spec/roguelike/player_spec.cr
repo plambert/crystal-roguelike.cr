@@ -277,4 +277,25 @@ Spectator.describe Roguelike::Player do
       expect(player.to_next_level).to eq Roguelike::Advancement.threshold(2) - 5
     end
   end
+
+  describe "#heal" do
+    # A spec gives a character hit points above their maximum to be chased
+    # for a hundred turns. Healing one of those used to pull them down to
+    # the maximum.
+    it "takes nothing off a character above their maximum" do
+      player = Roguelike::Player.new "floor", 1, 1, hit_points: 40
+
+      expect(player.heal 1).to eq 0
+      expect(player.hit_points).to eq 40
+    end
+
+    it "stops at the maximum" do
+      player = Roguelike::Player.new "floor", 1, 1
+      player.hurt 5
+
+      player.heal 100
+
+      expect(player.hit_points).to eq player.max_hit_points
+    end
+  end
 end

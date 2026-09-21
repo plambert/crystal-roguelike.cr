@@ -10,6 +10,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* The character puts a hit point back on their own. Nothing knits for ten
+  turns after a wound, and one point comes back every twenty turns after
+  that.
 * Potion of haste. It speeds the drinker up for a while. Blessed it lasts
   twice as long, cursed half.
 * Scroll of slow monster. Uncursed it slows the creature aimed at, blessed
@@ -50,6 +53,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Healing a character who is above their maximum hit points no longer pulls
+  them down to it.
 * The oval a scroll of item detection reaches was twice the stated size. The span is the width of
   the oval, not its radius.
 

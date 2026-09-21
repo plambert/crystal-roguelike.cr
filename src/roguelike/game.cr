@@ -505,9 +505,13 @@ module Roguelike
     # Several can hold at once, and the order here is the order a person
     # would name them. A creature coming into sight is usually what wrote the
     # message on the same step, so it is asked about first.
+    #
+    # Losing hit points stops a run. Gaining one does not: a character
+    # knitting on the way down a corridor would otherwise stop every twenty
+    # steps for good news.
     private def stopped_by(before : Watch, along : Bool, seen : Vision) : Halt?
       return Halt::Over if @outcome.over?
-      return Halt::Hurt if @player.hit_points != before.health
+      return Halt::Hurt if @player.hit_points < before.health
       return Halt::Creature if arrived_in_sight? before.seen, seen
       return Halt::Told if @log.size != before.said || @log.last? != before.last
       return Halt::Doorway if standing_on.door?
@@ -991,6 +995,7 @@ module Roguelike
       wear_off
       handle_items
       blink
+      knit
       act_on_the_floor unless over?
 
       # Last, so that nothing acts on energy it earned during the same tick.
@@ -1018,6 +1023,33 @@ module Roguelike
       floor.each_monster do |_column, _row, creature|
         awake?(creature) ? creature.pace.gain : creature.pace.rest
       end
+    end
+
+    # How many ticks of going unhurt it takes before anything knits.
+    REST = 10
+
+    # How many ticks one hit point takes after that.
+    #
+    # Low on purpose. A character at one hit point out of twelve is a quarter
+    # of an hour of standing still from full, which is long enough that
+    # walking away from a fight is a decision rather than a free heal.
+    KNIT = 20
+
+    # Puts one hit point back when the character has gone unhurt long enough.
+    #
+    # Nothing is said. A line a turn saying the character is a little better
+    # would fill the log and stop every run, because anything written to the
+    # log stops a run.
+    #
+    # Only the character knits. A creature that lost the character and healed
+    # while it looked for them would undo what hitting it and walking away
+    # buys, and that is the one thing a slower creature leaves open.
+    private def knit : Nil
+      rested = @player.rest
+      return if rested < REST
+      return unless (rested % KNIT).zero?
+
+      @player.heal 1
     end
 
     # Counts a haste and a slow down one tick, on everything that has one.

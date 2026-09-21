@@ -305,15 +305,35 @@ module Roguelike
       @blinded.zero?
     end
 
+    # Ticks since the last wound.
+    #
+    # `Game#knit` reads it. It has a default, so a save written before this
+    # field existed loads a character who was hurt a moment ago and has to
+    # stand still for a while before anything knits.
+    getter rested : Int32 = 0
+
+    # Counts one tick of going unhurt. Answers how many there have been.
+    def rest : Int32
+      @rested += 1
+    end
+
     # Takes *amount* off the hit points. Answers how many are left.
+    #
+    # Being hurt puts the rest count back to nothing, so a character hit once
+    # a turn never knits anything.
     def hurt(amount : Int32) : Int32
+      @rested = 0
       @hit_points = Math.max @hit_points - amount, 0
     end
 
     # Puts *amount* back, up to full health. Answers how many were restored.
+    #
+    # It never takes any off. A character already above their maximum is left
+    # where they are rather than pulled down to it, because healing that hurt
+    # would be a strange thing for a potion to do.
     def heal(amount : Int32) : Int32
       before = @hit_points
-      @hit_points = Math.min @hit_points + amount, max_hit_points
+      @hit_points = Math.min before + amount, Math.max(max_hit_points, before)
       @hit_points - before
     end
 

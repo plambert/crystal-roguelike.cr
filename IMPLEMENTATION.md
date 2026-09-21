@@ -1937,6 +1937,35 @@ floor. The speeds here only buy something against a slime, which is the least da
 three to begin with. Making the difference matter means slowing what is common rather than what is
 rare, or giving the character a way to get faster, which is what the potion of haste is.
 
+## Hit points coming back on their own
+
+`Player#rested` counts ticks since the last wound. `Player#hurt` puts it back to nothing, so a
+character being hit once a turn never knits anything. `Game#knit` runs on every tick: past
+`Game::REST` ticks of going unhurt, one hit point goes back every `Game::KNIT` ticks.
+
+Ten turns and then one point every twenty. A character at one hit point out of twelve is two
+hundred and twenty turns of going unhurt from full, which is long enough that walking away from a
+fight is a decision rather than a free heal.
+
+Nothing is said about it. A line a turn saying the character is a little better would fill the log,
+and anything written to the log stops a run.
+
+Only the character knits. A creature that lost the character and healed while it looked for them
+would undo what hitting it and walking away buys, which is the one thing a slower creature leaves
+open.
+
+Losing hit points stops a run. Gaining one does not, or a character knitting along a corridor would
+stop every twenty steps for good news.
+
+Two hundred trial runs from seed 5000, without knitting and with it:
+
+| | without | with |
+| --- | --- | --- |
+| died, the bot that never retreats | 77% | 76% |
+| died, the bot that backs away | 79% | 77% |
+
+It is worth more to the bot that retreats, which is what it is for.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
