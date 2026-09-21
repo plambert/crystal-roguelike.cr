@@ -1,5 +1,6 @@
 require "json"
 require "./item"
+require "./regard"
 require "./rng"
 
 module Roguelike
@@ -114,9 +115,15 @@ module Roguelike
     # it out, and teaches them nothing by it. A scroll that says what it
     # destroyed says what it was; it does not say what colour that kind comes
     # in for the rest of the run.
+    # *regard* says how well the character has made the item out. Anything
+    # short of `Regard::Everything` writes the kind and no more: "a spear"
+    # rather than "a cursed -2 spear", and "a scroll" rather than "a scroll
+    # labelled YLOH". The default makes everything out, so a caller that is
+    # not about distance writes what it has always written.
     def name(item : Item, blessing : Bool = true,
-             identified : Bool = false) : String
-      noun = noun_for item, blessing, identified
+             identified : Bool = false,
+             regard : Regard = Regard::Everything) : String
+      noun = noun_for item, blessing, identified, regard
       return "#{item.count} #{noun}" if item.count > 1
       return noun if item.kind.uncountable?
 
@@ -125,9 +132,12 @@ module Roguelike
 
     # :ditto:, without the article or the count.
     def noun_for(item : Item, blessing : Bool = true,
-                 identified : Bool = false) : String
+                 identified : Bool = false,
+                 regard : Regard = Regard::Everything) : String
       kind = item.kind
       plural = item.count > 1
+
+      return Lore.bare_noun item, plural unless regard.everything?
 
       unless identified || known?(kind)
         return disguised_noun item, plural, blessing
@@ -163,6 +173,27 @@ module Roguelike
              end
 
       blessing && item.blessing_known? ? "#{item.blessing.label} #{noun}" : noun
+    end
+
+    # What *item* is called by somebody who made out its kind and no more.
+    #
+    #     spear
+    #     scroll
+    #     potion
+    #
+    # A thing that is what it looks like keeps its own name: a spear is a
+    # spear from any distance, and so is chain mail. A potion, a wand and a
+    # scroll are a bottle, a stick and a sheet until somebody is near enough
+    # to read them, so each of those is called by its class.
+    def self.bare_noun(item : Item, plural : Bool = false) : String
+      kind = item.kind
+
+      case kind.item_class
+      when .potion? then plural ? "potions" : "potion"
+      when .wand?   then plural ? "wands" : "wand"
+      when .scroll? then plural ? "scrolls" : "scroll"
+      else               plural ? kind.plural : kind.label
+      end
     end
 
     # `+1`, `-2`, and so on.

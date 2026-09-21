@@ -62,13 +62,24 @@ module Roguelike::Ui
     #
     # The count goes in front and the noun stays singular. "14 arrow" is one
     # column shorter than "14 arrows" and says the same thing in a list.
-    def self.short(lore : Lore, item : Item) : String
+    #
+    # *regard* says how well the character has made the item out. Anything
+    # short of `Regard::Everything` writes the kind and no more: "spear"
+    # rather than "crs -2 spear". The default makes everything out, so the
+    # pack and every menu read as they always have.
+    def self.short(lore : Lore, item : Item,
+                   regard : Regard = Regard::Everything) : String
       words = [] of String
       words << item.count.to_s if item.count > 1
-      words << BLESSINGS[item.blessing] if item.blessing_known?
-      words << CONDITIONS[item.condition]
-      words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
-      words << noun lore, item
+
+      if regard.everything?
+        words << BLESSINGS[item.blessing] if item.blessing_known?
+        words << CONDITIONS[item.condition]
+        words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
+        words << noun lore, item
+      else
+        words << Lore.bare_noun item
+      end
 
       words.reject(&.empty?).join ' '
     end

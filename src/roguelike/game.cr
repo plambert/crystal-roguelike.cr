@@ -167,8 +167,12 @@ module Roguelike
     end
 
     # What *item* is called, as this character would call it.
-    def name(item : Item) : String
-      @lore.name item
+    #
+    # *regard* says how well they have made it out. The default makes
+    # everything out, which is what the pack and every menu mean: the
+    # character is holding the thing.
+    def name(item : Item, regard : Regard = Regard::Everything) : String
+      @lore.name item, regard: regard
     end
 
     # What everything under *letter* is called, counted together.
@@ -1644,6 +1648,50 @@ module Roguelike
       end
 
       found
+    end
+
+    # How well the character makes *creature* out.
+    #
+    # `Regard::Everything` for a creature with light on them, which is one
+    # the character can name. `Regard::Shape` for one showing against light
+    # behind them: a size reaches the character and nothing else does.
+    # `Regard::Nothing` for one they cannot see at all.
+    def regard_of(creature : Monster) : Regard
+      regard_of creature, sight
+    end
+
+    # :ditto:, against a field of view that has already been worked out.
+    def regard_of(creature : Monster, seen : Vision) : Regard
+      x, y = creature.at
+      return Regard::Everything if seen.includes? x, y
+      return Regard::Shape if seen.backlit? floor, x, y
+
+      Regard::Nothing
+    end
+
+    # How well the character makes out the item lying at *x*, *y*.
+    #
+    # A square they can see is answered by how far off it is: `Regards.of_item`
+    # is the rule. A square they cannot see is answered by what they remember
+    # of it.
+    #
+    # A closer look is never undone by a further one. A spear the character
+    # has stood over stays a cursed -2 spear while they look back at it from
+    # the far wall, and goes back to being a spear only if somebody swaps it
+    # for another one.
+    def regard_of_item(x : Int32, y : Int32) : Regard
+      regard_of_item x, y, sight
+    end
+
+    # :ditto:, against a field of view that has already been worked out.
+    def regard_of_item(x : Int32, y : Int32, seen : Vision) : Regard
+      held = knowledge[x, y]
+      return held.try(&.regard) || Regard::Nothing unless seen.includes? x, y
+
+      made_out = Regards.of_item @player.at, {x, y}
+      return made_out unless held && held.item == floor.items(x, y).last?
+
+      made_out.at_least held.regard
     end
 
     # Works out what the character can see, and remembers it.
