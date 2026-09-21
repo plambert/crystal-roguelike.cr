@@ -13,14 +13,19 @@ Spectator.describe "hit points coming back on their own" do
           "#....................#",
           "######################"]
 
-  # A game with the character *down* hit points.
-  def bare(down : Int32 = 0) : Roguelike::Game
+  # Ticks a hit point takes at average constitution.
+  KNIT = Roguelike::Advancement::KNITTING
+
+  # A game with the character *down* hit points and *constitution*.
+  def bare(down : Int32 = 0,
+           constitution : Int32 = Roguelike::Attributes::AVERAGE) : Roguelike::Game
     floor = Roguelike::Floor.parse "hall", HALL.join('\n')
     floor.ambient = 1
 
     game = Roguelike::Game.new(
       Roguelike::World.new(Playing::SEED, {"hall" => floor}),
-      Roguelike::Player.new("hall", 3, 2))
+      Roguelike::Player.new("hall", 3, 2,
+        attributes: Roguelike::Attributes.new(constitution: constitution)))
     game.player.hurt down
 
     game
@@ -48,7 +53,7 @@ Spectator.describe "hit points coming back on their own" do
       game = bare 6
       before = game.player.hit_points
 
-      mark_time game, Game::KNIT
+      mark_time game, KNIT
 
       expect(game.player.hit_points).to eq before + 1
     end
@@ -57,14 +62,14 @@ Spectator.describe "hit points coming back on their own" do
       game = bare 6
       before = game.player.hit_points
 
-      mark_time game, 3 * Game::KNIT
+      mark_time game, 3 * KNIT
 
       expect(game.player.hit_points).to eq before + 3
     end
 
     it "says nothing about it" do
       game = bare 6
-      mark_time game, Game::KNIT
+      mark_time game, KNIT
 
       expect(game.log.lines.any? &.includes?("heal")).to be_false
       expect(game.log.lines.any? &.includes?("better")).to be_false
@@ -72,7 +77,7 @@ Spectator.describe "hit points coming back on their own" do
 
     it "stops at full health" do
       game = bare 1
-      mark_time game, 10 * Game::KNIT
+      mark_time game, 10 * KNIT
 
       expect(game.player.hit_points).to eq game.player.max_hit_points
     end
@@ -104,20 +109,60 @@ Spectator.describe "hit points coming back on their own" do
     it "knits nothing while it is being hit" do
       game, _creature = beset 6
       before = game.player.hit_points
-      mark_time game, Game::KNIT
+      mark_time game, KNIT
 
       expect(game.player.hit_points).to be <= before
     end
 
     it "starts the count again from the last wound" do
       game = bare 6
-      mark_time game, Game::KNIT - 1
+      mark_time game, KNIT - 1
       game.player.hurt 1
       before = game.player.hit_points
 
-      mark_time game, Game::KNIT - 1
+      mark_time game, KNIT - 1
 
       expect(game.player.hit_points).to eq before
+    end
+  end
+
+  describe "constitution" do
+    it "knits sooner for a tough character" do
+      tough = bare 6, constitution: 18
+      weak = bare 6, constitution: 3
+
+      expect(tough.player.knitting).to be < KNIT
+      expect(weak.player.knitting).to be > KNIT
+    end
+
+    # Eight ticks a point at eighteen against thirty-two at three. The first
+    # point waits for the first multiple of the rate past the ten ticks of
+    # going unhurt, so forty turns is four points against one.
+    it "puts back four points to a weak character's one" do
+      tough = bare 6, constitution: 18
+      weak = bare 6, constitution: 3
+      started = {tough.player.hit_points, weak.player.hit_points}
+
+      mark_time tough, 40
+      mark_time weak, 40
+
+      expect(tough.player.hit_points - started[0]).to eq 4
+      expect(weak.player.hit_points - started[1]).to eq 1
+    end
+
+    it "leaves an average character where it was" do
+      game = bare 6
+
+      mark_time game, 40
+
+      expect(game.player.knitting).to eq KNIT
+    end
+
+    # A modifier so high that the rate reached nothing would heal a point
+    # every tick and then some.
+    it "never knits faster than the floor allows" do
+      expect(Roguelike::Advancement.knitting 100)
+        .to eq Roguelike::Advancement::KNITTING_LEAST
     end
   end
 
@@ -132,7 +177,7 @@ Spectator.describe "hit points coming back on their own" do
       game = bare 6
       game.player.pace.hurry 1000
 
-      mark_time game, 3 * Game::KNIT
+      mark_time game, 3 * KNIT
 
       expect(game.player.rested).to eq game.turn
     end

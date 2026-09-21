@@ -1028,14 +1028,10 @@ module Roguelike
     # How many ticks of going unhurt it takes before anything knits.
     REST = 10
 
-    # How many ticks one hit point takes after that.
-    #
-    # Low on purpose. A character at one hit point out of twelve is a quarter
-    # of an hour of standing still from full, which is long enough that
-    # walking away from a fight is a decision rather than a free heal.
-    KNIT = 20
-
     # Puts one hit point back when the character has gone unhurt long enough.
+    #
+    # How long one takes is `Player#knitting`, which comes from constitution.
+    # Ten ticks of going unhurt first, whatever the character is made of.
     #
     # Nothing is said. A line a turn saying the character is a little better
     # would fill the log and stop every run, because anything written to the
@@ -1047,7 +1043,7 @@ module Roguelike
     private def knit : Nil
       rested = @player.rest
       return if rested < REST
-      return unless (rested % KNIT).zero?
+      return unless (rested % @player.knitting).zero?
 
       @player.heal 1
     end

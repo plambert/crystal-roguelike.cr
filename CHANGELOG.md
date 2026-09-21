@@ -11,8 +11,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 ### Added
 
 * The character puts a hit point back on their own. Nothing knits for ten
-  turns after a wound, and one point comes back every twenty turns after
-  that.
+  turns after a wound. How long a point takes after that comes from
+  constitution: eight turns at eighteen, twenty at ten, thirty-two at
+  three.
 * Potion of haste. It speeds the drinker up for a while. Blessed it lasts
   twice as long, cursed half.
 * Scroll of slow monster. Uncursed it slows the creature aimed at, blessed

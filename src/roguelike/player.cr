@@ -317,6 +317,11 @@ module Roguelike
       @rested += 1
     end
 
+    # Ticks one hit point takes to come back, from constitution.
+    def knitting : Int32
+      Advancement.knitting @attributes.constitution
+    end
+
     # Takes *amount* off the hit points. Answers how many are left.
     #
     # Being hurt puts the rest count back to nothing, so a character hit once

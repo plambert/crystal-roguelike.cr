@@ -1941,11 +1941,31 @@ rare, or giving the character a way to get faster, which is what the potion of h
 
 `Player#rested` counts ticks since the last wound. `Player#hurt` puts it back to nothing, so a
 character being hit once a turn never knits anything. `Game#knit` runs on every tick: past
-`Game::REST` ticks of going unhurt, one hit point goes back every `Game::KNIT` ticks.
+`Game::REST` ticks of going unhurt, one hit point goes back every `Player#knitting` ticks.
 
-Ten turns and then one point every twenty. A character at one hit point out of twelve is two
-hundred and twenty turns of going unhurt from full, which is long enough that walking away from a
-fight is a decision rather than a free heal.
+Ten turns whatever the character is made of, and then a rate that comes from constitution.
+`Advancement.knitting` is `KNITTING` less `KNITTING_PER_POINT` for each point of the constitution
+modifier, with a floor of `KNITTING_LEAST`.
+
+| constitution | ticks a hit point |
+| --- | --- |
+| 3 | 32 |
+| 6 | 26 |
+| 10 | 20 |
+| 14 | 14 |
+| 18 | 8 |
+
+Constitution already decides how many hit points there are. This is the other half of the same
+idea: a tough character has more of them and gets them back sooner. At average constitution a
+character at one hit point out of twelve is two hundred and twenty turns of going unhurt from full,
+which is long enough that walking away from a fight is a decision rather than a free heal.
+
+It lives in `Advancement` beside the hit point table, because both are constitution turning into
+health and neither rolls anything.
+
+Nothing rolls attributes yet. Every character starts at ten across the board, so this rate is
+twenty for everybody who plays today and the table above is waiting for a character who is not
+average.
 
 Nothing is said about it. A line a turn saying the character is a little better would fill the log,
 and anything written to the log stops a run.
@@ -1964,7 +1984,9 @@ Two hundred trial runs from seed 5000, without knitting and with it:
 | died, the bot that never retreats | 77% | 76% |
 | died, the bot that backs away | 79% | 77% |
 
-It is worth more to the bot that retreats, which is what it is for.
+It is worth more to the bot that retreats, which is what it is for. Scaling the rate by
+constitution moves neither number, because every character the trial plays has a constitution of
+ten.
 
 ## Asked for, not yet built
 

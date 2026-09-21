@@ -26,6 +26,30 @@ module Roguelike
     # Experience needed to reach level two.
     FIRST_THRESHOLD = 20
 
+    # Ticks one hit point takes to come back at average constitution.
+    KNITTING = 20
+
+    # Ticks taken off that by each point of the constitution modifier.
+    #
+    # The modifier runs from four under to four over, so the rate runs from
+    # a point every eight ticks at a constitution of eighteen to a point
+    # every thirty-two at three.
+    KNITTING_PER_POINT = 3
+
+    # The fastest anything knits, however tough it is.
+    KNITTING_LEAST = 5
+
+    # Ticks one hit point takes to come back at *constitution*.
+    #
+    # Constitution already decides how many hit points there are. This is the
+    # other half of the same idea: a tough character has more of them and
+    # gets them back sooner.
+    def self.knitting(constitution : Int32) : Int32
+      found = KNITTING - Attributes.modifier(constitution) * KNITTING_PER_POINT
+
+      Math.max found, KNITTING_LEAST
+    end
+
     # Maximum hit points for a character of *level* with *constitution*.
     #
     # Constitution counts once per level, so a tough character pulls further
