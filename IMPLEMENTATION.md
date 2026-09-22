@@ -2302,6 +2302,43 @@ twenty-four terminal has room for it. Anything shorter drops it.
 whether the row is hidden. `#show` records it in `@fighting`, which is the same arrangement
 `@filled` already uses for the equipment rows.
 
+## Drawing a shot
+
+An arrow used to arrive without having travelled. `Game#fire` worked the shot out and applied it
+inside one key press, and the screen was drawn once at the end, so the only sign of the shot was a
+line in the log and an arrow already lying where it stopped.
+
+`Ui::Play` now draws the missile crossing the squares, one square every `Play::SHOT`. That is
+fifteen milliseconds against the forty-five a walked step takes. An arrow crosses ground faster
+than a person walks it, and a shot drawn at walking pace reads as a stone rolling.
+
+### A replay rather than a rule
+
+The shot is worked out and applied before anything is drawn. `Game#loose` and `Game#bolt` each
+record what flew in `Game#in_flight`, as a `Missile`: the `Flight` it took and the item that took
+it. A bolt has no item, because nothing lands on the floor afterwards.
+
+So the picture is a replay. The arrow is already lying where it stopped and whatever it killed is
+already gone by the time the first frame is drawn. That is visible for the tenth of a second the
+shot is in the air, and it is what keeps every rule in `Game`: a shot drawn first and applied
+afterwards would have to hold the keyboard for the length of the animation, because a movement key
+pressed part way through would move the character and leave the shot resolving from a square it was
+never aimed from.
+
+`Play` holds the missile with `MapPane#mark`, which is what the character is drawn with. A mark is
+something standing on a square rather than something written into the floor, and every refresh
+clears the marks, so the frame that ends the shot leaves nothing behind.
+
+### Not drawing the shot before last
+
+Every command that might let something fly — `#fire`, `#throw`, `#zap` and `#aim_reading` — clears
+`@in_flight` before it does anything else. A command that lets nothing fly then answers `nil` rather
+than the shot before it. Reading a scroll at a square is the case that needs it: it takes a target
+and sends nothing across the floor.
+
+The animation also gives up when the turn moves on. A key pressed while a missile is in the air
+takes a turn of its own, and the floor the shot crossed is gone by then.
+
 ## Tooltips on the Here and Seen rows
 
 The `Worn/Wielded` and `Pack` rows raised a tooltip and the `Here` and `Seen` rows did not, which

@@ -181,6 +181,17 @@ module Roguelike
     # with nothing made out.
     getter fought_regard : Regard = Regard::Nothing
 
+    # The last thing to cross the floor, for whatever draws one.
+    #
+    # Every command that might let something fly clears this first, so a
+    # command that let nothing fly answers `nil` rather than the shot before
+    # it. `Ui::Play` reads it once the command is over.
+    #
+    # It is not written out. A save holds where a run is rather than what it
+    # last looked like.
+    @[JSON::Field(ignore: true)]
+    getter in_flight : Missile? = nil
+
     # The run's root generator, built from the world's seed.
     #
     # This is not written out. `World#seed` is, and this is a function of it.
@@ -990,6 +1001,7 @@ module Roguelike
     # One piece of ammunition leaves the quiver. It lands on the square the
     # shot stopped on, hit or miss.
     def fire(target : {Int32, Int32}) : Bool
+      @in_flight = nil
       complaint = cannot_fire
       if complaint
         say complaint
@@ -1018,6 +1030,7 @@ module Roguelike
     #
     # One of a stack goes. A person carrying twenty darts throws one dart.
     def throw(letter : Char, target : {Int32, Int32}) : Bool
+      @in_flight = nil
       item = @player.inventory[letter]
       return false unless item
 
@@ -1062,6 +1075,7 @@ module Roguelike
     private def loose(missile : Item, target : {Int32, Int32}, reach : Int32,
                       bonus : Int32, damage : Dice) : Nil
       shot = flight target, reach
+      @in_flight = Missile.new shot, missile
       spot = shot.at
       struck = floor.monster spot[0], spot[1]
 
@@ -2277,6 +2291,7 @@ module Roguelike
 
     # Does what *scroll* was aimed at. Spends no turn.
     def aim_reading(scroll : Item, target : {Int32, Int32}?) : Bool
+      @in_flight = nil
       return false unless scroll.kind.effect.aims_after?
 
       work scroll.kind.effect, scroll, target: target
@@ -2292,6 +2307,7 @@ module Roguelike
     # spent one says so and still costs the turn: a person cannot know a wand
     # is empty until they try it.
     def zap(letter : Char, target : {Int32, Int32}? = nil) : Bool
+      @in_flight = nil
       item = @player.inventory[letter]
       return false unless item
 
@@ -3415,6 +3431,7 @@ module Roguelike
       end
 
       shot = flight target, item.kind.reach
+      @in_flight = Missile.new shot
       spot = shot.at
       struck = floor.monster spot[0], spot[1]
 

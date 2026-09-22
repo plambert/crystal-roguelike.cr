@@ -1,4 +1,5 @@
 require "./floor"
+require "./item"
 require "./line"
 
 module Roguelike
@@ -16,6 +17,16 @@ module Roguelike
     # It ran out of reach.
     Spent
   end
+
+  # Something that has just crossed the floor, and what it was.
+  #
+  # `Game` records the last one. `Ui::Play` draws it crossing the squares a
+  # frame at a time. The shot is worked out and applied before this is set,
+  # so the drawing is a replay and no rule waits on it.
+  #
+  # *item* is what flew, for whatever draws it. A bolt from a wand has none:
+  # nothing lands on the floor and there is nothing to name.
+  record Missile, flight : Flight, item : Item? = nil
 
   # Where a thing thrown or fired goes, and where it stops.
   #

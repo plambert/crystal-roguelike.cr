@@ -10,6 +10,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* An arrow, a thrown item and a bolt from a wand are drawn crossing the squares between. A missile
+  moves three times as fast as the character walks.
 * A hit point bar in the sidebar for the creature the character last traded blows with. It is red
   at full strength and shades to yellow as the creature falls, the other way round from the
   character's own bar. It names the creature by its species when the character can see it, and by

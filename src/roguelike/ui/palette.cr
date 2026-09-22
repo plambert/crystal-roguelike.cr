@@ -235,6 +235,27 @@ module Roguelike::Ui
       ITEMS[item.kind.item_class]
     end
 
+    # What something crossing the floor is drawn in.
+    #
+    # Brighter than the same thing lying on the ground. A missile is on the
+    # screen for a few frames, and it is what the eye should be on for those
+    # frames.
+    MISSILE = Style::DEFAULT.fg TermBuf::Color.rgb(0xF2, 0xE6, 0xC0)
+
+    # What a bolt from a wand is drawn as.
+    #
+    # Nothing lands on the floor afterwards, so there is no item to take a
+    # glyph from.
+    BOLT = '*'
+
+    # How *item* is drawn while it is crossing the floor.
+    #
+    # An arrow keeps its own glyph, so a person sees what they let go of. A
+    # bolt has no item behind it.
+    def self.flying(item : Item?) : Look
+      Look.new item ? self[item].glyph : BOLT, MISSILE
+    end
+
     # What a creature nobody can see properly is drawn in.
     #
     # One colour for every species. A colour is as much a name as a letter

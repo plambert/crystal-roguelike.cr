@@ -154,6 +154,27 @@ module Roguelike::Ui
     # How long the camera rests on each cell while it slides.
     GLIDE = 25.milliseconds
 
+    # How long a missile rests on a square while a shot is drawn.
+    #
+    # A third of a stride. An arrow crosses ground faster than a person walks
+    # it, and a shot drawn at walking pace reads as a stone rolling rather
+    # than an arrow loosed.
+    SHOT = 15.milliseconds
+
+    # The shot being drawn, how far along its path it has got, and the turn
+    # it was let go on.
+    #
+    # The turn is what says the picture is still worth drawing. A key pressed
+    # part way through takes a turn of its own, and the floor the shot crossed
+    # is gone by then.
+    private record Flying,
+      missile : Roguelike::Missile,
+      index : Int32,
+      turn : Int32
+
+    # The shot being drawn, or `nil` when nothing is in the air.
+    @flying : Flying? = nil
+
     # How long the character rests on a square while a run is drawn.
     #
     # About what holding a movement key down gives. A run drawn all at once
@@ -1160,7 +1181,53 @@ module Roguelike::Ui
       in .read?  then scroll.try { |found| @game.aim_reading found, target }
       end
 
+      draw_shot
+    end
+
+    # Draws whatever the command let fly, and then the screen it left behind.
+    #
+    # The shot is worked out and applied before this runs, so this is a
+    # replay: the arrow is already lying where it stopped and whatever it
+    # killed is already gone. It is over inside a tenth of a second, which is
+    # what keeping every rule in `Game` costs here.
+    #
+    # An application with no clock cannot arm a timer, so the shot lands at
+    # once and the screen goes straight to what it did.
+    private def draw_shot : Nil
+      missile = @game.in_flight
+      return refresh if missile.nil? || missile.flight.path.empty?
+
       refresh
+      @flying = Flying.new missile, 0, @game.turn
+      fly
+    end
+
+    # Draws the missile on the next square of its path and arms the frame
+    # after it.
+    private def fly : Nil
+      loop do
+        found = @flying
+        return unless found
+
+        path = found.missile.flight.path
+        if found.index >= path.size || found.turn != @game.turn
+          @flying = nil
+          refresh
+          return
+        end
+
+        # The map is redrawn from the game on every refresh, so the missile
+        # is put back on top of it rather than written into the floor.
+        spot = path[found.index]
+        @map.clear_marks
+        @map.mark @game.player.x, @game.player.y, Palette::PLAYER
+        @map.mark spot[0], spot[1], Palette.flying(found.missile.item)
+
+        @flying = Flying.new found.missile, found.index + 1, found.turn
+
+        app = @app
+        return if app && app.after(SHOT) { fly }
+      end
     end
 
     # Starts *command* aiming at the nearest monster in sight.
