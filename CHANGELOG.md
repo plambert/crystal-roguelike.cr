@@ -63,6 +63,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Working out that an item is uncursed says nothing. Only a blessing or a curse is written to the
+  log. The pack still moves the item to a letter of its own, which is what shows it has been worked
+  out.
 * A name too long for the `Here` or `Seen` column is cut at the edge and marked with an ellipsis,
   the same as every other row of the sidebar.
 * Time runs on ticks. Every actor gains energy each tick and every action

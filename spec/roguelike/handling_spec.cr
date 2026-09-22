@@ -156,16 +156,18 @@ Spectator.describe Roguelike::Handling do
     end
 
     describe "what it says" do
-      # One stack of three says "are" and a single dagger says "is".
+      # One stack of three says "are" and a single spike says "is".
       it "agrees the verb with the count" do
         lore = Roguelike::Lore.new
-        one = Item.new Kind::Dagger, blessing_known: true
-        several = Item.new Kind::Arrow, count: 3, blessing_known: true
+        one = Item.new Kind::Spike, blessing: Blessing::Cursed,
+          blessing_known: true
+        several = Item.new Kind::Spike, count: 3, blessing: Blessing::Cursed,
+          blessing_known: true
 
         expect(Roguelike::Game.worked_out lore, one)
-          .to eq "You are certain that a dagger is not cursed."
+          .to eq "You realize that an iron spike is cursed!"
         expect(Roguelike::Game.worked_out lore, several)
-          .to eq "You are certain that 3 arrows are not cursed."
+          .to eq "You realize that 3 iron spikes are cursed!"
       end
 
       it "leaves the blessing word out of the name" do
@@ -183,10 +185,22 @@ Spectator.describe Roguelike::Handling do
 
       it "reads an uncountable kind as one thing" do
         lore = Roguelike::Lore.new
-        armour = Item.new Kind::LeatherArmour, blessing_known: true
+        armour = Item.new Kind::LeatherArmour, blessing: Blessing::Cursed,
+          blessing_known: true
 
         expect(Roguelike::Game.worked_out lore, armour)
-          .to eq "You are certain that leather armour is not cursed."
+          .to eq "You realize that leather armour is cursed!"
+      end
+
+      # Almost everything a character carries is uncursed, and a line for
+      # each of them would fill the log and stop every run.
+      it "says nothing about an uncursed item" do
+        lore = Roguelike::Lore.new
+        one = Item.new Kind::Dagger, blessing_known: true
+        several = Item.new Kind::Arrow, count: 3, blessing_known: true
+
+        expect(Roguelike::Game.worked_out lore, one).to be_nil
+        expect(Roguelike::Game.worked_out lore, several).to be_nil
       end
     end
 
@@ -198,6 +212,18 @@ Spectator.describe Roguelike::Handling do
 
       expect(item.blessing_known?).to be_true
       expect(game.log.lines.any? &.includes?("cursed")).to be_true
+    end
+
+    # The character works it out and the pack shows it. The log stays quiet.
+    it "says nothing when it works out that something is uncursed" do
+      game = bare
+      item = Item.new Kind::Dagger
+      game.player.inventory.add item
+      said = game.log.size
+      2_000.times { break if item.blessing_known?; game.wait }
+
+      expect(item.blessing_known?).to be_true
+      expect(game.log.size).to eq said
     end
 
     it "rolls the same from the same seed" do

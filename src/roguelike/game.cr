@@ -2371,26 +2371,34 @@ module Roguelike
       found.each { |letter, item| noticed letter, item }
     end
 
-    # Says the character has worked out what *item* is, and sorts the pack.
+    # Records that the character has worked out what *item* is, and sorts the
+    # pack.
+    #
+    # It says so only when there is something to say. Working out that a
+    # dagger is uncursed is what happens to almost everything a character
+    # carries, and a line for each of them fills the log and stops a run.
+    # The pack still moves the item to a letter of its own, so somebody
+    # reading it sees what has been worked out.
     private def noticed(letter : Char, item : Item) : Nil
       return unless item.reveal_blessing
 
-      say Game.worked_out @lore, item
+      Game.worked_out(@lore, item).try { |line| say line }
       settle letter, item
     end
 
     # What the character says when they work a blessing out for themselves.
+    # `nil` when they work out that the item is uncursed.
     #
     # The verb agrees with the count, because one stack of three says "are"
     # and a single dagger says "is".
     #
-    # The name leaves the blessing word out either way, because the sentence
-    # is what says it. A curse or a blessing is news and the line ends in a
-    # mark. An uncursed item is not news and the line is flat.
-    def self.worked_out(lore : Lore, item : Item) : String
+    # The name leaves the blessing word out, because the sentence is what
+    # says it.
+    def self.worked_out(lore : Lore, item : Item) : String?
+      return if item.blessing.uncursed?
+
       named = lore.name item, blessing: false
       verb = item.count > 1 ? "are" : "is"
-      return "You are certain that #{named} #{verb} not cursed." if item.blessing.uncursed?
 
       "You realize that #{named} #{verb} #{item.blessing.label}!"
     end

@@ -1650,18 +1650,23 @@ them is acted on, because acting on one moves items about.
 
 ### What the character says when they work it out
 
-The verb agrees with the count, because one stack of three says "are" and a single dagger says
-"is". The name leaves the blessing word out either way, because the sentence is what says it.
+Only a curse or a blessing.
 
 ```text
-You are certain that 3 iron spikes are not cursed.
 You realize that an iron spike is cursed!
 You realize that 3 iron spikes are blessed!
 ```
 
-A curse or a blessing is news and the line ends in a mark. An uncursed item is not news and the
-line is flat. `Lore#name` takes a `blessing` argument for this, false meaning leave the word out
-however much the character knows.
+Working out that something is uncursed writes nothing. Almost everything a character carries is
+uncursed, and a line for each of them fills the message pane, holds a page behind `--More--` and
+stops every run, because anything written to the log stops one. The item still moves to a letter of
+its own, so the pack is where an uncursed item is read.
+
+The verb agrees with the count, because one stack of three says "are" and a single spike says "is".
+The name leaves the blessing word out, because the sentence is what says it. `Lore#name` takes a
+`blessing` argument for that, false meaning leave the word out however much the character knows.
+
+`Game.worked_out` answers the line, or `nil` for an item that turned out to be uncursed.
 
 ### What a blessing does to a weapon
 
