@@ -41,6 +41,20 @@ Spectator.describe Roguelike::Game do
       expect(carried).to contain Roguelike::ItemKind::Spike
     end
 
+    # The character has owned their own kit long enough to be sure of it, so
+    # none of it waits on a handling roll before the pack stops hedging.
+    it "hands out nothing that is cursed or blessed" do
+      carried = game.player.inventory.entries.map { |_letter, item| item.blessing }
+
+      expect(carried.all? &.uncursed?).to be_true
+    end
+
+    it "hands out nothing whose blessing is still a question" do
+      carried = game.player.inventory.entries
+
+      expect(carried.all? { |_letter, item| item.blessing_known? }).to be_true
+    end
+
     # A floor hands out spikes rarely, so a character who had to find one
     # before learning what it is for would mostly never find one.
     it "hands out three spikes as one entry" do

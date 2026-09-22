@@ -63,6 +63,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* The character starts knowing their own kit is uncursed. The short sword, the leather armour, the
+  torch and the spikes each read as uncursed from turn nothing rather than waiting on a handling
+  roll.
 * Working out that an item is uncursed says nothing. Only a blessing or a curse is written to the
   log. The pack still moves the item to a letter of its own, which is what shows it has been worked
   out.

@@ -308,17 +308,24 @@ module Roguelike
     #
     # The slots are filled rather than wielded. `#wield` and `#wear` each
     # spend a turn and write to the log, and neither has happened yet.
+    #
+    # Every one of them is known to be uncursed. The character has owned them
+    # long enough to be sure of them, and a person who had to wait out the
+    # handling rolls on their own kit before the pack stopped hedging would
+    # learn nothing by it.
     private def self.outfit(player : Player) : Nil
       {
-        {Item.new(ItemKind::ShortSword), Slot::Melee},
-        {Item.new(ItemKind::LeatherArmour), Slot::Body},
+        {Item.new(ItemKind::ShortSword, blessing_known: true), Slot::Melee},
+        {Item.new(ItemKind::LeatherArmour, blessing_known: true), Slot::Body},
       }.each do |item, slot|
         letter = player.inventory.add item
         player.equipment.put slot, letter if letter
       end
 
-      player.inventory.add Item.new(ItemKind::Torch, lit: true)
-      player.inventory.add Item.new(ItemKind::Spike, count: SPIKES)
+      player.inventory.add Item.new(ItemKind::Torch, lit: true,
+        blessing_known: true)
+      player.inventory.add Item.new(ItemKind::Spike, count: SPIKES,
+        blessing_known: true)
     end
 
     # A new run on *rng*, played on a floor dug from the same seed.

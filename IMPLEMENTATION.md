@@ -1668,6 +1668,11 @@ The name leaves the blessing word out, because the sentence is what says it. `Lo
 
 `Game.worked_out` answers the line, or `nil` for an item that turned out to be uncursed.
 
+The character's own kit is known from turn nothing. `Game.outfit` marks the short sword, the
+leather armour, the torch and the spikes as blessing-known, so none of them waits on a handling
+roll. Somebody has owned their own gear long enough to be sure of it, and there is nothing to learn
+from watching the pack stop hedging about a sword the character arrived with.
+
 ### What a blessing does to a weapon
 
 `Item#aim` is what an item adds to a swing or a shot landing: the enchantment, the condition, and
