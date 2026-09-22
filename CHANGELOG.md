@@ -54,6 +54,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The name prompt suggests a randomly generated name.
 * Installation instructions in the README: the Homebrew tap, a release binary, or building from
   source.
+* A `nightly` release, rebuilt from the head of the default branch each night on the nights that
+  anything was committed. It carries the same three platform tarballs as a tagged release, under
+  names that do not change, so a download link goes on working. The release notes say which commit
+  it was built from and what landed since the last one.
 
 ### Changed
 

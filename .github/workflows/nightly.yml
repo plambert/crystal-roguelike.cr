@@ -1,0 +1,195 @@
+# Builds the head of the default branch every night and publishes it as the
+# `nightly` release.
+#
+# The build is the one `release.yml` uses, so a nightly is a tagged release in
+# everything but the version it carries, and every night exercises the code
+# that a release depends on.
+#
+# A night with no new commits builds nothing. The `nightly` tag records the
+# commit the last published build came from; the first job compares it with
+# the head of the branch and stops the run when they match. A build that fails
+# leaves the tag where it is, so the next night tries the same commit again.
+#
+# The tarballs are named without a version, so a link to a nightly download
+# keeps working from one night to the next. Which commit a binary came from is
+# in the release notes, and the binary itself prints it beside its version in
+# the debug console.
+#
+# GitHub stops running a scheduled workflow in a repository that has had no
+# activity for 60 days. A repository quiet for that long has nothing to build
+# anyway, and a push starts the schedule again.
+name: nightly
+
+on:
+  schedule:
+    # 09:17 UTC, which is the small hours in US/Pacific. The odd minute keeps
+    # the run out of the crowd that GitHub queues on the hour.
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Build even when nothing has been committed since the last one
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  # Decides whether there is anything to build, before anything spends a
+  # runner on it.
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+      version: ${{ steps.decide.outputs.version }}
+      previous: ${{ steps.decide.outputs.previous }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: decide
+        name: Compare the head of the branch with the last nightly
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version: *//p' shard.yml | head -1 | tr -d "\"' ")
+
+          if [ -z "$version" ]; then
+            echo "::error file=shard.yml::no version in shard.yml"
+            exit 1
+          fi
+
+          # The tag may be a lightweight one, which points straight at the
+          # commit, or an annotated one, which points at a tag object that
+          # points at the commit. Ask what it is rather than assume.
+          previous=
+          if ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/nightly" 2>/dev/null); then
+            previous=$(printf %s "$ref" | jq -r .object.sha)
+            if [ "$(printf %s "$ref" | jq -r .object.type)" = tag ]; then
+              previous=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$previous" --jq .object.sha)
+            fi
+          fi
+
+          if [ "${FORCE:-false}" = true ]; then
+            build=yes
+            why="asked for by hand"
+          elif [ -z "$previous" ]; then
+            build=yes
+            why="there is no nightly release yet"
+          elif [ "$previous" = "$GITHUB_SHA" ]; then
+            build=no
+            why="$GITHUB_SHA is already published"
+          else
+            build=yes
+            why="$previous was published, the branch is at $GITHUB_SHA"
+          fi
+
+          {
+            echo "build=$build"
+            echo "version=$version"
+            echo "previous=$previous"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "building: $build, because $why" >> "$GITHUB_STEP_SUMMARY"
+          echo "building: $build, because $why"
+
+  build:
+    needs: check
+    if: needs.check.outputs.build == 'yes'
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.check.outputs.version }}
+      archive-stem: crystal-roguelike-nightly
+
+  publish:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PREVIOUS: ${{ needs.check.outputs.previous }}
+      VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          pattern: dist-*
+          merge-multiple: true
+
+      # The per-platform files are already in sha256sum's own format, so the
+      # concatenation is a file `sha256sum --check` reads.
+      - name: Gather the checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          cat ./*.tar.gz.sha256 > SHA256SUMS
+          rm -f ./*.tar.gz.sha256
+          sha256sum --check SHA256SUMS
+          ls -l
+
+      # The commits between the last published nightly and this one. GitHub's
+      # compare stops at 250 commits, and it answers nothing at all when the
+      # older commit has been rewritten away, so neither case is an error.
+      - name: Write the release notes
+        run: |
+          set -euo pipefail
+          {
+            echo "Built from \`$GITHUB_SHA\` on $(date -u '+%Y-%m-%d'), version $VERSION."
+            echo
+            echo "This release is rebuilt whenever the default branch moves. The files"
+            echo "keep the same names, so a download link goes on working."
+            echo
+          } > notes.md
+
+          if [ -z "$PREVIOUS" ]; then
+            echo "The first nightly build." >> notes.md
+          elif log=$(gh api "repos/$GITHUB_REPOSITORY/compare/$PREVIOUS...$GITHUB_SHA" \
+                       --jq '.commits[] | "* " + (.commit.message | split("\n")[0])' 2>/dev/null) \
+               && [ -n "$log" ]; then
+            {
+              echo "### Since the last nightly"
+              echo
+              printf '%s\n' "$log"
+            } >> notes.md
+          else
+            echo "Changes since \`$PREVIOUS\`." >> notes.md
+          fi
+
+          cat notes.md
+
+      # The release is written second. Moving the tag first means the release
+      # that softprops creates or updates already points at this commit;
+      # GitHub does not move a tag for an update to a release that uses it.
+      - name: Point the nightly tag at this commit
+        run: |
+          set -euo pipefail
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/nightly" > /dev/null 2>&1; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/nightly" \
+              --raw-field sha="$GITHUB_SHA" --field force=true > /dev/null
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              --raw-field ref=refs/tags/nightly --raw-field sha="$GITHUB_SHA" > /dev/null
+          fi
+          echo "refs/tags/nightly is at $GITHUB_SHA"
+
+      # The tarball names do not change from night to night, so each upload
+      # replaces the file of the same name that the last one left.
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: nightly
+          target_commitish: ${{ github.sha }}
+          name: Nightly
+          body_path: notes.md
+          prerelease: true
+          make_latest: 'false'
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS
+          fail_on_unmatched_files: true

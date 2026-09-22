@@ -44,6 +44,29 @@ The Linux binaries are statically linked against musl and run on any
 distribution. The macOS binary links the collector and pcre2 from their
 archives, so it needs nothing from Homebrew.
 
+### A nightly build
+
+The head of the default branch is built every night that something was
+committed to it, and published as the `nightly` release. Those tarballs carry
+no version in their names, so these links go on working:
+
+```bash
+platform=macos-aarch64   # or linux-x86_64, linux-aarch64
+base=https://github.com/plambert/crystal-roguelike.cr/releases/download/nightly
+
+curl -LO "$base/crystal-roguelike-nightly-$platform.tar.gz"
+curl -LO "$base/SHA256SUMS"
+shasum -a 256 --check --ignore-missing SHA256SUMS
+
+tar xzf "crystal-roguelike-nightly-$platform.tar.gz"
+```
+
+A nightly is built the same way a release is, from the same workflow. It
+reports the version in `shard.yml`, which is the version being worked towards
+rather than one that has been released. The commit it came from is named in
+the release notes, and the game prints it beside the version in the debug
+console.
+
 ### From source
 
 Crystal 1.21 or newer, and git-lfs, which one of the dependencies uses for its
