@@ -33,6 +33,23 @@ module Roguelike::Ui
     # right one.
     GAP = 1
 
+    # How many cells a caller that marks its rows leaves clear at the left
+    # for `#marks` to go in.
+    #
+    # The room is kept whether or not a row is marked, so a row does not move
+    # when the pointer crosses it.
+    INDENT = 2
+
+    # A row's two marks: one at the near edge and one at the far one.
+    record Marks, near : Char, far : Char, style : Style
+
+    # What marks this row, or `nil` for one that is not marked.
+    #
+    # The near mark goes in the first cell and the far one against the right
+    # edge. The far one takes its cells from the text, so a name already long
+    # enough to be cut is cut two cells shorter while the row is marked.
+    property marks : Marks? = nil
+
     # The pieces, in the order they were written.
     getter spans : Array(Span) = [] of Span
 
@@ -129,6 +146,14 @@ module Roguelike::Ui
       # The right pieces go down first and say where the left ones stop. They
       # are placed from the right edge, so the last of them is the leftmost.
       edge = view.width
+
+      found = @marks
+      if found && edge > INDENT
+        view.write 0, 0, found.near.to_s, found.style
+        view.write edge - 1, 0, found.far.to_s, found.style
+        edge -= 1 + GAP
+      end
+
       @spans.each do |span|
         next unless span.edge.right?
 

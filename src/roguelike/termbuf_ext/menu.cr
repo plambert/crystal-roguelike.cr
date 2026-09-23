@@ -40,7 +40,16 @@ module TermBuf::Widgets
   # `Enter` picks the highlighted row. `Escape` answers nothing.
   class Menu < Overlay
     # One row.
-    record Entry, key : Char, text : String, enabled : Bool = true
+    #
+    # *mark* replaces the `-` between the key and the text. A list of items
+    # puts the blessing there, so a person reads down one column rather than
+    # hunting a word at the front of every name. `nil` keeps the `-`.
+    #
+    # *tail* is drawn against the right edge of the row, past the text. A
+    # list of items puts the slot there.
+    record Entry, key : Char, text : String, enabled : Bool = true,
+      mark : Char? = nil, mark_style : Style? = nil,
+      tail : Char? = nil, tail_style : Style? = nil
 
     # The letters a menu hands out when the caller has none of its own.
     LETTERS = ('a'..'z').to_a + ('A'..'Z').to_a
@@ -90,11 +99,28 @@ module TermBuf::Widgets
     # How short it may be: one row and the border around it.
     MINIMUM_HEIGHT = 3
 
-    # How many cells the key and its separator take at the start of a row.
+    # How many cells the pointer, the key and the mark take at the start of a
+    # row.
     #
-    # `a - ` is four. The rows scroll under it and it does not move, so the
-    # key a person has to press stays where they can read it.
-    GUTTER = 4
+    # `\u27A4 a - ` is six. The rows scroll under it and it does not move, so
+    # the key a person has to press stays where they can read it.
+    GUTTER = 6
+
+    # Which of those cells each piece is drawn in.
+    POINT = 0
+    KEY   = 2
+    MARK  = 4
+
+    # What goes in the mark cell for a row that named no mark of its own.
+    SEPARATOR = '-'
+
+    # How many cells are kept clear at the right edge for `Entry#tail`.
+    TAIL = 2
+
+    # How many cells are kept clear at the right edge for the mark facing the
+    # pointer. Always, so that a row does not move when the highlight
+    # arrives on it.
+    MIRROR = 2
 
     # How many cells the rows have been scrolled sideways.
     getter offset : Int32 = 0
@@ -112,6 +138,16 @@ module TermBuf::Widgets
 
     # What the key at the start of a row is drawn in.
     property key_style : Style = Style::DEFAULT.bold
+
+    # What marks the highlighted row, at the near edge and at the far one.
+    #
+    # `nil` for either leaves that cell blank. The cells are kept clear
+    # whether or not anything goes in them.
+    property pointer : Char? = '\u27A4'
+    property pointed : Char? = '\u2B9C'
+
+    # What both marks are drawn in.
+    property pointer_style : Style = Style::DEFAULT
 
     # What runs when a row is picked.
     #
@@ -289,8 +325,11 @@ module TermBuf::Widgets
     # The title is measured too. It is drawn in the top edge of the border,
     # and a box narrower than its own title has the title cut instead.
     private def fit_into(screen : Rect, policy : Unicode::WidthPolicy) : Nil
-      rows = @entries.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
-      @list.widest = Math.max rows, Menu.cells(title, policy) + TITLE_SLACK
+      widest_row = @entries.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
+      widest_row += TAIL if @entries.any? &.tail
+      widest_row += MIRROR
+
+      @list.widest = Math.max widest_row, Menu.cells(title, policy) + TITLE_SLACK
 
       widest = Math.max screen.width - 2 * @column_margin, MINIMUM_WIDTH
       tallest = Math.max screen.height - 2 * @row_margin, MINIMUM_HEIGHT
@@ -396,18 +435,46 @@ module TermBuf::Widgets
       finish found.key
     end
 
-    # Draws one row as `a - what it is`.
+    # Draws one row as `\u27A4 a - what it is        \u2B9C`.
     #
-    # The text goes down first and the key over it. A row scrolled sideways
-    # slides its text under the key, so the key a person has to press stays
-    # where it is. `View#write` cuts whatever falls off either edge.
+    # The text goes down first and everything else over it. A row scrolled
+    # sideways slides its text under the gutter, so the key a person has to
+    # press stays where it is, and under the marks at the far edge, so those
+    # stay where they are too.
+    #
+    # The highlight covers the text and nothing else. A reversed gutter would
+    # invert the marks, which carry their meaning in their colour.
     private def draw_entry(view : View, entry : Entry, lit : Bool) : Nil
       plain = entry.enabled ? Style::DEFAULT : @disabled_style
-      plain = plain.reverse if lit
 
-      view.write GUTTER - @offset, 0, entry.text, plain
-      view.write 0, 0, entry.key.to_s, entry.enabled ? @key_style : plain
-      view.write 1, 0, " - ", plain
+      view.write GUTTER - @offset, 0, entry.text, lit ? plain.reverse : plain
+
+      view.write 0, 0, " " * GUTTER, plain
+      mark = entry.mark || SEPARATOR
+      view.write KEY, 0, entry.key.to_s, entry.enabled ? @key_style : plain
+      view.write MARK, 0, mark.to_s, entry.mark_style || plain
+
+      draw_marks view, entry, lit, plain
+    end
+
+    # Draws the pointer, the mark facing it, and the row's own tail.
+    private def draw_marks(view : View, entry : Entry, lit : Bool,
+                           plain : Style) : Nil
+      near = lit ? @pointer : nil
+      far = lit ? @pointed : nil
+
+      view.write POINT, 0, near ? near.to_s : " ", @pointer_style
+
+      edge = view.width - 1
+      return if edge < GUTTER
+
+      view.write edge, 0, far ? far.to_s : " ", @pointer_style
+
+      tail = entry.tail
+      return unless tail
+      return if edge - MIRROR < GUTTER
+
+      view.write edge - MIRROR, 0, tail.to_s, entry.tail_style || plain
     end
 
     # Takes the menu down. Runs `#on_choose` with *key*.

@@ -63,6 +63,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* A list of items carries its blessing as a mark beside the key rather than as a word in the name:
+  `✦` blessed, `✘` cursed, `-` not worked out yet, and nothing at all for uncursed. The slot an item
+  is readied in is a mark against the right edge — `⚔` in the hand, `➶` the ranged weapon, `➷` the
+  quiver, `⛊` worn — and `⁕` marks a light source that is burning. The count or the article sits in
+  a field of its own, so the names line up down the list. The tooltip on a row writes each mark and
+  the word for it.
+* The highlighted row of a menu is marked `➤` at its near edge and `⮜` at its far one, and the
+  highlight itself covers the name rather than the key and the mark beside it. The row of the `Here`
+  or `Seen` list under the pointer wears the same two marks.
 * The character starts knowing their own kit is uncursed. The short sword, the leather armour, the
   torch and the spikes each read as uncursed from turn nothing rather than waiting on a handling
   roll.

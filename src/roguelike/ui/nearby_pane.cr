@@ -242,6 +242,10 @@ module Roguelike::Ui
     # more. An empty list says so rather than leaving a gap under the rule.
     private def fill(panel : Widgets::Panel, rows : Array(Line),
                      most : Int32) : Nil
+      # The rows are built again every turn. The one the mark was on is gone,
+      # and the mark goes with it rather than pointing at a row that is no
+      # longer there.
+      unmark
       panel.clear
 
       if rows.empty?
@@ -261,6 +265,10 @@ module Roguelike::Ui
     # *lines* is what a tooltip says about what is on the row. A row about
     # nothing in particular passes none, and pointing at it takes down
     # whatever box was up.
+    #
+    # The text starts `Line::INDENT` cells in. The cells are the room the
+    # mark goes in when the pointer crosses the row, and they are kept clear
+    # whether or not it has, so a row does not move under the pointer.
     private def row(text : String, style : Style?,
                     lines : Array(String)? = nil) : Line
       line = Line.new
@@ -268,17 +276,63 @@ module Roguelike::Ui
       # One row at most, and none when the sidebar has run out of room. A row
       # that could not be squeezed would take its cell off the log below it.
       line.height = Layout::Sizing.fit max: 1
-      line.put 0, text, style || Style::DEFAULT
+      line.put Line::INDENT, text, style || Style::DEFAULT
       line.on_point = -> { pointed line, lines }
       line
     end
 
+    # The marks a row wears while the pointer is on it.
+    MARKS = Line::Marks.new Palette::POINTER, Palette::POINTED,
+      Palette::POINTER_MARK
+
     # Hands *lines* to whoever is watching the pane.
+    #
+    # The row the pointer is on is marked and the one it left is not. Only
+    # one row is marked at a time, so the mark says where the pointer is
+    # rather than where it has been.
     #
     # The hook is read here rather than closed over, so a pane whose rows
     # were built before the hook was put on still reports.
     private def pointed(line : Line, lines : Array(String)?) : Nil
+      mark line
       @on_point.try &.call(line, lines)
     end
+
+    # Puts the marks on *line* and takes them off whatever wore them before.
+    private def mark(line : Line) : Nil
+      before = @marked
+      return if before == line
+
+      before.marks = nil if before
+      line.marks = MARKS
+      @marked = line
+    end
+
+    # Takes the marks off the row wearing them unless *row* is that row.
+    #
+    # `Play` calls this once a pointer report has been through the tree, with
+    # whichever row of the whole sidebar answered it. A pointer that moved to
+    # a row of another pane, or off the sidebar, leaves this pane with no
+    # marked row.
+    def keep(row : Widgets::Widget?) : Nil
+      return if row && row.same? @marked
+
+      unmark
+    end
+
+    # Takes the marks off whatever wears them.
+    #
+    # `Play` calls this when the pointer leaves the sidebar. A row left
+    # marked would go on saying the pointer was on it.
+    def unmark : Nil
+      found = @marked
+      return unless found
+
+      found.marks = nil
+      @marked = nil
+    end
+
+    # The row the pointer is on, as far as this pane has been told.
+    @marked : Line? = nil
   end
 end

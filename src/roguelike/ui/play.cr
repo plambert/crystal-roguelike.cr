@@ -121,7 +121,7 @@ module Roguelike::Ui
     # A row with no item behind it is not in here. The apply menu has one row
     # per wall sconce, and a sconce is a fixture rather than something
     # carried.
-    @listed : Hash(Char, Item) = {} of Char => Item
+    @listed : Hash(Char, Listing) = {} of Char => Listing
 
     # Whether the person asked for another run when this one ended.
     #
@@ -308,6 +308,7 @@ module Roguelike::Ui
       @prompt = Widgets::Prompt.new
       @entry = Widgets::Entry.new
       @menu = Widgets::Menu.new
+      @menu.pointer_style = Palette::POINTER_MARK
       @history = HistoryPane.new
       @placard = Placard.new
       @tooltip = Tooltip.new
@@ -651,9 +652,9 @@ module Roguelike::Ui
     # in it hangs a box of detail beside the list while the highlight is on
     # it. A menu with nothing in *about* hangs no box at all.
     def choose(title : String, entries : Enumerable(Widgets::Menu::Entry),
-               about : Hash(Char, Item)? = nil,
+               about : Hash(Char, Listing)? = nil,
                &chosen : Char? -> Nil) : Nil
-      @listed = about || {} of Char => Item
+      @listed = about || {} of Char => Listing
       @menu.column_margin = @listed.empty? ? Widgets::Menu::COLUMN_MARGIN : MENU_MARGIN
       @menu.on_highlight = ->(entry : Widgets::Menu::Entry?) do
         listed_detail entry
@@ -691,28 +692,32 @@ module Roguelike::Ui
     # than from the top of the list.
     private def listed_detail(entry : Widgets::Menu::Entry?) : Nil
       app = @app
-      item = entry ? @listed[entry.key]? : nil
-      unless app && item
+      found = entry ? @listed[entry.key]? : nil
+      unless app && found
         @tooltip.hide
         return
       end
 
       list = @menu.list
-      @tooltip.show app, list, Detail.about(@game, item),
+      @tooltip.show app, list,
+        Detail.about(@game, found.item, slot: found.slot),
         dx: -1 - @menu.gutter, dy: list.selected - list.scroll_y
     end
 
     # The items *entries* are about, by the letter each is carried under.
-    private def about(entries : Array({Char, Item})) : Hash(Char, Item)
-      found = {} of Char => Item
-      entries.each { |letter, item| found[letter] = item }
+    private def about(entries : Array({Char, Item})) : Hash(Char, Listing)
+      found = {} of Char => Listing
+      listings(entries).each { |listing| found[listing.key] = listing }
       found
     end
 
     # The same for a list whose rows are numbered rather than lettered.
-    private def about(items : Array(Item)) : Hash(Char, Item)
-      found = {} of Char => Item
-      items.each_with_index { |item, index| found[Widgets::Menu.letter index] = item }
+    private def about(items : Array(Item)) : Hash(Char, Listing)
+      found = {} of Char => Listing
+      items.each_with_index do |item, index|
+        letter = Widgets::Menu.letter index
+        found[letter] = Listing.new letter, item
+      end
       found
     end
 
@@ -1037,9 +1042,9 @@ module Roguelike::Ui
 
     # Asks which of *pile* to pick up.
     private def choose_from(pile : Array(Item)) : Nil
-      entries = pile.each_with_index.map do |item, index|
-        Widgets::Menu::Entry.new Widgets::Menu.letter(index), @game.name(item)
-      end
+      entries = listed(pile.map_with_index do |item, index|
+        Listing.new Widgets::Menu.letter(index), item
+      end)
 
       choose("Pick up what?", entries, about(pile)) do |key|
         next unless key
@@ -1085,7 +1090,7 @@ module Roguelike::Ui
     end
 
     # The same rows, by the letter each is carried under.
-    private def carried_about : Hash(Char, Item)
+    private def carried_about : Hash(Char, Listing)
       about @game.player.inventory.entries
     end
 
@@ -1093,13 +1098,57 @@ module Roguelike::Ui
     #
     # A person reading the list has to see which sword is in their hand.
     private def rows(entries : Array({Char, Item})) : Array(Widgets::Menu::Entry)
-      entries.map do |letter, _item|
-        slot = @game.slot_of letter
-        label = @game.name_under letter
-        label = "#{label} (#{slot.note})" if slot
+      listed listings entries
+    end
 
-        Widgets::Menu::Entry.new letter, label
+    # *entries* as listings: everything under each letter counted together,
+    # with the slot holding it.
+    private def listings(entries : Array({Char, Item})) : Array(Listing)
+      entries.map do |letter, item|
+        Listing.new letter, @game.carried(letter) || item, @game.slot_of(letter)
       end
+    end
+
+    # One row of a list of items: the key that picks it, what is on it, and
+    # the slot holding it.
+    record Listing, key : Char, item : Item, slot : Slot? = nil
+
+    # *listings* as menu rows.
+    #
+    # Each row is four pieces. The key picks it. The mark beside the key is
+    # the blessing, which is a column rather than a word at the front of the
+    # name, so a person reads down it. The count or the article sits in a
+    # field of its own, so the names line up whatever the counts are. The
+    # mark at the far edge is the slot the item is readied in, or that a
+    # light source is burning.
+    private def listed(listings : Array(Listing)) : Array(Widgets::Menu::Entry)
+      lore = @game.lore
+      leads = listings.map { |found| Naming.lead lore, found.item }
+      field = Math.max leads.max_of?(&.size) || 0, Naming::LEAD
+
+      listings.map_with_index do |found, index|
+        mark = Palette.blessing found.item
+        tail = Play.tail_of found.item, found.slot
+
+        Widgets::Menu::Entry.new found.key,
+          "#{leads[index].rjust field} #{Naming.listed lore, found.item}",
+          mark: mark.try(&.glyph) || ' ',
+          mark_style: mark.try(&.style),
+          tail: tail.try(&.glyph),
+          tail_style: tail.try(&.style)
+      end
+    end
+
+    # The mark at the far edge of a row, or `nil` for a row with none.
+    #
+    # The slot comes first. A lit torch readied in a hand is marked as the
+    # thing in the hand; there is one cell and the slot is what a person
+    # picking a row is choosing between.
+    def self.tail_of(item : Item, slot : Slot?) : Look?
+      return Palette.slot slot if slot
+      return Palette.burning if item.lit?
+
+      nil
     end
 
     # ------------------------------------------------------------- shooting
@@ -1524,10 +1573,9 @@ module Roguelike::Ui
 
     # Asks which of *held* to take off.
     private def choose_slot(held : Array({Slot, Item})) : Nil
-      entries = held.each_with_index.map do |(slot, item), index|
-        Widgets::Menu::Entry.new Widgets::Menu.letter(index),
-          "#{slot.label}: #{@game.name item}"
-      end
+      entries = listed(held.map_with_index do |(slot, item), index|
+        Listing.new Widgets::Menu.letter(index), item, slot
+      end)
 
       choose("Take off what?", entries, about(held.map &.[1])) do |key|
         next unless key
@@ -1579,8 +1627,8 @@ module Roguelike::Ui
     #
     # A row for a wall sconce is about no carried item, so it is left out and
     # the highlight on it hangs no box.
-    private def applying_about(found : Array(Apply)) : Hash(Char, Item)
-      detail = {} of Char => Item
+    private def applying_about(found : Array(Apply)) : Hash(Char, Listing)
+      detail = {} of Char => Listing
 
       found.each_with_index do |target, index|
         letter = target.letter
@@ -1589,7 +1637,9 @@ module Roguelike::Ui
         item = @game.player.inventory[letter]
         next unless item
 
-        detail[Widgets::Menu.letter index] = item
+        letter_of = Widgets::Menu.letter index
+        detail[letter_of] = Listing.new letter_of, item,
+          @game.slot_of(letter)
       end
 
       detail
@@ -1771,18 +1821,23 @@ module Roguelike::Ui
       # sidebar rows wrote down is dropped: they are behind the menu.
       if @menu.showing?
         @detailed = nil
+        @nearby.unmark
         return @pointer.away
       end
 
       # Every other modal box owns the screen the same way, and none of them
       # has a box of its own to keep up.
-      return pointer_away if modal?
+      if modal?
+        @nearby.unmark
+        return pointer_away
+      end
 
       # The sidebar rows have already had this event and written down what
       # the pointer is over. A row with something to say puts the box up and
       # takes the pointer off the map: the pointer is not on the map.
       found = @detailed
       @detailed = nil
+      @nearby.keep found ? found[0] : nil
       app = @app
 
       if found && app

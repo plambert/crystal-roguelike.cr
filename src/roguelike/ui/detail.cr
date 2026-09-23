@@ -21,7 +21,7 @@ module Roguelike::Ui
       item = game.player.in_slot slot
       return unless item
 
-      [slot.label] + about game, item
+      about game, item, slot: slot
     end
 
     # What to write about *item*.
@@ -31,13 +31,17 @@ module Roguelike::Ui
     # the room is a spear, and the notch in its blade and the curse on it
     # wait until somebody stands over it.
     def self.about(game : Game, item : Item,
-                   regard : Regard = Regard::Everything) : Array(String)
+                   regard : Regard = Regard::Everything,
+                   slot : Slot? = nil) : Array(String)
       name = game.name item, regard: regard
       return [name, TOO_FAR] unless regard.everything?
 
       lines = [name]
       kind = item.kind
 
+      lines << marked(Palette.slot(slot), slot.note) if slot
+      lines << blessing(item)
+      lines << marked(Palette.burning, Palette::LIT_WORD) if item.lit?
       lines.concat facts(item)
       lines << "weight #{item.weight}"
       lines << "cursed: it will not leave a slot" if item.blessing_known? && item.cursed?
@@ -77,6 +81,27 @@ module Roguelike::Ui
     # What to write about *terrain*.
     def self.about(terrain : Terrain) : Array(String)
       [terrain.label, terrain.description]
+    end
+
+    # The blessing, as the mark a list puts against the item and the word for
+    # it.
+    #
+    # Both, because the list has only the mark. A person reading the column
+    # has to be told somewhere which mark is which, and the box that hangs
+    # off a row is where.
+    #
+    # Uncursed has no mark, so that line is the word on its own.
+    private def self.blessing(item : Item) : String
+      word = Palette.blessing_word item
+      mark = Palette.blessing item
+      return word unless mark
+
+      marked mark, word
+    end
+
+    # *look* and *word*, the mark first.
+    private def self.marked(look : Look, word : String) : String
+      "#{look.glyph} #{word}"
     end
 
     # The lines about what the item does, which depend on what it is.

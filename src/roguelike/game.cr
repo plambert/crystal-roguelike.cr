@@ -250,10 +250,22 @@ module Roguelike
     # hidden curse is "15 arrows". The character cannot tell them apart, so
     # neither does the line that names them.
     def name_under(letter : Char) : String
-      item = @player.inventory[letter]
+      item = carried letter
       return "nothing" unless item
 
-      @lore.name item.with_count(@player.inventory.count letter)
+      @lore.name item
+    end
+
+    # Everything under *letter* as one item, counted together.
+    #
+    # A letter holding twelve arrows and three more that differ only in a
+    # hidden curse answers one stack of fifteen. What a list writes about the
+    # letter is written about this.
+    def carried(letter : Char) : Item?
+      item = @player.inventory[letter]
+      return unless item
+
+      item.with_count @player.inventory.count letter
     end
 
     # Adds *line* to the log.

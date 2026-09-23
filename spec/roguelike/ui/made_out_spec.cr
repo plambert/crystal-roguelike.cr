@@ -187,13 +187,17 @@ Spectator.describe "naming an item lying on the floor" do
       expect(looked_at run, HERE, 5).to eq "Here: a cursed -2 spear"
     end
 
+    # A menu row carries the curse as the mark beside the key rather than as
+    # a word in the name, so both halves of the row are read here.
     it "names what they are carrying in full in the pack menu" do
       run = hall APART, spear
       run.game.player.inventory.add spear
 
       run.press "i"
+      found = run.menu.entries.find &.text.includes?("spear")
 
-      expect(run.menu.entries.map &.text).to contain "a cursed -2 spear"
+      expect(found.try &.text).to eq " a -2 spear"
+      expect(found.try &.mark).to eq Roguelike::Ui::Palette::CURSED
     end
 
     it "names what they pick up in full in the menu that asks which" do
@@ -201,8 +205,10 @@ Spectator.describe "naming an item lying on the floor" do
       run.game.floor.drop HERE, 5, Item.new(Kind::Dagger)
 
       run.press ","
+      found = run.menu.entries.find &.text.includes?("spear")
 
-      expect(run.menu.entries.map &.text).to contain "a cursed -2 spear"
+      expect(found.try &.text).to eq " a -2 spear"
+      expect(found.try &.mark).to eq Roguelike::Ui::Palette::CURSED
     end
   end
 end

@@ -256,6 +256,101 @@ module Roguelike::Ui
       Look.new item ? self[item].glyph : BOLT, MISSILE
     end
 
+    # ---------------------------------------------------------------- marks
+
+    # The mark against an item the character knows is blessed or cursed.
+    #
+    # An item known to be uncursed has no mark. Most things are uncursed, and
+    # a column saying so down the side of a list says less than a blank does.
+    BLESSED = '\u2726'
+    CURSED  = '\u2718'
+
+    # The mark against an item whose blessing the character has not worked
+    # out.
+    UNKNOWN = '-'
+
+    # The word that goes with `UNKNOWN`, where a readout writes both.
+    UNKNOWN_WORD = "unknown"
+
+    # What each blessing mark is drawn in.
+    #
+    # None of the three is at full brightness. They sit in a column of their
+    # own and have only to be told from one another, and a bright column down
+    # the side of a list reads as an alarm.
+    BLESSED_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xD8)
+    CURSED_MARK  = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x80, 0x98)
+    UNKNOWN_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x78, 0x78, 0x7F)
+
+    # How the blessing of *item* is marked. `nil` for one known to be
+    # uncursed, which is marked with nothing.
+    def self.blessing(item : Item) : Look?
+      return Look.new UNKNOWN, UNKNOWN_MARK unless item.blessing_known?
+
+      case item.blessing
+      in .blessed?  then Look.new BLESSED, BLESSED_MARK
+      in .cursed?   then Look.new CURSED, CURSED_MARK
+      in .uncursed? then nil
+      end
+    end
+
+    # The word beside the mark, where a readout writes both.
+    def self.blessing_word(item : Item) : String
+      item.blessing_known? ? item.blessing.label : UNKNOWN_WORD
+    end
+
+    # The mark against an item the character has readied.
+    #
+    # One mark for all five worn slots. Which piece of armour a thing is, is
+    # written in the name beside it.
+    MELEE  = '\u2694'
+    RANGED = '\u27B6'
+    QUIVER = '\u27B7'
+    WORN   = '\u26CA'
+
+    # The mark against a light source that is burning.
+    LIT = '\u2055'
+
+    # The word beside `LIT`, where a readout writes both.
+    LIT_WORD = "burning"
+
+    # What a slot mark is drawn in.
+    #
+    # One colour for the whole column. The marks differ by shape; the colour
+    # is there to tell the column from the names beside it.
+    SLOT_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x88, 0xA8, 0x98)
+
+    # What the mark on a burning light source is drawn in.
+    LIT_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0xE4, 0xA8, 0x60)
+
+    # How *slot* is marked in a list.
+    def self.slot(slot : Slot) : Look
+      glyph = case slot
+              in .melee?                                   then MELEE
+              in .ranged?                                  then RANGED
+              in .quiver?                                  then QUIVER
+              in .head?, .body?, .hands?, .feet?, .shield? then WORN
+              end
+
+      Look.new glyph, SLOT_MARK
+    end
+
+    # How a burning light source is marked in a list.
+    def self.burning : Look
+      Look.new LIT, LIT_MARK
+    end
+
+    # What marks the row under the pointer, and what faces it from the far
+    # edge of the row.
+    #
+    # `POINTED` is the one character in the set a terminal font may not
+    # carry. A font without it draws a box, and the row is still marked by
+    # the arrow at the other end.
+    POINTER = '\u27A4'
+    POINTED = '\u2B9C'
+
+    # What both are drawn in.
+    POINTER_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0xA4, 0xB4)
+
     # What a creature nobody can see properly is drawn in.
     #
     # One colour for every species. A colour is as much a name as a letter

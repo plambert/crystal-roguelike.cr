@@ -54,6 +54,101 @@ Spectator.describe TermBuf::Widgets::Menu do
     Shown.new menu, session, chosen
   end
 
+  # A menu drawn twice. The first frame goes down before the list has the
+  # keyboard, and a list without it draws no highlight.
+  def lit(texts : Array(String)) : Shown
+    run = shown texts
+    run.session.render
+    run
+  end
+
+  # Whether the cell at *x*, *y* of the screen is drawn reversed.
+  def reversed?(run : Shown, x : Int32, y : Int32) : Bool
+    found = run.session.buffer.hit x, y
+    raise "nothing is drawn at #{x},#{y}" unless found
+
+    style = run.session.buffer.styles[found.cell.style]
+    style.attributes.includes? TermBuf::Attributes::Reverse
+  end
+
+  # One row of the box with the padding cell inside the border taken off, so
+  # the first character answered is the first character of the row.
+  def row(run : Shown, index : Int32) : String
+    rows(run)[index].lchop
+  end
+
+  # Where the first row's own first cell is on the screen, and which screen
+  # row it is. Past the left border and the padding cell inside it.
+  def first_row(run : Shown) : {Int32, Int32}
+    run.session.rows.each_with_index do |line, row|
+      found = line.index '│'
+      return {found + 2, row} if found
+    end
+
+    raise "the box is not on the screen"
+  end
+
+  describe "the marks on the highlighted row" do
+    it "puts the pointer at the near edge" do
+      run = lit ["a torch", "a dagger"]
+
+      expect(row(run, 0)).to start_with "\u27A4 a"
+    end
+
+    it "leaves the other rows unmarked" do
+      run = lit ["a torch", "a dagger"]
+
+      expect(row(run, 1)).to start_with "  b"
+    end
+
+    it "puts the facing mark at the far edge" do
+      run = lit ["a torch", "a dagger"]
+
+      expect(row(run, 0).rstrip).to end_with "\u2B9C"
+    end
+
+    it "moves both with the highlight" do
+      run = lit ["a torch", "a dagger"]
+      run.menu.list.select 1
+      run.session.render
+
+      expect(row(run, 0)).to start_with "  a"
+      expect(row(run, 1)).to start_with "\u27A4 b"
+    end
+  end
+
+  # The gutter carries the key and the mark, and the mark says what it says
+  # in its colour. Reversing it would invert that colour.
+  describe "what the highlight covers" do
+    it "covers the text" do
+      run = lit ["a torch"]
+      x, y = first_row run
+
+      expect(reversed?(run, x + Widgets::Menu::GUTTER, y)).to be_true
+    end
+
+    it "leaves the key alone" do
+      run = lit ["a torch"]
+      x, y = first_row run
+
+      expect(reversed?(run, x + Widgets::Menu::KEY, y)).to be_false
+    end
+
+    it "leaves the mark alone" do
+      run = lit ["a torch"]
+      x, y = first_row run
+
+      expect(reversed?(run, x + Widgets::Menu::MARK, y)).to be_false
+    end
+
+    it "leaves the space between the mark and the text alone" do
+      run = lit ["a torch"]
+      x, y = first_row run
+
+      expect(reversed?(run, x + Widgets::Menu::GUTTER - 1, y)).to be_false
+    end
+  end
+
   describe "the width of the box" do
     it "grows to hold its widest row" do
       run = shown ["a torch", "a blessed masterwork +3 chain mail"], columns: 80
@@ -158,7 +253,7 @@ Spectator.describe TermBuf::Widgets::Menu do
       run.menu.scroll_by 4
       run.session.render
 
-      expect(rows(run)[0].lstrip).to start_with "a - "
+      expect(rows(run)[0].lstrip).to start_with "\u27A4 a - "
     end
 
     it "stops at the end of the widest row" do

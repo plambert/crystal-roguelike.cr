@@ -6,16 +6,16 @@
                                                        │
                                                        │ Here
                                                        │ ──────────────────────
-                                                       │ staircase up
+                                                       │   staircase up
                                                        │
-                              ╭─ Inventory ──────╮     │ Seen
-        ╭───────────────────╮ │ a - a dagger     │     │ ──────────────────────
-        │ a dagger          │ │ b - 9 arrows     │     │ nothing
-        │ damage 1d4        │ ╰──────────────────╯     │
-        │ thrown 10 squares │                          │ Look
-        │ weight 10         │                          │ ──────────────────────
-        ╰───────────────────╯                          │ Point at the map, or
-                                                       │ press x.
+                              ╭─ Inventory ───────╮    │ Seen
+        ╭───────────────────╮ │ ➤ a -  a dagger ⮜ │    │ ──────────────────────
+        │ a dagger          │ │   b -  9 arrows   │    │   nothing
+        │ - unknown         │ ╰───────────────────╯    │
+        │ damage 1d4        │                          │ Look
+        │ thrown 10 squares │                          │ ──────────────────────
+        │ weight 10         │                          │ Point at the map, or
+        ╰───────────────────╯                          │ press x.
                                                        │
 ────────────────────────────────────────────────────────────────────────────────
  a - a dagger

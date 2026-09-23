@@ -333,6 +333,8 @@ Spectator.describe "wielding, wearing and taking off" do
   end
 
   describe "the inventory list" do
+    alias Palette = Roguelike::Ui::Palette
+
     it "marks what is in the hand" do
       run = carrying [Item.new Kind::LongSword]
 
@@ -340,7 +342,7 @@ Spectator.describe "wielding, wearing and taking off" do
       run.press "a"
       run.press "i"
 
-      expect(run.menu.entries.first.text).to contain "weapon in hand"
+      expect(run.menu.entries.first.tail).to eq Palette::MELEE
     end
 
     it "marks what is being worn" do
@@ -350,7 +352,7 @@ Spectator.describe "wielding, wearing and taking off" do
       run.press "a"
       run.press "i"
 
-      expect(run.menu.entries.first.text).to contain "being worn"
+      expect(run.menu.entries.first.tail).to eq Palette::WORN
     end
 
     it "marks nothing that is put away" do
@@ -358,7 +360,7 @@ Spectator.describe "wielding, wearing and taking off" do
 
       run.press "i"
 
-      expect(run.menu.entries.first.text).not_to contain "("
+      expect(run.menu.entries.first.tail).to be_nil
     end
   end
 

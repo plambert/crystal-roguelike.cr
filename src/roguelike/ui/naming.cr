@@ -55,6 +55,33 @@ module Roguelike::Ui
       ItemKind::Gold              => "gold",
     }
 
+    # How many cells the field in front of a name takes at the narrowest.
+    #
+    # Two holds "an" and a count up to ninety-nine. A list holding more of
+    # one thing than that widens the field for every row of itself, so the
+    # names go on lining up.
+    LEAD = 2
+
+    # What goes in that field: the count, the article, or nothing.
+    #
+    # Nothing for a kind that takes no article. "leather armour" is not "a
+    # leather armour", and the field stays blank rather than guessing at one.
+    def self.lead(lore : Lore, item : Item) : String
+      return item.count.to_s if item.count > 1
+      return "" if item.kind.uncountable?
+
+      Lore.article lore.noun_for(item, blessing: false)
+    end
+
+    # What *item* is called in a list: the whole name, with the count, the
+    # article and the blessing word all left out.
+    #
+    # The count and the article go in the field `.lead` fills. The blessing
+    # has a mark in a column of its own, so the word would say it twice.
+    def self.listed(lore : Lore, item : Item) : String
+      lore.noun_for item, blessing: false
+    end
+
     # What *item* is called, as *lore* knows it, short enough for a column.
     #
     #     14 +1 arrow

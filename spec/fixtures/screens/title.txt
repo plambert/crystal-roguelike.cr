@@ -6,11 +6,11 @@
                                                │
                                                │ Here
                                                │ ──────────────────────
-                                               │ staircase up
+                                               │   staircase up
                                                │
           ╭─ crystal-roguelike version       · seed 20260915 ─╮
-          │ a - new character                                 │────────
-          │ Q - quit                                          │
+          │ ➤ a - new character                             ⮜ │────────
+          │   Q - quit                                        │
           ╰───────────────────────────────────────────────────╯
                                                │ Look
                                                │ ──────────────────────

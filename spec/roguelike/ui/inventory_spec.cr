@@ -115,8 +115,8 @@ Spectator.describe "picking up and dropping" do
       run.press "i"
 
       expect(run.menu.showing?).to be_true
-      expect(run.menu.entries.map &.text).to contain "a dagger"
-      expect(run.menu.entries.map &.text).to contain "9 arrows"
+      expect(run.menu.entries.map &.text).to contain " a dagger"
+      expect(run.menu.entries.map &.text).to contain " 9 arrows"
     end
 
     it "closes on Escape" do

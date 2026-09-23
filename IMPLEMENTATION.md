@@ -2400,6 +2400,95 @@ copies of it would drift.
 that same one to `Game#regard_of` and `Game#regard_of_item`, because working a field of view out is
 most of what a turn costs and a pane draws twenty rows.
 
+## Marks instead of words in a list
+
+A pack listed as `a - a blessed masterwork +1 chain mail (being worn)` is hard to read down. The
+noun is never in the same place twice: the article, the count, the blessing, the condition and the
+enchantment all take turns going first, and the slot is a phrase at the end of a line of varying
+length. Picking the potions out of fifteen rows means reading fifteen rows.
+
+The words that always say one of a few things became marks in columns of their own.
+
+### The row
+
+```text
+➤ a ✦  a +1 short sword          ⚔ ⮜
+  b      masterwork chain mail   ⛊
+  c ✘ 23 +1 arrows               ➷
+  d -  a scroll labelled MUCK
+```
+
+Six cells of gutter: the pointer, the key, the blessing mark. Then a field holding the count or the
+article, right-aligned, so the nouns line up however many of a thing is carried. Then the name. Then
+the slot mark against the right edge, and the mark facing the pointer past it.
+
+The gutter does not scroll. A row scrolled sideways slides under it, so the key stays where a person
+reads it, and now the mark does too.
+
+### The marks
+
+| Mark | Codepoint | What it says |
+| --- | --- | --- |
+| `✦` | U+2726 | blessed |
+| `✘` | U+2718 | cursed |
+| `-` | U+002D | the blessing is not worked out |
+| | | uncursed, which is marked with nothing |
+| `⚔` | U+2694 | in the hand |
+| `➶` | U+27B6 | the ranged weapon in the hand |
+| `➷` | U+27B7 | in the quiver |
+| `⛊` | U+26CA | worn, in any of the five worn slots |
+| `⁕` | U+2055 | a light source that is burning |
+| `➤` | U+27A4 | the row the pointer or the highlight is on |
+| `⮜` | U+2B9C | the same row, from its far edge |
+
+Uncursed has no mark because most things are uncursed. A column that says so against every row says
+less than a blank column does.
+
+Every one of them is one cell wide. `⛊` is East Asian Ambiguous, so a terminal set to draw ambiguous
+characters in two cells draws it in two; termbuf's width policy is where that is told. `⚔` carries
+`Emoji=Yes` with a text default, so a font stack that substitutes a colour glyph draws it in two as
+well. `⮜` is the one character in the set that a terminal font may not carry at all, and a font
+without it draws a box; the row is still marked by the arrow at the other end.
+
+### Colours
+
+The marks are not at full brightness. They sit in columns and have only to be told from one another,
+and a bright column down the side of a list reads as an alarm.
+
+| What | Colour |
+| --- | --- |
+| blessed | `90B8D8` |
+| cursed | `C08098` |
+| not worked out | `78787F` |
+| every slot mark | `88A898` |
+| burning | `E4A860` |
+| the pointer and the mark facing it | `9AA4B4` |
+
+### What the highlight covers
+
+The text, and nothing else. The gutter carries the key and the blessing mark, and the blessing mark
+says what it says in its colour. Reversing it would invert that colour.
+
+### Where the marks are explained
+
+In the tooltip on the row. It writes the mark and the word for it — `✦ blessed`, `- unknown`,
+`⚔ weapon in hand`, `⁕ burning` — so a person who has read the column is told which mark is which
+without leaving the list. An uncursed item writes `uncursed` on its own, because it has no mark.
+
+### The Here and Seen rows
+
+The same two marks, on the row under the pointer. Those rows start `Line::INDENT` cells in, and the
+cells are kept clear whether or not a row is marked, so a row does not move sideways under the
+pointer. That costs two of the sidebar's columns, and a name long enough to be cut is cut two cells
+sooner than it was.
+
+The mark facing the pointer takes its cells from the text rather than from a reserved column, so a
+name already at the edge is cut two cells shorter while the pointer is on it. The tooltip is up at
+that moment and says the whole name.
+
+`NearbyPane` builds its rows afresh every turn. A rebuild takes the mark off, because the row it was
+on is gone.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
