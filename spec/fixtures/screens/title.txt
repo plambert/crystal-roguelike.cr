@@ -9,7 +9,7 @@
                                                │   staircase up
                                                │
           ╭─ crystal-roguelike version       · seed 20260915 ─╮
-          │ ➤ a - new character                             ⮜ │────────
+          │ ⟪ a - new character                             ⟫ │────────
           │   Q - quit                                        │
           ╰───────────────────────────────────────────────────╯
                                                │ Look

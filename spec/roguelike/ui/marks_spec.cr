@@ -55,18 +55,20 @@ Spectator.describe "the marks against a row of a list" do
       expect(pack(run).first.mark).to eq Palette::CURSED
     end
 
-    # Most things are uncursed. A column saying so against every row says
-    # less than a blank column does.
-    it "marks an uncursed item with nothing" do
+    # Most things are uncursed, so that mark is the faintest of the three.
+    it "marks an uncursed item" do
       run = carrying [sword Blessing::Uncursed]
 
-      expect(pack(run).first.mark).to eq ' '
+      expect(pack(run).first.mark).to eq Palette::UNCURSED
+      expect(pack(run).first.mark_style).to eq Palette::UNCURSED_MARK
     end
 
-    it "marks an item whose blessing is not worked out" do
+    # The blank is the question. Every item whose blessing is settled wears
+    # one of the three marks.
+    it "marks an item whose blessing is not worked out with nothing" do
       run = carrying [sword Blessing::Blessed, known: false]
 
-      expect(pack(run).first.mark).to eq Palette::UNKNOWN
+      expect(pack(run).first.mark).to eq ' '
     end
 
     # The mark replaces the word. Writing both would say it twice.
@@ -210,19 +212,28 @@ Spectator.describe "the marks against a row of a list" do
       expect(run.play.tooltip.written).to contain "#{Palette::CURSED} cursed"
     end
 
-    it "writes the word for an unworked-out blessing" do
+    # A blessing nobody has worked out has no mark, so the line is the word
+    # on its own.
+    it "writes the word alone for an unworked-out blessing" do
       run = carrying [sword Blessing::Blessed, known: false]
       run.press "i"
 
-      expect(run.play.tooltip.written).to contain "- unknown"
+      expect(run.play.tooltip.written).to contain "unknown"
     end
 
-    # Uncursed has no mark, so the line is the word on its own.
-    it "writes the word alone for an uncursed item" do
+    it "writes the mark and the word for an uncursed item" do
       run = carrying [sword Blessing::Uncursed]
       run.press "i"
 
-      expect(run.play.tooltip.written).to contain "uncursed"
+      expect(run.play.tooltip.written).to contain "#{Palette::UNCURSED} uncursed"
+    end
+
+    # The first line names the item. The blessing has a line of its own.
+    it "leaves the blessing out of the name" do
+      run = carrying [sword Blessing::Cursed]
+      run.press "i"
+
+      expect(run.play.tooltip.written.first).to eq "a short sword"
     end
 
     it "writes the slot mark and what the slot is" do

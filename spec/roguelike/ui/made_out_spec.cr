@@ -121,14 +121,14 @@ Spectator.describe "naming an item lying on the floor" do
       look = run.game.lore.appearance Kind::IdentifyScroll
 
       expect(in_sight run).to contain "a scroll"
-      expect(in_sight run).not_to contain "a scroll labelled #{look}"
+      expect(in_sight run).not_to contain "a scroll #{look}"
     end
 
     it "keeps the label on a scroll inside the reach" do
       run = hall NEAR, Item.new(Kind::IdentifyScroll)
       look = run.game.lore.appearance Kind::IdentifyScroll
 
-      expect(in_sight run).to contain "a scroll labelled #{look}"
+      expect(in_sight run).to contain "a scroll #{look}"
     end
   end
 

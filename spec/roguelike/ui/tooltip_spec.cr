@@ -106,7 +106,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
       point_at run, run.play.character.slot_row(Slot::Melee)
 
       expect(run.play.tooltip.written).to eq [
-        "a masterwork +1 long sword", "\u2694 weapon in hand", "- unknown",
+        "a masterwork +1 long sword", "\u2694 weapon in hand", "unknown",
         "damage 1d8+2", "thrown 8 squares", "weight 40",
       ]
     end
@@ -201,7 +201,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
 
       expect(run.play.tooltip.showing?).to be_true
       expect(run.play.tooltip.written).to eq [
-        "a masterwork +1 long sword", "\u2694 weapon in hand", "- unknown",
+        "a masterwork +1 long sword", "\u2694 weapon in hand", "unknown",
         "damage 1d8+2", "thrown 8 squares", "weight 40",
       ]
     end
@@ -348,7 +348,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
       point_at run, rows_of(run.nearby.here).last
 
       expect(run.play.tooltip.written).to eq [
-        "a long sword", "- unknown", "damage 1d8", "thrown 8 squares",
+        "a long sword", "unknown", "damage 1d8", "thrown 8 squares",
         "weight 40",
       ]
     end

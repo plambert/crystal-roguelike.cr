@@ -9,9 +9,9 @@
                                                        │   staircase up
                                                        │
                               ╭─ Inventory ───────╮    │ Seen
-        ╭───────────────────╮ │ ➤ a -  a dagger ⮜ │    │ ──────────────────────
-        │ a dagger          │ │   b -  9 arrows   │    │   nothing
-        │ - unknown         │ ╰───────────────────╯    │
+        ╭───────────────────╮ │ ⟪ a    a dagger ⟫ │    │ ──────────────────────
+        │ a dagger          │ │   b    9 arrows   │    │   nothing
+        │ unknown           │ ╰───────────────────╯    │
         │ damage 1d4        │                          │ Look
         │ thrown 10 squares │                          │ ──────────────────────
         │ weight 10         │                          │ Point at the map, or

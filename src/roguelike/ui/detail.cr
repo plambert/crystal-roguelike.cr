@@ -33,7 +33,9 @@ module Roguelike::Ui
     def self.about(game : Game, item : Item,
                    regard : Regard = Regard::Everything,
                    slot : Slot? = nil) : Array(String)
-      name = game.name item, regard: regard
+      # The blessing has a line of its own below, with the mark a list puts
+      # against the item. The name would say it a second time.
+      name = game.name item, regard: regard, blessing: false
       return [name, TOO_FAR] unless regard.everything?
 
       lines = [name]

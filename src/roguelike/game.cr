@@ -240,8 +240,12 @@ module Roguelike
     # *regard* says how well they have made it out. The default makes
     # everything out, which is what the pack and every menu mean: the
     # character is holding the thing.
-    def name(item : Item, regard : Regard = Regard::Everything) : String
-      @lore.name item, regard: regard
+    #
+    # *blessing* false leaves the blessing word out, for a readout that says
+    # it some other way.
+    def name(item : Item, regard : Regard = Regard::Everything,
+             blessing : Bool = true) : String
+      @lore.name item, blessing: blessing, regard: regard
     end
 
     # What everything under *letter* is called, counted together.

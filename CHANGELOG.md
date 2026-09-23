@@ -64,14 +64,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 ### Changed
 
 * A list of items carries its blessing as a mark beside the key rather than as a word in the name:
-  `✦` blessed, `✘` cursed, `-` not worked out yet, and nothing at all for uncursed. The slot an item
-  is readied in is a mark against the right edge — `⚔` in the hand, `➶` the ranged weapon, `➷` the
-  quiver, `⛊` worn — and `⁕` marks a light source that is burning. The count or the article sits in
-  a field of its own, so the names line up down the list. The tooltip on a row writes each mark and
-  the word for it.
-* The highlighted row of a menu is marked `➤` at its near edge and `⮜` at its far one, and the
-  highlight itself covers the name rather than the key and the mark beside it. The row of the `Here`
-  or `Seen` list under the pointer wears the same two marks.
+  `✦` blessed, `✘` cursed, `✓` uncursed, and nothing at all while nobody has worked it out. The slot
+  an item is readied in is a mark against the right edge — `⚔` in the hand, `➶` the ranged weapon,
+  `➷` the quiver, `⛊` worn — and `⁕` marks a light source that is burning. The count or the article
+  sits in a field of its own, so the names line up down the list. The tooltip on a row writes each
+  mark and the word for it, and its first line names the item without the blessing word.
+* The highlighted row of a menu is bracketed `⟪` and `⟫`, and the highlight itself covers the name
+  rather than the key and the mark beside it. The row of the `Here` or `Seen` list under the pointer
+  wears the same two marks.
+* A scroll nobody has read is "a scroll YLOH" rather than "a scroll labelled YLOH".
 * The character starts knowing their own kit is uncursed. The short sword, the leather armour, the
   torch and the spikes each read as uncursed from turn nothing rather than waiting on a handling
   roll.
@@ -98,8 +99,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `G` and a walked route are drawn one step at a time, at about the rate of a held movement key,
   rather than all at once. Any key stops a run in progress and does nothing else.
 * An item lying more than eight squares off is named by its kind in the `Look` readout and the
-  `Seen` list: "a spear" rather than "a cursed -2 spear", "a scroll" rather than "a scroll labelled
-  YLOH", "a potion" rather than "a swirly potion". Walking within eight squares of it names it in
+  `Seen` list: "a spear" rather than "a cursed -2 spear", "a scroll" rather than "a scroll YLOH",
+  "a potion" rather than "a swirly potion". Walking within eight squares of it names it in
   full from then on.
 
 ### Fixed

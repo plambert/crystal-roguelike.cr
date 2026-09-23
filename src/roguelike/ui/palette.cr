@@ -258,38 +258,36 @@ module Roguelike::Ui
 
     # ---------------------------------------------------------------- marks
 
-    # The mark against an item the character knows is blessed or cursed.
+    # The mark against an item whose blessing the character has worked out.
     #
-    # An item known to be uncursed has no mark. Most things are uncursed, and
-    # a column saying so down the side of a list says less than a blank does.
-    BLESSED = '\u2726'
-    CURSED  = '\u2718'
+    # An item they have not worked out has no mark. The blank is the question:
+    # every item whose blessing is settled carries one of these three.
+    BLESSED  = '\u2726'
+    CURSED   = '\u2718'
+    UNCURSED = '\u2713'
 
-    # The mark against an item whose blessing the character has not worked
-    # out.
-    UNKNOWN = '-'
-
-    # The word that goes with `UNKNOWN`, where a readout writes both.
+    # The word that goes with the blank, where a readout writes both.
     UNKNOWN_WORD = "unknown"
 
     # What each blessing mark is drawn in.
     #
     # None of the three is at full brightness. They sit in a column of their
     # own and have only to be told from one another, and a bright column down
-    # the side of a list reads as an alarm.
-    BLESSED_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xD8)
-    CURSED_MARK  = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x80, 0x98)
-    UNKNOWN_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x78, 0x78, 0x7F)
+    # the side of a list reads as an alarm. Uncursed is fainter still: most
+    # things are uncursed, and that column is there to be read past.
+    BLESSED_MARK  = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xD8)
+    CURSED_MARK   = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x80, 0x98)
+    UNCURSED_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x6A, 0x70, 0x7C)
 
-    # How the blessing of *item* is marked. `nil` for one known to be
-    # uncursed, which is marked with nothing.
+    # How the blessing of *item* is marked. `nil` for one the character has
+    # not worked out, which is marked with nothing.
     def self.blessing(item : Item) : Look?
-      return Look.new UNKNOWN, UNKNOWN_MARK unless item.blessing_known?
+      return unless item.blessing_known?
 
       case item.blessing
       in .blessed?  then Look.new BLESSED, BLESSED_MARK
       in .cursed?   then Look.new CURSED, CURSED_MARK
-      in .uncursed? then nil
+      in .uncursed? then Look.new UNCURSED, UNCURSED_MARK
       end
     end
 
@@ -339,14 +337,10 @@ module Roguelike::Ui
       Look.new LIT, LIT_MARK
     end
 
-    # What marks the row under the pointer, and what faces it from the far
-    # edge of the row.
-    #
-    # `POINTED` is the one character in the set a terminal font may not
-    # carry. A font without it draws a box, and the row is still marked by
-    # the arrow at the other end.
-    POINTER = '\u27A4'
-    POINTED = '\u2B9C'
+    # What marks the row under the pointer: one at the near edge and one at
+    # the far one. The pair brackets the row.
+    POINTER = '\u27EA'
+    POINTED = '\u27EB'
 
     # What both are drawn in.
     POINTER_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0xA4, 0xB4)

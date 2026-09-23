@@ -242,7 +242,7 @@ Spectator.describe Roguelike::Lore do
         look = lore.appearance Kind::IdentifyScroll
 
         expect(lore.name(Item.new(Kind::IdentifyScroll)))
-          .to eq "a scroll labelled #{look}"
+          .to eq "a scroll #{look}"
       end
 
       it "counts a stack of them" do

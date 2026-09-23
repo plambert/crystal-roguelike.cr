@@ -2185,7 +2185,7 @@ out, because working one out is most of what a turn costs and a pane asks this o
 `Lore#name` and `Ui::Naming.short` both take a regard, and both default to `Regard::Everything`.
 Nothing that names an item the character is holding passes one, so the pack, every menu and every
 message read as they always have. Anything short of `Regard::Everything` writes the kind and no
-more: "a spear" rather than "a cursed -2 spear", "a scroll" rather than "a scroll labelled YLOH",
+more: "a spear" rather than "a cursed -2 spear", "a scroll" rather than "a scroll YLOH",
 "a potion" rather than "a swirly potion". `Lore.bare_noun` is where that wording lives. A thing that
 is what it looks like keeps its own name, because a spear is a spear from any distance; a potion, a
 wand and a scroll are a bottle, a stick and a sheet until somebody is near enough to read them.
@@ -2412,10 +2412,10 @@ The words that always say one of a few things became marks in columns of their o
 ### The row
 
 ```text
-➤ a ✦  a +1 short sword          ⚔ ⮜
-  b      masterwork chain mail   ⛊
+⟪ a ✦  a +1 short sword          ⚔ ⟫
+  b ✓    masterwork chain mail   ⛊
   c ✘ 23 +1 arrows               ➷
-  d -  a scroll labelled MUCK
+  d      a scroll MUCK
 ```
 
 Six cells of gutter: the pointer, the key, the blessing mark. Then a field holding the count or the
@@ -2431,24 +2431,24 @@ reads it, and now the mark does too.
 | --- | --- | --- |
 | `✦` | U+2726 | blessed |
 | `✘` | U+2718 | cursed |
-| `-` | U+002D | the blessing is not worked out |
-| | | uncursed, which is marked with nothing |
+| `✓` | U+2713 | uncursed |
+| | | the blessing is not worked out, which is marked with nothing |
 | `⚔` | U+2694 | in the hand |
 | `➶` | U+27B6 | the ranged weapon in the hand |
 | `➷` | U+27B7 | in the quiver |
 | `⛊` | U+26CA | worn, in any of the five worn slots |
 | `⁕` | U+2055 | a light source that is burning |
-| `➤` | U+27A4 | the row the pointer or the highlight is on |
-| `⮜` | U+2B9C | the same row, from its far edge |
+| `⟪` | U+27EA | the near edge of the row the pointer or the highlight is on |
+| `⟫` | U+27EB | the far edge of that row |
 
-Uncursed has no mark because most things are uncursed. A column that says so against every row says
-less than a blank column does.
+The blank is the question. Every item whose blessing is settled wears one of the three marks, and
+uncursed is the faintest of them because most things are uncursed and the column is there to be read
+past.
 
 Every one of them is one cell wide. `⛊` is East Asian Ambiguous, so a terminal set to draw ambiguous
 characters in two cells draws it in two; termbuf's width policy is where that is told. `⚔` carries
 `Emoji=Yes` with a text default, so a font stack that substitutes a colour glyph draws it in two as
-well. `⮜` is the one character in the set that a terminal font may not carry at all, and a font
-without it draws a box; the row is still marked by the arrow at the other end.
+well.
 
 ### Colours
 
@@ -2459,7 +2459,7 @@ and a bright column down the side of a list reads as an alarm.
 | --- | --- |
 | blessed | `90B8D8` |
 | cursed | `C08098` |
-| not worked out | `78787F` |
+| uncursed | `6A707C` |
 | every slot mark | `88A898` |
 | burning | `E4A860` |
 | the pointer and the mark facing it | `9AA4B4` |
@@ -2471,9 +2471,13 @@ says what it says in its colour. Reversing it would invert that colour.
 
 ### Where the marks are explained
 
-In the tooltip on the row. It writes the mark and the word for it — `✦ blessed`, `- unknown`,
+In the tooltip on the row. It writes the mark and the word for it — `✦ blessed`, `✓ uncursed`,
 `⚔ weapon in hand`, `⁕ burning` — so a person who has read the column is told which mark is which
-without leaving the list. An uncursed item writes `uncursed` on its own, because it has no mark.
+without leaving the list. An item whose blessing nobody has worked out writes `unknown` on its own,
+because it has no mark.
+
+The first line of the tooltip names the item and leaves the blessing word out of the name. The line
+under it says the blessing. Writing both would say it twice.
 
 ### The Here and Seen rows
 

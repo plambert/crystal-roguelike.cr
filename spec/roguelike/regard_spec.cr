@@ -224,8 +224,9 @@ Spectator.describe "how well something is made out" do
 
     it "calls a scroll a scroll rather than what is written on it" do
       scroll = Item.new Kind::TeleportScroll
+      look = lore.appearance Kind::TeleportScroll
 
-      expect(lore.name scroll).to contain "labelled"
+      expect(lore.name scroll).to eq "a scroll #{look}"
       expect(lore.name scroll, regard: Regard::Kind).to eq "a scroll"
       expect(Naming.short lore, scroll, Regard::Kind).to eq "scroll"
     end

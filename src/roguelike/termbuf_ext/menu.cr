@@ -102,7 +102,7 @@ module TermBuf::Widgets
     # How many cells the pointer, the key and the mark take at the start of a
     # row.
     #
-    # `\u27A4 a - ` is six. The rows scroll under it and it does not move, so
+    # `\u27EA a - ` is six. The rows scroll under it and it does not move, so
     # the key a person has to press stays where they can read it.
     GUTTER = 6
 
@@ -143,8 +143,8 @@ module TermBuf::Widgets
     #
     # `nil` for either leaves that cell blank. The cells are kept clear
     # whether or not anything goes in them.
-    property pointer : Char? = '\u27A4'
-    property pointed : Char? = '\u2B9C'
+    property pointer : Char? = '\u27EA'
+    property pointed : Char? = '\u27EB'
 
     # What both marks are drawn in.
     property pointer_style : Style = Style::DEFAULT
@@ -435,7 +435,7 @@ module TermBuf::Widgets
       finish found.key
     end
 
-    # Draws one row as `\u27A4 a - what it is        \u2B9C`.
+    # Draws one row as `\u27EA a - what it is        \u27EB`.
     #
     # The text goes down first and everything else over it. A row scrolled
     # sideways slides its text under the gutter, so the key a person has to

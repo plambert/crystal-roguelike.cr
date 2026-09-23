@@ -92,7 +92,7 @@ Spectator.describe TermBuf::Widgets::Menu do
     it "puts the pointer at the near edge" do
       run = lit ["a torch", "a dagger"]
 
-      expect(row(run, 0)).to start_with "\u27A4 a"
+      expect(row(run, 0)).to start_with "\u27EA a"
     end
 
     it "leaves the other rows unmarked" do
@@ -104,7 +104,7 @@ Spectator.describe TermBuf::Widgets::Menu do
     it "puts the facing mark at the far edge" do
       run = lit ["a torch", "a dagger"]
 
-      expect(row(run, 0).rstrip).to end_with "\u2B9C"
+      expect(row(run, 0).rstrip).to end_with "\u27EB"
     end
 
     it "moves both with the highlight" do
@@ -113,7 +113,7 @@ Spectator.describe TermBuf::Widgets::Menu do
       run.session.render
 
       expect(row(run, 0)).to start_with "  a"
-      expect(row(run, 1)).to start_with "\u27A4 b"
+      expect(row(run, 1)).to start_with "\u27EA b"
     end
   end
 
@@ -253,7 +253,7 @@ Spectator.describe TermBuf::Widgets::Menu do
       run.menu.scroll_by 4
       run.session.render
 
-      expect(rows(run)[0].lstrip).to start_with "\u27A4 a - "
+      expect(rows(run)[0].lstrip).to start_with "\u27EA a - "
     end
 
     it "stops at the end of the widest row" do

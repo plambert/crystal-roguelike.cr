@@ -119,7 +119,7 @@ module Roguelike
     # *regard* says how well the character has made the item out. Anything
     # short of `Regard::Everything` writes the kind and no more: "a spear"
     # rather than "a cursed -2 spear", and "a scroll" rather than "a scroll
-    # labelled YLOH". The default makes everything out, so a caller that is
+    # YLOH". The default makes everything out, so a caller that is
     # not about distance writes what it has always written.
     def name(item : Item, blessing : Bool = true,
              identified : Bool = false,
@@ -166,7 +166,7 @@ module Roguelike
                case kind.item_class
                when .potion? then plural ? "#{look} potions" : "#{look} potion"
                when .wand?   then plural ? "#{look} wands" : "#{look} wand"
-               when .scroll? then plural ? "scrolls labelled #{look}" : "scroll labelled #{look}"
+               when .scroll? then plural ? "scrolls #{look}" : "scroll #{look}"
                else               plural ? kind.plural : kind.label
                end
              else
