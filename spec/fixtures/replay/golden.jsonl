@@ -1,4 +1,4 @@
-{"type":"header","format":1,"game_version":"0.1.0+g4fe68c3+","crystal_version":"1.21.0","seed":4271,"generate":true,"streams":{"generator":1,"litter":1,"loot":1,"ammunition":1,"lore":1,"combat":1,"handling":1,"use":1,"wander":1},"player":"tester","source":"human","started_at":"2026-09-24T23:13:24Z","turn":0,"log":["You are in a dungeon with a short sword, leather armour and a lit torch.","You carry three iron spikes. Press ? for the keys."],"state":"sha256:a4536f5d8f02ff12de5a182ca7299b97f892118efa18f05759ba098f682997b3"}
+{"type":"header","format":1,"game_version":"0.1.0+ga4f6224+","crystal_version":"1.21.0","seed":4271,"generate":true,"streams":{"generator":1,"litter":1,"loot":1,"ammunition":1,"lore":1,"combat":1,"handling":1,"use":1,"wander":1},"player":"tester","source":"human","started_at":"2026-09-24T23:51:28Z","turn":0,"log":["You are in a dungeon with a short sword, leather armour and a lit torch.","You carry three iron spikes. Press ? for the keys."],"state":"sha256:a4536f5d8f02ff12de5a182ca7299b97f892118efa18f05759ba098f682997b3"}
 {"type":"act","turn":1,"action":{"t":"remove","slot":"melee"}}
 {"type":"act","turn":2,"action":{"t":"move","dir":"e"}}
 {"type":"act","turn":3,"action":{"t":"move","dir":"se"}}
@@ -82,4 +82,4 @@
 {"type":"act","turn":80,"action":{"t":"wait"}}
 {"type":"act","turn":81,"action":{"t":"wait"}}
 {"type":"act","turn":82,"action":{"t":"drop","item":481}}
-{"type":"footer","turn":82,"outcome":"truncated","ending":"playing","ended_at":"2026-09-24T23:13:29Z"}
+{"type":"footer","turn":82,"outcome":"truncated","ending":"playing","ended_at":"2026-09-24T23:51:30Z"}

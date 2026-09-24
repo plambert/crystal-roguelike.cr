@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Records the replay under `spec/fixtures/replay` again.
+#
+# Run it after any change that moves `Game#fingerprint`, which is a change to
+# the generator, to a rule, or to anything the character is told. The actions
+# stay as they are and the fingerprints are written afresh.
+#
+#     script/record-golden
+
+set -e
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+exec crystal run --no-debug script/golden.cr -- "$root/spec/fixtures/replay/golden.jsonl"

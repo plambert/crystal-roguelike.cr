@@ -71,18 +71,11 @@ module Recording
 
   # The replay that ships with the specs.
   #
-  # It is recorded the first time it is wanted and checked into the
-  # repository. `replay verify` on it says that this build plays the run the
-  # file holds the same way the build that recorded it did.
-  #
-  # Delete the file and run the specs to record it again. A change to the
-  # generator, to a rule or to anything the character is told asks for that,
-  # because every one of the three is part of the fingerprint.
+  # Checking it says that this build plays the run the file holds the same
+  # way the build that recorded it did. `script/record-golden` records it
+  # again, which is what a change to the generator, to a rule or to anything
+  # the character is told asks for.
   def self.golden : Path
-    return GOLDEN if File.exists? GOLDEN
-
-    Dir.mkdir_p GOLDEN.parent.to_s
-    played GOLDEN.to_s, turns: 80
     GOLDEN
   end
 
