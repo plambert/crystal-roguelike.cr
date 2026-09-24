@@ -4,6 +4,7 @@ require "./apply"
 require "./combat"
 require "./costs"
 require "./effect"
+require "./event"
 require "./equipment"
 require "./field_of_view"
 require "./fingerprint"
@@ -125,6 +126,18 @@ module Roguelike
 
     # What has just happened.
     getter log : MessageLog
+
+    # What has just happened, as values.
+    #
+    # One event for every line `#say` wrote, oldest first. `#perform` empties
+    # the list before it dispatches, so this holds what one action did. A
+    # caller that reaches a rule without going through `#perform` sees the
+    # events pile up until the next one.
+    #
+    # It is not written out. A save holds where a run is rather than what the
+    # last action did.
+    @[JSON::Field(ignore: true)]
+    getter events : Array(Event) = [] of Event
 
     # What this run's items look like, and which of them the character has
     # found out.
@@ -277,9 +290,18 @@ module Roguelike
       item.with_count @player.inventory.count letter
     end
 
-    # Adds *line* to the log.
-    def say(line : String) : Nil
+    # Adds *line* to the log and *event* to `#events`.
+    #
+    # The event is kept whatever the log does with the line. `MessageLog#add`
+    # drops a line identical to the one before it, because a wall bumped ten
+    # times reads better as one line. Two bumps are still two things that
+    # happened, so both events are kept.
+    def say(line : String, event : Event? = nil) : Nil
       @log.add line
+      return unless event
+
+      event.text = line
+      @events << event
     end
 
     # Whether the run is over.
@@ -317,8 +339,12 @@ module Roguelike
       game.enrol
       # Two lines rather than one. The log pane is four rows of about eighty
       # columns, and one sentence saying all of this wraps onto two of them.
-      game.say "You are in a dungeon with a short sword, leather armour and a lit torch."
-      game.say "You carry three iron spikes. Press ? for the keys."
+      #
+      # They go to the log rather than through `#say`. Nothing has happened
+      # yet. The first line names what the character is holding, which the
+      # pack already lists, and the second is about the keyboard.
+      game.log.add "You are in a dungeon with a short sword, leather armour and a lit torch."
+      game.log.add "You carry three iron spikes. Press ? for the keys."
       game
     end
 
@@ -3793,6 +3819,7 @@ module Roguelike
     # person at the keyboard cannot reach another verb while the box is up,
     # and `#legal` offers a bot nothing else.
     def perform(action : Action) : Verdict
+      @events.clear
       return Verdict.refused if over?
 
       # There are four groups. Each group calls a `case` that covers its own
