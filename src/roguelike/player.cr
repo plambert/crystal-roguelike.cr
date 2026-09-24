@@ -94,9 +94,21 @@ module Roguelike
     # What the character remembers of the floor they are on.
     #
     # A floor they have not walked on yet gets an empty one, put in the table
-    # so that what they learn on it is kept.
+    # so that what they learn on it is kept. That is a change to the run, and
+    # `#memory` is written to the save, so only code that is about to write
+    # to the map calls this. Code that reads the map calls `#knowledge?`.
     def knowledge : Knowledge
       @memory[@floor] ||= Knowledge.new @floor
+    end
+
+    # What the character remembers of the floor they are on. `nil` for a
+    # floor they have never looked at.
+    #
+    # Nothing is put in the table. Reading the map leaves the run as it was,
+    # so two runs on one seed and one list of actions have the same
+    # fingerprint whether or not anything read the map.
+    def knowledge? : Knowledge?
+      @memory[@floor]?
     end
 
     # What the character remembers of the floor *id*. `nil` for one they have

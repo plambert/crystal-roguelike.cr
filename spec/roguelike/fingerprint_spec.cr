@@ -154,6 +154,36 @@ Spectator.describe Roguelike::Fingerprint do
     end
   end
 
+  describe "reading the map" do
+    it "leaves the fingerprint as it was" do
+      game = Game.dug Rng.new(SEED)
+      before = game.fingerprint
+
+      game.knowledge
+      game.route_to({1, 1})
+      game.way_to({1, 1})
+      game.remembered_stairs Roguelike::Terrain::StairsDown
+
+      expect(game.fingerprint).to eq before
+    end
+
+    it "puts no map in the save for a floor nobody has looked at" do
+      game = Game.dug Rng.new(SEED)
+
+      game.knowledge
+
+      expect(game.player.memory).to be_empty
+    end
+
+    it "answers the map the character keeps once they have looked" do
+      game = Game.dug Rng.new(SEED)
+
+      game.look
+
+      expect(game.knowledge).to be(game.player.knowledge)
+    end
+  end
+
   describe "drawing" do
     # A run drawn in a window, with its flames held still or wavering.
     def drawn(flicker : Bool) : Playing::Run

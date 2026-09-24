@@ -67,7 +67,7 @@ Spectator.describe "naming an item lying on the floor" do
 
     game = Roguelike::Game.new World.new(Playing::SEED, {floor.id => floor}),
       Player.new(floor.id, 1, 1)
-    game.knowledge.see floor, 11, 1, 0, regard
+    game.player.knowledge.see floor, 11, 1, 0, regard
 
     Playing.open game, 100, 40
   end

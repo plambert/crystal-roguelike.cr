@@ -1990,8 +1990,17 @@ module Roguelike
     end
 
     # What the character remembers of the floor they are on.
+    #
+    # An empty one for a floor they have never looked at. It is not kept.
+    # Every caller here reads the map and none of them writes to it.
+    # `Player#knowledge` is the one that keeps what it makes, and `#look` is
+    # the only thing that calls it.
+    #
+    # A kept empty map would be in the save and in the fingerprint. A verifier
+    # that read the map before the first `#look` would then answer a different
+    # fingerprint from the run it is checking, for no reason in the run.
     def knowledge : Knowledge
-      @player.knowledge
+      @player.knowledge? || Knowledge.new @player.floor
     end
 
     # The route the character would walk to reach *goal*.
