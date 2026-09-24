@@ -2127,8 +2127,8 @@ module Roguelike::Ui
     #
     # It goes to the log rather than through `Game#say`. Every line from here
     # is about the interface. A prompt, a refusal from a menu and a note that
-    # a save failed are none of them things that happened in the dungeon, and
-    # `Game#events` holds what happened in the dungeon.
+    # a save failed did not happen in the dungeon, and `Game#events` holds
+    # what happened in the dungeon.
     private def say(line : String) : Nil
       @game.log.add line
       refresh

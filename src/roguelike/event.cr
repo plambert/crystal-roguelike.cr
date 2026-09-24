@@ -16,10 +16,10 @@ module Roguelike
   # for that name.
   #
   # An event holds nothing the character cannot know. The line beside it is
-  # the bound: what the line says, the event may carry, and what the line
-  # leaves out the event leaves out. A creature the character cannot see is
-  # named by neither. Exact hit points are in neither. A potion the character
-  # has not made out gives its appearance in both.
+  # the bound. An event may carry what its line says. It leaves out what its
+  # line leaves out. A creature the character cannot see is named by neither.
+  # Exact hit points are in neither. A potion the character has not made out
+  # gives its appearance in both.
   #
   # An item or a creature is named by its id, which `Game#item` and
   # `Game#monster` read back. An inventory letter and a pile index are not
@@ -148,9 +148,9 @@ module Roguelike
 
     # One blow, landed or missed.
     #
-    # *attacker* and *target* are `nil` for the character. *with* is what
-    # struck: the readied weapon for a swing, the arrow or the bolt for a
-    # shot. It is `nil` for a creature's own claws and for bare hands.
+    # *attacker* and *target* are `nil` for the character. *with* names what
+    # struck. It is the readied weapon for a swing and the arrow or the bolt
+    # for a shot. It is `nil` for a creature's own claws and for bare hands.
     #
     # *damage* is what the blow took off. It is `nil` for a miss. How much
     # the target has left is not here. A creature's hit points are hidden.
@@ -638,7 +638,7 @@ module Roguelike
     # A band that has noticed the character.
     #
     # *creature* and *species* name the one that noticed, when the character
-    # can see it. Both are `nil` when they only heard it.
+    # can see it. Both are `nil` when the character only heard it.
     class Noticed < Event
       getter kind : String = "noticed"
 
@@ -661,8 +661,8 @@ module Roguelike
 
     # What a scroll of blessing or of remove curse changed.
     #
-    # *curse* true is a curse lifted. False is a blessing laid on. *item* and
-    # *name* are set where one thing was changed.
+    # *curse* true is a curse lifted. *curse* false is a blessing laid on.
+    # *item* and *name* are set where one thing was changed.
     class Anointed < Event
       getter kind : String = "anointed"
 
