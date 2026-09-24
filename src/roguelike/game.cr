@@ -2134,6 +2134,10 @@ module Roguelike
     end
 
     # Picks up everything on the square. Answers how many entries were taken.
+    #
+    # This is not in the `Action` union and does not belong there. An action
+    # is one turn. Picking up three items takes three turns, so this is three
+    # actions. A bot and a replay log use three `Action::PickUp` instead.
     def pick_up_all : Int32
       taken = 0
 
@@ -2171,6 +2175,9 @@ module Roguelike
     end
 
     # Puts *amount* gold pieces on the floor. Answers how many went.
+    #
+    # This is one turn, so it could be an action. It is not in the `Action`
+    # union because no key binds it and nothing needs it yet.
     def drop_gold(amount : Int32) : Int32
       dropped = @player.spend_gold amount
       return 0 if dropped.zero?
