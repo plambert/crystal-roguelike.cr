@@ -268,6 +268,22 @@ Spectator.describe Roguelike::Action do
       end
     end
 
+    # This is what `Game#start_reading` already said: the two halves hold
+    # nothing between them. A run written out with the question up has spent
+    # the scroll and the turn and has given up what the second half would
+    # have done. Moving the scroll onto `Game#asking` did not change it.
+    it "gives the question up when the run is written out and read back" do
+      game = waiting
+      expect(game.asking).not_to be_nil
+      spent = game.turn
+
+      back = copy game
+
+      expect(back.asking).to be_nil
+      expect(back.turn).to eq spent
+      expect(back.perform(Action::Choose.new('a')).refused?).to be_true
+    end
+
     it "refuses the wrong kind of answer to a waiting scroll" do
       game = waiting
       before = state game
