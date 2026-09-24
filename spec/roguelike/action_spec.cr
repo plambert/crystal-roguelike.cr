@@ -182,6 +182,14 @@ Spectator.describe Roguelike::Action do
   end
 
   describe "#legal" do
+    it "offers the same list against a field of view already worked out" do
+      game = stocked
+      game.floor.place Monster.new(Species::Goblin, 6, 2, "band-one")
+
+      expect(game.legal(game.sight).map &.to_json)
+        .to eq game.legal.map(&.to_json)
+    end
+
     it "offers every verb the run allows" do
       game = stocked
       game.floor.place Monster.new(Species::Goblin, 6, 2, "band-one")

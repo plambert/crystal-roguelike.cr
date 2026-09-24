@@ -4314,27 +4314,37 @@ module Roguelike
     # into a shut door. Walking into a wall spends no turn, so it is not on
     # the list.
     def legal : Array(Action)
+      legal sight
+    end
+
+    # :ditto:, against a field of view that has already been worked out.
+    #
+    # Working out a field of view is most of what a turn on a large floor
+    # costs. A client that asks for the legal actions and for an observation
+    # in the same breath works one out and passes it to both, the way
+    # `#monsters_in_sight` and `Observation.of` already take one.
+    def legal(seen : Vision) : Array(Action)
       found = [] of Action
       return found if over?
 
       # Answering a scroll that is waiting is the only thing there is to do.
       # `bots/PROTOCOL.md` section 4.5 asks for that.
       scroll = @asking
-      return answers scroll if scroll
+      return answers scroll, seen if scroll
 
       legal_moving found
       legal_floor found
-      legal_carried found
+      legal_carried found, seen
       legal_readied found
       found
     end
 
     # The answers the waiting scroll will take.
-    private def answers(scroll : Item) : Array(Action)
+    private def answers(scroll : Item, seen : Vision) : Array(Action)
       found = [] of Action
 
       if scroll.kind.effect.aims_after?
-        monsters_in_sight.each { |creature| found << Action::Aim.new creature.at }
+        monsters_in_sight(seen).each { |creature| found << Action::Aim.new creature.at }
         found << Action::Aim.new
         return found
       end
@@ -4388,8 +4398,8 @@ module Roguelike
     end
 
     # What the pack offers, letter by letter.
-    private def legal_carried(found : Array(Action)) : Nil
-      aims = monsters_in_sight.map &.at
+    private def legal_carried(found : Array(Action), seen : Vision) : Nil
+      aims = monsters_in_sight(seen).map &.at
       readable = cannot_read.nil?
       aims.each { |spot| found << Action::Fire.new spot } if cannot_fire.nil?
 
