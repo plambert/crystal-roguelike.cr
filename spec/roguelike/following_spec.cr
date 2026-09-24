@@ -140,7 +140,7 @@ Spectator.describe "walking a route" do
       expect(went.halt).to eq Halt::Arrived
     end
 
-    it "does not stop a run for one either" do
+    it "does not stop a walk for one either" do
       game, _dagger = littered
       went = game.run Direction::East
 

@@ -464,8 +464,8 @@ Spectator.describe Roguelike::Action do
       expect(state routed).to eq state direct
     end
   end
-  describe "a run" do
-    # A run is not an action of its own. Every step of one is an action.
+  describe "a walk" do
+    # A walk is not an action of its own. Every step of one is an action.
     # Each step has to reach the entry point a key press reaches. A replay
     # would otherwise record a walk as nothing at all, and the character would
     # be somewhere else on playback.
@@ -482,7 +482,7 @@ Spectator.describe Roguelike::Action do
         .to eq [Direction::East]
     end
 
-    it "leaves the character where the run took them" do
+    it "leaves the character where the walk took them" do
       game = hall
       start = game.player.at
 

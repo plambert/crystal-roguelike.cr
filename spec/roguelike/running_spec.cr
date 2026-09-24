@@ -216,7 +216,7 @@ Spectator.describe "running" do
 
     # A creature already in sight when the walk starts does not stop it. A walk
     # could not be started at all otherwise.
-    it "runs past a creature that was in sight before the first step" do
+    it "walks past a creature that was in sight before the first step" do
       game = walking
       game.floor.place Monster.new(Species::Slime, 12, 2, "band-one")
 
@@ -264,7 +264,7 @@ Spectator.describe "running" do
       expect(reasons.last).to eq Halt::Over
     end
 
-    it "runs the same way twice from the same seed" do
+    it "walks the same way twice from the same seed" do
       first = walking
       again = walking
 
@@ -351,7 +351,7 @@ Spectator.describe "running" do
     # A walk in one direction reaches the edge of a floor on its own, so this
     # is a guard rather than a rule anybody meets. The room is longer than
     # the guard allows.
-    it "stops a run that would otherwise go on" do
+    it "stops a walk that would otherwise go on" do
       long = ["#" * (Game::FURTHEST + 6)]
       long << "#<" + ("." * (Game::FURTHEST + 3)) + "#"
       long << "#" * (Game::FURTHEST + 6)

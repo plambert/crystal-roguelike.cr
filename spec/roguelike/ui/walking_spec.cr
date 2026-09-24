@@ -89,8 +89,8 @@ Spectator.describe "a run drawn a step at a time" do
     end
   end
 
-  describe "a key pressed while a run is going" do
-    it "stops the run" do
+  describe "a key pressed while a walk is going" do
+    it "stops the walk" do
       run = walking
 
       run.press "G", "l"
@@ -100,7 +100,7 @@ Spectator.describe "a run drawn a step at a time" do
       expect(run.play.walking?).to be_false
     end
 
-    it "leaves the character where the run had got to" do
+    it "leaves the character where the walk had got to" do
       run = walking
 
       run.press "G", "l"
@@ -159,7 +159,7 @@ Spectator.describe "a run drawn a step at a time" do
 
   # The pane and the walk both push a focus scope. Only one of them may have
   # one up at a time, or the one underneath can never take its own away.
-  describe "messages piling up during a run" do
+  describe "messages piling up during a walk" do
     # A hall with something lying on every square the walk crosses, all of it
     # already on the character's map. Each square writes a line and none of
     # them stops the walk.
@@ -176,7 +176,7 @@ Spectator.describe "a run drawn a step at a time" do
       run
     end
 
-    it "holds nothing while the run is going" do
+    it "holds nothing while the walk is going" do
       run = littered
 
       run.press "G", "l"
@@ -190,7 +190,7 @@ Spectator.describe "a run drawn a step at a time" do
       expect(run.pager.holding?).to be_false
     end
 
-    it "holds once the run is over" do
+    it "holds once the walk is over" do
       run = littered
 
       run.press "G", "l"

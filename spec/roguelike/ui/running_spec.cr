@@ -35,7 +35,7 @@ Spectator.describe "running from the keyboard" do
       expect(run.at).to eq({1, 2})
     end
 
-    it "runs the direction that is pressed next" do
+    it "walks the direction that is pressed next" do
       run = walking
 
       run.press "G", "l"
@@ -54,7 +54,7 @@ Spectator.describe "running from the keyboard" do
       expect(run.map.highlights).to be_empty
     end
 
-    it "takes the whole run in one press" do
+    it "takes the whole walk in one press" do
       run = walking
       before = run.turn
 
@@ -63,7 +63,7 @@ Spectator.describe "running from the keyboard" do
       expect(run.turn).to eq before + 7
     end
 
-    it "forgets the run on Escape" do
+    it "forgets the walk on Escape" do
       run = walking
 
       run.press "G"
@@ -74,7 +74,7 @@ Spectator.describe "running from the keyboard" do
       expect(run.at).to eq({2, 2})
     end
 
-    it "moves the camera to where the run ended" do
+    it "moves the camera to where the walk ended" do
       run = walking ["#" * 90, "#<" + ("." * 87) + "#", "#" * 90]
 
       run.press "G", "l"
@@ -83,7 +83,7 @@ Spectator.describe "running from the keyboard" do
       expect(run.map.screen_of *run.at).not_to be_nil
     end
 
-    it "draws the character where the run ended" do
+    it "draws the character where the walk ended" do
       run = walking
 
       run.press "G", "l"
@@ -95,8 +95,8 @@ Spectator.describe "running from the keyboard" do
     end
 
     # The examine cursor takes a movement key before the character does, so a
-    # run started while it is up would move the cursor instead.
-    it "runs rather than moving the examine cursor" do
+    # walk started while it is up would move the cursor instead.
+    it "walks rather than moving the examine cursor" do
       run = walking
 
       run.press "x"
@@ -105,7 +105,7 @@ Spectator.describe "running from the keyboard" do
       expect(run.at).to eq({8, 2})
     end
 
-    it "says why a run that goes nowhere went nowhere" do
+    it "says why a walk that goes nowhere went nowhere" do
       run = walking
 
       run.press "G", "k"
