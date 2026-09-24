@@ -5,6 +5,7 @@ require "./costs"
 require "./effect"
 require "./equipment"
 require "./field_of_view"
+require "./fingerprint"
 require "./flight"
 require "./floors"
 require "./generator"
@@ -281,6 +282,15 @@ module Roguelike
     # Whether the run is over.
     def over? : Bool
       @outcome.over?
+    end
+
+    # What this run is, as one string. See `Fingerprint`.
+    #
+    # The same state answers the same string in every process, so a replay is
+    # checked by comparing this turn by turn, and two runs that part company
+    # say which turn they parted on.
+    def fingerprint : String
+      Fingerprint.of self
     end
 
     # A new run on *rng*, played on *ground*.
