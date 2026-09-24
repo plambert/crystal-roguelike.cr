@@ -746,7 +746,7 @@ module Roguelike
       found
     end
 
-    # No square worth forgiving. What the game holds while nothing is running.
+    # No square worth forgiving. What the game holds while no walk is going.
     NO_PILES = Set({Int32, Int32}).new
 
     # Says why a walk went nowhere.

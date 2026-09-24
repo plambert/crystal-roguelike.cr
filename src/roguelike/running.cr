@@ -34,7 +34,7 @@ module Roguelike
     Spent
 
     # The route ran out. The character is standing on the square they picked.
-    # Only `Game#follow` answers this: a walk in a direction has no end to
+    # Only `Game#follow` answers this. A walk in a direction has no end to
     # reach.
     Arrived
   end

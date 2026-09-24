@@ -4,13 +4,13 @@ module Roguelike::Ui
     Open
     Close
 
-    # `G`, running that way until something is worth stopping for.
+    # `G`, walking that way until something is worth stopping for.
     Run
 
     # The terrain this command acts on. Every square holding it beside the
     # character is an answer, and the map lights those squares up.
     #
-    # `nil` for a command that takes any direction. Running takes all eight,
+    # `nil` for a command that takes any direction. A walk takes all eight,
     # so lighting up the ones it would take would light up the whole ring.
     def terrain : Terrain?
       case self

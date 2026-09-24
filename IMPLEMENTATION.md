@@ -1076,7 +1076,7 @@ Everything asked for in the basic game, against the phase that delivers it.
 | Flicker | 15 |
 | Line of sight and lit areas seen at a distance | 12, 13 |
 | Movement seen against a light source | 15 |
-| Movement: `hjkl`, `yubn`, and running | 5, 23 |
+| Movement: `hjkl`, `yubn`, and walking | 5, 23 |
 | Pick up and drop | 10 |
 | Wield and wear weapons, armour, wands, ammunition | 11 |
 | Gold | 10 |
