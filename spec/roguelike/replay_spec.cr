@@ -101,6 +101,27 @@ Spectator.describe Roguelike::Replay do
     end
   end
 
+  describe "a run the seed does not rebuild" do
+    # A character carried on from a save starts from a state that is not a
+    # function of the seed. The header carries the state itself for that
+    # run. This one reaches the same place by hurting the character before
+    # the first action.
+    it "carries the whole run in the header, and verifies" do
+      where = spot "carried"
+
+      Recording.recording where do
+        game = Game.dug Rng.new(Recording::SEED)
+        game.player.name = "carried"
+        game.player.hurt 3
+        6.times { game.perform Roguelike::Action::Wait.new }
+        game
+      end
+
+      expect(Recording.read(where).header.run).not_to be_nil
+      expect(Verifier.check(where).trouble).to be_nil
+    end
+  end
+
   describe "a run played at the keyboard" do
     it "verifies" do
       where = spot "keys"
