@@ -492,6 +492,23 @@ Spectator.describe Roguelike::Action do
       expect(game.turn).to eq walk.steps
     end
 
+    # The guard is what keeps `#perform` from ever refusing the move inside
+    # `#stride`, which is what lets the step be taken out of the verdict
+    # without a fallback.
+    it "takes no step once the run is over" do
+      game = stocked
+      game.perform Action::Ascend.new
+      expect(game.over?).to be_true
+      at = game.player.at
+      turn = game.turn
+
+      walk = game.running Direction::East
+
+      expect(game.stride walk).to be_false
+      expect(game.player.at).to eq at
+      expect(game.turn).to eq turn
+    end
+
     it "counts a route the same way" do
       game = hall
       route = [{1, 1}, {2, 1}, {3, 1}, {4, 1}]

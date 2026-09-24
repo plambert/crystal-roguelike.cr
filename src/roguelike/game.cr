@@ -618,7 +618,12 @@ module Roguelike
     # Everything one step needs to know about the step before it is on the
     # walk. Nothing about it is kept on the game, so a walk that is abandoned
     # part way leaves nothing behind.
+    #
+    # A run that is over takes no step. The character being killed by the
+    # blow that answered the last one ends it, the same way `#wait` takes no
+    # turn once they are dead.
     def stride(walk : Walk) : Bool
+      return false if over?
       return false if walk.over?
 
       direction = heading walk
@@ -638,8 +643,16 @@ module Roguelike
       # macro is logged as the primitive actions it expands into. `#perform`
       # is where a replay log and a bot watch, so a run that reached `#step`
       # behind their back would replay as a character standing still.
+      #
+      # The verdict always carries a step. A move is the one action nothing
+      # refuses, and the only thing `#perform` would refuse it for is a run
+      # that is over, which the guard at the top of this method has already
+      # answered. Taking the step out with `as` rather than falling back on
+      # nil means a refusal that ever did reach here raises, instead of
+      # reading as "did not move" and putting a wrong `Halt::Blocked` on the
+      # walk.
       before = Watch.on self, walk.seen
-      unless perform(Action::Move.new(direction)).step.try &.moved?
+      unless perform(Action::Move.new(direction)).step.as(Step).moved?
         walk.halt = Halt::Blocked
         return false
       end
@@ -3726,9 +3739,21 @@ module Roguelike
     # keep.
     #
     # It is not in the save, the way the creature being fought and the
-    # missile in flight are not. A run saved with the question up has spent
-    # the scroll and the turn and has given up what the second half would
-    # have done. `#start_reading` says so.
+    # missile in flight are not, and it stays out of it for three reasons.
+    # The behaviour is older than this field: `#start_reading` already says a
+    # run saved with the question up has spent the scroll and the turn and
+    # has given up what the second half would have done. An `Item` written
+    # out from both the inventory and this field would come back as two
+    # objects rather than one, so serializing it would trade a lost scroll
+    # for an aliasing bug. And the fix that would work is to hold the letter
+    # rather than the item and to answer the question before the file is
+    # written, which is a change a player would notice.
+    #
+    # Four places can write a save while a question is up, all through
+    # `Ui::Play#keep`: naming the character, `Q`, `>` and `<`. The targeting
+    # cursor is not modal, so the last three are reachable with a read-aim on
+    # screen. Only the ending screen answers the question first, through
+    # `Ui::Play#stop_aiming`. Whoever takes this on starts at those four.
     @[JSON::Field(ignore: true)]
     getter asking : Item? = nil
 
