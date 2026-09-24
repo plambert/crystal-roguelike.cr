@@ -1443,6 +1443,7 @@ module Roguelike
     # action gets one tick of world, which is one action from every awake
     # creature at normal speed.
     private def spend(cost : Int32) : Nil
+      clear_bearers
       @player.pace.spend cost
 
       until @player.pace.ready? || over?
@@ -3878,7 +3879,52 @@ module Roguelike
 
     # The next id, taken. Ids start at one, so zero means no id.
     def next_id : Int32
+      clear_bearers
       @minted += 1
+    end
+
+    # The item or the creature under each id, or `nil` when it has to be
+    # built again.
+    #
+    # It is not written out. It is a second reading of what the run already
+    # holds, and a save that held it could disagree with itself.
+    @[JSON::Field(ignore: true)]
+    @bearers : Hash(Int32, Item | Monster)? = nil
+
+    # :ditto:, built if it is not there.
+    #
+    # `#each_bearer` is one pass over the world, with a sort per floor. The
+    # index turns K lookups in a turn into one pass rather than K.
+    private def bearers : Hash(Int32, Item | Monster)
+      found = @bearers
+      return found if found
+
+      built = {} of Int32 => Item | Monster
+      each_bearer { |thing| built[thing.id] = thing unless thing.id.zero? }
+      @bearers = built
+    end
+
+    # Throws the index away. The next lookup builds it again.
+    #
+    # Three things call this, and between them they cover every way the run
+    # gains, loses or moves something with an id.
+    #
+    # * `#spend`, which every verb that changes anything goes through. A verb
+    #   that takes no time changes nothing that has an id. The creatures act
+    #   inside `#spend` as well, and a creature that picks something up or
+    #   dies moves items.
+    # * `#next_id`, which is the only way an id is given out. Splitting one
+    #   arrow off a stack takes an id, and so does anything the debug console
+    #   makes.
+    # * `#perform`, once the action is over. Nothing outside this class
+    #   reaches a rule any other way, so this covers a verb this list has
+    #   missed.
+    #
+    # Nothing in this class looks an id up, so an index built part way
+    # through an action cannot be read before one of the three throws it
+    # away.
+    private def clear_bearers : Nil
+      @bearers = nil
     end
 
     # Gives an id to everything in the run that has none.
@@ -3900,6 +3946,7 @@ module Roguelike
     def enrol : Nil
       each_bearer { |thing| @minted = Math.max @minted, thing.id }
       each_bearer { |thing| thing.enrol next_id if thing.id.zero? }
+      clear_bearers
     end
 
     # The item under the id *id*, or `nil` when nothing in the run has it.
@@ -3909,26 +3956,14 @@ module Roguelike
     def item(id : Int32) : Item?
       return if id.zero?
 
-      each_bearer do |thing|
-        next unless thing.id == id
-
-        return thing if thing.is_a? Item
-      end
-
-      nil
+      bearers[id]?.as? Item
     end
 
     # The creature under the id *id*, or `nil` when none in the run has it.
     def monster(id : Int32) : Monster?
       return if id.zero?
 
-      each_bearer do |thing|
-        next unless thing.id == id
-
-        return thing if thing.is_a? Monster
-      end
-
-      nil
+      bearers[id]?.as? Monster
     end
 
     # Everything in the run that has an id, in a fixed order.
@@ -4023,6 +4058,7 @@ module Roguelike
 
       recording
       verdict = dispatched action
+      clear_bearers
       @recorder.try &.act action unless verdict.refused?
       verdict
     end

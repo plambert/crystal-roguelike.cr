@@ -183,6 +183,87 @@ Spectator.describe "entity ids" do
     end
   end
 
+  # `Game#item` and `Game#monster` answer out of an index rather than by
+  # walking the run. An index that is out of step would answer with something
+  # that has been drunk, merged away or killed, which is worse than the walk
+  # it replaces. Every example here moves something and then asks.
+  describe "the index behind #item and #monster" do
+    alias Action = Roguelike::Action
+
+    # A run with a potion lying under the character's feet.
+    def stocked : Game
+      game = Game.dug Rng.new(SEED)
+      potion = Item.new Kind::HealingPotion
+      potion.enrol game.next_id
+      game.floor.drop game.player.x, game.player.y, potion
+      game
+    end
+
+    it "finds an item in the pack after it was picked up" do
+      game = stocked
+      potion = game.floor.items(game.player.x, game.player.y).first
+
+      expect(game.item potion.id).to be potion
+      game.perform Action::PickUp.new(potion.id)
+
+      expect(game.item(potion.id)).to be potion
+      expect(game.floor.items(game.player.x, game.player.y)).to be_empty
+    end
+
+    it "finds an item on the floor after it was dropped" do
+      game = Game.dug Rng.new(SEED)
+      carried = game.player.inventory.items.map(&.[1]).find! &.kind.spike?
+      game.perform Action::Drop.new(carried.id)
+
+      expect(game.item carried.id).to be carried
+      expect(game.floor.items(game.player.x, game.player.y)).to contain carried
+    end
+
+    it "answers nothing for a potion that has been drunk" do
+      game = stocked
+      potion = game.floor.items(game.player.x, game.player.y).first
+      game.perform Action::PickUp.new(potion.id)
+      game.perform Action::Quaff.new(potion.id)
+
+      expect(game.item potion.id).to be_nil
+    end
+
+    it "answers nothing for a pile that was merged away" do
+      game = Game.dug Rng.new(SEED)
+      letter = game.player.inventory.add Item.new(Kind::Arrow, count: 3)
+      kept = letter ? game.player.inventory[letter] : nil
+      raise "no arrows" unless kept
+      kept.enrol game.next_id
+
+      more = Item.new Kind::Arrow, count: 2
+      more.enrol game.next_id
+      game.floor.drop game.player.x, game.player.y, more
+      game.perform Action::PickUp.new(more.id)
+
+      expect(game.item more.id).to be_nil
+      expect(game.item(kept.id).try &.count).to eq 5
+    end
+
+    it "answers nothing for a creature that has been killed" do
+      game = Game.dug Rng.new(SEED)
+      creature = game.floor.monsters.values.first
+      game.floor.remove creature.x, creature.y
+      game.wait
+
+      expect(game.monster creature.id).to be_nil
+    end
+
+    it "gives out the same ids however many times it was asked" do
+      one = Game.dug Rng.new(SEED)
+      two = Game.dug Rng.new(SEED)
+      ids(two).each { |id| two.item id }
+      two.wait
+      ids(two).each { |id| two.monster id }
+
+      expect(named two).to eq named(one)
+    end
+  end
+
   describe "a pile that splits" do
     # The part that stays in the pack keeps the id. The character goes on
     # naming their arrows. A bot that recorded which pile it fires from must
