@@ -2340,7 +2340,8 @@ module Roguelike
     # Drinks what is under *letter*. Answers whether it went down.
     def quaff(letter : Char) : Bool
       use letter, ItemClass::Potion, "drink" do |item|
-        say "You drink #{name item}."
+        say "You drink #{name item}.",
+          Event::Used.new(item.id, name(item), :drink)
       end
     end
 
@@ -2364,12 +2365,13 @@ module Roguelike
     def read(letter : Char, choice : Char? = nil) : Bool
       complaint = cannot_read
       if complaint
-        say complaint
+        say complaint, Event::Refused.new(:too_dark)
         return false
       end
 
       use letter, ItemClass::Scroll, "read", choice do |item|
-        say "You read #{name item}."
+        say "You read #{name item}.",
+          Event::Used.new(item.id, name(item), :read)
       end
     end
 
@@ -2429,7 +2431,7 @@ module Roguelike
     def start_reading(letter : Char) : Item?
       complaint = cannot_read
       if complaint
-        say complaint
+        say complaint, Event::Refused.new(:too_dark)
         return
       end
 
@@ -2441,7 +2443,8 @@ module Roguelike
       @player.equipment.clean @player.inventory
 
       used.reveal_blessing unless used.blessing.uncursed?
-      say "You read #{name used}."
+      say "You read #{name used}.",
+        Event::Used.new(used.id, name(used), :read)
       found_out used.kind
       mark_for used
       spend_turn
@@ -2468,7 +2471,7 @@ module Roguelike
     def start_aiming_read(letter : Char) : Item?
       complaint = cannot_read
       if complaint
-        say complaint
+        say complaint, Event::Refused.new(:too_dark)
         return
       end
 
@@ -2480,7 +2483,8 @@ module Roguelike
       @player.equipment.clean @player.inventory
 
       used.reveal_blessing unless used.blessing.uncursed?
-      say "You read #{name used}."
+      say "You read #{name used}.",
+        Event::Used.new(used.id, name(used), :read)
       found_out used.kind
       spend_turn
       used
@@ -2509,29 +2513,34 @@ module Roguelike
       return false unless item
 
       unless item.kind.item_class.wand?
-        say "You cannot zap #{name item}."
+        say "You cannot zap #{name item}.",
+          Event::Refused.new(:not_a_wand, item: item.id, name: name(item))
         return false
       end
 
       if dormant? item
-        say "#{name(item).capitalize} is cracked and does nothing."
+        say "#{name(item).capitalize} is cracked and does nothing.",
+          Event::Refused.new(:wand_cracked, item: item.id, name: name(item))
         return false
       end
 
       if item.sticks? && free_hand.nil?
         item.reveal_blessing
-        say "Neither hand is free."
+        say "Neither hand is free.",
+          Event::Refused.new(:hands_full, item: item.id, name: name(item))
         return false
       end
 
       unless item.spend
-        say "You zap #{name item}. Nothing happens."
+        say "You zap #{name item}. Nothing happens.",
+          Event::Used.new(item.id, name(item), :zap, spent: true)
         cool item
         spend_turn
         return true
       end
 
-      say "You zap #{name item}."
+      say "You zap #{name item}.",
+        Event::Used.new(item.id, name(item), :zap)
       work item.kind.effect, item, target: target
       found_out item.kind
       grasp letter, item
@@ -2579,7 +2588,10 @@ module Roguelike
     private def noticed(letter : Char, item : Item) : Nil
       return unless item.reveal_blessing
 
-      Game.worked_out(@lore, item).try { |line| say line }
+      Game.worked_out(@lore, item).try do |line|
+        say line, Event::BlessingKnown.new(item.id,
+          @lore.name(item, blessing: false), item.blessing.label)
+      end
       settle letter, item
     end
 
@@ -2623,7 +2635,8 @@ module Roguelike
 
       rest.each { |one| floor.drop @player.x, @player.y, one }
       @player.equipment.clean @player.inventory
-      say "You have no letter left to keep them apart, and put the rest down."
+      say "You have no letter left to keep them apart, and put the rest down.",
+        Event::Spilled.new(rest.map(&.id))
     end
 
     # ---------------------------------------------------------- cursed wands
@@ -2669,7 +2682,8 @@ module Roguelike
       item.reveal_blessing
       @player.equipment.clear slot
       @player.equipment.put slot, letter
-      say "#{name(item).capitalize} twists into your hand."
+      say "#{name(item).capitalize} twists into your hand.",
+        Event::Grasped.new(item.id, name(item), slot)
     end
 
     # Takes the curse off a wand that has nothing left.
@@ -2680,7 +2694,8 @@ module Roguelike
       return unless item.sticks? && item.spent?
       return unless item.uncurse
 
-      say "#{name(item).capitalize} goes cold and lets go."
+      say "#{name(item).capitalize} goes cold and lets go.",
+        Event::Uncursed.new(item.id, name(item))
     end
 
     # Rolls whether the wand in the hand cracks on this swing.
@@ -2690,7 +2705,8 @@ module Roguelike
       return unless draught.rand(100) < BRITTLE
       return unless item.crack
 
-      say "#{name(item).capitalize} cracks."
+      say "#{name(item).capitalize} cracks.",
+        Event::Cracked.new(item.id, name(item))
     end
 
     # Uses one of what is under *letter*, which has to be of *item_class*.
@@ -2703,7 +2719,8 @@ module Roguelike
       return false unless item
 
       unless item.kind.item_class == item_class
-        say "You cannot #{verb} #{name item}."
+        say "You cannot #{verb} #{name item}.",
+          Event::Refused.new(:wrong_kind, item: item.id, name: name(item))
         return false
       end
 
@@ -2733,7 +2750,7 @@ module Roguelike
                      choice : Char? = nil,
                      target : {Int32, Int32}? = nil) : Nil
       case effect
-      in .none?            then say "Nothing happens."
+      in .none?            then nothing_happens
       in .heal?            then mend item
       in .identify?        then name_one choice
       in .map_floor?       then map_the_floor
@@ -2753,13 +2770,20 @@ module Roguelike
       end
     end
 
+    # An item whose effect is nothing at all.
+    private def nothing_happens : Nil
+      say "Nothing happens.", Event::Fizzled.new(:no_effect)
+    end
+
     # Passes one turn of anything that cannot see.
     #
     # The character is told when their sight comes back. A creature is not:
     # what a creature can see is its own business, and the character has no
     # way to tell one that is blind from one that is looking elsewhere.
     private def blink : Nil
-      say "You can see again." if @player.blink
+      if @player.blink
+        say "You can see again.", Event::StatusEnd.new(:blind)
+      end
 
       floor.each_monster { |_column, _row, creature| creature.blink }
     end
