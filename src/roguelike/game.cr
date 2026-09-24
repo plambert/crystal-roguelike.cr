@@ -301,6 +301,16 @@ module Roguelike
       return unless event
 
       event.text = line
+      record event
+    end
+
+    # Adds *event* to `#events` with no line beside it.
+    #
+    # Two endings use this. Climbing out and reaching the staircase down both
+    # end the run and write nothing to the log. `bots/PROTOCOL.md` section 5.2
+    # asks for one event per ending, and a client that saw two of the three
+    # would have to work the third out from the outcome.
+    private def record(event : Event) : Nil
       @events << event
     end
 
@@ -528,13 +538,13 @@ module Roguelike
       if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
         floor.set wanted[0], wanted[1], Terrain::OpenDoor
         handled wanted
-        say "You open the door."
+        say "You open the door.", Event::Door.new(wanted, open: true)
         spend_turn
         return Step::Opened
       end
 
       unless floor.passable? wanted[0], wanted[1]
-        say blocked_by direction
+        refuse_step direction
         return Step::Blocked
       end
 
@@ -778,13 +788,15 @@ module Roguelike
     private def refuse_run(direction : Direction) : Nil
       wanted = direction.from @player.x, @player.y
       creature = floor.monster wanted[0], wanted[1]
-      return say blocked_by direction unless creature
+      return refuse_step direction unless creature
 
       unless can_see_creature? wanted[0], wanted[1]
-        return say "There is something in the way."
+        return say "There is something in the way.",
+          Event::Blocked.new(direction, unseen: true)
       end
 
-      say "The #{creature.label} is in the way."
+      say "The #{creature.label} is in the way.",
+        Event::Blocked.new(direction, creature: creature.id)
     end
 
     # Whether the square one step *direction* stops a walk.
@@ -917,18 +929,24 @@ module Roguelike
       @player.knowledge.touch floor, spot[0], spot[1], @turn
     end
 
-    # What to say about a step that did not happen.
-    private def blocked_by(direction : Direction) : String
+    # Says why a step did not happen.
+    private def refuse_step(direction : Direction) : Nil
       stopped = blocking direction
-      return "You cannot go that way." unless stopped
+      unless stopped
+        return say "You cannot go that way.", Event::Blocked.new(direction)
+      end
 
-      "The #{stopped.label} blocks your way."
+      say "The #{stopped.label} blocks your way.",
+        Event::Blocked.new(direction, terrain: stopped.label)
     end
 
     # Says what the character has walked onto, when it is worth saying.
     private def arrived : Nil
       ground = standing_on
-      say "There is #{ground.description} here." if ground.stairs?
+      if ground.stairs?
+        say "There is #{ground.description} here.",
+          Event::Ground.new(@player.at, ground.label)
+      end
 
       take_coins
       take_ammunition
@@ -952,10 +970,15 @@ module Roguelike
       known = pile_in_mind?
       before = @log.size
 
+      # The whole pile either way. The character is standing on it, so they
+      # can pick any of it up, and the pane beside the map lists all of it.
+      found = Event::Pile.new @player.at,
+        pile.map { |item| Event::Thing.new item.id, name(item) }
+
       if pile.size == 1
-        say "You see #{name pile.first} here."
+        say "You see #{name pile.first} here.", found
       else
-        say "There are #{pile.size} things here."
+        say "There are #{pile.size} things here.", found
       end
 
       if known
@@ -1016,12 +1039,16 @@ module Roguelike
       blow = Combat.swing exchange, @player.to_hit,
         creature.armour_class, @player.damage
 
+      weapon = swung_with
       if blow.hit?
         creature.hurt blow.damage
-        say "You hit the #{creature.label} for #{blow.damage}."
+        say "You hit the #{creature.label} for #{blow.damage}.",
+          Event::Attack.new(true, target: creature.id, damage: blow.damage,
+            with: weapon)
         kill creature unless creature.alive?
       else
-        say "You miss the #{creature.label}."
+        say "You miss the #{creature.label}.",
+          Event::Attack.new(false, target: creature.id, with: weapon)
       end
 
       jar
@@ -1044,10 +1071,19 @@ module Roguelike
       creature.drop_everything.each do |item|
         floor.drop creature.x, creature.y, item
       end
-      say "You kill the #{creature.label}."
+      say "You kill the #{creature.label}.",
+        Event::Slain.new(creature.id, creature.label)
 
       gained = @player.gain creature.species.experience
-      say "Welcome to level #{@player.level}." if gained > 0
+      return unless gained > 0
+
+      say "Welcome to level #{@player.level}.",
+        Event::LevelUp.new(@player.level)
+    end
+
+    # What the character is swinging with. `nil` for bare hands.
+    private def swung_with : String?
+      @player.wielded.try { |item| name item }
     end
 
     # ------------------------------------------------------------- shooting
@@ -1057,16 +1093,27 @@ module Roguelike
     # `Play` asks this before it puts the targeting cursor up, so a person
     # with an empty quiver is told at once and spends no turn finding out.
     def cannot_fire : String?
+      firing_fault.try &.first
+    end
+
+    # Why the character cannot shoot, as a line and as a reason. `nil` when
+    # they can.
+    private def firing_fault : {String, Event::Refused::Reason}?
       ranged_weapon = @player.ranged_weapon
       unless ranged_weapon && ranged_weapon.kind.item_class.ranged_weapon?
-        return "You have nothing readied to shoot with."
+        return {"You have nothing readied to shoot with.",
+                Event::Refused::Reason::NothingReadied}
       end
 
       ammunition = @player.quivered
-      return "Your quiver is empty." unless ammunition
+      unless ammunition
+        return {"Your quiver is empty.",
+                Event::Refused::Reason::QuiverEmpty}
+      end
       return if ammunition.kind.ranged_weapon == ranged_weapon.kind
 
-      "You cannot shoot #{name ammunition} from #{name ranged_weapon}."
+      {"You cannot shoot #{name ammunition} from #{name ranged_weapon}.",
+       Event::Refused::Reason::WrongAmmunition}
     end
 
     # How far the readied ranged weapon shoots. Zero when nothing is readied.
@@ -1090,9 +1137,9 @@ module Roguelike
     # shot stopped on, hit or miss.
     def fire(target : {Int32, Int32}) : Bool
       @in_flight = nil
-      complaint = cannot_fire
-      if complaint
-        say complaint
+      fault = firing_fault
+      if fault
+        say fault[0], Event::Refused.new(fault[1])
         return false
       end
 
@@ -1109,7 +1156,8 @@ module Roguelike
       one = draw_one letter
       return false unless one
 
-      say "You shoot #{name one}."
+      say "You shoot #{name one}.",
+        Event::Loosed.new(one.id, name(one), target, thrown: false)
       loose one, target, ranged_weapon.kind.reach, bonus, damage
       true
     end
@@ -1125,12 +1173,14 @@ module Roguelike
       slot = slot_of letter
       if slot && item.sticks?
         item.reveal_blessing
-        say "You cannot let go of #{name item}."
+        say "You cannot let go of #{name item}.",
+          Event::Refused.new(:cursed, item: item.id, name: name(item))
         return false
       end
 
       if slot && slot.armour?
-        say "You have to take #{name item} off first."
+        say "You have to take #{name item} off first.",
+          Event::Refused.new(:worn, item: item.id, name: name(item))
         return false
       end
 
@@ -1141,7 +1191,8 @@ module Roguelike
       one = draw_one letter
       return false unless one
 
-      say "You throw #{name one}."
+      say "You throw #{name one}.",
+        Event::Loosed.new(one.id, name(one), target, thrown: true)
       loose one, target, reach, bonus, damage
       true
     end
@@ -1184,10 +1235,13 @@ module Roguelike
 
       if blow.hit?
         creature.hurt blow.damage
-        say "The #{noun} hits the #{creature.label} for #{blow.damage}."
+        say "The #{noun} hits the #{creature.label} for #{blow.damage}.",
+          Event::Attack.new(true, target: creature.id, damage: blow.damage,
+            with: noun)
         kill creature unless creature.alive?
       else
-        say "The #{noun} misses the #{creature.label}."
+        say "The #{noun} misses the #{creature.label}.",
+          Event::Attack.new(false, target: creature.id, with: noun)
       end
 
       wake creature if creature.alive?
@@ -1354,20 +1408,24 @@ module Roguelike
 
       if blow.hit?
         @player.hurt blow.damage
-        say "The #{creature.label} hits you for #{blow.damage}."
-        character_died creature.label unless @player.alive?
+        say "The #{creature.label} hits you for #{blow.damage}.",
+          Event::Attack.new(true, attacker: creature.id, damage: blow.damage)
+        character_died creature unless @player.alive?
       else
-        say "The #{creature.label} misses you."
+        say "The #{creature.label} misses you.",
+          Event::Attack.new(false, attacker: creature.id)
       end
 
       blow
     end
 
-    # Ends the run. *killer* is what did it.
-    private def character_died(killer : String) : Nil
+    # Ends the run. *killer* is the creature that did it.
+    private def character_died(killer : Monster) : Nil
       @outcome = Outcome::Died
-      @killer = killer
-      say "You die..."
+      @killer = killer.label
+      say "You die...",
+        Event::Over.new(@outcome, killer: killer.id,
+          killer_species: killer.label)
     end
 
     # Takes one turn for what the character just did.
@@ -1476,8 +1534,13 @@ module Roguelike
       dragging = @player.pace.dragging?
       @player.pace.pass
 
-      say "You slow down again." if hurried && !@player.pace.hurried?
-      say "Your feet come free." if dragging && !@player.pace.dragging?
+      if hurried && !@player.pace.hurried?
+        say "You slow down again.", Event::StatusEnd.new(:hurried)
+      end
+
+      if dragging && !@player.pace.dragging?
+        say "Your feet come free.", Event::StatusEnd.new(:dragging)
+      end
 
       floor.each_monster { |_column, _row, creature| creature.pace.pass }
     end
@@ -1504,7 +1567,7 @@ module Roguelike
           woke = band.awareness.asleep?
           band.awareness = Awareness::Hunting
           band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
-          say noticed(creature, seen) if woke
+          say_noticed creature, seen if woke
         elsif band.awareness.hunting?
           # It knows where the character was and cannot see them now. It
           # walks there, and gives up when the trail is cold enough.
@@ -1657,14 +1720,17 @@ module Roguelike
       found
     end
 
-    # What to say when a band wakes up.
+    # Says that a band has woken up.
     #
     # A creature the character can see is named. One they cannot is not: the
     # character has heard something move and does not know what it was.
-    private def noticed(creature : Monster, seen : Vision) : String
-      return "You hear something stir." unless seen.shows? floor, creature.x, creature.y
+    private def say_noticed(creature : Monster, seen : Vision) : Nil
+      unless seen.shows? floor, creature.x, creature.y
+        return say "You hear something stir.", Event::Noticed.new
+      end
 
-      "The #{creature.label} notices you."
+      say "The #{creature.label} notices you.",
+        Event::Noticed.new(creature.id, creature.label)
     end
 
     # Wakes the band *creature* belongs to.
@@ -1683,7 +1749,8 @@ module Roguelike
       return unless band.awareness.asleep?
 
       band.awareness = Awareness::Hunting
-      say "The #{creature.label} notices you."
+      say "The #{creature.label} notices you.",
+        Event::Noticed.new(creature.id, creature.label)
     end
 
     # The generator for the next swing.
@@ -1743,13 +1810,13 @@ module Roguelike
     def open(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
       unless floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
-        say "There is nothing to open that way."
+        say "There is nothing to open that way.", Event::Refused.new(:no_door)
         return false
       end
 
       floor.set wanted[0], wanted[1], Terrain::OpenDoor
       handled wanted
-      say "You open the door."
+      say "You open the door.", Event::Door.new(wanted, open: true)
       spend_turn
       true
     end
@@ -1761,40 +1828,46 @@ module Roguelike
     def close(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
       unless floor.tile?(wanted[0], wanted[1]).try &.terrain.open_door?
-        say "There is nothing to close that way."
+        say "There is nothing to close that way.", Event::Refused.new(:no_door)
         return false
       end
 
       blocked = doorway_blocked wanted
       if blocked
-        say blocked
+        say blocked[0], blocked[1]
         return false
       end
 
       floor.set wanted[0], wanted[1], Terrain::ClosedDoor
       handled wanted
-      say "You close the door."
+      say "You close the door.", Event::Door.new(wanted, open: false)
       spend_turn
       true
     end
 
-    # Why the door on *spot* will not shut. `nil` when nothing stops it.
+    # Why the door on *spot* will not shut, as a line and as an event. `nil`
+    # when nothing stops it.
     #
     # A creature standing in the doorway is named when the character can see
     # it. One they cannot see is not: they have pushed the door against
     # something and do not know what. Anything lying on the square stops the
     # door the same way.
-    private def doorway_blocked(spot : {Int32, Int32}) : String?
+    private def doorway_blocked(spot : {Int32, Int32}) : {String, Event}?
       creature = floor.monster spot[0], spot[1]
       if creature
-        return "There is something in the doorway." unless can_see_creature? spot[0], spot[1]
+        unless can_see_creature? spot[0], spot[1]
+          return {"There is something in the doorway.",
+                  Event::Refused.new(:doorway_creature)}
+        end
 
-        return "The #{creature.label} is in the doorway."
+        return {"The #{creature.label} is in the doorway.",
+                Event::Refused.new(:doorway_creature, creature: creature.id)}
       end
 
       return unless floor.items? spot[0], spot[1]
 
-      "Something is lying in the doorway."
+      {"Something is lying in the doorway.",
+       Event::Refused.new(:doorway_items)}
     end
 
     # Every direction holding a door of *terrain*.
@@ -2063,6 +2136,7 @@ module Roguelike
       return false unless standing_on.stairs_down?
 
       @outcome = Outcome::Won
+      record Event::Over.new(@outcome)
       true
     end
 
@@ -2074,6 +2148,7 @@ module Roguelike
       return false unless standing_on.stairs_up?
 
       @outcome = Outcome::Left
+      record Event::Over.new(@outcome)
       true
     end
 
