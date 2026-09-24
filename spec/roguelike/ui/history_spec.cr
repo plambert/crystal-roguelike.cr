@@ -9,7 +9,7 @@ Spectator.describe "the box of messages" do
   def talkative(count : Int32 = 40) : Playing::Run
     run = Playing.open
     run.clear_monsters
-    count.times { |number| run.game.say "Something number #{number} happened." }
+    count.times { |number| run.game.log.add "Something number #{number} happened." }
     run.play.refresh
     run.render
 
@@ -74,9 +74,9 @@ Spectator.describe "the box of messages" do
     # A message longer than the box is a message with its end missing.
     it "wraps a message rather than cutting it" do
       run = Playing.open
-      run.game.say "A single message that runs on far past the width of the " \
-                   "box it is shown in, and then some more besides, so that " \
-                   "it cannot fit on one row however wide the window is."
+      run.game.log.add "A single message that runs on far past the width of the " \
+                       "box it is shown in, and then some more besides, so that " \
+                       "it cannot fit on one row however wide the window is."
       run.play.refresh
 
       run.press "Ctrl+P"

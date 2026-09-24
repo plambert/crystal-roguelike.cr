@@ -61,7 +61,7 @@ Spectator.describe "when a run is written to the store" do
     def carried_on(lines : Int32 = 40) : Playing::Run
       store = Playing.store
       first = playing store
-      lines.times { |written| first.game.say "Line number #{written}." }
+      lines.times { |written| first.game.log.add "Line number #{written}." }
       first.play.keep
 
       later = Playing.open nil, 80, 24, store: store

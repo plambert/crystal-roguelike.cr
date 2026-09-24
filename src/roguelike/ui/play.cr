@@ -601,7 +601,7 @@ module Roguelike::Ui
       store.retire @game.player.name, @game.outcome
       @retired = true
     rescue error : File::Error | IO::Error | ArgumentError
-      @game.say "The game could not be saved: #{error.message}"
+      @game.log.add "The game could not be saved: #{error.message}"
     end
 
     # Puts every message of the run up, or takes the box down.
@@ -2124,8 +2124,13 @@ module Roguelike::Ui
     end
 
     # Adds *line* to the log.
+    #
+    # It goes to the log rather than through `Game#say`. Every line from here
+    # is about the interface. A prompt, a refusal from a menu and a note that
+    # a save failed are none of them things that happened in the dungeon, and
+    # `Game#events` holds what happened in the dungeon.
     private def say(line : String) : Nil
-      @game.say line
+      @game.log.add line
       refresh
     end
   end

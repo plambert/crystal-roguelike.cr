@@ -76,8 +76,8 @@ Spectator.describe "the message log" do
 
     it "wraps a message longer than the pane" do
       run = Playing.open columns: 40, rows: 20
-      run.game.say "A single message that runs on far past the width of a " \
-                   "pane only forty columns across."
+      run.game.log.add "A single message that runs on far past the width of a " \
+                       "pane only forty columns across."
       run.play.refresh
       run.render
 
@@ -88,7 +88,7 @@ Spectator.describe "the message log" do
     # without a pager.
     it "holds at a page boundary when a burst arrives" do
       run = Playing.open
-      6.times { |number| run.game.say "Something number #{number} happened." }
+      6.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
 
@@ -98,7 +98,7 @@ Spectator.describe "the message log" do
 
     it "shows the rest on a key" do
       run = Playing.open
-      6.times { |number| run.game.say "Something number #{number} happened." }
+      6.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
 
@@ -112,7 +112,7 @@ Spectator.describe "the message log" do
     it "swallows the key that clears it" do
       run = Playing.open
       start = run.at
-      8.times { |number| run.game.say "Something number #{number} happened." }
+      8.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
 
@@ -159,7 +159,7 @@ Spectator.describe "the message log" do
     it "gives the keys back once the reading is done" do
       run = Playing.open
       start = run.at
-      6.times { |number| run.game.say "Something number #{number} happened." }
+      6.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
 
@@ -179,7 +179,7 @@ Spectator.describe "the message log" do
     def talkative(count : Int32 = 12) : Playing::Run
       run = Playing.open
       run.clear_monsters
-      count.times { |number| run.game.say "Something number #{number} happened." }
+      count.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
 
@@ -232,7 +232,7 @@ Spectator.describe "the message log" do
   describe "drawn" do
     it "draws what it drew last time with a page held" do
       run = Playing.open
-      6.times { |number| run.game.say "Something number #{number} happened." }
+      6.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       drawn = run.text
 

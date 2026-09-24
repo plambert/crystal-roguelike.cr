@@ -296,10 +296,8 @@ module Roguelike
     # drops a line identical to the one before it, because a wall bumped ten
     # times reads better as one line. Two bumps are still two things that
     # happened, so both events are kept.
-    def say(line : String, event : Event? = nil) : Nil
+    def say(line : String, event : Event) : Nil
       @log.add line
-      return unless event
-
       event.text = line
       record event
     end
@@ -3414,7 +3412,8 @@ module Roguelike
         letter ? learned(letter, item) : item.reveal_blessing
       end
 
-      say marked > 0 ? "Marks appear on #{marked} of them." : "No marks appear."
+      say marked > 0 ? "Marks appear on #{marked} of them." : "No marks appear.",
+        Event::Marked.new(marked)
       marked
     end
 
@@ -3453,38 +3452,49 @@ module Roguelike
       end
 
       if changed.zero?
-        say "There was nothing here for it to do."
+        say "There was nothing here for it to do.",
+          Event::Fizzled.new(:nothing_to_change)
         return
       end
 
-      say "#{changed} of them are #{anointed scroll}."
+      say "#{changed} of them are #{anointed scroll}.",
+        Event::Anointed.new(changed, curse: lifting? scroll)
+    end
+
+    # Whether *scroll* takes a curse off rather than laying a blessing on.
+    private def lifting?(scroll : Item) : Bool
+      scroll.kind.effect.remove_curse?
     end
 
     # What a scroll leaves something as.
     private def anointed(scroll : Item) : String
-      scroll.kind.effect.remove_curse? ? "free of a curse" : "blessed"
+      lifting?(scroll) ? "free of a curse" : "blessed"
     end
 
     # The same, for a line that is still running on.
     private def lifts(scroll : Item) : String
-      scroll.kind.effect.remove_curse? ? "lifts a curse" : "blesses it"
+      lifting?(scroll) ? "lifts a curse" : "blesses it"
     end
 
     # An uncursed scroll, which works on the one item the character picked.
     private def anoint_one(scroll : Item, choice : Char?) : Nil
       item = choice ? @player.inventory[choice] : nil
       unless item && choice
-        say "The writing fades with nothing to settle on."
+        say "The writing fades with nothing to settle on.",
+          Event::Fizzled.new(:no_choice)
         return
       end
 
       told = name item
       unless anoint_it scroll, item
-        say "Nothing about #{told} changes."
+        say "Nothing about #{told} changes.",
+          Event::Fizzled.new(:nothing_to_change, item: item.id, name: told)
         return
       end
 
-      say "#{told.capitalize} is #{anointed scroll}."
+      say "#{told.capitalize} is #{anointed scroll}.",
+        Event::Anointed.new(1, curse: lifting?(scroll), item: item.id,
+          name: told)
       settle choice, item
     end
 
@@ -3500,7 +3510,8 @@ module Roguelike
 
       pool = stream.rand(100) < STRAY || wanted.empty? ? carried : wanted
       if pool.empty?
-        say "The writing fades with nothing to settle on."
+        say "The writing fades with nothing to settle on.",
+          Event::Fizzled.new(:nothing_to_change)
         return
       end
 
@@ -3508,11 +3519,15 @@ module Roguelike
       picked = "The scroll picks out #{letter}, #{name item}"
 
       unless anoint_it scroll, item
-        say "#{picked}, to no effect."
+        say "#{picked}, to no effect.",
+          Event::Fizzled.new(:nothing_to_change, item: item.id,
+            name: name(item))
         return
       end
 
-      say "#{picked}, and #{lifts scroll}."
+      say "#{picked}, and #{lifts scroll}.",
+        Event::Anointed.new(1, curse: lifting?(scroll), item: item.id,
+          name: name(item))
       settle letter, item
     end
 
@@ -3537,11 +3552,12 @@ module Roguelike
       within(scroll).each { |_letter, item| mended += 1 if item.repair }
 
       if mended.zero?
-        say "Nothing within reach was broken."
+        say "Nothing within reach was broken.",
+          Event::Fizzled.new(:nothing_to_change)
         return
       end
 
-      say "#{mended} of them are as good as new."
+      say "#{mended} of them are as good as new.", Event::Repaired.new(mended)
     end
 
     # An uncursed scroll, which mends the one item the character picked.
@@ -3551,17 +3567,20 @@ module Roguelike
     private def patch_one(choice : Char?) : Nil
       item = choice ? @player.inventory[choice] : nil
       unless item && choice
-        say "The writing fades with nothing to settle on."
+        say "The writing fades with nothing to settle on.",
+          Event::Fizzled.new(:no_choice)
         return
       end
 
       told = name item
       unless item.repair
-        say "Nothing about #{told} changes."
+        say "Nothing about #{told} changes.",
+          Event::Fizzled.new(:nothing_to_change, item: item.id, name: told)
         return
       end
 
-      say "#{told.capitalize} #{item.count > 1 ? "are" : "is"} as good as new."
+      say "#{told.capitalize} #{item.count > 1 ? "are" : "is"} as good as new.",
+        Event::Repaired.new(1, item: item.id, name: told)
       settle choice, item
     end
 
@@ -3579,7 +3598,8 @@ module Roguelike
       end
 
       if whole.empty?
-        say "The writing fades with nothing to settle on."
+        say "The writing fades with nothing to settle on.",
+          Event::Fizzled.new(:nothing_to_change)
         return
       end
 
@@ -3588,7 +3608,7 @@ module Roguelike
       item.crack
 
       said = item.count > 1 ? "buckle and crack" : "buckles and cracks"
-      say "#{told.capitalize} #{said}."
+      say "#{told.capitalize} #{said}.", Event::Cracked.new(item.id, told)
       settle letter, item
     end
 
@@ -3600,7 +3620,8 @@ module Roguelike
     private def found_out(kind : ItemKind) : Nil
       return unless @lore.learn kind
 
-      say "It was #{name Item.new(kind)}."
+      say "It was #{name Item.new(kind)}.",
+        Event::Identified.new(name(Item.new(kind)), @lore.appearance(kind))
     end
 
     # Puts hit points back.
@@ -3609,21 +3630,25 @@ module Roguelike
       strength = Math.max rolled * item.blessing.potency // 100, 1
       put_back = @player.heal strength
 
-      say put_back > 0 ? "You feel better." : "You feel no different."
+      say put_back > 0 ? "You feel better." : "You feel no different.",
+        Event::Healed.new(put_back)
     end
 
     # Names the carried item under *choice*, and whether it is cursed.
     private def name_one(choice : Char?) : Nil
       item = choice ? @player.inventory[choice] : nil
       unless item && choice
-        say "You feel knowledgeable, and the feeling passes."
+        say "You feel knowledgeable, and the feeling passes.",
+          Event::Fizzled.new(:no_choice)
         return
       end
 
       news = @lore.learn item.kind
       learned choice, item
 
-      say news ? "It is #{name item}." : "You knew that already. It is #{name item}."
+      say news ? "It is #{name item}." : "You knew that already. It is #{name item}.",
+        Event::Identified.new(name(item), @lore.appearance(item.kind),
+          news: news)
     end
 
     # Writes the shape of the whole floor into what the character remembers.
@@ -3631,13 +3656,17 @@ module Roguelike
     # The shape and no more. `Knowledge#touch` records the terrain and what
     # is fixed to it, and keeps whatever item was already remembered there.
     private def map_the_floor : Nil
+      tiles = 0
+
       floor.each do |column, row, _tile|
         next unless wall? column, row
 
         @player.knowledge.touch floor, column, row, @turn
+        tiles += 1
       end
 
-      say "The shape of the floor comes to you."
+      say "The shape of the floor comes to you.",
+        Event::FloorMapped.new(tiles)
     end
 
     # Whether *x*, *y* is rock with something walkable beside it.
@@ -3667,14 +3696,17 @@ module Roguelike
       thrown = Lighting.from floor, LightSource.new(@player.x, @player.y, GLOW,
         LightKind::Glimmer)
 
+      squares = 0
+
       thrown.levels.each do |spot, level|
         next unless level > 0
         next unless floor.passable? spot[0], spot[1]
 
         floor.set_glow spot[0], spot[1], Math.max(floor.glow_at(spot[0], spot[1]), level)
+        squares += 1
       end
 
-      say "Light floods out and stays."
+      say "Light floods out and stays.", Event::FloorLit.new(squares)
     end
 
     # Sends a bolt at *target*.
@@ -3683,7 +3715,7 @@ module Roguelike
     # line. Nothing is left on the floor afterwards.
     private def bolt(item : Item, target : {Int32, Int32}?) : Nil
       unless target
-        say "The bolt goes nowhere."
+        say "The bolt goes nowhere.", Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3693,7 +3725,8 @@ module Roguelike
       struck = floor.monster spot[0], spot[1]
 
       unless struck
-        say "The bolt strikes the #{floor.terrain(spot[0], spot[1]).label}."
+        say "The bolt strikes the #{floor.terrain(spot[0], spot[1]).label}.",
+          Event::BoltStopped.new(spot, floor.terrain(spot[0], spot[1]).label)
         return
       end
 
@@ -3716,7 +3749,8 @@ module Roguelike
 
       slot = Slot.for item
       if slot.nil? || slot.armour?
-        say "You cannot wield #{name item}."
+        say "You cannot wield #{name item}.",
+          Event::Refused.new(:not_a_weapon, item: item.id, name: name(item))
         return false
       end
 
@@ -3733,13 +3767,15 @@ module Roguelike
 
       slot = Slot.for item
       unless slot && slot.armour?
-        say "You cannot wear #{name item}."
+        say "You cannot wear #{name item}.",
+          Event::Refused.new(:not_armour, item: item.id, name: name(item))
         return false
       end
 
       held = @player.in_slot slot
       if held
-        say "You are already wearing #{name held}."
+        say "You are already wearing #{name held}.",
+          Event::Refused.new(:slot_filled, item: held.id, name: name(held))
         return false
       end
 
@@ -3752,10 +3788,11 @@ module Roguelike
     # character finds out, and `#take_off` will refuse to let it go again.
     private def ready(slot : Slot, letter : Char, item : Item, line : String) : Bool
       @player.equipment.put slot, letter
-      say line
+      say line, Event::Readied.new(slot, item.id, name(item))
 
       if item.sticks? && item.reveal_blessing
-        say "#{name(item).capitalize} welds itself to you."
+        say "#{name(item).capitalize} welds itself to you.",
+          Event::Welded.new(item.id, name(item))
       end
 
       spend Costs.donning(slot)
@@ -3766,18 +3803,20 @@ module Roguelike
     def take_off(slot : Slot) : Bool
       item = @player.in_slot slot
       unless item
-        say slot.vacant
+        say slot.vacant, Event::Refused.new(:slot_empty)
         return false
       end
 
       if item.sticks? && !dormant?(item)
         item.reveal_blessing
-        say "You cannot let go of #{name item}."
+        say "You cannot let go of #{name item}.",
+          Event::Refused.new(:cursed, item: item.id, name: name(item))
         return false
       end
 
       @player.equipment.clear slot
-      say slot.released(name item)
+      say slot.released(name item),
+        Event::Removed.new(slot, item.id, name(item))
       spend Costs.donning(slot)
       true
     end
