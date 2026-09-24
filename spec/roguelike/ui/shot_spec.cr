@@ -15,8 +15,8 @@ Spectator.describe "drawing a shot crossing the floor" do
   # Where the character stands.
   HERE = {1, 1}
 
-  # A `Playing::Run` with the character carrying *items*, on a clock a spec
-  # fires by hand.
+  # A run with the character carrying *items*, on a clock a spec fires by
+  # hand.
   #
   # Without a clock the shot lands at once, which is what every other spec in
   # the suite wants. These examples are about the frames in between.
@@ -32,7 +32,7 @@ Spectator.describe "drawing a shot crossing the floor" do
       80, 24, clock: clock
   end
 
-  # A `Playing::Run` with a bow readied and arrows in the quiver.
+  # A run with a bow readied and arrows in the quiver.
   def archer(clock : Bool = true) : Playing::Run
     run = hall [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12)],
       clock: clock
@@ -121,7 +121,7 @@ Spectator.describe "drawing a shot crossing the floor" do
     end
 
     # The arrow has already landed by the time the first frame is drawn. The
-    # picture is a replay, so the game is over either way.
+    # picture is a replay, so the run is over either way.
     it "leaves the arrow lying where it stopped" do
       run = archer
       shoot run, "f", 5

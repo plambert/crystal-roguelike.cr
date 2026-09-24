@@ -16,7 +16,7 @@ module Roguelike
     # What this pile is called in a log or by a bot, for as long as it is
     # this pile.
     #
-    # Zero means it has no id yet. `Game#enrol` walks the game and gives an
+    # Zero means it has no id yet. `Game#enrol` walks the run and gives an
     # id to whatever has none. Everything the generator made is numbered
     # that way. A save written before ids existed is numbered the same way.
     #
@@ -92,7 +92,7 @@ module Roguelike
     # Gives this item the id *id*. Answers whether it took one.
     #
     # An item takes an id once. A pile that already has one keeps it, so
-    # walking the game twice numbers nothing twice. An *id* of zero means
+    # walking the run twice numbers nothing twice. An *id* of zero means
     # there is no id to give.
     def enrol(id : Int32) : Bool
       return false unless @id.zero?

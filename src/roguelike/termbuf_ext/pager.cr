@@ -145,9 +145,9 @@ module TermBuf::Widgets
 
     # Whether an owner has asked the pane not to hold for now.
     #
-    # `Ui::Play` sets it while a run is drawn a step at a time. Lines pile up
-    # during the run and the hold is for when the person has the keyboard
-    # back: a hold part way through would take the keyboard from the run and
+    # `Ui::Play` sets it while a walk is drawn a step at a time. Lines pile up
+    # during the walk and the hold is for when the person has the keyboard
+    # back: a hold part way through would take the keyboard from the walk and
     # leave two things pushing focus scopes at once.
     getter? deferred : Bool = false
 

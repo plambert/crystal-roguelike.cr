@@ -17,7 +17,7 @@ module Roguelike
     # What this creature is called in a log or by a bot, for as long as it
     # lives.
     #
-    # Zero means it has no id yet. `Game#enrol` walks the game and gives an
+    # Zero means it has no id yet. `Game#enrol` walks the run and gives an
     # id to whatever has none. A creature the generator placed is numbered
     # that way. A save written before ids existed is numbered the same way.
     #

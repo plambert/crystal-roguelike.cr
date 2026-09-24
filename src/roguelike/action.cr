@@ -7,7 +7,7 @@ module Roguelike
   #
   # Every verb the game has is one subclass. A subclass carries what that
   # verb needs. `Game#perform` takes one of these and calls the rule for it.
-  # `Game#legal` gives the ones the game allows now. `Ui::Play` builds one
+  # `Game#legal` gives the ones the run allows now. `Ui::Play` builds one
   # for every key that spends a turn. A replay line and a bot's choice are
   # the same value. All three reach the same rule.
   #
@@ -335,7 +335,7 @@ module Roguelike
 
     # Climbing out of the dungeon by the staircase underfoot. `<` does this.
     #
-    # The spec has no word for this ending. It is a third ending. The game
+    # The spec has no word for this ending. It is a third ending. The run
     # is over and it was not won.
     class Ascend < Action
       getter t : String = "ascend"
@@ -374,7 +374,7 @@ module Roguelike
 
   # What one call to `Game#perform` did.
   #
-  # An action the game will not take is refused in the return value rather
+  # An action the run will not take is refused in the return value rather
   # than raised. Three ordinary things send one: a bot picking outside
   # `Game#legal`, a replay recorded against an older build, and a key that
   # arrives after the thing it names is gone. The headless protocol reports
@@ -391,7 +391,7 @@ module Roguelike
   record Verdict,
     allowed : Bool,
     step : Step? = nil do
-    # An action the game will not take.
+    # An action the run will not take.
     def self.refused : Verdict
       new false
     end
@@ -401,7 +401,7 @@ module Roguelike
       new true, step
     end
 
-    # Whether the game would not take it.
+    # Whether the run would not take it.
     def refused? : Bool
       !@allowed
     end

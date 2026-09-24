@@ -193,7 +193,7 @@ Spectator.describe Roguelike::Handling do
       end
 
       # Almost everything a character carries is uncursed, and a line for
-      # each of them would fill the log and stop every run.
+      # each of them would fill the log and stop every walk.
       it "says nothing about an uncursed item" do
         lore = Roguelike::Lore.new
         one = Item.new Kind::Dagger, blessing_known: true

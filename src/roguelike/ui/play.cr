@@ -175,17 +175,17 @@ module Roguelike::Ui
     # The shot being drawn, or `nil` when nothing is in the air.
     @flying : Flying? = nil
 
-    # How long the character rests on a square while a run is drawn.
+    # How long the character rests on a square while a walk is drawn.
     #
-    # About what holding a movement key down gives. A run drawn all at once
+    # About what holding a movement key down gives. A walk drawn all at once
     # reads as the character jumping from one end of a corridor to the other,
     # and the squares crossed on the way are what a person is watching for.
     STRIDE = 45.milliseconds
 
-    # The run being drawn, or `nil` when nothing is walking.
+    # The walk being drawn, or `nil` when nothing is walking.
     @walk : Game::Walk? = nil
 
-    # What holds the keyboard while a run is drawn.
+    # What holds the keyboard while a walk is drawn.
     getter interrupt : Interrupt = Interrupt.new
 
     # The application this play is drawn on.
@@ -877,10 +877,10 @@ module Roguelike::Ui
       refresh
     end
 
-    # Waits for a direction to run in. `G` does this.
+    # Waits for a direction to walk in. `G` does this.
     #
     # Every direction is an answer, so there is nothing to find and nothing
-    # to light up. The next movement key runs rather than steps.
+    # to light up. The next movement key walks rather than steps.
     def start_running : Nil
       @pending = Pending::Run
       say "Run which way? Press a direction, or Escape."
@@ -1914,7 +1914,7 @@ module Roguelike::Ui
 
     # Walks the route the map is pointing along.
     #
-    # The pointer comes off first. The run takes turns, and a route drawn
+    # The pointer comes off first. The walk takes turns, and a route drawn
     # before them is stale by the time they are over.
     private def walk(pointing : Pointing) : Nil
       @pointing = nil
@@ -1923,7 +1923,7 @@ module Roguelike::Ui
     end
 
     # Records that the pointer is off the map. Also used when the mouse is
-    # turned off and when the run ends.
+    # turned off and when the walk ends.
     #
     # The tooltip goes with it. A box left hanging over a map nobody is
     # pointing at is a box in the way.
@@ -2026,9 +2026,9 @@ module Roguelike::Ui
       refresh
     end
 
-    # Runs *direction*. `G` and then a direction key does this.
+    # Walks *direction*. `G` and then a direction key does this.
     #
-    # A run is not an action of its own. It is a series of steps.
+    # A walk is not an action of its own. It is a series of steps.
     # `Game#stride` takes each step through the rule `Action::Move` reaches.
     # The person commits to the series. Each step of it is an action of its
     # own.
@@ -2038,15 +2038,16 @@ module Roguelike::Ui
 
     # Starts *walk* and takes its first step.
     #
-    # The keyboard goes to `#interrupt` while it runs. Every binding the
-    # application has is out of reach until the run stops, so a key pressed
-    # part way through stops it rather than doing what it usually does.
+    # The keyboard goes to `#interrupt` while the walk goes on. Every binding
+    # the application has is out of reach until the walk stops, so a key
+    # pressed part way through stops it rather than doing what it usually
+    # does.
     private def start_walking(walk : Game::Walk) : Nil
       @walk = walk
       @interrupt.grab @app
 
-      # The pane piles the run's messages up and holds once it is over. A page
-      # held part way through would take the keyboard from the run, and two
+      # The pane piles the walk's messages up and holds once it is over. A page
+      # held part way through would take the keyboard from the walk, and two
       # things pushing focus scopes at once cannot both put theirs away.
       @pager.deferred = true
 
@@ -2055,7 +2056,7 @@ module Roguelike::Ui
 
     # Takes one step, draws it, and arms the next.
     #
-    # An application with no clock cannot arm one, so the whole run happens
+    # An application with no clock cannot arm one, so the whole walk happens
     # inside this call instead. A spec then reads where the character ended up
     # without having to drive a timer.
     private def stride : Nil
@@ -2066,7 +2067,7 @@ module Roguelike::Ui
         going = @game.stride walk
         @map.follow @game.player.x, @game.player.y
 
-        # The run is put away before the screen is drawn, so the pane is free
+        # The walk is put away before the screen is drawn, so the pane is free
         # to hold on the lines the last step wrote.
         stop_walking unless going
         refresh
@@ -2077,11 +2078,11 @@ module Roguelike::Ui
       end
     end
 
-    # Ends the run being drawn and gives the keyboard back.
+    # Ends the walk being drawn and gives the keyboard back.
     #
-    # It says nothing. A person who pressed a key to stop a run knows they
+    # It says nothing. A person who pressed a key to stop a walk knows they
     # stopped it, and the line that would say so is a line that pushes what
-    # the run found off the pane.
+    # the walk found off the pane.
     private def stop_walking : Nil
       return unless @walk
 
@@ -2090,14 +2091,14 @@ module Roguelike::Ui
       @pager.deferred = false
     end
 
-    # Stops the run and draws where it got to. A key pressed during one does
+    # Stops the walk and draws where it got to. A key pressed during one does
     # this, and so does a click.
     private def interrupted : Nil
       stop_walking
       refresh
     end
 
-    # Whether a run is being drawn a step at a time.
+    # Whether a walk is being drawn a step at a time.
     def walking? : Bool
       !@walk.nil?
     end

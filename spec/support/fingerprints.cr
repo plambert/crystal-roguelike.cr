@@ -1,10 +1,10 @@
 require "../../src/crystal-roguelike"
 require "./scripted"
 
-# Prints a game's fingerprint at every turn, one to a line.
+# Prints a run's fingerprint at every turn, one to a line.
 #
 # `spec/roguelike/fingerprint_spec.cr` builds this, runs it and compares what
-# it printed against the same game played in the spec's own process. A
+# it printed against the same run played in the spec's own process. A
 # fingerprint has to be the same in two processes, and no spec running in one
 # can show that. A fork will not do either. Crystal seeds `Object#hash` once
 # at startup, and a child inherits the seed its parent was given, so the

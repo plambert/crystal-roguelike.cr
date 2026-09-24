@@ -155,7 +155,7 @@ Spectator.describe Roguelike::Fingerprint do
   end
 
   describe "drawing" do
-    # A game drawn in a window, with its flames held still or wavering.
+    # A run drawn in a window, with its flames held still or wavering.
     def drawn(flicker : Bool) : Playing::Run
       run = Playing.open Game.start(Rng.new(Playing::SEED))
       run.play.flicker.burning = flicker

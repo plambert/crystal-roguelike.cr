@@ -189,7 +189,7 @@ module Roguelike
     # first. A command that sent nothing then gives `nil` rather than the
     # shot before it. `Ui::Play` reads it once the command is over.
     #
-    # It is not written out. A save holds where a game is rather than what
+    # It is not written out. A save holds where a run is rather than what
     # the screen last showed.
     @[JSON::Field(ignore: true)]
     getter in_flight : Missile? = nil
@@ -201,17 +201,17 @@ module Roguelike
     @root : Rng? = nil
 
     # Squares the character already remembered something lying on when the
-    # run now going began.
+    # walk now going began.
     #
-    # A run does not stop for what is on one of these. Somebody who set a run
+    # A walk does not stop for what is on one of these. Somebody who set a walk
     # going across a square with a dagger drawn on it is not surprised by the
-    # dagger. It is empty whenever no run is going.
+    # dagger. It is empty whenever no walk is going.
     @[JSON::Field(ignore: true)]
     @familiar : Set({Int32, Int32}) = Set({Int32, Int32}).new
 
     # How many lines the step just taken wrote about one of those squares.
     #
-    # `#told?` subtracts these before it decides whether the run heard
+    # `#told?` subtracts these before it decides whether the walk heard
     # anything worth stopping for.
     @[JSON::Field(ignore: true)]
     @forgiven : Int32 = 0
@@ -285,10 +285,10 @@ module Roguelike
       @outcome.over?
     end
 
-    # What this game is, as one string. See `Fingerprint`.
+    # What this run is, as one string. See `Fingerprint`.
     #
     # The same state gives the same string in every process. A replay is
-    # checked by comparing this turn by turn. Two games that differ show the
+    # checked by comparing this turn by turn. Two runs that differ show the
     # turn they first differed on.
     def fingerprint : String
       Fingerprint.of self
@@ -531,14 +531,14 @@ module Roguelike
 
     # ------------------------------------------------------------- running
 
-    # How many squares one run crosses before it stops on its own.
+    # How many squares one walk crosses before it stops on its own.
     #
-    # A run moves in one direction, so it reaches the edge of any floor well
+    # A walk moves in one direction, so it reaches the edge of any floor well
     # inside this. The number is here so that a bug elsewhere cannot leave a
-    # run turning the crank forever.
+    # walk turning the crank forever.
     FURTHEST = 60
 
-    # A run in progress, and how far it has got.
+    # A walk in progress, and how far it has got.
     #
     # `Game#stride` takes one step of one of these. `#run` and `#follow` build
     # one and step it until it stops, which is what a spec and the trial
@@ -548,15 +548,15 @@ module Roguelike
     # A walk holds no floor and decides nothing. `Game` is still the one class
     # that changes a run.
     class Walk
-      # The squares to cross, the character's own first. `nil` for a run in
+      # The squares to cross, the character's own first. `nil` for a walk in
       # one direction.
       getter route : Array({Int32, Int32})?
 
-      # Which way a run in one direction goes. `nil` for a route.
+      # Which way a walk in one direction goes. `nil` for a route.
       getter direction : Direction?
 
       # The squares the character already remembered something lying on when
-      # the run began. What is on one of these does not stop it.
+      # the walk began. What is on one of these does not stop it.
       getter familiar : Set({Int32, Int32})
 
       # How far it has gone.
@@ -577,7 +577,7 @@ module Roguelike
                      @along : Bool = false)
       end
 
-      # Whether this is a run in one direction rather than along a route.
+      # Whether this is a walk in one direction rather than along a route.
       #
       # A doorway and a junction stop the first and not the second. The
       # person who picked a square picked one on the far side of both.
@@ -590,19 +590,19 @@ module Roguelike
         !@halt.nil?
       end
 
-      # What it did, for a caller that wanted the whole run at once.
+      # What it did, for a caller that wanted the whole walk at once.
       def running : Running
         Running.new @steps, @halt || Halt::Spent
       end
     end
 
-    # A run in *direction*, ready to be stepped.
+    # A walk in *direction*, ready to be stepped.
     def running(direction : Direction) : Walk
       Walk.new sight, piles_in_mind, direction: direction,
         along: corridor?(@player.at)
     end
 
-    # A run along *route*, ready to be stepped.
+    # A walk along *route*, ready to be stepped.
     #
     # A route that does not start where the character stands is refused. So is
     # one with nowhere to go.
@@ -619,8 +619,8 @@ module Roguelike
     # walk. Nothing about it is kept on the game, so a walk that is abandoned
     # part way leaves nothing behind.
     #
-    # A game that is over takes no step. The blow that follows the last step
-    # can kill the character, and the game ends there. `#wait` takes no turn
+    # A run that is over takes no step. The blow that follows the last step
+    # can kill the character, and the run ends there. `#wait` takes no turn
     # once they are dead, for the same reason.
     def stride(walk : Walk) : Bool
       return false if over?
@@ -639,13 +639,13 @@ module Roguelike
       end
 
       # The step goes through `#perform` rather than straight to `#step`. A
-      # run is a series of steps. `bots/PROTOCOL.md` section 2 says a macro
+      # walk is a series of steps. `bots/PROTOCOL.md` section 2 says a macro
       # is logged as the primitive actions it expands into. A replay log and
-      # a bot both read `#perform`. A run that reached `#step` directly would
+      # a bot both read `#perform`. A walk that reached `#step` directly would
       # replay as a character standing still.
       #
       # The verdict always carries a step. `#perform` refuses a move only for
-      # a game that is over, and the guard at the top of this method has
+      # a run that is over, and the guard at the top of this method has
       # already covered that. `as` is used rather than a fallback to nil, so
       # a refusal that did reach here raises. A fallback would read as "did
       # not move" and would put a wrong `Halt::Blocked` on the walk.
@@ -694,14 +694,14 @@ module Roguelike
     # far it went and what stopped it.
     #
     # Every step is a whole turn, so every other creature on the floor acts
-    # between one step and the next, and a run is as dangerous as walking the
+    # between one step and the next, and a walk is as dangerous as walking the
     # same squares one key at a time.
     #
-    # A run never attacks and never opens a door. Either one is a decision,
-    # and a run makes none: it stops in front of a creature or a shut door
+    # A walk never attacks and never opens a door. Either one is a decision,
+    # and a walk makes none: it stops in front of a creature or a shut door
     # and leaves the decision to the person.
     #
-    # A run that takes no step at all says why, the way one press of the
+    # A walk that takes no step at all says why, the way one press of the
     # movement key against the same square would.
     def run(direction : Direction) : Running
       walk = running direction
@@ -726,7 +726,7 @@ module Roguelike
     # landing, a message about something they did not know was there.
     #
     # A route onto a square something has since walked onto stops against it,
-    # the way a run does.
+    # the way a walk does.
     def follow(route : Array({Int32, Int32})) : Running
       walk = walking route
       while stride walk
@@ -738,7 +738,7 @@ module Roguelike
     # The squares the character remembers something lying on.
     #
     # What they remember rather than what is there. A dagger dropped on a
-    # square they walked past yesterday is not on their map, so a run stops
+    # square they walked past yesterday is not on their map, so a walk stops
     # when they find it.
     private def piles_in_mind : Set({Int32, Int32})
       found = Set({Int32, Int32}).new
@@ -749,7 +749,7 @@ module Roguelike
     # No square worth forgiving. What the game holds while nothing is running.
     NO_PILES = Set({Int32, Int32}).new
 
-    # Says why a run went nowhere.
+    # Says why a walk went nowhere.
     #
     # A creature in the way is named when the character can see it. One they
     # cannot see is not: they have walked into something and do not know
@@ -766,10 +766,10 @@ module Roguelike
       say "The #{creature.label} is in the way."
     end
 
-    # Whether the square one step *direction* stops a run.
+    # Whether the square one step *direction* stops a walk.
     #
     # A creature standing there, or anything a character cannot walk onto. A
-    # shut door is one of those, so a run stops in front of it rather than
+    # shut door is one of those, so a walk stops in front of it rather than
     # opening it.
     private def blocked_ahead?(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
@@ -778,7 +778,7 @@ module Roguelike
       !floor.passable? wanted[0], wanted[1]
     end
 
-    # What a run has to compare against to know whether a step changed
+    # What a walk has to compare against to know whether a step changed
     # anything.
     #
     # The log is compared by its length and its last line rather than by its
@@ -796,7 +796,7 @@ module Roguelike
       end
     end
 
-    # What stopped the run on this step. `nil` when nothing did.
+    # What stopped the walk on this step. `nil` when nothing did.
     #
     # *before* is what `Watch.on` recorded before the step. *along* says
     # whether the square the character stepped from was a length of corridor.
@@ -805,7 +805,7 @@ module Roguelike
     # would name them. A creature coming into sight is usually what wrote the
     # message on the same step, so it is asked about first.
     #
-    # Losing hit points stops a run. Gaining one does not: a character
+    # Losing hit points stops a walk. Gaining one does not: a character
     # regenerating on the way down a corridor would otherwise stop every
     # twenty steps for good news.
     private def stopped_by(before : Watch, seen : Vision, along : Bool,
@@ -835,7 +835,7 @@ module Roguelike
     # Whether any creature in sight now was out of sight before.
     #
     # A creature that was already in sight when the step began does not stop
-    # the run, or a run could not be started with one on the screen.
+    # the walk, or a walk could not be started with one on the screen.
     private def arrived_in_sight?(before : Array(Monster), seen : Vision) : Bool
       monsters_in_sight(seen).any? do |creature|
         before.none? &.same?(creature)
@@ -848,12 +848,12 @@ module Roguelike
     # Whether *spot* is a length of corridor.
     #
     # Two ways off it, and the two face each other. The corner of a room also
-    # has two ways off it, at right angles to each other, and a run along the
+    # has two ways off it, at right angles to each other, and a walk along the
     # wall of a room would stop on its first step if that counted.
     #
-    # A run stops when it steps off a corridor square onto a square with more
-    # ways off it. A run that starts anywhere else goes until something else
-    # stops it, so a run leaves a dead end and crosses a room.
+    # A walk stops when it steps off a corridor square onto a square with more
+    # ways off it. A walk that starts anywhere else goes until something else
+    # stops it, so a walk leaves a dead end and crosses a room.
     private def corridor?(spot : {Int32, Int32}) : Bool
       found = ways spot
 
@@ -906,11 +906,11 @@ module Roguelike
       announce_pile
     end
 
-    # Says what is lying on the square, and records whether a run has to stop
+    # Says what is lying on the square, and records whether a walk has to stop
     # for it.
     #
-    # A pile the character already remembered is still named. It is the run
-    # that treats it differently: `#told?` subtracts these lines, so a run
+    # A pile the character already remembered is still named. It is the walk
+    # that treats it differently: `#told?` subtracts these lines, so a walk
     # crosses a square whose dagger was on the map when it started and stops
     # on one whose dagger was not.
     private def announce_pile : Nil
@@ -1415,8 +1415,8 @@ module Roguelike
     # going unhurt, whatever the character is made of.
     #
     # Nothing is said. A line a turn saying the character is a little better
-    # would fill the log and stop every run, because anything written to the
-    # log stops a run.
+    # would fill the log and stop every walk, because anything written to the
+    # log stops a walk.
     #
     # Only the character regenerates. A creature that lost the character and
     # healed while it looked for them would undo what hitting it and walking
@@ -1811,7 +1811,7 @@ module Roguelike
     # :ditto:, against a field of view that has already been worked out.
     #
     # Working out a field of view is most of what a turn on a large floor
-    # costs, and a run asks this twice a step. A caller with one in hand
+    # costs, and a walk asks this twice a step. A caller with one in hand
     # passes it rather than paying for another.
     def monsters_in_sight(seen : Vision) : Array(Monster)
       found = [] of Monster
@@ -2437,7 +2437,7 @@ module Roguelike
     #
     # A line is written to the log only when there is something to report.
     # Almost everything a character carries turns out to be uncursed. A line
-    # for each of them fills the log and stops the run. The pack still moves
+    # for each of them fills the log and stops the walk. The pack still moves
     # the item to a letter of its own, so a person reading the pack sees what
     # has been worked out.
     private def noticed(letter : Char, item : Item) : Nil
@@ -3625,15 +3625,15 @@ module Roguelike
 
     # ----------------------------------------------------------------- ids
 
-    # How many ids have been given out in this game.
+    # How many ids have been given out in this run.
     #
     # An id names one item or one creature for as long as it is there. A
     # replay log and a bot use "id 41" where a person says "the arrows under
     # f". A letter moves between items, and a bot's name for a thing must
     # not.
     #
-    # The counter is on the game rather than in a constant. Two games in one
-    # process then have separate counters, and a game resumed from a save
+    # The counter is on the run rather than in a constant. Two runs in one
+    # process then have separate counters, and a run resumed from a save
     # does not give out a number already in use.
     #
     # The field has a default, so a save written before ids existed loads and
@@ -3645,20 +3645,20 @@ module Roguelike
       @minted += 1
     end
 
-    # Gives an id to everything in the game that has none.
+    # Gives an id to everything in the run that has none.
     #
     # `Game.start` calls this once the floor is dug, the character is dressed
     # and the litter is down. Everything made by then came from the
     # generator, from `Items` or from `Loot`. None of those three holds the
-    # game, so none of them can ask for a number. Walking the finished game
+    # run, so none of them can ask for a number. Walking the finished run
     # in a fixed order numbers all of it at once. The order is a function of
-    # the seed, so two games on one seed number the same things the same way.
+    # the seed, so two runs on one seed number the same things the same way.
     #
     # `#after_initialize` calls it again after a load. A save written before
     # ids existed has none, and this gives it some rather than refusing the
     # file. A save written since has them all, and this gives out nothing.
     #
-    # The largest id in the game is found first. A file edited by hand can
+    # The largest id in the run is found first. A file edited by hand can
     # hold an id above the counter. That number given out a second time would
     # put two things under one name.
     def enrol : Nil
@@ -3666,7 +3666,7 @@ module Roguelike
       each_bearer { |thing| thing.enrol next_id if thing.id.zero? }
     end
 
-    # The item under the id *id*, or `nil` when nothing in the game has it.
+    # The item under the id *id*, or `nil` when nothing in the run has it.
     #
     # An id ends with the thing it names. A pile put into another is gone and
     # so is its id. A potion that has been drunk is `nil`.
@@ -3682,7 +3682,7 @@ module Roguelike
       nil
     end
 
-    # The creature under the id *id*, or `nil` when none in the game has it.
+    # The creature under the id *id*, or `nil` when none in the run has it.
     def monster(id : Int32) : Monster?
       return if id.zero?
 
@@ -3695,16 +3695,16 @@ module Roguelike
       nil
     end
 
-    # Everything in the game that has an id, in a fixed order.
+    # Everything in the run that has an id, in a fixed order.
     #
     # The floors come in order by name. On each floor the creatures come in
     # order by the square they stand on, each one with what it carries. The
     # piles on that floor follow, in order by the square they lie on. What
     # the character carries comes last, letter by letter.
     #
-    # The order comes from the state of the game. It does not come from the
+    # The order comes from the state of the run. It does not come from the
     # order things were made, or from the order a hash holds them in. Two
-    # games on one seed walk the same things in the same order, in one
+    # runs on one seed walk the same things in the same order, in one
     # process and across two.
     private def each_bearer(& : Item | Monster ->) : Nil
       @world.floors.keys.sort!.each do |name|
@@ -3748,7 +3748,7 @@ module Roguelike
     # The field is not in the save, in the way the creature being fought and
     # the missile in flight are not. There are three reasons for that. The
     # behaviour is older than the field, and `#start_reading` already states
-    # it. A game saved with the question up has spent the scroll and the turn
+    # it. A run saved with the question up has spent the scroll and the turn
     # and has given up the rest. An `Item` written out from both the
     # inventory and this field would load as two objects rather than one.
     # Serializing it would mend the lost scroll and add an aliasing bug. The
@@ -3765,7 +3765,7 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     getter asking : Item? = nil
 
-    # Does *action*. Answers whether the game took it and what it came to.
+    # Does *action*. Answers whether the run took it and what it came to.
     #
     # This is the one entry point. `Ui::Play` reaches every rule through it,
     # and so do a replay log and a bot. It holds no rule of its own. Every
@@ -3984,7 +3984,7 @@ module Roguelike
       item.kind.item_class == wanted
     end
 
-    # Every action the game allows at this turn.
+    # Every action the run allows at this turn.
     #
     # A bot picks from this list. The list is shorter than what `#perform`
     # will take. An action that carries a square is offered once per creature

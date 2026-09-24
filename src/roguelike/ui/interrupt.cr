@@ -33,7 +33,7 @@ module Roguelike::Ui
     # Takes the keyboard on *app*. Answers whether it got it.
     #
     # An application with no focus stack to push onto cannot give it up, and
-    # a run there happens inside one call anyway.
+    # a walk there happens inside one call anyway.
     def grab(app : Widgets::App?) : Bool
       return false if @scope || app.nil?
 

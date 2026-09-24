@@ -1,7 +1,7 @@
 module Roguelike
-  # Why a run stopped.
+  # Why a walk stopped.
   #
-  # A run takes one step at a time in one direction, and each step is a whole
+  # A walk takes one step at a time in one direction, and each step is a whole
   # turn, so every other creature on the floor acts between one step and the
   # next. `Game#run` checks these after each step and stops on the first one
   # that holds.
@@ -30,20 +30,20 @@ module Roguelike
     # The run ended. The character was killed, or took a staircase.
     Over
 
-    # The run went `Game::FURTHEST` squares without any of the others.
+    # The walk went `Game::FURTHEST` squares without any of the others.
     Spent
 
     # The route ran out. The character is standing on the square they picked.
-    # Only `Game#follow` answers this: a run in a direction has no end to
+    # Only `Game#follow` answers this: a walk in a direction has no end to
     # reach.
     Arrived
   end
 
-  # What one run did.
+  # What one walk did.
   record Running, steps : Int32, halt : Halt do
     # Whether the character moved at all.
     #
-    # A run that stops on its first square answers false. `Play` follows the
+    # A walk that stops on its first square answers false. `Play` follows the
     # camera only when this is true.
     def moved? : Bool
       @steps > 0

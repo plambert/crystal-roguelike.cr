@@ -93,7 +93,7 @@ actually been run rather than reasoned about.
 | Digging a floor | Binary space partition. Joining the two halves of every cut is what leaves every square reachable |
 | A generated door | Where a corridor crosses the ring one square outside a room, and only with a wall on each side of it |
 | Where a run starts | The room with the up staircase holds no creature |
-| What stops a run | The run ending, a wound, a creature coming into sight, a message, a door underfoot, or a junction |
+| What stops a walk | The run ending, a wound, a creature coming into sight, a message, a door underfoot, or a junction |
 | What counts as a corridor | Two cardinal ways off a square, facing each other. A room corner has two at right angles |
 | Naming a bow's slot | "Ranged weapon", never "launcher". `ItemClass::RangedWeapon` and `Player#ranged_weapon` say the same |
 
@@ -207,7 +207,7 @@ none of it is fixed and a preset can rebind the lot.
 |---|---|
 | `h` `j` `k` `l` | Move west, south, north, east |
 | `y` `u` `b` `n` | Move northwest, northeast, southwest, southeast |
-| `G` + direction | Run that way until something stops the run |
+| `G` + direction | Walk that way until something stops the walk |
 | `.` | Wait one turn |
 | `<` `>` | Up stairs, down stairs |
 | `,` | Pick up what is here |
@@ -803,28 +803,28 @@ The phase that introduces the type monster bands will use in Phase 19.
   condition for each case on a fixture floor.
 * **Done.** `Game#run` walks one direction a step at a time and answers a `Running`: how far it
   went and a `Halt` saying what stopped it. Every step is a whole turn, so the creatures on the
-  floor act between one step and the next and a run is as dangerous as walking the same squares
-  one key at a time. A run makes no decisions: it stops in front of a creature and in front of a
-  shut door rather than swinging or opening, and a run that takes no step at all writes the same
+  floor act between one step and the next and a walk is as dangerous as walking the same squares
+  one key at a time. A walk makes no decisions: it stops in front of a creature and in front of a
+  shut door rather than swinging or opening, and a walk that takes no step at all writes the same
   refusal one press of the movement key would have written.
 
   The eight `Halt` members are the stop conditions, and `Game#stopped_by` asks about them in the
   order a person would name them: the run ended, the character was hurt, a creature came into
   sight, something was written to the log, the character stepped onto a door, the square has more
   ways off it than the corridor behind it. A creature usually writes the message that would have
-  stopped the run on the same step, so the creature is asked about first.
+  stopped the walk on the same step, so the creature is asked about first.
 
   `Game#corridor?` is the branch rule: a square is a length of corridor when two of its four
   cardinal neighbours can be walked onto and the two face each other. The corner of a room has
-  two neighbours as well, at right angles, and counting that would stop a run along a room wall
+  two neighbours as well, at right angles, and counting that would stop a walk along a room wall
   on its first step. Diagonals are not counted, because two squares touching at a corner are not
   a way between rooms and counting them would read every bend in a corridor as a junction.
 
-  `G` waits for a direction and the next movement key runs. Nothing is lit up while it waits:
+  `G` waits for a direction and the next movement key walks. Nothing is lit up while it waits:
   `o` and `c` light the doors they would act on, and every direction is an answer to `G`. The
-  whole run happens inside the one key press and the screen is drawn once at the end, because
+  whole walk happens inside the one key press and the screen is drawn once at the end, because
   `Ui::Play` holds no terminal and cannot send a frame partway through a handler.
-  `spec/fixtures/running/ground.txt` holds where a run stops from every square of a small floor
+  `spec/fixtures/running/ground.txt` holds where a walk stops from every square of a small floor
   in each of the four directions, so a change to any of the rules shows as a diff of two maps.
 
   `.` is the other half of that. `Game#wait` spends one turn and moves nobody, so everything else
@@ -879,7 +879,7 @@ on. The generator comes last because by now it is clear what it has to place.
   far a person walks between two things they can pick up does not change with the size of the
   floor. Creatures are already per room and scale the same way.
 
-  A run asked for the field of view twice a step, and on a floor this size that was most of what a
+  A walk asked for the field of view twice a step, and on a floor this size that was most of what a
   step cost. `Game#run` works it out once and passes it to `Game#monsters_in_sight`.
 
 ### Phase 25 — Start, death, victory
@@ -1557,8 +1557,8 @@ rather than carried, so there is no pack to fill and no way for it to refuse.
 
 Everything else on the square stays where it is and is still picked up with `,`.
 
-A run stops on the line this writes, the same as it stops on "You see a dagger here." Anything
-written to the log stops a run, and what is underfoot is what a run is for noticing.
+A walk stops on the line this writes, the same as it stops on "You see a dagger here." Anything
+written to the log stops a walk, and what is underfoot is what a walk is for noticing.
 
 ## Ammunition underfoot
 
@@ -1659,7 +1659,7 @@ You realize that 3 iron spikes are blessed!
 
 Working out that something is uncursed writes nothing. Almost everything a character carries is
 uncursed, and a line for each of them fills the message pane, holds a page behind `--More--` and
-stops every run, because anything written to the log stops one. The item still moves to a letter of
+stops every walk, because anything written to the log stops one. The item still moves to a letter of
 its own, so the pack is where an uncursed item is read.
 
 The verb agrees with the count. A stack of three takes "are" and a single spike takes "is". The
@@ -1995,13 +1995,13 @@ regenerates a hit point every twenty ticks today, and the table above is waiting
 who is not average.
 
 Regeneration writes nothing to the log. A line a turn saying the character is a little better would
-fill the log, and anything written to the log stops a run.
+fill the log, and anything written to the log stops a walk.
 
 Only the character regenerates. A creature that lost the character and healed while it looked for
 them would undo what hitting it and walking away buys, which is the one thing a slower creature
 leaves open.
 
-Losing hit points stops a run. Gaining one does not, or a character regenerating along a corridor
+Losing hit points stops a walk. Gaining one does not, or a character regenerating along a corridor
 would stop every twenty steps for good news.
 
 Two hundred trial runs from seed 5000, without regeneration and with it:
@@ -2057,14 +2057,14 @@ and stops against the wall, which is what it does for a square something has wal
 `Game#follow` is `Game#run` with a list of squares instead of a direction. Every step is a whole
 turn, so a route is as dangerous as walking it a key at a time.
 
-A doorway and a junction stop a run. They do not stop a route: the person picked a square on the
+A doorway and a junction stop a walk. They do not stop a route: the person picked a square on the
 far side of both, and a route that stopped at every door would be a key press a door. What stops a
 route is what the person had not seen when they picked.
 
-What is lying on the floor was reworked for both. A run used to stop on any message, and walking
+What is lying on the floor was reworked for both. A walk used to stop on any message, and walking
 onto a square with a dagger on it writes one. `Game` now records which squares the character
-remembered something lying on when the run began, and `#told?` subtracts the lines about those
-before it decides whether anything was said. The line is still written. Somebody who set a run
+remembered something lying on when the walk began, and `#told?` subtracts the lines about those
+before it decides whether anything was said. The line is still written. Somebody who set a walk
 going across a square with a dagger drawn on it is not surprised by the dagger, and somebody who
 finds one that was not on their map is.
 
@@ -2096,31 +2096,31 @@ nobody's question.
 
 ### One step at a time
 
-A run used to happen inside one key press. `Play` holds no terminal and cannot send a frame partway
+A walk used to happen inside one key press. `Play` holds no terminal and cannot send a frame partway
 through a handler, so the whole thing was drawn once at the end and the character appeared at the
 far end of the corridor without having crossed it.
 
-`Game::Walk` is a run in progress: where it is going, how far it has got, what could be seen before
+`Game::Walk` is a walk in progress: where it is going, how far it has got, what could be seen before
 the last step, and which squares had something on them the character already knew about.
 `Game#stride` takes one step of one. `Game#run` and `Game#follow` build a walk and stride it until
 it stops, which is what a spec and the trial harness want and is what they always did. `Play`
 strides it on a timer instead, one step every `STRIDE`, which is about what holding a movement key
 down gives.
 
-A walk carries everything one step needs to know about the step before it, so nothing about a run
+A walk carries everything one step needs to know about the step before it, so nothing about a walk
 is kept on the game and a walk abandoned part way leaves nothing behind.
 
-`Ui::Interrupt` holds the keyboard while a run is drawn. It is a widget with no cells that pushes a
+`Ui::Interrupt` holds the keyboard while a walk is drawn. It is a widget with no cells that pushes a
 focus scope rooted at itself, which is how `Pager` grabs the keyboard while it holds a page:
 `Router` reads the top scope's keymap and the chain under it, and a scope rooted at a widget with
 neither puts every binding the application has out of reach. Any key then reaches
-`Interrupt#handle`, which stops the run and does nothing else. A click does the same.
+`Interrupt#handle`, which stops the walk and does nothing else. A click does the same.
 
 Both of those push onto one focus stack, and a stack is only unwound from the top, so only one of
-them may have a scope up at a time. A run whose steps write a line each would otherwise let the
-pane hold part way through and leave the run's own scope buried. `Pager#deferred` is what keeps
+them may have a scope up at a time. A walk whose steps write a line each would otherwise let the
+pane hold part way through and leave the walk's own scope buried. `Pager#deferred` is what keeps
 them apart: while it is set the pane holds nothing and counts nothing as read, so the lines pile up
-unread and the hold happens when the run is over and the person has the keyboard back.
+unread and the hold happens when the walk is over and the person has the keyboard back.
 
 ## How well something is made out
 

@@ -78,7 +78,7 @@ Spectator.describe "a run drawn a step at a time" do
       expect(run.armed).to be_empty
     end
 
-    # A run that could not take a step at all never starts.
+    # A walk that could not take a step at all never starts.
     it "does not start against a wall" do
       run = walking
 
@@ -157,12 +157,12 @@ Spectator.describe "a run drawn a step at a time" do
     end
   end
 
-  # The pane and the run both push a focus scope. Only one of them may have
+  # The pane and the walk both push a focus scope. Only one of them may have
   # one up at a time, or the one underneath can never take its own away.
   describe "messages piling up during a run" do
-    # A hall with something lying on every square the run crosses, all of it
+    # A hall with something lying on every square the walk crosses, all of it
     # already on the character's map. Each square writes a line and none of
-    # them stops the run.
+    # them stops the walk.
     #
     # The kinds alternate because `MessageLog#add` drops a line identical to
     # the one before it, and a hall of daggers would collapse into one line.

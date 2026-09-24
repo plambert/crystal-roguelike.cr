@@ -1,6 +1,6 @@
 require "../spec_helper"
 
-# A game that keeps every action that reached the one entry point.
+# A run that keeps every action that reached the one entry point.
 #
 # A `G` run takes several steps. This class counts each step at `#perform`,
 # which is what shows the steps went through it. Counting where the character
@@ -40,7 +40,7 @@ Spectator.describe Roguelike::Action do
   # Where the character stands.
   HERE = {3, 2}
 
-  # A game on `ROOM` carrying *items*, with a dagger and a rock underfoot.
+  # A run on `ROOM` carrying *items*, with a dagger and a rock underfoot.
   def stocked(items : Array(Item) = kit) : Roguelike::Game
     floor = Playing.daylight Roguelike::Floor.parse("room", ROOM)
     player = Roguelike::Player.new "room", *HERE
@@ -75,12 +75,12 @@ Spectator.describe Roguelike::Action do
   end
 
   # A lit corridor with the character at the west end and nothing on it, so
-  # a run down it stops only when it reaches the far wall.
+  # a walk down it stops only when it reaches the far wall.
   HALL = ["############",
           "#..........#",
           "############"]
 
-  # A game on `HALL` that counts what reaches `#perform`.
+  # A run on `HALL` that counts what reaches `#perform`.
   def hall : Counted
     floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
 
@@ -88,7 +88,7 @@ Spectator.describe Roguelike::Action do
       Roguelike::Player.new("hall", 1, 1)
   end
 
-  # A game with a scroll of blessing read and its question still up.
+  # A run with a scroll of blessing read and its question still up.
   def waiting : Roguelike::Game
     game = stocked
     game.perform Action::Read.new('f')
@@ -287,8 +287,8 @@ Spectator.describe Roguelike::Action do
       end
     end
 
-    # The question is not in the save, so a copy of the game has already
-    # given it up. Each answer is tried on a game played up to the question
+    # The question is not in the save, so a copy of the run has already
+    # given it up. Each answer is tried on a run played up to the question
     # again.
     it "takes every action #legal offers while a scroll is waiting" do
       waiting.legal.each do |action|
@@ -298,7 +298,7 @@ Spectator.describe Roguelike::Action do
       end
     end
 
-    # `Game#start_reading` already stated this. A game written out with the
+    # `Game#start_reading` already stated this. A run written out with the
     # question up has spent the scroll and the turn, and has given up what
     # the second half would have done. Moving the scroll onto `Game#asking`
     # did not change that.
@@ -408,7 +408,7 @@ Spectator.describe Roguelike::Action do
   end
 
   describe "a scripted game" do
-    # Everything below is played twice. One game calls the verbs the way
+    # Everything below is played twice. One run calls the verbs the way
     # `Ui::Play` used to. The other goes through `#perform`. The two runs
     # must end on the same state, which is what shows `#perform` dispatches
     # and decides nothing.
@@ -467,7 +467,7 @@ Spectator.describe Roguelike::Action do
   describe "a run" do
     # A run is not an action of its own. Every step of one is an action.
     # Each step has to reach the entry point a key press reaches. A replay
-    # would otherwise record a run as nothing at all, and the character would
+    # would otherwise record a walk as nothing at all, and the character would
     # be somewhere else on playback.
     it "takes every step through the one entry point" do
       game = hall

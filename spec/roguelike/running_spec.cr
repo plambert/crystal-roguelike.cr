@@ -108,7 +108,7 @@ Spectator.describe "running" do
     end
 
     # The junction is the same square the creature is seen from, so this is
-    # what the same run does with nothing standing there.
+    # what the same walk does with nothing standing there.
     it "stops at that junction for the junction when nothing is in sight" do
       went = walking(MEETING).run Direction::North
 
@@ -117,7 +117,7 @@ Spectator.describe "running" do
     end
 
     # A creature announces itself on the turn it notices the character, and
-    # that message is what stops the run.
+    # that message is what stops the walk.
     it "stops on the message a creature makes when it notices" do
       game = walking
       game.floor.place Monster.new(Species::Goblin, 9, 1, "band-one")
@@ -140,7 +140,7 @@ Spectator.describe "running" do
       expect(game.log.last?).to contain "long sword"
     end
 
-    # A run never attacks. Swinging is a decision and a run makes none.
+    # A walk never attacks. Swinging is a decision and a walk makes none.
     it "stops in front of a creature rather than swinging at it" do
       game = walking
       game.floor.place Monster.new(Species::Goblin, 2, 2, "band-one",
@@ -175,8 +175,8 @@ Spectator.describe "running" do
       expect(game.log.last?).to eq "The granite blocks your way."
     end
 
-    # A run makes no decisions. Opening a door and swinging at a creature are
-    # both decisions, so a run stops in front of either.
+    # A walk makes no decisions. Opening a door and swinging at a creature are
+    # both decisions, so a walk stops in front of either.
     it "stops in front of a shut door rather than opening it" do
       game = walking ["########", "#<....+#", "########"]
 
@@ -214,7 +214,7 @@ Spectator.describe "running" do
       expect(game.turn).to eq before
     end
 
-    # A creature already in sight when the run starts does not stop it. A run
+    # A creature already in sight when the walk starts does not stop it. A walk
     # could not be started at all otherwise.
     it "runs past a creature that was in sight before the first step" do
       game = walking
@@ -227,9 +227,9 @@ Spectator.describe "running" do
       expect(went.steps).to be > 0
     end
 
-    # The orc stands beside the line the character runs along rather than on
-    # it, so it reaches them without standing in their way. A creature the run
-    # is walking into stops the run without a blow.
+    # The orc stands beside the line the character walks along rather than on
+    # it, so it reaches them without standing in their way. A creature the walk
+    # is walking into stops the walk without a blow.
     it "stops when the character is hurt" do
       game = walking HALL
       game.floor.place Monster.new(Species::Orc, 2, 1, "band-one",
@@ -246,7 +246,7 @@ Spectator.describe "running" do
       expect(reasons.last).to eq Halt::Hurt
     end
 
-    # A killing blow changes the hit points as well, and the run names the
+    # A killing blow changes the hit points as well, and the walk names the
     # end of the run rather than the wound.
     it "stops because the run ended when a blow kills the character" do
       game = walking HALL
@@ -276,7 +276,7 @@ Spectator.describe "running" do
   # Two rooms joined by a corridor, with an open door at each end of it and
   # one passage going north from the middle.
   #
-  # Nothing stands on it and nothing lies on it, so a run over it stops for
+  # Nothing stands on it and nothing lies on it, so a walk over it stops for
   # the shape of the floor and for nothing else.
   GROUND = [
     "#####################",
@@ -298,8 +298,8 @@ Spectator.describe "running" do
     Halt::Spent    => 's',
   }
 
-  # What a run *direction* from every square of `GROUND` does, drawn as two
-  # maps: why each run stopped, and how far it went in base thirty-six.
+  # What a walk *direction* from every square of `GROUND` does, drawn as two
+  # maps: why each walk stopped, and how far it went in base thirty-six.
   def drawn(direction : Direction) : String
     shape = Roguelike::Floor.parse "ground", GROUND
     halts = [] of String
@@ -329,7 +329,7 @@ Spectator.describe "running" do
   end
 
   describe "drawn" do
-    # A map of where a run stops from every square of a floor, so a change to
+    # A map of where a walk stops from every square of a floor, so a change to
     # any of the rules shows as a diff of two maps rather than as one failed
     # expectation.
     it "stops where it stopped last time" do
@@ -348,7 +348,7 @@ Spectator.describe "running" do
   end
 
   describe "Game::FURTHEST" do
-    # A run in one direction reaches the edge of a floor on its own, so this
+    # A walk in one direction reaches the edge of a floor on its own, so this
     # is a guard rather than a rule anybody meets. The room is longer than
     # the guard allows.
     it "stops a run that would otherwise go on" do
