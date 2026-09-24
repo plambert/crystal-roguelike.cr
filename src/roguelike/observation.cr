@@ -22,10 +22,17 @@ module Roguelike
   # It includes `JSON::Serializable`. A bot reads one line of JSON per turn
   # and never parses English.
   #
-  # `Observation.of` calls `Game#look`, so taking one writes what the
-  # character can see into `Knowledge`, exactly as drawing the map does. A
-  # run that takes an observation every turn remembers what a run drawn every
-  # turn remembers.
+  # Taking one changes nothing. It reads `Game#sight`, which works out what
+  # the character can see and remembers none of it, so `Game#fingerprint` is
+  # the same before and after. A snapshot that wrote to `Knowledge` would
+  # give a headless run and a replay of the same actions two different
+  # hashes, and neither process would report it.
+  #
+  # The caller does the looking. `Game#look` is the one place anything gets
+  # into `Knowledge`, and `Ui::Play#refresh` calls it before it draws. A
+  # headless loop calls it after each action for the same reason. A caller
+  # that does not call it gets a remembered map one turn behind what the
+  # character can see.
   class Observation
     include JSON::Serializable
 
@@ -418,21 +425,38 @@ module Roguelike
     # This works out what they can see once and builds every list from it.
     # `Game#item` and `Game#monster` walk the whole run on each call, so
     # nothing here looks an id up.
+    #
+    # `Game#sight` rather than `Game#look`. Nothing here writes to the run.
+    #
+    # `Player#knowledge?` rather than `Game#knowledge` for the same reason.
+    # `Game#knowledge` puts an empty `Knowledge` in the character's table for
+    # a floor they have not looked at yet, and that reaches the save and the
+    # fingerprint. `Player#knowledge?` answers `nil` and stores nothing.
     def self.of(game : Game) : Observation
-      seen = game.look
+      of game, game.sight
+    end
+
+    # :ditto:, against a field of view that has already been worked out.
+    #
+    # Working out a field of view is most of what a turn on a large floor
+    # costs. A caller that has just called `Game#look` holds the vision it
+    # answered, and passing it here is one cast a turn rather than two.
+    # `Game#monsters_in_sight` takes one the same way.
+    def self.of(game : Game, seen : Vision) : Observation
       ground = game.floor
+      known = game.player.knowledge?(ground.id) || Knowledge.new(ground.id)
 
       new turn: game.turn,
         floor: ground.id,
         player: Character.of(game.player),
         map: Grid.new(ground.columns, ground.rows,
-          game.knowledge.to_map(ground, UNKNOWN)),
+          known.to_map(ground, UNKNOWN)),
         visible: Grid.new(ground.columns, ground.rows,
           visible_rows(ground, seen)),
         inventory: carried(game),
         monsters: creatures(game, seen),
         items: litter(game, seen),
-        remembered_items: recalled(game, seen)
+        remembered_items: recalled(game, known, seen)
     end
 
     # The visible grid over *ground*, from *seen*.
@@ -512,11 +536,12 @@ module Roguelike
 
     # Every item the character remembers lying on a square out of view,
     # nearest first.
-    private def self.recalled(game : Game, seen : Vision) : Array(Seen)
+    private def self.recalled(game : Game, known : Knowledge,
+                              seen : Vision) : Array(Seen)
       here = game.player.at
       found = [] of Lying
 
-      game.knowledge.each do |column, row, memory|
+      known.each do |column, row, memory|
         item = memory.item
         next unless item
         next unless memory.regard.made_out?

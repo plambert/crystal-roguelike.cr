@@ -272,6 +272,7 @@ Spectator.describe Roguelike::Observation do
       seen_on = 0
       12.times do
         game.step Direction::East
+        game.look
         found = Observation.of game
         seen_on = game.turn if found.items.any? { |item| item.pos == {3, 1} }
       end
@@ -288,6 +289,7 @@ Spectator.describe Roguelike::Observation do
     it "is left out while it is in view" do
       game = played HALL
       game.floor.drop 3, 1, Item.new(Kind::HealingPotion)
+      game.look
       found = Observation.of game
 
       expect(found.items.size).to eq 1
@@ -328,6 +330,7 @@ Spectator.describe Roguelike::Observation do
   describe "the remembered map" do
     it "matches what the map pane draws before anything has moved" do
       game = played MAZE
+      game.look
       found = Observation.of game
 
       expect(drawn(game).first).to eq "######"
@@ -336,8 +339,11 @@ Spectator.describe Roguelike::Observation do
 
     it "matches what the map pane draws after the character has walked" do
       game = played MAZE
-      Observation.of game
-      3.times { game.step Direction::South }
+      game.look
+      3.times do
+        game.step Direction::South
+        game.look
+      end
       found = Observation.of game
 
       expect(found.map.rows.map &.rstrip).to eq drawn(game)
@@ -345,6 +351,7 @@ Spectator.describe Roguelike::Observation do
 
     it "leaves a square nobody has seen unknown" do
       game = played MAZE
+      game.look
       found = Observation.of game
 
       expect(found.map.rows[2][7]).to eq Observation::UNKNOWN
@@ -353,6 +360,7 @@ Spectator.describe Roguelike::Observation do
 
     it "is the size of the floor" do
       game = played MAZE
+      game.look
       found = Observation.of(game).map
 
       expect(found.width).to eq game.floor.columns
@@ -363,6 +371,7 @@ Spectator.describe Roguelike::Observation do
 
     it "keeps a terrain the pane draws as another" do
       game = played ["###", "#,#", "#<#", "###"]
+      game.look
       found = Observation.of(game).map
 
       expect(found.rows[1][1]).to eq Terrain::DirtFloor.mark
@@ -420,6 +429,57 @@ Spectator.describe Roguelike::Observation do
       expect(found.statuses).to contain Observation::Status::Hurried
       expect(found.statuses).not_to contain Observation::Status::Dragging
       expect(Observation.of(game).to_json.includes? "turns_left").to be_false
+    end
+  end
+
+  describe ".of" do
+    # A snapshot that wrote to `Knowledge` would give a headless run and a
+    # replay of the same actions two different hashes.
+    it "leaves the run as it found it" do
+      game = played MAZE
+      game.look
+      before = game.fingerprint
+
+      Observation.of game
+
+      expect(game.fingerprint).to eq before
+    end
+
+    # `Game#knowledge` puts an empty `Knowledge` in the character's table for
+    # a floor they have not looked at, and the save holds it. The snapshot
+    # reads `Player#knowledge?`, which stores nothing.
+    it "puts no knowledge in a run nobody has looked at" do
+      game = played MAZE
+      before = game.fingerprint
+
+      Observation.of game
+
+      expect(game.fingerprint).to eq before
+      expect(game.player.knowledge? game.floor.id).to be_nil
+    end
+
+    # `Game#look` is the one way anything gets into `Knowledge`. A caller
+    # that does not call it reads a map one turn behind what the character
+    # can see. The visible grid is not behind, because it comes from
+    # `Game#sight`.
+    it "takes a field of view the caller has already worked out" do
+      game = played MAZE
+      seen = game.look
+
+      expect(Observation.of(game, seen).to_json).to eq Observation.of(game).to_json
+    end
+
+    it "reads the map the caller has looked at and no more" do
+      game = played MAZE
+      game.look
+      3.times { game.step Direction::South }
+
+      stale = Observation.of game
+      game.look
+      fresh = Observation.of game
+
+      expect(stale.map.rows).not_to eq fresh.map.rows
+      expect(stale.visible.rows).to eq fresh.visible.rows
     end
   end
 
