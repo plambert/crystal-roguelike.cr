@@ -2094,16 +2094,19 @@ module Roguelike
       return false unless item
 
       unless item.burns?
-        say "You cannot light #{name item}."
+        say "You cannot light #{name item}.",
+          Event::Refused.new(:not_a_light, item: item.id, name: name(item))
         return false
       end
 
       if item.lit?
         item.douse
-        say "You put out #{name item}."
+        say "You put out #{name item}.",
+          Event::Kindled.new(name(item), lit: false, item: item.id)
       else
         item.kindle
-        say "You light #{name item}."
+        say "You light #{name item}.",
+          Event::Kindled.new(name(item), lit: true, item: item.id)
       end
 
       spend_turn
@@ -2117,10 +2120,12 @@ module Roguelike
 
       if fitting.lit?
         fitting.douse
-        say "You put the #{fitting.kind.label} out."
+        say "You put the #{fitting.kind.label} out.",
+          Event::Kindled.new(fitting.kind.label, lit: false, at: {x, y})
       else
         fitting.kindle
-        say "The #{fitting.kind.label} catches and burns."
+        say "The #{fitting.kind.label} catches and burns.",
+          Event::Kindled.new(fitting.kind.label, lit: true, at: {x, y})
       end
 
       handled({x, y})
@@ -2171,7 +2176,8 @@ module Roguelike
 
       if item.kind.item_class.treasure?
         @player.take_gold item.count
-        say "You pick up #{Game.coins item.count}."
+        say "You pick up #{Game.coins item.count}.",
+          Event::Gold.new(:taken, item.count)
         spend_turn
         return true
       end
@@ -2179,11 +2185,13 @@ module Roguelike
       letter = @player.inventory.add item
       unless letter
         floor.drop @player.x, @player.y, item
-        say "You cannot carry any more."
+        say "You cannot carry any more.",
+          Event::Refused.new(:pack_full, item: item.id, name: name(item))
         return false
       end
 
-      say "#{letter} - #{name item}"
+      say "#{letter} - #{name item}",
+        Event::PickedUp.new(taken_id(letter, item), name item)
       spend_turn
       true
     end
@@ -2205,7 +2213,18 @@ module Roguelike
         taken += item.count
       end
 
-      say "You pick up #{Game.coins taken}." if taken > 0
+      return unless taken > 0
+
+      say "You pick up #{Game.coins taken}.", Event::Gold.new(:taken, taken)
+    end
+
+    # The id of what is under *letter* now that *item* has gone in.
+    #
+    # A pile put into another is gone and so is its id. `Item#merge` keeps
+    # the id of the pile that was already there, and that is the one an event
+    # names.
+    private def taken_id(letter : Char, item : Item) : Int32
+      (@player.inventory[letter] || item).id
     end
 
     # Takes any ammunition the readied quiver would hold, without a turn of
@@ -2231,12 +2250,14 @@ module Roguelike
         # it, so there is always somewhere for this to go. The pack being
         # full is checked anyway, because a thing taken off the floor with
         # nowhere to put it would be gone.
-        unless @player.inventory.add item
+        letter = @player.inventory.add item
+        unless letter
           floor.drop @player.x, @player.y, item
           next
         end
 
-        say "You pick up #{name item}."
+        say "You pick up #{name item}.",
+          Event::PickedUp.new(taken_id(letter, item), name item)
       end
     end
 
@@ -2273,7 +2294,8 @@ module Roguelike
 
       slot = slot_of letter
       if slot
-        say "You have to take #{name item} off first."
+        say "You have to take #{name item} off first.",
+          Event::Refused.new(:worn, item: item.id, name: name(item))
         return false
       end
 
@@ -2281,7 +2303,8 @@ module Roguelike
       held = @player.inventory.remove letter
       @player.equipment.clean @player.inventory
       held.each { |one| floor.drop @player.x, @player.y, one }
-      say "You drop #{dropped}."
+      say "You drop #{dropped}.",
+        Event::Dropped.new(held.map(&.id), dropped)
       spend_turn
       true
     end
@@ -2297,7 +2320,8 @@ module Roguelike
       purse = Item.new ItemKind::Gold, count: dropped
       purse.enrol next_id
       floor.drop @player.x, @player.y, purse
-      say "You drop #{dropped} gold pieces."
+      say "You drop #{dropped} gold pieces.",
+        Event::Gold.new(:dropped, dropped)
       spend_turn
       dropped
     end
