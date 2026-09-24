@@ -110,6 +110,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   maximum.
 * The oval a scroll of item detection reaches was twice the stated size. The span is the width of
   the oval, not its radius.
+* A walk no longer stops on an item the character saw earlier in the same walk. It stops on an item
+  they have not seen.
+* A walk stopped on the first of two identical items and not on the second. It now stops on both.
 
 ## [0.1.0] - 2026-09-19
 

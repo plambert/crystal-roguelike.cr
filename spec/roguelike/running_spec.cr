@@ -57,6 +57,21 @@ Spectator.describe "running" do
     "#############",
   ]
 
+  # A dark hall. The character carries a torch, so what is down it comes into
+  # sight a few squares at a time as they walk.
+  DARK = [
+    "################",
+    "#<.............#",
+    "################",
+  ]
+
+  # Where the dagger lies in `DARK`. It is out of sight from the staircase and
+  # in sight several steps before the character reaches it.
+  LATER = {10, 1}
+
+  # The east end of `DARK`.
+  FAR_END = {14, 1}
+
   # A room with the character in the middle of the west wall.
   HALL = [
     "##########",
@@ -74,6 +89,32 @@ Spectator.describe "running" do
 
     Game.new Roguelike::World.new(SEED, {"run" => floor}),
       Roguelike::Player.new("run", *spot, hit_points: 40)
+  end
+
+  # A game on `DARK` with the character carrying a lit torch.
+  def carrying_a_torch : Game
+    floor = Roguelike::Floor.parse("run", DARK)
+    player = Roguelike::Player.new("run", *Game.entrance(floor),
+      hit_points: 40)
+    player.inventory.add Playing.torch
+
+    Game.new Roguelike::World.new(SEED, {"run" => floor}), player
+  end
+
+  # Walks *game* east the way `Ui::Play` does, with a look before the walk
+  # and another between one step and the next.
+  #
+  # `Game#run` never looks, so the character's map is whatever it was when the
+  # walk started. `Ui::Play` looks after every step. A spec about what the
+  # character has seen has to look the same way.
+  def run_watching(game : Game) : Roguelike::Running
+    game.look
+    walk = game.running EAST
+    while game.stride walk
+      game.look
+    end
+
+    walk.running
   end
 
   describe "Game#run" do
@@ -262,6 +303,37 @@ Spectator.describe "running" do
 
       expect(game.over?).to be_true
       expect(reasons.last).to eq Halt::Over
+    end
+
+    # The dagger is out of sight when the walk starts. The character sees it
+    # several steps before they reach it, so it is on their map by the time
+    # they stand on it and it is not news.
+    it "does not stop for an item first seen during the walk" do
+      game = carrying_a_torch
+      game.floor.drop LATER[0], LATER[1], Item.new(Kind::Dagger)
+
+      went = run_watching game
+
+      expect(game.knowledge[LATER].try &.item).not_to be_nil
+      expect(game.player.at).to eq FAR_END
+      expect(went.halt).to eq Halt::Blocked
+      expect(game.log.lines).to contain "You see a dagger here."
+    end
+
+    # `MessageLog#add` drops a line identical to the one before it. Two
+    # daggers a square apart write the same sentence, so the log grows by
+    # nothing on the second one and what the character remembers is the only
+    # thing left to stop the walk.
+    it "stops for a second item that writes the line the first wrote" do
+      game = walking
+      game.floor.drop 4, 2, Item.new(Kind::Dagger)
+      game.look
+      game.floor.drop 5, 2, Item.new(Kind::Dagger)
+
+      went = game.run EAST
+
+      expect(went.halt).to eq Halt::Told
+      expect(game.player.at).to eq({5, 2})
     end
 
     it "walks the same way twice from the same seed" do

@@ -200,16 +200,18 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @root : Rng? = nil
 
-    # Squares the character already remembered something lying on when the
-    # walk now going began.
+    # Whether the step just taken ended on an item the character did not
+    # remember.
     #
-    # A walk does not stop for what is on one of these. Somebody who set a walk
-    # going across a square with a dagger drawn on it is not surprised by the
-    # dagger. It is empty whenever no walk is going.
+    # `#announce_pile` sets it from the character's own map, one step at a
+    # time. A walk stops on it. Somebody who set a walk going across a square
+    # with a dagger drawn on it is not surprised by the dagger, and the map
+    # is where that is written down.
     @[JSON::Field(ignore: true)]
-    @familiar : Set({Int32, Int32}) = Set({Int32, Int32}).new
+    @discovery : Bool = false
 
-    # How many lines the step just taken wrote about one of those squares.
+    # How many lines the step just taken wrote about a pile the character
+    # already remembered.
     #
     # `#told?` subtracts these before it decides whether the walk heard
     # anything worth stopping for.
@@ -487,6 +489,7 @@ module Roguelike
     # A step into any other impassable square moves nothing. It counts no
     # turn.
     def step(direction : Direction) : Step
+      @discovery = false
       @forgiven = 0
       wanted = direction.from @player.x, @player.y
 
@@ -555,10 +558,6 @@ module Roguelike
       # Which way a walk in one direction goes. `nil` for a route.
       getter direction : Direction?
 
-      # The squares the character already remembered something lying on when
-      # the walk began. What is on one of these does not stop it.
-      getter familiar : Set({Int32, Int32})
-
       # How far it has gone.
       property steps : Int32 = 0
 
@@ -571,7 +570,7 @@ module Roguelike
       # What could be seen before the step being taken.
       property seen : Vision
 
-      def initialize(@seen : Vision, @familiar : Set({Int32, Int32}),
+      def initialize(@seen : Vision,
                      @direction : Direction? = nil,
                      @route : Array({Int32, Int32})? = nil,
                      @along : Bool = false)
@@ -598,8 +597,7 @@ module Roguelike
 
     # A walk in *direction*, ready to be stepped.
     def running(direction : Direction) : Walk
-      Walk.new sight, piles_in_mind, direction: direction,
-        along: corridor?(@player.at)
+      Walk.new sight, direction: direction, along: corridor?(@player.at)
     end
 
     # A walk along *route*, ready to be stepped.
@@ -607,7 +605,7 @@ module Roguelike
     # A route that does not start where the character stands is refused. So is
     # one with nowhere to go.
     def walking(route : Array({Int32, Int32})) : Walk
-      walk = Walk.new sight, piles_in_mind, route: route
+      walk = Walk.new sight, route: route
       walk.halt = Halt::Blocked if route.size < 2 || route.first != @player.at
 
       walk
@@ -629,7 +627,7 @@ module Roguelike
       direction = heading walk
       return false unless direction
 
-      @familiar = walk.familiar
+      @discovery = false
       @forgiven = 0
 
       if blocked_ahead? direction
@@ -663,7 +661,7 @@ module Roguelike
 
       !walk.over?
     ensure
-      @familiar = NO_PILES
+      @discovery = false
       @forgiven = 0
     end
 
@@ -735,19 +733,16 @@ module Roguelike
       walk.running
     end
 
-    # The squares the character remembers something lying on.
+    # Whether the character remembers something lying on the square they
+    # stand on.
     #
     # What they remember rather than what is there. A dagger dropped on a
     # square they walked past yesterday is not on their map, so a walk stops
-    # when they find it.
-    private def piles_in_mind : Set({Int32, Int32})
-      found = Set({Int32, Int32}).new
-      knowledge.each { |column, row, memory| found << {column, row} if memory.item }
-      found
+    # when they find it. A dagger they looked at two steps ago is on their
+    # map, and a walk crosses it.
+    private def pile_in_mind? : Bool
+      !knowledge[@player.at].try(&.item).nil?
     end
-
-    # No square worth forgiving. What the game holds while no walk is going.
-    NO_PILES = Set({Int32, Int32}).new
 
     # Says why a walk went nowhere.
     #
@@ -822,10 +817,18 @@ module Roguelike
 
     # Whether the step wrote anything worth stopping for.
     #
+    # An item the character did not remember counts whatever the log did with
+    # the line about it. `MessageLog#add` drops a line identical to the one
+    # before it, and the second dagger of a hall writes the same sentence as
+    # the first. The log is then the same length, and the item under the
+    # character is still one they had not seen.
+    #
     # Lines about a pile the character already had on their map do not count.
     # `#announce_pile` counts those into `@forgiven`, and a step whose only
     # new lines are those reads as a step that said nothing.
     private def told?(before : Watch) : Bool
+      return true if @discovery
+
       fresh = @log.size - before.said
       return false if fresh > 0 && fresh == @forgiven
 
@@ -909,14 +912,18 @@ module Roguelike
     # Says what is lying on the square, and records whether a walk has to stop
     # for it.
     #
-    # A pile the character already remembered is still named. It is the walk
-    # that treats it differently: `#told?` subtracts these lines, so a walk
-    # crosses a square whose dagger was on the map when it started and stops
-    # on one whose dagger was not.
+    # The character's map is read before the line is written. Nothing between
+    # the step and this point changes what they remember, so the map here is
+    # the map they arrived with.
+    #
+    # A pile the character already remembered is still named. The walk treats
+    # it differently. `#told?` subtracts these lines, so a walk crosses a
+    # square whose dagger is on the map and stops on one whose dagger is not.
     private def announce_pile : Nil
       pile = here
       return if pile.empty?
 
+      known = pile_in_mind?
       before = @log.size
 
       if pile.size == 1
@@ -925,7 +932,11 @@ module Roguelike
         say "There are #{pile.size} things here."
       end
 
-      @forgiven = @log.size - before if @familiar.includes? @player.at
+      if known
+        @forgiven = @log.size - before
+      else
+        @discovery = true
+      end
     end
 
     # ------------------------------------------------------------- fighting
