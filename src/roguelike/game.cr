@@ -233,6 +233,7 @@ module Roguelike
     def after_initialize : Nil
       spot = @fought_at
       @fought = spot ? floor.monster(spot[0], spot[1]) : nil
+      enrol
     end
 
     # What *item* is called, as this character would call it.
@@ -300,6 +301,7 @@ module Roguelike
       game = new world, player, lore: Lore.roll(rng)
       game.scatter rng
       game.equip rng
+      game.enrol
       # Two lines rather than one. The log pane is four rows of about eighty
       # columns, and one sentence saying all of this wraps onto two of them.
       game.say "You are in a dungeon with a short sword, leather armour and a lit torch."
@@ -1086,7 +1088,7 @@ module Roguelike
     # A letter left holding nothing comes out of whatever slot held it. The
     # last arrow empties the quiver.
     private def draw_one(letter : Char) : Item?
-      one = @player.inventory.take letter, 1
+      one = @player.inventory.take letter, 1, next_id
       @player.equipment.clean @player.inventory
       one
     end
@@ -2146,7 +2148,9 @@ module Roguelike
       dropped = @player.spend_gold amount
       return 0 if dropped.zero?
 
-      floor.drop @player.x, @player.y, Item.new(ItemKind::Gold, count: dropped)
+      purse = Item.new ItemKind::Gold, count: dropped
+      purse.enrol next_id
+      floor.drop @player.x, @player.y, purse
       say "You drop #{dropped} gold pieces."
       spend_turn
       dropped
@@ -2262,7 +2266,7 @@ module Roguelike
       item = @player.inventory[letter]
       return unless item && item.kind.item_class.scroll?
 
-      used = @player.inventory.take letter, 1
+      used = @player.inventory.take letter, 1, next_id
       return unless used
       @player.equipment.clean @player.inventory
 
@@ -2301,7 +2305,7 @@ module Roguelike
       item = @player.inventory[letter]
       return unless item && item.kind.item_class.scroll?
 
-      used = @player.inventory.take letter, 1
+      used = @player.inventory.take letter, 1, next_id
       return unless used
       @player.equipment.clean @player.inventory
 
@@ -2533,7 +2537,7 @@ module Roguelike
         return false
       end
 
-      used = @player.inventory.take letter, 1
+      used = @player.inventory.take letter, 1, next_id
       return false unless used
       @player.equipment.clean @player.inventory
 
@@ -3583,6 +3587,115 @@ module Roguelike
       return if found.passable?
 
       found.terrain
+    end
+
+    # ----------------------------------------------------------------- ids
+
+    # How many ids have been handed out in this run.
+    #
+    # An id names one item or one creature for as long as it is there. A
+    # replay log and a bot say "id 41" where a person says "the arrows under
+    # f", because a letter moves and a bot's memory of a thing must not.
+    #
+    # The counter is here rather than in a constant, so two runs in one
+    # process do not draw from the same well and a run resumed from a save
+    # does not hand out a number already in use.
+    #
+    # It has a default, so a save written before ids existed loads and starts
+    # from zero. `#enrol` then brings it up.
+    getter minted : Int32 = 0
+
+    # The next id, taken. Ids start at one, so zero means no id.
+    def next_id : Int32
+      @minted += 1
+    end
+
+    # Gives an id to everything in the run that has none.
+    #
+    # `Game.start` calls this once the floor is dug, the character is dressed
+    # and the litter is down. Everything made by then was made by the
+    # generator, by `Items` or by `Loot`, none of which has the run to ask
+    # for a number. Walking the finished run in a fixed order numbers all of
+    # it at once, and the order is a function of the seed, so two runs on one
+    # seed number the same things the same way.
+    #
+    # `#after_initialize` calls it again after a load. A save written before
+    # ids existed has none, and this gives it some rather than refusing the
+    # file. A save written since has them all, and this hands out nothing.
+    #
+    # The largest id in the run is found first. A file somebody edited by
+    # hand can hold an id above the counter, and handing that number out a
+    # second time would put two things under one name.
+    def enrol : Nil
+      each_bearer { |thing| @minted = Math.max @minted, thing.id }
+      each_bearer { |thing| thing.enrol next_id if thing.id.zero? }
+    end
+
+    # What wears the id *id*, or `nil` when nothing in the run does.
+    #
+    # An id dies with the thing it names. A pile poured into another is gone
+    # and so is its id, and a potion that has been drunk answers nothing.
+    def item(id : Int32) : Item?
+      return if id.zero?
+
+      each_bearer do |thing|
+        next unless thing.id == id
+
+        return thing if thing.is_a? Item
+      end
+
+      nil
+    end
+
+    # Which creature wears the id *id*, or `nil` when none in the run does.
+    def monster(id : Int32) : Monster?
+      return if id.zero?
+
+      each_bearer do |thing|
+        next unless thing.id == id
+
+        return thing if thing.is_a? Monster
+      end
+
+      nil
+    end
+
+    # Everything in the run that wears an id, in a fixed order.
+    #
+    # Floors by name; on each floor the creatures by the square they stand
+    # on, each with what it carries, and then the piles by the square they
+    # lie on; and last what the character carries, letter by letter.
+    #
+    # The order comes from the run rather than from the order things were
+    # made or from the order a hash happens to hold them in. Two runs on one
+    # seed walk the same things in the same order, in one process and across
+    # two.
+    private def each_bearer(& : Item | Monster ->) : Nil
+      @world.floors.keys.sort!.each do |name|
+        ground = @world[name]
+
+        standing = [] of {Int32, Int32}
+        ground.each_monster { |column, row, _| standing << {column, row} }
+        standing.sort!
+
+        standing.each do |spot|
+          creature = ground.monster spot[0], spot[1]
+          next unless creature
+
+          yield creature
+          creature.carrying.each { |held| yield held }
+        end
+
+        lying = [] of {Int32, Int32}
+        ground.each_pile { |column, row, _| lying << {column, row} }
+        lying.sort!
+
+        lying.each do |spot|
+          ground.items(spot[0], spot[1]).each { |lot| yield lot }
+        end
+      end
+
+      @player.inventory.each_item { |_letter, carried| yield carried }
     end
 
     def to_s(io : IO) : Nil

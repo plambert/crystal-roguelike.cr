@@ -13,6 +13,16 @@ module Roguelike
   class Item
     include JSON::Serializable
 
+    # What this pile is called in a log or by a bot, for as long as it is
+    # this pile.
+    #
+    # Zero means nobody has given it one yet. `Game#enrol` walks the run and
+    # hands ids to whatever has none, which is how everything the generator
+    # made gets one and how a save written before ids existed gets one too.
+    #
+    # It has a default, so such a save loads rather than being refused.
+    getter id : Int32 = 0
+
     # What sort of thing this is.
     getter kind : ItemKind
 
@@ -76,6 +86,19 @@ module Roguelike
     # Adds *gain* to how much attention this item has had.
     def handle(gain : Int32) : Nil
       @handling += gain
+    end
+
+    # Gives this item the id *id*. Answers whether it took one.
+    #
+    # An item takes an id once. A pile that already wears one keeps it, so
+    # walking the run twice numbers nothing twice, and *id* zero is the way
+    # of saying there is no id to give.
+    def enrol(id : Int32) : Bool
+      return false unless @id.zero?
+      return false if id.zero?
+
+      @id = id
+      true
     end
 
     # How far this item throws light. Zero while it is not alight.
@@ -260,22 +283,40 @@ module Roguelike
     # This item and *other* held as one, with the larger handling of the two.
     #
     # The caller has already decided they stack.
+    #
+    # The id is this item's. Two piles poured together are one pile, and the
+    # one that was already there is the one that goes on. *other*'s id names
+    # nothing after this and is not handed out again.
     def merge(other : Item) : Item
       found = with_count @count + other.count
       found.handle Math.max(@handling, other.handling) - @handling
       found
     end
 
-    # A copy of this item with *count* of them.
-    def with_count(count : Int32) : Item
-      Item.new @kind, @enchantment, @condition, count, @charges,
+    # A copy of this item with *count* of them, wearing *id*.
+    #
+    # The id carries over by default, because changing how many are in a pile
+    # does not make it a different pile. Ten arrows that lose one are the same
+    # nine-and-one arrows they were, and `#carried` counting a letter as one
+    # stack is a way of looking at a pile rather than a new one.
+    #
+    # A caller that is really splitting a pile in two passes an *id* from
+    # `Game#next_id` for the part that leaves. `Inventory::Stack#take` is the
+    # one place that happens.
+    def with_count(count : Int32, id : Int32 = @id) : Item
+      found = Item.new @kind, @enchantment, @condition, count, @charges,
         @blessing, @blessing_known, @lit, @handling
+      found.enrol id
+      found
     end
 
     # A separate item with the same state.
     #
     # A `Memory` holds one of these. An item goes on burning down and being
     # identified after somebody looks away, and what they remember does not.
+    #
+    # The id carries over, so what is remembered of a pile and the pile
+    # itself answer to the same name.
     def copy : Item
       with_count @count
     end
@@ -300,6 +341,12 @@ module Roguelike
       left ? left <= 0 : false
     end
 
+    # Whether this item and *other* are the same in every way a character
+    # could care about.
+    #
+    # The id is left out, here and in `#hash`. It says which pile this is
+    # rather than what it is, and a spec that asks whether the character is
+    # carrying twelve arrows is asking about the arrows.
     def ==(other : Item) : Bool
       @kind == other.kind && @enchantment == other.enchantment &&
         @condition == other.condition && @count == other.count &&

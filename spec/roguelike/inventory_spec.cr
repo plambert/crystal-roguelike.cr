@@ -89,7 +89,7 @@ Spectator.describe Roguelike::Inventory do
     it "takes part of a stack and leaves the rest" do
       bag.add Item.new(Kind::Arrow, count: 12)
 
-      taken = bag.take 'a', 5
+      taken = bag.take 'a', 5, 7
 
       expect(taken.try &.count).to eq 5
       expect(bag['a'].try &.count).to eq 7
@@ -98,12 +98,31 @@ Spectator.describe Roguelike::Inventory do
     it "takes the whole entry when the count reaches it" do
       bag.add Item.new(Kind::Arrow, count: 12)
 
-      expect(bag.take('a', 12).try &.count).to eq 12
+      expect(bag.take('a', 12, 7).try &.count).to eq 12
       expect(bag.has?('a')).to be_false
     end
 
     it "takes nothing for a letter nothing is under" do
-      expect(bag.take('z', 1)).to be_nil
+      expect(bag.take('z', 1, 7)).to be_nil
+    end
+
+    it "leaves the id on the part that stays and gives the rest the new one" do
+      stack = Item.new Kind::Arrow, count: 12
+      stack.enrol 4
+      bag.add stack
+
+      taken = bag.take 'a', 2, 9
+
+      expect(taken.try &.id).to eq 9
+      expect(bag['a'].try &.id).to eq 4
+    end
+
+    it "hands the whole pile over with the id it wore" do
+      stack = Item.new Kind::Arrow, count: 12
+      stack.enrol 4
+      bag.add stack
+
+      expect(bag.take('a', 12, 9).try &.id).to eq 4
     end
   end
 
@@ -179,15 +198,15 @@ Spectator.describe Roguelike::Inventory do
       pack.add Item.new(Kind::Arrow, count: 2)
       pack.add Item.new(Kind::Arrow, count: 3, blessing: Blessing::Cursed)
 
-      expect(pack.take('a', 2).try &.blessing).to eq Blessing::Uncursed
-      expect(pack.take('a', 1).try &.blessing).to eq Blessing::Cursed
+      expect(pack.take('a', 2, 7).try &.blessing).to eq Blessing::Uncursed
+      expect(pack.take('a', 1, 8).try &.blessing).to eq Blessing::Cursed
       expect(pack.count 'a').to eq 2
     end
 
     it "frees the letter once nothing is under it" do
       pack = described_class.new
       pack.add Item.new(Kind::Arrow, count: 2)
-      pack.take 'a', 5
+      pack.take 'a', 5, 7
 
       expect(pack.has? 'a').to be_false
     end

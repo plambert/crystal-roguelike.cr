@@ -81,9 +81,21 @@ module Roguelike
         end
       end
 
-      # Takes *count* off the front. Answers what came out, or `nil` when
-      # there is nothing here.
-      def take(count : Int32) : Item?
+      # Takes *count* off the front, calling the part that leaves *id*.
+      #
+      # Answers what came out, or `nil` when there is nothing here.
+      #
+      # A pile split in two keeps its id on the part that stays in the pack,
+      # because that is the pile the character goes on referring to: two
+      # arrows off a stack of twelve leave ten arrows that are still the
+      # arrows they were. The two that left are a separate pile from here on
+      # and wear *id*.
+      #
+      # A count that reaches the whole front stack is not a split. The pile
+      # goes over as it stands, with the id it already wore, and *id* is not
+      # used. Ids need only be unique and to follow from the seed, so a gap
+      # in the numbering costs nothing.
+      def take(count : Int32, id : Int32) : Item?
         held = first
         return unless held
         return if count <= 0
@@ -94,7 +106,7 @@ module Roguelike
         end
 
         @items[0] = held.add -count
-        held.with_count count
+        held.with_count count, id
       end
 
       # Takes *item* out by identity. Answers whether it was here.
@@ -245,11 +257,14 @@ module Roguelike
     # Answers what came out, or `nil` when there is nothing under the letter.
     # A count at or above what the front holds takes the whole front stack,
     # and a letter left with nothing under it is freed.
-    def take(letter : Char, count : Int32) : Item?
+    #
+    # *id* is what the part that leaves is called once it is a pile of its
+    # own. `Stack#take` says which part that is.
+    def take(letter : Char, count : Int32, id : Int32) : Item?
       stack = @slots[letter]?
       return unless stack
 
-      found = stack.take count
+      found = stack.take count, id
       @slots.delete letter if stack.empty?
       found
     end

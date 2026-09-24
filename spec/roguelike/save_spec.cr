@@ -463,6 +463,10 @@ Spectator.describe Roguelike::Save do
       kept = store
       game = named "Sparky", turn: 2
       game.player.inventory.add Item.new(Kind::LongSword, enchantment: 1)
+      # The sword is put in the pack by hand, which is not how a run gets
+      # one. `#enrol` gives it the id a run would have given it, so that
+      # reading the file back has nothing left to hand out.
+      game.enrol
       game.wield 'a'
       game.player.take_gold 40
 

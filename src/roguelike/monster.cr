@@ -14,6 +14,16 @@ module Roguelike
   class Monster
     include JSON::Serializable
 
+    # What this creature is called in a log or by a bot, for as long as it
+    # lives.
+    #
+    # Zero means nobody has given it one yet. `Game#enrol` walks the run and
+    # hands ids to whatever has none, which is how a creature the generator
+    # placed gets one and how a save written before ids existed gets one too.
+    #
+    # It has a default, so such a save loads rather than being refused.
+    getter id : Int32 = 0
+
     # What sort of creature it is.
     getter species : Species
 
@@ -90,6 +100,18 @@ module Roguelike
     # written before creatures had a pace still loads a slime that oozes.
     def after_initialize : Nil
       @pace.base = @species.speed
+    end
+
+    # Gives this creature the id *id*. Answers whether it took one.
+    #
+    # A creature takes an id once, for the same reason an item does. See
+    # `Item#enrol`.
+    def enrol(id : Int32) : Bool
+      return false unless @id.zero?
+      return false if id.zero?
+
+      @id = id
+      true
     end
 
     # Whether this creature cannot see.
@@ -211,6 +233,11 @@ module Roguelike
       @species.description
     end
 
+    # Whether this creature and *other* are the same in every way the game
+    # decides anything by.
+    #
+    # The id is left out, for the reason `Item#==` leaves it out: it says
+    # which creature this is rather than what it is.
     def ==(other : Monster) : Bool
       @species == other.species && @x == other.x && @y == other.y &&
         @hit_points == other.hit_points && @band == other.band &&
