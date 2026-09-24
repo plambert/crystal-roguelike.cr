@@ -260,8 +260,8 @@ module Roguelike::Ui
 
     # The mark against an item whose blessing the character has worked out.
     #
-    # An item they have not worked out has no mark. The blank is the question:
-    # every item whose blessing is settled carries one of these three.
+    # An item they have not worked out has no mark. Every item whose blessing
+    # is settled has one of these three marks.
     BLESSED  = '\u2726'
     CURSED   = '\u2718'
     UNCURSED = '\u2713'
@@ -272,9 +272,8 @@ module Roguelike::Ui
     # What each blessing mark is drawn in.
     #
     # None of the three is at full brightness. They sit in a column of their
-    # own and have only to be told from one another, and a bright column down
-    # the side of a list reads as an alarm. Uncursed is fainter still: most
-    # things are uncursed, and that column is there to be read past.
+    # own and only have to be told apart. Uncursed is fainter still, because
+    # most items are uncursed.
     BLESSED_MARK  = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xD8)
     CURSED_MARK   = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x80, 0x98)
     UNCURSED_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x6A, 0x70, 0x7C)
@@ -298,8 +297,8 @@ module Roguelike::Ui
 
     # The mark against an item the character has readied.
     #
-    # One mark for all five worn slots. Which piece of armour a thing is, is
-    # written in the name beside it.
+    # One mark for all five worn slots. The name beside it says which piece
+    # of armour it is.
     MELEE  = '\u2694'
     RANGED = '\u27B6'
     QUIVER = '\u27B7'
@@ -313,8 +312,8 @@ module Roguelike::Ui
 
     # What a slot mark is drawn in.
     #
-    # One colour for the whole column. The marks differ by shape; the colour
-    # is there to tell the column from the names beside it.
+    # One colour for the whole column. The marks differ by shape. The colour
+    # separates the column from the names beside it.
     SLOT_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x88, 0xA8, 0x98)
 
     # What the mark on a burning light source is drawn in.
@@ -338,7 +337,7 @@ module Roguelike::Ui
     end
 
     # What marks the row under the pointer: one at the near edge and one at
-    # the far one. The pair brackets the row.
+    # the far one. Together they bracket the row.
     POINTER = '\u27EA'
     POINTED = '\u27EB'
 

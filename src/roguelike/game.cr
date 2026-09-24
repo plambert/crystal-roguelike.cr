@@ -265,8 +265,8 @@ module Roguelike
     # Everything under *letter* as one item, counted together.
     #
     # A letter holding twelve arrows and three more that differ only in a
-    # hidden curse answers one stack of fifteen. What a list writes about the
-    # letter is written about this.
+    # hidden curse answers one stack of fifteen. A list writes about this
+    # stack, not about the first item under the letter.
     def carried(letter : Char) : Item?
       item = @player.inventory[letter]
       return unless item
@@ -338,9 +338,8 @@ module Roguelike
     # spend a turn and write to the log, and neither has happened yet.
     #
     # Every one of them is known to be uncursed. The character has owned them
-    # long enough to be sure of them, and a person who had to wait out the
-    # handling rolls on their own kit before the pack stopped hedging would
-    # learn nothing by it.
+    # long enough to be sure of them. Waiting out the handling rolls on their
+    # own kit would teach the player nothing.
     private def self.outfit(player : Player) : Nil
       {
         {Item.new(ItemKind::ShortSword, blessing_known: true), Slot::Melee},

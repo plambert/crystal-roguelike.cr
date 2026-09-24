@@ -1115,12 +1115,10 @@ module Roguelike::Ui
 
     # *listings* as menu rows.
     #
-    # Each row is four pieces. The key picks it. The mark beside the key is
-    # the blessing, which is a column rather than a word at the front of the
-    # name, so a person reads down it. The count or the article sits in a
-    # field of its own, so the names line up whatever the counts are. The
-    # mark at the far edge is the slot the item is readied in, or that a
-    # light source is burning.
+    # Each row has four pieces. The key picks the row. The mark beside the
+    # key is the blessing. The count or the article sits in a field of its
+    # own, so the names line up. The mark at the far edge gives the slot the
+    # item is readied in, or says a light source is burning.
     private def listed(listings : Array(Listing)) : Array(Widgets::Menu::Entry)
       lore = @game.lore
       leads = listings.map { |found| Naming.lead lore, found.item }
@@ -1142,8 +1140,8 @@ module Roguelike::Ui
     # The mark at the far edge of a row, or `nil` for a row with none.
     #
     # The slot comes first. A lit torch readied in a hand is marked as the
-    # thing in the hand; there is one cell and the slot is what a person
-    # picking a row is choosing between.
+    # thing in the hand. There is one cell. The slot matters more to somebody
+    # picking a row.
     def self.tail_of(item : Item, slot : Slot?) : Look?
       return Palette.slot slot if slot
       return Palette.burning if item.lit?

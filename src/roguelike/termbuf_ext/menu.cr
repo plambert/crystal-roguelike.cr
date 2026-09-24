@@ -42,8 +42,8 @@ module TermBuf::Widgets
     # One row.
     #
     # *mark* replaces the `-` between the key and the text. A list of items
-    # puts the blessing there, so a person reads down one column rather than
-    # hunting a word at the front of every name. `nil` keeps the `-`.
+    # puts the blessing there. It is then one column to read down rather than
+    # a word at the front of every name. `nil` keeps the `-`.
     #
     # *tail* is drawn against the right edge of the row, past the text. A
     # list of items puts the slot there.
@@ -118,8 +118,8 @@ module TermBuf::Widgets
     TAIL = 2
 
     # How many cells are kept clear at the right edge for the mark facing the
-    # pointer. Always, so that a row does not move when the highlight
-    # arrives on it.
+    # pointer. They are kept clear on every row, so a row does not move when
+    # the highlight arrives on it.
     MIRROR = 2
 
     # How many cells the rows have been scrolled sideways.
@@ -438,12 +438,11 @@ module TermBuf::Widgets
     # Draws one row as `\u27EA a - what it is        \u27EB`.
     #
     # The text goes down first and everything else over it. A row scrolled
-    # sideways slides its text under the gutter, so the key a person has to
-    # press stays where it is, and under the marks at the far edge, so those
-    # stay where they are too.
+    # sideways slides its text under the gutter and under the marks at the
+    # far edge. The key and the marks stay where they are.
     #
-    # The highlight covers the text and nothing else. A reversed gutter would
-    # invert the marks, which carry their meaning in their colour.
+    # The highlight covers the text. The colour of a mark is part of its
+    # meaning. Reversing the gutter would invert it.
     private def draw_entry(view : View, entry : Entry, lit : Bool) : Nil
       plain = entry.enabled ? Style::DEFAULT : @disabled_style
 

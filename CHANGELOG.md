@@ -63,22 +63,21 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
-* A list of items carries its blessing as a mark beside the key rather than as a word in the name:
-  `✦` blessed, `✘` cursed, `✓` uncursed, and nothing at all while nobody has worked it out. The slot
-  an item is readied in is a mark against the right edge — `⚔` in the hand, `➶` the ranged weapon,
-  `➷` the quiver, `⛊` worn — and `⁕` marks a light source that is burning. The count or the article
-  sits in a field of its own, so the names line up down the list. The tooltip on a row writes each
-  mark and the word for it, and its first line names the item without the blessing word.
-* The highlighted row of a menu is bracketed `⟪` and `⟫`, and the highlight itself covers the name
-  rather than the key and the mark beside it. The row of the `Here` or `Seen` list under the pointer
-  wears the same two marks.
+* In a list of items the blessing is a mark beside the key instead of a word in the name. The marks
+  are `✦` blessed, `✘` cursed, `✓` uncursed, and nothing while the blessing is not worked out. The
+  slot an item is readied in is a mark against the right edge: `⚔` in the hand, `➶` the ranged
+  weapon, `➷` the quiver, `⛊` worn. `⁕` marks a light source that is burning. The count or the
+  article are in their own field. The names line up. The tooltip on a row gives each mark and the
+  word for it. Its first line names the item without the blessing word.
+* The highlighted row of a menu is bracketed with `⟪` and `⟫`. The highlight covers the name. It no
+  longer covers the key and the mark beside it. The same two marks are used on the row of the `Here`
+  or `Seen` list under the pointer.
 * A scroll nobody has read is "a scroll YLOH" rather than "a scroll labelled YLOH".
 * The character starts knowing their own kit is uncursed. The short sword, the leather armour, the
-  torch and the spikes each read as uncursed from turn nothing rather than waiting on a handling
-  roll.
-* Working out that an item is uncursed says nothing. Only a blessing or a curse is written to the
-  log. The pack still moves the item to a letter of its own, which is what shows it has been worked
-  out.
+  torch and the spikes are uncursed from the first turn. None of them waits on a handling roll.
+* No message is written when an item is discovered to be uncursed. Only a blessing or a curse is
+  written to the log. The pack still moves the item to a letter of its own, which shows it has been
+  worked out.
 * A name too long for the `Here` or `Seen` column is cut at the edge and marked with an ellipsis,
   the same as every other row of the sidebar.
 * Time runs on ticks. Every actor gains energy each tick and every action

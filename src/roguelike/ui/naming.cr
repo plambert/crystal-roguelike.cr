@@ -57,15 +57,15 @@ module Roguelike::Ui
 
     # How many cells the field in front of a name takes at the narrowest.
     #
-    # Two holds "an" and a count up to ninety-nine. A list holding more of
-    # one thing than that widens the field for every row of itself, so the
-    # names go on lining up.
+    # Two holds "an" and a count up to ninety-nine. A list with a larger
+    # count widens the field on every one of its rows, so the names stay in
+    # line.
     LEAD = 2
 
     # What goes in that field: the count, the article, or nothing.
     #
     # Nothing for a kind that takes no article. "leather armour" is not "a
-    # leather armour", and the field stays blank rather than guessing at one.
+    # leather armour", so the field stays blank.
     def self.lead(lore : Lore, item : Item) : String
       return item.count.to_s if item.count > 1
       return "" if item.kind.uncountable?

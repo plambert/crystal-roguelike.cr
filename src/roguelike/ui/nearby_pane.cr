@@ -242,9 +242,8 @@ module Roguelike::Ui
     # more. An empty list says so rather than leaving a gap under the rule.
     private def fill(panel : Widgets::Panel, rows : Array(Line),
                      most : Int32) : Nil
-      # The rows are built again every turn. The one the mark was on is gone,
-      # and the mark goes with it rather than pointing at a row that is no
-      # longer there.
+      # The rows are built again every turn. The row the mark was on is gone,
+      # so the mark goes with it.
       unmark
       panel.clear
 
@@ -266,9 +265,9 @@ module Roguelike::Ui
     # nothing in particular passes none, and pointing at it takes down
     # whatever box was up.
     #
-    # The text starts `Line::INDENT` cells in. The cells are the room the
-    # mark goes in when the pointer crosses the row, and they are kept clear
-    # whether or not it has, so a row does not move under the pointer.
+    # The text starts `Line::INDENT` cells in. The mark goes in those cells
+    # when the pointer crosses the row. They are kept clear on every row, so
+    # a row does not move under the pointer.
     private def row(text : String, style : Style?,
                     lines : Array(String)? = nil) : Line
       line = Line.new
@@ -281,15 +280,14 @@ module Roguelike::Ui
       line
     end
 
-    # The marks a row wears while the pointer is on it.
+    # The marks on the row the pointer is on.
     MARKS = Line::Marks.new Palette::POINTER, Palette::POINTED,
       Palette::POINTER_MARK
 
     # Hands *lines* to whoever is watching the pane.
     #
-    # The row the pointer is on is marked and the one it left is not. Only
-    # one row is marked at a time, so the mark says where the pointer is
-    # rather than where it has been.
+    # The row the pointer is on is marked and the one it left is not. One
+    # row is marked at a time.
     #
     # The hook is read here rather than closed over, so a pane whose rows
     # were built before the hook was put on still reports.
@@ -298,7 +296,7 @@ module Roguelike::Ui
       @on_point.try &.call(line, lines)
     end
 
-    # Puts the marks on *line* and takes them off whatever wore them before.
+    # Puts the marks on *line* and takes them off the row that had them.
     private def mark(line : Line) : Nil
       before = @marked
       return if before == line
@@ -308,7 +306,7 @@ module Roguelike::Ui
       @marked = line
     end
 
-    # Takes the marks off the row wearing them unless *row* is that row.
+    # Takes the marks off the marked row unless *row* is that row.
     #
     # `Play` calls this once a pointer report has been through the tree, with
     # whichever row of the whole sidebar answered it. A pointer that moved to
@@ -320,10 +318,10 @@ module Roguelike::Ui
       unmark
     end
 
-    # Takes the marks off whatever wears them.
+    # Takes the marks off the marked row.
     #
     # `Play` calls this when the pointer leaves the sidebar. A row left
-    # marked would go on saying the pointer was on it.
+    # marked would still say the pointer was on it.
     def unmark : Nil
       found = @marked
       return unless found

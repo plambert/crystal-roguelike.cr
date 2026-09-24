@@ -88,11 +88,10 @@ module Roguelike::Ui
     # The blessing, as the mark a list puts against the item and the word for
     # it.
     #
-    # Both, because the list has only the mark. A person reading the column
-    # has to be told somewhere which mark is which, and the box that hangs
-    # off a row is where.
+    # The list has only the mark. This names it. The column can then be read
+    # without looking the marks up elsewhere.
     #
-    # Uncursed has no mark, so that line is the word on its own.
+    # An unworked-out blessing has no mark, so that line is the word alone.
     private def self.blessing(item : Item) : String
       word = Palette.blessing_word item
       mark = Palette.blessing item

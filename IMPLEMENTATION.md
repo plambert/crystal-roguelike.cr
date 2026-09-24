@@ -2402,12 +2402,12 @@ most of what a turn costs and a pane draws twenty rows.
 
 ## Marks instead of words in a list
 
-A pack listed as `a - a blessed masterwork +1 chain mail (being worn)` is hard to read down. The
-noun is never in the same place twice: the article, the count, the blessing, the condition and the
-enchantment all take turns going first, and the slot is a phrase at the end of a line of varying
-length. Picking the potions out of fifteen rows means reading fifteen rows.
+A pack row read `a - a blessed masterwork +1 chain mail (being worn)`. A list of those is hard to
+read down. The noun is not in the same place on each row. The article, the count, the blessing, the
+condition and the enchantment each come first on some rows. The slot is a phrase at the end of a
+line of varying length. Finding the potions in fifteen rows means reading fifteen rows.
 
-The words that always say one of a few things became marks in columns of their own.
+Each word with only a few possible values is now a mark in a column of its own.
 
 ### The row
 
@@ -2418,12 +2418,12 @@ The words that always say one of a few things became marks in columns of their o
   d      a scroll MUCK
 ```
 
-Six cells of gutter: the pointer, the key, the blessing mark. Then a field holding the count or the
-article, right-aligned, so the nouns line up however many of a thing is carried. Then the name. Then
-the slot mark against the right edge, and the mark facing the pointer past it.
+The gutter is six cells: the pointer, the key and the blessing mark. The count or the article are
+in their own field, right-aligned. The nouns line up. The name follows. The slot mark is against the
+right edge. The mark facing the pointer is past it.
 
-The gutter does not scroll. A row scrolled sideways slides under it, so the key stays where a person
-reads it, and now the mark does too.
+The gutter does not scroll. A row scrolled sideways slides under it. The key and the mark stay in
+place.
 
 ### The marks
 
@@ -2432,7 +2432,7 @@ reads it, and now the mark does too.
 | `✦` | U+2726 | blessed |
 | `✘` | U+2718 | cursed |
 | `✓` | U+2713 | uncursed |
-| | | the blessing is not worked out, which is marked with nothing |
+| | | the blessing is not worked out |
 | `⚔` | U+2694 | in the hand |
 | `➶` | U+27B6 | the ranged weapon in the hand |
 | `➷` | U+27B7 | in the quiver |
@@ -2441,19 +2441,17 @@ reads it, and now the mark does too.
 | `⟪` | U+27EA | the near edge of the row the pointer or the highlight is on |
 | `⟫` | U+27EB | the far edge of that row |
 
-The blank is the question. Every item whose blessing is settled wears one of the three marks, and
-uncursed is the faintest of them because most things are uncursed and the column is there to be read
-past.
+Every item whose blessing is settled has one of the first three marks. An item whose blessing is not
+worked out has no mark. Uncursed is the faintest of the three, because most items are uncursed.
 
-Every one of them is one cell wide. `⛊` is East Asian Ambiguous, so a terminal set to draw ambiguous
-characters in two cells draws it in two; termbuf's width policy is where that is told. `⚔` carries
-`Emoji=Yes` with a text default, so a font stack that substitutes a colour glyph draws it in two as
-well.
+Each mark is one cell wide. `⛊` is East Asian Ambiguous. A terminal set to draw ambiguous characters
+in two cells draws it in two. termbuf's width policy sets that. `⚔` has `Emoji=Yes` with a text
+default. A font stack that substitutes a colour glyph draws it in two cells.
 
 ### Colours
 
-The marks are not at full brightness. They sit in columns and have only to be told from one another,
-and a bright column down the side of a list reads as an alarm.
+The marks are not at full brightness. They sit in a column of their own. They are designed to be
+distinctive from each other.
 
 | What | Colour |
 | --- | --- |
@@ -2466,32 +2464,30 @@ and a bright column down the side of a list reads as an alarm.
 
 ### What the highlight covers
 
-The text, and nothing else. The gutter carries the key and the blessing mark, and the blessing mark
-says what it says in its colour. Reversing it would invert that colour.
+The text. The gutter holds the key and the blessing mark. The colour of the blessing mark is part
+of its meaning. Reversing the gutter would invert that colour.
 
-### Where the marks are explained
+### Where the marks are named
 
-In the tooltip on the row. It writes the mark and the word for it — `✦ blessed`, `✓ uncursed`,
-`⚔ weapon in hand`, `⁕ burning` — so a person who has read the column is told which mark is which
-without leaving the list. An item whose blessing nobody has worked out writes `unknown` on its own,
-because it has no mark.
+In the tooltip on the row. It writes the mark and the word for it: `✦ blessed`, `✓ uncursed`,
+`⚔ weapon in hand`, `⁕ burning`. The column can then be read without looking the marks up
+elsewhere. An item whose blessing is not worked out writes `unknown` alone, because it has no mark.
 
-The first line of the tooltip names the item and leaves the blessing word out of the name. The line
-under it says the blessing. Writing both would say it twice.
+The first line of the tooltip names the item without the blessing word. The line under it gives the
+blessing.
 
 ### The Here and Seen rows
 
-The same two marks, on the row under the pointer. Those rows start `Line::INDENT` cells in, and the
-cells are kept clear whether or not a row is marked, so a row does not move sideways under the
-pointer. That costs two of the sidebar's columns, and a name long enough to be cut is cut two cells
-sooner than it was.
+The same two marks go on the row under the pointer. Those rows start `Line::INDENT` cells in. The
+cells are kept clear on every row, so a row does not move sideways under the pointer. This costs two
+of the sidebar's columns. A name long enough to be cut is cut two cells sooner than before.
 
-The mark facing the pointer takes its cells from the text rather than from a reserved column, so a
-name already at the edge is cut two cells shorter while the pointer is on it. The tooltip is up at
-that moment and says the whole name.
+The mark facing the pointer uses two cells that would otherwise hold text. A name already at the
+edge is cut two cells shorter while the pointer is on it. The tooltip is up then and gives the whole
+name.
 
-`NearbyPane` builds its rows afresh every turn. A rebuild takes the mark off, because the row it was
-on is gone.
+`NearbyPane` builds its rows again every turn. A rebuild takes the mark off, because the row it was
+on no longer exists.
 
 ## Asked for, not yet built
 
