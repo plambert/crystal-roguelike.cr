@@ -4068,19 +4068,22 @@ module Roguelike
       in Action::PickUp
         taking action
       in Action::Drop
-        return Verdict.refused unless @player.inventory[action.item]
+        letter = letter_of action.item
+        return Verdict.refused unless letter
 
-        drop action.item
+        drop letter
         Verdict.done
       in Action::Wield
-        return Verdict.refused unless @player.inventory[action.item]
+        letter = letter_of action.item
+        return Verdict.refused unless letter
 
-        wield action.item
+        wield letter
         Verdict.done
       in Action::Wear
-        return Verdict.refused unless @player.inventory[action.item]
+        letter = letter_of action.item
+        return Verdict.refused unless letter
 
-        wear action.item
+        wear letter
         Verdict.done
       in Action::Remove
         return Verdict.refused unless @player.in_slot action.slot
@@ -4096,16 +4099,18 @@ module Roguelike
                                Action::Throw) : Verdict
       case action
       in Action::Quaff
-        return Verdict.refused unless holds? action.item, ItemClass::Potion
+        letter = holding action.item, ItemClass::Potion
+        return Verdict.refused unless letter
 
-        quaff action.item
+        quaff letter
         Verdict.done
       in Action::Read
         reading action
       in Action::Zap
-        return Verdict.refused unless holds? action.item, ItemClass::Wand
+        letter = holding action.item, ItemClass::Wand
+        return Verdict.refused unless letter
 
-        zap action.item, action.target
+        zap letter, action.target
         Verdict.done
       in Action::Apply
         applying action
@@ -4113,9 +4118,10 @@ module Roguelike
         fire action.target
         Verdict.done
       in Action::Throw
-        return Verdict.refused unless @player.inventory[action.item]
+        letter = letter_of action.item
+        return Verdict.refused unless letter
 
-        throw action.item, action.target
+        throw letter, action.target
         Verdict.done
       end
     end
@@ -4130,11 +4136,19 @@ module Roguelike
       # sent one still has the question in front of it.
       return Verdict.refused if action.is_a?(Action::Aim) != scroll.kind.effect.aims_after?
 
-      @asking = nil
-
       case action
-      in Action::Choose then finish_reading scroll, action.item
-      in Action::Aim    then aim_reading scroll, action.target
+      in Action::Choose
+        wanted = action.item
+        choice = wanted ? letter_of(wanted) : nil
+        # An id naming nothing carried is refused, and the question stays up.
+        # An action with no id at all gives the rest of the scroll up.
+        return Verdict.refused if wanted && choice.nil?
+
+        @asking = nil
+        finish_reading scroll, choice
+      in Action::Aim
+        @asking = nil
+        aim_reading scroll, action.target
       end
 
       Verdict.done
@@ -4142,22 +4156,26 @@ module Roguelike
 
     # Takes one thing off the square underfoot.
     #
-    # An action with no index takes the only thing there. An action with no
-    # index is refused where several things lie there.
-    # `bots/PROTOCOL.md` section 2 asks for that. A client that meant one of
-    # them has to say which.
+    # An action with no id takes the only thing there. An action with no id
+    # is refused where several things lie there. `bots/PROTOCOL.md` section 2
+    # asks for that. A client that meant one of them has to say which.
     private def taking(action : Action::PickUp) : Verdict
       pile = here
-      index = action.item
+      wanted = action.item
 
-      unless index
+      unless wanted
         return Verdict.refused unless pile.size == 1
 
         pick_up pile.first
         return Verdict.done
       end
 
-      item = pile[index]?
+      # Zero is the id of a thing nothing has numbered. `#letter_of` refuses
+      # it for the same reason. Nothing in a run that has been through
+      # `#enrol` holds it.
+      return Verdict.refused if wanted.zero?
+
+      item = pile.find { |lying| lying.id == wanted }
       return Verdict.refused unless item
 
       pick_up item
@@ -4171,15 +4189,19 @@ module Roguelike
     # here and leave their question on `#asking`. Every other scroll is read
     # whole, with whatever it works on already named.
     private def reading(action : Action::Read) : Verdict
-      letter = action.item
-      return Verdict.refused unless holds? letter, ItemClass::Scroll
+      letter = holding action.item, ItemClass::Scroll
+      return Verdict.refused unless letter
+
+      wanted = action.choice
+      choice = wanted ? letter_of(wanted) : nil
+      return Verdict.refused if wanted && choice.nil?
 
       if marks_first? letter
         @asking = start_reading letter
       elsif target_needed? letter
         @asking = start_aiming_read letter
       else
-        read letter, action.choice
+        read letter, choice
       end
 
       Verdict.done
@@ -4188,13 +4210,14 @@ module Roguelike
     # Lights or puts out what the action names.
     #
     # The target has to be one `#appliable` offers. A sconce across the room
-    # is out of reach. A letter holding a potion is not a light.
+    # is out of reach. A potion is not a light.
     private def applying(action : Action::Apply) : Verdict
-      letter = action.item
+      held = action.item
       spot = action.at
 
-      wanted = if letter
-                 Roguelike::Apply.carried letter
+      wanted = if held
+                 letter = letter_of held
+                 letter ? Roguelike::Apply.carried(letter) : nil
                elsif spot
                  Roguelike::Apply.fixture spot[0], spot[1]
                end
@@ -4204,12 +4227,39 @@ module Roguelike
       Verdict.done
     end
 
-    # Whether *letter* holds something of *wanted*.
-    private def holds?(letter : Char, wanted : ItemClass) : Bool
-      item = @player.inventory[letter]
-      return false unless item
+    # Which letter holds the item *id*. `nil` when the character carries
+    # nothing under that id.
+    #
+    # It walks the pack rather than the whole run. `#item` walks every floor,
+    # and a verb names something the character is carrying. An id that names
+    # a thing on the floor, or one that names nothing at all, answers `nil`
+    # here, and `#perform` refuses the action.
+    #
+    # Every item under the letter is compared, not only the one an action
+    # takes. A letter holds fifteen arrows as four piles when three of them
+    # differ by a curse nobody has noticed. Each pile has an id of its own.
+    # `#legal` offers the first, and any of the four finds the letter.
+    private def letter_of(id : Int32) : Char?
+      return if id.zero?
 
-      item.kind.item_class == wanted
+      @player.inventory.each_item do |letter, item|
+        return letter if item.id == id
+      end
+
+      nil
+    end
+
+    # Which letter holds the item *id*, where what is under that letter is of
+    # *wanted*. `nil` when no letter holds it, and `nil` when one does and it
+    # is of some other class.
+    private def holding(id : Int32, wanted : ItemClass) : Char?
+      letter = letter_of id
+      return unless letter
+
+      item = @player.inventory[letter]
+      return unless item && item.kind.item_class == wanted
+
+      letter
     end
 
     # Every action the run allows at this turn.
@@ -4247,7 +4297,7 @@ module Roguelike
         return found
       end
 
-      @player.inventory.entries.each { |letter, _item| found << Action::Choose.new letter }
+      @player.inventory.entries.each { |_letter, item| found << Action::Choose.new item.id }
       found << Action::Choose.new
       found
     end
@@ -4281,12 +4331,14 @@ module Roguelike
     private def legal_floor(found : Array(Action)) : Nil
       pile = here
       found << Action::PickUp.new if pile.size == 1
-      pile.each_index { |index| found << Action::PickUp.new index }
+      pile.each { |item| found << Action::PickUp.new item.id }
 
       appliable.each do |target|
         letter = target.letter
-        found << if letter
-          Action::Apply.new item: letter
+        held = letter ? @player.inventory[letter] : nil
+
+        found << if held
+          Action::Apply.new item: held.id
         else
           Action::Apply.new at: {target.x, target.y}
         end
@@ -4301,25 +4353,24 @@ module Roguelike
 
       @player.inventory.entries.each do |letter, item|
         slot = slot_of letter
-        found << Action::Drop.new letter unless slot
-        legal_throwing found, letter, item, aims unless slot && (item.sticks? || slot.armour?)
+        found << Action::Drop.new item.id unless slot
+        legal_throwing found, item, aims unless slot && (item.sticks? || slot.armour?)
         legal_readying found, letter, item
 
         case item.kind.item_class
-        when .potion? then found << Action::Quaff.new letter
-        when .scroll? then legal_reading found, letter if readable
-        when .wand?   then legal_zapping found, letter, aims
+        when .potion? then found << Action::Quaff.new item.id
+        when .scroll? then legal_reading found, letter, item if readable
+        when .wand?   then legal_zapping found, letter, item, aims
         end
       end
     end
 
-    # Throwing what is under *letter* at each creature in sight.
-    private def legal_throwing(found : Array(Action), letter : Char,
-                               item : Item,
+    # Throwing *item* at each creature in sight.
+    private def legal_throwing(found : Array(Action), item : Item,
                                aims : Array({Int32, Int32})) : Nil
       return if item.kind.item_class.treasure?
 
-      aims.each { |spot| found << Action::Throw.new letter, spot }
+      aims.each { |spot| found << Action::Throw.new item.id, spot }
     end
 
     # Wielding or wearing what is under *letter*.
@@ -4334,9 +4385,9 @@ module Roguelike
       return if slot_of(letter) == slot
 
       if slot.weapon?
-        found << Action::Wield.new letter
+        found << Action::Wield.new item.id
       elsif @player.in_slot(slot).nil?
-        found << Action::Wear.new letter
+        found << Action::Wear.new item.id
       end
     end
 
@@ -4345,29 +4396,30 @@ module Roguelike
     # A scroll that names a carried item before it is read is offered once
     # per item it could name. It is offered once with nothing named where
     # there is nothing it could work on. `Ui::Play` offers the same list.
-    private def legal_reading(found : Array(Action), letter : Char) : Nil
+    private def legal_reading(found : Array(Action), letter : Char,
+                              item : Item) : Nil
       # A scroll whose question comes after the reading is one action with
       # nothing named in it. A scroll with no question is the same.
       if marks_first?(letter) || !choice_needed?(letter)
-        found << Action::Read.new letter
+        found << Action::Read.new item.id
         return
       end
 
       wanted = reading_choices letter
       if wanted.empty?
-        found << Action::Read.new letter
+        found << Action::Read.new item.id
         return
       end
 
-      wanted.each { |choice| found << Action::Read.new letter, choice }
+      wanted.each { |choice| found << Action::Read.new item.id, choice }
     end
 
-    # The carried letters the scroll under *letter* could work on.
+    # The carried items the scroll under *letter* could work on, by id.
     #
     # A scroll of identify names a kind the character has not made out. A
     # scroll of repair mends what is damaged. The scroll itself is not on the
     # list, because it is about to be used up.
-    private def reading_choices(letter : Char) : Array(Char)
+    private def reading_choices(letter : Char) : Array(Int32)
       repair = effect_of(letter).repair?
 
       @player.inventory.entries.compact_map do |held, item|
@@ -4375,19 +4427,20 @@ module Roguelike
         wanted = repair ? item.mendable? && item.condition.damaged? : !@lore.known?(item.kind)
         next unless wanted
 
-        held
+        item.id
       end
     end
 
     # The ways the wand under *letter* can be zapped.
     private def legal_zapping(found : Array(Action), letter : Char,
+                              item : Item,
                               aims : Array({Int32, Int32})) : Nil
       unless effect_of(letter).aimed?
-        found << Action::Zap.new letter
+        found << Action::Zap.new item.id
         return
       end
 
-      aims.each { |spot| found << Action::Zap.new letter, spot }
+      aims.each { |spot| found << Action::Zap.new item.id, spot }
     end
 
     # Taking off what is readied.

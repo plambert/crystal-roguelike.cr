@@ -29,10 +29,15 @@ module Roguelike
   # * `throw` takes a square and never a direction. The game aims at a
   #   square. The person picks that square with the targeting cursor.
   #
-  # An item is named by the inventory letter it is carried under. A letter is
-  # not stable across a replay, because a letter moves between items.
-  # `Item#id` is stable. The letters are to be replaced by ids before the
-  # replay log lands. Nothing else about this type changes then.
+  # An item is named by `Item#id`. An id names one item for as long as it is
+  # in the run, it comes from the seed, and a save round-trips it. An
+  # inventory letter does not do any of that. A letter depends on what else
+  # is in the pack, so the same pack in a different order puts a different
+  # item under one letter, and a replay recorded against letters would play
+  # out as a different run.
+  #
+  # `Ui::Play` turns the letter a key press names into an id. A person picks
+  # from a menu of letters and the game acts on an id.
   abstract class Action
     include JSON::Serializable
 
@@ -88,24 +93,6 @@ module Roguelike
 
       def self.to_json(value : Direction, json : JSON::Builder) : Nil
         json.string NAMES[value]
-      end
-    end
-
-    # How an inventory letter is written in JSON.
-    #
-    # JSON has no character type, so a letter is a string one long. `Char`
-    # cannot go into a `JSON::Builder` on its own either.
-    module Letters
-      def self.from_json(pull : JSON::PullParser) : Char
-        wanted = pull.read_string
-        found = wanted.size == 1 ? wanted[0] : nil
-        raise JSON::ParseException.new("#{wanted.inspect} is not one letter", 0, 0) unless found
-
-        found
-      end
-
-      def self.to_json(value : Char, json : JSON::Builder) : Nil
-        json.string value.to_s
       end
     end
 
@@ -175,14 +162,9 @@ module Roguelike
     # Taking one thing off the square the character stands on. `,` does
     # this.
     #
-    # *item* is the index of one thing in the pile. The first is zero, in
-    # the order `Game#here` gives. An action with no *item* takes the only
-    # thing there. It is refused where several things lie there, which is
-    # what the spec asks for.
-    #
-    # The index is what `Game#here` is addressed by, so it stays. The spec
-    # asks for a stable entity id in its place. `Item#id` is that id, and
-    # nothing yet needs `PickUp` to carry one.
+    # *item* is the id of one thing lying there. An action with no *item*
+    # takes the only thing there. It is refused where several things lie
+    # there, which is what the spec asks for.
     class PickUp < Action
       getter t : String = "pickup"
 
@@ -193,13 +175,15 @@ module Roguelike
     end
 
     # Putting everything under one letter on the floor. `d` does this.
+    #
+    # *item* is the id of what the letter holds. Everything under that
+    # letter goes, which is the whole stack rather than that one item.
     class Drop < Action
       getter t : String = "drop"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char
+      getter item : Int32
 
-      def initialize(@item : Char)
+      def initialize(@item : Int32)
       end
     end
 
@@ -207,10 +191,9 @@ module Roguelike
     class Wield < Action
       getter t : String = "wield"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char
+      getter item : Int32
 
-      def initialize(@item : Char)
+      def initialize(@item : Int32)
       end
     end
 
@@ -218,10 +201,9 @@ module Roguelike
     class Wear < Action
       getter t : String = "wear"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char
+      getter item : Int32
 
-      def initialize(@item : Char)
+      def initialize(@item : Int32)
       end
     end
 
@@ -240,17 +222,16 @@ module Roguelike
     class Quaff < Action
       getter t : String = "quaff"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char
+      getter item : Int32
 
-      def initialize(@item : Char)
+      def initialize(@item : Int32)
       end
     end
 
     # Reading a scroll. `r` does this.
     #
-    # *choice* is the carried letter a scroll of identify or of repair works
-    # on. That letter is known before the scroll is read. For a scroll of
+    # *choice* is the carried item a scroll of identify or of repair works
+    # on. That item is known before the scroll is read. For a scroll of
     # blessing, and for one of minor teleport, the question comes after the
     # reading. The question depends on the blessing on the scroll, and the
     # reading is how the character learns it. Those two leave `Game#asking`
@@ -258,13 +239,11 @@ module Roguelike
     class Read < Action
       getter t : String = "read"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char
+      getter item : Int32
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter choice : Char?
+      getter choice : Int32?
 
-      def initialize(@item : Char, @choice : Char? = nil)
+      def initialize(@item : Int32, @choice : Int32? = nil)
       end
     end
 
@@ -275,12 +254,11 @@ module Roguelike
     class Zap < Action
       getter t : String = "zap"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char
+      getter item : Int32
 
       getter target : {Int32, Int32}?
 
-      def initialize(@item : Char, @target : {Int32, Int32}? = nil)
+      def initialize(@item : Int32, @target : {Int32, Int32}? = nil)
       end
     end
 
@@ -293,12 +271,11 @@ module Roguelike
     class Apply < Action
       getter t : String = "apply"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char?
+      getter item : Int32?
 
       getter at : {Int32, Int32}?
 
-      def initialize(@item : Char? = nil, @at : {Int32, Int32}? = nil)
+      def initialize(@item : Int32? = nil, @at : {Int32, Int32}? = nil)
       end
     end
 
@@ -313,15 +290,16 @@ module Roguelike
     end
 
     # Throwing what is under *item* at *target*. `t` does this.
+    #
+    # One of a stack goes. The id names the stack the one comes off.
     class Throw < Action
       getter t : String = "throw"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char
+      getter item : Int32
 
       getter target : {Int32, Int32}
 
-      def initialize(@item : Char, @target : {Int32, Int32})
+      def initialize(@item : Int32, @target : {Int32, Int32})
       end
     end
 
@@ -351,10 +329,9 @@ module Roguelike
     class Choose < Action
       getter t : String = "choose"
 
-      @[JSON::Field(converter: Roguelike::Action::Letters)]
-      getter item : Char?
+      getter item : Int32?
 
-      def initialize(@item : Char? = nil)
+      def initialize(@item : Int32? = nil)
       end
     end
 

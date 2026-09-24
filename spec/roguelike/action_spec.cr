@@ -50,8 +50,21 @@ Spectator.describe Roguelike::Action do
       Roguelike::World.new(Playing::SEED, {"room" => floor}), player)
     floor.drop HERE[0], HERE[1], Item.new(Kind::Dagger)
     floor.drop HERE[0], HERE[1], Item.new(Kind::Rock)
+    game.enrol
     game
   end
+
+  # The id of what *game* holds under *letter*.
+  #
+  # An action names an item by its id. A spec reads better with the letter a
+  # person would press, so this is where the one becomes the other. It
+  # answers zero for a letter holding nothing, which is an id no item has.
+  def id(game : Roguelike::Game, letter : Char) : Int32
+    game.carried(letter).try(&.id) || 0
+  end
+
+  # An id no item in the run has.
+  GONE = 9999
 
   # Something of every shape a verb can name.
   def kit : Array(Item)
@@ -91,7 +104,7 @@ Spectator.describe Roguelike::Action do
   # A run with a scroll of blessing read and its question still up.
   def waiting : Roguelike::Game
     game = stocked
-    game.perform Action::Read.new('f')
+    game.perform Action::Read.new(id(game, 'f'))
     game
   end
 
@@ -103,20 +116,20 @@ Spectator.describe Roguelike::Action do
      Action::Close.new(Direction::South),
      Action::PickUp.new,
      Action::PickUp.new(1),
-     Action::Drop.new('d'),
-     Action::Wield.new('a'),
-     Action::Wear.new('b'),
+     Action::Drop.new(4),
+     Action::Wield.new(1),
+     Action::Wear.new(2),
      Action::Remove.new(Slot::Melee),
-     Action::Quaff.new('d'),
-     Action::Read.new('e', 'a'),
-     Action::Zap.new('g', {5, 2}),
-     Action::Apply.new(item: 'c'),
+     Action::Quaff.new(4),
+     Action::Read.new(5, 1),
+     Action::Zap.new(7, {5, 2}),
+     Action::Apply.new(item: 3),
      Action::Apply.new(at: {2, 3}),
      Action::Fire.new({6, 2}),
-     Action::Throw.new('a', {6, 2}),
+     Action::Throw.new(1, {6, 2}),
      Action::Descend.new,
      Action::Ascend.new,
-     Action::Choose.new('a'),
+     Action::Choose.new(1),
      Action::Choose.new,
      Action::Aim.new({6, 2}),
      Action::Aim.new] of Action
@@ -206,7 +219,7 @@ Spectator.describe Roguelike::Action do
 
       expect(game.legal.map &.class).not_to contain Action::Remove
 
-      game.perform Action::Wield.new('a')
+      game.perform Action::Wield.new(id(game, 'a'))
 
       expect(game.legal.compact_map { |action| action.as?(Action::Remove).try &.slot })
         .to eq [Slot::Melee]
@@ -268,7 +281,7 @@ Spectator.describe Roguelike::Action do
 
     it "offers only the answer while a scroll is waiting for one" do
       game = stocked
-      game.perform Action::Read.new('f')
+      game.perform Action::Read.new(id(game, 'f'))
 
       expect(game.asking).not_to be_nil
       expect(game.legal.map(&.class).uniq!).to eq [Action::Choose]
@@ -311,7 +324,7 @@ Spectator.describe Roguelike::Action do
 
       expect(back.asking).to be_nil
       expect(back.turn).to eq spent
-      expect(back.perform(Action::Choose.new('a')).refused?).to be_true
+      expect(back.perform(Action::Choose.new(id(back, 'a'))).refused?).to be_true
     end
 
     it "refuses the wrong kind of answer to a waiting scroll" do
@@ -323,24 +336,25 @@ Spectator.describe Roguelike::Action do
       expect(game.asking).not_to be_nil
     end
 
-    # The sample is one of each shape of refusal: a letter holding nothing, a
-    # letter holding the wrong kind of thing, a square with no pile on it, a
-    # slot with nothing in it, a sconce out of reach, and an answer to a
-    # question nobody asked.
+    # The sample is one of each shape of refusal. An id nothing in the run
+    # has, an id holding the wrong kind of thing, an id naming nothing on the
+    # floor, a slot with nothing in it, a sconce out of reach, and an answer
+    # to a question nobody asked.
     it "refuses an action the run does not allow, and spends nothing on it" do
-      refused = [Action::Quaff.new('z'),
-                 Action::Quaff.new('a'),
-                 Action::Read.new('a'),
-                 Action::Zap.new('a'),
-                 Action::Drop.new('z'),
-                 Action::Wield.new('z'),
-                 Action::Wear.new('z'),
+      sword = id stocked, 'a'
+      refused = [Action::Quaff.new(GONE),
+                 Action::Quaff.new(sword),
+                 Action::Read.new(sword),
+                 Action::Zap.new(sword),
+                 Action::Drop.new(GONE),
+                 Action::Wield.new(GONE),
+                 Action::Wear.new(GONE),
                  Action::Remove.new(Slot::Head),
-                 Action::PickUp.new(9),
-                 Action::Apply.new(item: 'a'),
+                 Action::PickUp.new(GONE),
+                 Action::Apply.new(item: sword),
                  Action::Apply.new(at: {8, 3}),
-                 Action::Throw.new('z', {6, 2}),
-                 Action::Choose.new('a'),
+                 Action::Throw.new(GONE, {6, 2}),
+                 Action::Choose.new(sword),
                  Action::Aim.new({6, 2})] of Action
 
       refused.each do |action|
@@ -353,6 +367,68 @@ Spectator.describe Roguelike::Action do
         expect(found.refused?).to be_true, "took #{action.to_json}"
         expect(game.turn).to eq turn
         expect(state game).to eq before
+      end
+    end
+
+    # Every verb that names an item, given an id no item in the run has.
+    #
+    # An id is the whole reference. A letter that has moved still names
+    # something, which is why a letter is the wrong thing to record. An id
+    # that names nothing names nothing, and the rule never runs.
+    it "refuses an id nothing in the run has" do
+      wanted = [Action::PickUp.new(GONE),
+                Action::Drop.new(GONE),
+                Action::Wield.new(GONE),
+                Action::Wear.new(GONE),
+                Action::Quaff.new(GONE),
+                Action::Read.new(GONE),
+                Action::Zap.new(GONE),
+                Action::Apply.new(item: GONE),
+                Action::Throw.new(GONE, {6, 2})] of Action
+
+      wanted.each do |action|
+        game = stocked
+        before = state game
+        turn = game.turn
+
+        expect(game.perform(action).refused?).to be_true, "took #{action.to_json}"
+        expect(game.turn).to eq turn
+        expect(state game).to eq before
+      end
+    end
+
+    it "refuses an id naming something on the floor rather than in the pack" do
+      game = stocked
+      lying = game.here.first
+      before = state game
+
+      expect(game.perform(Action::Drop.new(lying.id)).refused?).to be_true
+      expect(state game).to eq before
+    end
+
+    it "refuses a scroll's choice that names nothing, and leaves the question up" do
+      game = waiting
+      before = state game
+
+      expect(game.perform(Action::Choose.new(GONE)).refused?).to be_true
+      expect(game.asking).not_to be_nil
+      expect(state game).to eq before
+    end
+
+    it "takes an answer of nothing at all, which gives the scroll up" do
+      game = waiting
+
+      expect(game.perform(Action::Choose.new).allowed).to be_true
+      expect(game.asking).to be_nil
+    end
+
+    it "names a carried item by an id the run knows" do
+      game = stocked
+      wanted = game.legal.compact_map { |action| action.as?(Action::Quaff).try &.item }
+
+      expect(wanted).not_to be_empty
+      wanted.each do |found|
+        expect(game.item(found).try &.kind.item_class.potion?).to be_true
       end
     end
 
@@ -426,15 +502,15 @@ Spectator.describe Roguelike::Action do
       direct.take_off Slot::Melee
 
       routed = stocked
-      [Action::PickUp.new(0),
+      [Action::PickUp.new(routed.here.first.id),
        Action::Move.new(Direction::East),
        Action::Wait.new,
-       Action::Wield.new('a'),
-       Action::Wear.new('b'),
-       Action::Quaff.new('d'),
+       Action::Wield.new(id(routed, 'a')),
+       Action::Wear.new(id(routed, 'b')),
+       Action::Quaff.new(id(routed, 'd')),
        Action::Move.new(Direction::West),
        Action::Open.new(Direction::North),
-       Action::Drop.new('d'),
+       Action::Drop.new(id(routed, 'd')),
        Action::Remove.new(Slot::Melee)].each { |action| routed.perform action }
 
       expect(routed.turn).to eq direct.turn
@@ -447,8 +523,9 @@ Spectator.describe Roguelike::Action do
       direct.finish_reading scroll.as(Item), 'a'
 
       routed = stocked
-      routed.perform Action::Read.new('f')
-      routed.perform Action::Choose.new('a')
+      chosen = id routed, 'a'
+      routed.perform Action::Read.new(id(routed, 'f'))
+      routed.perform Action::Choose.new(chosen)
 
       expect(routed.asking).to be_nil
       expect(state routed).to eq state direct
@@ -459,7 +536,7 @@ Spectator.describe Roguelike::Action do
       direct.read 'e', 'd'
 
       routed = stocked
-      routed.perform Action::Read.new('e', 'd')
+      routed.perform Action::Read.new(id(routed, 'e'), id(routed, 'd'))
 
       expect(state routed).to eq state direct
     end

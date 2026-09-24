@@ -183,9 +183,10 @@ Spectator.describe Roguelike::Event do
 
   describe "what the character cannot know" do
     it "gives a potion its appearance until it is drunk" do
-      game = room [Item.new(Kind::HealingPotion)] { }
+      potion = Item.new Kind::HealingPotion
+      game = room [potion] { }
       look = game.lore.appearance(Kind::HealingPotion).to_s
-      game.perform Action::Quaff.new('a')
+      game.perform Action::Quaff.new(potion.id)
 
       drunk = game.events.compact_map(&.as?(Event::Used)).first
       found = game.events.compact_map(&.as?(Event::Identified)).first
