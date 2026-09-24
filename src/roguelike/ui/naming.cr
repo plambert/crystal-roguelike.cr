@@ -57,15 +57,15 @@ module Roguelike::Ui
 
     # How many cells the field in front of a name takes at the narrowest.
     #
-    # Two holds "an" and a count up to ninety-nine. A list with a larger
-    # count widens the field on every one of its rows, so the names stay in
-    # line.
+    # Two cells hold "an" and a count up to ninety-nine. A list with a
+    # larger count widens the field on every one of its rows. The names then
+    # stay in line.
     LEAD = 2
 
     # What goes in that field: the count, the article, or nothing.
     #
-    # Nothing for a kind that takes no article. "leather armour" is not "a
-    # leather armour", so the field stays blank.
+    # The field is blank for a kind that takes no article. "leather armour"
+    # is not "a leather armour".
     def self.lead(lore : Lore, item : Item) : String
       return item.count.to_s if item.count > 1
       return "" if item.kind.uncountable?
@@ -73,11 +73,12 @@ module Roguelike::Ui
       Lore.article lore.noun_for(item, blessing: false)
     end
 
-    # What *item* is called in a list: the whole name, with the count, the
-    # article and the blessing word all left out.
+    # What *item* is called in a list. It is the whole name with the count,
+    # the article and the blessing word left out.
     #
-    # The count and the article go in the field `.lead` fills. The blessing
-    # has a mark in a column of its own, so the word would say it twice.
+    # The count and the article are in the field `.lead` fills. The blessing
+    # is a mark in a column of its own, and the word beside it would be the
+    # same thing twice.
     def self.listed(lore : Lore, item : Item) : String
       lore.noun_for item, blessing: false
     end

@@ -1,11 +1,11 @@
 require "../spec_helper"
 
-# The ids a run hands to its items and creatures.
+# The ids a run gives to its items and creatures.
 #
 # A bot and a replay log name a thing by its id rather than by the letter it
-# sits under, because a letter moves and an id does not. The ids have to
-# follow from the seed and from nothing else, so that a replay of a run reads
-# the same names the run wrote.
+# sits under. A letter moves and an id does not. The ids have to follow from
+# the seed and from nothing else, so a replay of a run reads the same names
+# the run wrote.
 Spectator.describe "entity ids" do
   alias Game = Roguelike::Game
   alias Item = Roguelike::Item
@@ -15,11 +15,11 @@ Spectator.describe "entity ids" do
   # The seed every example here runs on.
   SEED = 20260911_u64
 
-  # Every id in *game*, each with a word saying what wears it.
+  # Every id in *game*, each with a word for what has it.
   #
-  # The word is what the thing is rather than which one it is, so two runs on
-  # one seed are compared on the things and not on the objects they are held
-  # in.
+  # The word is what the thing is rather than which one it is. Two runs on
+  # one seed are then compared on the things rather than on the objects
+  # holding them.
   def named(game : Game) : Array({Int32, String})
     found = [] of {Int32, String}
 
@@ -49,12 +49,12 @@ Spectator.describe "entity ids" do
     named(game).map { |id, _what| id }
   end
 
-  # *game* written out with every id and the counter cut out of it, which is
-  # what a save written before ids existed looks like.
+  # *game* written out with every id and the counter taken out. That is what
+  # a save written before ids existed holds.
   #
   # The file is made here rather than checked in. A fixture would go stale
-  # the first time the save format moved, and what is under test is the
-  # reader rather than any one old file.
+  # the first time the save format changed. What is under test is the reader
+  # rather than any one old file.
   def stripped(game : Game) : String
     text = JSON.parse game.to_json
     text.as_h.delete "minted"
@@ -185,8 +185,8 @@ Spectator.describe "entity ids" do
 
   describe "a pile that splits" do
     # The part that stays in the pack keeps the id. The character goes on
-    # referring to their arrows, and a bot that wrote down which pile it was
-    # firing from must not have to write it down again after every shot.
+    # naming their arrows. A bot that recorded which pile it fires from must
+    # not have to record it again after every shot.
     it "leaves the id on what is left in the pack" do
       game = Game.start Rng.new(SEED)
       letter = game.player.inventory.add Item.new(Kind::Arrow, count: 12)
@@ -206,8 +206,8 @@ Spectator.describe "entity ids" do
       expect(taken.try &.id).to_not eq before
     end
 
-    # A pile poured into another is gone, and so is its id. What is left is
-    # the pile that was already there.
+    # A pile put into another is gone, and so is its id. What is left is the
+    # pile that was already there.
     it "keeps the receiving pile's id on a merge" do
       one = Item.new Kind::Arrow, count: 5
       two = Item.new Kind::Arrow, count: 3

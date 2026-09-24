@@ -242,8 +242,8 @@ module Roguelike::Ui
     # more. An empty list says so rather than leaving a gap under the rule.
     private def fill(panel : Widgets::Panel, rows : Array(Line),
                      most : Int32) : Nil
-      # The rows are built again every turn. The row the mark was on is gone,
-      # so the mark goes with it.
+      # The rows are built again every turn. The row that held the mark is
+      # gone. The mark goes with it.
       unmark
       panel.clear
 
@@ -265,9 +265,9 @@ module Roguelike::Ui
     # nothing in particular passes none, and pointing at it takes down
     # whatever box was up.
     #
-    # The text starts `Line::INDENT` cells in. The mark goes in those cells
-    # when the pointer crosses the row. They are kept clear on every row, so
-    # a row does not move under the pointer.
+    # The text starts `Line::INDENT` cells in. The marks go in those cells
+    # when the pointer crosses the row. The cells are kept clear on every
+    # row, so a row does not move under the pointer.
     private def row(text : String, style : Style?,
                     lines : Array(String)? = nil) : Line
       line = Line.new
@@ -308,10 +308,10 @@ module Roguelike::Ui
 
     # Takes the marks off the marked row unless *row* is that row.
     #
-    # `Play` calls this once a pointer report has been through the tree, with
-    # whichever row of the whole sidebar answered it. A pointer that moved to
-    # a row of another pane, or off the sidebar, leaves this pane with no
-    # marked row.
+    # `Play` calls this once a pointer report has been through the tree.
+    # *row* is the row of the whole sidebar that the report reached. A
+    # pointer on a row of another pane, or off the sidebar, leaves this pane
+    # with no marked row.
     def keep(row : Widgets::Widget?) : Nil
       return if row && row.same? @marked
 
@@ -321,7 +321,7 @@ module Roguelike::Ui
     # Takes the marks off the marked row.
     #
     # `Play` calls this when the pointer leaves the sidebar. A row left
-    # marked would still say the pointer was on it.
+    # marked would show the pointer on it after the pointer is gone.
     def unmark : Nil
       found = @marked
       return unless found
@@ -330,7 +330,7 @@ module Roguelike::Ui
       @marked = nil
     end
 
-    # The row the pointer is on, as far as this pane has been told.
+    # The last row this pane was given as the row under the pointer.
     @marked : Line? = nil
   end
 end

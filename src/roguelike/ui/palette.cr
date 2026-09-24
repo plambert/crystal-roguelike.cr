@@ -237,8 +237,8 @@ module Roguelike::Ui
 
     # What something crossing the floor is drawn in.
     #
-    # Brighter than the same thing lying on the ground. A missile is on the
-    # screen for a few frames, and it is what the eye should be on for those
+    # It is brighter than the same thing lying on the ground. A missile is
+    # on the screen for a few frames. It is the thing to look at for those
     # frames.
     MISSILE = Style::DEFAULT.fg TermBuf::Color.rgb(0xF2, 0xE6, 0xC0)
 
@@ -250,8 +250,8 @@ module Roguelike::Ui
 
     # How *item* is drawn while it is crossing the floor.
     #
-    # An arrow keeps its own glyph, so a person sees what they let go of. A
-    # bolt has no item behind it.
+    # An arrow keeps its own glyph. A person then sees what they let go of.
+    # A bolt has no item.
     def self.flying(item : Item?) : Look
       Look.new item ? self[item].glyph : BOLT, MISSILE
     end
@@ -266,20 +266,25 @@ module Roguelike::Ui
     CURSED   = '\u2718'
     UNCURSED = '\u2713'
 
-    # The word that goes with the blank, where a readout writes both.
+    # The word for an item whose blessing is not worked out.
+    #
+    # Such an item has no mark. A readout that writes a mark and a word
+    # writes this word with no mark.
     UNKNOWN_WORD = "unknown"
 
     # What each blessing mark is drawn in.
     #
     # None of the three is at full brightness. They sit in a column of their
-    # own and only have to be told apart. Uncursed is fainter still, because
-    # most items are uncursed.
+    # own. They are designed to be distinctive from each other. Uncursed is
+    # the faintest, because most items are uncursed.
     BLESSED_MARK  = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xD8)
     CURSED_MARK   = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x80, 0x98)
     UNCURSED_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x6A, 0x70, 0x7C)
 
-    # How the blessing of *item* is marked. `nil` for one the character has
-    # not worked out, which is marked with nothing.
+    # How the blessing of *item* is marked.
+    #
+    # It is `nil` for an item the character has not worked out. Such an item
+    # has no mark.
     def self.blessing(item : Item) : Look?
       return unless item.blessing_known?
 
@@ -290,15 +295,16 @@ module Roguelike::Ui
       end
     end
 
-    # The word beside the mark, where a readout writes both.
+    # The word for the blessing of *item*. A readout writes it beside the
+    # mark.
     def self.blessing_word(item : Item) : String
       item.blessing_known? ? item.blessing.label : UNKNOWN_WORD
     end
 
     # The mark against an item the character has readied.
     #
-    # One mark for all five worn slots. The name beside it says which piece
-    # of armour it is.
+    # One mark is used for all five worn slots. The name beside the mark is
+    # what gives the piece of armour.
     MELEE  = '\u2694'
     RANGED = '\u27B6'
     QUIVER = '\u27B7'
@@ -307,13 +313,14 @@ module Roguelike::Ui
     # The mark against a light source that is burning.
     LIT = '\u2055'
 
-    # The word beside `LIT`, where a readout writes both.
+    # The word for a burning light source. A readout writes it beside the
+    # mark.
     LIT_WORD = "burning"
 
     # What a slot mark is drawn in.
     #
-    # One colour for the whole column. The marks differ by shape. The colour
-    # separates the column from the names beside it.
+    # One colour is used for the whole column. The marks differ by shape.
+    # The colour is what separates the column from the names beside it.
     SLOT_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x88, 0xA8, 0x98)
 
     # What the mark on a burning light source is drawn in.
@@ -336,8 +343,8 @@ module Roguelike::Ui
       Look.new LIT, LIT_MARK
     end
 
-    # What marks the row under the pointer: one at the near edge and one at
-    # the far one. Together they bracket the row.
+    # The two marks on the row under the pointer. One is at the near edge
+    # and one is at the far edge.
     POINTER = '\u27EA'
     POINTED = '\u27EB'
 

@@ -16,11 +16,12 @@ module Roguelike
     # What this pile is called in a log or by a bot, for as long as it is
     # this pile.
     #
-    # Zero means nobody has given it one yet. `Game#enrol` walks the run and
-    # hands ids to whatever has none, which is how everything the generator
-    # made gets one and how a save written before ids existed gets one too.
+    # Zero means it has no id yet. `Game#enrol` walks the run and gives an
+    # id to whatever has none. Everything the generator made is numbered
+    # that way. A save written before ids existed is numbered the same way.
     #
-    # It has a default, so such a save loads rather than being refused.
+    # The field has a default, so such a save loads rather than being
+    # refused.
     getter id : Int32 = 0
 
     # What sort of thing this is.
@@ -90,9 +91,9 @@ module Roguelike
 
     # Gives this item the id *id*. Answers whether it took one.
     #
-    # An item takes an id once. A pile that already wears one keeps it, so
-    # walking the run twice numbers nothing twice, and *id* zero is the way
-    # of saying there is no id to give.
+    # An item takes an id once. A pile that already has one keeps it, so
+    # walking the run twice numbers nothing twice. An *id* of zero means
+    # there is no id to give.
     def enrol(id : Int32) : Bool
       return false unless @id.zero?
       return false if id.zero?
@@ -284,25 +285,25 @@ module Roguelike
     #
     # The caller has already decided they stack.
     #
-    # The id is this item's. Two piles poured together are one pile, and the
-    # one that was already there is the one that goes on. *other*'s id names
-    # nothing after this and is not handed out again.
+    # The id is this item's. Two piles put together are one pile, and it is
+    # this one. *other*'s id names nothing after this, and it is not given
+    # out again.
     def merge(other : Item) : Item
       found = with_count @count + other.count
       found.handle Math.max(@handling, other.handling) - @handling
       found
     end
 
-    # A copy of this item with *count* of them, wearing *id*.
+    # A copy of this item with *count* of them, under the id *id*.
     #
-    # The id carries over by default, because changing how many are in a pile
-    # does not make it a different pile. Ten arrows that lose one are the same
-    # nine-and-one arrows they were, and `#carried` counting a letter as one
-    # stack is a way of looking at a pile rather than a new one.
+    # The id carries over by default. A change in how many are in a pile does
+    # not make it a different pile. Ten arrows with one taken away are still
+    # the same arrows. `#carried` counts a letter as one stack, which is a
+    # way of looking at a pile rather than a new pile.
     #
-    # A caller that is really splitting a pile in two passes an *id* from
-    # `Game#next_id` for the part that leaves. `Inventory::Stack#take` is the
-    # one place that happens.
+    # A caller that splits a pile in two passes an *id* from `Game#next_id`
+    # for the part that leaves. `Inventory::Stack#take` is the one place that
+    # happens.
     def with_count(count : Int32, id : Int32 = @id) : Item
       found = Item.new @kind, @enchantment, @condition, count, @charges,
         @blessing, @blessing_known, @lit, @handling
@@ -315,8 +316,8 @@ module Roguelike
     # A `Memory` holds one of these. An item goes on burning down and being
     # identified after somebody looks away, and what they remember does not.
     #
-    # The id carries over, so what is remembered of a pile and the pile
-    # itself answer to the same name.
+    # The id carries over. What is remembered of a pile and the pile itself
+    # have the same id.
     def copy : Item
       with_count @count
     end
@@ -344,9 +345,9 @@ module Roguelike
     # Whether this item and *other* are the same in every way a character
     # could care about.
     #
-    # The id is left out, here and in `#hash`. It says which pile this is
-    # rather than what it is, and a spec that asks whether the character is
-    # carrying twelve arrows is asking about the arrows.
+    # The id is left out, here and in `#hash`. An id is which pile this is
+    # rather than what it is. A spec that asks whether the character carries
+    # twelve arrows is a question about the arrows.
     def ==(other : Item) : Bool
       @kind == other.kind && @enchantment == other.enchantment &&
         @condition == other.condition && @count == other.count &&

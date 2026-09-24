@@ -63,15 +63,16 @@ Spectator.describe "the marks against a row of a list" do
       expect(pack(run).first.mark_style).to eq Palette::UNCURSED_MARK
     end
 
-    # The blank is the question. Every item whose blessing is settled wears
-    # one of the three marks.
+    # An item whose blessing is not worked out has no mark. Every item whose
+    # blessing is settled has one of the three marks.
     it "marks an item whose blessing is not worked out with nothing" do
       run = carrying [sword Blessing::Blessed, known: false]
 
       expect(pack(run).first.mark).to eq ' '
     end
 
-    # The mark replaces the word. Writing both would say it twice.
+    # The mark replaces the word. Both together would be the same thing
+    # twice.
     it "leaves the word out of the name" do
       run = carrying [sword Blessing::Cursed]
 
@@ -93,8 +94,8 @@ Spectator.describe "the marks against a row of a list" do
     end
 
     # The names line up down the list. Two cells hold every count up to
-    # ninety-nine and the field widens past that rather than pushing one row
-    # of names out of line.
+    # ninety-nine. A larger count widens the field rather than pushing one
+    # row of names out of line.
     it "widens for a count that does not fit" do
       run = carrying [Item.new(Kind::Arrow, count: 120), Item.new(Kind::Dagger)]
       rows = pack run
@@ -212,8 +213,8 @@ Spectator.describe "the marks against a row of a list" do
       expect(run.play.tooltip.written).to contain "#{Palette::CURSED} cursed"
     end
 
-    # A blessing nobody has worked out has no mark, so the line is the word
-    # on its own.
+    # An item whose blessing is not worked out has no mark. The line is the
+    # word on its own.
     it "writes the word alone for an unworked-out blessing" do
       run = carrying [sword Blessing::Blessed, known: false]
       run.press "i"

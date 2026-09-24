@@ -81,20 +81,20 @@ module Roguelike
         end
       end
 
-      # Takes *count* off the front, calling the part that leaves *id*.
+      # Takes *count* off the front. The part that leaves is given the id
+      # *id*.
       #
       # Answers what came out, or `nil` when there is nothing here.
       #
-      # A pile split in two keeps its id on the part that stays in the pack,
-      # because that is the pile the character goes on referring to: two
-      # arrows off a stack of twelve leave ten arrows that are still the
-      # arrows they were. The two that left are a separate pile from here on
-      # and wear *id*.
+      # A pile split in two keeps its id on the part that stays in the pack.
+      # That is the pile the character goes on naming. Two arrows off a stack
+      # of twelve leave ten arrows that are still the same arrows. The two
+      # that left are a separate pile from here on, under *id*.
       #
       # A count that reaches the whole front stack is not a split. The pile
-      # goes over as it stands, with the id it already wore, and *id* is not
-      # used. Ids need only be unique and to follow from the seed, so a gap
-      # in the numbering costs nothing.
+      # moves as it stands, under the id it already had, and *id* is not
+      # used. An id need only be unique and follow from the seed, so a gap in
+      # the numbering costs nothing.
       def take(count : Int32, id : Int32) : Item?
         held = first
         return unless held
@@ -258,8 +258,8 @@ module Roguelike
     # A count at or above what the front holds takes the whole front stack,
     # and a letter left with nothing under it is freed.
     #
-    # *id* is what the part that leaves is called once it is a pile of its
-    # own. `Stack#take` says which part that is.
+    # *id* is the id of the part that leaves, once it is a pile of its own.
+    # `Stack#take` is where the split happens.
     def take(letter : Char, count : Int32, id : Int32) : Item?
       stack = @slots[letter]?
       return unless stack

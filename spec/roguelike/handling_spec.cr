@@ -214,7 +214,8 @@ Spectator.describe Roguelike::Handling do
       expect(game.log.lines.any? &.includes?("cursed")).to be_true
     end
 
-    # The character works it out and the pack shows it. The log stays quiet.
+    # The character works it out and the pack shows it. Nothing is written
+    # to the log.
     it "says nothing when it works out that something is uncursed" do
       game = bare
       item = Item.new Kind::Dagger

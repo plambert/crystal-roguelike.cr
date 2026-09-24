@@ -2,30 +2,30 @@ require "digest/sha256"
 require "json"
 
 module Roguelike
-  # One string saying what a run is, the same in every process.
+  # What a run is, as one string, the same in every process.
   #
   # A replay is checked by playing it again and comparing fingerprints turn
-  # by turn. Two runs that agree at turn 40 and differ at turn 50 put the
-  # fault in those ten turns, which is a place to look rather than "the
-  # ending was wrong".
+  # by turn. Suppose two runs agree at turn 40 and differ at turn 50. The
+  # fault is then in those ten turns, which is a smaller thing to search
+  # than the whole run.
   #
-  # That only works if the value depends on the state and on nothing else.
-  # Nothing here reaches `Object#hash`: Crystal seeds its hasher afresh in
-  # every process, so a value built from it differs between two runs of the
-  # same replay for no reason a person could find.
+  # That works only if the value depends on the state and on nothing else.
+  # Nothing here uses `Object#hash`. Crystal seeds its hasher afresh in every
+  # process. A value built from it differs between two runs of one replay,
+  # and the difference has no cause in the game.
   #
-  # The game already writes itself out. `Game` includes `JSON::Serializable`
-  # and `Save` puts a whole run in one file. This digests that rather than
-  # walking a run a second way, so a field added to a save is in the
-  # fingerprint the day it is added, and a field left out of a save is left
-  # out of both.
+  # The game is already written out in full. `Game` includes
+  # `JSON::Serializable`, and `Save` puts a whole run in one file. This
+  # module digests that output rather than walking a run a second way. A
+  # field added to a save is therefore in the fingerprint from the day it is
+  # added. A field left out of a save is in neither.
   module Fingerprint
     # What the digest is called in the value itself.
     #
-    # A fingerprint reads `sha256:1b7c…`. The value says what made it, so a
-    # person holding a replay line knows what to check it with rather than
-    # guessing from its length, and a later change of algorithm is visible
-    # in the old values rather than silent.
+    # A fingerprint is `sha256:1b7c…`. The name of the algorithm is in the
+    # value. A person holding a replay line then knows which algorithm to
+    # check it with, and does not have to guess from the length. A later
+    # change of algorithm is also visible in the old values.
     ALGORITHM = "sha256"
 
     # The fingerprint of *subject*.
@@ -35,12 +35,12 @@ module Roguelike
 
     # The fingerprint of the canonical JSON *text*.
     #
-    # The whole digest is kept: 256 bits, 64 hex characters. Cutting it short
-    # would save thirty-odd bytes on a line a replay writes once every
-    # twenty-five turns, and it would cost the thing a person wants when a
-    # replay does desync, which is to check the number by hand: `#canonical`
-    # written to a file and run through `shasum -a 256` answers exactly this.
-    # A shortened value has to be explained before it can be checked.
+    # The whole digest is kept. That is 256 bits and 64 hex characters. A
+    # shorter value would save about thirty bytes on a line a replay writes
+    # once every twenty-five turns. It would also cost the check a person
+    # wants when a replay does desync, which is a check by hand. `#canonical`
+    # written to a file and run through `shasum -a 256` gives exactly this
+    # value. A shortened value has to be explained first.
     def self.digest(text : String) : String
       "#{ALGORITHM}:#{Digest::SHA256.hexdigest text}"
     end
@@ -54,19 +54,19 @@ module Roguelike
     #
     # The canonical form is the same JSON with the fields of every object in
     # order by name. `JSON::Serializable` writes fields in the order they are
-    # declared, which is stable, but a `Hash` writes in the order it was
-    # filled. Several reach the file: the floors of a world, the creatures,
+    # declared, which is stable. A `Hash` writes in the order it was filled.
+    # Several hashes reach the file: the floors of a world, the creatures,
     # the litter, the lights and the fixtures of a floor, the letters of a
     # pack, the slots of an equipment set, the squares a character remembers,
-    # and the appearances a run rolled. Every one of them is filled in an
-    # order that follows from the seed and the moves, so two runs that took
-    # the same moves fill them alike. Sorting costs one pass and makes the
-    # value a function of what the state is rather than of how it got there,
-    # which is a weaker thing to have to be sure of.
+    # and the appearances a run rolled. Each one is filled in an order that
+    # follows from the seed and the moves, so two runs on the same moves fill
+    # them alike. Sorting costs one pass. The value is then a function of
+    # what the state is rather than of how the state was reached, and that is
+    # the weaker thing to depend on.
     #
     # Numbers are copied as they were written rather than read into a number
-    # and written again. A run's seed is a `UInt64` and the larger half of
-    # that range does not fit in the `Int64` a JSON parser reads into.
+    # and written again. A run's seed is a `UInt64`. The larger half of that
+    # range does not fit in the `Int64` a JSON parser reads into.
     def self.canonical(text : String) : String
       String.build { |canonical| write JSON::PullParser.new(text), canonical }
     end
@@ -92,7 +92,7 @@ module Roguelike
       end
     end
 
-    # Writes an array to *io*. The order of an array is the state's own.
+    # Writes an array to *io*. The order of an array is left as it is.
     private def self.write_array(pull : JSON::PullParser, io : IO) : Nil
       io << '['
       first = true

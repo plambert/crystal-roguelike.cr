@@ -3,10 +3,11 @@ require "../support/scripted"
 
 # The second process the cross-process specs read fingerprints from.
 #
-# The point of a fingerprint is that two processes agree on it, and no spec
-# running in one process can show that. A fork will not do: Crystal seeds
-# `Object#hash` once at startup and a child inherits the seed its parent was
-# given, so anything built from it would agree for the wrong reason.
+# A fingerprint is a fingerprint because two processes agree on it. No spec
+# running in one process can show that. A fork will not do either. Crystal
+# seeds `Object#hash` once at startup, and a child inherits the seed its
+# parent was given, so anything built from it would agree for the wrong
+# reason.
 module SecondProcess
   @@built : Path? = nil
 
@@ -17,8 +18,8 @@ module SecondProcess
   # Where the built program is.
   #
   # It is built the first time it is wanted and kept for the rest of the
-  # spec run. The compile takes a few seconds and every spec here would
-  # otherwise pay it again.
+  # spec run. The compile takes a few seconds, and every spec here would
+  # otherwise wait for it again.
   def self.binary : Path
     @@built ||= build
   end

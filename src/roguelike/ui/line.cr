@@ -40,14 +40,15 @@ module Roguelike::Ui
     # not move when the pointer crosses it.
     INDENT = 2
 
-    # A row's two marks: one at the near edge and one at the far one.
+    # The two marks on a row. *near* is at the near edge and *far* is at the
+    # far edge.
     record Marks, near : Char, far : Char, style : Style
 
-    # What marks this row, or `nil` for one that is not marked.
+    # The marks on this row. It is `nil` for a row that is not marked.
     #
-    # The near mark goes in the first cell and the far one against the right
-    # edge. The far one takes its cells from the text, so a name long enough
-    # to be cut is cut two cells shorter while the row is marked.
+    # The near mark is in the first cell. The far mark is against the right
+    # edge. The far mark takes its cells from the text. A name long enough to
+    # be cut is therefore cut two cells shorter while the row is marked.
     property marks : Marks? = nil
 
     # The pieces, in the order they were written.

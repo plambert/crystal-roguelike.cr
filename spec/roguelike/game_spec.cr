@@ -41,8 +41,8 @@ Spectator.describe Roguelike::Game do
       expect(carried).to contain Roguelike::ItemKind::Spike
     end
 
-    # The character has owned their own kit long enough to be sure of it, so
-    # none of it waits on a handling roll before the pack stops hedging.
+    # The character has owned their own kit long enough to be sure of it.
+    # None of it waits on a handling roll.
     it "hands out nothing that is cursed or blessed" do
       carried = game.player.inventory.entries.map { |_letter, item| item.blessing }
 

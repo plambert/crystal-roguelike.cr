@@ -5,32 +5,33 @@ require "./slot"
 module Roguelike
   # One thing the character does, as a value.
   #
-  # Every verb the game has is one subclass carrying whatever that verb
-  # needs. `Game#perform` takes one of these and routes it to the rule that
-  # answers it. `Game#legal` answers the ones the run allows now. `Ui::Play`
-  # builds one for every key that spends a turn, so the keyboard, a replay
-  # log and a bot all reach the rules by the same road.
+  # Every verb the game has is one subclass. A subclass carries what that
+  # verb needs. `Game#perform` takes one of these and calls the rule for it.
+  # `Game#legal` gives the ones the run allows now. `Ui::Play` builds one for
+  # every key that spends a turn. The keyboard, a replay log and a bot are
+  # then served by the same rules.
   #
-  # An action serializes with a `t` field naming the verb, so one goes into a
-  # replay line and comes back out of it. The names are the ones
-  # `bots/PROTOCOL.md` section 2 asks for where this game has that verb.
+  # An action serializes with a `t` field naming the verb, so one is written
+  # to a replay line and read back from it. The names are the ones
+  # `bots/PROTOCOL.md` section 2 asks for, where this game has that verb.
   #
-  # Where the game and the spec differ, the game wins:
+  # The game and the spec differ in four ways. The game is what this type
+  # follows.
   #
-  # * The spec's `remove` names an item. This game's `Game#take_off` names a
-  #   slot, because one key takes off whatever is in a slot and the slot is
-  #   what a person picks between. `Remove` carries the slot.
+  # * The spec's `remove` names an item. `Game#take_off` names a slot. One
+  #   key takes off whatever is in a slot, and a person picks between slots.
+  #   `Remove` carries the slot.
   # * The spec has no `zap`, `apply`, `ascend`, `fire` or `aim`. This game
   #   has all five.
-  # * The spec folds every mid-action question into `choose`. A scroll here
-  #   asks one of two questions: which carried item, or which square. One
-  #   `choose` cannot carry a square, so `Aim` is the second answer.
+  # * The spec has one `choose` for every mid-action question. A scroll here
+  #   asks for a carried item or for a square. A `choose` cannot carry a
+  #   square. `Aim` is the answer that carries one.
   # * `throw` takes a square and never a direction. The game aims at a
-  #   square, and the targeting cursor is what picks one.
+  #   square. The targeting cursor is what picks the square.
   #
-  # Items are named by the inventory letter they are carried under. The spec
-  # asks for a stable entity id, and a later change replaces the letter with
-  # one. Nothing else about this type changes when it does.
+  # An item is named by the inventory letter it is carried under. The spec
+  # asks for a stable entity id instead. A later change replaces the letter
+  # with an id. Nothing else about this type changes then.
   abstract class Action
     include JSON::Serializable
 
@@ -58,9 +59,10 @@ module Roguelike
 
     # How a direction is written in JSON.
     #
-    # `bots/PROTOCOL.md` section 2 names the eight `n ne e se s sw w nw`.
-    # The enum's own member names would be `NorthEast` and the like, which
-    # no client outside Crystal would guess.
+    # `bots/PROTOCOL.md` section 2 names the eight directions `n ne e se s
+    # sw w nw`. The enum's own member names are `NorthEast` and the like.
+    # Those names are particular to Crystal. They are not what a client in
+    # another language expects.
     module Compass
       # The short name of each direction, and the direction of each short
       # name.
@@ -108,8 +110,8 @@ module Roguelike
 
     # How a slot is written in JSON.
     #
-    # The member name in lower case, so `Slot::Ranged` is `"ranged"`. The
-    # spec has no vocabulary for slots; this game needs one.
+    # A slot is the member name in lower case, so `Slot::Ranged` is
+    # `"ranged"`. The spec has no names for slots. This game needs them.
     module Slots
       def self.from_json(pull : JSON::PullParser) : Slot
         Slot.parse pull.read_string
@@ -123,8 +125,8 @@ module Roguelike
     # One step on the grid. `hjklyubn` do this.
     #
     # A step into a creature is an attack on it. A step into a shut door
-    # opens it. Keeping both on one verb is what holds the action space to
-    # eight moves, and `bots/PROTOCOL.md` asks for it.
+    # opens it. Both are on this one verb. The action space is then eight
+    # moves, which is what `bots/PROTOCOL.md` asks for.
     class Move < Action
       getter t : String = "move"
 
@@ -156,8 +158,9 @@ module Roguelike
 
     # Closing the door one square *dir*. `c` does this.
     #
-    # Shutting a door on something chasing the character is a tactic, which
-    # is why it has a verb of its own rather than being a bump.
+    # Shutting a door on something that chases the character is a tactic.
+    # It is a verb of its own for that reason, rather than a step into the
+    # door.
     class Close < Action
       getter t : String = "close"
 
@@ -171,12 +174,13 @@ module Roguelike
     # Taking one thing off the square the character stands on. `,` does
     # this.
     #
-    # *item* is which of the pile, counted from nothing in the order
-    # `Game#here` lists it. No *item* takes the only thing there and refuses
-    # a pile of several, the way the spec asks.
+    # *item* is the index of one thing in the pile. The first is zero, in
+    # the order `Game#here` gives. An action with no *item* takes the only
+    # thing there. It is refused where several things lie there, which is
+    # what the spec asks for.
     #
-    # The index is what stands in for the stable entity id the spec wants
-    # until items have one.
+    # The index stands in for the stable entity id the spec wants, until
+    # items have one.
     class PickUp < Action
       getter t : String = "pickup"
 
@@ -244,11 +248,11 @@ module Roguelike
     # Reading a scroll. `r` does this.
     #
     # *choice* is the carried letter a scroll of identify or of repair works
-    # on, which is known before the scroll is read. A scroll of blessing and
-    # one of minor teleport ask their question afterwards instead, because
-    # what they ask depends on the blessing on them and reading them is how
-    # the character finds that out. Those leave `Game#asking` set, and
-    # `Choose` or `Aim` answers it.
+    # on. That letter is known before the scroll is read. For a scroll of
+    # blessing, and for one of minor teleport, the question comes after the
+    # reading. The question depends on the blessing on the scroll, and the
+    # reading is how the character learns it. Those two leave `Game#asking`
+    # set. `Choose` or `Aim` is the answer.
     class Read < Action
       getter t : String = "read"
 
@@ -282,8 +286,8 @@ module Roguelike
     # this.
     #
     # *item* names a carried light. *at* names a sconce by the square it
-    # stands on. Exactly one of the two is set, which is the same split
-    # `Roguelike::Apply` makes.
+    # stands on. Exactly one of the two is set. `Roguelike::Apply` is
+    # divided the same way.
     class Apply < Action
       getter t : String = "apply"
 
@@ -329,8 +333,8 @@ module Roguelike
 
     # Climbing out of the dungeon by the staircase underfoot. `<` does this.
     #
-    # The spec has no word for this ending. It is a third one: the run is
-    # over and was not won.
+    # The spec has no word for this ending. It is a third ending. The run is
+    # over and it was not won.
     class Ascend < Action
       getter t : String = "ascend"
 
@@ -340,8 +344,8 @@ module Roguelike
 
     # Naming the carried item a scroll already read works on.
     #
-    # No *item* gives up what the scroll had left to do. It is spent either
-    # way.
+    # An action with no *item* gives up the rest of what the scroll would
+    # do. The scroll is spent either way.
     class Choose < Action
       getter t : String = "choose"
 
@@ -354,7 +358,8 @@ module Roguelike
 
     # Naming the square a scroll already read is aimed at.
     #
-    # No *target* gives it up, the same way `Choose` with no item does.
+    # An action with no *target* gives it up. `Choose` with no item is the
+    # same.
     class Aim < Action
       getter t : String = "aim"
 
@@ -367,20 +372,20 @@ module Roguelike
 
   # What one call to `Game#perform` did.
   #
-  # An action the run will not take is answered rather than raised. A client
-  # sending one is ordinary traffic: a bot picking outside `Game#legal`, a
-  # replay recorded against an older build, a key arriving a moment after the
-  # thing it named stopped being there. The headless protocol turns each of
-  # those into a line of its own, and raising would make every caller wrap
-  # every call. Nothing changed and no turn was spent, because `Game#perform`
-  # decides before it dispatches.
+  # An action the run will not take is refused in the return value rather
+  # than raised. Three ordinary things send one: a bot picking outside
+  # `Game#legal`, a replay recorded against an older build, and a key that
+  # arrives after the thing it names is gone. The headless protocol reports
+  # each of those on a line of its own. An exception would put a rescue
+  # around every call. A refused action changes nothing and spends no turn,
+  # because `Game#perform` checks before it dispatches.
   #
-  # `#allowed` true says only that the rule ran. Opening a door where there is
-  # none still answers true: refusing is that rule's own answer, and it has
-  # already written the line that says so.
+  # `#allowed` true means only that the rule ran. Opening a door where there
+  # is none is still true. The refusal belongs to that rule, and that rule
+  # has already written the line for it.
   #
-  # `#step` is what a move came to, and `nil` for every other verb. `Ui::Play`
-  # reads it to decide whether the camera follows.
+  # `#step` is what a move came to. It is `nil` for every other verb.
+  # `Ui::Play` reads it and decides whether to move the view.
   record Verdict,
     allowed : Bool,
     step : Step? = nil do

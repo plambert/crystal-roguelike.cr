@@ -24,8 +24,8 @@ module Roguelike
   # frame at a time. The shot is worked out and applied before this is set,
   # so the drawing is a replay and no rule waits on it.
   #
-  # *item* is what flew, for whatever draws it. A bolt from a wand has none:
-  # nothing lands on the floor and there is nothing to name.
+  # *item* is what crossed the floor, for whatever draws it. A bolt from a
+  # wand has none. Nothing lands on the floor and there is nothing to name.
   record Missile, flight : Flight, item : Item? = nil
 
   # Where a thing thrown or fired goes, and where it stops.

@@ -17,11 +17,12 @@ module Roguelike
     # What this creature is called in a log or by a bot, for as long as it
     # lives.
     #
-    # Zero means nobody has given it one yet. `Game#enrol` walks the run and
-    # hands ids to whatever has none, which is how a creature the generator
-    # placed gets one and how a save written before ids existed gets one too.
+    # Zero means it has no id yet. `Game#enrol` walks the run and gives an
+    # id to whatever has none. A creature the generator placed is numbered
+    # that way. A save written before ids existed is numbered the same way.
     #
-    # It has a default, so such a save loads rather than being refused.
+    # The field has a default, so such a save loads rather than being
+    # refused.
     getter id : Int32 = 0
 
     # What sort of creature it is.
@@ -236,7 +237,7 @@ module Roguelike
     # Whether this creature and *other* are the same in every way the game
     # decides anything by.
     #
-    # The id is left out, for the reason `Item#==` leaves it out: it says
+    # The id is left out, for the reason `Item#==` leaves it out. An id is
     # which creature this is rather than what it is.
     def ==(other : Monster) : Bool
       @species == other.species && @x == other.x && @y == other.y &&

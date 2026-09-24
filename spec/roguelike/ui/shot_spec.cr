@@ -55,8 +55,8 @@ Spectator.describe "drawing a shot crossing the floor" do
 
   # The square the missile is drawn on, or `nil` when none is.
   #
-  # The character's own mark is not one: `#refresh` puts that back on every
-  # frame whether or not anything is in the air.
+  # The character's own mark is not one of them. `#refresh` puts that back
+  # on every frame, whether or not anything is in the air.
   def missile_at(run : Playing::Run) : {Int32, Int32}?
     run.map.marks.each do |spot, _look|
       return spot unless spot == run.at
@@ -65,8 +65,8 @@ Spectator.describe "drawing a shot crossing the floor" do
     nil
   end
 
-  # What the missile in the air is drawn as, or a failure saying there is
-  # none in the air.
+  # What the missile in the air is drawn as. It fails where nothing is in
+  # the air.
   def missile_look(run : Playing::Run) : Roguelike::Ui::Look
     spot = missile_at run
     raise "nothing is in the air" unless spot

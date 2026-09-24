@@ -5,8 +5,8 @@ require "./scripted"
 #
 # `spec/roguelike/fingerprint_spec.cr` builds this, runs it and compares what
 # it printed against the same run played in the spec's own process. A
-# fingerprint has to be the same in two processes and no spec running in one
-# can show that. A fork will not do either: Crystal seeds `Object#hash` once
+# fingerprint has to be the same in two processes, and no spec running in one
+# can show that. A fork will not do either. Crystal seeds `Object#hash` once
 # at startup, and a child inherits the seed its parent was given, so the
 # second process has to be a second program.
 #

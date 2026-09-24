@@ -185,12 +185,12 @@ module Roguelike
 
     # The last thing to cross the floor, for whatever draws one.
     #
-    # Every command that might let something fly clears this first, so a
-    # command that let nothing fly answers `nil` rather than the shot before
-    # it. `Ui::Play` reads it once the command is over.
+    # Every command that might send something across the floor clears this
+    # first. A command that sent nothing then gives `nil` rather than the
+    # shot before it. `Ui::Play` reads it once the command is over.
     #
-    # It is not written out. A save holds where a run is rather than what it
-    # last looked like.
+    # It is not written out. A save holds where a run is rather than what the
+    # screen last showed.
     @[JSON::Field(ignore: true)]
     getter in_flight : Missile? = nil
 
@@ -244,8 +244,8 @@ module Roguelike
     # everything out, which is what the pack and every menu mean: the
     # character is holding the thing.
     #
-    # *blessing* false leaves the blessing word out, for a readout that says
-    # it some other way.
+    # *blessing* false leaves the blessing word out, for a readout that
+    # gives the blessing some other way.
     def name(item : Item, regard : Regard = Regard::Everything,
              blessing : Bool = true) : String
       @lore.name item, blessing: blessing, regard: regard
@@ -266,8 +266,8 @@ module Roguelike
     # Everything under *letter* as one item, counted together.
     #
     # A letter holding twelve arrows and three more that differ only in a
-    # hidden curse answers one stack of fifteen. A list writes about this
-    # stack, not about the first item under the letter.
+    # hidden curse gives one stack of fifteen. A list is about this stack
+    # rather than about the first item under the letter.
     def carried(letter : Char) : Item?
       item = @player.inventory[letter]
       return unless item
@@ -287,9 +287,9 @@ module Roguelike
 
     # What this run is, as one string. See `Fingerprint`.
     #
-    # The same state answers the same string in every process, so a replay is
-    # checked by comparing this turn by turn, and two runs that part company
-    # say which turn they parted on.
+    # The same state gives the same string in every process. A replay is
+    # checked by comparing this turn by turn. Two runs that differ show the
+    # turn they first differed on.
     def fingerprint : String
       Fingerprint.of self
     end
@@ -339,8 +339,8 @@ module Roguelike
     # spend a turn and write to the log, and neither has happened yet.
     #
     # Every one of them is known to be uncursed. The character has owned them
-    # long enough to be sure of them. Waiting out the handling rolls on their
-    # own kit would teach the player nothing.
+    # long enough to be sure of them. A handling roll on their own kit would
+    # teach the player nothing.
     private def self.outfit(player : Player) : Nil
       {
         {Item.new(ItemKind::ShortSword, blessing_known: true), Slot::Melee},
@@ -619,9 +619,9 @@ module Roguelike
     # walk. Nothing about it is kept on the game, so a walk that is abandoned
     # part way leaves nothing behind.
     #
-    # A run that is over takes no step. The character being killed by the
-    # blow that answered the last one ends it, the same way `#wait` takes no
-    # turn once they are dead.
+    # A run that is over takes no step. The character is killed by the blow
+    # that answers the last step, and the run ends there. `#wait` takes no
+    # turn once they are dead, for the same reason.
     def stride(walk : Walk) : Bool
       return false if over?
       return false if walk.over?
@@ -639,18 +639,16 @@ module Roguelike
       end
 
       # The step goes through `#perform` rather than straight to `#step`. A
-      # run is a string of steps, and `bots/PROTOCOL.md` section 2 says a
-      # macro is logged as the primitive actions it expands into. `#perform`
-      # is where a replay log and a bot watch, so a run that reached `#step`
-      # behind their back would replay as a character standing still.
+      # run is a series of steps. `bots/PROTOCOL.md` section 2 says a macro
+      # is logged as the primitive actions it expands into. A replay log and
+      # a bot both read `#perform`. A run that reached `#step` directly would
+      # replay as a character standing still.
       #
-      # The verdict always carries a step. A move is the one action nothing
-      # refuses, and the only thing `#perform` would refuse it for is a run
-      # that is over, which the guard at the top of this method has already
-      # answered. Taking the step out with `as` rather than falling back on
-      # nil means a refusal that ever did reach here raises, instead of
-      # reading as "did not move" and putting a wrong `Halt::Blocked` on the
-      # walk.
+      # The verdict always carries a step. `#perform` refuses a move only for
+      # a run that is over, and the guard at the top of this method has
+      # already covered that. `as` is used rather than a fallback to nil, so
+      # a refusal that did reach here raises. A fallback would read as "did
+      # not move" and would put a wrong `Halt::Blocked` on the walk.
       before = Watch.on self, walk.seen
       unless perform(Action::Move.new(direction)).step.as(Step).moved?
         walk.halt = Halt::Blocked
@@ -1162,9 +1160,10 @@ module Roguelike
     # Gives every awake creature that has earned an action its turn.
     #
     # Each one reads a `Pursuit::Snapshot` and answers a `Pursuit::Action`,
-    # and this method applies it. The snapshot holds no floor and no player: what a
-    # creature knows about the shape of the world is its band's `Knowledge`
-    # and what it knows about the character is where the band last saw them.
+    # and this method applies it. The snapshot holds no floor and no player:
+    # what a creature knows about the shape of the world is its band's
+    # `Knowledge`, and what it knows about the character is where the band
+    # last saw them.
     # Every check against what is actually there happens here.
     #
     # One `Descent` is built for each awake band rather than for each of its
@@ -2429,11 +2428,11 @@ module Roguelike
     # Records that the character has worked out what *item* is, and sorts the
     # pack.
     #
-    # It says so only when there is something to say. Working out that a
-    # dagger is uncursed is what happens to almost everything a character
-    # carries, and a line for each of them fills the log and stops a run.
-    # The pack still moves the item to a letter of its own, so somebody
-    # reading it sees what has been worked out.
+    # A line is written to the log only when there is something to report.
+    # Almost everything a character carries turns out to be uncursed. A line
+    # for each of them fills the log and stops the run. The pack still moves
+    # the item to a letter of its own, so a person reading the pack sees what
+    # has been worked out.
     private def noticed(letter : Char, item : Item) : Nil
       return unless item.reveal_blessing
 
@@ -2447,8 +2446,8 @@ module Roguelike
     # The verb agrees with the count, because one stack of three says "are"
     # and a single dagger says "is".
     #
-    # The name leaves the blessing word out, because the sentence is what
-    # says it.
+    # The name leaves the blessing word out. The blessing is already in the
+    # sentence.
     def self.worked_out(lore : Lore, item : Item) : String?
       return if item.blessing.uncursed?
 
@@ -3622,15 +3621,16 @@ module Roguelike
     # How many ids have been handed out in this run.
     #
     # An id names one item or one creature for as long as it is there. A
-    # replay log and a bot say "id 41" where a person says "the arrows under
-    # f", because a letter moves and a bot's memory of a thing must not.
+    # replay log and a bot use "id 41" where a person says "the arrows under
+    # f". A letter moves between items, and a bot's name for a thing must
+    # not.
     #
-    # The counter is here rather than in a constant, so two runs in one
-    # process do not draw from the same well and a run resumed from a save
-    # does not hand out a number already in use.
+    # The counter is on the run rather than in a constant. Two runs in one
+    # process then have separate counters, and a run resumed from a save does
+    # not give out a number already in use.
     #
-    # It has a default, so a save written before ids existed loads and starts
-    # from zero. `#enrol` then brings it up.
+    # The field has a default, so a save written before ids existed loads and
+    # starts from zero. `#enrol` then raises it.
     getter minted : Int32 = 0
 
     # The next id, taken. Ids start at one, so zero means no id.
@@ -3641,28 +3641,28 @@ module Roguelike
     # Gives an id to everything in the run that has none.
     #
     # `Game.start` calls this once the floor is dug, the character is dressed
-    # and the litter is down. Everything made by then was made by the
-    # generator, by `Items` or by `Loot`, none of which has the run to ask
-    # for a number. Walking the finished run in a fixed order numbers all of
-    # it at once, and the order is a function of the seed, so two runs on one
-    # seed number the same things the same way.
+    # and the litter is down. Everything made by then came from the
+    # generator, from `Items` or from `Loot`. None of those three holds the
+    # run, so none of them can ask for a number. Walking the finished run in
+    # a fixed order numbers all of it at once. The order is a function of the
+    # seed, so two runs on one seed number the same things the same way.
     #
     # `#after_initialize` calls it again after a load. A save written before
     # ids existed has none, and this gives it some rather than refusing the
-    # file. A save written since has them all, and this hands out nothing.
+    # file. A save written since has them all, and this gives out nothing.
     #
-    # The largest id in the run is found first. A file somebody edited by
-    # hand can hold an id above the counter, and handing that number out a
-    # second time would put two things under one name.
+    # The largest id in the run is found first. A file edited by hand can
+    # hold an id above the counter. That number given out a second time would
+    # put two things under one name.
     def enrol : Nil
       each_bearer { |thing| @minted = Math.max @minted, thing.id }
       each_bearer { |thing| thing.enrol next_id if thing.id.zero? }
     end
 
-    # What wears the id *id*, or `nil` when nothing in the run does.
+    # The item under the id *id*, or `nil` when nothing in the run has it.
     #
-    # An id dies with the thing it names. A pile poured into another is gone
-    # and so is its id, and a potion that has been drunk answers nothing.
+    # An id ends with the thing it names. A pile put into another is gone and
+    # so is its id. A potion that has been drunk is `nil`.
     def item(id : Int32) : Item?
       return if id.zero?
 
@@ -3675,7 +3675,7 @@ module Roguelike
       nil
     end
 
-    # Which creature wears the id *id*, or `nil` when none in the run does.
+    # The creature under the id *id*, or `nil` when none in the run has it.
     def monster(id : Int32) : Monster?
       return if id.zero?
 
@@ -3688,16 +3688,17 @@ module Roguelike
       nil
     end
 
-    # Everything in the run that wears an id, in a fixed order.
+    # Everything in the run that has an id, in a fixed order.
     #
-    # Floors by name; on each floor the creatures by the square they stand
-    # on, each with what it carries, and then the piles by the square they
-    # lie on; and last what the character carries, letter by letter.
+    # The floors come in order by name. On each floor the creatures come in
+    # order by the square they stand on, each one with what it carries. The
+    # piles on that floor follow, in order by the square they lie on. What
+    # the character carries comes last, letter by letter.
     #
-    # The order comes from the run rather than from the order things were
-    # made or from the order a hash happens to hold them in. Two runs on one
-    # seed walk the same things in the same order, in one process and across
-    # two.
+    # The order comes from the state of the run. It does not come from the
+    # order things were made, or from the order a hash holds them in. Two
+    # runs on one seed walk the same things in the same order, in one process
+    # and across two.
     private def each_bearer(& : Item | Monster ->) : Nil
       @world.floors.keys.sort!.each do |name|
         ground = @world[name]
@@ -3728,61 +3729,60 @@ module Roguelike
 
     # ------------------------------------------------------- one entry point
 
-    # The scroll already read and waiting for its question to be answered.
-    # `nil` when none is.
+    # The scroll that has been read and is waiting for its question to be
+    # answered. It is `nil` when no question is up.
     #
-    # Two scrolls ask after they are read rather than before: one that marks
-    # what it could bless, and one that wants a square. Both spend the scroll
-    # and the turn on the way to the question. `#perform` holds the spent
-    # scroll here, so `Action::Choose` and `Action::Aim` are values a replay
-    # can carry rather than pointers to an item the caller was expected to
-    # keep.
+    # The question comes after the reading for two scrolls. One marks what it
+    # could bless. One takes a square. Both spend the scroll and the turn
+    # before the question. `#perform` keeps the spent scroll here, so
+    # `Action::Choose` and `Action::Aim` are values a replay can carry. The
+    # alternative is a pointer to an item the caller has to hold.
     #
-    # It is not in the save, the way the creature being fought and the
-    # missile in flight are not, and it stays out of it for three reasons.
-    # The behaviour is older than this field: `#start_reading` already says a
-    # run saved with the question up has spent the scroll and the turn and
-    # has given up what the second half would have done. An `Item` written
-    # out from both the inventory and this field would come back as two
-    # objects rather than one, so serializing it would trade a lost scroll
-    # for an aliasing bug. And the fix that would work is to hold the letter
-    # rather than the item and to answer the question before the file is
-    # written, which is a change a player would notice.
+    # The field is not in the save, in the way the creature being fought and
+    # the missile in flight are not. There are three reasons for that. The
+    # behaviour is older than the field, and `#start_reading` already states
+    # it. A run saved with the question up has spent the scroll and the turn
+    # and has given up the rest. An `Item` written out from both the
+    # inventory and this field would load as two objects rather than one, so
+    # serializing it would trade a lost scroll for an aliasing bug. The fix
+    # that would work is to hold the letter rather than the item and to
+    # answer the question before the file is written, and that is a change a
+    # player would notice.
     #
-    # Four places can write a save while a question is up, all through
-    # `Ui::Play#keep`: naming the character, `Q`, `>` and `<`. The targeting
-    # cursor is not modal, so the last three are reachable with a read-aim on
-    # screen. Only the ending screen answers the question first, through
-    # `Ui::Play#stop_aiming`. Whoever takes this on starts at those four.
+    # Four places can write a save while a question is up, all of them
+    # through `Ui::Play#keep`: naming the character, `Q`, `>` and `<`. The
+    # targeting cursor is not modal, so the last three are reachable with a
+    # read-aim on screen. Only the ending screen answers the question first,
+    # through `Ui::Play#stop_aiming`. Whoever takes this on starts at those
+    # four.
     @[JSON::Field(ignore: true)]
     getter asking : Item? = nil
 
     # Does *action*. Answers whether the run took it and what it came to.
     #
-    # This is the one way in. `Ui::Play` reaches every rule through it, so a
-    # replay log and a bot reach the same rules by the same road. It holds no
-    # rule of its own: every branch hands the work to the method that already
-    # had it.
+    # This is the one entry point. `Ui::Play` reaches every rule through it,
+    # and so do a replay log and a bot. It holds no rule of its own. Every
+    # branch calls the method that already had the rule.
     #
-    # An action naming something that is not there is refused before anything
-    # is dispatched, so nothing changes and no turn is spent. An action whose
-    # subject is there goes through even when the rule then refuses it:
-    # walking into a wall and opening a door where there is none are things a
-    # person does with one key press, and each of those rules answers without
+    # An action that names something that is not there is refused before any
+    # dispatch. Nothing changes and no turn is spent. An action whose subject
+    # is there is dispatched even where the rule then refuses it. Walking
+    # into a wall, and opening a door where there is none, are both things a
+    # person does with one key press. Each of those rules refuses without
     # spending a turn.
     #
-    # An unanswered question is left standing. Nothing here gives it up,
-    # because the person at the keyboard cannot reach another verb while the
-    # box is up, and a bot is offered nothing else by `#legal`.
+    # An unanswered question is left standing. Nothing here gives it up. The
+    # person at the keyboard cannot reach another verb while the box is up,
+    # and `#legal` offers a bot nothing else.
     def perform(action : Action) : Verdict
       return Verdict.refused if over?
 
-      # Four groups, each of which hands on to a `case` that covers its own
+      # There are four groups. Each group calls a `case` that covers its own
       # verbs and nothing else. Crystal folds a union of every subclass back
-      # into the parent, so one `case` over the whole of `Action` cannot be
-      # checked for exhaustiveness; a group of six can be. What a new verb
-      # loses by this is the compile error for not being in a group, and
-      # `#legal` plus the specs over it are what catch that instead.
+      # into the parent. One `case` over the whole of `Action` cannot be
+      # checked for exhaustiveness. A group of six can be. The cost is that a
+      # new verb left out of every group is not a compile error. `#legal` and
+      # the specs over it are what catch that instead.
       case action
       when Action::Move, Action::Wait, Action::Open, Action::Close,
            Action::Descend, Action::Ascend
@@ -3907,9 +3907,10 @@ module Roguelike
 
     # Takes one thing off the square underfoot.
     #
-    # No index names the only thing there. A pile of several with no index is
-    # refused: `bots/PROTOCOL.md` section 2 asks for that, and a client that
-    # meant one of them has to say which.
+    # An action with no index takes the only thing there. An action with no
+    # index is refused where several things lie there.
+    # `bots/PROTOCOL.md` section 2 asks for that. A client that meant one of
+    # them has to say which.
     private def taking(action : Action::PickUp) : Verdict
       pile = here
       index = action.item
@@ -3930,8 +3931,8 @@ module Roguelike
 
     # Reads the scroll the action names.
     #
-    # Three roads out of one key, the same three `Ui::Play` takes. A scroll
-    # that marks what it could bless, and one that wants a square, are read
+    # There are three cases, and they are the three `Ui::Play` has. A scroll
+    # that marks what it could bless, and one that takes a square, are read
     # here and leave their question on `#asking`. Every other scroll is read
     # whole, with whatever it works on already named.
     private def reading(action : Action::Read) : Verdict
@@ -3952,7 +3953,7 @@ module Roguelike
     # Lights or puts out what the action names.
     #
     # The target has to be one `#appliable` offers. A sconce across the room
-    # is not within reach, and a letter holding a potion is nothing to light.
+    # is out of reach. A letter holding a potion is not a light.
     private def applying(action : Action::Apply) : Verdict
       letter = action.item
       spot = action.at
@@ -3976,21 +3977,20 @@ module Roguelike
       item.kind.item_class == wanted
     end
 
-    # Every action the run allows from where it stands now.
+    # Every action the run allows at this turn.
     #
-    # A bot picks from this. It is a menu rather than the whole of what
-    # `#perform` will take. An action carrying a square is offered once per
-    # creature in sight, because those are the squares worth aiming at, while
-    # `#perform` takes any square the targeting cursor can reach. A move is
-    # offered only where a step would do something: onto clear ground, into a
-    # creature, or into a shut door. Walking into a wall is something a
-    # person does by pressing a key and it spends no turn, so it is not on
-    # the menu.
+    # A bot picks from this list. The list is shorter than what `#perform`
+    # will take. An action that carries a square is offered once per creature
+    # in sight, because those are the squares worth aiming at. `#perform`
+    # takes any square the targeting cursor can reach. A move is offered only
+    # where a step would do something: onto clear ground, into a creature, or
+    # into a shut door. Walking into a wall spends no turn, so it is not on
+    # the list.
     def legal : Array(Action)
       found = [] of Action
       return found if over?
 
-      # A scroll waiting for its answer is the only thing there is to do.
+      # Answering a scroll that is waiting is the only thing there is to do.
       # `bots/PROTOCOL.md` section 4.5 asks for that.
       scroll = @asking
       return answers scroll if scroll
@@ -4002,7 +4002,7 @@ module Roguelike
       found
     end
 
-    # The answers the scroll now waiting will take.
+    # The answers the waiting scroll will take.
     private def answers(scroll : Item) : Array(Action)
       found = [] of Action
 
@@ -4033,7 +4033,7 @@ module Roguelike
 
     # Whether a step *direction* would do anything.
     #
-    # `#step` answers `Blocked` otherwise, and a blocked step spends no turn.
+    # `#step` gives `Blocked` otherwise. A blocked step spends no turn.
     private def steps?(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
       return true if floor.monster wanted[0], wanted[1]
@@ -4089,9 +4089,9 @@ module Roguelike
 
     # Wielding or wearing what is under *letter*.
     #
-    # A slot already filled offers nothing. `#wear` refuses one rather than
-    # taking the first thing off, and offering it would be offering a
-    # refusal.
+    # A slot already filled offers nothing. `#wear` refuses a second item
+    # rather than taking the first one off. An action for it would be an
+    # action that is refused.
     private def legal_readying(found : Array(Action), letter : Char,
                                item : Item) : Nil
       slot = Slot.for item
@@ -4107,12 +4107,12 @@ module Roguelike
 
     # The ways the scroll under *letter* can be read.
     #
-    # One that names a carried item before it is read is offered once per
-    # item it could name, and once naming none when there is nothing it could
-    # work on. `Ui::Play` offers the same list.
+    # A scroll that names a carried item before it is read is offered once
+    # per item it could name. It is offered once with nothing named where
+    # there is nothing it could work on. `Ui::Play` offers the same list.
     private def legal_reading(found : Array(Action), letter : Char) : Nil
-      # A scroll that asks its question only after it is read is one action
-      # with nothing named in it, and so is one that asks nothing at all.
+      # A scroll whose question comes after the reading is one action with
+      # nothing named in it. A scroll with no question is the same.
       if marks_first?(letter) || !choice_needed?(letter)
         found << Action::Read.new letter
         return
@@ -4129,9 +4129,9 @@ module Roguelike
 
     # The carried letters the scroll under *letter* could work on.
     #
-    # A scroll of identify names a kind the character has not made out. One
-    # of repair mends what is damaged. The scroll itself is not on the list:
-    # it is about to be used up.
+    # A scroll of identify names a kind the character has not made out. A
+    # scroll of repair mends what is damaged. The scroll itself is not on the
+    # list, because it is about to be used up.
     private def reading_choices(letter : Char) : Array(Char)
       repair = effect_of(letter).repair?
 

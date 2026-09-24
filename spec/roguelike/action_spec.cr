@@ -2,9 +2,9 @@ require "../spec_helper"
 
 # A run that keeps every action that reached the one entry point.
 #
-# A run of several steps is the case this is for. Counting at the seam is
-# what says the steps went through `#perform`; counting where the character
-# ended up would pass just as well if they had gone round it.
+# A run of several steps is the case this is for. Counting at `#perform` is
+# what shows the steps went through it. Counting where the character ended up
+# would pass just as well if the steps had gone round it.
 class Counted < Roguelike::Game
   @[JSON::Field(ignore: true)]
   getter taken : Array(Roguelike::Action) = [] of Roguelike::Action
@@ -29,8 +29,8 @@ Spectator.describe Roguelike::Action do
   # open one one square south, the staircase up under them and the one down
   # beside them.
   #
-  # Everything a verb needs is within a square, so `Game#legal` has an answer
-  # of every shape to give.
+  # Everything a verb needs is within a square. `Game#legal` then has an
+  # action of every shape to give.
   ROOM = ["##########",
           "#..+.....#",
           "#..<>....#",
@@ -297,10 +297,10 @@ Spectator.describe Roguelike::Action do
       end
     end
 
-    # This is what `Game#start_reading` already said: the two halves hold
-    # nothing between them. A run written out with the question up has spent
-    # the scroll and the turn and has given up what the second half would
-    # have done. Moving the scroll onto `Game#asking` did not change it.
+    # `Game#start_reading` already stated this. A run written out with the
+    # question up has spent the scroll and the turn, and has given up what
+    # the second half would have done. Moving the scroll onto `Game#asking`
+    # did not change that.
     it "gives the question up when the run is written out and read back" do
       game = waiting
       expect(game.asking).not_to be_nil
@@ -395,8 +395,9 @@ Spectator.describe Roguelike::Action do
       game = stocked
       turn = game.turn
 
-      # There is no door east of the character. `Game#open` says so and
-      # spends no turn, and that is its answer rather than a refusal here.
+      # There is no door east of the character. `Game#open` writes a line
+      # and spends no turn. The refusal belongs to that rule rather than to
+      # `#perform`.
       found = game.perform Action::Open.new(Direction::East)
 
       expect(found.allowed).to be_true
@@ -406,10 +407,10 @@ Spectator.describe Roguelike::Action do
   end
 
   describe "a scripted game" do
-    # Everything below is played twice: once by calling the verbs the way
-    # `Ui::Play` used to, and once through `#perform`. The two runs must end
-    # on the same state, which is what says `#perform` routes and decides
-    # nothing.
+    # Everything below is played twice. One run calls the verbs the way
+    # `Ui::Play` used to. The other goes through `#perform`. The two runs
+    # must end on the same state, which is what shows `#perform` dispatches
+    # and decides nothing.
     it "reaches the same state through #perform as through the verbs" do
       direct = stocked
       direct.pick_up direct.here.first
@@ -463,10 +464,10 @@ Spectator.describe Roguelike::Action do
     end
   end
   describe "a run" do
-    # A run is not an action of its own. Every step of one is, and each has
-    # to reach the same entry point a key press reaches, or a replay records
-    # a run as nothing at all and the character is somewhere else on
-    # playback.
+    # A run is not an action of its own. Every step of one is an action.
+    # Each step has to reach the entry point a key press reaches. A replay
+    # would otherwise record a run as nothing at all, and the character would
+    # be somewhere else on playback.
     it "takes every step through the one entry point" do
       game = hall
       walk = game.running Direction::East
@@ -492,9 +493,9 @@ Spectator.describe Roguelike::Action do
       expect(game.turn).to eq walk.steps
     end
 
-    # The guard is what keeps `#perform` from ever refusing the move inside
-    # `#stride`, which is what lets the step be taken out of the verdict
-    # without a fallback.
+    # The guard is what keeps `#perform` from refusing the move inside
+    # `#stride`. The step is therefore taken out of the verdict without a
+    # fallback.
     it "takes no step once the run is over" do
       game = stocked
       game.perform Action::Ascend.new

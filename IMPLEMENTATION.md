@@ -2419,15 +2419,15 @@ Each word with only a few possible values is now a mark in a column of its own.
 ```
 
 The gutter is six cells: the pointer, the key and the blessing mark. The count or the article are
-in their own field, right-aligned. The nouns line up. The name follows. The slot mark is against the
-right edge. The mark facing the pointer is past it.
+in their own field, right-aligned. The name follows, and the names line up. The slot mark is against
+the right edge. The mark facing the pointer is past it.
 
 The gutter does not scroll. A row scrolled sideways slides under it. The key and the mark stay in
 place.
 
 ### The marks
 
-| Mark | Codepoint | What it says |
+| Mark | Codepoint | Meaning |
 | --- | --- | --- |
 | `✦` | U+2726 | blessed |
 | `✘` | U+2718 | cursed |
@@ -2464,14 +2464,15 @@ distinctive from each other.
 
 ### What the highlight covers
 
-The text. The gutter holds the key and the blessing mark. The colour of the blessing mark is part
-of its meaning. Reversing the gutter would invert that colour.
+The highlight covers the text. The gutter holds the key and the blessing mark. The colour of the
+blessing mark is part of its meaning. Reversing the gutter would invert that colour.
 
 ### Where the marks are named
 
-In the tooltip on the row. It writes the mark and the word for it: `✦ blessed`, `✓ uncursed`,
-`⚔ weapon in hand`, `⁕ burning`. The column can then be read without looking the marks up
-elsewhere. An item whose blessing is not worked out writes `unknown` alone, because it has no mark.
+The marks are named in the tooltip on the row. The tooltip gives the mark and the word for it:
+`✦ blessed`, `✓ uncursed`, `⚔ weapon in hand`, `⁕ burning`. The column is then readable without a
+key elsewhere. An item whose blessing is not worked out has `unknown` alone, because it has no
+mark.
 
 The first line of the tooltip names the item without the blessing word. The line under it gives the
 blessing.

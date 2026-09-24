@@ -56,10 +56,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The name prompt suggests a randomly generated name.
 * Installation instructions in the README: the Homebrew tap, a release binary, or building from
   source.
-* A `nightly` release, rebuilt from the head of the default branch each night on the nights that
-  anything was committed. It carries the same three platform tarballs as a tagged release, under
-  names that do not change, so a download link goes on working. The release notes say which commit
-  it was built from and what landed since the last one.
+* A `nightly` release, rebuilt from the head of the default branch on each night that anything was
+  committed. It holds the same three platform tarballs as a tagged release, under names that do not
+  change, so a download link goes on working. The release notes give the commit it was built from
+  and the commits since the last nightly.
 
 ### Changed
 
@@ -69,9 +69,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   weapon, `➷` the quiver, `⛊` worn. `⁕` marks a light source that is burning. The count or the
   article are in their own field. The names line up. The tooltip on a row gives each mark and the
   word for it. Its first line names the item without the blessing word.
-* The highlighted row of a menu is bracketed with `⟪` and `⟫`. The highlight covers the name. It no
-  longer covers the key and the mark beside it. The same two marks are used on the row of the `Here`
-  or `Seen` list under the pointer.
+* The highlighted row of a menu has `⟪` at its near edge and `⟫` at its far edge. The highlight
+  covers the name. It no longer covers the key and the mark beside it. The same two marks are used
+  on the row of the `Here` or `Seen` list under the pointer.
 * A scroll nobody has read is "a scroll YLOH" rather than "a scroll labelled YLOH".
 * The character starts knowing their own kit is uncursed. The short sword, the leather armour, the
   torch and the spikes are uncursed from the first turn. None of them waits on a handling roll.

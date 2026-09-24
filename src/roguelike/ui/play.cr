@@ -156,17 +156,17 @@ module Roguelike::Ui
 
     # How long a missile rests on a square while a shot is drawn.
     #
-    # A third of a stride. An arrow crosses ground faster than a person walks
-    # it, and a shot drawn at walking pace reads as a stone rolling rather
-    # than an arrow loosed.
+    # It is a third of a stride. An arrow crosses ground faster than a
+    # person walks it. A shot drawn at walking pace is too slow to read as a
+    # shot.
     SHOT = 15.milliseconds
 
     # The shot being drawn, how far along its path it has got, and the turn
     # it was let go on.
     #
-    # The turn is what says the picture is still worth drawing. A key pressed
-    # part way through takes a turn of its own, and the floor the shot crossed
-    # is gone by then.
+    # The turn is what says whether the picture is still worth drawing. A
+    # key pressed part way through takes a turn of its own. The floor the
+    # shot crossed is gone by then.
     private record Flying,
       missile : Roguelike::Missile,
       index : Int32,
@@ -256,10 +256,10 @@ module Roguelike::Ui
 
     # The scroll that has been read and is waiting for a square.
     #
-    # `Game#asking` holds the same scroll and is what the answer reaches.
-    # This is here because `#stop_aiming` has to know whether backing out
-    # gives a scroll up, and `#loose` clears it before it sends the answer so
-    # that the one aim is not given up and answered both.
+    # `Game#asking` holds the same scroll, and the answer goes there. This
+    # field is here because `#stop_aiming` has to know whether backing out
+    # gives a scroll up. `#loose` clears it before it sends the answer, so
+    # one aim is not both given up and answered.
     @aimed : Item? = nil
 
     # The name the last run ended under, offered once to the next one.
@@ -1121,9 +1121,9 @@ module Roguelike::Ui
     # *listings* as menu rows.
     #
     # Each row has four pieces. The key picks the row. The mark beside the
-    # key is the blessing. The count or the article sits in a field of its
-    # own, so the names line up. The mark at the far edge gives the slot the
-    # item is readied in, or says a light source is burning.
+    # key is the blessing. The count or the article are in their own field.
+    # The names line up. The mark at the far edge is the slot the item is
+    # readied in, or the mark for a light source that is burning.
     private def listed(listings : Array(Listing)) : Array(Widgets::Menu::Entry)
       lore = @game.lore
       leads = listings.map { |found| Naming.lead lore, found.item }
@@ -1144,9 +1144,9 @@ module Roguelike::Ui
 
     # The mark at the far edge of a row, or `nil` for a row with none.
     #
-    # The slot comes first. A lit torch readied in a hand is marked as the
-    # thing in the hand. There is one cell. The slot matters more to somebody
-    # picking a row.
+    # The slot is used first. A lit torch readied in a hand is marked as the
+    # thing in the hand. There is one cell, and the slot is what matters more
+    # to a person picking a row.
     def self.tail_of(item : Item, slot : Slot?) : Look?
       return Palette.slot slot if slot
       return Palette.burning if item.lit?
@@ -1236,15 +1236,17 @@ module Roguelike::Ui
       draw_shot
     end
 
-    # Draws whatever the command let fly, and then the screen it left behind.
+    # Draws whatever the command sent across the floor, and then the screen
+    # it left behind.
     #
-    # The shot is worked out and applied before this runs, so this is a
-    # replay: the arrow is already lying where it stopped and whatever it
-    # killed is already gone. It is over inside a tenth of a second, which is
-    # what keeping every rule in `Game` costs here.
+    # The shot is worked out and applied before this runs. The drawing is
+    # therefore a replay. The arrow is already lying where it stopped, and
+    # whatever it killed is already gone. The whole thing is over inside a
+    # tenth of a second, and that is the cost of keeping every rule in
+    # `Game`.
     #
-    # An application with no clock cannot arm a timer, so the shot lands at
-    # once and the screen goes straight to what it did.
+    # An application with no clock cannot arm a timer. The shot then lands at
+    # once and the screen goes straight to the result.
     private def draw_shot : Nil
       missile = @game.in_flight
       return refresh if missile.nil? || missile.flight.path.empty?
@@ -1653,7 +1655,7 @@ module Roguelike::Ui
     # *target* as the action that lights it or puts it out.
     #
     # `Roguelike::Apply` names a carried light by its letter and a sconce by
-    # its square. `Action::Apply` makes the same split, so this is a
+    # its square. `Action::Apply` is divided the same way. This method is a
     # translation and nothing more.
     private def lighting(target : Apply) : Action::Apply
       letter = target.letter
@@ -2026,10 +2028,9 @@ module Roguelike::Ui
 
     # Runs *direction*. `G` and then a direction key does this.
     #
-    # A run is not an action of its own. It is a string of steps, and
-    # `Game#stride` takes each one through the same rule `Action::Move`
-    # reaches. What the person committed to is the string; what the run did
-    # is the moves.
+    # A run is not an action of its own. It is a series of steps.
+    # `Game#stride` takes each step through the rule `Action::Move` reaches.
+    # The person commits to the series. The run records the moves.
     private def dash(direction : Direction) : Nil
       start_walking @game.running(direction)
     end

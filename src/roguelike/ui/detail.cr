@@ -33,8 +33,9 @@ module Roguelike::Ui
     def self.about(game : Game, item : Item,
                    regard : Regard = Regard::Everything,
                    slot : Slot? = nil) : Array(String)
-      # The blessing has a line of its own below, with the mark a list puts
-      # against the item. The name would say it a second time.
+      # The blessing is on a line of its own below, beside the mark a list
+      # puts against the item. The blessing word in the name would be the
+      # same thing twice.
       name = game.name item, regard: regard, blessing: false
       return [name, TOO_FAR] unless regard.everything?
 
@@ -85,13 +86,14 @@ module Roguelike::Ui
       [terrain.label, terrain.description]
     end
 
-    # The blessing, as the mark a list puts against the item and the word for
-    # it.
+    # The blessing of *item*, as the mark a list puts against it and the word
+    # for that mark.
     #
-    # The list has only the mark. This names it. The column can then be read
-    # without looking the marks up elsewhere.
+    # The list has only the mark. The word is here. The column is then
+    # readable without a key elsewhere.
     #
-    # An unworked-out blessing has no mark, so that line is the word alone.
+    # An item whose blessing is not worked out has no mark. The line is the
+    # word alone.
     private def self.blessing(item : Item) : String
       word = Palette.blessing_word item
       mark = Palette.blessing item

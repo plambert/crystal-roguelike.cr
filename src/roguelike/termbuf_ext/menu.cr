@@ -42,8 +42,8 @@ module TermBuf::Widgets
     # One row.
     #
     # *mark* replaces the `-` between the key and the text. A list of items
-    # puts the blessing there. It is then one column to read down rather than
-    # a word at the front of every name. `nil` keeps the `-`.
+    # puts the blessing there. The blessing is then one column to read down
+    # rather than a word at the front of every name. `nil` keeps the `-`.
     #
     # *tail* is drawn against the right edge of the row, past the text. A
     # list of items puts the slot there.
@@ -102,8 +102,9 @@ module TermBuf::Widgets
     # How many cells the pointer, the key and the mark take at the start of a
     # row.
     #
-    # `\u27EA a - ` is six. The rows scroll under it and it does not move, so
-    # the key a person has to press stays where they can read it.
+    # `\u27EA a - ` is six cells. The rows scroll under the gutter and the
+    # gutter does not move. The key a person has to press stays where they
+    # can read it.
     GUTTER = 6
 
     # Which of those cells each piece is drawn in.
@@ -111,15 +112,15 @@ module TermBuf::Widgets
     KEY   = 2
     MARK  = 4
 
-    # What goes in the mark cell for a row that named no mark of its own.
+    # What goes in the mark cell for a row with no mark of its own.
     SEPARATOR = '-'
 
     # How many cells are kept clear at the right edge for `Entry#tail`.
     TAIL = 2
 
-    # How many cells are kept clear at the right edge for the mark facing the
-    # pointer. They are kept clear on every row, so a row does not move when
-    # the highlight arrives on it.
+    # How many cells are kept clear at the right edge for the mark facing
+    # the pointer. The cells are kept clear on every row, so a row does not
+    # move when the highlight arrives on it.
     MIRROR = 2
 
     # How many cells the rows have been scrolled sideways.
@@ -139,7 +140,8 @@ module TermBuf::Widgets
     # What the key at the start of a row is drawn in.
     property key_style : Style = Style::DEFAULT.bold
 
-    # What marks the highlighted row, at the near edge and at the far one.
+    # The two marks on the highlighted row. One is at the near edge and one
+    # is at the far edge.
     #
     # `nil` for either leaves that cell blank. The cells are kept clear
     # whether or not anything goes in them.
@@ -437,12 +439,12 @@ module TermBuf::Widgets
 
     # Draws one row as `\u27EA a - what it is        \u27EB`.
     #
-    # The text goes down first and everything else over it. A row scrolled
-    # sideways slides its text under the gutter and under the marks at the
-    # far edge. The key and the marks stay where they are.
+    # The text is written first. Everything else is written over it. A row
+    # scrolled sideways slides its text under the gutter and under the marks
+    # at the far edge. The key and the marks stay where they are.
     #
     # The highlight covers the text. The colour of a mark is part of its
-    # meaning. Reversing the gutter would invert it.
+    # meaning. Reversing the gutter would invert that colour.
     private def draw_entry(view : View, entry : Entry, lit : Bool) : Nil
       plain = entry.enabled ? Style::DEFAULT : @disabled_style
 

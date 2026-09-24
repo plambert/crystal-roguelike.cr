@@ -54,8 +54,8 @@ Spectator.describe TermBuf::Widgets::Menu do
     Shown.new menu, session, chosen
   end
 
-  # A menu drawn twice. The first frame goes down before the list has the
-  # keyboard, and a list without it draws no highlight.
+  # A menu drawn twice. The first frame is drawn before the list has the
+  # keyboard, and a list without the keyboard draws no highlight.
   def lit(texts : Array(String)) : Shown
     run = shown texts
     run.session.render
@@ -72,13 +72,14 @@ Spectator.describe TermBuf::Widgets::Menu do
   end
 
   # One row of the box with the padding cell inside the border taken off, so
-  # the first character answered is the first character of the row.
+  # the first character given is the first character of the row.
   def row(run : Shown, index : Int32) : String
     rows(run)[index].lchop
   end
 
   # Where the first row's own first cell is on the screen, and which screen
-  # row it is. Past the left border and the padding cell inside it.
+  # row it is. It is past the left border and past the padding cell inside
+  # it.
   def first_row(run : Shown) : {Int32, Int32}
     run.session.rows.each_with_index do |line, row|
       found = line.index '│'
@@ -117,8 +118,8 @@ Spectator.describe TermBuf::Widgets::Menu do
     end
   end
 
-  # The gutter carries the key and the mark, and the mark says what it says
-  # in its colour. Reversing it would invert that colour.
+  # The gutter holds the key and the mark. The colour of the mark is part of
+  # its meaning. Reversing the gutter would invert that colour.
   describe "what the highlight covers" do
     it "covers the text" do
       run = lit ["a torch"]
