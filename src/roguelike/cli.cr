@@ -27,6 +27,12 @@ module Roguelike
     flag character : String?, "--character",
       "Play as this character, carrying on from their save if there is one"
 
+    flag replay_log : String?, "--replay-log",
+      "Write every run to this file. %s is the character, %d a rising number"
+
+    flag replay_every : Int32 = Replay::Log::EVERY, "--replay-every",
+      "Turns between two checkpoints in a replay log", range: 1..1_000_000
+
     flag save : Bool = true, "--save",
       "Write the run to the saves directory. --no-save leaves it unwritten"
 
@@ -63,6 +69,10 @@ module Roguelike
     def run
       return listed if saves
       return played if trial > 0
+
+      Replay::Log.pattern = replay_log
+      Replay::Log.every = replay_every
+      Replay::Log.generate = generate
 
       session = Session.open seed, flicker: flicker, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
@@ -131,6 +141,50 @@ module Roguelike
 end
 
 module Roguelike
+  class Cli
+    # `crystal-roguelike replay`, which works on recorded runs.
+    #
+    # It does nothing on its own. `replay verify` is the one thing under it.
+    # `bots/PROTOCOL.md` section 3.3 has two more, which are a viewer and an
+    # export for analysis. Neither is built.
+    Shell::AutoComplete.command Replaying,
+      name: "replay",
+      description: "Work on a run recorded with --replay-log" do
+      def run
+        puts self.class.help
+      end
+    end
+
+    # `crystal-roguelike replay verify`, which plays recorded runs again.
+    #
+    # It exits 1 when any file differs from the run it recorded, so it is
+    # what a build checks its golden replays with.
+    Shell::AutoComplete.command Verifying,
+      name: "verify",
+      description: "Play recorded runs again and check them" do
+      flag force : Bool = false, "--force",
+        "Check a replay recorded by a build whose draw sequences have moved"
+
+      positionals files : Array(Path), "The replay files to check", min: 1
+
+      def run
+        wrong = files.count do |file|
+          report = Replay::Verifier.check file, force
+          puts report
+          !report.ok?
+        end
+
+        exit 1 if wrong > 0
+      end
+    end
+
+    subcommand Replaying
+  end
+
+  class Cli::Replaying
+    subcommand Verifying
+  end
+
   # The flags that belong to whoever works on the game rather than to whoever
   # plays it.
   class Cli

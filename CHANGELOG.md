@@ -10,6 +10,18 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* `--replay-log PATH` writes every run the process plays to a file, as JSON Lines. The file holds
+  the seed, the versions it was recorded under, one line per action, the fingerprint of the run
+  every so many turns, and how the run ended. Each line is flushed as it is written, so a run that
+  ends in a crash leaves a file that reads. `%s` in `PATH` is the character's name as a slug, `%d`
+  is a number that rises until the name is free, and `%02d` pads it. A `PATH` that names a
+  directory takes `<started_at>_<seed>_<player>.jsonl` inside it.
+* `--replay-every N` sets how many turns there are between two fingerprints in a replay log. The
+  default is 25.
+* `crystal-roguelike replay verify FILE...` plays the runs in those files again and compares them
+  against what was recorded. It names the turns a difference is between, and exits 1 when any file
+  differs. It refuses a file recorded by a build whose draw sequences have since moved, and
+  `--force` checks it anyway.
 * An arrow, a thrown item and a bolt from a wand are drawn crossing the squares between. A missile
   moves three times as fast as the character walks.
 * A hit point bar in the sidebar for the creature the character last traded blows with. It is red
