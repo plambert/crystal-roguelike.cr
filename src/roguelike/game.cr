@@ -3137,7 +3137,7 @@ module Roguelike
 
       creature = target ? floor.monster(target[0], target[1]) : nil
       unless creature
-        say "The dark settles on nothing."
+        say "The dark settles on nothing.", Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3147,14 +3147,14 @@ module Roguelike
     # Takes the character's own sight away.
     private def blind_myself(stream : Rng) : Nil
       @player.blind BLINDING.roll(stream)
-      say "The dark closes over your eyes."
+      say "The dark closes over your eyes.", Event::StatusStart.new(:blind)
     end
 
     # Blinds every creature in sight.
     private def blind_everything(stream : Rng) : Nil
       seen = monsters_in_sight
       if seen.empty?
-        say "The dark settles on nothing."
+        say "The dark settles on nothing.", Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3164,7 +3164,8 @@ module Roguelike
     # Takes one creature's sight away.
     private def blind_creature(creature : Monster, stream : Rng) : Nil
       creature.blind CREATURE_BLINDING.roll(stream)
-      say "The #{creature.label} claws at its eyes."
+      say "The #{creature.label} claws at its eyes.",
+        Event::StatusStart.new(:blind, who: creature.id)
     end
 
     # --------------------------------------------------------------- speed
@@ -3180,7 +3181,8 @@ module Roguelike
       going = @player.pace.hurried?
       @player.pace.hurry ticks
 
-      say going ? "The hurry in you runs on." : "You speed up."
+      say going ? "The hurry in you runs on." : "You speed up.",
+        Event::StatusStart.new(:hurried, again: going)
     end
 
     # Holds back whatever a scroll of slow monster found.
@@ -3194,7 +3196,7 @@ module Roguelike
 
       creature = target ? floor.monster(target[0], target[1]) : nil
       unless creature
-        say "The words settle on nothing."
+        say "The words settle on nothing.", Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3204,14 +3206,14 @@ module Roguelike
     # Holds the character back.
     private def drag_myself(scroll : Item, stream : Rng) : Nil
       @player.pace.drag scroll.kind.power.roll(stream)
-      say "Your own feet drag."
+      say "Your own feet drag.", Event::StatusStart.new(:dragging)
     end
 
     # Holds every creature in sight back.
     private def drag_everything(scroll : Item, stream : Rng) : Nil
       seen = monsters_in_sight
       if seen.empty?
-        say "The words settle on nothing."
+        say "The words settle on nothing.", Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3221,7 +3223,8 @@ module Roguelike
     # Holds one creature back.
     private def drag_creature(creature : Monster, scroll : Item, stream : Rng) : Nil
       creature.pace.drag scroll.kind.power.roll(stream)
-      say "The #{creature.label} slows to a crawl."
+      say "The #{creature.label} slows to a crawl.",
+        Event::StatusStart.new(:dragging, who: creature.id)
     end
 
     # Hurries whatever a scroll of haste monster found.
@@ -3236,7 +3239,7 @@ module Roguelike
 
       creature = target ? floor.monster(target[0], target[1]) : nil
       unless creature
-        say "The words settle on nothing."
+        say "The words settle on nothing.", Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3248,14 +3251,15 @@ module Roguelike
       going = @player.pace.hurried?
       @player.pace.hurry scroll.kind.power.roll(stream)
 
-      say going ? "The hurry in you runs on." : "You speed up."
+      say going ? "The hurry in you runs on." : "You speed up.",
+        Event::StatusStart.new(:hurried, again: going)
     end
 
     # Hurries every creature in sight.
     private def hurry_everything(scroll : Item, stream : Rng) : Nil
       seen = monsters_in_sight
       if seen.empty?
-        say "The words settle on nothing."
+        say "The words settle on nothing.", Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3265,7 +3269,8 @@ module Roguelike
     # Hurries one creature.
     private def hurry_creature(creature : Monster, scroll : Item, stream : Rng) : Nil
       creature.pace.hurry scroll.kind.power.roll(stream)
-      say "The #{creature.label} speeds up."
+      say "The #{creature.label} speeds up.",
+        Event::StatusStart.new(:hurried, who: creature.id)
     end
 
     # ------------------------------------------------------------ teleport
@@ -3284,13 +3289,15 @@ module Roguelike
       if scroll.blessed?
         return arrive_at target if target && standable? target
 
-        say "The writing fades with nowhere to go."
+        say "The writing fades with nowhere to go.",
+          Event::Fizzled.new(:no_target)
         return
       end
 
       spots = teleport_spots
       if spots.empty?
-        say "The writing fades with nowhere to go."
+        say "The writing fades with nowhere to go.",
+          Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3326,7 +3333,8 @@ module Roguelike
       end
 
       unless worst
-        say "The writing fades with nothing to fear."
+        say "The writing fades with nothing to fear.",
+          Event::Fizzled.new(:no_target)
         return
       end
 
@@ -3334,18 +3342,20 @@ module Roguelike
         .find { |spot| standable? spot }
 
       unless beside
-        say "The writing fades with nowhere to go."
+        say "The writing fades with nowhere to go.",
+          Event::Fizzled.new(:no_target)
         return
       end
 
       arrive_at beside
-      say "Something large is standing right there."
+      say "Something large is standing right there.", Event::Looming.new
     end
 
     # Puts the character on *spot* and looks around.
     private def arrive_at(spot : {Int32, Int32}) : Nil
       @player.move_to spot
-      say "The floor lurches, and you are somewhere else."
+      say "The floor lurches, and you are somewhere else.",
+        Event::Teleported.new(spot)
       arrived
     end
 
