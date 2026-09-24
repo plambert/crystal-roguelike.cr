@@ -297,6 +297,104 @@ Spectator.describe Roguelike::Observation do
     end
   end
 
+  describe "a fitting" do
+    # A sconce stands on the open square beside the wall it is bolted to.
+    def sconce(lit : Bool = false,
+               attached : Direction? = Direction::North) : Roguelike::Fixture
+      Roguelike::Fixture.new Roguelike::FixtureKind::Sconce, lit, attached
+    end
+
+    it "is kept for one the character can see" do
+      game = played ROOMS
+      game.floor.set_fixture 1, 1, sconce(lit: true)
+      found = Observation.of(game).fixtures
+
+      expect(found.size).to eq 1
+      expect(found.first.pos).to eq({1, 1})
+      expect(found.first.kind).to eq Roguelike::FixtureKind::Sconce
+      expect(found.first.lit?).to be_true
+      expect(found.first.name).to eq "lit sconce"
+      expect(found.first.last_seen_turn).to be_nil
+    end
+
+    it "is left out for one behind a wall" do
+      game = played ROOMS
+      game.floor.set_fixture 6, 2, sconce(lit: true)
+
+      expect(Observation.of(game).fixtures).to be_empty
+    end
+
+    it "says whether it is bolted to a wall" do
+      game = played ROOMS
+      game.floor.set_fixture 1, 1, sconce
+      game.floor.set_fixture 3, 1, sconce(attached: nil)
+      found = Observation.of(game).fixtures.sort_by &.pos
+
+      expect(found.map &.mounted?).to eq [true, false]
+    end
+
+    # A torch throws six squares. Walking eight squares past a sconce puts it
+    # in the dark, so it leaves sight and stays on the map.
+    it "gives the turn one out of view was last seen on" do
+      game = played CORRIDOR, light: false,
+        items: [Item.new(Kind::Torch, lit: true)]
+      game.floor.set_fixture 3, 1, sconce
+
+      seen_on = 0
+      12.times do
+        game.step Direction::East
+        game.look
+        found = Observation.of(game).fixtures.first
+        seen_on = game.turn if found.last_seen_turn.nil?
+      end
+
+      found = Observation.of(game).fixtures.first
+
+      expect(seen_on).to be > 0
+      expect(found.pos).to eq({3, 1})
+      expect(found.last_seen_turn).to eq seen_on
+    end
+
+    # Blindness takes every square but the character's own out of view, so
+    # what is left comes from the map.
+    it "remembers the state one out of view was last seen in" do
+      game = played ROOMS
+      game.floor.set_fixture 1, 1, sconce(lit: true)
+      game.look
+
+      expect(Observation.of(game).fixtures.first.lit?).to be_true
+
+      game.player.blind 5
+      game.floor.fixture(1, 1).try &.douse
+      found = Observation.of(game).fixtures.first
+
+      expect(found.lit?).to be_true
+      expect(found.last_seen_turn).to eq 0
+    end
+
+    # A sconce set alight throws light on its own square, so one lit from
+    # across the floor comes back into view by its own flame.
+    it "comes back into view once it is alight" do
+      game = played CORRIDOR, light: false,
+        items: [Item.new(Kind::Torch, lit: true)]
+      game.floor.set_fixture 3, 1, sconce
+      game.look
+
+      12.times do
+        game.step Direction::East
+        game.look
+      end
+
+      expect(Observation.of(game).fixtures.first.last_seen_turn).not_to be_nil
+
+      game.floor.fixture(3, 1).try &.kindle
+      found = Observation.of(game).fixtures.first
+
+      expect(found.lit?).to be_true
+      expect(found.last_seen_turn).to be_nil
+    end
+  end
+
   # A floor drawn only with terrains the map pane draws with the same
   # character the game writes them with.
   #

@@ -360,6 +360,58 @@ module Roguelike
       end
     end
 
+    # One fitting standing on one square.
+    #
+    # A fixture is part of the room. It is never picked up and never moves,
+    # so one list holds both the fittings in view and the ones the character
+    # remembers. `#last_seen_turn` is `nil` for one in view.
+    #
+    # `Ui::MapPane` draws a fitting over the terrain, in view and remembered
+    # both, and `Ui::Detail.about` writes its name and a sentence about it at
+    # any distance. So nothing here depends on `Regard`.
+    class Fitting
+      include JSON::Serializable
+
+      # Which square it stands on.
+      getter pos : {Int32, Int32}
+
+      # What sort of fitting it is.
+      getter kind : FixtureKind
+
+      # What the character calls it. `Fixture#label` writes it.
+      getter name : String
+
+      # Whether it is alight.
+      getter? lit : Bool
+
+      # Whether it is bolted to a wall.
+      #
+      # A bolted one throws its whole radius and one standing on its own foot
+      # throws one square less. Which wall it is bolted to is not here.
+      # `Ui::Detail` writes "An iron bracket on the wall" or "An iron stand"
+      # and names no direction.
+      getter? mounted : Bool
+
+      # Which turn it was last seen on. `nil` for one in view now.
+      getter last_seen_turn : Int32?
+
+      def initialize(@pos : {Int32, Int32}, @kind : FixtureKind,
+                     @name : String, @lit : Bool, @mounted : Bool,
+                     @last_seen_turn : Int32? = nil)
+      end
+
+      # What the character has made out of *fitting* standing on *spot*.
+      def self.of(fitting : Fixture, spot : {Int32, Int32},
+                  last_seen_turn : Int32? = nil) : Fitting
+        new pos: spot,
+          kind: fitting.kind,
+          name: fitting.label,
+          lit: fitting.lit?,
+          mounted: fitting.mounted?,
+          last_seen_turn: last_seen_turn
+      end
+    end
+
     # One item the character remembers lying somewhere, while the list is
     # being built.
     private record Lying,
@@ -414,10 +466,18 @@ module Roguelike
     # the map draws.
     getter remembered_items : Array(Seen)
 
+    # Every fitting the character can see or remembers, nearest first.
+    #
+    # A sconce is the light the floor comes with. `Game#lights` reads the
+    # fittings before anything else, so where they stand and which of them
+    # are alight is most of what decides what the character can see.
+    getter fixtures : Array(Fitting)
+
     def initialize(@turn : Int32, @floor : String, @player : Character,
                    @map : Grid, @visible : Grid, @inventory : Array(Seen),
                    @monsters : Array(Creature), @items : Array(Seen),
-                   @remembered_items : Array(Seen))
+                   @remembered_items : Array(Seen),
+                   @fixtures : Array(Fitting))
     end
 
     # What the character knows about *game* now.
@@ -456,7 +516,8 @@ module Roguelike
         inventory: carried(game),
         monsters: creatures(game, seen),
         items: litter(game, seen),
-        remembered_items: recalled(game, known, seen)
+        remembered_items: recalled(game, known, seen),
+        fixtures: fittings(game, known, seen)
     end
 
     # The visible grid over *ground*, from *seen*.
@@ -555,6 +616,35 @@ module Roguelike
         Seen.of game.lore, lying.item, lying.regard,
           pos: lying.spot, last_seen_turn: lying.turn
       end
+    end
+
+    # Every fitting the character can see or remembers, nearest first.
+    #
+    # A fitting in view is what stands there now. One out of view is what the
+    # character last saw, which says whether it was alight then and not
+    # whether it is alight now. A fixture never moves, so the two never name
+    # the same square twice.
+    private def self.fittings(game : Game, known : Knowledge,
+                              seen : Vision) : Array(Fitting)
+      ground = game.floor
+      here = game.player.at
+      found = [] of Fitting
+
+      ground.each_fixture do |column, row, fitting|
+        next unless seen.includes? column, row
+
+        found << Fitting.of(fitting, {column, row})
+      end
+
+      known.each do |column, row, memory|
+        fitting = memory.fixture
+        next unless fitting
+        next if seen.includes? column, row
+
+        found << Fitting.of(fitting, {column, row}, memory.turn)
+      end
+
+      found.sort_by! { |fitting| order here, fitting.pos }
     end
 
     # How far *there* is from *here*, and which of two equally far squares
