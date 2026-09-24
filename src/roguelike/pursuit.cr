@@ -4,59 +4,59 @@ require "./knowledge"
 require "./line"
 
 module Roguelike
-  # What a creature has decided to do.
-  #
-  # A member is never removed and never reordered. A save file holds the
-  # member name.
-  enum Intent
-    # Stay where it is.
-    Wait
-
-    # Walk one square.
-    Step
-
-    # Swing at whatever is one square away.
-    Strike
-  end
-
-  # One creature's decision.
-  #
-  # An `Action` changes nothing. `Pursuit.decide` answers one and `Game`
-  # applies it, checking it against the floor. A creature that decides to
-  # walk into a wall walks nowhere.
-  record Action, intent : Intent, direction : Direction? = nil do
-    # Stay put.
-    def self.wait : Action
-      new Intent::Wait
-    end
-
-    # Walk one square *direction*.
-    def self.step(direction : Direction) : Action
-      new Intent::Step, direction
-    end
-
-    # Swing at the square one step *direction*.
-    def self.strike(direction : Direction) : Action
-      new Intent::Strike, direction
-    end
-
-    # Whether this does nothing at all.
-    def nothing? : Bool
-      @intent.wait?
-    end
-
-    def to_s(io : IO) : Nil
-      io << @intent
-      @direction.try { |where| io << ' ' << where.label }
-    end
-  end
-
   # How a creature decides where to go.
   #
   # Nothing here holds state, opens a floor or writes anything. It reads a
   # `Snapshot` and answers an `Action`. An AI proposes, and the one owner of
   # the game state applies.
   module Pursuit
+    # What a creature has decided to do.
+    #
+    # A member is never removed and never reordered. A save file holds the
+    # member name.
+    enum Intent
+      # Stay where it is.
+      Wait
+
+      # Walk one square.
+      Step
+
+      # Swing at whatever is one square away.
+      Strike
+    end
+
+    # One creature's decision.
+    #
+    # An `Action` changes nothing. `Pursuit.decide` answers one and `Game`
+    # applies it, checking it against the floor. A creature that decides to
+    # walk into a wall walks nowhere.
+    record Action, intent : Intent, direction : Direction? = nil do
+      # Stay put.
+      def self.wait : Action
+        new Intent::Wait
+      end
+
+      # Walk one square *direction*.
+      def self.step(direction : Direction) : Action
+        new Intent::Step, direction
+      end
+
+      # Swing at the square one step *direction*.
+      def self.strike(direction : Direction) : Action
+        new Intent::Strike, direction
+      end
+
+      # Whether this does nothing at all.
+      def nothing? : Bool
+        @intent.wait?
+      end
+
+      def to_s(io : IO) : Nil
+        io << @intent
+        @direction.try { |where| io << ' ' << where.label }
+      end
+    end
+
     # Everything an AI reads to decide one creature's action.
     #
     # There is no `Floor` here and no `Player`. What an AI knows about the

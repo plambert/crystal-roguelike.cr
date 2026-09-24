@@ -1,11 +1,11 @@
 require "../spec_helper"
 
 Spectator.describe Roguelike::Pursuit do
-  alias Action = Roguelike::Action
+  alias Action = Roguelike::Pursuit::Action
   alias Descent = Roguelike::Descent
   alias Direction = Roguelike::Direction
   alias Floor = Roguelike::Floor
-  alias Intent = Roguelike::Intent
+  alias Intent = Roguelike::Pursuit::Intent
   alias Knowledge = Roguelike::Knowledge
   alias Pursuit = Roguelike::Pursuit
 
@@ -250,7 +250,7 @@ Spectator.describe Roguelike::Pursuit do
     end
   end
 
-  describe Roguelike::Action do
+  describe Roguelike::Pursuit::Action do
     it "writes itself out" do
       expect(Action.wait.to_s).to eq "Wait"
       expect(Action.step(Direction::North).to_s).to eq "Step north"

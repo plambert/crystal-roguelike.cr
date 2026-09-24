@@ -255,6 +255,11 @@ module Roguelike::Ui
     @carrying : Hash(Char, String) = {} of Char => String
 
     # The scroll that has been read and is waiting for a square.
+    #
+    # `Game#asking` holds the same scroll and is what the answer reaches.
+    # This is here because `#stop_aiming` has to know whether backing out
+    # gives a scroll up, and `#loose` clears it before it sends the answer so
+    # that the one aim is not given up and answered both.
     @aimed : Item? = nil
 
     # The name the last run ended under, offered once to the next one.
@@ -851,8 +856,8 @@ module Roguelike::Ui
       end
 
       # A blocked step says why. The pane has to be redrawn either way.
-      done = @game.step direction
-      @map.follow @game.player.x, @game.player.y unless done.blocked?
+      done = @game.perform Action::Move.new(direction)
+      @map.follow @game.player.x, @game.player.y unless done.step.try &.blocked?
       refresh
     end
 
@@ -868,7 +873,7 @@ module Roguelike::Ui
         return
       end
 
-      @game.wait
+      @game.perform Action::Wait.new
       refresh
     end
 
@@ -898,11 +903,12 @@ module Roguelike::Ui
     #
     # A character standing anywhere else is shown the one they remember.
     def descend : Nil
-      unless @game.descend
+      unless @game.standing_on.stairs_down?
         point_out Terrain::StairsDown, "down"
         return
       end
 
+      @game.perform Action::Descend.new
       keep
       refresh
     end
@@ -917,7 +923,7 @@ module Roguelike::Ui
       ask("Leave the dungeon by this staircase?", "yn", default: 'n') do |key|
         next unless key == 'y'
 
-        @game.ascend
+        @game.perform Action::Ascend.new
         keep
         refresh
       end
@@ -1033,7 +1039,7 @@ module Roguelike::Ui
       when 0
         say "There is nothing here to pick up."
       when 1
-        @game.pick_up pile.first
+        @game.perform Action::PickUp.new
         refresh
       else
         choose_from pile
@@ -1050,10 +1056,9 @@ module Roguelike::Ui
         next unless key
 
         index = Widgets::Menu.index key
-        item = pile[index]?
-        next unless item
+        next unless pile[index]?
 
-        @game.pick_up item
+        @game.perform Action::PickUp.new(index)
         refresh
       end
     end
@@ -1069,7 +1074,7 @@ module Roguelike::Ui
       choose("Drop what?", carried, carried_about) do |key|
         next unless key
 
-        @game.drop key
+        @game.perform Action::Drop.new(key)
         refresh
       end
     end
@@ -1222,10 +1227,10 @@ module Roguelike::Ui
       stop_aiming
 
       case command
-      in .fire?  then @game.fire target
-      in .throw? then @game.throw letter, target if letter
-      in .zap?   then @game.zap letter, target if letter
-      in .read?  then scroll.try { |found| @game.aim_reading found, target }
+      in .fire?  then @game.perform Action::Fire.new(target)
+      in .throw? then @game.perform Action::Throw.new(letter, target) if letter
+      in .zap?   then @game.perform Action::Zap.new(letter, target) if letter
+      in .read?  then @game.perform Action::Aim.new(target) if scroll
       end
 
       draw_shot
@@ -1302,7 +1307,7 @@ module Roguelike::Ui
       # A scroll that was read and then backed out of does what it does with
       # nothing to aim at. It is spent either way, and being told it found
       # nothing beats losing it in silence.
-      @aimed.try { |scroll| @game.aim_reading scroll, nil }
+      @game.perform Action::Aim.new if @aimed
       @aimed = nil
 
       @examiner.stop
@@ -1365,7 +1370,7 @@ module Roguelike::Ui
     def quaff : Nil
       offer "Drink what?", "You have nothing to drink.",
         ->(item : Item) { item.kind.item_class.potion? } do |letter|
-        @game.quaff letter
+        @game.perform Action::Quaff.new(letter)
       end
     end
 
@@ -1389,7 +1394,7 @@ module Roguelike::Ui
         elsif @game.choice_needed? letter
           @game.effect_of(letter).repair? ? repair_with(letter) : identify_with(letter)
         else
-          @game.read letter
+          @game.perform Action::Read.new(letter)
         end
       end
     end
@@ -1401,8 +1406,9 @@ module Roguelike::Ui
     # reading it is how the character finds that out. Backing out of the aim
     # gives up what the scroll had left to do.
     private def aim_with(letter : Char) : Nil
-      scroll = @game.start_aiming_read letter
+      @game.perform Action::Read.new(letter)
       refresh
+      scroll = @game.asking
       return unless scroll
 
       @aimed = scroll
@@ -1416,8 +1422,9 @@ module Roguelike::Ui
     # because the marks are what the character picks by. `#refresh` between
     # the two puts them on screen.
     private def bless_with(letter : Char) : Nil
-      scroll = @game.start_reading letter
+      @game.perform Action::Read.new(letter)
       refresh
+      scroll = @game.asking
       return unless scroll
 
       ask_the_target scroll
@@ -1430,7 +1437,7 @@ module Roguelike::Ui
     private def ask_the_target(scroll : Item) : Nil
       found = @game.player.inventory.entries
       if found.empty?
-        @game.finish_reading scroll, nil
+        @game.perform Action::Choose.new
         refresh
         return
       end
@@ -1438,7 +1445,7 @@ module Roguelike::Ui
       title = scroll.kind.effect.remove_curse? ? "Lift a curse from what?" : "Bless what?"
       choose(title, rows(found), about(found)) do |key|
         if key
-          @game.finish_reading scroll, key
+          @game.perform Action::Choose.new(key)
           refresh
         else
           confirm_giving_up scroll
@@ -1454,7 +1461,7 @@ module Roguelike::Ui
       ask("Give up what the scroll has left? The marks stay either way.",
         "yn", default: 'n') do |key|
         if key == 'y'
-          @game.finish_reading scroll, nil
+          @game.perform Action::Choose.new
           refresh
         else
           ask_the_target scroll
@@ -1496,12 +1503,12 @@ module Roguelike::Ui
       end
 
       if found.empty?
-        @game.read letter
+        @game.perform Action::Read.new(letter)
         return
       end
 
       choose(title, rows(found), about(found)) do |key|
-        @game.read letter, key
+        @game.perform Action::Read.new(letter, key)
         refresh
       end
     end
@@ -1525,7 +1532,7 @@ module Roguelike::Ui
         if effect.aimed?
           start_aiming Aiming::Zap, letter, item.kind.reach
         else
-          @game.zap letter
+          @game.perform Action::Zap.new(letter)
         end
       end
     end
@@ -1539,7 +1546,7 @@ module Roguelike::Ui
     def wield : Nil
       offer "Wield what?", "You have nothing to wield.",
         ->(item : Item) { Slot.for(item).try(&.weapon?) || false } do |letter|
-        @game.wield letter
+        @game.perform Action::Wield.new(letter)
       end
     end
 
@@ -1547,7 +1554,7 @@ module Roguelike::Ui
     def wear : Nil
       offer "Wear what?", "You have nothing to wear.",
         ->(item : Item) { Slot.for(item).try(&.armour?) || false } do |letter|
-        @game.wear letter
+        @game.perform Action::Wear.new(letter)
       end
     end
 
@@ -1562,7 +1569,7 @@ module Roguelike::Ui
       when 0
         say "You are not wearing or holding anything."
       when 1
-        @game.take_off held.first[0]
+        @game.perform Action::Remove.new(held.first[0])
         refresh
       else
         choose_slot held
@@ -1581,7 +1588,7 @@ module Roguelike::Ui
         found = held[Widgets::Menu.index key]?
         next unless found
 
-        @game.take_off found[0]
+        @game.perform Action::Remove.new(found[0])
         refresh
       end
     end
@@ -1597,7 +1604,7 @@ module Roguelike::Ui
       when 0
         say "You have nothing to light and there is no sconce beside you."
       when 1
-        @game.apply found.first
+        @game.perform lighting(found.first)
         refresh
       else
         choose_target found
@@ -1616,7 +1623,7 @@ module Roguelike::Ui
         target = found[Widgets::Menu.index key]?
         next unless target
 
-        @game.apply target
+        @game.perform lighting(target)
         refresh
       end
     end
@@ -1641,6 +1648,18 @@ module Roguelike::Ui
       end
 
       detail
+    end
+
+    # *target* as the action that lights it or puts it out.
+    #
+    # `Roguelike::Apply` names a carried light by its letter and a sconce by
+    # its square. `Action::Apply` makes the same split, so this is a
+    # translation and nothing more.
+    private def lighting(target : Apply) : Action::Apply
+      letter = target.letter
+      return Action::Apply.new(item: letter) if letter
+
+      Action::Apply.new(at: {target.x, target.y})
     end
 
     # What one row of the apply menu says.
@@ -1997,8 +2016,8 @@ module Roguelike::Ui
     # why, and this method must not write over that with a guess.
     private def act(command : Pending, direction : Direction) : Nil
       case command
-      in .open?  then @game.open direction
-      in .close? then @game.close direction
+      in .open?  then @game.perform Action::Open.new(direction)
+      in .close? then @game.perform Action::Close.new(direction)
       in .run?   then dash direction
       end
 
@@ -2006,6 +2025,11 @@ module Roguelike::Ui
     end
 
     # Runs *direction*. `G` and then a direction key does this.
+    #
+    # A run is not an action of its own. It is a string of steps, and
+    # `Game#stride` takes each one through the same rule `Action::Move`
+    # reaches. What the person committed to is the string; what the run did
+    # is the moves.
     private def dash(direction : Direction) : Nil
       start_walking @game.running(direction)
     end

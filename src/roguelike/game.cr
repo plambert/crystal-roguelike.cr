@@ -1,4 +1,5 @@
 require "json"
+require "./action"
 require "./apply"
 require "./combat"
 require "./costs"
@@ -1142,8 +1143,8 @@ module Roguelike
 
     # Gives every awake creature that has earned an action its turn.
     #
-    # Each one reads a `Pursuit::Snapshot` and answers an `Action`, and this
-    # method applies it. The snapshot holds no floor and no player: what a
+    # Each one reads a `Pursuit::Snapshot` and answers a `Pursuit::Action`,
+    # and this method applies it. The snapshot holds no floor and no player: what a
     # creature knows about the shape of the world is its band's `Knowledge`
     # and what it knows about the character is where the band last saw them.
     # Every check against what is actually there happens here.
@@ -1204,9 +1205,9 @@ module Roguelike
     end
 
     # What *creature* has decided to do.
-    private def plan(creature : Monster, maps : Hash(String, Descent)) : Action
+    private def plan(creature : Monster, maps : Hash(String, Descent)) : Pursuit::Action
       band = floor.band creature.band
-      return Action.wait unless band
+      return Pursuit::Action.wait unless band
 
       knowledge = band.knowledge floor.id
       quarry = knowledge.sighting Knowledge::PLAYER
@@ -1253,7 +1254,7 @@ module Roguelike
     #
     # A creature that decided to walk into a wall walks nowhere, and one
     # that decided to swing at an empty square swings at nothing.
-    private def perform(creature : Monster, action : Action) : Nil
+    private def perform(creature : Monster, action : Pursuit::Action) : Nil
       direction = action.direction
       return unless direction
 
@@ -3705,6 +3706,428 @@ module Roguelike
       end
 
       @player.inventory.each_item { |_letter, carried| yield carried }
+    end
+
+    # ------------------------------------------------------- one entry point
+
+    # The scroll already read and waiting for its question to be answered.
+    # `nil` when none is.
+    #
+    # Two scrolls ask after they are read rather than before: one that marks
+    # what it could bless, and one that wants a square. Both spend the scroll
+    # and the turn on the way to the question. `#perform` holds the spent
+    # scroll here, so `Action::Choose` and `Action::Aim` are values a replay
+    # can carry rather than pointers to an item the caller was expected to
+    # keep.
+    #
+    # It is not in the save, the way the creature being fought and the
+    # missile in flight are not. A run saved with the question up has spent
+    # the scroll and the turn and has given up what the second half would
+    # have done. `#start_reading` says so.
+    @[JSON::Field(ignore: true)]
+    getter asking : Item? = nil
+
+    # Does *action*. Answers whether the run took it and what it came to.
+    #
+    # This is the one way in. `Ui::Play` reaches every rule through it, so a
+    # replay log and a bot reach the same rules by the same road. It holds no
+    # rule of its own: every branch hands the work to the method that already
+    # had it.
+    #
+    # An action naming something that is not there is refused before anything
+    # is dispatched, so nothing changes and no turn is spent. An action whose
+    # subject is there goes through even when the rule then refuses it:
+    # walking into a wall and opening a door where there is none are things a
+    # person does with one key press, and each of those rules answers without
+    # spending a turn.
+    #
+    # An unanswered question is left standing. Nothing here gives it up,
+    # because the person at the keyboard cannot reach another verb while the
+    # box is up, and a bot is offered nothing else by `#legal`.
+    def perform(action : Action) : Verdict
+      return Verdict.refused if over?
+
+      # Four groups, each of which hands on to a `case` that covers its own
+      # verbs and nothing else. Crystal folds a union of every subclass back
+      # into the parent, so one `case` over the whole of `Action` cannot be
+      # checked for exhaustiveness; a group of six can be. What a new verb
+      # loses by this is the compile error for not being in a group, and
+      # `#legal` plus the specs over it are what catch that instead.
+      case action
+      when Action::Move, Action::Wait, Action::Open, Action::Close,
+           Action::Descend, Action::Ascend
+        moving action
+      when Action::PickUp, Action::Drop, Action::Wield, Action::Wear,
+           Action::Remove
+        handling action
+      when Action::Quaff, Action::Read, Action::Zap, Action::Apply,
+           Action::Fire, Action::Throw
+        using action
+      when Action::Choose, Action::Aim
+        answering action
+      else
+        raise ArgumentError.new "#{action.class} has no rule"
+      end
+    end
+
+    # The verbs that move the character about the floor, or off it.
+    private def moving(action : Action::Move | Action::Wait | Action::Open |
+                                Action::Close | Action::Descend |
+                                Action::Ascend) : Verdict
+      case action
+      in Action::Move
+        Verdict.done step(action.dir)
+      in Action::Wait
+        wait
+        Verdict.done
+      in Action::Open
+        open action.dir
+        Verdict.done
+      in Action::Close
+        close action.dir
+        Verdict.done
+      in Action::Descend
+        descend
+        Verdict.done
+      in Action::Ascend
+        ascend
+        Verdict.done
+      end
+    end
+
+    # The verbs that move a thing between the floor, the pack and a slot.
+    private def handling(action : Action::PickUp | Action::Drop |
+                                  Action::Wield | Action::Wear |
+                                  Action::Remove) : Verdict
+      case action
+      in Action::PickUp
+        taking action
+      in Action::Drop
+        return Verdict.refused unless @player.inventory[action.item]
+
+        drop action.item
+        Verdict.done
+      in Action::Wield
+        return Verdict.refused unless @player.inventory[action.item]
+
+        wield action.item
+        Verdict.done
+      in Action::Wear
+        return Verdict.refused unless @player.inventory[action.item]
+
+        wear action.item
+        Verdict.done
+      in Action::Remove
+        return Verdict.refused unless @player.in_slot action.slot
+
+        take_off action.slot
+        Verdict.done
+      end
+    end
+
+    # The verbs that use a thing up or let one fly.
+    private def using(action : Action::Quaff | Action::Read | Action::Zap |
+                               Action::Apply | Action::Fire |
+                               Action::Throw) : Verdict
+      case action
+      in Action::Quaff
+        return Verdict.refused unless holds? action.item, ItemClass::Potion
+
+        quaff action.item
+        Verdict.done
+      in Action::Read
+        reading action
+      in Action::Zap
+        return Verdict.refused unless holds? action.item, ItemClass::Wand
+
+        zap action.item, action.target
+        Verdict.done
+      in Action::Apply
+        applying action
+      in Action::Fire
+        fire action.target
+        Verdict.done
+      in Action::Throw
+        return Verdict.refused unless @player.inventory[action.item]
+
+        throw action.item, action.target
+        Verdict.done
+      end
+    end
+
+    # The answers to a question a scroll asked after it was read.
+    private def answering(action : Action::Choose | Action::Aim) : Verdict
+      scroll = @asking
+      return Verdict.refused unless scroll
+
+      # A scroll asks for a square or for a carried item, never for both.
+      # The wrong answer is refused rather than swallowed, so a client that
+      # sent one still has the question in front of it.
+      return Verdict.refused if action.is_a?(Action::Aim) != scroll.kind.effect.aims_after?
+
+      @asking = nil
+
+      case action
+      in Action::Choose then finish_reading scroll, action.item
+      in Action::Aim    then aim_reading scroll, action.target
+      end
+
+      Verdict.done
+    end
+
+    # Takes one thing off the square underfoot.
+    #
+    # No index names the only thing there. A pile of several with no index is
+    # refused: `bots/PROTOCOL.md` section 2 asks for that, and a client that
+    # meant one of them has to say which.
+    private def taking(action : Action::PickUp) : Verdict
+      pile = here
+      index = action.item
+
+      unless index
+        return Verdict.refused unless pile.size == 1
+
+        pick_up pile.first
+        return Verdict.done
+      end
+
+      item = pile[index]?
+      return Verdict.refused unless item
+
+      pick_up item
+      Verdict.done
+    end
+
+    # Reads the scroll the action names.
+    #
+    # Three roads out of one key, the same three `Ui::Play` takes. A scroll
+    # that marks what it could bless, and one that wants a square, are read
+    # here and leave their question on `#asking`. Every other scroll is read
+    # whole, with whatever it works on already named.
+    private def reading(action : Action::Read) : Verdict
+      letter = action.item
+      return Verdict.refused unless holds? letter, ItemClass::Scroll
+
+      if marks_first? letter
+        @asking = start_reading letter
+      elsif target_needed? letter
+        @asking = start_aiming_read letter
+      else
+        read letter, action.choice
+      end
+
+      Verdict.done
+    end
+
+    # Lights or puts out what the action names.
+    #
+    # The target has to be one `#appliable` offers. A sconce across the room
+    # is not within reach, and a letter holding a potion is nothing to light.
+    private def applying(action : Action::Apply) : Verdict
+      letter = action.item
+      spot = action.at
+
+      wanted = if letter
+                 Roguelike::Apply.carried letter
+               elsif spot
+                 Roguelike::Apply.fixture spot[0], spot[1]
+               end
+      return Verdict.refused unless wanted && appliable.includes? wanted
+
+      apply wanted
+      Verdict.done
+    end
+
+    # Whether *letter* holds something of *wanted*.
+    private def holds?(letter : Char, wanted : ItemClass) : Bool
+      item = @player.inventory[letter]
+      return false unless item
+
+      item.kind.item_class == wanted
+    end
+
+    # Every action the run allows from where it stands now.
+    #
+    # A bot picks from this. It is a menu rather than the whole of what
+    # `#perform` will take. An action carrying a square is offered once per
+    # creature in sight, because those are the squares worth aiming at, while
+    # `#perform` takes any square the targeting cursor can reach. A move is
+    # offered only where a step would do something: onto clear ground, into a
+    # creature, or into a shut door. Walking into a wall is something a
+    # person does by pressing a key and it spends no turn, so it is not on
+    # the menu.
+    def legal : Array(Action)
+      found = [] of Action
+      return found if over?
+
+      # A scroll waiting for its answer is the only thing there is to do.
+      # `bots/PROTOCOL.md` section 4.5 asks for that.
+      scroll = @asking
+      return answers scroll if scroll
+
+      legal_moving found
+      legal_floor found
+      legal_carried found
+      legal_readied found
+      found
+    end
+
+    # The answers the scroll now waiting will take.
+    private def answers(scroll : Item) : Array(Action)
+      found = [] of Action
+
+      if scroll.kind.effect.aims_after?
+        monsters_in_sight.each { |creature| found << Action::Aim.new creature.at }
+        found << Action::Aim.new
+        return found
+      end
+
+      @player.inventory.entries.each { |letter, _item| found << Action::Choose.new letter }
+      found << Action::Choose.new
+      found
+    end
+
+    # Stepping, waiting, the doors beside the character and the staircase
+    # under them.
+    private def legal_moving(found : Array(Action)) : Nil
+      Direction.values.each do |direction|
+        found << Action::Move.new direction if steps? direction
+      end
+
+      found << Action::Wait.new
+      doors(Terrain::ClosedDoor).each { |direction| found << Action::Open.new direction }
+      doors(Terrain::OpenDoor).each { |direction| found << Action::Close.new direction }
+      found << Action::Descend.new if standing_on.stairs_down?
+      found << Action::Ascend.new if standing_on.stairs_up?
+    end
+
+    # Whether a step *direction* would do anything.
+    #
+    # `#step` answers `Blocked` otherwise, and a blocked step spends no turn.
+    private def steps?(direction : Direction) : Bool
+      wanted = direction.from @player.x, @player.y
+      return true if floor.monster wanted[0], wanted[1]
+      return true if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
+
+      floor.passable? wanted[0], wanted[1]
+    end
+
+    # What the square underfoot and the sconces beside it offer.
+    private def legal_floor(found : Array(Action)) : Nil
+      pile = here
+      found << Action::PickUp.new if pile.size == 1
+      pile.each_index { |index| found << Action::PickUp.new index }
+
+      appliable.each do |target|
+        letter = target.letter
+        found << if letter
+          Action::Apply.new item: letter
+        else
+          Action::Apply.new at: {target.x, target.y}
+        end
+      end
+    end
+
+    # What the pack offers, letter by letter.
+    private def legal_carried(found : Array(Action)) : Nil
+      aims = monsters_in_sight.map &.at
+      readable = cannot_read.nil?
+      aims.each { |spot| found << Action::Fire.new spot } if cannot_fire.nil?
+
+      @player.inventory.entries.each do |letter, item|
+        slot = slot_of letter
+        found << Action::Drop.new letter unless slot
+        legal_throwing found, letter, item, aims unless slot && (item.sticks? || slot.armour?)
+        legal_readying found, letter, item
+
+        case item.kind.item_class
+        when .potion? then found << Action::Quaff.new letter
+        when .scroll? then legal_reading found, letter if readable
+        when .wand?   then legal_zapping found, letter, aims
+        end
+      end
+    end
+
+    # Throwing what is under *letter* at each creature in sight.
+    private def legal_throwing(found : Array(Action), letter : Char,
+                               item : Item,
+                               aims : Array({Int32, Int32})) : Nil
+      return if item.kind.item_class.treasure?
+
+      aims.each { |spot| found << Action::Throw.new letter, spot }
+    end
+
+    # Wielding or wearing what is under *letter*.
+    #
+    # A slot already filled offers nothing. `#wear` refuses one rather than
+    # taking the first thing off, and offering it would be offering a
+    # refusal.
+    private def legal_readying(found : Array(Action), letter : Char,
+                               item : Item) : Nil
+      slot = Slot.for item
+      return unless slot
+      return if slot_of(letter) == slot
+
+      if slot.weapon?
+        found << Action::Wield.new letter
+      elsif @player.in_slot(slot).nil?
+        found << Action::Wear.new letter
+      end
+    end
+
+    # The ways the scroll under *letter* can be read.
+    #
+    # One that names a carried item before it is read is offered once per
+    # item it could name, and once naming none when there is nothing it could
+    # work on. `Ui::Play` offers the same list.
+    private def legal_reading(found : Array(Action), letter : Char) : Nil
+      # A scroll that asks its question only after it is read is one action
+      # with nothing named in it, and so is one that asks nothing at all.
+      if marks_first?(letter) || !choice_needed?(letter)
+        found << Action::Read.new letter
+        return
+      end
+
+      wanted = reading_choices letter
+      if wanted.empty?
+        found << Action::Read.new letter
+        return
+      end
+
+      wanted.each { |choice| found << Action::Read.new letter, choice }
+    end
+
+    # The carried letters the scroll under *letter* could work on.
+    #
+    # A scroll of identify names a kind the character has not made out. One
+    # of repair mends what is damaged. The scroll itself is not on the list:
+    # it is about to be used up.
+    private def reading_choices(letter : Char) : Array(Char)
+      repair = effect_of(letter).repair?
+
+      @player.inventory.entries.compact_map do |held, item|
+        next if held == letter
+        wanted = repair ? item.mendable? && item.condition.damaged? : !@lore.known?(item.kind)
+        next unless wanted
+
+        held
+      end
+    end
+
+    # The ways the wand under *letter* can be zapped.
+    private def legal_zapping(found : Array(Action), letter : Char,
+                              aims : Array({Int32, Int32})) : Nil
+      unless effect_of(letter).aimed?
+        found << Action::Zap.new letter
+        return
+      end
+
+      aims.each { |spot| found << Action::Zap.new letter, spot }
+    end
+
+    # Taking off what is readied.
+    private def legal_readied(found : Array(Action)) : Nil
+      readied.each { |slot, _item| found << Action::Remove.new slot }
     end
 
     def to_s(io : IO) : Nil
