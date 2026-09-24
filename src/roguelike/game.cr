@@ -2823,7 +2823,8 @@ module Roguelike
       end
 
       if piles.empty?
-        say "Nothing here is worth anything."
+        say "Nothing here is worth anything.",
+          Event::Fizzled.new(:nothing_found)
         return
       end
 
@@ -2831,7 +2832,12 @@ module Roguelike
       return ruin_treasure piles if scroll.cursed?
 
       piles.each { |column, row, item| detect column, row, item }
-      say "You know where #{Game.piles piles.size}."
+      found = piles.map do |column, row, item|
+        Event::Found.new item.id, name(item), {column, row}
+      end
+
+      say "You know where #{Game.piles piles.size}.",
+        Event::Detected.new(found)
     end
 
     # *count* piles of gold, with the verb that agrees with them.
@@ -2851,7 +2857,8 @@ module Roguelike
       end
 
       say "#{piles.size} piles of gold teleport to your location, " \
-          "totalling #{total} gp."
+          "totalling #{total} gp.",
+        Event::Gold.new(:gathered, total, piles: piles.size)
     end
 
     # A cursed scroll, which ruins half of what it finds.
@@ -2881,7 +2888,8 @@ module Roguelike
         ruined += 1
       end
 
-      say "#{ruined} piles crumble, and #{lost} gp with them."
+      say "#{ruined} piles crumble, and #{lost} gp with them.",
+        Event::Gold.new(:ruined, lost, piles: ruined)
     end
 
     # Writes down what is lying about.
@@ -2906,7 +2914,8 @@ module Roguelike
       end
 
       if found.empty?
-        say "Nothing is lying anywhere you can feel."
+        say "Nothing is lying anywhere you can feel.",
+          Event::Fizzled.new(:nothing_found)
         return
       end
 
@@ -2964,14 +2973,20 @@ module Roguelike
     private def list_detected(found : Array({Int32, Int32, Item}),
                               destroyed : Array(Item)) : Nil
       destroyed.each do |item|
-        say "#{@lore.name(item, identified: true).capitalize} - destroyed!"
+        told = @lore.name item, identified: true
+        say "#{told.capitalize} - destroyed!",
+          Event::Destroyed.new(item.id, told)
       end
 
       found.sort_by! do |column, row, _item|
         Notice.apart({column, row}, @player.at)
       end
 
-      found.each { |_column, _row, item| say "You feel #{name item}." }
+      found.each do |column, row, item|
+        say "You feel #{name item}.",
+          Event::Detected.new([Event::Found.new(item.id, name(item),
+            {column, row})])
+      end
     end
 
     # ---------------------------------------------------------------- dark
@@ -2994,13 +3009,14 @@ module Roguelike
       darkened = unglow
 
       if doused.zero? && darkened.zero?
-        say "The dark here is already as deep as it goes."
+        say "The dark here is already as deep as it goes.",
+          Event::Fizzled.new(:already_dark)
         keep_scroll scroll
         return
       end
 
       said = scroll.cursed? ? "The light is eaten, and what held it with it." : "The light goes out."
-      say said
+      say said, Event::LightsOut.new(doused, darkened, eaten: scroll.cursed?)
       keep_scroll scroll
     end
 
@@ -3013,7 +3029,8 @@ module Roguelike
       return unless draught.rand(100) < DARKNESS_KEPT
       return unless @player.inventory.add scroll
 
-      say "The writing is still on it."
+      say "The writing is still on it.",
+        Event::ScrollKept.new(scroll.id, name(scroll))
     end
 
     # Whether *x*, *y* is near enough for the scroll to reach.
@@ -3078,7 +3095,8 @@ module Roguelike
       end
 
       burned.each do |letter, item|
-        say "#{name(item).capitalize} burns away to nothing."
+        say "#{name(item).capitalize} burns away to nothing.",
+          Event::Destroyed.new(item.id, name(item))
         @player.inventory.relocate letter, item
         @player.inventory.strip letter, item
         @player.inventory.remove letter if @player.inventory[letter].try(&.same? item)
