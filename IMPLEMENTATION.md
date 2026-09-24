@@ -1650,7 +1650,7 @@ them is acted on, because acting on one moves items about.
 
 ### What the character says when they work it out
 
-Only a curse or a blessing.
+A line is written for a curse and a line is written for a blessing. Nothing else is written.
 
 ```text
 You realize that an iron spike is cursed!
@@ -1662,16 +1662,16 @@ uncursed, and a line for each of them fills the message pane, holds a page behin
 stops every run, because anything written to the log stops one. The item still moves to a letter of
 its own, so the pack is where an uncursed item is read.
 
-The verb agrees with the count, because one stack of three says "are" and a single spike says "is".
-The name leaves the blessing word out, because the sentence is what says it. `Lore#name` takes a
-`blessing` argument for that, false meaning leave the word out however much the character knows.
+The verb agrees with the count. A stack of three takes "are" and a single spike takes "is". The
+name leaves the blessing word out, because the blessing is already in the sentence. `Lore#name`
+takes a `blessing` argument for that. False leaves the word out however much the character knows.
 
 `Game.worked_out` answers the line, or `nil` for an item that turned out to be uncursed.
 
-The character's own kit is known from turn nothing. `Game.outfit` marks the short sword, the
-leather armour, the torch and the spikes as blessing-known, so none of them waits on a handling
-roll. Somebody has owned their own gear long enough to be sure of it, and there is nothing to learn
-from watching the pack stop hedging about a sword the character arrived with.
+The character's own kit is known from turn zero. `Game.outfit` marks the short sword, the leather
+armour, the torch and the spikes as blessing-known, so none of them waits on a handling roll.
+Somebody has owned their own gear long enough to be sure of it. A handling roll on a sword the
+character arrived with teaches the player nothing.
 
 ### What a blessing does to a weapon
 
@@ -2314,26 +2314,27 @@ whether the row is hidden. `#show` records it in `@fighting`, which is the same 
 
 ## Drawing a shot
 
-An arrow used to arrive without having travelled. `Game#fire` worked the shot out and applied it
-inside one key press, and the screen was drawn once at the end, so the only sign of the shot was a
-line in the log and an arrow already lying where it stopped.
+An arrow used to appear at its target with nothing drawn in between. `Game#fire` worked the shot
+out and applied it inside one key press. The screen was drawn once at the end. The only signs of the
+shot were a line in the log and an arrow already lying where it stopped.
 
 `Ui::Play` now draws the missile crossing the squares, one square every `Play::SHOT`. That is
-fifteen milliseconds against the forty-five a walked step takes. An arrow crosses ground faster
-than a person walks it, and a shot drawn at walking pace reads as a stone rolling.
+fifteen milliseconds against the forty-five a walked step takes. An arrow crosses ground faster than
+a person walks it. A shot drawn at walking pace is too slow to read as a shot.
 
 ### A replay rather than a rule
 
 The shot is worked out and applied before anything is drawn. `Game#loose` and `Game#bolt` each
-record what flew in `Game#in_flight`, as a `Missile`: the `Flight` it took and the item that took
-it. A bolt has no item, because nothing lands on the floor afterwards.
+record what crossed the floor in `Game#in_flight`, as a `Missile`. A `Missile` holds the `Flight`
+the shot took and the item that took it. A bolt has no item, because nothing lands on the floor
+afterwards.
 
-So the picture is a replay. The arrow is already lying where it stopped and whatever it killed is
-already gone by the time the first frame is drawn. That is visible for the tenth of a second the
-shot is in the air, and it is what keeps every rule in `Game`: a shot drawn first and applied
-afterwards would have to hold the keyboard for the length of the animation, because a movement key
-pressed part way through would move the character and leave the shot resolving from a square it was
-never aimed from.
+The picture is therefore a replay. The arrow is already lying where it stopped by the time the first
+frame is drawn, and whatever it killed is already gone. That is visible for the tenth of a second
+the shot is in the air. It is the cost of keeping every rule in `Game`. A shot drawn first and
+applied afterwards would have to hold the keyboard for the length of the animation. A movement key
+pressed part way through would otherwise move the character, and the shot would then resolve from a
+square it was never aimed from.
 
 `Play` holds the missile with `MapPane#mark`, which is what the character is drawn with. A mark is
 something standing on a square rather than something written into the floor, and every refresh
@@ -2341,10 +2342,10 @@ clears the marks, so the frame that ends the shot leaves nothing behind.
 
 ### Not drawing the shot before last
 
-Every command that might let something fly — `#fire`, `#throw`, `#zap` and `#aim_reading` — clears
-`@in_flight` before it does anything else. A command that lets nothing fly then answers `nil` rather
-than the shot before it. Reading a scroll at a square is the case that needs it: it takes a target
-and sends nothing across the floor.
+Every command that might send something across the floor — `#fire`, `#throw`, `#zap` and
+`#aim_reading` — clears `@in_flight` before it does anything else. A command that sent nothing then
+gives `nil` rather than the shot before it. Reading a scroll at a square is the case that needs it.
+That command takes a target and sends nothing across the floor.
 
 The animation also gives up when the turn moves on. A key pressed while a missile is in the air
 takes a turn of its own, and the floor the shot crossed is gone by then.

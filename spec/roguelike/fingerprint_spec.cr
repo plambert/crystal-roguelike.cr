@@ -3,8 +3,8 @@ require "../support/scripted"
 
 # The second process the cross-process specs read fingerprints from.
 #
-# A fingerprint is a fingerprint because two processes agree on it. No spec
-# running in one process can show that. A fork will not do either. Crystal
+# A fingerprint has to be the same in two processes. No spec running in one
+# process can show that. A fork will not do either. Crystal
 # seeds `Object#hash` once at startup, and a child inherits the seed its
 # parent was given, so anything built from it would agree for the wrong
 # reason.
@@ -155,7 +155,7 @@ Spectator.describe Roguelike::Fingerprint do
   end
 
   describe "drawing" do
-    # A run drawn in a window, with its flames held still or wavering.
+    # A game drawn in a window, with its flames held still or wavering.
     def drawn(flicker : Bool) : Playing::Run
       run = Playing.open Game.start(Rng.new(Playing::SEED))
       run.play.flicker.burning = flicker

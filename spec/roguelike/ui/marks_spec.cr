@@ -16,7 +16,7 @@ Spectator.describe "the marks against a row of a list" do
     "#########",
   ]
 
-  # A run carrying *items*, with nothing else in the pack.
+  # A `Playing::Run` carrying *items*, with nothing else in the pack.
   def carrying(items : Array(Item)) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("room", ROOM)
     game = Roguelike::Game.new(
@@ -149,7 +149,8 @@ Spectator.describe "the marks against a row of a list" do
       run.hover row.rect.x + 1, row.rect.y
     end
 
-    # A run with two things lying underfoot, so "Here" has rows to point at.
+    # A `Playing::Run` with two things underfoot, so "Here" has rows to
+    # point at.
     def littered : Playing::Run
       run = carrying [] of Item
       run.game.floor.drop 4, 2, Item.new(Kind::Dagger)

@@ -156,7 +156,7 @@ Spectator.describe Roguelike::Handling do
     end
 
     describe "what it says" do
-      # One stack of three says "are" and a single spike says "is".
+      # A stack of three takes "are" and a single spike takes "is".
       it "agrees the verb with the count" do
         lore = Roguelike::Lore.new
         one = Item.new Kind::Spike, blessing: Blessing::Cursed,

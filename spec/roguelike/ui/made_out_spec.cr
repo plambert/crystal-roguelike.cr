@@ -187,8 +187,8 @@ Spectator.describe "naming an item lying on the floor" do
       expect(looked_at run, HERE, 5).to eq "Here: a cursed -2 spear"
     end
 
-    # A menu row carries the curse as the mark beside the key rather than as
-    # a word in the name, so both halves of the row are read here.
+    # A menu row has the curse as the mark beside the key rather than as a
+    # word in the name. Both halves of the row are read here.
     it "names what they are carrying in full in the pack menu" do
       run = hall APART, spear
       run.game.player.inventory.add spear

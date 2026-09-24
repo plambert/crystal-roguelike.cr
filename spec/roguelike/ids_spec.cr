@@ -1,11 +1,11 @@
 require "../spec_helper"
 
-# The ids a run gives to its items and creatures.
+# The ids a game gives to its items and creatures.
 #
 # A bot and a replay log name a thing by its id rather than by the letter it
 # sits under. A letter moves and an id does not. The ids have to follow from
-# the seed and from nothing else, so a replay of a run reads the same names
-# the run wrote.
+# the seed and from nothing else, so a replay of a game reads the same names
+# the game wrote.
 Spectator.describe "entity ids" do
   alias Game = Roguelike::Game
   alias Item = Roguelike::Item
@@ -17,9 +17,9 @@ Spectator.describe "entity ids" do
 
   # Every id in *game*, each with a word for what has it.
   #
-  # The word is what the thing is rather than which one it is. Two runs on
-  # one seed are then compared on the things rather than on the objects
-  # holding them.
+  # The word names the kind of thing. It does not name the particular one.
+  # Two games on one seed are then compared on the things rather than on the
+  # objects holding them.
   def named(game : Game) : Array({Int32, String})
     found = [] of {Int32, String}
 

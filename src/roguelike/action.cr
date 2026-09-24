@@ -7,9 +7,9 @@ module Roguelike
   #
   # Every verb the game has is one subclass. A subclass carries what that
   # verb needs. `Game#perform` takes one of these and calls the rule for it.
-  # `Game#legal` gives the ones the run allows now. `Ui::Play` builds one for
-  # every key that spends a turn. The keyboard, a replay log and a bot are
-  # then served by the same rules.
+  # `Game#legal` gives the ones the game allows now. `Ui::Play` builds one
+  # for every key that spends a turn. A replay line and a bot's choice are
+  # the same value. All three reach the same rule.
   #
   # An action serializes with a `t` field naming the verb, so one is written
   # to a replay line and read back from it. The names are the ones
@@ -27,11 +27,12 @@ module Roguelike
   #   asks for a carried item or for a square. A `choose` cannot carry a
   #   square. `Aim` is the answer that carries one.
   # * `throw` takes a square and never a direction. The game aims at a
-  #   square. The targeting cursor is what picks the square.
+  #   square. The person picks that square with the targeting cursor.
   #
-  # An item is named by the inventory letter it is carried under. The spec
-  # asks for a stable entity id instead. A later change replaces the letter
-  # with an id. Nothing else about this type changes then.
+  # An item is named by the inventory letter it is carried under. A letter is
+  # not stable across a replay, because a letter moves between items.
+  # `Item#id` is stable. The letters are to be replaced by ids before the
+  # replay log lands. Nothing else about this type changes then.
   abstract class Action
     include JSON::Serializable
 
@@ -64,8 +65,8 @@ module Roguelike
     # Those names are particular to Crystal. They are not what a client in
     # another language expects.
     module Compass
-      # The short name of each direction, and the direction of each short
-      # name.
+      # Each direction and its short name. `Hash#key_for?` reads the table
+      # the other way.
       NAMES = {
         Direction::North     => "n",
         Direction::NorthEast => "ne",
@@ -179,8 +180,9 @@ module Roguelike
     # thing there. It is refused where several things lie there, which is
     # what the spec asks for.
     #
-    # The index stands in for the stable entity id the spec wants, until
-    # items have one.
+    # The index is what `Game#here` is addressed by, so it stays. The spec
+    # asks for a stable entity id in its place. `Item#id` is that id, and
+    # nothing yet needs `PickUp` to carry one.
     class PickUp < Action
       getter t : String = "pickup"
 
@@ -333,8 +335,8 @@ module Roguelike
 
     # Climbing out of the dungeon by the staircase underfoot. `<` does this.
     #
-    # The spec has no word for this ending. It is a third ending. The run is
-    # over and it was not won.
+    # The spec has no word for this ending. It is a third ending. The game
+    # is over and it was not won.
     class Ascend < Action
       getter t : String = "ascend"
 
@@ -372,24 +374,24 @@ module Roguelike
 
   # What one call to `Game#perform` did.
   #
-  # An action the run will not take is refused in the return value rather
+  # An action the game will not take is refused in the return value rather
   # than raised. Three ordinary things send one: a bot picking outside
   # `Game#legal`, a replay recorded against an older build, and a key that
   # arrives after the thing it names is gone. The headless protocol reports
-  # each of those on a line of its own. An exception would put a rescue
+  # each of those on a line of its own. An exception would need a rescue
   # around every call. A refused action changes nothing and spends no turn,
   # because `Game#perform` checks before it dispatches.
   #
-  # `#allowed` true means only that the rule ran. Opening a door where there
-  # is none is still true. The refusal belongs to that rule, and that rule
-  # has already written the line for it.
+  # `#allowed` true means only that the rule ran. The verdict for opening a
+  # door where there is none is still true. The refusal belongs to that rule,
+  # and that rule has already written the line for it.
   #
   # `#step` is what a move came to. It is `nil` for every other verb.
   # `Ui::Play` reads it and decides whether to move the view.
   record Verdict,
     allowed : Bool,
     step : Step? = nil do
-    # An action the run will not take.
+    # An action the game will not take.
     def self.refused : Verdict
       new false
     end
@@ -399,7 +401,7 @@ module Roguelike
       new true, step
     end
 
-    # Whether the run would not take it.
+    # Whether the game would not take it.
     def refused? : Bool
       !@allowed
     end

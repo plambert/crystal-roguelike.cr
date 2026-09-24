@@ -189,8 +189,8 @@ module Roguelike
     # first. A command that sent nothing then gives `nil` rather than the
     # shot before it. `Ui::Play` reads it once the command is over.
     #
-    # It is not written out. A save holds where a run is rather than what the
-    # screen last showed.
+    # It is not written out. A save holds where a game is rather than what
+    # the screen last showed.
     @[JSON::Field(ignore: true)]
     getter in_flight : Missile? = nil
 
@@ -285,10 +285,10 @@ module Roguelike
       @outcome.over?
     end
 
-    # What this run is, as one string. See `Fingerprint`.
+    # What this game is, as one string. See `Fingerprint`.
     #
     # The same state gives the same string in every process. A replay is
-    # checked by comparing this turn by turn. Two runs that differ show the
+    # checked by comparing this turn by turn. Two games that differ show the
     # turn they first differed on.
     def fingerprint : String
       Fingerprint.of self
@@ -619,9 +619,9 @@ module Roguelike
     # walk. Nothing about it is kept on the game, so a walk that is abandoned
     # part way leaves nothing behind.
     #
-    # A run that is over takes no step. The character is killed by the blow
-    # that answers the last step, and the run ends there. `#wait` takes no
-    # turn once they are dead, for the same reason.
+    # A game that is over takes no step. The blow that follows the last step
+    # can kill the character, and the game ends there. `#wait` takes no turn
+    # once they are dead, for the same reason.
     def stride(walk : Walk) : Bool
       return false if over?
       return false if walk.over?
@@ -645,7 +645,7 @@ module Roguelike
       # replay as a character standing still.
       #
       # The verdict always carries a step. `#perform` refuses a move only for
-      # a run that is over, and the guard at the top of this method has
+      # a game that is over, and the guard at the top of this method has
       # already covered that. `as` is used rather than a fallback to nil, so
       # a refusal that did reach here raises. A fallback would read as "did
       # not move" and would put a wrong `Halt::Blocked` on the walk.
@@ -1160,10 +1160,10 @@ module Roguelike
     # Gives every awake creature that has earned an action its turn.
     #
     # Each one reads a `Pursuit::Snapshot` and answers a `Pursuit::Action`,
-    # and this method applies it. The snapshot holds no floor and no player:
-    # what a creature knows about the shape of the world is its band's
-    # `Knowledge`, and what it knows about the character is where the band
-    # last saw them.
+    # and this method applies it. The snapshot holds no floor and no player.
+    # What a creature knows about the shape of the world is its band's
+    # `Knowledge`. What it knows about the character is where the band last
+    # saw them.
     # Every check against what is actually there happens here.
     #
     # One `Descent` is built for each awake band rather than for each of its
@@ -3625,16 +3625,16 @@ module Roguelike
 
     # ----------------------------------------------------------------- ids
 
-    # How many ids have been handed out in this run.
+    # How many ids have been given out in this game.
     #
     # An id names one item or one creature for as long as it is there. A
     # replay log and a bot use "id 41" where a person says "the arrows under
     # f". A letter moves between items, and a bot's name for a thing must
     # not.
     #
-    # The counter is on the run rather than in a constant. Two runs in one
-    # process then have separate counters, and a run resumed from a save does
-    # not give out a number already in use.
+    # The counter is on the game rather than in a constant. Two games in one
+    # process then have separate counters, and a game resumed from a save
+    # does not give out a number already in use.
     #
     # The field has a default, so a save written before ids existed loads and
     # starts from zero. `#enrol` then raises it.
@@ -3645,20 +3645,20 @@ module Roguelike
       @minted += 1
     end
 
-    # Gives an id to everything in the run that has none.
+    # Gives an id to everything in the game that has none.
     #
     # `Game.start` calls this once the floor is dug, the character is dressed
     # and the litter is down. Everything made by then came from the
     # generator, from `Items` or from `Loot`. None of those three holds the
-    # run, so none of them can ask for a number. Walking the finished run in
-    # a fixed order numbers all of it at once. The order is a function of the
-    # seed, so two runs on one seed number the same things the same way.
+    # game, so none of them can ask for a number. Walking the finished game
+    # in a fixed order numbers all of it at once. The order is a function of
+    # the seed, so two games on one seed number the same things the same way.
     #
     # `#after_initialize` calls it again after a load. A save written before
     # ids existed has none, and this gives it some rather than refusing the
     # file. A save written since has them all, and this gives out nothing.
     #
-    # The largest id in the run is found first. A file edited by hand can
+    # The largest id in the game is found first. A file edited by hand can
     # hold an id above the counter. That number given out a second time would
     # put two things under one name.
     def enrol : Nil
@@ -3666,7 +3666,7 @@ module Roguelike
       each_bearer { |thing| thing.enrol next_id if thing.id.zero? }
     end
 
-    # The item under the id *id*, or `nil` when nothing in the run has it.
+    # The item under the id *id*, or `nil` when nothing in the game has it.
     #
     # An id ends with the thing it names. A pile put into another is gone and
     # so is its id. A potion that has been drunk is `nil`.
@@ -3682,7 +3682,7 @@ module Roguelike
       nil
     end
 
-    # The creature under the id *id*, or `nil` when none in the run has it.
+    # The creature under the id *id*, or `nil` when none in the game has it.
     def monster(id : Int32) : Monster?
       return if id.zero?
 
@@ -3695,17 +3695,17 @@ module Roguelike
       nil
     end
 
-    # Everything in the run that has an id, in a fixed order.
+    # Everything in the game that has an id, in a fixed order.
     #
     # The floors come in order by name. On each floor the creatures come in
     # order by the square they stand on, each one with what it carries. The
     # piles on that floor follow, in order by the square they lie on. What
     # the character carries comes last, letter by letter.
     #
-    # The order comes from the state of the run. It does not come from the
+    # The order comes from the state of the game. It does not come from the
     # order things were made, or from the order a hash holds them in. Two
-    # runs on one seed walk the same things in the same order, in one process
-    # and across two.
+    # games on one seed walk the same things in the same order, in one
+    # process and across two.
     private def each_bearer(& : Item | Monster ->) : Nil
       @world.floors.keys.sort!.each do |name|
         ground = @world[name]
@@ -3748,11 +3748,11 @@ module Roguelike
     # The field is not in the save, in the way the creature being fought and
     # the missile in flight are not. There are three reasons for that. The
     # behaviour is older than the field, and `#start_reading` already states
-    # it. A run saved with the question up has spent the scroll and the turn
+    # it. A game saved with the question up has spent the scroll and the turn
     # and has given up the rest. An `Item` written out from both the
-    # inventory and this field would load as two objects rather than one, so
-    # serializing it would trade a lost scroll for an aliasing bug. The fix
-    # that would work is to hold the letter rather than the item and to
+    # inventory and this field would load as two objects rather than one.
+    # Serializing it would mend the lost scroll and add an aliasing bug. The
+    # fix that would work is to hold the letter rather than the item and to
     # answer the question before the file is written, and that is a change a
     # player would notice.
     #
@@ -3765,7 +3765,7 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     getter asking : Item? = nil
 
-    # Does *action*. Answers whether the run took it and what it came to.
+    # Does *action*. Answers whether the game took it and what it came to.
     #
     # This is the one entry point. `Ui::Play` reaches every rule through it,
     # and so do a replay log and a bot. It holds no rule of its own. Every
@@ -3984,7 +3984,7 @@ module Roguelike
       item.kind.item_class == wanted
     end
 
-    # Every action the run allows at this turn.
+    # Every action the game allows at this turn.
     #
     # A bot picks from this list. The list is shorter than what `#perform`
     # will take. An action that carries a square is offered once per creature

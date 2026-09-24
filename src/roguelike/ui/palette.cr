@@ -303,8 +303,8 @@ module Roguelike::Ui
 
     # The mark against an item the character has readied.
     #
-    # One mark is used for all five worn slots. The name beside the mark is
-    # what gives the piece of armour.
+    # One mark is used for all five worn slots. The piece of armour is in the
+    # name beside the mark.
     MELEE  = '\u2694'
     RANGED = '\u27B6'
     QUIVER = '\u27B7'

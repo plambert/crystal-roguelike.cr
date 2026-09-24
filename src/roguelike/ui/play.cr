@@ -164,9 +164,9 @@ module Roguelike::Ui
     # The shot being drawn, how far along its path it has got, and the turn
     # it was let go on.
     #
-    # The turn is what says whether the picture is still worth drawing. A
-    # key pressed part way through takes a turn of its own. The floor the
-    # shot crossed is gone by then.
+    # The picture is worth drawing only while the turn is the one the shot
+    # was let go on. A key pressed part way through takes a turn of its own.
+    # The floor the shot crossed is gone by then.
     private record Flying,
       missile : Roguelike::Missile,
       index : Int32,
@@ -1106,8 +1106,8 @@ module Roguelike::Ui
       listed listings entries
     end
 
-    # *entries* as listings: everything under each letter counted together,
-    # with the slot holding it.
+    # *entries* as listings. Everything under each letter is counted
+    # together, with the slot holding it.
     private def listings(entries : Array({Char, Item})) : Array(Listing)
       entries.map do |letter, item|
         Listing.new letter, @game.carried(letter) || item, @game.slot_of(letter)
@@ -2030,7 +2030,8 @@ module Roguelike::Ui
     #
     # A run is not an action of its own. It is a series of steps.
     # `Game#stride` takes each step through the rule `Action::Move` reaches.
-    # The person commits to the series. The run records the moves.
+    # The person commits to the series. Each step of it is an action of its
+    # own.
     private def dash(direction : Direction) : Nil
       start_walking @game.running(direction)
     end

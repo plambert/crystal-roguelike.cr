@@ -2,21 +2,21 @@ require "digest/sha256"
 require "json"
 
 module Roguelike
-  # What a run is, as one string, the same in every process.
+  # What a game is, as one string, the same in every process.
   #
   # A replay is checked by playing it again and comparing fingerprints turn
-  # by turn. Suppose two runs agree at turn 40 and differ at turn 50. The
+  # by turn. Suppose two games agree at turn 40 and differ at turn 50. The
   # fault is then in those ten turns, which is a smaller thing to search
-  # than the whole run.
+  # than the whole game.
   #
   # That works only if the value depends on the state and on nothing else.
   # Nothing here uses `Object#hash`. Crystal seeds its hasher afresh in every
-  # process. A value built from it differs between two runs of one replay,
+  # process. A value built from it differs between two plays of one replay,
   # and the difference has no cause in the game.
   #
   # The game is already written out in full. `Game` includes
-  # `JSON::Serializable`, and `Save` puts a whole run in one file. This
-  # module digests that output rather than walking a run a second way. A
+  # `JSON::Serializable`, and `Save` puts a whole game in one file. This
+  # module digests that output rather than walking a game a second way. A
   # field added to a save is therefore in the fingerprint from the day it is
   # added. A field left out of a save is in neither.
   module Fingerprint
@@ -58,14 +58,14 @@ module Roguelike
     # Several hashes reach the file: the floors of a world, the creatures,
     # the litter, the lights and the fixtures of a floor, the letters of a
     # pack, the slots of an equipment set, the squares a character remembers,
-    # and the appearances a run rolled. Each one is filled in an order that
-    # follows from the seed and the moves, so two runs on the same moves fill
+    # and the appearances a game rolled. Each one is filled in an order that
+    # follows from the seed and the moves, so two games on the same moves fill
     # them alike. Sorting costs one pass. The value is then a function of
     # what the state is rather than of how the state was reached, and that is
     # the weaker thing to depend on.
     #
     # Numbers are copied as they were written rather than read into a number
-    # and written again. A run's seed is a `UInt64`. The larger half of that
+    # and written again. A game's seed is a `UInt64`. The larger half of that
     # range does not fit in the `Int64` a JSON parser reads into.
     def self.canonical(text : String) : String
       String.build { |canonical| write JSON::PullParser.new(text), canonical }
