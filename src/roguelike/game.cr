@@ -633,8 +633,13 @@ module Roguelike
         return false
       end
 
+      # The step goes through `#perform` rather than straight to `#step`. A
+      # run is a string of steps, and `bots/PROTOCOL.md` section 2 says a
+      # macro is logged as the primitive actions it expands into. `#perform`
+      # is where a replay log and a bot watch, so a run that reached `#step`
+      # behind their back would replay as a character standing still.
       before = Watch.on self, walk.seen
-      unless step(direction).moved?
+      unless perform(Action::Move.new(direction)).step.try &.moved?
         walk.halt = Halt::Blocked
         return false
       end

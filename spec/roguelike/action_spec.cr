@@ -1,5 +1,20 @@
 require "../spec_helper"
 
+# A run that keeps every action that reached the one entry point.
+#
+# A run of several steps is the case this is for. Counting at the seam is
+# what says the steps went through `#perform`; counting where the character
+# ended up would pass just as well if they had gone round it.
+class Counted < Roguelike::Game
+  @[JSON::Field(ignore: true)]
+  getter taken : Array(Roguelike::Action) = [] of Roguelike::Action
+
+  def perform(action : Roguelike::Action) : Roguelike::Verdict
+    @taken << action
+    super
+  end
+end
+
 Spectator.describe Roguelike::Action do
   alias Action = Roguelike::Action
   alias Direction = Roguelike::Direction
@@ -57,6 +72,20 @@ Spectator.describe Roguelike::Action do
   # A copy of *game* that shares nothing with it.
   def copy(game : Roguelike::Game) : Roguelike::Game
     Roguelike::Game.from_json game.to_json
+  end
+
+  # A lit corridor with the character at the west end and nothing on it, so
+  # a run down it stops only when it reaches the far wall.
+  HALL = ["############",
+          "#..........#",
+          "############"]
+
+  # A run on `HALL` that counts what reaches `#perform`.
+  def hall : Counted
+    floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
+
+    Counted.new Roguelike::World.new(Playing::SEED, {"hall" => floor}),
+      Roguelike::Player.new("hall", 1, 1)
   end
 
   # A run with a scroll of blessing read and its question still up.
@@ -431,6 +460,48 @@ Spectator.describe Roguelike::Action do
       routed.perform Action::Read.new('e', 'd')
 
       expect(state routed).to eq state direct
+    end
+  end
+  describe "a run" do
+    # A run is not an action of its own. Every step of one is, and each has
+    # to reach the same entry point a key press reaches, or a replay records
+    # a run as nothing at all and the character is somewhere else on
+    # playback.
+    it "takes every step through the one entry point" do
+      game = hall
+      walk = game.running Direction::East
+      while game.stride walk
+      end
+
+      expect(walk.steps).to be > 1
+      expect(game.taken.size).to eq walk.steps
+      expect(game.taken.map &.class).to eq Array.new(walk.steps, Action::Move)
+      expect(game.taken.compact_map { |one| one.as?(Action::Move).try &.dir }.uniq!)
+        .to eq [Direction::East]
+    end
+
+    it "leaves the character where the run took them" do
+      game = hall
+      start = game.player.at
+
+      walk = game.running Direction::East
+      while game.stride walk
+      end
+
+      expect(game.player.at).to eq({start[0] + walk.steps, start[1]})
+      expect(game.turn).to eq walk.steps
+    end
+
+    it "counts a route the same way" do
+      game = hall
+      route = [{1, 1}, {2, 1}, {3, 1}, {4, 1}]
+
+      walk = game.walking route
+      while game.stride walk
+      end
+
+      expect(game.taken.map &.class).to eq Array.new(walk.steps, Action::Move)
+      expect(game.player.at).to eq({4, 1})
     end
   end
 end
