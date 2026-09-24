@@ -4021,12 +4021,21 @@ module Roguelike
       @events.clear
       return Verdict.refused if over?
 
-      # There are four groups. Each group calls a `case` that covers its own
-      # verbs and nothing else. Crystal folds a union of every subclass back
-      # into the parent. One `case` over the whole of `Action` cannot be
-      # checked for exhaustiveness. A group of six can be. The cost is that a
-      # new verb left out of every group is not a compile error. `#legal` and
-      # the specs over it are what catch that instead.
+      recording
+      verdict = dispatched action
+      @recorder.try &.act action unless verdict.refused?
+      verdict
+    end
+
+    # The rule for *action*.
+    #
+    # There are four groups. Each group calls a `case` that covers its own
+    # verbs and nothing else. Crystal folds a union of every subclass back
+    # into the parent. One `case` over the whole of `Action` cannot be
+    # checked for exhaustiveness. A group of six can be. The cost is that a
+    # new verb left out of every group is not a compile error. `#legal` and
+    # the specs over it are what catch that instead.
+    private def dispatched(action : Action) : Verdict
       case action
       when Action::Move, Action::Wait, Action::Open, Action::Close,
            Action::Descend, Action::Ascend
@@ -4042,6 +4051,30 @@ module Roguelike
       else
         raise ArgumentError.new "#{action.class} has no rule"
       end
+    end
+
+    # Where this run is being written down, or `nil` when nothing records it.
+    #
+    # It is not written out. A save holds the run, and where a copy of the
+    # run is being kept is not part of it.
+    @[JSON::Field(ignore: true)]
+    @recorder : Replay::Log? = nil
+
+    # Whether a log has been asked for yet.
+    @[JSON::Field(ignore: true)]
+    @recorded : Bool = false
+
+    # Opens the log for this run, once, on the first action.
+    #
+    # The first action is the earliest point a run is worth recording from.
+    # The character has a name by then, and the header takes the name and the
+    # state the run is about to act from. `Replay::Log.pattern` decides
+    # whether there is a log at all.
+    private def recording : Nil
+      return if @recorded
+
+      @recorded = true
+      @recorder = Replay::Log.opened self
     end
 
     # The verbs that move the character about the floor, or off it.
