@@ -200,12 +200,12 @@ module Playing
                 clock : Bool = false,
                 store : Roguelike::Save::Store? = nil) : Run
     # A spec that builds its own run with `Game.new` has not numbered what is
-    # in it. `Game.start`, `Game.dug` and a save read back all call `#enrol`,
+    # in it. `Game.start`, `Game.dug` and a save read back all call `#enroll`,
     # and a hand-built floor has been through none of the three. `Ui::Play`
     # names an item by its id when it builds an action, so a run with no ids
     # would refuse every verb that names one.
     wanted = game || Roguelike::Game.start(Roguelike::Rng.new(SEED))
-    wanted.enrol
+    wanted.enroll
 
     play = Roguelike::Ui::Play.new wanted, console
     play.store = store

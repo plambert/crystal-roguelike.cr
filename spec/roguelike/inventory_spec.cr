@@ -108,7 +108,7 @@ Spectator.describe Roguelike::Inventory do
 
     it "leaves the id on the part that stays and gives the rest the new one" do
       stack = Item.new Kind::Arrow, count: 12
-      stack.enrol 4
+      stack.enroll 4
       bag.add stack
 
       taken = bag.take 'a', 2, 9
@@ -119,7 +119,7 @@ Spectator.describe Roguelike::Inventory do
 
     it "hands the whole pile over with the id it wore" do
       stack = Item.new Kind::Arrow, count: 12
-      stack.enrol 4
+      stack.enroll 4
       bag.add stack
 
       expect(bag.take('a', 12, 9).try &.id).to eq 4

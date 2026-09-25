@@ -51,7 +51,7 @@ Spectator.describe Roguelike::Action do
       Roguelike::World.new(Playing::SEED, {"room" => floor}), player)
     floor.drop HERE[0], HERE[1], Item.new(Kind::Dagger)
     floor.drop HERE[0], HERE[1], Item.new(Kind::Rock)
-    game.enrol
+    game.enroll
     game
   end
 

@@ -160,7 +160,7 @@ Spectator.describe "entity ids" do
     it "finds a pile lying on the floor" do
       game = Game.dug Rng.new(SEED)
       purse = Item.new Kind::Gold, count: 7
-      purse.enrol game.next_id
+      purse.enroll game.next_id
       game.floor.drop 1, 1, purse
 
       expect(game.item(purse.id).try &.count).to eq 7
@@ -194,7 +194,7 @@ Spectator.describe "entity ids" do
     def stocked : Game
       game = Game.dug Rng.new(SEED)
       potion = Item.new Kind::HealingPotion
-      potion.enrol game.next_id
+      potion.enroll game.next_id
       game.floor.drop game.player.x, game.player.y, potion
       game
     end
@@ -233,10 +233,10 @@ Spectator.describe "entity ids" do
       letter = game.player.inventory.add Item.new(Kind::Arrow, count: 3)
       kept = letter ? game.player.inventory[letter] : nil
       raise "no arrows" unless kept
-      kept.enrol game.next_id
+      kept.enroll game.next_id
 
       more = Item.new Kind::Arrow, count: 2
-      more.enrol game.next_id
+      more.enroll game.next_id
       game.floor.drop game.player.x, game.player.y, more
       game.perform Action::PickUp.new(more.id)
 
@@ -260,7 +260,7 @@ Spectator.describe "entity ids" do
       game = Game.dug Rng.new(SEED)
       creature = game.floor.monsters.values.first
       carried = Item.new Kind::Dagger
-      carried.enrol game.next_id
+      carried.enroll game.next_id
       creature.carrying << carried
 
       expect(game.monster creature.id).to be creature
@@ -293,7 +293,7 @@ Spectator.describe "entity ids" do
       game = Game.start Rng.new(SEED)
       letter = game.player.inventory.add Item.new(Kind::Arrow, count: 12)
       raise "no letter for the arrows" unless letter
-      game.enrol
+      game.enroll
 
       quiver = game.player.inventory[letter]
       raise "no arrows" unless quiver
@@ -313,8 +313,8 @@ Spectator.describe "entity ids" do
     it "keeps the receiving pile's id on a merge" do
       one = Item.new Kind::Arrow, count: 5
       two = Item.new Kind::Arrow, count: 3
-      one.enrol 4
-      two.enrol 9
+      one.enroll 4
+      two.enroll 9
 
       expect(one.merge(two).id).to eq 4
       expect(one.merge(two).count).to eq 8
@@ -324,26 +324,26 @@ Spectator.describe "entity ids" do
     # memory of a pile is taken. Neither makes a new pile.
     it "keeps the id when a pile is only counted differently" do
       stack = Item.new Kind::Arrow, count: 12
-      stack.enrol 4
+      stack.enroll 4
 
       expect(stack.with_count(3).id).to eq 4
       expect(stack.copy.id).to eq 4
     end
   end
 
-  describe "Item#enrol" do
+  describe "Item#enroll" do
     it "takes an id once" do
       item = Item.new Kind::Arrow
 
-      expect(item.enrol 4).to be_true
-      expect(item.enrol 9).to be_false
+      expect(item.enroll 4).to be_true
+      expect(item.enroll 9).to be_false
       expect(item.id).to eq 4
     end
 
     it "refuses zero, which is the way of saying there is no id" do
       item = Item.new Kind::Arrow
 
-      expect(item.enrol 0).to be_false
+      expect(item.enroll 0).to be_false
       expect(item.id).to eq 0
     end
   end

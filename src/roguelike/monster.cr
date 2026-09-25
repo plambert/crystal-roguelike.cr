@@ -17,7 +17,7 @@ module Roguelike
     # What this creature is called in a log or by a bot, for as long as it
     # lives.
     #
-    # Zero means it has no id yet. `Game#enrol` walks the run and gives an
+    # Zero means it has no id yet. `Game#enroll` walks the run and gives an
     # id to whatever has none. A creature the generator placed is numbered
     # that way. A save written before ids existed is numbered the same way.
     #
@@ -106,8 +106,8 @@ module Roguelike
     # Gives this creature the id *id*. Answers whether it took one.
     #
     # A creature takes an id once, for the same reason an item does. See
-    # `Item#enrol`.
-    def enrol(id : Int32) : Bool
+    # `Item#enroll`.
+    def enroll(id : Int32) : Bool
       return false unless @id.zero?
       return false if id.zero?
 

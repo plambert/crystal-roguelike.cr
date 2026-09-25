@@ -40,7 +40,7 @@ Spectator.describe Roguelike::Event do
   #
   # The block puts whatever the example needs on the floor.
   #
-  # `Game.new` gives out no ids. `Game.start` is what calls `#enrol`, and a
+  # `Game.new` gives out no ids. `Game.start` is what calls `#enroll`, and a
   # floor built by hand has not been through it. Everything is in place before
   # the call, so every item and every creature here has an id.
   def room(items : Array(Item) = [] of Item, dark : Bool = false,
@@ -54,7 +54,7 @@ Spectator.describe Roguelike::Event do
 
     game = Game.new World.new(SEED, {floor.id => floor}), player,
       lore: Roguelike::Lore.roll(Rng.new(SEED))
-    game.enrol
+    game.enroll
     game
   end
 
@@ -150,7 +150,7 @@ Spectator.describe Roguelike::Event do
       floor.ambient = 1
       game = Game.new World.new(SEED, {floor.id => floor}),
         Player.new(floor.id, 1, 1)
-      game.enrol
+      game.enroll
       game.perform Action::Move.new(Direction::East)
 
       door = game.events.compact_map(&.as?(Event::Door)).first

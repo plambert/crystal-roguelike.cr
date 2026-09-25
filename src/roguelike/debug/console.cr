@@ -187,7 +187,7 @@ module Roguelike::Debug
         return say "gave #{made.count} gold, now carrying #{game.player.gold}."
       end
 
-      made.enrol game.next_id
+      made.enroll game.next_id
       letter = game.player.inventory.add made
       unless letter
         game.floor.drop game.player.x, game.player.y, made

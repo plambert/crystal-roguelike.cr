@@ -233,7 +233,7 @@ Spectator.describe "aiming" do
       run.game.player.inventory.add Item.new(Kind::Rock, count: 3)
       # Anything put into a run by hand has no id until this runs, and an
       # action names an item by its id.
-      run.game.enrol
+      run.game.enroll
       run.play.refresh
 
       run.press "t", "c"

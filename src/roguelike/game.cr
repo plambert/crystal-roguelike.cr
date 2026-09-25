@@ -251,7 +251,7 @@ module Roguelike
     def after_initialize : Nil
       spot = @fought_at
       @fought = spot ? floor.monster(spot[0], spot[1]) : nil
-      enrol
+      enroll
     end
 
     # What *item* is called, as this character would call it.
@@ -345,7 +345,7 @@ module Roguelike
       game = new world, player, lore: Lore.roll(rng)
       game.scatter rng
       game.equip rng
-      game.enrol
+      game.enroll
       # Two lines rather than one. The log pane is four rows of about eighty
       # columns, and one sentence saying all of this wraps onto two of them.
       #
@@ -2367,7 +2367,7 @@ module Roguelike
       return 0 if dropped.zero?
 
       purse = Item.new ItemKind::Gold, count: dropped
-      purse.enrol next_id
+      purse.enroll next_id
       floor.drop @player.x, @player.y, purse
       say "You drop #{dropped} gold pieces.",
         Event::Gold.new(:dropped, dropped)
@@ -3915,7 +3915,7 @@ module Roguelike
     # does not give out a number already in use.
     #
     # The field has a default, so a save written before ids existed loads and
-    # starts from zero. `#enrol` then raises it.
+    # starts from zero. `#enroll` then raises it.
     getter minted : Int32 = 0
 
     # The next id, taken. Ids start at one, so zero means no id.
@@ -3991,9 +3991,9 @@ module Roguelike
     # The largest id in the run is found first. A file edited by hand can
     # hold an id above the counter. That number given out a second time would
     # put two things under one name.
-    def enrol : Nil
+    def enroll : Nil
       each_bearer { |thing| @minted = Math.max @minted, thing.id }
-      each_bearer { |thing| thing.enrol next_id if thing.id.zero? }
+      each_bearer { |thing| thing.enroll next_id if thing.id.zero? }
       clear_bearers
     end
 
@@ -4320,7 +4320,7 @@ module Roguelike
 
       # Zero is the id of a thing nothing has numbered. `#letter_of` refuses
       # it for the same reason. Nothing in a run that has been through
-      # `#enrol` holds it.
+      # `#enroll` holds it.
       return Verdict.refused if wanted.zero?
 
       item = pile.find { |lying| lying.id == wanted }
