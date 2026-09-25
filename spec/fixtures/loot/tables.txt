@@ -30,7 +30,7 @@ goblin over 10000 of them
     cap               30.3%
     gloves            21.1%
     boots             21.5%
-    leather armour    18.9%
+    leather armor     18.9%
     shield             6.5%
     chain mail         1.8%
    25.4% of the time (25% stated)
@@ -50,7 +50,7 @@ orc over 10000 of them
     cap               30.0%
     gloves            22.3%
     boots             21.9%
-    leather armour    18.1%
+    leather armor     18.1%
     shield             5.9%
     chain mail         1.8%
    19.8% of the time (20% stated)

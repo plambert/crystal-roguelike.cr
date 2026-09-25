@@ -81,6 +81,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Every British spelling is now the American spelling. The item is "leather armor". A save file
+  written by an earlier build no longer loads, because a save holds the old field names and the
+  old enum names.
 * In a list of items the blessing is a mark beside the key instead of a word in the name. The marks
   are `✦` blessed, `✘` cursed, `✓` uncursed, and nothing while the blessing is not worked out. The
   slot an item is readied in is a mark against the right edge: `⚔` in the hand, `➶` the ranged
@@ -91,7 +94,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   covers the name. It no longer covers the key and the mark beside it. The same two marks are used
   on the row of the `Here` or `Seen` list under the pointer.
 * A scroll nobody has read is "a scroll YLOH" rather than "a scroll labelled YLOH".
-* The character starts knowing their own kit is uncursed. The short sword, the leather armour, the
+* The character starts knowing their own kit is uncursed. The short sword, the leather armor, the
   torch and the spikes are uncursed from the first turn. None of them waits on a handling roll.
 * No message is written when an item is discovered to be uncursed. Only a blessing or a curse is
   written to the log. The pack still moves the item to a letter of its own, which shows it has been
@@ -102,7 +105,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   costs energy, so an actor can be faster or slower than another.
 * The speeds of creatures relative to the character are 80% for the slime, 95% for the orc, and
   100% for the goblin.
-* Putting a suit of body armour on, or taking it off, takes three turns.
+* Putting a suit of body armor on, or taking it off, takes three turns.
   Every other action takes one.
 * A scroll of magic mapping reveals walls only. Room and corridor floors stay unknown until the
   character walks them.
@@ -148,7 +151,7 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   field of view and lit. Remembered terrain is drawn dimmer than lit terrain, and a creature on an
   unlit square with light behind it is drawn as a silhouette. Flames flicker, and `--no-flicker`
   disables the animation.
-* **Items.** Twenty-five kinds: weapons, ranged weapons and ammunition, thrown weapons, armour,
+* **Items.** Twenty-five kinds: weapons, ranged weapons and ammunition, thrown weapons, armor,
   potions, scrolls, wands, light sources, iron spikes and gold. Each carries an enchantment, a
   condition and a blessing. Potions, scrolls and wands are disguised until found out. Items are
   carried under a letter, dropped, picked up and scattered on the floor.
@@ -159,7 +162,7 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
 * **Equipment.** Eight slots: melee, ranged, quiver, head, body, hands, feet and shield. `w`, `W`
   and `T` ready, wear and remove.
 * **Combat.** Melee by walking into a creature, ranged with `f`, thrown with `t`, aimed with a
-  targeting cursor. One twenty sided die against ten plus armour class.
+  targeting cursor. One twenty sided die against ten plus armor class.
 * **The character.** Five attributes, hit points, experience and levels.
 * **Monsters.** Slimes, goblins and orcs, each with their own notice range, stealth, darkvision,
   persistence and clumsiness. They belong to bands, hold their own belief about the floor, path

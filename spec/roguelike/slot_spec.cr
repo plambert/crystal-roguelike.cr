@@ -4,30 +4,30 @@ Spectator.describe Roguelike::Slot do
   alias Kind = Roguelike::ItemKind
   alias Item = Roguelike::Item
   alias Slot = Roguelike::Slot
-  alias ArmourSlot = Roguelike::ArmourSlot
+  alias ArmorSlot = Roguelike::ArmorSlot
 
   describe "the two groups" do
-    it "splits into weapons and armour with nothing left over" do
-      expect(Slot.weapons.size + Slot.armours.size).to eq Slot.values.size
+    it "splits into weapons and armor with nothing left over" do
+      expect(Slot.weapons.size + Slot.armors.size).to eq Slot.values.size
     end
 
     it "calls three of them weapons" do
       expect(Slot.weapons).to eq [Slot::Melee, Slot::Ranged, Slot::Quiver]
     end
 
-    it "calls five of them armour" do
-      expect(Slot.armours).to eq [Slot::Head, Slot::Body, Slot::Hands,
-                                  Slot::Feet, Slot::Shield]
+    it "calls five of them armor" do
+      expect(Slot.armors).to eq [Slot::Head, Slot::Body, Slot::Hands,
+                                 Slot::Feet, Slot::Shield]
     end
 
-    it "answers an armour slot for each piece of armour and none otherwise" do
-      Slot.armours.each { |slot| expect(slot.armour_slot).not_to be_nil }
-      Slot.weapons.each { |slot| expect(slot.armour_slot).to be_nil }
+    it "answers an armor slot for each piece of armor and none otherwise" do
+      Slot.armors.each { |slot| expect(slot.armor_slot).not_to be_nil }
+      Slot.weapons.each { |slot| expect(slot.armor_slot).to be_nil }
     end
 
-    it "round-trips through ArmourSlot" do
-      ArmourSlot.values.each do |worn|
-        expect(Slot.for(worn).armour_slot).to eq worn
+    it "round-trips through ArmorSlot" do
+      ArmorSlot.values.each do |worn|
+        expect(Slot.for(worn).armor_slot).to eq worn
       end
     end
   end
@@ -53,7 +53,7 @@ Spectator.describe Roguelike::Slot do
       expect(Slot.for Item.new(Kind::Stone)).to eq Slot::Quiver
     end
 
-    it "puts each piece of armour where that piece is worn" do
+    it "puts each piece of armor where that piece is worn" do
       expect(Slot.for Item.new(Kind::Cap)).to eq Slot::Head
       expect(Slot.for Item.new(Kind::ChainMail)).to eq Slot::Body
       expect(Slot.for Item.new(Kind::Gloves)).to eq Slot::Hands
@@ -95,8 +95,8 @@ Spectator.describe Roguelike::Slot do
       end
     end
 
-    it "says armour is being worn" do
-      Slot.armours.each { |slot| expect(slot.note).to eq "being worn" }
+    it "says armor is being worn" do
+      Slot.armors.each { |slot| expect(slot.note).to eq "being worn" }
     end
 
     it "gives every slot a sentence for each of the three things" do
@@ -120,7 +120,7 @@ Spectator.describe Roguelike::Slot do
     end
 
     it "wears what goes on the body" do
-      Slot.armours.each do |slot|
+      Slot.armors.each do |slot|
         expect(slot.readied "it").to eq "You are now wearing it."
         expect(slot.released "it").to eq "You are no longer wearing it."
       end
@@ -130,7 +130,7 @@ Spectator.describe Roguelike::Slot do
       expect(Slot::Quiver.vacant).to eq "Your quiver is empty."
     end
 
-    it "names the part of the body an empty armour slot is on" do
+    it "names the part of the body an empty armor slot is on" do
       expect(Slot::Head.vacant).to eq "You have nothing on your head."
       expect(Slot::Feet.vacant).to eq "You have nothing on your feet."
     end

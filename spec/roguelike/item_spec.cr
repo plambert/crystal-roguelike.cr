@@ -26,17 +26,17 @@ Spectator.describe Roguelike::Item do
       end
     end
 
-    it "gives every piece of armour a slot and a rating" do
-      Kind.of_class(Roguelike::ItemClass::Armour).each do |kind|
+    it "gives every piece of armor a slot and a rating" do
+      Kind.of_class(Roguelike::ItemClass::Armor).each do |kind|
         expect(kind.slot).not_to be_nil
-        expect(kind.armour).to be > 0
+        expect(kind.armor).to be > 0
       end
     end
 
-    it "covers all five armour slots" do
-      slots = Kind.of_class(Roguelike::ItemClass::Armour).compact_map &.slot
+    it "covers all five armor slots" do
+      slots = Kind.of_class(Roguelike::ItemClass::Armor).compact_map &.slot
 
-      expect(slots.to_set).to eq Roguelike::ArmourSlot.values.to_set
+      expect(slots.to_set).to eq Roguelike::ArmorSlot.values.to_set
     end
 
     it "gives every piece of ammunition something that fires it" do
@@ -144,21 +144,21 @@ Spectator.describe Roguelike::Item do
     end
   end
 
-  describe "#armour" do
+  describe "#armor" do
     it "adds the plus and the condition" do
       item = described_class.new Kind::ChainMail, 1, Condition::Masterwork
 
-      expect(item.armour).to eq Kind::ChainMail.armour + 2
+      expect(item.armor).to eq Kind::ChainMail.armor + 2
     end
 
     it "never falls below nothing" do
       item = described_class.new Kind::Cap, -5, Condition::Damaged
 
-      expect(item.armour).to eq 0
+      expect(item.armor).to eq 0
     end
 
-    it "is nothing at all for anything that is not armour" do
-      expect(described_class.new(Kind::LongSword).armour).to eq 0
+    it "is nothing at all for anything that is not armor" do
+      expect(described_class.new(Kind::LongSword).armor).to eq 0
     end
   end
 

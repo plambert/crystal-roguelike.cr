@@ -352,7 +352,7 @@ module Roguelike
       # They go to the log rather than through `#say`. Nothing has happened
       # yet. The first line names what the character is holding, which the
       # pack already lists, and the second is about the keyboard.
-      game.log.add "You are in a dungeon with a short sword, leather armour and a lit torch."
+      game.log.add "You are in a dungeon with a short sword, leather armor and a lit torch."
       game.log.add "You carry three iron spikes. Press ? for the keys."
       game
     end
@@ -362,8 +362,8 @@ module Roguelike
 
     # What the character starts with, readied.
     #
-    # A short sword and leather armour. Bare hands are 1d2 against a goblin's
-    # armour, which is a fight a character at level one cannot win, and a
+    # A short sword and leather armor. Bare hands are 1d2 against a goblin's
+    # armor, which is a fight a character at level one cannot win, and a
     # character who cannot win the commonest fight cannot reach level two
     # either. The torch is here because a dungeon is dark and somebody who
     # arrived without a light would see one square.
@@ -381,7 +381,7 @@ module Roguelike
     private def self.outfit(player : Player) : Nil
       {
         {Item.new(ItemKind::ShortSword, blessing_known: true), Slot::Melee},
-        {Item.new(ItemKind::LeatherArmour, blessing_known: true), Slot::Body},
+        {Item.new(ItemKind::LeatherArmor, blessing_known: true), Slot::Body},
       }.each do |item, slot|
         letter = player.inventory.add item
         player.equipment.put slot, letter if letter
@@ -1070,7 +1070,7 @@ module Roguelike
     def attack(creature : Monster) : Blow
       fought_with creature
       blow = Combat.swing exchange, @player.to_hit,
-        creature.armour_class, @player.damage
+        creature.armor_class, @player.damage
 
       weapon = swung_with
       if blow.hit?
@@ -1217,7 +1217,7 @@ module Roguelike
         return false
       end
 
-      if slot && slot.armour?
+      if slot && slot.armor?
         say "You have to take #{name item} off first.",
           Event::Refused.new(:worn, item: item.id, name: name(item))
         return false
@@ -1270,7 +1270,7 @@ module Roguelike
     private def hit(creature : Monster, noun : String, bonus : Int32,
                     damage : Dice) : Blow
       fought_with creature
-      blow = Combat.swing exchange, bonus, creature.armour_class, damage
+      blow = Combat.swing exchange, bonus, creature.armor_class, damage
 
       if blow.hit?
         creature.hurt blow.damage
@@ -1443,7 +1443,7 @@ module Roguelike
     private def strike(creature : Monster) : Blow
       fought_with creature
       blow = Combat.swing exchange, creature.to_hit,
-        @player.armour_class, creature.damage
+        @player.armor_class, creature.damage
 
       if blow.hit?
         @player.hurt blow.damage
@@ -3792,14 +3792,14 @@ module Roguelike
     # slot from what the item is. A sword goes in the hand, a bow goes in the
     # other hand, and arrows go in the quiver.
     #
-    # Armour is not readied this way. `#wear` puts armour on, because putting
-    # armour on is a different act from picking a weapon up.
+    # Armor is not readied this way. `#wear` puts armor on, because putting
+    # armor on is a different act from picking a weapon up.
     def wield(letter : Char) : Bool
       item = @player.inventory[letter]
       return false unless item
 
       slot = Slot.for item
-      if slot.nil? || slot.armour?
+      if slot.nil? || slot.armor?
         say "You cannot wield #{name item}.",
           Event::Refused.new(:not_a_weapon, item: item.id, name: name(item))
         return false
@@ -3817,9 +3817,9 @@ module Roguelike
       return false unless item
 
       slot = Slot.for item
-      unless slot && slot.armour?
+      unless slot && slot.armor?
         say "You cannot wear #{name item}.",
-          Event::Refused.new(:not_armour, item: item.id, name: name(item))
+          Event::Refused.new(:not_armor, item: item.id, name: name(item))
         return false
       end
 
@@ -4532,7 +4532,7 @@ module Roguelike
       @player.inventory.entries.each do |letter, item|
         slot = slot_of letter
         found << Action::Drop.new item.id unless slot
-        legal_throwing found, item, aims unless slot && (item.sticks? || slot.armour?)
+        legal_throwing found, item, aims unless slot && (item.sticks? || slot.armor?)
         legal_readying found, letter, item
 
         case item.kind.item_class

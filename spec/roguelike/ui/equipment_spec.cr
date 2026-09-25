@@ -160,17 +160,17 @@ Spectator.describe "wielding, wearing and taking off" do
       expect(run.said).to contain "nothing to wear"
     end
 
-    it "puts armour on" do
+    it "puts armor on" do
       run = carrying [Item.new Kind::ChainMail]
 
       run.press "W"
       run.press "a"
 
-      expect(run.game.player.armour_class).to eq 4
+      expect(run.game.player.armor_class).to eq 4
       expect(run.said).to contain "now wearing"
     end
 
-    it "fills every armour slot" do
+    it "fills every armor slot" do
       run = carrying [Kind::ChainMail, Kind::Shield, Kind::Cap, Kind::Boots,
                       Kind::Gloves].map { |kind| Item.new kind }
 
@@ -180,32 +180,32 @@ Spectator.describe "wielding, wearing and taking off" do
       end
 
       expect(run.game.player.worn.size).to eq 5
-      expect(run.game.player.armour_class).to eq 9
+      expect(run.game.player.armor_class).to eq 9
     end
 
     # A person takes one thing off before they put another on. Saying so is
     # clearer than doing it for them.
     it "refuses a second piece in one slot" do
-      run = carrying [Item.new(Kind::ChainMail), Item.new(Kind::LeatherArmour)]
+      run = carrying [Item.new(Kind::ChainMail), Item.new(Kind::LeatherArmor)]
 
       run.press "W"
       run.press row_for(run, "chain mail").to_s
       run.press "W"
-      run.press row_for(run, "leather armour").to_s
+      run.press row_for(run, "leather armor").to_s
 
       expect(run.said).to contain "already wearing"
-      expect(run.game.player.armour_class).to eq 4
+      expect(run.game.player.armor_class).to eq 4
     end
 
     it "takes no turn when it refuses" do
-      run = carrying [Item.new(Kind::ChainMail), Item.new(Kind::LeatherArmour)]
+      run = carrying [Item.new(Kind::ChainMail), Item.new(Kind::LeatherArmor)]
 
       run.press "W"
       run.press row_for(run, "chain mail").to_s
       turn = run.turn
 
       run.press "W"
-      run.press row_for(run, "leather armour").to_s
+      run.press row_for(run, "leather armor").to_s
 
       expect(run.turn).to eq turn
     end
@@ -370,7 +370,7 @@ Spectator.describe "wielding, wearing and taking off" do
       run.play.character.slot_row(slot).text
     end
 
-    it "shows the armour class" do
+    it "shows the armor class" do
       run = carrying [Item.new Kind::ChainMail]
 
       run.press "W"

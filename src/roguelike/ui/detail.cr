@@ -113,7 +113,7 @@ module Roguelike::Ui
       when .melee?, .thrown? then hitting item
       when .ranged_weapon?   then shooting item
       when .ammunition?      then shot item
-      when .armour?          then worn item
+      when .armor?           then worn item
       when .light?           then burning item
       when .wand?            then charged item
       else                        [] of String
@@ -143,9 +143,9 @@ module Roguelike::Ui
       found
     end
 
-    # What a piece of armour does, and where it goes.
+    # What a piece of armor does, and where it goes.
     private def self.worn(item : Item) : Array(String)
-      found = ["armour #{item.armour}"]
+      found = ["armor #{item.armor}"]
       where = item.kind.slot
       found << "worn on the #{where.to_s.downcase}" if where
       found

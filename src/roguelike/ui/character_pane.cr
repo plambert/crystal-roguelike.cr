@@ -52,7 +52,7 @@ module Roguelike::Ui
     # The fewest rows the pane ever takes.
     #
     # The level, the hit points and the experience, a blank row, and the
-    # armour class beside the gold and the turn. Nothing takes those away: a
+    # armor class beside the gold and the turn. Nothing takes those away: a
     # window with no room for them has no room for the game.
     LEAST = 5
 
@@ -74,7 +74,7 @@ module Roguelike::Ui
     # The bar for the creature the character is fighting.
     getter threat : Meter
 
-    # Armour class, gold and the turn.
+    # Armor class, gold and the turn.
     getter numbers : Line
 
     # The five scores, under their names.
@@ -290,7 +290,7 @@ module Roguelike::Ui
 
       @numbers.clear
       @numbers.put 0, "ac", Palette::FAINT
-      @numbers.put 3, player.armour_class.to_s, Palette::STRONG
+      @numbers.put 3, player.armor_class.to_s, Palette::STRONG
       @numbers.put 7, "au", Palette::FAINT
       @numbers.put 10, player.gold.to_s, Palette::COIN
       @numbers.put 16, "t", Palette::FAINT

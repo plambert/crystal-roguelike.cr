@@ -18,7 +18,7 @@
                                                        │ stone floor
                                                        │ worn flagstones
 ────────────────────────────────────────────────────────────────────────────────
- You are in a dungeon with a short sword, leather armour and a lit torch.
+ You are in a dungeon with a short sword, leather armor and a lit torch.
  You carry three iron spikes. Press ? for the keys.
 
 

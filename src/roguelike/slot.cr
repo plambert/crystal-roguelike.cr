@@ -3,9 +3,9 @@ require "./item"
 module Roguelike
   # Where one thing a character has readied is held.
   #
-  # Three slots are weapons and five are armour. `ArmourSlot` names the five
-  # on its own, because `ItemFacts#slot` says where a piece of armour is worn
-  # and nothing but armour is worn anywhere.
+  # Three slots are weapons and five are armor. `ArmorSlot` names the five
+  # on its own, because `ItemFacts#slot` says where a piece of armor is worn
+  # and nothing but armor is worn anywhere.
   #
   # A member is never removed and never reordered. A save file holds the
   # member name.
@@ -118,24 +118,24 @@ module Roguelike
       end
     end
 
-    # Whether this slot holds a weapon rather than armour.
+    # Whether this slot holds a weapon rather than armor.
     def weapon? : Bool
       melee? || ranged? || quiver?
     end
 
-    # Whether this slot holds armour.
-    def armour? : Bool
+    # Whether this slot holds armor.
+    def armor? : Bool
       !weapon?
     end
 
-    # Which piece of armour goes here. `nil` for a weapon slot.
-    def armour_slot : ArmourSlot?
+    # Which piece of armor goes here. `nil` for a weapon slot.
+    def armor_slot : ArmorSlot?
       case self
-      in .head?                      then ArmourSlot::Head
-      in .body?                      then ArmourSlot::Body
-      in .hands?                     then ArmourSlot::Hands
-      in .feet?                      then ArmourSlot::Feet
-      in .shield?                    then ArmourSlot::Shield
+      in .head?                      then ArmorSlot::Head
+      in .body?                      then ArmorSlot::Body
+      in .hands?                     then ArmorSlot::Hands
+      in .feet?                      then ArmorSlot::Feet
+      in .shield?                    then ArmorSlot::Shield
       in .melee?, .ranged?, .quiver? then nil
       end
     end
@@ -161,13 +161,13 @@ module Roguelike
       when .melee?, .thrown? then Melee
       when .ranged_weapon?   then Ranged
       when .ammunition?      then Quiver
-      when .armour?          then item.kind.slot.try { |worn| Slot.for worn }
+      when .armor?           then item.kind.slot.try { |worn| Slot.for worn }
       else                        nil
       end
     end
 
-    # The slot a piece of armour worn at *slot* goes in.
-    def self.for(slot : ArmourSlot) : Slot
+    # The slot a piece of armor worn at *slot* goes in.
+    def self.for(slot : ArmorSlot) : Slot
       case slot
       in .head?   then Head
       in .body?   then Body
@@ -182,9 +182,9 @@ module Roguelike
       values.select &.weapon?
     end
 
-    # Every armour slot, in order.
-    def self.armours : Array(Slot)
-      values.select &.armour?
+    # Every armor slot, in order.
+    def self.armors : Array(Slot)
+      values.select &.armor?
     end
   end
 end

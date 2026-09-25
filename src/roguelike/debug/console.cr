@@ -283,7 +283,7 @@ module Roguelike::Debug
       say "#{creature.label} at #{creature.x},#{creature.y}, " \
           "#{game.floor.awareness(creature).label}"
       say "  #{creature.hit_points}/#{creature.max_hit_points} hit points, " \
-          "armour class #{creature.armour_class}, damage #{creature.damage}"
+          "armor class #{creature.armor_class}, damage #{creature.damage}"
       say "  #{creature.attributes}, band #{creature.band}, " \
           "worth #{creature.species.experience}"
 
@@ -296,7 +296,7 @@ module Roguelike::Debug
 
       say "you at #{player.x},#{player.y} on #{game.floor.id}, turn #{game.turn}"
       say "  #{player.hit_points}/#{player.max_hit_points} hit points, " \
-          "armour class #{player.armour_class}, damage #{player.damage}"
+          "armor class #{player.armor_class}, damage #{player.damage}"
       say "  #{player.attributes}, level #{player.level}, " \
           "#{player.experience} experience, #{player.gold} gold"
 

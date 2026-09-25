@@ -79,7 +79,7 @@ module Roguelike::Ui
     # The glyphs are the roguelike conventions. A person who has played one
     # reads `)` as a weapon and `!` as a potion without being told.
     WEAPON = Style::DEFAULT.fg TermBuf::Color.rgb(0xDC, 0xE2, 0xEC)
-    ARMOUR = Style::DEFAULT.fg TermBuf::Color.rgb(0xB4, 0xC2, 0xDC)
+    ARMOR  = Style::DEFAULT.fg TermBuf::Color.rgb(0xB4, 0xC2, 0xDC)
     POTION = Style::DEFAULT.fg TermBuf::Color.rgb(0xE8, 0x64, 0xB4)
     SCROLL = Style::DEFAULT.fg TermBuf::Color.rgb(0xF0, 0xEA, 0xD0)
     WAND   = Style::DEFAULT.fg TermBuf::Color.rgb(0x88, 0xE0, 0xCC)
@@ -221,7 +221,7 @@ module Roguelike::Ui
       ItemClass::RangedWeapon => Look.new(')', WEAPON),
       ItemClass::Ammunition   => Look.new(')', WEAPON),
       ItemClass::Thrown       => Look.new(')', WEAPON),
-      ItemClass::Armour       => Look.new('[', ARMOUR),
+      ItemClass::Armor        => Look.new('[', ARMOR),
       ItemClass::Potion       => Look.new('!', POTION),
       ItemClass::Scroll       => Look.new('?', SCROLL),
       ItemClass::Wand         => Look.new('/', WAND),
@@ -303,7 +303,7 @@ module Roguelike::Ui
 
     # The mark against an item the character has readied.
     #
-    # One mark is used for all five worn slots. The piece of armour is in the
+    # One mark is used for all five worn slots. The piece of armor is in the
     # name beside the mark.
     MELEE  = '\u2694'
     RANGED = '\u27B6'

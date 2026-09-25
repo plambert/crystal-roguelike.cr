@@ -89,9 +89,9 @@ module Roguelike
       found
     end
 
-    # Every filled armour slot, in the order `Slot` names them.
+    # Every filled armor slot, in the order `Slot` names them.
     def worn : Array({Slot, Char})
-      entries.select { |slot, _letter| slot.armour? }
+      entries.select { |slot, _letter| slot.armor? }
     end
 
     # Takes out every letter *inventory* no longer holds.

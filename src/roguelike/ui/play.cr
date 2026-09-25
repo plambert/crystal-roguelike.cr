@@ -1572,10 +1572,10 @@ module Roguelike::Ui
       end
     end
 
-    # Asks which carried piece of armour to put on, then puts it on.
+    # Asks which carried piece of armor to put on, then puts it on.
     def wear : Nil
       offer "Wear what?", "You have nothing to wear.",
-        ->(item : Item) { Slot.for(item).try(&.armour?) || false } do |letter|
+        ->(item : Item) { Slot.for(item).try(&.armor?) || false } do |letter|
         id = id_under letter
         @game.perform Action::Wear.new(id) if id
       end

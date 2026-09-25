@@ -233,10 +233,10 @@ module Roguelike
     end
 
     # What this item takes off an attack against whoever wears it.
-    def armour : Int32
-      return 0 unless @kind.item_class.armour?
+    def armor : Int32
+      return 0 unless @kind.item_class.armor?
 
-      Math.max @kind.armour + @enchantment + @condition.modifier, 0
+      Math.max @kind.armor + @enchantment + @condition.modifier, 0
     end
 
     # How much the whole stack weighs.

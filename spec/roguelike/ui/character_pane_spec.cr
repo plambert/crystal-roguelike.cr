@@ -55,7 +55,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       expect(row).to contain Roguelike::Ui::Line::ELLIPSIS
     end
 
-    it "writes the armour class, the gold and the turn" do
+    it "writes the armor class, the gold and the turn" do
       run = playing
       run.game.player.take_gold 40
       run.play.refresh

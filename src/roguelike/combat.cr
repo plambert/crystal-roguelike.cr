@@ -16,7 +16,7 @@ module Roguelike
     # What the attacker added to the face.
     getter bonus : Int32
 
-    # The armour class the swing was against.
+    # The armor class the swing was against.
     getter against : Int32
 
     # Whether it landed.
@@ -57,13 +57,13 @@ module Roguelike
   # How a swing is decided.
   #
   # One twenty sided die, plus what the attacker adds, against the defender's
-  # armour class. `TARGET` is the number a swing at an unarmoured defender has
-  # to reach. Armour class is added to it, so a better defended creature needs
+  # armor class. `TARGET` is the number a swing at an unarmored defender has
+  # to reach. Armor class is added to it, so a better defended creature needs
   # a higher face.
   #
   # Two faces decide on their own. `CRITICAL` always lands and `FUMBLE` never
-  # does. Without them a well armoured creature is unhittable by a weak
-  # attacker, and an unarmoured one is unmissable by a strong one.
+  # does. Without them a well armored creature is unhittable by a weak
+  # attacker, and an unarmored one is unmissable by a strong one.
   #
   # Nothing here holds state. Every value the maths needs is an argument, so a
   # spec asserts a swing without building a game around it.
@@ -71,7 +71,7 @@ module Roguelike
     # How many sides the die has.
     SIDES = 20
 
-    # The number a swing at an unarmoured defender has to reach.
+    # The number a swing at an unarmored defender has to reach.
     TARGET = 10
 
     # The face that always lands.
@@ -83,7 +83,7 @@ module Roguelike
     # The least damage a landed swing does.
     LEAST = 1
 
-    # Whether a face of *roll* plus *bonus* lands on armour class *against*.
+    # Whether a face of *roll* plus *bonus* lands on armor class *against*.
     def self.lands?(roll : Int32, bonus : Int32, against : Int32) : Bool
       return true if roll >= CRITICAL
       return false if roll <= FUMBLE

@@ -88,7 +88,7 @@ Spectator.describe Roguelike::Equipment do
                                        {Slot::Feet, 'c'}]
     end
 
-    it "reads only the armour for #worn" do
+    it "reads only the armor for #worn" do
       equipment.put Slot::Melee, 'a'
       equipment.put Slot::Body, 'b'
 

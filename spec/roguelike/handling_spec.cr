@@ -185,11 +185,11 @@ Spectator.describe Roguelike::Handling do
 
       it "reads an uncountable kind as one thing" do
         lore = Roguelike::Lore.new
-        armour = Item.new Kind::LeatherArmour, blessing: Blessing::Cursed,
+        armor = Item.new Kind::LeatherArmor, blessing: Blessing::Cursed,
           blessing_known: true
 
-        expect(Roguelike::Game.worked_out lore, armour)
-          .to eq "You realize that leather armour is cursed!"
+        expect(Roguelike::Game.worked_out lore, armor)
+          .to eq "You realize that leather armor is cursed!"
       end
 
       # Almost everything a character carries is uncursed, and a line for

@@ -119,7 +119,7 @@ module Roguelike
       getter experience : Int32
 
       # What an attack on them is reduced by.
-      getter armour_class : Int32
+      getter armor_class : Int32
 
       # What they are carrying in coins.
       getter gold : Int32
@@ -132,7 +132,7 @@ module Roguelike
 
       def initialize(@pos : {Int32, Int32}, @hit_points : Int32,
                      @max_hit_points : Int32, @level : Int32,
-                     @experience : Int32, @armour_class : Int32,
+                     @experience : Int32, @armor_class : Int32,
                      @gold : Int32, @attributes : Attributes,
                      @statuses : Array(Status))
       end
@@ -149,7 +149,7 @@ module Roguelike
           max_hit_points: player.max_hit_points,
           level: player.level,
           experience: player.experience,
-          armour_class: player.armour_class,
+          armor_class: player.armor_class,
           gold: player.gold,
           attributes: player.attributes,
           statuses: statuses

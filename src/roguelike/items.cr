@@ -96,12 +96,12 @@ module Roguelike
       ItemKind::Rock => 30,
       ItemKind::Dart => 20,
 
-      ItemKind::Cap           => 20,
-      ItemKind::LeatherArmour => 18,
-      ItemKind::ChainMail     => 6,
-      ItemKind::Gloves        => 16,
-      ItemKind::Boots         => 16,
-      ItemKind::Shield        => 12,
+      ItemKind::Cap          => 20,
+      ItemKind::LeatherArmor => 18,
+      ItemKind::ChainMail    => 6,
+      ItemKind::Gloves       => 16,
+      ItemKind::Boots        => 16,
+      ItemKind::Shield       => 12,
 
       ItemKind::HealingPotion     => 34,
       ItemKind::IdentifyScroll    => 16,

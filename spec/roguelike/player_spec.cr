@@ -123,43 +123,43 @@ Spectator.describe Roguelike::Player do
       end
     end
 
-    describe "#armour_class" do
+    describe "#armor_class" do
       it "is nothing with nothing on" do
-        expect(armed([] of Item).armour_class).to eq 0
+        expect(armed([] of Item).armor_class).to eq 0
       end
 
       it "counts one piece" do
-        expect(armed([Item.new Kind::ChainMail]).armour_class).to eq 4
+        expect(armed([Item.new Kind::ChainMail]).armor_class).to eq 4
       end
 
       it "adds every piece worn" do
         worn = [Kind::ChainMail, Kind::Shield, Kind::Cap, Kind::Boots, Kind::Gloves]
           .map { |kind| Item.new kind }
 
-        expect(armed(worn).armour_class).to eq 4 + 2 + 1 + 1 + 1
+        expect(armed(worn).armor_class).to eq 4 + 2 + 1 + 1 + 1
       end
 
       it "works in the enchantment and the condition" do
         mail = Item.new Kind::ChainMail, enchantment: 1,
           condition: Roguelike::Condition::Masterwork
 
-        expect(armed([mail]).armour_class).to eq 6
+        expect(armed([mail]).armor_class).to eq 6
       end
 
       it "adds the dexterity modifier" do
         quick = Roguelike::Attributes.new dexterity: 18
 
-        expect(armed([Item.new(Kind::ChainMail)], quick).armour_class).to eq 8
+        expect(armed([Item.new(Kind::ChainMail)], quick).armor_class).to eq 8
       end
 
       it "never goes below nothing" do
         clumsy = Roguelike::Attributes.new dexterity: 3
 
-        expect(armed([] of Item, clumsy).armour_class).to eq 0
+        expect(armed([] of Item, clumsy).armor_class).to eq 0
       end
 
       it "ignores a weapon" do
-        expect(armed([Item.new Kind::LongSword]).armour_class).to eq 0
+        expect(armed([Item.new Kind::LongSword]).armor_class).to eq 0
       end
     end
 
@@ -188,7 +188,7 @@ Spectator.describe Roguelike::Player do
 
       expect(again.equipment).to eq player.equipment
       expect(again.wielded.try &.kind).to eq Kind::LongSword
-      expect(again.armour_class).to eq 4
+      expect(again.armor_class).to eq 4
     end
   end
 

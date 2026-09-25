@@ -240,8 +240,8 @@ module Roguelike
         # The item is not a weapon.
         NotAWeapon
 
-        # The item is not armour.
-        NotArmour
+        # The item is not armor.
+        NotArmor
 
         # The item is not a wand.
         NotAWand

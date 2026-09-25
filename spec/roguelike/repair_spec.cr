@@ -195,12 +195,12 @@ Spectator.describe "a scroll of repair" do
 
     it "breaks what is worn as readily as what is carried" do
       game = bare
-      armour = carrying game, Item.new(Kind::LeatherArmour)
-      game.wear armour
+      armor = carrying game, Item.new(Kind::LeatherArmor)
+      game.wear armor
 
       game.read reading(game, Blessing::Cursed)
 
-      expect(game.player.inventory[armour].try &.condition).to eq Condition::Damaged
+      expect(game.player.inventory[armor].try &.condition).to eq Condition::Damaged
     end
   end
 

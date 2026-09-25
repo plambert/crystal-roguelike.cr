@@ -13,7 +13,7 @@ module Roguelike
     RangedWeapon
     Ammunition
     Thrown
-    Armour
+    Armor
     Potion
     Scroll
     Wand
@@ -28,7 +28,7 @@ module Roguelike
 
     # Whether a `+N` means anything on this class.
     def enchantable? : Bool
-      melee? || ranged_weapon? || ammunition? || thrown? || armour?
+      melee? || ranged_weapon? || ammunition? || thrown? || armor?
     end
 
     # Whether several of these are held as one entry with a count.
@@ -50,8 +50,8 @@ module Roguelike
     end
   end
 
-  # Where a piece of armour is worn.
-  enum ArmourSlot
+  # Where a piece of armor is worn.
+  enum ArmorSlot
     Head
     Body
     Hands
@@ -83,7 +83,7 @@ module Roguelike
       end
     end
 
-    # What this condition adds to a weapon's damage or a piece of armour's
+    # What this condition adds to a weapon's damage or a piece of armor's
     # rating.
     def modifier : Int32
       case self
@@ -138,8 +138,8 @@ module Roguelike
     plural : String,
     item_class : ItemClass,
     damage : Dice = Dice::NONE,
-    armour : Int32 = 0,
-    slot : ArmourSlot? = nil,
+    armor : Int32 = 0,
+    slot : ArmorSlot? = nil,
     ranged_weapon : ItemKind? = nil,
     charges : Int32 = 0,
     weight : Int32 = 10,
@@ -222,9 +222,9 @@ module Roguelike
     Rock
     Dart
 
-    # Armour.
+    # Armor.
     Cap
-    LeatherArmour
+    LeatherArmor
     ChainMail
     Gloves
     Boots
@@ -306,12 +306,12 @@ module Roguelike
     end
 
     # What it takes off an attack against whoever wears it.
-    def armour : Int32
-      facts.armour
+    def armor : Int32
+      facts.armor
     end
 
-    # Where it is worn. `nil` for anything that is not armour.
-    def slot : ArmourSlot?
+    # Where it is worn. `nil` for anything that is not armor.
+    def slot : ArmorSlot?
       facts.slot
     end
 
@@ -442,20 +442,20 @@ module Roguelike
       ItemKind::Dart => ItemFacts.new("dart", "darts", ItemClass::Thrown,
         damage: Dice.new(1, 4), weight: 2, range: 14),
 
-      ItemKind::Cap => ItemFacts.new("cap", "caps", ItemClass::Armour,
-        armour: 1, slot: ArmourSlot::Head, weight: 10),
-      ItemKind::LeatherArmour => ItemFacts.new("leather armour", "suits of leather armour",
-        ItemClass::Armour, armour: 2, slot: ArmourSlot::Body, weight: 100,
+      ItemKind::Cap => ItemFacts.new("cap", "caps", ItemClass::Armor,
+        armor: 1, slot: ArmorSlot::Head, weight: 10),
+      ItemKind::LeatherArmor => ItemFacts.new("leather armor", "suits of leather armor",
+        ItemClass::Armor, armor: 2, slot: ArmorSlot::Body, weight: 100,
         uncountable: true),
       ItemKind::ChainMail => ItemFacts.new("chain mail", "suits of chain mail",
-        ItemClass::Armour, armour: 4, slot: ArmourSlot::Body, weight: 300,
+        ItemClass::Armor, armor: 4, slot: ArmorSlot::Body, weight: 300,
         uncountable: true),
-      ItemKind::Gloves => ItemFacts.new("gloves", "pairs of gloves", ItemClass::Armour,
-        armour: 1, slot: ArmourSlot::Hands, weight: 10, uncountable: true),
-      ItemKind::Boots => ItemFacts.new("boots", "pairs of boots", ItemClass::Armour,
-        armour: 1, slot: ArmourSlot::Feet, weight: 20, uncountable: true),
-      ItemKind::Shield => ItemFacts.new("shield", "shields", ItemClass::Armour,
-        armour: 2, slot: ArmourSlot::Shield, weight: 60),
+      ItemKind::Gloves => ItemFacts.new("gloves", "pairs of gloves", ItemClass::Armor,
+        armor: 1, slot: ArmorSlot::Hands, weight: 10, uncountable: true),
+      ItemKind::Boots => ItemFacts.new("boots", "pairs of boots", ItemClass::Armor,
+        armor: 1, slot: ArmorSlot::Feet, weight: 20, uncountable: true),
+      ItemKind::Shield => ItemFacts.new("shield", "shields", ItemClass::Armor,
+        armor: 2, slot: ArmorSlot::Shield, weight: 60),
 
       ItemKind::HealingPotion => ItemFacts.new("potion of healing", "potions of healing",
         ItemClass::Potion, weight: 20,

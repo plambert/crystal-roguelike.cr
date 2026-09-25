@@ -11,7 +11,7 @@ module Roguelike
   # both times.
   #
   # A species makes several draws rather than one. Each is rolled on its own,
-  # so a goblin can come up with a weapon and no armour, with both, or with
+  # so a goblin can come up with a weapon and no armor, with both, or with
   # neither. One table of everything a goblin might have would make those
   # exclusive, and a goblin with a sword and no boots is the ordinary case.
   module Loot
@@ -50,13 +50,13 @@ module Roguelike
     }
 
     # What it is wearing.
-    ARMOUR = {
-      ItemKind::Cap           => 30,
-      ItemKind::Gloves        => 22,
-      ItemKind::Boots         => 22,
-      ItemKind::LeatherArmour => 18,
-      ItemKind::Shield        => 6,
-      ItemKind::ChainMail     => 2,
+    ARMOR = {
+      ItemKind::Cap          => 30,
+      ItemKind::Gloves       => 22,
+      ItemKind::Boots        => 22,
+      ItemKind::LeatherArmor => 18,
+      ItemKind::Shield       => 6,
+      ItemKind::ChainMail    => 2,
     }
 
     # What it is carrying for the light. It comes out alight.
@@ -101,14 +101,14 @@ module Roguelike
 
       Species::Goblin => [
         Draw.new(WEAPONS, chance: 80),
-        Draw.new(ARMOUR, chance: 35),
+        Draw.new(ARMOR, chance: 35),
         Draw.new(LIGHTS, chance: 25),
         Draw.new(COINS, chance: 60, count: 3..25),
       ],
 
       Species::Orc => [
         Draw.new(WEAPONS, chance: 90),
-        Draw.new(ARMOUR, chance: 55),
+        Draw.new(ARMOR, chance: 55),
         Draw.new(LIGHTS, chance: 20),
         Draw.new(COINS, chance: 70, count: 8..45),
       ],

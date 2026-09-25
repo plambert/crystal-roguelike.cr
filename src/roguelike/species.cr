@@ -174,7 +174,7 @@ module Roguelike
     description : String,
     hit_points : Int32,
     damage : Dice,
-    armour : Int32,
+    armor : Int32,
     notice : Int32,
     darkvision : Bool,
     paths : Bool,
@@ -284,9 +284,9 @@ module Roguelike
     # How much an attack on one is reduced by, before its dexterity.
     #
     # This is hide and scraps rather than a worn piece. Phase 20 gives a
-    # monster armour it carries, and that adds to this.
-    def armour : Int32
-      facts.armour
+    # monster armor it carries, and that adds to this.
+    def armor : Int32
+      facts.armor
     end
 
     # How big one is. What somebody who can only make out a shape sees.
@@ -386,7 +386,7 @@ module Roguelike
     FACTS = {
       Species::Slime => SpeciesFacts.new('j', "slime", "slimes",
         "a puddle of acid that moves on its own",
-        hit_points: 6, damage: Dice.new(1, 4), armour: 0,
+        hit_points: 6, damage: Dice.new(1, 4), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 3,
         size: Size::Medium, persistence: 4, speed: 80,
         attributes: Attributes.new(strength: 8, dexterity: 4, constitution: 12,
@@ -394,7 +394,7 @@ module Roguelike
 
       Species::Goblin => SpeciesFacts.new('g', "goblin", "goblins",
         "a small green thing with a large knife",
-        hit_points: 9, damage: Dice.new(1, 6), armour: 2,
+        hit_points: 9, damage: Dice.new(1, 6), armor: 2,
         notice: 8, darkvision: false, paths: true, experience: 7,
         size: Size::Small, persistence: 6,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
@@ -402,7 +402,7 @@ module Roguelike
 
       Species::Orc => SpeciesFacts.new('o', "orc", "orcs",
         "a heavy grey brute with a notched blade",
-        hit_points: 14, damage: Dice.new(1, 8), armour: 4,
+        hit_points: 14, damage: Dice.new(1, 8), armor: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
         size: Size::Large, persistence: 30, speed: 95,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,

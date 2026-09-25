@@ -38,7 +38,7 @@ actually been run rather than reasoned about.
 | Numpad decoding | Deferred until there is a keypad to test it on |
 | Git transport | ssh for GitHub, via a global `url.insteadOf` rewrite |
 | Level and floor | A `Floor` is one map. A `Player#level` is how far the character has advanced |
-| Armour class | Higher is better. It is what is worn plus the dexterity modifier, floored at zero |
+| Armor class | Higher is better. It is what is worn plus the dexterity modifier, floored at zero |
 | Readying a weapon | `w` picks the slot from the item, so one key fills melee, ranged and quiver |
 | Field of view | Symmetric shadowcasting on exact fractions. If A sees B then B sees A |
 | Seen | A square is seen when it is in the field of view and lit. A dungeon floor starts dark |
@@ -55,7 +55,7 @@ actually been run rather than reasoned about.
 | Monsters on a floor | Keyed by square, so one square holds one creature and the lookup is free |
 | What a creature knows | Its own `Knowledge` and its band's, never the same one. `Band#sharing` says how the second reaches the first |
 | Floor file layers | One character per square. A mark that is not terrain takes its ground from the squares beside it |
-| A swing | `d20` plus the attacker's bonus against the defender's armour class. Twenty always lands, one never does |
+| A swing | `d20` plus the attacker's bonus against the defender's armor class. Twenty always lands, one never does |
 | Combat rolls | Their own stream per swing, named by how many the run has rolled, so a save file holds a count |
 | Noticing | A band notices, not a monster. Reach is the species' own, less stealth, plus the light on the character, a square per point |
 | Seeing in the dark | An orc's reach ignores light. A goblin or a slime notices nothing unlit, however close it stands |
@@ -213,7 +213,7 @@ none of it is fixed and a preset can rebind the lot.
 | `,` | Pick up what is here |
 | `d` | Drop something |
 | `i` | Inventory |
-| `w` `W` `T` | Wield a weapon, wear armour, take a weapon or armour off |
+| `w` `W` `T` | Wield a weapon, wear armor, take a weapon or armor off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
 | `f` `t` | Fire the ranged weapon, throw something |
 | `a` | Apply. Light or put out a torch, a candle, or a wall sconce |
@@ -398,10 +398,10 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 The model only. Nothing is on the floor yet and nothing can be carried.
 
 * **Build** — An `ItemKind` catalogue: healing potion; arrows, stones, rocks, darts; short sword,
-  long sword, rapier, dagger, mace, spear; sling, bow; leather armour, chain mail, shield, cap,
+  long sword, rapier, dagger, mace, spear; sling, bow; leather armor, chain mail, shield, cap,
   boots, gloves; scrolls; wands. An `Item` carrying a kind plus its variants: an appearance
   (color or material, assigned per seed, so "a swirly potion" means the same thing all game and
-  a different thing next game), an enchantment `+N` or `-N` for weapons, armour and ammunition,
+  a different thing next game), an enchantment `+N` or `-N` for weapons, armor and ammunition,
   a condition of damaged, plain, or masterwork, and a blessing of blessed, uncursed or cursed.
   The blessing is hidden per item rather than per kind, because two identical swords may be
   blessed and cursed, and a cursed item leans toward a penalty. Naming that composes all of it:
@@ -426,16 +426,16 @@ The model only. Nothing is on the floor yet and nothing can be carried.
 ### Phase 11 — Equipment slots and derived stats
 
 * **Build** — Slots: melee weapon, ranged weapon, and quiver; shield, body, feet, hands, head.
-  `w` to wield, `W` to wear, `T` to take off. Derived stats: armour class from what is worn plus
+  `w` to wield, `W` to wear, `T` to take off. Derived stats: armor class from what is worn plus
   dexterity, damage from the wielded weapon plus strength, each adjusted by enchantment and
-  condition. The status bar showing armour class and the wielded weapon.
-* **Verify** — Wield and wear across every slot; armour class and damage change as expected.
-  Wearing a second body armour is refused with a message. Specs over the derived-stat table for a
+  condition. The status bar showing armor class and the wielded weapon.
+* **Verify** — Wield and wear across every slot; armor class and damage change as expected.
+  Wearing a second body armor is refused with a message. Specs over the derived-stat table for a
   matrix of equipment, enchantment and condition.
 * **Done.** `Slot` names all eight. `Equipment` holds an inventory letter per slot rather than an
   item, so a readied sword is still listed in the inventory and a save file holds one copy of it.
   `w` picks the slot from the item, which fills melee, ranged and quiver from one key, so the
-  quiver needs no key of its own before Phase 21. Armour class is higher-is-better. Dropping a
+  quiver needs no key of its own before Phase 21. Armor class is higher-is-better. Dropping a
   readied item is refused until it comes off, and a cursed one announces itself as it goes on.
   The inventory list marks each readied item the way NetHack does.
 
@@ -572,7 +572,7 @@ The phase that introduces the type monster bands will use in Phase 19.
 ### Phase 17 — Melee combat, death, experience
 
 * **Build** — Walking into a monster attacks it. To-hit from dexterity, weapon and enchantment
-  against armour class; damage from the weapon, strength, enchantment and condition. Hit points
+  against armor class; damage from the weapon, strength, enchantment and condition. Hit points
   fall, messages say what happened, a monster at zero dies and is removed. The player at zero
   dies and the game ends. Experience awarded per species, driving the levelling from Phase 8.
 * **Verify** — Kill a slime with a short sword; the messages read correctly, experience is
@@ -580,12 +580,12 @@ The phase that introduces the type monster bands will use in Phase 19.
   fixed seed through a hundred exchanges and assert the exact sequence, so a change to the combat
   maths shows as a diff.
 * **Done.** `Combat.swing` is the whole of the maths: one twenty sided die plus what the attacker
-  adds, against `Combat::TARGET` plus the defender's armour class, with twenty always landing and
+  adds, against `Combat::TARGET` plus the defender's armor class, with twenty always landing and
   one never landing so that neither side is ever unhittable or unmissable. It answers a `Blow`,
   which records the face, the bonus, what it was against and the damage, and changes nobody.
   `Game` reads one and takes the hit points off. Every swing draws from its own stream, named by
   `Game#blows`, so a miss and a hit rolling a different count of values shifts nothing after them
-  and a save file holds a count rather than a generator's position. `Species` gained an `armour`
+  and a save file holds a count rather than a generator's position. `Species` gained an `armor`
   field, so a goblin is harder to hit than a slime. A creature standing beside the character
   swings back on every turn the character takes, which is the whole of monster behaviour until
   Phase 18 decides whether one has noticed. `Ctrl+E` is gone: there is something to kill now.
@@ -683,7 +683,7 @@ The phase that introduces the type monster bands will use in Phase 19.
 
 * **Build** — Loot tables per species, drawn from the seeded RNG. A slime carries coins and the
   occasional simple treasure. A goblin or an orc usually carries a damaged weapon, sometimes a
-  plain one and rarely a good one, sometimes damaged armour and rarely good armour, and sometimes
+  plain one and rarely a good one, sometimes damaged armor and rarely good armor, and sometimes
   a lit torch or candle — which is where Phase 13's carried light sources come from. Everything
   carried drops where the monster died.
 * **Verify** — Kill a goblin, pick up what it dropped; kill a goblin carrying a torch and the
@@ -692,7 +692,7 @@ The phase that introduces the type monster bands will use in Phase 19.
   should not have.
 * **Done.** A species makes several independent draws rather than one. `Loot::Draw` is a table of
   kinds by weight, a chance out of a hundred, and a count; a goblin draws for a weapon, for
-  armour, for a light and for coins, and each rolls whether or not the others did. One table of
+  armor, for a light and for coins, and each rolls whether or not the others did. One table of
   everything a goblin might have would make those exclusive, and a goblin with a sword and no
   boots is the ordinary case. A slime has no weapon draw at all rather than one it almost never
   makes.
@@ -739,7 +739,7 @@ The phase that introduces the type monster bands will use in Phase 19.
   How far a thing goes is a fact of its kind. A bow, a sling, a dart and a rock each say. Anything
   else goes as far as its weight allows, ten squares less one for every twenty of weight, so a
   dagger crosses a room and a suit of chain mail lands on the thrower's boots. A held weapon can
-  be thrown without putting it down first; worn armour has to come off.
+  be thrown without putting it down first; worn armor has to come off.
 
   The targeting cursor is the Phase 4 examine cursor. Nothing new draws it, nothing new moves it,
   and it writes the Phase 4 readout with one row added. `f` and `t` put
@@ -993,7 +993,7 @@ What the numbers are set to, and what was measured to set them. A change here is
 
 ### The level one curve
 
-A character starts at level one with twelve hit points, a short sword and leather armour, all
+A character starts at level one with twelve hit points, a short sword and leather armor, all
 readied, plus a lit torch. Turns to kill against turns to die, at average attributes:
 
 | | slime | goblin | orc |
@@ -1062,10 +1062,10 @@ Everything asked for in the basic game, against the phase that delivers it.
 | Attributes: strength, dexterity, constitution, intelligence, stealth | 8 |
 | Character level and experience points | 8, 17 |
 | Weapon slots: melee and ranged | 11 |
-| Armour slots: shield, body, feet, hands, head | 11 |
+| Armor slots: shield, body, feet, hands, head | 11 |
 | Terrain: three rock walls, stone floor, dirt floor, doors, stairs | 3 |
 | Stairs as the exit that wins the game | 6 |
-| Items: potions, ammunition, thrown weapons, melee, ranged weapons, armour, scrolls, wands | 9 |
+| Items: potions, ammunition, thrown weapons, melee, ranged weapons, armor, scrolls, wands | 9 |
 | Item variants: appearance, `+N`, damaged and masterwork, blessed and cursed | 9 |
 | Enemy types: slime, goblin, orc | 16 |
 | Enemy pathfinding and attack | 17, 19 |
@@ -1078,7 +1078,7 @@ Everything asked for in the basic game, against the phase that delivers it.
 | Movement seen against a light source | 15 |
 | Movement: `hjkl`, `yubn`, and walking | 5, 23 |
 | Pick up and drop | 10 |
-| Wield and wear weapons, armour, wands, ammunition | 11 |
+| Wield and wear weapons, armor, wands, ammunition | 11 |
 | Gold | 10 |
 | Mouse hover naming terrain and items | 4, 10 |
 
@@ -1669,7 +1669,7 @@ takes a `blessing` argument for that. False leaves the word out however much the
 `Game.worked_out` answers the line, or `nil` for an item that turned out to be uncursed.
 
 The character's own kit is known from turn zero. `Game.outfit` marks the short sword, the leather
-armour, the torch and the spikes as blessing-known, so none of them waits on a handling roll.
+armor, the torch and the spikes as blessing-known, so none of them waits on a handling roll.
 Somebody has owned their own gear long enough to be sure of it. A handling roll on a sword the
 character arrived with teaches the player nothing.
 
@@ -1871,15 +1871,15 @@ goblin deaths rise by the same runs arriving somewhere else to die.
 
 ### What an action costs
 
-`Costs` holds the table. Everything costs one tick but getting a suit of body armour on or off,
-which costs three. A cap goes on in a turn and chain mail does not, so changing armour with
+`Costs` holds the table. Everything costs one tick but getting a suit of body armor on or off,
+which costs three. A cap goes on in a turn and chain mail does not, so changing armor with
 something in the room is a decision rather than a keystroke.
 
 An action that costs three ticks leaves the character three ticks in debt, and `Game#spend` runs
 three ticks to pay it off. Anything standing beside them swings three times. The character is ready
 again when the loop stops, so the cost lands after the action rather than as a wait in front of it.
 
-`Trial::Bot` never wears armour, so the trial report cannot see this change. Two hundred runs from
+`Trial::Bot` never wears armor, so the trial report cannot see this change. Two hundred runs from
 seed 5000 print what they printed for the species speeds.
 
 ### The three items that change a speed

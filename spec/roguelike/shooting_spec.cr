@@ -299,7 +299,7 @@ Spectator.describe "shooting and throwing" do
     end
 
     # A person holding a handful of darts throws one of them. Only worn
-    # armour has to come off first.
+    # armor has to come off first.
     it "throws what the character is holding" do
       game = armed [Item.new(Kind::Dart, count: 4)]
       game.wield 'a'

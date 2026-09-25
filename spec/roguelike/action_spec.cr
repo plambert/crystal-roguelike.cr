@@ -70,7 +70,7 @@ Spectator.describe Roguelike::Action do
   # Something of every shape a verb can name.
   def kit : Array(Item)
     [Item.new(Kind::ShortSword),
-     Item.new(Kind::LeatherArmour),
+     Item.new(Kind::LeatherArmor),
      Item.new(Kind::Torch, lit: true),
      Item.new(Kind::HealingPotion),
      Item.new(Kind::IdentifyScroll),

@@ -223,7 +223,7 @@ Spectator.describe "the tick loop" do
       {game, letter}
     end
 
-    it "takes three turns to put a suit of armour on" do
+    it "takes three turns to put a suit of armor on" do
       game, letter = holding Kind::ChainMail
       before = game.turn
 
@@ -241,7 +241,7 @@ Spectator.describe "the tick loop" do
       expect(game.turn).to eq before + 1
     end
 
-    it "takes three turns to get a suit of armour off" do
+    it "takes three turns to get a suit of armor off" do
       game, letter = holding Kind::ChainMail
       game.wear letter
       before = game.turn

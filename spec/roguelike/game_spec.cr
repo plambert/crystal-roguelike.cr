@@ -32,11 +32,11 @@ Spectator.describe Roguelike::Game do
       expect(game.floor.id).to eq game.player.floor
     end
 
-    it "hands out a short sword, leather armour, a lit torch and spikes" do
+    it "hands out a short sword, leather armor, a lit torch and spikes" do
       carried = game.player.inventory.entries.map { |_letter, item| item.kind }
 
       expect(carried).to contain Roguelike::ItemKind::ShortSword
-      expect(carried).to contain Roguelike::ItemKind::LeatherArmour
+      expect(carried).to contain Roguelike::ItemKind::LeatherArmor
       expect(carried).to contain Roguelike::ItemKind::Torch
       expect(carried).to contain Roguelike::ItemKind::Spike
     end

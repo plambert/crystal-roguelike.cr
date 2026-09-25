@@ -513,7 +513,7 @@ Spectator.describe Roguelike::Observation do
       expect(found.max_hit_points).to eq game.player.max_hit_points
       expect(found.level).to eq game.player.level
       expect(found.experience).to eq game.player.experience
-      expect(found.armour_class).to eq game.player.armour_class
+      expect(found.armor_class).to eq game.player.armor_class
       expect(found.gold).to eq game.player.gold
     end
 

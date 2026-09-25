@@ -143,7 +143,7 @@ module Roguelike
       in_slot Slot::Quiver
     end
 
-    # Every piece of armour being worn, by slot.
+    # Every piece of armor being worn, by slot.
     def worn : Array({Slot, Item})
       found = [] of {Slot, Item}
 
@@ -164,9 +164,9 @@ module Roguelike
     #
     # Higher is better. It is what is worn, plus the dexterity modifier, and
     # it never goes below zero. Each piece already carries its enchantment and
-    # its condition, which `Item#armour` works in.
-    def armour_class : Int32
-      total = worn.sum { |_slot, item| item.armour }
+    # its condition, which `Item#armor` works in.
+    def armor_class : Int32
+      total = worn.sum { |_slot, item| item.armor }
 
       Math.max total + @attributes.modifier(Attributes::Which::Dexterity), 0
     end

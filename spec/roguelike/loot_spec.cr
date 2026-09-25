@@ -41,11 +41,11 @@ Spectator.describe Roguelike::Loot do
     end
 
     # A slime has no hands. It has swallowed things, and it has coins in it.
-    it "gives a slime no weapon and no armour" do
+    it "gives a slime no weapon and no armor" do
       rolled(Species::Slime).each do |carried|
         carried.each do |item|
           expect(item.kind.item_class.melee?).to be_false
-          expect(item.kind.item_class.armour?).to be_false
+          expect(item.kind.item_class.armor?).to be_false
         end
       end
     end
@@ -126,11 +126,11 @@ Spectator.describe Roguelike::Loot do
       end
     end
 
-    it "matches the weights in the armour table" do
-      found = shares rolled(Species::Orc), Loot::ARMOUR
-      total = Loot::ARMOUR.values.sum
+    it "matches the weights in the armor table" do
+      found = shares rolled(Species::Orc), Loot::ARMOR
+      total = Loot::ARMOR.values.sum
 
-      Loot::ARMOUR.each do |kind, weight|
+      Loot::ARMOR.each do |kind, weight|
         expect(found[kind]).to be_close weight * 100.0 / total, TOLERANCE
       end
     end

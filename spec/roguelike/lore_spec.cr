@@ -215,7 +215,7 @@ Spectator.describe Roguelike::Lore do
       it "is nothing at all before an uncountable noun" do
         expect(lore.name(Item.new(Kind::ChainMail))).to eq "chain mail"
         expect(lore.name(Item.new(Kind::Boots))).to eq "boots"
-        expect(lore.name(Item.new(Kind::LeatherArmour))).to eq "leather armour"
+        expect(lore.name(Item.new(Kind::LeatherArmor))).to eq "leather armor"
         expect(lore.name(Item.new(Kind::Gloves))).to eq "gloves"
       end
 

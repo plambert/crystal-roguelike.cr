@@ -18,7 +18,7 @@
                                                                            │
 ────────────────────────────────────────────────────────────────────────────────────────────────────
  hp: 12/12 | ac: 2 | wep: short sword 1d6 | lv: 1 | xp: 0/20 | gold: 0 | turn: 0 | st: 10 | dx: 10…
- You are in a dungeon with a short sword, leather armour and a lit torch.
+ You are in a dungeon with a short sword, leather armor and a lit torch.
  Press ? for the keys.
 
 

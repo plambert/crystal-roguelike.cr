@@ -65,7 +65,7 @@ module Roguelike
     # `Loot` rolls this when the floor is made. Everything in it goes on the
     # square the creature dies on. Nothing else reads it: a monster does not
     # swing the sword it is holding until a later phase gives it a reason to,
-    # and its armour does not add to what it takes off a blow either.
+    # and its armor does not add to what it takes off a blow either.
     #
     # A lit torch in here does throw light. `Game#lights` reads it, which is
     # where Phase 13's carried source finally has a carrier.
@@ -187,10 +187,10 @@ module Roguelike
     # How much an attack on this creature is reduced by.
     #
     # Its species' hide, plus the dexterity modifier, never below zero. That
-    # is the shape `Player#armour_class` has, which is worn armour plus the
+    # is the shape `Player#armor_class` has, which is worn armor plus the
     # same modifier.
-    def armour_class : Int32
-      hide = @species.armour + @attributes.modifier(Attributes::Which::Dexterity)
+    def armor_class : Int32
+      hide = @species.armor + @attributes.modifier(Attributes::Which::Dexterity)
 
       Math.max hide, 0
     end

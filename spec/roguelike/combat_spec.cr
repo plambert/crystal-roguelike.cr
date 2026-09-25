@@ -13,7 +13,7 @@ Spectator.describe Roguelike::Combat do
   alias Species = Roguelike::Species
 
   describe ".lands?" do
-    it "lands when the face and the bonus reach the target plus the armour" do
+    it "lands when the face and the bonus reach the target plus the armor" do
       expect(Combat.lands? 12, 0, 2).to be_true
       expect(Combat.lands? 10, 2, 2).to be_true
     end
@@ -23,7 +23,7 @@ Spectator.describe Roguelike::Combat do
       expect(Combat.lands? 9, 0, 0).to be_false
     end
 
-    it "lands on the top face whatever the armour is" do
+    it "lands on the top face whatever the armor is" do
       expect(Combat.lands? Combat::CRITICAL, -20, 99).to be_true
     end
 
@@ -106,15 +106,15 @@ Spectator.describe Roguelike::Combat do
       expect(goblin.to_hit).to eq Roguelike::Attributes.modifier(13)
     end
 
-    it "adds a monster's hide and dexterity to its armour class" do
-      expect(Monster.new(Species::Goblin, 0, 0, "band").armour_class).to eq 3
-      expect(Monster.new(Species::Orc, 0, 0, "band").armour_class).to eq 4
+    it "adds a monster's hide and dexterity to its armor class" do
+      expect(Monster.new(Species::Goblin, 0, 0, "band").armor_class).to eq 3
+      expect(Monster.new(Species::Orc, 0, 0, "band").armor_class).to eq 4
     end
 
     # A slime is slow enough that its dexterity takes more off than its hide
-    # puts on. Armour class stops at zero rather than going below it.
-    it "never gives a monster an armour class below zero" do
-      expect(Monster.new(Species::Slime, 0, 0, "band").armour_class).to eq 0
+    # puts on. Armor class stops at zero rather than going below it.
+    it "never gives a monster an armor class below zero" do
+      expect(Monster.new(Species::Slime, 0, 0, "band").armor_class).to eq 0
     end
 
     it "adds a monster's strength to its damage" do
@@ -144,7 +144,7 @@ Spectator.describe Roguelike::Combat do
   # A hundred exchanges from one seed, written out.
   #
   # Every number the maths reads is in here: the character's swing bonus and
-  # dice, each species' armour class, swing bonus and dice, and both rolls of
+  # dice, each species' armor class, swing bonus and dice, and both rolls of
   # every exchange. A change to any of them shows as a diff rather than as a
   # spec nobody can read.
   describe "a hundred exchanges" do
@@ -170,9 +170,9 @@ Spectator.describe Roguelike::Combat do
 
         creature = Monster.new combatant(index), 1, 0, "band"
 
-        forward = Combat.swing rng, player.to_hit, creature.armour_class,
+        forward = Combat.swing rng, player.to_hit, creature.armor_class,
           player.damage
-        back = Combat.swing rng, creature.to_hit, player.armour_class,
+        back = Combat.swing rng, creature.to_hit, player.armor_class,
           creature.damage
 
         lines << ("%3d %-6s  you %s  it %s" % [

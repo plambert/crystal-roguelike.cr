@@ -34,7 +34,7 @@ module Roguelike::Ui
     KINDS = {
       ItemKind::ShortSword        => "short swd",
       ItemKind::LongSword         => "long swd",
-      ItemKind::LeatherArmour     => "leather",
+      ItemKind::LeatherArmor      => "leather",
       ItemKind::ChainMail         => "chain",
       ItemKind::HealingPotion     => "healing potion",
       ItemKind::IdentifyScroll    => "identify scroll",
@@ -64,8 +64,8 @@ module Roguelike::Ui
 
     # What goes in that field: the count, the article, or nothing.
     #
-    # The field is blank for a kind that takes no article. "leather armour"
-    # is not "a leather armour".
+    # The field is blank for a kind that takes no article. "leather armor"
+    # is not "a leather armor".
     def self.lead(lore : Lore, item : Item) : String
       return item.count.to_s if item.count > 1
       return "" if item.kind.uncountable?

@@ -105,9 +105,9 @@ Spectator.describe "the marks against a row of a list" do
     end
 
     it "is blank for a name that takes no article" do
-      run = carrying [Item.new Kind::LeatherArmour]
+      run = carrying [Item.new Kind::LeatherArmor]
 
-      expect(pack(run).first.text).to eq "   leather armour"
+      expect(pack(run).first.text).to eq "   leather armor"
     end
   end
 

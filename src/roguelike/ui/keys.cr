@@ -90,7 +90,7 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.show_inventory; nil }
         map.bind TermBuf::Key.parse("w"), "wield a weapon",
           ->(_context : Widgets::Context) { play.wield; nil }
-        map.bind TermBuf::Key.parse("W"), "wear armour",
+        map.bind TermBuf::Key.parse("W"), "wear armor",
           ->(_context : Widgets::Context) { play.wear; nil }
         map.bind TermBuf::Key.parse("T"), "take something off",
           ->(_context : Widgets::Context) { play.take_off; nil }
