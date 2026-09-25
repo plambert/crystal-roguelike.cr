@@ -69,6 +69,7 @@ module Roguelike
       "teleported"     => Teleported,
       "uncursed"       => Uncursed,
       "used"           => Used,
+      "waited"         => Waited,
       "welded"         => Welded,
     }
 
@@ -742,6 +743,18 @@ module Roguelike
       getter name : String
 
       def initialize(@slot : Slot, @item : Int32, @name : String)
+      end
+    end
+
+    # A turn the character spent standing still.
+    #
+    # No line is written beside it. A line a turn would fill the log, and
+    # anything written to the log stops a walk and a rest. A rest is a series
+    # of these, and `Game#events` is where a bot reads them.
+    class Waited < Event
+      getter kind : String = "waited"
+
+      def initialize
       end
     end
   end

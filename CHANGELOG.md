@@ -10,6 +10,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* A turn spent standing still and a hit point regenerated are each reported as an event. Neither
+  writes a line to the message log.
 * A melee attack is a verb of its own. It names the square the blow is aimed at rather than a
   direction. A replay log records a step into a creature the character can see as a `melee` line
   rather than a `move` line, and a step into a creature they cannot see stays a `move` line.

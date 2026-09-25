@@ -561,9 +561,20 @@ module Roguelike
     #
     # A run that is over takes no turn. Nothing acts after the character has
     # died, and a person reading the ending screen is not playing.
+    #
+    # No line is written. A line a turn would stop every walk and every rest.
+    # An event is recorded instead, so a bot reading `#events` sees the turn
+    # pass.
     def wait : Nil
       return if over?
 
+      # A step clears these before it moves. A walk and a rest read them to
+      # decide whether the turn said anything, so a wait leaves them the way
+      # a step does.
+      @discovery = false
+      @forgiven = 0
+
+      record Event::Waited.new
       spend_turn
     end
 
@@ -985,6 +996,131 @@ module Roguelike
       else
         @discovery = true
       end
+    end
+
+    # ------------------------------------------------------------- resting
+
+    # How many turns one rest takes before it stops on its own.
+    #
+    # A character at one hit point needs about twelve hundred turns at the
+    # slowest regeneration there is. A rest reaches full health well inside
+    # this. The number is here so that a bug elsewhere cannot leave a rest
+    # turning the crank forever.
+    LONGEST = 2000
+
+    # A rest in progress, and how far it has got.
+    #
+    # `Game#linger` takes one turn of one of these. `#rest` builds one and
+    # takes turns until it stops, which is what a spec wants. `Ui::Play`
+    # takes them on a timer instead, so the screen is drawn between one turn
+    # and the next and a key can stop it.
+    #
+    # A rest holds no floor and decides nothing. `Game` is still the one
+    # class that changes a run.
+    class Rest
+      # How many turns it has taken.
+      property turns : Int32 = 0
+
+      # Why it stopped. `nil` while it is still going.
+      property halt : Halt? = nil
+
+      # What could be seen before the turn being taken.
+      property seen : Vision
+
+      def initialize(@seen : Vision)
+      end
+
+      # Whether it has stopped.
+      def over? : Bool
+        !@halt.nil?
+      end
+    end
+
+    # A rest, ready to be taken a turn at a time.
+    #
+    # A rest with nothing to do is refused here rather than on its first
+    # turn, the way a route with nowhere to go is refused by `#walking`.
+    def resting : Rest
+      rest = Rest.new sight
+      rest.halt = refusing_rest rest.seen
+
+      rest
+    end
+
+    # Why a rest cannot start. `nil` when it can.
+    #
+    # A character at full health has nothing to rest for. A character who can
+    # see a creature has something else to do, and that is the same rule as
+    # the one that stops a rest when a creature comes into sight.
+    #
+    # A creature the character cannot see does not refuse a rest. The rest
+    # stops when that creature does something the character notices, which is
+    # a blow landing or a line being written. A rule that read the floor
+    # rather than the character's own sight would tell the person what their
+    # character does not know.
+    private def refusing_rest(seen : Vision) : Halt?
+      return Halt::Over if over?
+      return Halt::Healed if @player.hit_points >= @player.max_hit_points
+      return Halt::InSight unless monsters_in_sight(seen).empty?
+
+      nil
+    end
+
+    # Takes one turn of *rest*. Answers whether it is still going.
+    #
+    # The turn goes through `#perform` rather than straight to `#wait`. A
+    # rest is a series of waits. `bots/PROTOCOL.md` section 2 says a macro is
+    # logged as the primitive actions it expands into. A replay log and a bot
+    # both read `#perform`. A rest that reached `#wait` directly would replay
+    # as a character who never rested.
+    #
+    # Everything one turn needs to know about the turn before it is on the
+    # rest. Nothing about it is kept on the game, so a rest that is abandoned
+    # part way leaves nothing behind.
+    def linger(rest : Rest) : Bool
+      return false if over?
+      return false if rest.over?
+
+      if rest.turns >= LONGEST
+        rest.halt = Halt::Spent
+        return false
+      end
+
+      before = Watch.on self, rest.seen
+      perform Action::Wait.new
+
+      rest.turns += 1
+      rest.seen = sight
+
+      # The character does not move, so the two reasons about the square
+      # stepped onto cannot hold. Full health is asked about last, because a
+      # turn that both healed the character and brought news is worth
+      # reporting as the news.
+      rest.halt = stopped_by(before, rest.seen, along: false, doors: false) ||
+                  rested_enough
+
+      !rest.over?
+    end
+
+    # `Halt::Healed` once the character is at their maximum hit points.
+    private def rested_enough : Halt?
+      return Halt::Healed if @player.hit_points >= @player.max_hit_points
+
+      nil
+    end
+
+    # Rests until something stops it. Answers the rest, which holds how many
+    # turns it took and why it stopped.
+    #
+    # Every turn is a whole turn, so every other creature on the floor acts
+    # between one and the next. A rest is as dangerous as pressing `.` the
+    # same number of times.
+    def rest : Rest
+      found = resting
+      while linger found
+      end
+
+      found
     end
 
     # ------------------------------------------------------------- fighting
@@ -1553,6 +1689,9 @@ module Roguelike
     # would fill the log and stop every walk, because anything written to the
     # log stops a walk.
     #
+    # An event is recorded. An event is not a line, so it stops nothing. A
+    # bot resting to heal reads `#events` and sees the hit points come back.
+    #
     # Only the character regenerates. A creature that lost the character and
     # healed while it looked for them would undo what hitting it and walking
     # away buys, and that is the one thing a slower creature leaves open.
@@ -1561,7 +1700,10 @@ module Roguelike
       return if rested < REST
       return unless (rested % @player.regeneration).zero?
 
-      @player.heal 1
+      gained = @player.heal 1
+      return if gained.zero?
+
+      record Event::Healed.new(gained)
     end
 
     # Counts a haste and a slow down one tick, on everything that has one.

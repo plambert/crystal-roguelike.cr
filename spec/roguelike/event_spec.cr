@@ -85,10 +85,21 @@ Spectator.describe Roguelike::Event do
       expect(scripted).not_to be_empty
     end
 
+    # A turn spent standing still and a hit point regenerated write no line.
+    # A line a turn would stop every walk and every rest, so both are events
+    # and nothing else.
     it "names the line each event was written beside" do
-      found = scripted
+      found = scripted.reject(Event::Waited).reject(Event::Healed)
 
+      expect(found).not_to be_empty
       expect(found.compact_map(&.text).size).to eq found.size
+    end
+
+    it "writes no line beside a turn spent standing still" do
+      found = scripted.compact_map &.as?(Event::Waited)
+
+      expect(found).not_to be_empty
+      expect(found.compact_map(&.text)).to be_empty
     end
 
     it "round-trips every event it produced" do

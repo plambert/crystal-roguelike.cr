@@ -1,10 +1,13 @@
 module Roguelike
-  # Why a walk stopped.
+  # Why a walk or a rest stopped.
   #
   # A walk takes one step at a time in one direction, and each step is a whole
   # turn, so every other creature on the floor acts between one step and the
   # next. `Game#run` checks these after each step and stops on the first one
   # that holds.
+  #
+  # A rest takes one turn at a time and never moves. `Game#linger` checks the
+  # same list, less the two reasons that are about the square stepped onto.
   enum Halt
     # The square ahead cannot be walked onto. A wall, a shut door, or a
     # creature standing in the way.
@@ -37,6 +40,15 @@ module Roguelike
     # Only `Game#follow` answers this. A walk in a direction has no end to
     # reach.
     Arrived
+
+    # The character's hit points are at their maximum. Only a rest answers
+    # this, and it is what a rest is for.
+    Healed
+
+    # A creature the character can see is in sight. Only a rest answers this,
+    # and only before its first turn. A creature that comes into sight during
+    # a rest answers `Creature`.
+    InSight
   end
 
   # What one walk did.
