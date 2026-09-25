@@ -1,3 +1,7 @@
+require "../game"
+require "./reading"
+require "./streams"
+
 module Roguelike
   module Replay
     # What checking one replay found.

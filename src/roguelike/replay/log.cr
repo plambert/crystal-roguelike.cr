@@ -1,3 +1,9 @@
+require "../version"
+require "./lines"
+require "./naming"
+require "./streams"
+require "./verifier"
+
 module Roguelike
   module Replay
     # A run written down as it is played.

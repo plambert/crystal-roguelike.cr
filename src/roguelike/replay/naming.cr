@@ -1,3 +1,5 @@
+require "../save"
+
 module Roguelike
   module Replay
     # Where `--replay-log` writes.
