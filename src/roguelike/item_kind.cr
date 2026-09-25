@@ -145,6 +145,7 @@ module Roguelike
     weight : Int32 = 10,
     light : Int32 = 0,
     range : Int32 = 0,
+    melee_reach : Int32 = 1,
     effect : Effect = Effect::None,
     power : Dice = Dice::NONE,
     uncountable : Bool = false do
@@ -348,6 +349,14 @@ module Roguelike
     # How far one of these goes when it is thrown or fired.
     def reach : Int32
       facts.reach
+    end
+
+    # How many squares away one of these lands a blow.
+    #
+    # It is 1 for every kind in the game. A polearm is the kind that sets it
+    # higher. A character with nothing in hand swings 1.
+    def melee_reach : Int32
+      facts.melee_reach
     end
 
     # What using one of these does. `None` for most things.

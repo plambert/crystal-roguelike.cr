@@ -43,6 +43,7 @@ module Roguelike
 
     use_json_discriminator "t", {
       "move"    => Move,
+      "melee"   => MeleeAttack,
       "wait"    => Wait,
       "open"    => Open,
       "close"   => Close,
@@ -112,9 +113,9 @@ module Roguelike
 
     # One step on the grid. `hjklyubn` do this.
     #
-    # A step into a creature is an attack on it. A step into a shut door
-    # opens it. Both are on this one verb. The action space is then eight
-    # moves, which is what `bots/PROTOCOL.md` asks for.
+    # A step into a shut door opens it. A step into a creature the character
+    # cannot see is a blow at it, because a step is what the character meant
+    # to take. A step into a creature they can see is `MeleeAttack` instead.
     class Move < Action
       getter t : String = "move"
 
@@ -122,6 +123,25 @@ module Roguelike
       getter dir : Direction
 
       def initialize(@dir : Direction)
+      end
+    end
+
+    # Swinging at the creature standing on *target*. `hjklyubn` do this,
+    # where the character can see what they are walking into.
+    #
+    # It names a square, the way `Fire` and `Throw` do. A direction names one
+    # square beside the character and nothing further out. A weapon with a
+    # longer reach swings past that square, so a direction cannot say what
+    # the blow is aimed at.
+    #
+    # `Game#perform` refuses one on a square with no creature on it, out of
+    # the weapon's reach, or holding a creature the character cannot see.
+    class MeleeAttack < Action
+      getter t : String = "melee"
+
+      getter target : {Int32, Int32}
+
+      def initialize(@target : {Int32, Int32})
       end
     end
 

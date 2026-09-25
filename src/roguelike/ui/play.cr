@@ -856,9 +856,22 @@ module Roguelike::Ui
       end
 
       # A blocked step says why. The pane has to be redrawn either way.
-      done = @game.perform Action::Move.new(direction)
+      done = @game.perform stepping(direction)
       @map.follow @game.player.x, @game.player.y unless done.step.try &.blocked?
       refresh
+    end
+
+    # The action a movement key sends.
+    #
+    # A step into a creature the character can see is a swing at that square.
+    # Every other step is a move. Nothing about the key changes. A person
+    # presses the same key and the game records which of the two it was.
+    private def stepping(direction : Direction) : Action
+      player = @game.player
+      wanted = direction.from player.x, player.y
+      return Action::Move.new direction unless @game.melee? wanted[0], wanted[1]
+
+      Action::MeleeAttack.new wanted
     end
 
     # Passes the turn. `.` does this.

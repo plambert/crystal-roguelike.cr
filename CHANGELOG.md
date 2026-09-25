@@ -10,6 +10,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* A melee attack is a verb of its own. It names the square the blow is aimed at rather than a
+  direction. A replay log records a step into a creature the character can see as a `melee` line
+  rather than a `move` line, and a step into a creature they cannot see stays a `move` line.
+  `Game#legal` offers one attack for each creature in sight within the weapon's reach, and leaves
+  out the step into that creature. The keys are the same. A movement key into a creature still
+  swings at it.
 * `--replay-log PATH` writes every run the process plays to a file, as JSON Lines. The file holds
   the seed, the versions it was recorded under, one line per action, the fingerprint of the run
   every so many turns, and how the run ended. Each line is flushed as it is written, so a run that

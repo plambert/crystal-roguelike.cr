@@ -136,6 +136,41 @@ Spectator.describe Roguelike::Replay do
       expect(Verifier.check(where).trouble).to be_nil
     end
 
+    # One lit room with the character in the middle and a goblin one square
+    # east of them.
+    ARENA = [
+      "#######",
+      "#.....#",
+      "#.....#",
+      "#..<..#",
+      "#.....#",
+      "#.....#",
+      "#######",
+    ]
+
+    it "writes a step into a creature as a melee line" do
+      where = spot "melee"
+
+      Recording.recording where do
+        floor = Playing.daylight Roguelike::Floor.parse("arena", ARENA)
+        game = Game.new(
+          Roguelike::World.new(Playing::SEED, {"arena" => floor}),
+          Roguelike::Player.new("arena", 3, 3, hit_points: 40))
+        floor.place Roguelike::Monster.new(
+          Roguelike::Species::Goblin, 4, 3, "band-one")
+
+        run = Playing.open game
+        run.game.player.name = "melee"
+        run.press "l"
+        run.game
+      end
+
+      swings = File.read_lines(where).count &.includes?(%("t":"melee","target":[4,3]))
+
+      expect(swings).to eq 1
+      expect(Verifier.check(where).trouble).to be_nil
+    end
+
     it "gives the same fingerprints with the flames wavering as without" do
       wavering = spot "wavering"
       still = spot "still"

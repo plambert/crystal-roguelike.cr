@@ -1027,6 +1027,40 @@ module Roguelike
       @fought_regard = @fought_regard.at_least regard_of(creature)
     end
 
+    # How many squares away the character lands a blow.
+    #
+    # It comes from the weapon in hand. Bare hands swing 1.
+    def melee_reach : Int32
+      @player.wielded.try(&.kind.melee_reach) || 1
+    end
+
+    # Whether the character can swing at *x*, *y*.
+    #
+    # A creature stands there, it is within the weapon's reach, and the
+    # character can see it. `#legal` offers one action for each such square,
+    # `#perform` refuses a swing at any other, and `Ui::Play` turns a step
+    # into one of those squares into a swing.
+    def melee?(x : Int32, y : Int32) : Bool
+      melee? x, y, sight
+    end
+
+    # :ditto:, against a field of view that has already been worked out.
+    def melee?(x : Int32, y : Int32, seen : Vision) : Bool
+      return false unless floor.monster x, y
+      return false unless within_reach? x, y
+
+      seen.shows? floor, x, y
+    end
+
+    # Whether *x*, *y* is close enough to swing at.
+    #
+    # The grid takes eight directions, so one square of reach is the eight
+    # squares around the character. The distance is the larger of the two
+    # gaps for that reason.
+    private def within_reach?(x : Int32, y : Int32) : Bool
+      Math.max((x - @player.x).abs, (y - @player.y).abs) <= melee_reach
+    end
+
     # The character swings at *creature*. Answers what the swing did.
     #
     # A swing takes a turn whether it lands or not. A creature left at zero
@@ -4078,8 +4112,9 @@ module Roguelike
 
     # The rule for *action*.
     #
-    # There are four groups. Each group calls a `case` that covers its own
-    # verbs and nothing else. Crystal folds a union of every subclass back
+    # There are four groups and one verb of its own. Each group calls a
+    # `case` that covers its own verbs and nothing else. Crystal folds a
+    # union of every subclass back
     # into the parent. One `case` over the whole of `Action` cannot be
     # checked for exhaustiveness. A group of six can be. The cost is that a
     # new verb left out of every group is not a compile error. `#legal` and
@@ -4095,6 +4130,8 @@ module Roguelike
       when Action::Quaff, Action::Read, Action::Zap, Action::Apply,
            Action::Fire, Action::Throw
         using action
+      when Action::MeleeAttack
+        striking action
       when Action::Choose, Action::Aim
         answering action
       else
@@ -4149,6 +4186,25 @@ module Roguelike
         ascend
         Verdict.done
       end
+    end
+
+    # The blow the character aims at one square.
+    #
+    # It reaches `#attack`, which is the rule a step into a creature reaches.
+    # The two verbs land the same blow.
+    private def striking(action : Action::MeleeAttack) : Verdict
+      target = action.target
+      creature = floor.monster target[0], target[1]
+      return Verdict.refused unless creature && melee?(target[0], target[1])
+
+      # A step clears these before it swings. A walk reads them to decide
+      # whether the last step said anything, so a swing leaves them the way
+      # a step does.
+      @discovery = false
+      @forgiven = 0
+
+      attack creature
+      Verdict.done Step::Struck
     end
 
     # The verbs that move a thing between the floor, the pack and a slot.
@@ -4359,9 +4415,11 @@ module Roguelike
     # will take. An action that carries a square is offered once per creature
     # in sight, because those are the squares worth aiming at. `#perform`
     # takes any square the targeting cursor can reach. A move is offered only
-    # where a step would do something: onto clear ground, into a creature, or
-    # into a shut door. Walking into a wall spends no turn, so it is not on
-    # the list.
+    # where a step would do something, which is onto clear ground, into a
+    # shut door, or into a creature the character cannot see. Walking into a
+    # wall spends no turn, so it is not on the list. A swing is offered for
+    # each creature in sight within the weapon's reach, and the step into
+    # that creature is left off.
     def legal : Array(Action)
       legal sight
     end
@@ -4381,7 +4439,8 @@ module Roguelike
       scroll = @asking
       return answers scroll, seen if scroll
 
-      legal_moving found
+      legal_moving found, seen
+      legal_melee found, seen
       legal_floor found
       legal_carried found, seen
       legal_readied found
@@ -4405,8 +4464,11 @@ module Roguelike
 
     # Stepping, waiting, the doors beside the character and the staircase
     # under them.
-    private def legal_moving(found : Array(Action)) : Nil
+    private def legal_moving(found : Array(Action), seen : Vision) : Nil
       Direction.values.each do |direction|
+        wanted = direction.from @player.x, @player.y
+        next if melee? wanted[0], wanted[1], seen
+
         found << Action::Move.new direction if steps? direction
       end
 
@@ -4426,6 +4488,20 @@ module Roguelike
       return true if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
 
       floor.passable? wanted[0], wanted[1]
+    end
+
+    # A swing at each creature in sight within the weapon's reach.
+    #
+    # `#legal_moving` leaves out the step into such a creature. The swing
+    # stands in place of the step rather than beside it. A step into a
+    # creature the character cannot see stays a step, because that is what
+    # the character means to take.
+    private def legal_melee(found : Array(Action), seen : Vision) : Nil
+      monsters_in_sight(seen).each do |creature|
+        next unless within_reach? creature.x, creature.y
+
+        found << Action::MeleeAttack.new creature.at
+      end
     end
 
     # What the square underfoot and the sconces beside it offer.

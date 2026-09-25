@@ -23,6 +23,7 @@ Spectator.describe Roguelike::Action do
   alias Monster = Roguelike::Monster
   alias Slot = Roguelike::Slot
   alias Species = Roguelike::Species
+  alias Step = Roguelike::Step
   alias Terrain = Roguelike::Terrain
 
   # One lit room with a shut door one square north of the character and an
@@ -111,6 +112,7 @@ Spectator.describe Roguelike::Action do
   # One of every verb, so nothing can be added without a line here.
   def every_verb : Array(Action)
     [Action::Move.new(Direction::NorthEast),
+     Action::MeleeAttack.new({4, 2}),
      Action::Wait.new,
      Action::Open.new(Direction::North),
      Action::Close.new(Direction::South),
@@ -179,6 +181,11 @@ Spectator.describe Roguelike::Action do
       expect(Action::Fire.new({4, 9}).to_json)
         .to eq %({"t":"fire","target":[4,9]})
     end
+
+    it "names a swing melee and gives it a square" do
+      expect(Action::MeleeAttack.new({4, 2}).to_json)
+        .to eq %({"t":"melee","target":[4,2]})
+    end
   end
 
   describe "#legal" do
@@ -193,9 +200,11 @@ Spectator.describe Roguelike::Action do
     it "offers every verb the run allows" do
       game = stocked
       game.floor.place Monster.new(Species::Goblin, 6, 2, "band-one")
+      game.floor.place Monster.new(Species::Goblin, 2, 1, "band-two")
       found = game.legal.map &.class
 
       expect(found).to contain Action::Move
+      expect(found).to contain Action::MeleeAttack
       expect(found).to contain Action::Wait
       expect(found).to contain Action::Open
       expect(found).to contain Action::Close
@@ -243,12 +252,33 @@ Spectator.describe Roguelike::Action do
       expect(ways).to contain Direction::East
     end
 
-    it "offers a step into a creature, which is a swing at it" do
+    it "offers a swing at a creature in sight and no step into it" do
       game = stocked
       game.floor.place Monster.new(Species::Goblin, 4, 2, "band-one")
-      ways = game.legal.compact_map { |action| action.as?(Action::Move).try &.dir }
+      found = game.legal
+      ways = found.compact_map { |action| action.as?(Action::Move).try &.dir }
+      blows = found.compact_map { |action| action.as?(Action::MeleeAttack).try &.target }
+
+      expect(ways).not_to contain Direction::East
+      expect(blows).to eq [{4, 2}]
+    end
+
+    it "offers a step into a creature the character cannot see" do
+      game = stocked
+      game.floor.place Monster.new(Species::Goblin, 4, 2, "band-one")
+      game.player.blind 5
+      found = game.legal
+      ways = found.compact_map { |action| action.as?(Action::Move).try &.dir }
 
       expect(ways).to contain Direction::East
+      expect(found.map &.class).not_to contain Action::MeleeAttack
+    end
+
+    it "offers no swing at a creature out of the weapon's reach" do
+      game = stocked
+      game.floor.place Monster.new(Species::Goblin, 6, 2, "band-one")
+
+      expect(game.legal.map &.class).not_to contain Action::MeleeAttack
     end
 
     it "offers nothing to shoot with an empty quiver" do
@@ -297,9 +327,69 @@ Spectator.describe Roguelike::Action do
   end
 
   describe "#perform" do
+    # The square east of the character, where these examples put a creature.
+    THERE = {4, 2}
+
+    # A run with a goblin standing on `THERE`.
+    def beset : Roguelike::Game
+      game = stocked
+      game.floor.place Monster.new(Species::Goblin, THERE[0], THERE[1], "band-one")
+      game
+    end
+
+    it "swings at a creature in sight and in reach" do
+      game = beset
+      before = game.turn
+
+      found = game.perform Action::MeleeAttack.new(THERE)
+
+      expect(found.allowed).to be_true
+      expect(found.step).to eq Step::Struck
+      expect(game.turn).to be > before
+    end
+
+    # A step into a creature and a swing at it reach one rule. The same run
+    # played both ways ends in the same state.
+    it "lands the blow a step into the creature lands" do
+      swung = beset
+      stepped = beset
+
+      swung.perform Action::MeleeAttack.new(THERE)
+      stepped.perform Action::Move.new(Direction::East)
+
+      expect(swung.fingerprint).to eq stepped.fingerprint
+    end
+
+    it "refuses a swing at a square with no creature on it" do
+      game = stocked
+      before = game.turn
+
+      expect(game.perform(Action::MeleeAttack.new(THERE)).refused?).to be_true
+      expect(game.turn).to eq before
+    end
+
+    it "refuses a swing out of the weapon's reach" do
+      game = stocked
+      game.floor.place Monster.new(Species::Goblin, 6, 2, "band-one")
+      before = game.turn
+
+      expect(game.perform(Action::MeleeAttack.new({6, 2})).refused?).to be_true
+      expect(game.turn).to eq before
+    end
+
+    it "refuses a swing at a creature the character cannot see" do
+      game = beset
+      game.player.blind 5
+      before = game.turn
+
+      expect(game.perform(Action::MeleeAttack.new(THERE)).refused?).to be_true
+      expect(game.turn).to eq before
+    end
+
     it "takes every action #legal offers" do
       game = stocked
       game.floor.place Monster.new(Species::Goblin, 6, 2, "band-one")
+      game.floor.place Monster.new(Species::Goblin, 2, 1, "band-two")
 
       game.legal.each do |action|
         found = copy(game).perform action
