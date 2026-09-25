@@ -16,7 +16,7 @@ module Roguelike
 
   # What one square of a floor is made of.
   #
-  # The three rocks behave alike. A player tells them apart by colour. They
+  # The three rocks behave alike. A player tells them apart by color. They
   # are separate members because what a wall is made of will matter later.
   # Digging will differ by rock. Sound through a wall will differ by rock. A
   # floor generator will pick a rock by depth.

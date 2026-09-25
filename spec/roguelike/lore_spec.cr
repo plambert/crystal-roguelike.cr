@@ -21,7 +21,7 @@ Spectator.describe Roguelike::Lore do
     end
 
     # A swirly potion is the same thing all game. A person who learned the
-    # colours once would never have to learn them again, so the next game
+    # colors once would never have to learn them again, so the next game
     # gives different ones.
     it "gives the same looks for the same seed" do
       again = described_class.roll Roguelike::Rng.new(Playing::SEED)

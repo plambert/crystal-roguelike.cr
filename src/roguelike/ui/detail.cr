@@ -6,7 +6,7 @@ module Roguelike::Ui
   # abbreviation and nothing left out.
   #
   # It says only what the character has found out. An unidentified potion is
-  # named by its colour and nothing is said about what drinking it would do.
+  # named by its color and nothing is said about what drinking it would do.
   # A creature the character makes out only as a shape is a shape here too:
   # its species, its hit points and what it is doing all wait for light on it.
   module Detail

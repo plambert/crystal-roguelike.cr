@@ -192,7 +192,7 @@ Spectator.describe "what the character remembers" do
       expect(remembered).to be > inside.max
     end
 
-    # A torch reaches the top, so the colour at the top of the ramp is one
+    # A torch reaches the top, so the color at the top of the ramp is one
     # somebody sees rather than one nothing ever draws.
     it "is drawn at the top of the ramp beside a torch" do
       expect(Ui::Palette.step 6).to eq Ui::Palette::RAMP.top
@@ -271,7 +271,7 @@ Spectator.describe "what the character remembers" do
     end
   end
 
-  # A blend computing a colour per cell interns a style per cell, and a style
+  # A blend computing a color per cell interns a style per cell, and a style
   # table only grows. The ramp answers the same style for the same step every
   # time, so the table settles.
   describe "the style table" do

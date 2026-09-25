@@ -30,7 +30,7 @@ Spectator.describe Roguelike::Ui::MapPane do
       expect(run.session.rows).to eq ["#####", "#.<+#", "#...#", "##>##"]
     end
 
-    # Three rocks draw as one glyph. Two floors draw as another. Colour tells
+    # Three rocks draw as one glyph. Two floors draw as another. Color tells
     # them apart. That is the roguelike convention. The model keeps the six
     # terrains separate. Only the palette draws them alike.
     it "draws all three rocks as a wall and both floors as a floor" do

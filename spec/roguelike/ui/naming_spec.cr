@@ -8,7 +8,7 @@ Spectator.describe Roguelike::Ui::Naming do
   alias Lore = Roguelike::Lore
   alias Naming = Roguelike::Ui::Naming
 
-  # A lore with the looks rolled, so a potion has a colour to be called by.
+  # A lore with the looks rolled, so a potion has a color to be called by.
   subject(lore) { Lore.roll Roguelike::Rng.new(20260914_u64) }
 
   # A lore that knows every kind.

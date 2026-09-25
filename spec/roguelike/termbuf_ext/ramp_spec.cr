@@ -51,7 +51,7 @@ Spectator.describe TermBuf::Widgets::Ramp do
   end
 
   describe "what it leaves alone" do
-    # A default colour is whatever the terminal draws. A ramp has nothing to
+    # A default color is whatever the terminal draws. A ramp has nothing to
     # move it toward.
     it "leaves a default foreground alone" do
       expect(ramp[Style::DEFAULT, 0]).to eq Style::DEFAULT
@@ -63,7 +63,7 @@ Spectator.describe TermBuf::Widgets::Ramp do
       expect(ramp[style, 0].background.red).to be < 0x80
     end
 
-    # A bold dim colour reads as lit, which is what the dimming is there to
+    # A bold dim color reads as lit, which is what the dimming is there to
     # say it is not.
     it "drops bold below the top" do
       style = GREY.bold
@@ -88,7 +88,7 @@ Spectator.describe TermBuf::Widgets::Ramp do
     end
   end
 
-  # A blend computing a colour per cell interns a style per cell, and a style
+  # A blend computing a color per cell interns a style per cell, and a style
   # table only grows. Bounding that count is what the type is for.
   describe "how many styles it makes" do
     it "makes one per style and step, and no more" do

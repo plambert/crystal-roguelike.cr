@@ -43,7 +43,7 @@ module Roguelike
 
     # Whether a character has to find out what one of these is.
     #
-    # A sword is a sword on sight. A potion is a colour until somebody drinks
+    # A sword is a sword on sight. A potion is a color until somebody drinks
     # one.
     def disguised? : Bool
       potion? || scroll? || wand?
@@ -102,7 +102,7 @@ module Roguelike
   #
   # A blessing is hidden on each item until the character finds out. Two
   # identical swords may be blessed and cursed, so this cannot be learned per
-  # kind the way a potion's colour is.
+  # kind the way a potion's color is.
   enum Blessing
     Cursed
     Uncursed

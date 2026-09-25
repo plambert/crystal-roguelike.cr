@@ -34,7 +34,7 @@ actually been run rather than reasoned about.
 | Pick up | `,` |
 | Command line | `Shell::AutoComplete`, not `OptionParser` |
 | Terminals supported | ghostty (primary), kitty, iTerm2. Terminal.app is not supported |
-| Colour floor | 256 colours required; 24-bit used wherever it helps |
+| Color floor | 256 colors required; 24-bit used wherever it helps |
 | Numpad decoding | Deferred until there is a keypad to test it on |
 | Git transport | ssh for GitHub, via a global `url.insteadOf` rewrite |
 | Level and floor | A `Floor` is one map. A `Player#level` is how far the character has advanced |
@@ -42,7 +42,7 @@ actually been run rather than reasoned about.
 | Readying a weapon | `w` picks the slot from the item, so one key fills melee, ranged and quiver |
 | Field of view | Symmetric shadowcasting on exact fractions. If A sees B then B sees A |
 | Seen | A square is seen when it is in the field of view and lit. A dungeon floor starts dark |
-| Light in the model | `LightKind`, never a colour. `Ui::Palette` holds the colours |
+| Light in the model | `LightKind`, never a color. `Ui::Palette` holds the colors |
 | Sconces | A `Fixture` on the open square beside the wall, not a terrain. The wall keeps its rock |
 | A mounted flame | Throws the whole radius over the half turned away from its wall |
 | A standing flame | Throws every way, one step less far, because the flame is at ankle height |
@@ -83,7 +83,7 @@ actually been run rather than reasoned about.
 | A scattered ranged weapon | Lands with ammunition it fires within three squares, most of the time |
 | The supply's stream | Named by the weapon's square, never the litter's own, so adding the rule moved nothing else on the floor |
 | Reading in the dark | Refused. A scroll is words on paper. The scroll is not spent and no turn is taken finding that out |
-| A shape against light | Drawn by `Species::Size`, in one colour for every species. A letter names a species and a shape names none |
+| A shape against light | Drawn by `Species::Size`, in one color for every species. A letter names a species and a shape names none |
 | Shooting at a shape | Allowed. `Tab` walks it and a bolt, an arrow or a rock flies at it. Seeing something move is enough to aim |
 | Glyphs for a shape | `∙`, `▪` and `◼`. No letters, and none East Asian Ambiguous: a two-cell glyph would tear the map's grid |
 | A shape wavers | With the flame lighting the square behind it, not with its own square. Its own square has no light on it |
@@ -123,8 +123,8 @@ These hold from Phase 0 and are not revisited.
 * **Turns, not frames.** The loop is `App#wait`, which blocks on the event channel. Nothing
   redraws on a clock. Animation and regeneration are driven by `App#after` timers that arrive on
   the same channel, in order with the keystrokes.
-* **Build for 24-bit colour and check the fallback.** Styles carry true colour; termbuf reduces
-  at encode time. Each phase that adds colour is also run once under
+* **Build for 24-bit color and check the fallback.** Styles carry true color; termbuf reduces
+  at encode time. Each phase that adds color is also run once under
   `TERMBUF_CAPS=none,+color256` to confirm it is still readable.
 * **Level means one thing and floor means another.** The word means two things in a roguelike.
   A `Floor` is one map of the world, and `Player#floor` names which one the character is on. A
@@ -241,7 +241,7 @@ naming what still has to be decided before it moves.
 | `Entry` | Saves | A question with one line typed into it, in a modal overlay |
 | `Pager` | Phase 7 | `--More--` held at a page boundary |
 | `Menu` | Phase 10 | A list addressed by letter rather than filtered |
-| `Ramp` | Phase 14 | A style per step between one style and a colour, from given fractions |
+| `Ramp` | Phase 14 | A style per step between one style and a color, from given fractions |
 
 Numpad decoding — the `SS3` keypad keys and a `DECKPAM` `Tty::Mode` for `termbuf-input.cr` — is
 deferred until there is a keypad to test it on and it is known which of the three supported
@@ -301,7 +301,7 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 ### Phase 3 — Terrain and a hand-built floor
 
 * **Build** — A `Terrain` enum: `Granite`, `Sandstone`, `Shale` (three rock walls, identical in
-  behaviour for now, distinct in colour), `StoneFloor`, `DirtFloor`, `ClosedDoor`, `OpenDoor`,
+  behaviour for now, distinct in color), `StoneFloor`, `DirtFloor`, `ClosedDoor`, `OpenDoor`,
   `StairsUp`, `StairsDown`. Each carries the character a floor file writes it as, a label, a
   description, whether it blocks movement and whether it blocks sight — but not a glyph or a
   style, which are the screen's and live in `Ui::Palette`, per the rule that the model knows
@@ -311,7 +311,7 @@ The one piece of shard-shaped work that has to come before anything can be drawn
   `CellGrid`, by way of a `Ui::LevelCells` adapter that keeps `Floor` free of the widget layer.
   Serialization for everything so far, with the terrain stored as the same text a floor file
   holds.
-* **Verify** — The test floor loads and renders, walls in three colours, doors and stairs
+* **Verify** — The test floor loads and renders, walls in three colors, doors and stairs
   visible. A spec loads the fixture and snapshots the rendered pane. A spec asserts every glyph
   in the file maps to a terrain and that an unknown glyph raises rather than silently becoming
   floor. A spec round-trips the `World` through serialization and gets an identical one back.
@@ -400,7 +400,7 @@ The model only. Nothing is on the floor yet and nothing can be carried.
 * **Build** — An `ItemKind` catalogue: healing potion; arrows, stones, rocks, darts; short sword,
   long sword, rapier, dagger, mace, spear; sling, bow; leather armour, chain mail, shield, cap,
   boots, gloves; scrolls; wands. An `Item` carrying a kind plus its variants: an appearance
-  (colour or material, assigned per seed, so "a swirly potion" means the same thing all game and
+  (color or material, assigned per seed, so "a swirly potion" means the same thing all game and
   a different thing next game), an enchantment `+N` or `-N` for weapons, armour and ammunition,
   a condition of damaged, plain, or masterwork, and a blessing of blessed, uncursed or cursed.
   The blessing is hidden per item rather than per kind, because two identical swords may be
@@ -463,7 +463,7 @@ The largest part, split so that each step is visible on its own.
 
 ### Phase 13 — Light sources
 
-* **Build** — A `LightSource` with a position, a radius and a colour. Static sources: a wall
+* **Build** — A `LightSource` with a position, a radius and a color. Static sources: a wall
   sconce that is unlit until `a` lights it, and a room flagged as magically lit. Carried sources:
   a torch or a candle the player holds, and one set down on the floor. A lighting pass that
   accumulates light per tile, and a visibility rule combining it with the field of view — a tile
@@ -523,8 +523,8 @@ The phase that introduces the type monster bands will use in Phase 19.
 
 * **Build** — A monster standing in an unlit tile is drawn when the player has a line to it and
   there is light behind it, so movement between the player and a distant source is seen. Flicker:
-  torch and candle sources vary their radius and colour by a small amount on a timer through
-  `App#after`, in 24-bit colour, which is the one thing in the game driven by a clock rather than
+  torch and candle sources vary their radius and color by a small amount on a timer through
+  `App#after`, in 24-bit color, which is the one thing in the game driven by a clock rather than
   a turn.
 * **Verify** — A goblin crossing a lit doorway is visible from a dark corridor; the same goblin in
   a dark corner with nothing behind it is not. The flicker is visible in ghostty, readable under
@@ -553,18 +553,18 @@ The phase that introduces the type monster bands will use in Phase 19.
 ### Phase 16 — Monsters on the map
 
 * **Build** — A `Monster` with a species, hit points, attributes, a position, a `band` and a
-  `faction`. Three species: slime, goblin, orc, each with a glyph, colour and base statistics.
+  `faction`. Three species: slime, goblin, orc, each with a glyph, color and base statistics.
   Placed on the floor from the map file, each in a band of one. They block movement and are
   drawn, and the examine pane names them. No behaviour at all.
-* **Verify** — All three appear, in the right colours, and hovering one describes it. Walking into
+* **Verify** — All three appear, in the right colors, and hovering one describes it. Walking into
   one is refused with a message. A spec snapshots a floor with one of each and round-trips it
   through serialization.
-* **Done.** `Species` is the table, `Ui::Palette` holds the glyph and colour, and a floor file
+* **Done.** `Species` is the table, `Ui::Palette` holds the glyph and color, and a floor file
   writes `j`, `g` and `o`. `Floor#monsters` is keyed by square, so finding what stands on one
   costs nothing and a square holds one creature; a monster carries its own position as well, and
   `Floor#walk` is the only method that moves a monster, so it writes both. Each is in a `Band` of
   one, and the band carries the `Faction`, because adding either to a serialized type later means
-  migrating save files. A creature on a lit square draws in its own colour; one on an unlit square
+  migrating save files. A creature on a lit square draws in its own color; one on an unlit square
   with light behind it draws as a shape at the dimmest lit step, which is Phase 15's silhouette
   rule applied to the first creatures there are. Nothing is remembered: a monster is drawn where
   it is or not at all, until Phase 19 gives `Memory` a creature.
@@ -744,7 +744,7 @@ The phase that introduces the type monster bands will use in Phase 19.
   The targeting cursor is the Phase 4 examine cursor. Nothing new draws it, nothing new moves it,
   and it writes the Phase 4 readout with one row added. `f` and `t` put
   it on the nearest monster in sight, `Tab` walks the rest nearest first, and the movement keys
-  walk the squares. `MapPane` colours the line one shade and the square the shot stops on another,
+  walk the squares. `MapPane` colors the line one shade and the square the shot stops on another,
   so a shot that will not reach shows the gap rather than having to be described.
 
   `Tab` already meant "the next widget" in every application `Widgets` builds. The binding takes
@@ -1181,7 +1181,7 @@ remembered terrain draws rather than the way lit terrain does.
 * Weapon skills, damage types, resistances, status effects.
 * Spells beyond wands; cursed and blessed items; enchanting.
 * Traps and searching; locked doors; digging, which is where the three rock types stop being only
-  a colour.
+  a color.
 * Hunger, regeneration, encumbrance.
 * Water, lava, and terrain that costs more than one turn to cross.
 
@@ -1193,7 +1193,7 @@ Small things deliberately left out of the basic game, to be picked up once it ex
 * A full-screen map view for a floor larger than the pane.
 * A message history screen.
 * Mouse support for targeting and for the inventory, which `CellGrid#cell_at` already allows.
-* Glyph and colour themes. `Palette::GROUND` is the first colour one would want to change.
+* Glyph and color themes. `Palette::GROUND` is the first color one would want to change.
 * A flicker that sleeps. The tick runs whether or not anything is burning. It sends no bytes with
   every flame out, but it still lays out and draws the tree seven times a second.
 * A `--replay` mode that re-runs a recorded key sequence against a seed, which would make every
@@ -1215,8 +1215,8 @@ the block that is read every turn is the one that never moves.
 two. The fill runs from green through to red as it empties, mixed between the five levels in
 `Palette::HEALTH` rather than stepping at each one. Magic runs the same levels but ends at light
 orange: running out of magic is not the same as running out of blood, and the red is worth keeping
-for the one bar that means the run is about to end. The experience bar is one colour however full
-it is, because a bar that changes colour says something is wrong and nothing is wrong with being
+for the one bar that means the run is about to end. The experience bar is one color however full
+it is, because a bar that changes color says something is wrong and nothing is wrong with being
 early in a level. Whether a bar shades or steps should be a person's own choice, and the levels are
 written down either way.
 
@@ -1249,7 +1249,7 @@ is not claimed, because whatever tracks where the pointer is has to hear about e
 row they are pointing at. It takes neither the keyboard nor the pointer: a pointer that crossed it
 could never reach the row under it, and the two would take turns. `Ui::Detail` writes what goes in
 it — the slot written out, the whole name, and what the character knows about the item. An
-unidentified potion is named by its colour and nothing is said about what drinking it would do.
+unidentified potion is named by its color and nothing is said about what drinking it would do.
 
 The triangle on the pack heading opens and shuts the pack when it is pressed.
 
@@ -1458,7 +1458,7 @@ until somebody walks them.
 It used to write down every square on the floor. That made a map that had been read
 indistinguishable from a floor that had been walked, which is the one thing a map should not do.
 The rock behind the walls is left out too: deep rock is not a wall, and writing it down would draw
-the whole floor in one colour.
+the whole floor in one color.
 
 ## The rest of the scrolls
 
@@ -1483,7 +1483,7 @@ Gold is left out. A scroll of treasure detection is what finds that, and a scrol
 would make one of the two pointless.
 
 The list names what it destroyed first, in full, and marks it destroyed. A thing that no longer
-exists has no secret left to keep. Naming it teaches nothing: `Lore` is not told, so the colour
+exists has no secret left to keep. Naming it teaches nothing: `Lore` is not told, so the color
 that kind comes in still means nothing for the rest of the run. `Lore#name` takes an `identified`
 argument for exactly this. The rest are named as the character already knows them, nearest first —
 nothing in the game has a price yet, so distance is what orders them.
@@ -2230,7 +2230,7 @@ safety. This one is about a threat going away, and the two read the same way rou
 said: green and yellow are good news, red is trouble.
 
 There are three levels rather than the five `HEALTH` has. The bar is one row about one creature and
-the only question it answers is how much is left, so the colour has to move far enough to be read
+the only question it answers is how much is left, so the color has to move far enough to be read
 at a glance rather than in small steps.
 
 ### What the bar says
@@ -2447,14 +2447,14 @@ worked out has no mark. Uncursed is the faintest of the three, because most item
 
 Each mark is one cell wide. `⛊` is East Asian Ambiguous. A terminal set to draw ambiguous characters
 in two cells draws it in two. termbuf's width policy sets that. `⚔` has `Emoji=Yes` with a text
-default. A font stack that substitutes a colour glyph draws it in two cells.
+default. A font stack that substitutes a color glyph draws it in two cells.
 
-### Colours
+### Colors
 
 The marks are not at full brightness. They sit in a column of their own. They are designed to be
 distinctive from each other.
 
-| What | Colour |
+| What | Color |
 | --- | --- |
 | blessed | `90B8D8` |
 | cursed | `C08098` |
@@ -2465,8 +2465,8 @@ distinctive from each other.
 
 ### What the highlight covers
 
-The highlight covers the text. The gutter holds the key and the blessing mark. The colour of the
-blessing mark is part of its meaning. Reversing the gutter would invert that colour.
+The highlight covers the text. The gutter holds the key and the blessing mark. The color of the
+blessing mark is part of its meaning. Reversing the gutter would invert that color.
 
 ### Where the marks are named
 
@@ -2509,7 +2509,7 @@ can add rules like "never pick up a cursed item", "pick up anything better than 
 "never pick up a worse weapon", "always pick up anything worth more than 100 gold". What a rule can
 say is its own design question.
 
-Another preference: whether a bar's colour comes from the gradient or from the fixed bands.
+Another preference: whether a bar's color comes from the gradient or from the fixed bands.
 
 ### The rest of the route on the map
 

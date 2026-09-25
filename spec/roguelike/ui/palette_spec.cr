@@ -96,7 +96,7 @@ Spectator.describe Roguelike::Ui::Palette do
       expect(Palette[lit].style).not_to eq Palette[dark].style
     end
 
-    it "draws in the flame colour" do
+    it "draws in the flame color" do
       lit = Roguelike::Fixture.new Roguelike::FixtureKind::Sconce, true
 
       expect(Palette[lit].style).to eq Palette::FLAME

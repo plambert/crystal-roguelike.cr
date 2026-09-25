@@ -14,7 +14,7 @@ module Roguelike::Ui
   module Palette
     # A wall catches the light and a floor does not, so every wall is drawn
     # brighter than the floor beside it. The ramp shades each of these down
-    # by how much light is on the square, and a colour that starts dim has
+    # by how much light is on the square, and a color that starts dim has
     # nowhere to go.
     GRANITE   = Style::DEFAULT.fg TermBuf::Color.rgb(0xA0, 0xA6, 0xB2)
     SANDSTONE = Style::DEFAULT.fg TermBuf::Color.rgb(0xC2, 0xA0, 0x5A)
@@ -28,7 +28,7 @@ module Roguelike::Ui
 
     # What light looks like.
     #
-    # `Terrain` and `LightKind` carry no colour of their own. The model says
+    # `Terrain` and `LightKind` carry no color of their own. The model says
     # what is burning. This table says what burning looks like.
     FLAME   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xB0, 0x50)).bold
     GLIMMER = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xFF)
@@ -44,7 +44,7 @@ module Roguelike::Ui
       LIGHTS[kind]
     end
 
-    # How far a lit square is tinted toward the colour of what lights it.
+    # How far a lit square is tinted toward the color of what lights it.
     #
     # Enough that firelight reads as warm and a magically lit room as cold.
     # Not so far that a stone floor under a torch stops being stone.
@@ -60,7 +60,7 @@ module Roguelike::Ui
 
     # What a square offered as an answer is drawn on.
     #
-    # The square keeps its own glyph and its own colour. Only the background
+    # The square keeps its own glyph and its own color. Only the background
     # changes. A person choosing a direction has to see which door is which.
     OFFERED = TermBuf::Color.rgb 0x3A, 0x4E, 0x2A
 
@@ -69,7 +69,7 @@ module Roguelike::Ui
 
     # What the square a shot would stop on is drawn on.
     #
-    # A different colour from the rest of the line. The line says where the
+    # A different color from the rest of the line. The line says where the
     # shot goes and this says how far it gets. Somebody aiming past a wall
     # has to see where the two stop agreeing.
     IMPACT = TermBuf::Color.rgb 0x6A, 0x2E, 0x2E
@@ -102,7 +102,7 @@ module Roguelike::Ui
 
     # ------------------------------------------------------------- meters
 
-    # The colours a bar passes through as it empties.
+    # The colors a bar passes through as it empties.
     GREEN        = TermBuf::Color.rgb 0x4C, 0xAF, 0x50
     LIGHT_GREEN  = TermBuf::Color.rgb 0x8B, 0xC3, 0x4A
     YELLOW       = TermBuf::Color.rgb 0xD4, 0xB1, 0x06
@@ -116,11 +116,11 @@ module Roguelike::Ui
     # What text over the empty part is drawn in.
     EMPTY_TEXT = TermBuf::Color.rgb 0x8A, 0x90, 0x9C
 
-    # What the hit point bar is at each level, as a percentage and a colour.
+    # What the hit point bar is at each level, as a percentage and a color.
     #
-    # Between two levels the colour is mixed from the two, so the bar shades
+    # Between two levels the color is mixed from the two, so the bar shades
     # as it empties rather than stepping at a boundary. Below the last level
-    # it stays at the last colour.
+    # it stays at the last color.
     #
     # Whether a bar shades or steps should be a person's own choice. It
     # shades for now, and the levels are here either way.
@@ -154,7 +154,7 @@ module Roguelike::Ui
     # red is trouble".
     #
     # Three levels rather than five. The bar is one row about one creature
-    # and the question it answers is how much is left, so the colour has to
+    # and the question it answers is how much is left, so the color has to
     # move far enough to be read at a glance rather than in small steps.
     THREAT = [
       {100, RED},
@@ -162,17 +162,17 @@ module Roguelike::Ui
       {0, YELLOW},
     ]
 
-    # The experience bar, which is one colour however full it is.
+    # The experience bar, which is one color however full it is.
     #
-    # A bar that changes colour says something is wrong. Nothing is wrong
+    # A bar that changes color says something is wrong. Nothing is wrong
     # with being early in a level.
     LEARNING = [{100, LIGHT_GREEN}, {0, LIGHT_GREEN}]
 
     # What a bar of *levels* is drawn in at *percent* full.
     #
-    # At or above the first level it is the first colour. Between two levels
+    # At or above the first level it is the first color. Between two levels
     # it is mixed from the two by how far between them it is. Below the last
-    # level it is the last colour.
+    # level it is the last color.
     def self.meter(levels : Array({Int32, TermBuf::Color}), percent : Int32) : TermBuf::Color
       held = percent.clamp 0, 100
       return levels.first[1] if held >= levels.first[0]
@@ -206,11 +206,11 @@ module Roguelike::Ui
         (one[2] + (other[2] - one[2]) * held).round.to_i)
     end
 
-    # Black or white, whichever reads better on *colour*.
-    def self.readable_on(colour : TermBuf::Color) : TermBuf::Color
-      return TermBuf::Color.rgb(0xFF, 0xFF, 0xFF) unless colour.rgb?
+    # Black or white, whichever reads better on *color*.
+    def self.readable_on(color : TermBuf::Color) : TermBuf::Color
+      return TermBuf::Color.rgb(0xFF, 0xFF, 0xFF) unless color.rgb?
 
-      red, green, blue = colour.channels
+      red, green, blue = color.channels
       bright = 0.299 * red + 0.587 * green + 0.114 * blue
 
       bright > 140 ? TermBuf::Color.rgb(0x10, 0x12, 0x16) : TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)
@@ -319,8 +319,8 @@ module Roguelike::Ui
 
     # What a slot mark is drawn in.
     #
-    # One colour is used for the whole column. The marks differ by shape.
-    # The colour is what separates the column from the names beside it.
+    # One color is used for the whole column. The marks differ by shape.
+    # The color is what separates the column from the names beside it.
     SLOT_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x88, 0xA8, 0x98)
 
     # What the mark on a burning light source is drawn in.
@@ -353,7 +353,7 @@ module Roguelike::Ui
 
     # What a creature nobody can see properly is drawn in.
     #
-    # One colour for every species. A colour is as much a name as a letter
+    # One color for every species. A color is as much a name as a letter
     # is, and somebody who can only make out a shape has been told neither.
     SHAPE = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0x9E, 0xA8)
 
@@ -370,7 +370,7 @@ module Roguelike::Ui
     #
     # The glyph is the letter a floor file writes, which is the roguelike
     # convention: `j` for a jelly, `g` for a goblin, `o` for an orc. The
-    # colours are far enough apart to tell the three of them apart at the
+    # colors are far enough apart to tell the three of them apart at the
     # dimmest step of the ramp.
     SLIME  = Style::DEFAULT.fg TermBuf::Color.rgb(0x7C, 0xD8, 0x6C)
     GOBLIN = Style::DEFAULT.fg TermBuf::Color.rgb(0xB8, 0xE0, 0x40)
@@ -387,9 +387,9 @@ module Roguelike::Ui
       Look.new creature.species.mark, MONSTERS[creature.species]
     end
 
-    # All three rocks draw as `#`. Their colours differ. That is the roguelike
+    # All three rocks draw as `#`. Their colors differ. That is the roguelike
     # convention. It is also why the three are separate `Terrain` members
-    # rather than one wall with a colour field.
+    # rather than one wall with a color field.
     LOOKS = {
       Terrain::Granite    => Look.new('#', GRANITE),
       Terrain::Sandstone  => Look.new('#', SANDSTONE),
@@ -410,7 +410,7 @@ module Roguelike::Ui
     # What each sort of fixture is drawn as.
     #
     # The glyph does not change when it is lit. A burning bracket is the same
-    # bracket, and `!` is already the potion glyph. The colour says whether
+    # bracket, and `!` is already the potion glyph. The color says whether
     # it is alight.
     FIXTURES = {
       FixtureKind::Sconce => '|',
@@ -474,13 +474,13 @@ module Roguelike::Ui
 
     # What a square with no light on it fades toward.
     #
-    # A cool near-black rather than black. Shadow on a warm colour then reads
-    # as shadow rather than as a darker warm colour.
+    # A cool near-black rather than black. Shadow on a warm color then reads
+    # as shadow rather than as a darker warm color.
     SHADOW = TermBuf::Color.rgb 0x14, 0x18, 0x22
 
     # The ramp every square is drawn through.
     #
-    # A blend computing a colour per cell interns a style per cell and the
+    # A blend computing a color per cell interns a style per cell and the
     # style table only grows. A ramp answers the same style for the same step
     # every time, so the table stops growing once each step of each look has
     # been asked for.
@@ -494,8 +494,8 @@ module Roguelike::Ui
     #
     # A torch of radius six then reaches the top on the two squares nearest
     # the flame and falls a step every two squares out from there. A square at
-    # the top of the ramp is drawn in the colour it would have in daylight,
-    # and something has to reach it or the top is a colour nobody ever sees.
+    # the top of the ramp is drawn in the color it would have in daylight,
+    # and something has to reach it or the top is a color nobody ever sees.
     def self.step(level : Int32) : Int32
       return REMEMBERED if level <= 0
 

@@ -95,14 +95,14 @@ module Roguelike::Ui
 
     # Squares offered as an answer to a question.
     #
-    # Each keeps its own glyph and its own colour. Only the background
+    # Each keeps its own glyph and its own color. Only the background
     # changes. A person choosing between four doors has to see which door is
     # which.
     getter highlights : Set({Int32, Int32}) = Set({Int32, Int32}).new
 
-    # Squares a shot would cross, and the colour each is drawn on.
+    # Squares a shot would cross, and the color each is drawn on.
     #
-    # The line is one colour and the square the shot stops on is another. A
+    # The line is one color and the square the shot stops on is another. A
     # person aiming has to see where the line runs and where it ends.
     getter flight : Hash({Int32, Int32}, TermBuf::Color) = {} of {Int32, Int32} => TermBuf::Color
 
@@ -164,8 +164,8 @@ module Roguelike::Ui
     # the square is lit, or when there is nothing behind it to show against.
     #
     # The shape is what is drawn, not the creature. `Palette.shape` answers a
-    # glyph for the size and one colour for every species, because a letter
-    # and a colour each name a species and a shape against light names none.
+    # glyph for the size and one color for every species, because a letter
+    # and a color each name a species and a shape against light names none.
     #
     # A shape wavers with the flames lighting the square behind it. Its own
     # square has no light on it and so has no flames reaching it.
@@ -280,9 +280,9 @@ module Roguelike::Ui
       @highlights.clear
     end
 
-    # Draws *x*, *y* on *colour* while a shot is being aimed.
-    def aim(x : Int32, y : Int32, colour : TermBuf::Color) : Nil
-      @flight[{x, y}] = colour
+    # Draws *x*, *y* on *color* while a shot is being aimed.
+    def aim(x : Int32, y : Int32, color : TermBuf::Color) : Nil
+      @flight[{x, y}] = color
     end
 
     # Takes the aimed line off.

@@ -11,7 +11,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
 
   # A run carrying a readied sword and a potion nobody has drunk.
   #
-  # The looks are rolled, so the potion has a colour to be called by. A game
+  # The looks are rolled, so the potion has a color to be called by. A game
   # built without them names every potion by its kind, which is what a floor
   # written by hand for a spec gets.
   def playing(rows : Int32 = 44) : Playing::Run

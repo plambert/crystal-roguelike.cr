@@ -16,7 +16,7 @@ Spectator.describe Roguelike::Ui::Meter do
     session
   end
 
-  # The background colour of every cell of the row.
+  # The background color of every cell of the row.
   def backgrounds(meter : Meter, columns : Int32 = 22) : Array(TermBuf::Color?)
     session = drawn meter, columns
     (0...columns).map do |column|
@@ -70,11 +70,11 @@ Spectator.describe Roguelike::Ui::Meter do
       expect(half.fill).not_to eq Palette::RED
     end
 
-    it "is exactly the named colour at each level" do
+    it "is exactly the named color at each level" do
       {100 => Palette::GREEN, 80 => Palette::LIGHT_GREEN,
        60 => Palette::YELLOW, 40 => Palette::ORANGE,
-       20 => Palette::RED}.each do |percent, colour|
-        expect(Meter.new("HP", percent, 100).fill).to eq colour
+       20 => Palette::RED}.each do |percent, color|
+        expect(Meter.new("HP", percent, 100).fill).to eq color
       end
     end
 
@@ -93,7 +93,7 @@ Spectator.describe Roguelike::Ui::Meter do
       end
     end
 
-    it "stays one colour on the experience levels" do
+    it "stays one color on the experience levels" do
       steps = (0..100).map do |percent|
         Meter.new("XP", percent, 100, Palette::LEARNING).fill
       end

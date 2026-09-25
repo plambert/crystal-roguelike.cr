@@ -140,7 +140,7 @@ module Roguelike
     #
     # It moves nothing the game decides. `Play#waver` shifts which shade a
     # lit square draws at and no more, so the paint that follows sends the
-    # squares whose colour moved and nothing else.
+    # squares whose color moved and nothing else.
     private def waver : Nil
       @app.after(Ui::Flicker::PERIOD) do
         @play.waver

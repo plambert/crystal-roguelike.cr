@@ -399,7 +399,7 @@ Spectator.describe Roguelike::Observation do
   # character the game writes them with.
   #
   # The pane draws all three rocks as `#` and both floors as `.`, and tells
-  # them apart by colour. The observation keeps the terrain, so a floor with
+  # them apart by color. The observation keeps the terrain, so a floor with
   # sandstone, shale or dirt in it would differ from the pane by design.
   MAZE = [
     "##########",

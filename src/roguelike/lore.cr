@@ -6,9 +6,9 @@ require "./rng"
 module Roguelike
   # What a run looks like, and what the character has found out about it.
   #
-  # A potion is a colour until somebody drinks one. The colour is rolled per
+  # A potion is a color until somebody drinks one. The color is rolled per
   # run, so a swirly potion is the same thing all game and a different thing
-  # in the next game. A person who learned the colours once would otherwise
+  # in the next game. A person who learned the colors once would otherwise
   # never have to learn them again.
   #
   # Identification is per kind. Drinking one swirly potion names every swirly
@@ -113,7 +113,7 @@ module Roguelike
     # not want to call it "a cursed dagger" as well.
     # *identified* true names the kind whether or not the character has found
     # it out, and teaches them nothing by it. A scroll that says what it
-    # destroyed says what it was; it does not say what colour that kind comes
+    # destroyed says what it was; it does not say what color that kind comes
     # in for the rest of the run.
     #
     # *regard* says how well the character has made the item out. Anything

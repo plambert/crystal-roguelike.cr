@@ -5,7 +5,7 @@ require "./floor"
 module Roguelike
   # What sort of light a source throws.
   #
-  # No member here carries a colour. `Ui::Palette` holds the colours, the
+  # No member here carries a color. `Ui::Palette` holds the colors, the
   # same way it holds the glyph for a terrain. A theme changes that table. A
   # spec reads a light with no terminal open.
   enum LightKind

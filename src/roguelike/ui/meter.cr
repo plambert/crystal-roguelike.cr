@@ -7,7 +7,7 @@ module Roguelike::Ui
   # the count when they want the number and the fill when they only want to
   # know whether they are in trouble.
   #
-  # The fill colour comes from `Palette.meter` and the levels the caller
+  # The fill color comes from `Palette.meter` and the levels the caller
   # names, so a bar shades from green to red as it empties and every bar in
   # the game reads the same way.
   class Meter < Widgets::Widget
@@ -27,7 +27,7 @@ module Roguelike::Ui
     # What is written inside the bar. The count when this is `nil`.
     property text : String? = nil
 
-    # The colours it passes through as it empties.
+    # The colors it passes through as it empties.
     property levels : Array({Int32, TermBuf::Color})
 
     def initialize(@label : String,
@@ -87,8 +87,8 @@ module Roguelike::Ui
 
       room = view.width - LABEL
       filled = (room * percent / 100.0).round.to_i.clamp 0, room
-      colour = fill
-      over = Palette.readable_on colour
+      color = fill
+      over = Palette.readable_on color
       word = reading
       start = (room - word.size) // 2
 
@@ -99,7 +99,7 @@ module Roguelike::Ui
 
         view.write_char LABEL + index, 0, glyph,
           Style::DEFAULT.fg(inside ? over : Palette::EMPTY_TEXT)
-            .bg(inside ? colour : Palette::EMPTY)
+            .bg(inside ? color : Palette::EMPTY)
       end
     end
   end

@@ -38,8 +38,8 @@ Spectator.describe "naming an item lying on the floor" do
 
   # A run on the hall with *item* lying at *at*, 5.
   #
-  # The appearances are rolled, because a spec about a colour being dropped
-  # from a name needs the name to have had a colour in it.
+  # The appearances are rolled, because a spec about a color being dropped
+  # from a name needs the name to have had a color in it.
   def hall(at : Int32, item : Item) : Playing::Run
     floor = Playing.daylight Floor.parse("hall", hall_map)
     floor.drop at, 5, item
@@ -101,7 +101,7 @@ Spectator.describe "naming an item lying on the floor" do
       expect(in_sight run).to contain "a cursed -2 spear"
     end
 
-    it "takes the colour off a potion past the reach" do
+    it "takes the color off a potion past the reach" do
       run = hall APART, Item.new(Kind::HealingPotion)
       look = run.game.lore.appearance Kind::HealingPotion
 
@@ -109,7 +109,7 @@ Spectator.describe "naming an item lying on the floor" do
       expect(in_sight run).not_to contain "a #{look} potion"
     end
 
-    it "keeps the colour on a potion inside the reach" do
+    it "keeps the color on a potion inside the reach" do
       run = hall NEAR, Item.new(Kind::HealingPotion)
       look = run.game.lore.appearance Kind::HealingPotion
 

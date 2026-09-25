@@ -198,7 +198,7 @@ Spectator.describe "how a flame is drawn" do
     end
   end
 
-  # A blend computing a colour per cell interns a style per cell. The ramps
+  # A blend computing a color per cell interns a style per cell. The ramps
   # cache, so the table settles even with the flame moving.
   describe "the style table under a flame" do
     it "stops growing once the flame has been through its shades" do
@@ -253,7 +253,7 @@ Spectator.describe "how a flame is drawn" do
       drawn_style(run, spot[0], spot[1]).foreground
     end
 
-    # Every colour the shape is drawn in over *ticks* ticks.
+    # Every color the shape is drawn in over *ticks* ticks.
     def shadings(run : Playing::Run, ticks : Int32) : Array(TermBuf::Color)
       found = [shading run]
       ticks.times do

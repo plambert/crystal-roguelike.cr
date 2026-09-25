@@ -210,7 +210,7 @@ Spectator.describe Roguelike::Ui::NearbyPane do
       expect(in_sight run).to eq [NearbyPane::NOTHING]
     end
 
-    # A letter and a colour each name a species. A shape against light names
+    # A letter and a color each name a species. A shape against light names
     # none, so neither does this row.
     it "calls a creature seen only as a shape by its size" do
       run = hall_shape

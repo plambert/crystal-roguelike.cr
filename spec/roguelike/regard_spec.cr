@@ -231,7 +231,7 @@ Spectator.describe "how well something is made out" do
       expect(Naming.short lore, scroll, Regard::Kind).to eq "scroll"
     end
 
-    it "calls a potion a potion rather than a colour" do
+    it "calls a potion a potion rather than a color" do
       potion = Item.new Kind::HealingPotion, count: 3
 
       expect(lore.name potion, regard: Regard::Kind).to eq "3 potions"

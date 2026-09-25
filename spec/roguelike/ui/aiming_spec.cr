@@ -107,7 +107,7 @@ Spectator.describe "aiming" do
   end
 
   describe "the line it draws" do
-    it "colours every square the shot would cross" do
+    it "colors every square the shot would cross" do
       run = archer
       run.press "f"
       4.times { run.press "l" }
@@ -116,7 +116,7 @@ Spectator.describe "aiming" do
       expect(run.map.flight.keys).to contain({5, 1})
     end
 
-    it "colours the square the shot stops on differently" do
+    it "colors the square the shot stops on differently" do
       run = archer
       run.press "f"
       4.times { run.press "l" }

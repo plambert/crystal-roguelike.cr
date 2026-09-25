@@ -6,7 +6,7 @@ module Roguelike
   #
   # `Observation.of` builds one from a run. It holds nothing the character
   # has not perceived. A creature behind a wall is absent. A potion nobody
-  # has drunk gives the colour it comes in this run and not what is in it. A
+  # has drunk gives the color it comes in this run and not what is in it. A
   # creature standing against light behind it gives its size and not its
   # species.
   #
@@ -435,9 +435,9 @@ module Roguelike
     # file write that terrain with. A square nobody has seen holds `UNKNOWN`.
     #
     # `Ui::MapPane` draws the same squares. It draws all three rocks as one
-    # glyph and both floors as another, and tells them apart by colour. This
+    # glyph and both floors as another, and tells them apart by color. This
     # keeps the terrain, so a bot tells a dirt floor from a stone one with no
-    # colour to read.
+    # color to read.
     getter map : Grid
 
     # Which squares are in view now, one string per row.

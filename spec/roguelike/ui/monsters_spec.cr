@@ -42,11 +42,11 @@ Spectator.describe "monsters on the screen" do
       expect(run.row(2)).to eq "#@.o..#"
     end
 
-    it "draws each species in its own colour" do
+    it "draws each species in its own color" do
       run = shown ["#######", "#.j.g.#", "#<.o..#", "#######"]
 
-      colours = [drawn_style(run, 2, 1), drawn_style(run, 4, 1), drawn_style(run, 3, 2)]
-      expect(colours.uniq.size).to eq 3
+      colors = [drawn_style(run, 2, 1), drawn_style(run, 4, 1), drawn_style(run, 3, 2)]
+      expect(colors.uniq.size).to eq 3
     end
 
     # A creature draws over what is lying on the square it stands on.
@@ -308,7 +308,7 @@ Spectator.describe "monsters on the screen" do
     # A creature carrying a light is not a shape. It is standing in a pool of
     # its own making, and that pool is what gives it away from further off
     # than anything else would.
-    it "shows a goblin carrying a light in its own colour" do
+    it "shows a goblin carrying a light in its own color" do
       run = approaching 30, dark: false
 
       expect(run.game.floor.monster(42, 20).try &.carrying.any? &.lit?).to be_true

@@ -115,7 +115,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       expect(slot_row(run, Slot::Melee).text).to eq "wpn#{Pane::NOTHING}"
     end
 
-    it "writes what is in a slot in the colour the map draws it in" do
+    it "writes what is in a slot in the color the map draws it in" do
       run = playing carrying: [Item.new(Kind::LongSword)]
       run.game.wield 'a'
       run.play.refresh

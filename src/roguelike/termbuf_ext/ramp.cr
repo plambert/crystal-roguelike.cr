@@ -1,14 +1,14 @@
 require "termbuf"
 
 module TermBuf::Widgets
-  # A fixed number of styles between one style and a colour.
+  # A fixed number of styles between one style and a color.
   #
   #     ramp = Ramp.new [0.66, 0.44, 0.30, 0.15, 0.0], Color.rgb(0x14, 0x18, 0x22)
   #
   #     ramp[Style::DEFAULT.fg(Color.rgb 0xC0, 0xC0, 0xC0), 4]  # the style itself
   #     ramp[Style::DEFAULT.fg(Color.rgb 0xC0, 0xC0, 0xC0), 0]  # nearly black
   #
-  # A `Blend` computing a colour per cell interns a style per cell, and
+  # A `Blend` computing a color per cell interns a style per cell, and
   # `StyleTable` only grows. One frame of that is bounded by the screen and
   # costs nothing. An animation recomputing it every frame is not bounded at
   # all, and the table grows until the program ends.
@@ -18,13 +18,13 @@ module TermBuf::Widgets
   # A map drawn by torchlight has a handful of base styles and a handful of
   # steps, so it settles at a few dozen.
   #
-  # Only a colour that is set moves. A default foreground or background is
+  # Only a color that is set moves. A default foreground or background is
   # whatever the terminal draws, and a ramp has nothing to move it toward.
   #
   # Extraction candidate: this belongs in `termbuf-widgets.cr`. What is still
   # to settle is whether a ramp should offer a hue shift as well as a fade,
-  # so that a dimmed warm colour reads as being in shadow rather than as a
-  # darker warm colour.
+  # so that a dimmed warm color reads as being in shadow rather than as a
+  # darker warm color.
   class Ramp
     # How far toward `#toward` each step moves, from the deepest to the top.
     #
@@ -103,7 +103,7 @@ module TermBuf::Widgets
       style = style.fg mix(base.foreground, part) unless base.foreground.default?
       style = style.bg mix(base.background, part) unless base.background.default?
 
-      # Bold is dropped. A bold dim colour reads as lit, which is what the
+      # Bold is dropped. A bold dim color reads as lit, which is what the
       # dimming is there to say it is not.
       style.copy_with attributes: base.attributes & ~Attributes::Bold
     end

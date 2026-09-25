@@ -198,7 +198,7 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
         end).to be_true
       end
 
-      # Naming it teaches nothing. The colour that kind comes in still means
+      # Naming it teaches nothing. The color that kind comes in still means
       # nothing for the rest of the run.
       it "teaches the character nothing by naming it" do
         game = bare

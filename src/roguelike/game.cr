@@ -3014,7 +3014,7 @@ module Roguelike
     #
     # What it destroyed goes first and is named in full, because a thing that
     # no longer exists has no secret left to keep. Naming it teaches nothing:
-    # `Lore` is not told, so the colour that potion came in still means
+    # `Lore` is not told, so the color that potion came in still means
     # nothing for the rest of the run.
     #
     # The rest are named as the character knows them, nearest first. Nothing
@@ -3724,7 +3724,7 @@ module Roguelike
     #
     # The walls of the rooms and the corridors, and not the rock behind them.
     # Deep rock is not a wall, and a map that wrote it down would be a map of
-    # the whole floor drawn in one colour.
+    # the whole floor drawn in one color.
     private def wall?(x : Int32, y : Int32) : Bool
       return false unless floor.terrain(x, y).rock?
 

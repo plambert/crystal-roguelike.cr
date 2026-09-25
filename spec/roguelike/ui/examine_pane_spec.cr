@@ -46,7 +46,7 @@ Spectator.describe Roguelike::Ui::ExaminePane do
       expect(pane.doing.hidden?).to be_true
     end
 
-    it "draws it in the colour every shape is drawn in" do
+    it "draws it in the color every shape is drawn in" do
       floor, seen = against_the_light
 
       pane.show floor, 7, 1, nil, seen
@@ -72,7 +72,7 @@ Spectator.describe Roguelike::Ui::ExaminePane do
       expect(pane.detail.text).to eq "a staircase leading up"
     end
 
-    it "draws what it names in the colour that square is drawn in" do
+    it "draws what it names in the color that square is drawn in" do
       pane.show floor, 4, 1
 
       expect(pane.what.style).to eq Roguelike::Ui::Palette[Terrain::Sandstone].style

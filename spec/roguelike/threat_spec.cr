@@ -344,7 +344,7 @@ Spectator.describe "the creature last fought" do
     end
   end
 
-  describe "the colours" do
+  describe "the colors" do
     # The bar runs the other way from the character's own. A creature at full
     # strength is red and one about to fall is yellow.
     it "is red at full and yellow at empty" do

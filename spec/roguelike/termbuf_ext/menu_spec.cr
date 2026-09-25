@@ -118,8 +118,8 @@ Spectator.describe TermBuf::Widgets::Menu do
     end
   end
 
-  # The gutter holds the key and the mark. The colour of the mark is part of
-  # its meaning. Reversing the gutter would invert that colour.
+  # The gutter holds the key and the mark. The color of the mark is part of
+  # its meaning. Reversing the gutter would invert that color.
   describe "what the highlight covers" do
     it "covers the text" do
       run = lit ["a torch"]

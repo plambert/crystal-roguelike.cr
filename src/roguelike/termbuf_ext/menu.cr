@@ -443,8 +443,8 @@ module TermBuf::Widgets
     # scrolled sideways slides its text under the gutter and under the marks
     # at the far edge. The key and the marks stay where they are.
     #
-    # The highlight covers the text. The colour of a mark is part of its
-    # meaning. Reversing the gutter would invert that colour.
+    # The highlight covers the text. The color of a mark is part of its
+    # meaning. Reversing the gutter would invert that color.
     private def draw_entry(view : View, entry : Entry, lit : Bool) : Nil
       plain = entry.enabled ? Style::DEFAULT : @disabled_style
 
