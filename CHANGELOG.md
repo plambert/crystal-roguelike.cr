@@ -89,6 +89,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* A rest runs several turns between one repaint and the next. The first turns are drawn one at a
+  time, the middle of a rest goes by in batches, and the batches shrink again as the hit points
+  fill up. A rest of 220 turns took 5.1 seconds and now takes 1.5. A key still stops the rest, and
+  it is read between one batch and the next.
 * Every British spelling is now the American spelling. The item is "leather armor". A save file
   written by an earlier build no longer loads, because a save holds the old field names and the
   old enum names.

@@ -113,6 +113,22 @@ Spectator.describe "resting from the keyboard" do
       expect(run.turn).to eq before + 3
     end
 
+    it "takes more turns on a later tick than on an early one" do
+      run = resting 6, clock: true
+
+      run.press "R"
+      before = run.turn
+      run.tick
+      early = run.turn - before
+
+      6.times { run.tick }
+      before = run.turn
+      run.tick
+      later = run.turn - before
+
+      expect(later).to be > early
+    end
+
     it "runs to full health when the clock is left to run" do
       run = resting 6, clock: true
 
@@ -130,6 +146,30 @@ Spectator.describe "resting from the keyboard" do
       run.run_timers
 
       expect(run.armed).to be_empty
+    end
+  end
+
+  describe "the size of one batch of rest turns" do
+    alias Play = Roguelike::Ui::Play
+
+    it "starts at one turn" do
+      expect(Play.breath_size(0, 100, 20)).to eq 1
+    end
+
+    it "grows with each batch that has gone" do
+      expect(Play.breath_size(4, 100, 20)).to be > Play.breath_size(0, 100, 20)
+    end
+
+    it "never goes over the cap" do
+      expect(Play.breath_size(200, 1000, 20)).to eq Play::BREATH_MOST
+    end
+
+    it "takes a share of the turns left over" do
+      expect(Play.breath_size(200, 4, 20)).to eq 10
+    end
+
+    it "is one turn when almost nothing is left" do
+      expect(Play.breath_size(200, 0, 20)).to eq 1
     end
   end
 

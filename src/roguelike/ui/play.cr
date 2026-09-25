@@ -185,7 +185,7 @@ module Roguelike::Ui
     # The walk being drawn, or `nil` when nothing is walking.
     @walk : Game::Walk? = nil
 
-    # How long one turn of a rest is drawn for.
+    # How long one batch of rest turns is drawn for.
     #
     # It is a third of a stride. A rest can run for hundreds of turns and
     # nothing on the screen changes but the hit points, so it is drawn faster
@@ -193,8 +193,32 @@ module Roguelike::Ui
     # watching a meter.
     BREATH = 15.milliseconds
 
+    # The most turns of rest one batch takes.
+    BREATH_MOST = 128
+
+    # How much the batch grows from one callback to the next.
+    BREATH_GROWTH = 1.4
+
+    # The largest callback number the growth is figured for.
+    #
+    # The batch is at `BREATH_MOST` well before this, and the power of a
+    # larger number overflows.
+    BREATH_GROWTHS = 16
+
+    # The share of the turns left over that one batch takes.
+    BREATH_SHARE = 8
+
+    # How long one batch of rest turns runs for.
+    #
+    # A key pressed during a rest is read between one batch and the next, so
+    # this is how long the person waits for it.
+    BREATH_BUDGET = 120.milliseconds
+
     # The rest being drawn, or `nil` when nothing is resting.
     @rest : Game::Rest? = nil
+
+    # How many batches of the rest being drawn have gone already.
+    @breaths : Int32 = 0
 
     # What holds the keyboard while a walk is drawn.
     getter interrupt : Interrupt = Interrupt.new
@@ -939,13 +963,38 @@ module Roguelike::Ui
     # until the rest stops, so a key pressed part way through stops it.
     private def start_resting(rest : Game::Rest) : Nil
       @rest = rest
+      @breaths = 0
       @interrupt.grab @app
       @pager.deferred = true
 
       breathe
     end
 
-    # Takes one turn of rest, draws it, and arms the next.
+    # How many turns of rest one batch takes.
+    #
+    # *breaths* is how many batches have gone already. The batch starts at
+    # one turn and grows by `BREATH_GROWTH` each callback, up to
+    # `BREATH_MOST`. The first turns of a rest are drawn one at a time, and
+    # the middle of a long rest goes by in large batches.
+    #
+    # *missing* is the hit points the character is short of their maximum,
+    # and *regeneration* is the turns one hit point takes. Their product is
+    # about how many turns of rest are left. A batch takes a
+    # `BREATH_SHARE` of that at most, so a rest slows down as it ends and
+    # the last hit points are drawn as they come back.
+    #
+    # The answer is never less than one turn.
+    def self.breath_size(breaths : Int32,
+                         missing : Int32,
+                         regeneration : Int32) : Int32
+      growing = (BREATH_GROWTH ** Math.min(breaths, BREATH_GROWTHS)).to_i
+      growing = Math.min growing, BREATH_MOST
+      left = missing * regeneration // BREATH_SHARE
+
+      Math.max Math.min(growing, left), 1
+    end
+
+    # Takes a batch of rest turns, draws them, and arms the next batch.
     #
     # An application with no clock cannot arm one, so the whole rest happens
     # inside this call instead. A spec then reads the hit points without
@@ -955,7 +1004,7 @@ module Roguelike::Ui
         rest = @rest
         return unless rest
 
-        going = @game.linger rest
+        going = inhale rest
 
         # The rest is put away before the screen is drawn, so the pane is
         # free to hold on the lines the last turn wrote.
@@ -966,6 +1015,27 @@ module Roguelike::Ui
         app = @app
         return if app && app.after(BREATH) { breathe }
       end
+    end
+
+    # Takes one batch of turns of *rest*. Answers whether it is still going.
+    #
+    # The batch ends the moment the rest stops. It also ends once
+    # `BREATH_BUDGET` is spent, however many turns `Play.breath_size` asked
+    # for, which bounds how long a keypress waits on a slow floor.
+    private def inhale(rest : Game::Rest) : Bool
+      player = @game.player
+      size = Play.breath_size @breaths,
+        player.max_hit_points - player.hit_points,
+        player.regeneration
+      @breaths += 1
+
+      started = Time.instant
+      size.times do
+        return false unless @game.linger rest
+        break if started.elapsed >= BREATH_BUDGET
+      end
+
+      true
     end
 
     # Ends the rest being drawn and gives the keyboard back.
