@@ -137,7 +137,7 @@ module Roguelike
     # 3. Swing at whatever is standing next to it.
     # 4. Pick up what is underfoot, and hold the heaviest hitting weapon it
     #    is carrying.
-    # 5. Step to a neighbour, preferring one it has never stood on.
+    # 5. Step to a neighbor, preferring one it has never stood on.
     #
     # It never retreats, never shuts a door behind it, never shoots and never
     # puts its torch out. Those are the things that keep a person alive, so
@@ -237,7 +237,7 @@ module Roguelike
         @game.wield best[0]
       end
 
-      # Steps to a neighbour, preferring one it has never stood on.
+      # Steps to a neighbor, preferring one it has never stood on.
       #
       # Walking into a shut door opens it, so this is all the door handling
       # the bot needs.

@@ -6,7 +6,7 @@ require "termbuf-widgets"
 # a four row pane loses two of them, and those two are never drawn at all.
 #
 # `less` solves this by holding at a page boundary. Roguelikes solve it the
-# same way and write `--More--` at the end of the line. The widget catalogue
+# same way and write `--More--` at the end of the line. The widget catalog
 # has nothing that does it. `VirtualList` scrolls, and scrolling past unread
 # text is the problem rather than the fix.
 #

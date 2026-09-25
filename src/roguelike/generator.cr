@@ -229,7 +229,7 @@ module Roguelike
     # Carves one room inside *area* and answers it.
     #
     # The room keeps a square of rock between it and the edge of *area*, so
-    # two rooms in neighbouring rectangles never touch.
+    # two rooms in neighboring rectangles never touch.
     private def carve(area : Area) : Area
       stream = @rng.derive "room:#{area}"
       inside = area.inset 1

@@ -205,7 +205,7 @@ module Roguelike
     # Words that start with a vowel letter and take `a` anyway.
     #
     # The letter is not the sound. "unicorn" and "one-handed" both start with
-    # a consonant sound. The list is short because the catalogue is short, and
+    # a consonant sound. The list is short because the catalog is short, and
     # a word added to one is added to the other.
     CONSONANT_SOUNDS = %w[uni use uso eu one]
 

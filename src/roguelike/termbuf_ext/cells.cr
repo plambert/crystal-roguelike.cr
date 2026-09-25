@@ -3,7 +3,7 @@ require "termbuf-widgets"
 # Extraction candidate: `TermBuf::Widgets::Cells` and
 # `TermBuf::Widgets::CellGrid`, for termbuf-widgets.cr.
 #
-# Every widget in the catalogue draws text in rows. `VirtualList` draws one
+# Every widget in the catalog draws text in rows. `VirtualList` draws one
 # item per screen row. `Table` draws columns of text. None of them is a 2D
 # addressable field of glyphs with a window over it.
 #

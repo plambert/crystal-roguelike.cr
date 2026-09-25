@@ -760,7 +760,7 @@ module Roguelike::Ui
 
     # The part of the map pane a modal box covers, in window coordinates.
     #
-    # The box is centred on the screen, not on the map pane. The pane starts
+    # The box is centered on the screen, not on the map pane. The pane starts
     # at the top left corner of the buffer, so a window coordinate of the pane
     # is a buffer coordinate.
     #

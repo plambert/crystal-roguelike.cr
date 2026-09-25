@@ -513,7 +513,7 @@ Spectator.describe "doors, stairs and leaving" do
     # question about what is around them has to see what is around them.
     # One open room, large enough that the camera can put the character
     # anywhere in the window. On the shipped floor the character starts near a
-    # corner and the camera cannot centre them at all.
+    # corner and the camera cannot center them at all.
     def middled : Playing::Run
       run = Playing.open Playing.field
       run.map.center_on run.at[0], run.at[1]

@@ -225,7 +225,7 @@ Spectator.describe "quaffing, reading and zapping" do
       expect(run.game.player.inventory['a'].try &.charges).to eq full - 1
     end
 
-    it "costs no charge and no turn when the aim is cancelled" do
+    it "costs no charge and no turn when the aim is canceled" do
       run = carrying [Item.new Kind::StrikingWand]
       before = run.turn
 

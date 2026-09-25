@@ -58,7 +58,7 @@ Spectator.describe Roguelike::Ui::Naming do
       scroll = Naming.short lore, Item.new(Kind::IdentifyScroll)
 
       expect(scroll).to end_with " scroll"
-      expect(scroll).not_to contain "labelled"
+      expect(scroll).not_to contain "labeled"
     end
 
     it "names a kind once it has been found out" do

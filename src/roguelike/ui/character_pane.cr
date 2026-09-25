@@ -42,7 +42,7 @@ module Roguelike::Ui
     PACK_GLYPH = 2
     PACK_NAME  = 4
 
-    # What the bar for the creature being fought is labelled.
+    # What the bar for the creature being fought is labeled.
     #
     # Two columns, the way `HP`, `MP` and `XP` are. The creature's name will
     # not fit in two columns, so it goes inside the bar with the count and

@@ -178,7 +178,7 @@ module TermBuf::Widgets
     # moves the camera not at all. The view follows once they near an edge.
     #
     # A margin wider than half the window has no position that satisfies it.
-    # This method centres on that axis instead.
+    # This method centers on that axis instead.
     def reveal(x : Int32, y : Int32, margin : Int32 = 0,
                margin_y : Int32? = nil) : Nil
       room = viewport_size
@@ -190,7 +190,7 @@ module TermBuf::Widgets
         across(@camera_y, y, room[1], down)
     end
 
-    # Where the camera goes on one axis, centring when the margin leaves it
+    # Where the camera goes on one axis, centering when the margin leaves it
     # nowhere else to go.
     private def across(camera : Int32, spot : Int32, room : Int32,
                        margin : Int32) : Int32

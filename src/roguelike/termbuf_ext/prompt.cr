@@ -6,7 +6,7 @@ require "termbuf-widgets"
 # and `Enter` to press it. That is three keystrokes for one decision.
 #
 # A prompt takes one keystroke. `git add -p`, `less`, `apt` and every roguelike
-# ask that way. The widget catalogue has nothing that does it.
+# ask that way. The widget catalog has nothing that does it.
 #
 # This type is written in `TermBuf::Widgets` rather than in `Roguelike`.
 # Extracting it is then a file move with no edits.
@@ -14,7 +14,7 @@ require "termbuf-widgets"
 # Two questions remain open:
 #
 # * Should an answer arrive as a `Message` or through `#on_answer`? The
-#   catalogue uses `Message` for every other input widget. A prompt is
+#   catalog uses `Message` for every other input widget. A prompt is
 #   answered and then dismissed. `#on_answer` runs as soon as a key arrives. A
 #   `Message` would arrive on the next pump.
 # * Should the answers be a keymap at all? A keymap lets a caller rebind them.
@@ -43,7 +43,7 @@ module TermBuf::Widgets
 
     # What runs when a key answers.
     #
-    # The argument is the key. It is `nil` when the person cancelled with
+    # The argument is the key. It is `nil` when the person canceled with
     # `Escape`.
     property on_answer : Proc(Char?, Nil)? = nil
 

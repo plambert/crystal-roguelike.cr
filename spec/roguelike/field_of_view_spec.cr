@@ -173,7 +173,7 @@ Spectator.describe Roguelike::FieldOfView do
   end
 
   # Symmetric shadowcasting is strict about this. A one-wide corridor cuts
-  # the view to a narrow wedge, and a floor square needs its centre inside
+  # the view to a narrow wedge, and a floor square needs its center inside
   # that wedge. An opening in the corridor's side wall a few squares along
   # falls outside it.
   #

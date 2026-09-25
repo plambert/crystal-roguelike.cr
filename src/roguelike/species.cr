@@ -401,7 +401,7 @@ module Roguelike
           intelligence: 7, stealth: 13)),
 
       Species::Orc => SpeciesFacts.new('o', "orc", "orcs",
-        "a heavy grey brute with a notched blade",
+        "a heavy gray brute with a notched blade",
         hit_points: 14, damage: Dice.new(1, 8), armor: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
         size: Size::Large, persistence: 30, speed: 95,

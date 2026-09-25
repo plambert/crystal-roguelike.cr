@@ -8,9 +8,9 @@ module Roguelike
   # wedge of slopes it is still looking through whenever a wall cuts into it.
   #
   # Symmetric means what it says: if A can see B then B can see A. A floor
-  # square is seen when its centre is inside the wedge. A wall square is seen
+  # square is seen when its center is inside the wedge. A wall square is seen
   # whenever the scan reaches it at all, because a wall a creature cannot see
-  # the centre of is still a wall they can see the face of.
+  # the center of is still a wall they can see the face of.
   #
   # Every comparison is on whole numbers. A slope is a `Fraction` of two
   # integers rather than a float, so a square on the edge of a wedge falls the
@@ -189,7 +189,7 @@ module Roguelike
         Row.new @depth + 1, @start_slope, slope
       end
 
-      # Whether the centre of *column* is inside the wedge.
+      # Whether the center of *column* is inside the wedge.
       def holds?(column : Int32) : Bool
         @start_slope.below?(@depth, column) && @end_slope.above?(@depth, column)
       end
@@ -211,8 +211,8 @@ module Roguelike
     # Whether *spot* is seen from the origin.
     #
     # A wall is seen whenever the scan reaches it, because a wall a creature
-    # cannot see the centre of is still a wall they can see the face of. A
-    # floor square is seen when its centre is inside the wedge.
+    # cannot see the center of is still a wall they can see the face of. A
+    # floor square is seen when its center is inside the wedge.
     #
     # Neither is seen past the edge of the floor or past `#radius`.
     private def seen?(floor : Floor, spot : {Int32, Int32}, wall : Bool,

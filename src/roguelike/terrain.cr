@@ -117,9 +117,9 @@ module Roguelike
     FILL = ' '
 
     KINDS = {
-      Terrain::Granite    => TerrainKind.new('#', "granite", "hard grey rock", true, true),
+      Terrain::Granite    => TerrainKind.new('#', "granite", "hard gray rock", true, true),
       Terrain::Sandstone  => TerrainKind.new('=', "sandstone", "soft yellow rock", true, true),
-      Terrain::Shale      => TerrainKind.new('%', "shale", "layered blue-grey rock", true, true),
+      Terrain::Shale      => TerrainKind.new('%', "shale", "layered blue-gray rock", true, true),
       Terrain::StoneFloor => TerrainKind.new('.', "stone floor", "worn flagstones", false, false),
       Terrain::DirtFloor  => TerrainKind.new(',', "dirt floor", "packed earth", false, false),
       Terrain::ClosedDoor => TerrainKind.new('+', "closed door", "a shut wooden door", true, true),

@@ -1383,7 +1383,7 @@ module Roguelike
 
     # Every square beside *creature* that something else is standing on.
     #
-    # The character counts. A creature walks round its neighbours and swings
+    # The character counts. A creature walks round its neighbors and swings
     # at the character rather than walking into them.
     private def standing_on_squares(creature : Monster) : Set({Int32, Int32})
       taken = Set({Int32, Int32}).new
@@ -2906,7 +2906,7 @@ module Roguelike
       end
 
       say "#{piles.size} piles of gold teleport to your location, " \
-          "totalling #{total} gp.",
+          "totaling #{total} gp.",
         Event::Gold.new(:gathered, total, piles: piles.size)
     end
 
@@ -3739,7 +3739,7 @@ module Roguelike
 
     # Makes the squares round the character glow for good.
     #
-    # Only the passable ones. A glowing square spills onto every neighbour,
+    # Only the passable ones. A glowing square spills onto every neighbor,
     # so the walls of the room light up the way they do round a magically lit
     # room. Setting the glow on the walls as well would light what is behind
     # them.
@@ -4066,7 +4066,7 @@ module Roguelike
     #
     # The field is not in the save, in the way the creature being fought and
     # the missile in flight are not. There are three reasons for that. The
-    # behaviour is older than the field, and `#start_reading` already states
+    # behavior is older than the field, and `#start_reading` already states
     # it. A run saved with the question up has spent the scroll and the turn
     # and has given up the rest. An `Item` written out from both the
     # inventory and this field would load as two objects rather than one.

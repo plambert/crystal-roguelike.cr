@@ -139,7 +139,7 @@ Spectator.describe Roguelike::Descent do
   end
 
   describe "#downhill" do
-    # A diagonal step costs what a straight one does, so several neighbours
+    # A diagonal step costs what a straight one does, so several neighbors
     # are usually the same distance nearer.
     it "answers every way that is as near as any is" do
       _floor, knowledge = known FIELD

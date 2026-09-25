@@ -59,7 +59,7 @@ actually been run rather than reasoned about.
 | Combat rolls | Their own stream per swing, named by how many the run has rolled, so a save file holds a count |
 | Noticing | A band notices, not a monster. Reach is the species' own, less stealth, plus the light on the character, a square per point |
 | Seeing in the dark | An orc's reach ignores light. A goblin or a slime notices nothing unlit, however close it stands |
-| Pursuit | One `Descent` per band per turn, flooded over the band's own `Knowledge`. Its members step to a neighbour nearer the goal |
+| Pursuit | One `Descent` per band per turn, flooded over the band's own `Knowledge`. Its members step to a neighbor nearer the goal |
 | A creature's decision | `Pursuit.decide` reads a snapshot holding no floor and no player, and answers an `Action` |
 | Seeing across a square | A creature that can see somebody writes down that the ground between can be crossed, and no more |
 | Touch | A creature knows the terrain of the eight squares round it and what is fixed to them. Items only where it stands |
@@ -147,13 +147,13 @@ world is a `World` holding `Floor`s by id, and every type in the model round-tri
 serialization from Phase 3 onward, with a spec that says so.
 
 The constraint that follows, and an expensive one to discover late: **nothing in the model holds
-a `Proc` or a closure**. Behaviour is named — an enum, a symbol, a registry key — and
+a `Proc` or a closure**. Behavior is named — an enum, a symbol, a registry key — and
 looked up. A monster's attack pattern, an item's effect and a trap's trigger are all identifiers,
 not blocks.
 
 Save and load themselves are future work. Serializability is not.
 
-### Belief is modelled apart from truth
+### Belief is modeled apart from truth
 
 What is on a floor and what somebody thinks is on a floor are two different things, and what a
 creature does follows from the second. So there is a `Knowledge` type from the first moment
@@ -245,7 +245,7 @@ naming what still has to be decided before it moves.
 
 Numpad decoding — the `SS3` keypad keys and a `DECKPAM` `Tty::Mode` for `termbuf-input.cr` — is
 deferred until there is a keypad to test it on and it is known which of the three supported
-terminals honour the mode.
+terminals honor the mode.
 
 ## Part 1: The harness
 
@@ -285,7 +285,7 @@ makes the rest cheap to verify.
 
 The one piece of shard-shaped work that has to come before anything can be drawn.
 
-* **Build** — `Cells(T)`, a source answering `#size` and `#cell(x, y)`, modelled on the existing
+* **Build** — `Cells(T)`, a source answering `#size` and `#cell(x, y)`, modeled on the existing
   `Rows(T)`. `CellGrid(T) < Widget`, including `Scrolls`: an `#on_draw(view, x, y, cell)`
   callback per visible cell, `#center_on(x, y)`, `#reveal(x, y, margin)` for a dead-zone camera,
   `#cell_at(view_x, view_y)` for turning a mouse report back into grid coordinates, and camera
@@ -301,7 +301,7 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 ### Phase 3 — Terrain and a hand-built floor
 
 * **Build** — A `Terrain` enum: `Granite`, `Sandstone`, `Shale` (three rock walls, identical in
-  behaviour for now, distinct in color), `StoneFloor`, `DirtFloor`, `ClosedDoor`, `OpenDoor`,
+  behavior for now, distinct in color), `StoneFloor`, `DirtFloor`, `ClosedDoor`, `OpenDoor`,
   `StairsUp`, `StairsDown`. Each carries the character a floor file writes it as, a label, a
   description, whether it blocks movement and whether it blocks sight — but not a glyph or a
   style, which are the screen's and live in `Ui::Palette`, per the rule that the model knows
@@ -388,16 +388,16 @@ The one piece of shard-shaped work that has to come before anything can be drawn
 * **Build** — `Attributes`: strength, dexterity, constitution, intelligence, stealth. Hit points
   and maximum hit points, derived from constitution and level. Character level, experience
   points, and the threshold for the next level. The status bar showing all of it. A debug binding
-  that grants experience, so levelling can be watched before combat exists.
+  that grants experience, so leveling can be watched before combat exists.
 * **Verify** — The status bar reads correctly and reflows when the window narrows. A spec over
-  the levelling table: experience at each threshold raises the level exactly once, maximum hit
+  the leveling table: experience at each threshold raises the level exactly once, maximum hit
   points rise, current hit points rise by the same amount.
 
 ### Phase 9 — Items and variants
 
 The model only. Nothing is on the floor yet and nothing can be carried.
 
-* **Build** — An `ItemKind` catalogue: healing potion; arrows, stones, rocks, darts; short sword,
+* **Build** — An `ItemKind` catalog: healing potion; arrows, stones, rocks, darts; short sword,
   long sword, rapier, dagger, mace, spear; sling, bow; leather armor, chain mail, shield, cap,
   boots, gloves; scrolls; wands. An `Item` carrying a kind plus its variants: an appearance
   (color or material, assigned per seed, so "a swirly potion" means the same thing all game and
@@ -477,7 +477,7 @@ The largest part, split so that each step is visible on its own.
   what is lit, and every pane takes one of those instead of a bare `FieldOfView`. A source lights
   what it can see, so light does not go round a corner. Light comes from three places: a lit
   `Fixture` on the floor, an `Item` that `#burns?` and is lit, carried or lying down, and the
-  floor's own `#glow` and `#ambient`. A glowing square spills onto every neighbour, walls and
+  floor's own `#glow` and `#ambient`. A glowing square spills onto every neighbor, walls and
   doors included, so a lit room has an edge to it and a door in a wall can be found. `a` lights or
   puts out whichever of those is to hand. The proving ground is dark, with four sconces in the
   first room, two in the second, and a magically lit room around the down staircase; the character
@@ -555,7 +555,7 @@ The phase that introduces the type monster bands will use in Phase 19.
 * **Build** — A `Monster` with a species, hit points, attributes, a position, a `band` and a
   `faction`. Three species: slime, goblin, orc, each with a glyph, color and base statistics.
   Placed on the floor from the map file, each in a band of one. They block movement and are
-  drawn, and the examine pane names them. No behaviour at all.
+  drawn, and the examine pane names them. No behavior at all.
 * **Verify** — All three appear, in the right colors, and hovering one describes it. Walking into
   one is refused with a message. A spec snapshots a floor with one of each and round-trips it
   through serialization.
@@ -574,7 +574,7 @@ The phase that introduces the type monster bands will use in Phase 19.
 * **Build** — Walking into a monster attacks it. To-hit from dexterity, weapon and enchantment
   against armor class; damage from the weapon, strength, enchantment and condition. Hit points
   fall, messages say what happened, a monster at zero dies and is removed. The player at zero
-  dies and the game ends. Experience awarded per species, driving the levelling from Phase 8.
+  dies and the game ends. Experience awarded per species, driving the leveling from Phase 8.
 * **Verify** — Kill a slime with a short sword; the messages read correctly, experience is
   awarded, the level rises at the threshold. Die to an orc and get the death screen. Specs run a
   fixed seed through a hundred exchanges and assert the exact sequence, so a change to the combat
@@ -587,7 +587,7 @@ The phase that introduces the type monster bands will use in Phase 19.
   `Game#blows`, so a miss and a hit rolling a different count of values shifts nothing after them
   and a save file holds a count rather than a generator's position. `Species` gained an `armor`
   field, so a goblin is harder to hit than a slime. A creature standing beside the character
-  swings back on every turn the character takes, which is the whole of monster behaviour until
+  swings back on every turn the character takes, which is the whole of monster behavior until
   Phase 18 decides whether one has noticed. `Ctrl+E` is gone: there is something to kill now.
 
 ### Phase 18 — Detection, stealth and darkvision
@@ -632,7 +632,7 @@ The phase that introduces the type monster bands will use in Phase 19.
   spec that a hundred turns of pursuit terminates and costs no more than a bounded amount of
   work.
 * **Done.** `Descent` is a Dijkstra map: the goal holds zero, every square beside it one, and a
-  creature walks a shortest path by stepping to whichever neighbour holds a smaller number. The
+  creature walks a shortest path by stepping to whichever neighbor holds a smaller number. The
   search runs once for a band rather than once for each of its members, and it floods over the
   band's `Knowledge` rather than over the `Floor`, so a shortcut nobody has looked down is not in
   it. `Knowledge#walkable?` is the whole of that: a square never seen answers false. The flood
@@ -640,7 +640,7 @@ The phase that introduces the type monster bands will use in Phase 19.
 
   `Pursuit.decide` is the AI and it keeps the architecture rule exactly: it reads a
   `Pursuit::Snapshot` holding no `Floor` and no `Player` — the band's belief, where the band last
-  saw the character, whether it can see them now, the descent, and which neighbouring squares are
+  saw the character, whether it can see them now, the descent, and which neighboring squares are
   taken — and answers an `Action`, which `Game#perform` applies and checks against what is
   actually there. A creature that decides to walk into a wall walks nowhere.
 
@@ -787,7 +787,7 @@ The phase that introduces the type monster bands will use in Phase 19.
   A wand of light writes the floor's own `glow` rather than placing anything. That is what the
   proving ground's magically lit room already is, so a zapped room is stored the way a built one
   is and the light survives a save file. Only the passable squares are set. A glowing square
-  spills onto every neighbour, so the walls light the way they do round any lit room, and setting
+  spills onto every neighbor, so the walls light the way they do round any lit room, and setting
   the glow on them as well would light what is behind them.
 
   Magic mapping writes `Knowledge#touch` over every square: the terrain and what is fixed to it,
@@ -815,8 +815,8 @@ The phase that introduces the type monster bands will use in Phase 19.
   stopped the walk on the same step, so the creature is asked about first.
 
   `Game#corridor?` is the branch rule: a square is a length of corridor when two of its four
-  cardinal neighbours can be walked onto and the two face each other. The corner of a room has
-  two neighbours as well, at right angles, and counting that would stop a walk along a room wall
+  cardinal neighbors can be walked onto and the two face each other. The corner of a room has
+  two neighbors as well, at right angles, and counting that would stop a walk along a room wall
   on its first step. Diagonals are not counted, because two squares touching at a corner are not
   a way between rooms and counting them would read every bend in a corridor as a junction.
 
@@ -979,7 +979,7 @@ compared over the same dungeons.
 It is an instrument for tuning rather than a way to play. `Trial::Bot` plays badly and plays the
 same way every time: it takes the staircase down when it is standing on one, drinks when badly
 hurt, swings at whatever is next to it, picks up what is underfoot and holds the heaviest hitting
-weapon it is carrying, and otherwise steps to a neighbour it has not stood on. It never retreats,
+weapon it is carrying, and otherwise steps to a neighbor it has not stood on. It never retreats,
 never shuts a door behind it, never shoots and never puts its torch out, which are the four things
 that keep a person alive. So the numbers are the pessimistic end of what the game is.
 
@@ -1102,7 +1102,7 @@ early decisions in [Architecture](#architecture) have a reason attached to them.
 
 ### Enemies that are actually intelligent
 
-The centre of the project, and the reason for the snapshot-and-action rule and for `Knowledge`.
+The center of the project, and the reason for the snapshot-and-action rule and for `Knowledge`.
 
 * A band — clan, tribe, den, pack — shares a mental map of the floor it lives on, and it knows
   that floor better than the player does. Fleeing into unfamiliar ground is a real risk.
@@ -1114,7 +1114,7 @@ The centre of the project, and the reason for the snapshot-and-action rule and f
   set to do the same.
 * Stealthy trackers that follow at the edge of vision, avoid combat entirely, record what the
   player is capable of, and report it to a leader who plans around it.
-* Leaders whose death changes the band's behaviour to something markedly less coordinated.
+* Leaders whose death changes the band's behavior to something markedly less coordinated.
 * Factions, so a goblin can be kited into a room of slimes and shut in, or two monsters shut in
   together.
 
@@ -1122,13 +1122,13 @@ The centre of the project, and the reason for the snapshot-and-action rule and f
 
 Detection is one reach today. The light on the character raises it, which is what makes standing
 in the middle of a lit room or crossing a passage with a torch dangerous. Splitting it is a
-change to perception and a change to behaviour together.
+change to perception and a change to behavior together.
 
 * Sight and hearing as separate senses, each with its own reach and its own rules. Light belongs
   to the first and says nothing about the second.
 * A light noticed as a thing in its own right rather than only as what makes a creature visible.
   A creature would notice a torch coming up a corridor without yet knowing who carries it.
-* Noticing a light is then a behaviour a species has or does not. A slime round the corner does
+* Noticing a light is then a behavior a species has or does not. A slime round the corner does
   not care that a torch is approaching. A goblin or an orc reads it as somebody arriving and acts
   on that before anything is in sight.
 * What such a creature does with it: wait at the mouth of the corridor, move to somewhere it can
@@ -1162,7 +1162,7 @@ remembered terrain draws rather than the way lit terrain does.
 * Planning in a `Fiber::ExecutionContext::Parallel`, off the fiber that owns the model and off
   the drawing fiber, sized by `--threads`.
 * Plans that span several turns, each carrying the preconditions it depends on, validated by the
-  owner each turn and cancelled when a dependency no longer holds.
+  owner each turn and canceled when a dependency no longer holds.
 * A monster with no plan ready takes a cheap default action rather than stalling the turn, so a
   fleeing player never waits on a planner.
 
@@ -1171,7 +1171,7 @@ remembered terrain draws rather than the way lit terrain does.
 * A town floor whose shops and residents are attracted by what the player does and what they are
   worth.
 * A house to build out: storage, decorations.
-* Reputation, managed partly through travelling bards.
+* Reputation, managed partly through traveling bards.
 * Pets.
 
 ### Depth and systems
@@ -1278,14 +1278,14 @@ menu is as wide as its rows and no wider.
 
 ### The angle it comes from
 
-`Descent#toward` used to take the first neighbour, in the order the directions happen to be
+`Descent#toward` used to take the first neighbor, in the order the directions happen to be
 declared, that was nearer the goal than the square the creature stood on. A diagonal step costs what
-a straight one does, so three or more neighbours are usually the same distance nearer and the
+a straight one does, so three or more neighbors are usually the same distance nearer and the
 declaration order decided between them. That gave a creature a diagonal leg followed by a straight
 one: the same number of turns as a line, and it read as a creature walking at forty-five degrees to
 wherever it was going.
 
-`Descent#downhill` now answers every neighbour that is as near as any is, and `Descent.nearest`
+`Descent#downhill` now answers every neighbor that is as near as any is, and `Descent.nearest`
 picks between them by which one heads most nearly along the line from the creature to the goal.
 `Line.step` gives that line, which is Bresenham and is the line an arrow and a thrown dagger already
 follow. The diagonal steps are spread along the way instead of taken at one end, so a creature
@@ -1304,7 +1304,7 @@ many creatures are on the floor and how often they trip changes nothing about wh
 `Pursuit` rolls nothing; `Snapshot#stumble` arrives already decided.
 
 A creature putting a foot wrong steps sideways rather than nearer, so what it is chasing gains a
-square. `Descent#sideways` answers the neighbours that are neither nearer nor further. There are
+square. `Descent#sideways` answers the neighbors that are neither nearer nor further. There are
 none of those in a corridor, and a creature in one walks on properly: nothing is shaken off in a
 corridor. A species that does not path has no map to step sideways on and loses the turn instead.
 
@@ -1312,7 +1312,7 @@ Over forty steps of running away across open ground, that opens a gap of about f
 goblin and four from an orc. That is what makes breaking the line of sight possible in the first
 place.
 
-A creature already beside the character still swings. What is being modelled is finding the way, not
+A creature already beside the character still swings. What is being modeled is finding the way, not
 fighting.
 
 ### Whether it gives up
@@ -1346,7 +1346,7 @@ anything scrolled.
 
 `CellGrid#reveal` therefore takes a margin per axis. A window is much wider than it is tall and a
 cell is about twice as tall as it is wide, so the two axes never want the same count. A margin at
-least half its axis leaves no position that satisfies it, and that axis centres instead.
+least half its axis leaves no position that satisfies it, and that axis centers instead.
 
 The examine cursor is followed the same way. Reading the map from the keyboard wants the same
 context around the cursor that walking wants around the character.
@@ -1758,7 +1758,7 @@ the same as another, so three of them are one inventory entry rather than three 
 Nothing drives one under a door yet. That verb arrives with bracing and with creatures that open
 doors, which are listed below as three entries that have to land together.
 
-The character starts with three. A floor hands them out at a weight of 7 against a table totalling
+The character starts with three. A floor hands them out at a weight of 7 against a table totaling
 460, which is 1.5 out of every 100 items it scatters, in stacks of two to four. At that rate a
 person who had to find one before learning what it is for would mostly never find one.
 

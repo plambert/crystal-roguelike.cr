@@ -6,7 +6,7 @@ module Roguelike
   # A number on every square saying how many steps it is from a goal.
   #
   # The goal holds zero, every square beside it holds one, and so on outward.
-  # A creature walks a shortest path by stepping to whichever neighbour holds
+  # A creature walks a shortest path by stepping to whichever neighbor holds
   # a smaller number than the square it is standing on. The search runs once
   # for a whole band rather than once for each of its members, and the
   # creatures themselves search for nothing.
@@ -95,13 +95,13 @@ module Roguelike
     # is given `nil` stays where it is.
     #
     # *blocked* names the squares something else is standing on. A creature
-    # waits rather than walking into its neighbour.
+    # waits rather than walking into its neighbor.
     #
     # Only a square strictly nearer the goal counts, never one the same
     # distance off. A creature whose way down is taken waits for it to clear
     # rather than stepping sideways and coming back the turn after.
     #
-    # Several neighbours are usually the same distance nearer, because a
+    # Several neighbors are usually the same distance nearer, because a
     # diagonal step costs what a straight one does. `.nearest` picks between
     # them, and ties there go to whichever direction `Direction` names first,
     # so a band walks the same way twice from the same seed.

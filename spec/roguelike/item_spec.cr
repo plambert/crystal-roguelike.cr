@@ -4,7 +4,7 @@ Spectator.describe Roguelike::Item do
   alias Kind = Roguelike::ItemKind
   alias Condition = Roguelike::Condition
 
-  describe "the catalogue" do
+  describe "the catalog" do
     it "says what every kind is" do
       Kind.each do |kind|
         expect(kind.label).not_to be_empty

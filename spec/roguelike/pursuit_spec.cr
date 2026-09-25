@@ -139,7 +139,7 @@ Spectator.describe Roguelike::Pursuit do
     # A descent steps to a square strictly nearer the goal, never sideways,
     # so a creature whose way down is taken waits for it rather than
     # shuffling round and coming back next turn.
-    it "waits rather than pushing past its neighbour" do
+    it "waits rather than pushing past its neighbor" do
       open = Pursuit.decide snapshot({3, 3}, quarry: {1, 1})
       shut = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, blocked: [{2, 2}])
 
@@ -191,7 +191,7 @@ Spectator.describe Roguelike::Pursuit do
       expect(found).to eq Action.wait
     end
 
-    it "waits rather than walking into its neighbour" do
+    it "waits rather than walking into its neighbor" do
       found = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, paths: false,
         blocked: [{2, 2}])
 
@@ -242,7 +242,7 @@ Spectator.describe Roguelike::Pursuit do
     end
 
     # A creature with its hand already on you does not fumble the swing. What
-    # is being modelled is finding the way, not fighting.
+    # is being modeled is finding the way, not fighting.
     it "still swings at a character beside it" do
       found = Pursuit.decide snapshot({2, 2}, quarry: {3, 3}, stumble: true)
 

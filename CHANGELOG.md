@@ -93,7 +93,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The highlighted row of a menu has `⟪` at its near edge and `⟫` at its far edge. The highlight
   covers the name. It no longer covers the key and the mark beside it. The same two marks are used
   on the row of the `Here` or `Seen` list under the pointer.
-* A scroll nobody has read is "a scroll YLOH" rather than "a scroll labelled YLOH".
+* A scroll nobody has read is "a scroll YLOH" rather than "a scroll labeled YLOH".
 * The character starts knowing their own kit is uncursed. The short sword, the leather armor, the
   torch and the spikes are uncursed from the first turn. None of them waits on a handling roll.
 * No message is written when an item is discovered to be uncursed. Only a blessing or a curse is

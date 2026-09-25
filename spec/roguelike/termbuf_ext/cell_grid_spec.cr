@@ -58,7 +58,7 @@ Spectator.describe TermBuf::Widgets::CellGrid do
       expect(grid.visible_y).to eq(0...8)
     end
 
-    it "cannot be centred away from the origin" do
+    it "cannot be centered away from the origin" do
       grid = windowed(40, 15, field: 8).grid
 
       grid.center_on 7, 7
@@ -133,7 +133,7 @@ Spectator.describe TermBuf::Widgets::CellGrid do
       expect({grid.scroll_x, grid.scroll_y}).to eq({160, 185})
     end
 
-    it "still shows the cell it was asked to centre when it clamped" do
+    it "still shows the cell it was asked to center when it clamped" do
       grid = windowed(40, 15).grid
 
       grid.center_on 199, 199
@@ -319,7 +319,7 @@ Spectator.describe TermBuf::Widgets::CellGrid do
 
     # No camera position leaves a cell five cells from every edge of a window
     # nine cells wide. The cell goes in the middle instead.
-    it "centres when the margin does not fit the window" do
+    it "centers when the margin does not fit the window" do
       grid = windowed(9, 9).grid
 
       grid.reveal 100, 100, margin: 5
