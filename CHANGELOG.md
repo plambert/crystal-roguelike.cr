@@ -10,6 +10,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* `R` rests turn after turn until the character is healed. It stops when their hit points are
+  full, when a creature comes into sight, when they lose hit points, when a line is written to the
+  message log, and on any key. It refuses to start when the character is already at full health or
+  when a creature is in sight. A creature the character cannot see does not stop it until that
+  creature does something they notice. Each turn of rest is a turn of the run, so everything else
+  on the floor acts between one and the next.
 * A turn spent standing still and a hit point regenerated are each reported as an event. Neither
   writes a line to the message log.
 * A melee attack is a verb of its own. It names the square the blow is aimed at rather than a

@@ -185,6 +185,17 @@ module Roguelike::Ui
     # The walk being drawn, or `nil` when nothing is walking.
     @walk : Game::Walk? = nil
 
+    # How long one turn of a rest is drawn for.
+    #
+    # It is a third of a stride. A rest can run for hundreds of turns and
+    # nothing on the screen changes but the hit points, so it is drawn faster
+    # than a walk. A rest drawn at walking pace would be half a minute of
+    # watching a meter.
+    BREATH = 15.milliseconds
+
+    # The rest being drawn, or `nil` when nothing is resting.
+    @rest : Game::Rest? = nil
+
     # What holds the keyboard while a walk is drawn.
     getter interrupt : Interrupt = Interrupt.new
 
@@ -888,6 +899,91 @@ module Roguelike::Ui
 
       @game.perform Action::Wait.new
       refresh
+    end
+
+    # Rests turn after turn until the character is healed. `R` does this.
+    #
+    # A command waiting for a direction takes the key back instead, the way a
+    # movement key does.
+    #
+    # A rest that cannot start says why. A character at full health has
+    # nothing to rest for, and one who can see a creature has something else
+    # to do.
+    def rest : Nil
+      if @pending
+        @pending = nil
+        refresh
+        return
+      end
+
+      found = @game.resting
+      halt = found.halt
+      return start_resting found unless halt
+
+      say Play.refused_rest halt
+    end
+
+    # What a rest that never started says.
+    def self.refused_rest(halt : Halt) : String
+      case halt
+      when .healed?   then "You are already as well as you are going to get."
+      when .in_sight? then "You cannot rest with a creature in sight."
+      else                 "You cannot rest now."
+      end
+    end
+
+    # Starts *rest* and takes its first turn.
+    #
+    # The keyboard goes to `#interrupt` while the rest goes on, the way it
+    # does during a walk. Every binding the application has is out of reach
+    # until the rest stops, so a key pressed part way through stops it.
+    private def start_resting(rest : Game::Rest) : Nil
+      @rest = rest
+      @interrupt.grab @app
+      @pager.deferred = true
+
+      breathe
+    end
+
+    # Takes one turn of rest, draws it, and arms the next.
+    #
+    # An application with no clock cannot arm one, so the whole rest happens
+    # inside this call instead. A spec then reads the hit points without
+    # having to drive a timer.
+    private def breathe : Nil
+      loop do
+        rest = @rest
+        return unless rest
+
+        going = @game.linger rest
+
+        # The rest is put away before the screen is drawn, so the pane is
+        # free to hold on the lines the last turn wrote.
+        stop_resting unless going
+        refresh
+        return unless going
+
+        app = @app
+        return if app && app.after(BREATH) { breathe }
+      end
+    end
+
+    # Ends the rest being drawn and gives the keyboard back.
+    #
+    # It says nothing, for the reason `#stop_walking` says nothing. A person
+    # who pressed a key to stop a rest knows they stopped it, and the hit
+    # point meter is where a rest that ran its course shows.
+    private def stop_resting : Nil
+      return unless @rest
+
+      @rest = nil
+      @interrupt.let_go
+      @pager.deferred = false
+    end
+
+    # Whether a rest is being taken a turn at a time.
+    def resting? : Bool
+      !@rest.nil?
     end
 
     # Waits for a direction to walk in. `G` does this.
@@ -1909,7 +2005,7 @@ module Roguelike::Ui
     # A square the character knows nothing about is read out and no more.
     # There is no way to a square nobody has seen.
     private def walk_toward(goal : {Int32, Int32}?) : Nil
-      return interrupted if walking?
+      return interrupted if walking? || resting?
       return if goal.nil? || @game.over?
       return if goal == @game.player.at
 
@@ -2116,6 +2212,7 @@ module Roguelike::Ui
     # this, and so does a click.
     private def interrupted : Nil
       stop_walking
+      stop_resting
       refresh
     end
 

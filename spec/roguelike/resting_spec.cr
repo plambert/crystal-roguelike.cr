@@ -29,7 +29,7 @@ Spectator.describe "resting" do
 
     game = Game.new World.new(Playing::SEED, {"hall" => floor}),
       Player.new("hall", 3, 2)
-    game.enrol
+    game.enroll
     game.player.hurt down
 
     game
@@ -52,7 +52,7 @@ Spectator.describe "resting" do
 
     game = Game.new World.new(Playing::SEED, {"split" => floor}),
       Player.new("split", 3, 2)
-    game.enrol
+    game.enroll
     game.player.hurt down
 
     game

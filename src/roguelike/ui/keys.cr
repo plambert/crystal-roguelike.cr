@@ -74,6 +74,8 @@ module Roguelike::Ui
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("G"), "run until something stops you",
           ->(_context : Widgets::Context) { play.start_running; nil }
+        map.bind TermBuf::Key.parse("R"), "rest until you are healed",
+          ->(_context : Widgets::Context) { play.rest; nil }
         map.bind TermBuf::Key.parse("."), "wait a turn",
           ->(_context : Widgets::Context) { play.wait; nil }
         map.bind TermBuf::Key.parse("o"), "open a door",
