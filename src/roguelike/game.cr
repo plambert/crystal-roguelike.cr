@@ -1064,7 +1064,13 @@ module Roguelike
     # This is public so that the debug console's `kill` command can call it
     # rather than repeat it. Nothing in a normal run reaches it from outside
     # `Game`.
+    #
+    # It throws the index away itself. A blow reaches it inside `#spend`,
+    # which throws the index away anyway. The console reaches it outside
+    # `#spend`, because a console command takes no turn, and the index would
+    # otherwise go on answering with a creature that is off the floor.
     def kill(creature : Monster) : Nil
+      clear_bearers
       floor.remove creature.x, creature.y
       creature.drop_everything.each do |item|
         floor.drop creature.x, creature.y, item
@@ -3895,6 +3901,10 @@ module Roguelike
     #
     # `#each_bearer` is one pass over the world, with a sort per floor. The
     # index turns K lookups in a turn into one pass rather than K.
+    #
+    # A run has one floor. `#descend` ends the run rather than digging the
+    # next one, so the loop over floors in `#each_bearer` is for a game with
+    # more than one later. What the build costs is what one floor holds.
     private def bearers : Hash(Int32, Item | Monster)
       found = @bearers
       return found if found
@@ -3906,7 +3916,7 @@ module Roguelike
 
     # Throws the index away. The next lookup builds it again.
     #
-    # Three things call this, and between them they cover every way the run
+    # Four things call this, and between them they cover every way the run
     # gains, loses or moves something with an id.
     #
     # * `#spend`, which every verb that changes anything goes through. A verb
@@ -3919,10 +3929,13 @@ module Roguelike
     # * `#perform`, once the action is over. Nothing outside this class
     #   reaches a rule any other way, so this covers a verb this list has
     #   missed.
+    # * `#kill`, which takes a creature off the floor and puts what it
+    #   carried on the square. A blow reaches it inside `#spend`. The debug
+    #   console reaches it outside `#spend` and outside `#perform`, because a
+    #   console command takes no turn.
     #
     # Nothing in this class looks an id up, so an index built part way
-    # through an action cannot be read before one of the three throws it
-    # away.
+    # through an action cannot be read before one of the four throws it away.
     private def clear_bearers : Nil
       @bearers = nil
     end

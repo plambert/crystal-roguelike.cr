@@ -253,6 +253,27 @@ Spectator.describe "entity ids" do
       expect(game.monster creature.id).to be_nil
     end
 
+    # `Game#kill` is public so that the debug console can reach it. A
+    # console command takes no turn, so that one way through reaches neither
+    # `#spend` nor `#perform`. `#kill` throws the index away itself.
+    it "answers nothing for a creature killed without a turn being spent" do
+      game = Game.dug Rng.new(SEED)
+      creature = game.floor.monsters.values.first
+      carried = Item.new Kind::Dagger
+      carried.enrol game.next_id
+      creature.carrying << carried
+
+      expect(game.monster creature.id).to be creature
+      expect(game.item carried.id).to be carried
+
+      game.kill creature
+
+      expect(game.monster creature.id).to be_nil
+      expect(game.item carried.id).to be carried
+      expect(game.floor.items(creature.x, creature.y)).to contain carried
+      expect(game.turn).to eq 0
+    end
+
     it "gives out the same ids however many times it was asked" do
       one = Game.dug Rng.new(SEED)
       two = Game.dug Rng.new(SEED)
