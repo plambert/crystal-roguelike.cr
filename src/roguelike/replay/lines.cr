@@ -5,11 +5,15 @@ module Roguelike
   module Replay
     # Which shape the lines of a file are in.
     #
-    # A reader refuses a file whose number is above its own. A number is
-    # raised when a field changes meaning or goes away. A field added beside
-    # the ones already there does not raise it, because a reader of the older
+    # A reader refuses a file whose number is not its own. A number is raised
+    # when a field changes meaning or goes away. A field added beside the
+    # ones already there does not raise it, because a reader of the older
     # shape ignores what it does not know.
-    FORMAT = 1
+    #
+    # Format 2 is the first whose fingerprints leave the message log out. A
+    # format 1 file holds fingerprints taken with the log in them, so every
+    # checkpoint in one differs from what this build takes.
+    FORMAT = 2
 
     # What a run was written down with, and where it started.
     #

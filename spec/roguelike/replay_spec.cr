@@ -348,6 +348,16 @@ Spectator.describe Roguelike::Replay do
   end
 
   describe "a file this cannot read" do
+    # The header of a run recorded before the fingerprint left the message
+    # log out.
+    def old_format : String
+      where = spot "aged"
+      Recording.played where, turns: 20
+
+      File.read_lines(where)[0]
+        .sub %("format":#{Roguelike::Replay::FORMAT}), %("format":1)
+    end
+
     it "reports an empty file rather than raising" do
       where = Recording.file [] of String, "empty"
 
@@ -363,6 +373,25 @@ Spectator.describe Roguelike::Replay do
     it "reports a file it has never heard of" do
       expect(Verifier.check(Recording.directory / "nothing-here.jsonl").ok?)
         .to be_false
+    end
+
+    # Format 1 holds fingerprints taken with the message log in them. Every
+    # checkpoint in one differs from what this build takes, so --force has
+    # nothing to find and does not reach the refusal.
+    it "refuses a file whose fingerprints cover the message log" do
+      where = Recording.file [old_format], "format-one"
+
+      expect(Verifier.check(where).trouble.to_s).to contain "is format 1"
+      expect(Verifier.check(where).trouble.to_s).to contain "cover the message log"
+      expect(Verifier.check(where, force: true).ok?).to be_false
+    end
+
+    it "reports a file from a build it does not read" do
+      later = old_format.sub %("format":1), %("format":#{Roguelike::Replay::FORMAT + 1})
+      where = Recording.file [later], "format-later"
+
+      expect(Verifier.check(where).trouble.to_s)
+        .to contain "and this build reads #{Roguelike::Replay::FORMAT}"
     end
   end
 

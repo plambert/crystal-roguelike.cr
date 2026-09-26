@@ -92,8 +92,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The fingerprint of a run leaves the message log out. A save still holds the log, and a person who
   comes back to a run reads their last lines. `replay verify` no longer reports a difference for a
   line the game wrote outside an action, such as the one `G` writes when it asks which way to run.
-  A replay log recorded by an earlier build no longer verifies, because its fingerprints were taken
-  with the log in them.
+  A replay log is now format 2. `replay verify` refuses a format 1 file and says that its
+  fingerprints cover the message log, which this build leaves out. `--force` does not check one
+  anyway, because every checkpoint in it differs.
 * A rest runs several turns between one repaint and the next. The first turns are drawn one at a
   time, the middle of a rest goes by in batches, and the batches shrink again as the hit points
   fill up. A rest of 220 turns took 5.1 seconds and now takes 1.5. A key still stops the rest, and

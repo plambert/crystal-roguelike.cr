@@ -56,7 +56,10 @@ def sampled : Roguelike::Game
   game
 end
 
-read = File.exists?(GOLDEN) ? Roguelike::Replay::Reading.read(GOLDEN) : nil
+# The actions are what is wanted here. The fingerprints beside them are the
+# values being written afresh, so a file this build would refuse to check is
+# still one it reads the actions out of.
+read = File.exists?(GOLDEN) ? Roguelike::Replay::Reading.read(GOLDEN, fingerprints: false) : nil
 wanted = Path[File.tempname "golden", ".jsonl"]
 
 Roguelike::Replay::Log.pattern = wanted.to_s

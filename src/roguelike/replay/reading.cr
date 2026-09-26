@@ -45,17 +45,24 @@ module Roguelike
       end
 
       # The file at *path*, read.
-      def self.read(path : Path | String) : Reading
+      #
+      # *fingerprints* says the values in the file have to be ones this build
+      # takes. `script/golden.cr` passes false. It reads the actions out of a
+      # file whose fingerprints it is about to write afresh, and those are
+      # the values being replaced.
+      def self.read(path : Path | String,
+                    fingerprints : Bool = true) : Reading
         where = Path.new path
         found = File.read_lines where
         found.pop if found.last?.try &.blank?
         raise Error.new "#{where} is empty" if found.empty?
 
-        new where, *sorted(where, found)
+        new where, *sorted(where, found, fingerprints)
       end
 
       # The lines of *found*, each put where it belongs.
-      private def self.sorted(where : Path, found : Array(String))
+      private def self.sorted(where : Path, found : Array(String),
+                              fingerprints : Bool = true)
         header = nil.as Header?
         records = [] of Act | Check
         footer = nil.as Footer?
@@ -83,9 +90,29 @@ module Roguelike
         end
 
         raise Error.new "#{where} has no header" unless header
-        raise Error.new "#{where} is format #{header.format}, and this build reads #{FORMAT}" if header.format > FORMAT
+        if fingerprints && header.format != FORMAT
+          raise Error.new refused(where, header.format)
+        end
 
         {header, records, footer, truncated, ignored}
+      end
+
+      # Why a file of *format* is not read.
+      #
+      # Format 1 holds fingerprints taken with the message log in them, and
+      # this build leaves the log out. Every checkpoint in such a file
+      # differs from what this build takes, so there is nothing in it to
+      # check. `--force` does not reach this. It is for a build whose draw
+      # sequences moved, where checking anyway says something, and here it
+      # would say only that the first checkpoint differs.
+      private def self.refused(where : Path, format : Int32) : String
+        if format == 1
+          return "#{where} is format 1, recorded by a build whose " \
+                 "fingerprints cover the message log, which this build " \
+                 "leaves out. Record the run again to check it"
+        end
+
+        "#{where} is format #{format}, and this build reads #{FORMAT}"
       end
 
       # What *line* calls itself. `nil` for a line that is not JSON.
