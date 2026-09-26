@@ -2561,7 +2561,20 @@ terminal. The viewer is those pieces with the keyboard changed.
 #### The transport
 
 Space pauses and plays. `l` and the right arrow take one action forward. `h` and the left arrow take
-one action back. `+` and `-` change the speed. `g` jumps to a turn. Escape leaves.
+one action back. `g` jumps to a turn. Escape leaves.
+
+`1` to `5` set the speed. `+` and `-` step up and down the same ladder.
+
+| Key | Between two actions |
+| --- | --- |
+| `1` | 2000 ms |
+| `2` | 500 ms |
+| `3` | 125 ms |
+| `4` | 30 ms |
+| `5` | no pause |
+
+The four numbers between the ends are a first guess and are meant to be tuned after somebody has
+watched a run with them.
 
 The status line holds the turn, the action index, whether it is playing, and the speed.
 
@@ -2570,19 +2583,30 @@ The status line holds the turn, the action index, whether it is playing, and the
 Playback runs on the timer a walk and a rest already use. `app.after` wakes the frame loop, so
 `Session#run` needs no change.
 
-One action is about 1 ms and one repaint is about 77 ms, so the repaint sets the rate. Fast playback
-performs several actions per repaint, which is what `Ui::Play.breath_size` does for a rest.
+One action is about 1 ms and one repaint is about 77 ms, so the repaint sets the rate.
+
+Speeds `1` to `4` perform one action per repaint and wait the interval between them. Speed `5`
+performs actions back to back and repaints on a budget of 100 ms, which is what
+`Ui::Play.breath_size` does for a rest.
 
 #### Going back
 
-A snapshot is `Game.from_json(game.to_json)`. One is 116 KB. Taking one is 0.63 ms and restoring one
-is 1.42 ms.
+A snapshot is `Game#to_json`. One is 116 KB. Writing one is 0.63 ms and reading one back is 1.42 ms,
+before the file itself.
 
-Keep a snapshot every 250 actions while playing forward. A jump backward restores the nearest
-snapshot and replays at most 250 actions, which is under 300 ms. A run of 5,109 actions needs 21
-snapshots and 2.4 MB.
+Keep a snapshot every 250 actions while playing forward. A jump backward reads the nearest snapshot
+and replays at most 250 actions, which is under 300 ms. A run of 5,109 actions needs 21 snapshots
+and 2.4 MB.
 
 Replaying from the start instead would be 6 seconds on that run, which is too slow to scrub with.
+
+A snapshot is a file under `Dir.tempdir`, and its name holds the process id. The viewer removes its
+own files as it exits.
+
+A viewer that starts reads the directory first. A file whose process id belongs to no running
+process is left over from a viewer that was killed, and it is removed. `Process.exists?` answers
+whether the process is there. A process id is reused eventually, so a file whose id belongs to some
+other running process is left alone.
 
 #### The keyboard
 
