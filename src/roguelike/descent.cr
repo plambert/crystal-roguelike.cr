@@ -40,8 +40,12 @@ module Roguelike
     #
     # The goal square goes in whatever is remembered of it, so a creature
     # walks to where it believes the character is standing.
+    #
+    # *doors* crosses a door remembered as shut. A route the person picked
+    # does that, because the character opens any door they can reach. A band
+    # does not, so the default leaves a shut door in the way.
     def self.toward(knowledge : Knowledge, goal : {Int32, Int32},
-                    limit : Int32 = LIMIT) : Descent
+                    limit : Int32 = LIMIT, doors : Bool = false) : Descent
       steps = {goal => 0}
       edge = [goal]
       away = 0
@@ -54,7 +58,7 @@ module Roguelike
           Direction.values.each do |direction|
             wanted = direction.from spot[0], spot[1]
             next if steps.has_key? wanted
-            next unless knowledge.walkable? wanted[0], wanted[1]
+            next unless crossable? knowledge, wanted, doors
 
             steps[wanted] = away
             wave << wanted
@@ -65,6 +69,13 @@ module Roguelike
       end
 
       new goal, steps
+    end
+
+    # Whether the flood may run over *spot*. *doors* counts a door
+    # remembered as shut.
+    private def self.crossable?(knowledge : Knowledge, spot : {Int32, Int32},
+                                doors : Bool) : Bool
+      doors ? knowledge.crossable?(spot) : knowledge.walkable?(spot)
     end
 
     # How many steps *x*, *y* is from the goal. `nil` for a square the

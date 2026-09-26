@@ -2087,7 +2087,7 @@ module Roguelike::Ui
 
     # Works out the way to *goal* and lights it up. No turn is taken.
     private def draw_route(goal : {Int32, Int32}) : Nil
-      return unless @game.knowledge.walkable? goal
+      return unless @game.knowledge.crossable? goal
 
       route = @game.route_to goal
       if route.size < 2

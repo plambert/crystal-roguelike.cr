@@ -12,8 +12,12 @@ module Roguelike
   # every question is answered off it.
   #
   # Nothing here reads a `Floor`. A route crosses what somebody believes is
-  # there. A shortcut nobody has found is not offered, and neither is a way
-  # through a door remembered as shut.
+  # there. A shortcut nobody has found is not offered.
+  #
+  # A door is crossed whether it is remembered open or shut. The character
+  # opens any door they can reach, and a walk along a route opens a shut one
+  # and carries on. A band is the other case, and `Descent.toward` leaves a
+  # shut door in its way by default.
   module Route
     # How far a route is searched.
     #
@@ -68,10 +72,10 @@ module Roguelike
                               limit : Int32) : {Array({Int32, Int32}), Descent?}
       from = vision.origin
 
-      found = over Descent.toward(knowledge, from, limit), goal
+      found = over Descent.toward(knowledge, from, limit, doors: true), goal
       return {found, nil} unless found.empty?
 
-      guess = Descent.toward guessed(knowledge, vision), from, limit
+      guess = Descent.toward guessed(knowledge, vision), from, limit, doors: true
       {over(guess, goal), guess}
     end
 
@@ -80,7 +84,7 @@ module Roguelike
     def self.between(knowledge : Knowledge, from : {Int32, Int32},
                      goal : {Int32, Int32},
                      limit : Int32 = LIMIT) : Array({Int32, Int32})
-      over Descent.toward(knowledge, from, limit), goal
+      over Descent.toward(knowledge, from, limit, doors: true), goal
     end
 
     # The squares from where *descent* was flooded from to *goal*.
@@ -147,7 +151,7 @@ module Roguelike
     # The far end needs nothing from this anyway, because looking at a square
     # is what puts it in `Knowledge`.
     #
-    # A square remembered as a wall stays a wall. `Knowledge#walkable?` reads
+    # A square remembered as a wall stays a wall. `Knowledge#crossable?` reads
     # a memory before it reads an opening.
     #
     # The field of view is symmetric shadowcasting and the line here is

@@ -132,14 +132,38 @@ Spectator.describe Roguelike::Route do
       expect(found).to be_empty
     end
 
-    # The way through is a shut door, and a door remembered as shut is not
-    # walked through. The line of sight stops at it as well, so there is
-    # nothing to infer either.
-    it "does not walk through a door remembered as shut" do
+    # The character opens any door they can reach. A shut door on the way to
+    # a square they picked costs a turn rather than stopping them.
+    it "walks through a door remembered as shut" do
       floor, knowledge = known ROOMS
       found = Route.known knowledge, looking(floor, {2, 2}), {8, 2}
 
-      expect(found).to be_empty
+      expect(found.first).to eq({2, 2})
+      expect(found.last).to eq({8, 2})
+      expect(found).to contain({4, 2})
+      expect(found).to contain({6, 2})
+    end
+
+    # A monster opens a door the character last looked at while it was shut.
+    # The memory is wrong and the route is walked anyway, because the way it
+    # crosses is a door either way.
+    it "walks through a door remembered as shut that now stands open" do
+      floor, knowledge = known ROOMS
+      floor.set 4, 2, Roguelike::Terrain::OpenDoor
+      found = Route.known knowledge, looking(floor, {2, 2}), {8, 2}
+
+      expect(found.last).to eq({8, 2})
+      expect(found).to contain({4, 2})
+    end
+
+    # A band is the other case. `Descent.toward` leaves a shut door in its
+    # way unless a caller asks for one that crosses it.
+    it "leaves a shut door in the way of a descent nobody asked about" do
+      _floor, knowledge = known ROOMS
+      found = Descent.toward knowledge, {2, 2}
+
+      expect(found.includes? 4, 2).to be_false
+      expect(found.includes? 8, 2).to be_false
     end
 
     # The character stands in the dark and can see the lit end of the hall.

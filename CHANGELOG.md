@@ -148,6 +148,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A walk stopped on the first of two identical items and not on the second. It now stops on both.
 * A walk in a run of more than two hundred messages stopped on every item it crossed, including
   items the character had already walked over. It stops only on an item they have not seen.
+* A route now crosses a door the character remembers, open or shut. A walk along a route opens a
+  shut door and carries on, spending a turn on it. A square behind a door the character remembers
+  as shut can be picked with the mouse, and so can the door itself. A walk in one direction still
+  stops in front of a shut door, and a band of monsters still treats one as a wall.
 
 ## [0.1.0] - 2026-09-19
 

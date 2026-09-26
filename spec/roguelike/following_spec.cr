@@ -30,12 +30,34 @@ Spectator.describe "walking a route" do
     "#############",
   ]
 
+  # The same corridor and room, with the door shut.
+  SHUT = [
+    "#############",
+    "######......#",
+    "#<...+......#",
+    "######......#",
+    "#############",
+  ]
+
   # A game on *lines* with the character on the up staircase.
   def walking(lines : Array(String) = SIDE) : Game
     floor = Playing.daylight Roguelike::Floor.parse("run", lines)
 
     Game.new Roguelike::World.new(SEED, {"run" => floor}),
       Roguelike::Player.new("run", *Game.entrance(floor), hit_points: 40)
+  end
+
+  # A game on *lines* with every square of the floor already remembered.
+  #
+  # A route crosses what the character remembers. A shut door blocks sight,
+  # so a character who has never been through one knows nothing of the room
+  # behind it and has no route into it.
+  def knowing(lines : Array(String)) : Game
+    game = walking lines
+    floor = game.floor
+    floor.each { |column, row, _tile| game.player.knowledge.see floor, column, row }
+
+    game
   end
 
   # The route from where the character stands to *goal*, after a look.
@@ -77,6 +99,36 @@ Spectator.describe "walking a route" do
       went = game.follow route(game, {9, 2})
 
       expect(game.player.at).to eq({9, 2})
+      expect(went.halt).to eq Halt::Arrived
+    end
+
+    # The character opens any door they can reach. The person picked a square
+    # on the far side, so the walk opens the door and carries on.
+    it "opens a shut door and walks on" do
+      game = knowing SHUT
+      went = game.follow route(game, {9, 2})
+
+      expect(game.player.at).to eq({9, 2})
+      expect(went.halt).to eq Halt::Arrived
+      expect(game.floor.terrain 5, 2).to eq Roguelike::Terrain::OpenDoor
+    end
+
+    # Opening the door takes a turn of its own. The character walks through
+    # on the turn after it.
+    it "spends a turn on the door it opens" do
+      game = knowing SHUT
+      before = game.turn
+
+      game.follow route(game, {9, 2})
+
+      expect(game.turn).to eq before + 9
+    end
+
+    it "walks to a shut door the person picked" do
+      game = walking SHUT
+      went = game.follow route(game, {5, 2})
+
+      expect(game.player.at).to eq({5, 2})
       expect(went.halt).to eq Halt::Arrived
     end
 

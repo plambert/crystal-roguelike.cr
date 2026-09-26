@@ -180,6 +180,27 @@ module Roguelike
       walkable? spot[0], spot[1]
     end
 
+    # Whether what is known of *x*, *y* could be crossed on the way
+    # somewhere, counting a door remembered as shut.
+    #
+    # The character opens any door they can reach. A shut door on the way to
+    # a square they picked costs them a turn rather than stopping them, so a
+    # route crosses one. A door remembered as shut that somebody else has
+    # since opened is crossed for the same reason.
+    #
+    # `#walkable?` is the answer for a band. A band does not open doors.
+    def crossable?(x : Int32, y : Int32) : Bool
+      found = self[x, y]
+      return found.terrain.passable? || found.terrain.door? if found
+
+      @openings.includes? Floor.spot(x, y)
+    end
+
+    # :ditto:
+    def crossable?(spot : {Int32, Int32}) : Bool
+      crossable? spot[0], spot[1]
+    end
+
     # How many squares have been seen.
     def size : Int32
       @memories.size

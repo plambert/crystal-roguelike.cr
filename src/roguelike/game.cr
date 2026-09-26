@@ -224,11 +224,11 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @discovery : Bool = false
 
-    # How many lines the step just taken wrote about a pile the character
-    # already remembered.
+    # How many lines the step just taken wrote that a walk need not stop for.
     #
-    # `#told?` subtracts these before it decides whether the walk heard
-    # anything worth stopping for.
+    # A pile the character already remembered writes one of these, and so
+    # does a door a route opened. `#told?` subtracts them before it decides
+    # whether the walk heard anything worth stopping for.
     @[JSON::Field(ignore: true)]
     @forgiven : Int32 = 0
 
@@ -534,10 +534,16 @@ module Roguelike
         return Step::Struck
       end
 
-      if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
+      if shut_door? wanted
         floor.set wanted[0], wanted[1], Terrain::OpenDoor
         handled wanted
+
+        # A walk along a route opens a door and carries on, so the line about
+        # it is forgiven the way a line about a remembered pile is.
+        wrote = @log.written
         say "You open the door.", Event::Door.new(wanted, open: true)
+        @forgiven = @log.written - wrote
+
         spend_turn
         return Step::Opened
       end
@@ -676,7 +682,7 @@ module Roguelike
       @discovery = false
       @forgiven = 0
 
-      if blocked_ahead? direction
+      if blocked_ahead? direction, doors: walk.straight?
         refuse_run direction if walk.steps.zero?
         walk.halt = Halt::Blocked
         return false
@@ -694,7 +700,21 @@ module Roguelike
       # a refusal that did reach here raises. A fallback would read as "did
       # not move" and would put a wrong `Halt::Blocked` on the walk.
       before = Watch.on self, walk.seen
-      unless perform(Action::Move.new(direction)).step.as(Step).moved?
+      taken = perform(Action::Move.new(direction)).step.as(Step)
+
+      # A route walked into a shut door opens it. Opening takes the turn and
+      # leaves the character where they were, so the walk counts no step and
+      # takes the same square again next time. Everything that stops a walk
+      # is still asked about, because a creature can arrive while the door
+      # swings.
+      if taken.opened?
+        walk.seen = sight
+        walk.halt = stopped_by before, walk.seen, along: false, doors: false
+
+        return !walk.over?
+      end
+
+      unless taken.moved?
         walk.halt = Halt::Blocked
         return false
       end
@@ -769,6 +789,9 @@ module Roguelike
     # what they had not seen when they picked: a creature arriving, a blow
     # landing, a message about something they did not know was there.
     #
+    # A shut door on the way is opened. Opening takes the turn and the
+    # character walks through on the next one.
+    #
     # A route onto a square something has since walked onto stops against it,
     # the way a walk does.
     def follow(route : Array({Int32, Int32})) : Running
@@ -811,14 +834,25 @@ module Roguelike
 
     # Whether the square one step *direction* stops a walk.
     #
-    # A creature standing there, or anything a character cannot walk onto. A
-    # shut door is one of those, so a walk stops in front of it rather than
-    # opening it.
-    private def blocked_ahead?(direction : Direction) : Bool
+    # A creature standing there, or anything a character cannot walk onto.
+    #
+    # *doors* says whether a shut door is one of those. A walk in one
+    # direction stops in front of one, because the person named no
+    # destination beyond it. A walk along a route opens it, because they
+    # picked a square on the far side.
+    private def blocked_ahead?(direction : Direction,
+                               doors : Bool = true) : Bool
       wanted = direction.from @player.x, @player.y
       return true if floor.monster wanted[0], wanted[1]
+      return false if !doors && shut_door? wanted
 
       !floor.passable? wanted[0], wanted[1]
+    end
+
+    # Whether *spot* holds a door that is shut.
+    private def shut_door?(spot : {Int32, Int32}) : Bool
+      found = floor.tile? spot[0], spot[1]
+      !found.nil? && found.terrain.closed_door?
     end
 
     # What a walk has to compare against to know whether a step changed
