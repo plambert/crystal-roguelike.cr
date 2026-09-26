@@ -55,13 +55,13 @@ module Roguelike
         where = Path.new path
         found = File.read_lines where
         found.pop if found.last?.try &.blank?
-        raise Error.new "#{where} is empty" if found.empty?
+        raise Error.new "the file is empty" if found.empty?
 
-        new where, *sorted(where, found, fingerprints)
+        new where, *sorted(found, fingerprints)
       end
 
       # The lines of *found*, each put where it belongs.
-      private def self.sorted(where : Path, found : Array(String),
+      private def self.sorted(found : Array(String),
                               fingerprints : Bool = true)
         header = nil.as Header?
         records = [] of Act | Check
@@ -74,7 +74,7 @@ module Roguelike
 
           kind = kind_of line
           unless kind
-            raise Error.new "#{where}:#{index + 1} is not JSON" unless index == found.size - 1
+            raise Error.new "line #{index + 1} is not JSON" unless index == found.size - 1
 
             truncated = true
             next
@@ -89,9 +89,9 @@ module Roguelike
           end
         end
 
-        raise Error.new "#{where} has no header" unless header
+        raise Error.new "the file has no header" unless header
         if fingerprints && header.format != FORMAT
-          raise Error.new refused(where, header.format)
+          raise Error.new refused(header.format)
         end
 
         {header, records, footer, truncated, ignored}
@@ -105,14 +105,14 @@ module Roguelike
       # check. `--force` does not reach this. It is for a build whose draw
       # sequences moved, where checking anyway says something, and here it
       # would say only that the first checkpoint differs.
-      private def self.refused(where : Path, format : Int32) : String
+      private def self.refused(format : Int32) : String
         if format == 1
-          return "#{where} is format 1, recorded by a build whose " \
+          return "the file is format 1, recorded by a build whose " \
                  "fingerprints cover the message log, which this build " \
                  "leaves out. Record the run again to check it"
         end
 
-        "#{where} is format #{format}, and this build reads #{FORMAT}"
+        "the file is format #{format}, and this build reads #{FORMAT}"
       end
 
       # What *line* calls itself. `nil` for a line that is not JSON.
