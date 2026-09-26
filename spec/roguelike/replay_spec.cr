@@ -123,8 +123,13 @@ Spectator.describe Roguelike::Replay do
   end
 
   describe "a run played at the keyboard" do
+    # A checkpoint every turn is what makes this a check. A run this short
+    # writes no checkpoint on the default setting, and the footer of a run
+    # the process left carries no fingerprint, so the verifier would compare
+    # nothing.
     it "verifies" do
       where = spot "keys"
+      Log.every = 1
 
       Recording.recording where do
         run = Playing.open Game.dug(Rng.new(Recording::SEED))
@@ -133,6 +138,10 @@ Spectator.describe Roguelike::Replay do
         run.game
       end
 
+      Log.every = Log::EVERY
+      read = Recording.read where
+
+      expect(read.checks).to be > 3
       expect(Verifier.check(where).trouble).to be_nil
     end
 
@@ -168,6 +177,49 @@ Spectator.describe Roguelike::Replay do
       swings = File.read_lines(where).count &.includes?(%("t":"melee","target":[4,3]))
 
       expect(swings).to eq 1
+      expect(Verifier.check(where).trouble).to be_nil
+    end
+
+    # Two places put a line in `Game#log` without an action behind it.
+    # `Ui::Play#say` answers a key press, and `Game#refuse_run` says why a
+    # walk went nowhere. A replay log records neither, so a replayed run is
+    # a line short and every fingerprint after it differs. These two are
+    # skipped because the repair moves where those lines live, and that is
+    # a decision rather than a patch.
+    skip "verifies a run the person walked with G" do
+      where = spot "walk"
+      Log.every = 1
+
+      Recording.recording where do
+        run = Playing.open Game.dug(Rng.new(Recording::SEED))
+        run.game.player.name = "walker"
+        run.press "l", "G", "h"
+        run.game
+      end
+
+      Log.every = Log::EVERY
+
+      expect(Verifier.check(where).trouble).to be_nil
+    end
+
+    skip "verifies a run whose walk was blocked where it started" do
+      where = spot "blocked"
+      Log.every = 1
+
+      Recording.recording where do
+        floor = Playing.daylight Roguelike::Floor.parse("arena", ARENA)
+        game = Game.new(
+          Roguelike::World.new(Playing::SEED, {"arena" => floor}),
+          Roguelike::Player.new("arena", 1, 1, hit_points: 40))
+
+        run = Playing.open game
+        run.game.player.name = "blocked"
+        run.press "l", "h", "G", "h", "l"
+        run.game
+      end
+
+      Log.every = Log::EVERY
+
       expect(Verifier.check(where).trouble).to be_nil
     end
 
