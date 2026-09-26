@@ -254,4 +254,40 @@ Spectator.describe "a run drawn a step at a time" do
       expect(here[0]).to be < 10
     end
   end
+
+  # A run that has been played a long time has a full log. Every line it
+  # writes then drops the oldest one, so the log stops growing.
+  describe "a route walked in a run with a full log" do
+    # A run whose log holds every line it keeps, with a dagger on one square
+    # of the hall. The character remembers the dagger.
+    def crowded : Playing::Run
+      run = walking
+      run.game.floor.drop 6, 1, Roguelike::Item.new(Roguelike::ItemKind::Dagger)
+      run.play.refresh
+
+      Roguelike::MessageLog::LIMIT.times do |count|
+        run.game.log.lines << "Line #{count}."
+      end
+
+      # The person reads what the pane holds. The keyboard and the mouse go
+      # back to the map once they have.
+      run.play.refresh
+      while run.pager.holding?
+        run.press "Enter"
+      end
+
+      run
+    end
+
+    it "crosses an item the character remembers" do
+      run = crowded
+      spot = on_screen run, {10, 1}
+
+      run.click spot[0], spot[1]
+      run.click spot[0], spot[1]
+      run.run_timers
+
+      expect(run.at).to eq({10, 1})
+    end
+  end
 end

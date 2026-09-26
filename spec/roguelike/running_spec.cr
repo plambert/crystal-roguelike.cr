@@ -324,6 +324,36 @@ Spectator.describe "running" do
     # daggers a square apart write the same sentence, so the log grows by
     # nothing on the second one and what the character remembers is the only
     # thing left to stop the walk.
+    # A run played a long time has a full log. Every line written then drops
+    # the oldest one, so the log stops growing and its size says nothing
+    # about what a step wrote.
+    it "crosses a remembered item once the log is full" do
+      game = walking HALL
+      game.floor.drop 4, 2, Item.new(Kind::Dagger)
+      game.look
+      Roguelike::MessageLog::LIMIT.times { |count| game.log.add "Line #{count}." }
+
+      went = run_watching game
+
+      expect(game.player.at).to eq({8, 2})
+      expect(went.halt).to eq Halt::Blocked
+      expect(game.log.last?).to eq "You see a dagger here."
+    end
+
+    # The log being full does not forgive a line about anything else. A
+    # creature that notices the character still stops the walk.
+    it "stops for a creature once the log is full" do
+      game = walking HALL
+      game.floor.place Monster.new(Species::Goblin, 8, 3, "band-one")
+      game.look
+      Roguelike::MessageLog::LIMIT.times { |count| game.log.add "Line #{count}." }
+
+      went = run_watching game
+
+      expect(went.halt).not_to be_nil
+      expect(game.player.at).not_to eq({8, 2})
+    end
+
     it "stops for a second item that writes the line the first wrote" do
       game = walking
       game.floor.drop 4, 2, Item.new(Kind::Dagger)

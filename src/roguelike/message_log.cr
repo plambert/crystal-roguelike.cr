@@ -19,6 +19,17 @@ module Roguelike
     # The messages, oldest first.
     getter lines : Array(String)
 
+    # How many messages have ever been added.
+    #
+    # `#size` stops growing once the log is full, because a line added then
+    # drops the oldest one. This one goes on counting. A caller that wants to
+    # know how many lines a turn wrote subtracts two of these.
+    #
+    # It is not written out. A save holds the messages rather than the tally,
+    # and a run read back counts from zero.
+    @[JSON::Field(ignore: true)]
+    getter written : Int32 = 0
+
     def initialize(@lines : Array(String) = [] of String)
     end
 
@@ -31,6 +42,7 @@ module Roguelike
       return if @lines.last? == line
 
       @lines << line
+      @written += 1
       @lines.shift if @lines.size > LIMIT
     end
 

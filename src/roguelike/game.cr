@@ -824,17 +824,21 @@ module Roguelike
     # What a walk has to compare against to know whether a step changed
     # anything.
     #
-    # The log is compared by its length and its last line rather than by its
-    # whole contents. `MessageLog#add` drops a line identical to the one
-    # before it, so two of those in a row leave the log as it was and leave
-    # the screen as it was.
+    # The log is compared by how many lines it has ever held and by its last
+    # line rather than by its whole contents. `MessageLog#add` drops a line
+    # identical to the one before it, so two of those in a row leave the log
+    # as it was and leave the screen as it was.
+    #
+    # `MessageLog#written` is the count rather than `#size`. A full log drops
+    # its oldest line for every new one, so its size stops growing after two
+    # hundred messages and says nothing about what a step wrote.
     private record Watch,
       health : Int32,
-      said : Int32,
+      written : Int32,
       last : String?,
       seen : Array(Monster) do
       def self.on(game : Game, seen : Vision) : Watch
-        new game.player.hit_points, game.log.size, game.log.last?,
+        new game.player.hit_points, game.log.written, game.log.last?,
           game.monsters_in_sight(seen)
       end
     end
@@ -877,7 +881,7 @@ module Roguelike
     private def told?(before : Watch) : Bool
       return true if @discovery
 
-      fresh = @log.size - before.said
+      fresh = @log.written - before.written
       return false if fresh > 0 && fresh == @forgiven
 
       fresh != 0 || @log.last? != before.last
@@ -978,7 +982,7 @@ module Roguelike
       return if pile.empty?
 
       known = pile_in_mind?
-      before = @log.size
+      before = @log.written
 
       # The whole pile either way. The character is standing on it, so they
       # can pick any of it up, and the pane beside the map lists all of it.
@@ -992,7 +996,7 @@ module Roguelike
       end
 
       if known
-        @forgiven = @log.size - before
+        @forgiven = @log.written - before
       else
         @discovery = true
       end
