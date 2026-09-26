@@ -182,11 +182,10 @@ Spectator.describe Roguelike::Replay do
 
     # Two places put a line in `Game#log` without an action behind it.
     # `Ui::Play#say` answers a key press, and `Game#refuse_run` says why a
-    # walk went nowhere. A replay log records neither, so a replayed run is
-    # a line short and every fingerprint after it differs. These two are
-    # skipped because the repair moves where those lines live, and that is
-    # a decision rather than a patch.
-    skip "verifies a run the person walked with G" do
+    # walk went nowhere. A replay log records neither, so the replayed run
+    # holds one line fewer. `Fingerprint::UNCOUNTED` leaves the log out of
+    # the value, which is what makes these three verify.
+    it "verifies a run the person walked with G" do
       where = spot "walk"
       Log.every = 1
 
@@ -202,7 +201,23 @@ Spectator.describe Roguelike::Replay do
       expect(Verifier.check(where).trouble).to be_nil
     end
 
-    skip "verifies a run whose walk was blocked where it started" do
+    it "verifies a run the person asked to walk and then called off" do
+      where = spot "escaped"
+      Log.every = 1
+
+      Recording.recording where do
+        run = Playing.open Game.dug(Rng.new(Recording::SEED))
+        run.game.player.name = "escaper"
+        run.press "l", "G", "Escape", "l"
+        run.game
+      end
+
+      Log.every = Log::EVERY
+
+      expect(Verifier.check(where).trouble).to be_nil
+    end
+
+    it "verifies a run whose walk was blocked where it started" do
       where = spot "blocked"
       Log.every = 1
 

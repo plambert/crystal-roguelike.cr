@@ -18,7 +18,8 @@ module Roguelike
   # `JSON::Serializable`, and `Save` puts a whole run in one file. This
   # module digests that output rather than walking a run a second way. A
   # field added to a save is therefore in the fingerprint from the day it is
-  # added. A field left out of a save is in neither.
+  # added. A field left out of a save is in neither. `UNCOUNTED` names the
+  # one field a save holds and this leaves out.
   module Fingerprint
     # What the digest is called in the value itself.
     #
@@ -27,6 +28,22 @@ module Roguelike
     # check it with, and does not have to guess from the length. A later
     # change of algorithm is also visible in the old values.
     ALGORITHM = "sha256"
+
+    # The fields of a run that are left out of the value.
+    #
+    # `log` holds the messages a run has written. A message is a rendering of
+    # what happened rather than the state itself. Everything a message
+    # reports is hashed on its own, which is the hit points, the position,
+    # the pack, what the character knows and the turn. A wall bumped writes a
+    # line and changes nothing else.
+    #
+    # The log stays in the save. A person who comes back to a run reads their
+    # last lines. It also stays out of this, so a line written outside
+    # `Game#perform` no longer parts a run from its own replay.
+    #
+    # Only the top level is read. A field of this name deeper in the document
+    # is hashed the way every other field is.
+    UNCOUNTED = ["log"]
 
     # The fingerprint of *subject*.
     def self.of(subject : JSON::Serializable) : String
@@ -68,11 +85,17 @@ module Roguelike
     # and written again. A run's seed is a `UInt64`. The larger half of that
     # range does not fit in the `Int64` a JSON parser reads into.
     def self.canonical(text : String) : String
-      String.build { |canonical| write JSON::PullParser.new(text), canonical }
+      String.build do |canonical|
+        write JSON::PullParser.new(text), canonical, top: true
+      end
     end
 
     # Writes whatever *pull* is looking at to *io*, canonically.
-    private def self.write(pull : JSON::PullParser, io : IO) : Nil
+    #
+    # *top* says this is the whole document rather than a value inside it.
+    # `UNCOUNTED` is dropped there and nowhere else.
+    private def self.write(pull : JSON::PullParser, io : IO,
+                           top : Bool = false) : Nil
       case pull.kind
       when .null?
         pull.read_null
@@ -86,7 +109,7 @@ module Roguelike
       when .begin_array?
         write_array pull, io
       when .begin_object?
-        write_object pull, io
+        write_object pull, io, top
       else
         pull.raise "expected a value, found #{pull.kind}"
       end
@@ -107,10 +130,15 @@ module Roguelike
     end
 
     # Writes an object to *io* with its fields in order by name.
-    private def self.write_object(pull : JSON::PullParser, io : IO) : Nil
+    #
+    # *top* drops `UNCOUNTED`. Only the whole document passes it.
+    private def self.write_object(pull : JSON::PullParser, io : IO,
+                                  top : Bool = false) : Nil
       fields = [] of {String, String}
 
       pull.read_object do |name|
+        next pull.skip if top && UNCOUNTED.includes? name
+
         fields << {name, String.build { |value| write pull, value }}
       end
 

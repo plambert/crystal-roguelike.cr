@@ -86,6 +86,16 @@ Spectator.describe Roguelike::Fingerprint do
         .to eq %({"seed":18446744073709551615})
     end
 
+    it "leaves the log of a run out" do
+      expect(described_class.canonical %({"turn":1,"log":{"lines":["hello"]}}))
+        .to eq %({"turn":1})
+    end
+
+    it "keeps a field called log deeper in the document" do
+      expect(described_class.canonical %({"player":{"log":1}}))
+        .to eq %({"player":{"log":1}})
+    end
+
     it "answers the same string for two hashes filled in different orders" do
       kinds = [Roguelike::ItemKind::HealingPotion, Roguelike::ItemKind::HastePotion]
       looks = ["bubbling", "cloudy"]
@@ -151,6 +161,29 @@ Spectator.describe Roguelike::Fingerprint do
       game.player.hurt 1
 
       expect(game.fingerprint).not_to eq before
+    end
+  end
+
+  describe "the message log" do
+    # A message is a rendering of what happened. What it reports is hashed
+    # on its own. A line written outside `Game#perform` would otherwise part
+    # a run from its own replay.
+    it "leaves the fingerprint as it was" do
+      game = Game.dug Rng.new(SEED)
+      before = game.fingerprint
+
+      game.log.add "You cannot go that way."
+
+      expect(game.log.lines.last).to eq "You cannot go that way."
+      expect(game.fingerprint).to eq before
+    end
+
+    it "is still in the save" do
+      game = Game.dug Rng.new(SEED)
+      game.log.add "You cannot go that way."
+
+      expect(Game.from_json(game.to_json).log.lines.last)
+        .to eq "You cannot go that way."
     end
   end
 
