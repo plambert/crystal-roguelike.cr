@@ -2549,6 +2549,78 @@ menu of what can be done with that item: equip, take off, wear, quaff, read, thr
 identify. The menu should be a fixed list with the entries that do not apply dimmed rather than
 left out, so the same key is in the same place every time.
 
+### A replay viewer
+
+`crystal-roguelike replay view FILE` opens a recorded run in the normal UI and plays it back.
+`bots/PROTOCOL.md` section 3.3 asks for it in one sentence. This is the plan for it.
+
+Three pieces exist already. `Replay::Reading` reads the file. `Replay::Verifier.rebuild` restores
+the run from the header. `Ui::Play` renders a `Game` and owns no device, and `Session` owns the
+terminal. The viewer is those pieces with the keyboard changed.
+
+#### The transport
+
+Space pauses and plays. `l` and the right arrow take one action forward. `h` and the left arrow take
+one action back. `+` and `-` change the speed. `g` jumps to a turn. Escape leaves.
+
+The status line holds the turn, the action index, whether it is playing, and the speed.
+
+#### Speed
+
+Playback runs on the timer a walk and a rest already use. `app.after` wakes the frame loop, so
+`Session#run` needs no change.
+
+One action is about 1 ms and one repaint is about 77 ms, so the repaint sets the rate. Fast playback
+performs several actions per repaint, which is what `Ui::Play.breath_size` does for a rest.
+
+#### Going back
+
+A snapshot is `Game.from_json(game.to_json)`. One is 116 KB. Taking one is 0.63 ms and restoring one
+is 1.42 ms.
+
+Keep a snapshot every 250 actions while playing forward. A jump backward restores the nearest
+snapshot and replays at most 250 actions, which is under 300 ms. A run of 5,109 actions needs 21
+snapshots and 2.4 MB.
+
+Replaying from the start instead would be 6 seconds on that run, which is too slow to scrub with.
+
+#### The keyboard
+
+`Play#bindings` composes `Keys.examining`, `Keys.moving`, `Keys.acting` and `Keys.aiming`. The
+viewer keeps `Keys.examining` and replaces the other three with `Keys.viewing`. A person can then
+inspect a creature or an item while the run is paused.
+
+#### What the viewer must not do
+
+No action reaches `Game#perform` except the ones read from the file. `Replay::Log.pattern` stays
+nil, so a viewing session records nothing. `Play#store` stays nil, so nothing is saved.
+
+#### A file this build cannot check
+
+Format 1 is refused, because its fingerprints cover the message log. A format 2 file whose
+fingerprints disagree still plays. The viewer reports the first disagreement and carries on, because
+watching a run is useful after the build has moved.
+
+#### Files
+
+New are `src/roguelike/replay/viewer.cr` and `spec/roguelike/replay_view_spec.cr`.
+`src/roguelike/ui/keys.cr` gains `Keys.viewing`. `src/roguelike/cli.cr` gains a `Viewing`
+subcommand. `src/roguelike/session.cr` gains a way to open on a prepared game rather than on a fresh
+run.
+
+#### Verification
+
+A spec opens the golden replay, steps ten actions forward, steps five back, and asserts the turn and
+the fingerprint match a run played forward to the same point. Another asserts that a viewing session
+writes no replay file and no save.
+
+Through a pty, play a recorded run, pause it, rewind it and jump to a turn.
+
+#### What stays deferred
+
+`replay export` emits observation and action pairs for imitation learning. `replay dump` writes the
+messages of a run so two builds can be compared. Neither is built.
+
 ### A note on where the game is drifting
 
 Light, stealth, detection range and shutting doors are the levers that move survival most, which
