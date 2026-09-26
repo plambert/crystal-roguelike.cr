@@ -214,6 +214,43 @@ module Roguelike::Ui
     # this is how long the person waits for it.
     BREATH_BUDGET = 120.milliseconds
 
+    # How long a recorded run waits between two actions, by speed.
+    #
+    # The four numbers between the ends are a first guess. Speed five has no
+    # pause at all, and `#hurried` is what paces it instead.
+    VIEW_SPEEDS = [
+      2000.milliseconds,
+      500.milliseconds,
+      125.milliseconds,
+      30.milliseconds,
+      Time::Span.zero,
+    ]
+
+    # Which speed a recorded run starts at.
+    VIEW_SPEED = 3
+
+    # How long the fastest speed performs actions for between two repaints.
+    #
+    # One repaint is about 77 ms and one action is about 1 ms, so the repaint
+    # is what sets the rate. This budget puts about a hundred actions between
+    # two of them.
+    VIEW_BUDGET = 100.milliseconds
+
+    # How long the fastest speed waits before it takes the next batch.
+    VIEW_TICK = 1.millisecond
+
+    # The recorded run being played back, or `nil` in a run being played.
+    getter viewer : Replay::Viewer? = nil
+
+    # Whether the recorded run is playing rather than standing still.
+    getter? playing_back : Bool = false
+
+    # Which speed the recorded run plays at, from 1 to 5.
+    getter view_speed : Int32 = VIEW_SPEED
+
+    # Whether the difference between the file and the run has been said.
+    @told_trouble : Bool = false
+
     # The rest being drawn, or `nil` when nothing is resting.
     @rest : Game::Rest? = nil
 
@@ -414,12 +451,25 @@ module Roguelike::Ui
 
     # The bindings that belong to the game rather than to the application.
     def bindings : Widgets::Bindings
+      return viewing_bindings if @viewer
+
       found = Keys.examining(self)
         .merge(Keys.moving { |direction| step direction })
         .merge(Keys.acting(self))
         .merge(Keys.aiming(self))
 
       @console ? found.merge(Keys.debugging(self)) : found
+    end
+
+    # The keys a recorded run answers.
+    #
+    # The examine keys stay, so a person reads a square while the run stands
+    # still. Every key that would take a turn is gone, because the only
+    # actions a recorded run performs are the ones in the file.
+    private def viewing_bindings : Widgets::Bindings
+      Keys.examining(self)
+        .merge(Keys.moving { |direction| view_move direction })
+        .merge(Keys.viewing(self))
     end
 
     # Puts the title screen up. The owner calls this once, before the run.
@@ -1054,6 +1104,222 @@ module Roguelike::Ui
     # Whether a rest is being taken a turn at a time.
     def resting? : Bool
       !@rest.nil?
+    end
+
+    # ------------------------------------------------------- a recorded run
+
+    # What the turn question says when what was typed is not a number.
+    TURN_UNREADABLE = "That is not a turn number."
+
+    # What the banner lists after the numbers.
+    TRANSPORT_KEYS = "Space play   h l step   g turn   1-5 speed   Q leave"
+
+    # Plays *found* back rather than a run somebody is at the keyboard for.
+    #
+    # The banner goes up here and takes a row from the log pane. The caller
+    # runs this before `#fit` and before it installs the keymap, because
+    # `#fit` sizes the message pane and `#bindings` reads the viewer.
+    def view(found : Replay::Viewer) : Nil
+      @viewer = found
+      @screen.show_banner
+
+      # The message pane holds a page at a time and asks for a key before it
+      # shows the next one. One action forward writes several lines, and a
+      # jump writes hundreds. The transport is what paces a recorded run, so
+      # the pane holds nothing for the whole of one.
+      @pager.deferred = true
+
+      restate_transport
+    end
+
+    # Starts the playback, or stops it. `Space` does this.
+    def toggle_playback : Nil
+      return pause_playback if @playing_back
+
+      found = @viewer
+      return unless found
+      return if found.done?
+
+      @playing_back = true
+      sweep
+    end
+
+    # Stops the playback where it stands.
+    def pause_playback : Nil
+      @playing_back = false
+      restate_transport
+    end
+
+    # Performs the next recorded action. The right arrow and `l` do this.
+    def view_forward : Nil
+      view_moved &.forward
+    end
+
+    # Takes the last recorded action back. The left arrow and `h` do this.
+    def view_back : Nil
+      view_moved &.back
+    end
+
+    # Sets which speed the run plays at. `1` to `5` do this.
+    def view_speed=(wanted : Int32) : Nil
+      @view_speed = wanted.clamp 1, VIEW_SPEEDS.size
+      restate_transport
+    end
+
+    # One speed faster. `+` does this.
+    def view_faster : Nil
+      self.view_speed = @view_speed + 1
+    end
+
+    # One speed slower. `-` does this.
+    def view_slower : Nil
+      self.view_speed = @view_speed - 1
+    end
+
+    # What a movement key does while a recorded run is up.
+    #
+    # The examine cursor takes the key while it is on the map. West takes one
+    # action back otherwise, and east takes one forward, which puts the
+    # transport on `h` and `l` beside the arrows. The other six directions do
+    # nothing.
+    def view_move(direction : Direction) : Nil
+      return @examiner.move direction if @examiner.cursoring?
+
+      case direction
+      when .west? then view_back
+      when .east? then view_forward
+      end
+    end
+
+    # Asks which turn to go to. `g` does this.
+    def ask_for_turn : Nil
+      found = @viewer
+      return unless found
+
+      pause_playback
+      @entry.on_answer = ->(answer : String?) do
+        jumped answer
+        nil
+      end
+
+      @entry.ask application, Play.turn_question(found)
+    end
+
+    # What the turn question asks.
+    def self.turn_question(viewer : Replay::Viewer) : String
+      "Which turn? The run reaches turn #{viewer.last_turn}."
+    end
+
+    # Goes to the turn *typed*.
+    private def jumped(typed : String?) : Nil
+      return unless typed
+
+      wanted = typed.strip.to_i?
+      return say TURN_UNREADABLE unless wanted
+
+      view_moved &.to_turn(wanted)
+    end
+
+    # Runs *move* on the viewer and draws what it did.
+    #
+    # The playback stops first. A person who stepped through one action has
+    # said where they want the run to stand.
+    private def view_moved(& : Replay::Viewer -> Bool) : Nil
+      found = @viewer
+      return unless found
+
+      @playing_back = false
+      yield found
+      view_drew found
+    end
+
+    # Puts on the screen what the viewer did.
+    #
+    # A jump backwards reads a snapshot, so the run the viewer holds is
+    # another object and `#resume` is what takes it.
+    private def view_drew(found : Replay::Viewer) : Nil
+      if @game.same? found.game
+        @map.follow @game.player.x, @game.player.y
+        refresh
+      else
+        resume found.game
+      end
+
+      report_trouble found
+    end
+
+    # Says what the file and the rebuilt run disagree about, once.
+    def report_trouble(found : Replay::Viewer) : Nil
+      return if @told_trouble
+
+      trouble = found.trouble
+      return unless trouble
+
+      @told_trouble = true
+      say trouble
+    end
+
+    # Performs recorded actions on the clock and draws them.
+    #
+    # An application with no clock arms no timer, so the whole file plays
+    # inside this call instead. A spec then reads where the run got to
+    # without driving a timer.
+    private def sweep : Nil
+      loop do
+        found = @viewer
+        return unless found && @playing_back
+
+        going = @view_speed >= VIEW_SPEEDS.size ? hurried(found) : found.forward
+        @playing_back = false unless going
+        view_drew found
+        return unless @playing_back
+
+        app = @app
+        return if app && app.after(view_wait) { sweep }
+      end
+    end
+
+    # Performs actions until `VIEW_BUDGET` is spent. Answers whether any were
+    # performed.
+    private def hurried(found : Replay::Viewer) : Bool
+      started = Time.instant
+      any = false
+
+      while found.forward
+        any = true
+        break if started.elapsed >= VIEW_BUDGET
+      end
+
+      any
+    end
+
+    # How long the clock waits before the next action or batch.
+    private def view_wait : Time::Span
+      found = VIEW_SPEEDS[@view_speed - 1]
+      found.zero? ? VIEW_TICK : found
+    end
+
+    # Writes the transport on the banner.
+    private def restate_transport : Nil
+      line = @screen.banner
+      found = @viewer
+      return unless line && found
+
+      line.text = Play.transport found, @playing_back, @view_speed
+    end
+
+    # What the banner says.
+    def self.transport(viewer : Replay::Viewer, playing : Bool,
+                       speed : Int32) : String
+      state = viewer.done? ? "end" : playing ? "playing" : "paused"
+
+      String.build do |text|
+        text << "turn " << viewer.turn
+        text << "   action " << viewer.at << " of " << viewer.size
+        text << "   " << state
+        text << "   speed " << speed
+        text << "   " << TRANSPORT_KEYS
+      end
     end
 
     # Waits for a direction to walk in. `G` does this.
@@ -1927,6 +2193,7 @@ module Roguelike::Ui
       end
 
       show_ending
+      restate_transport
     end
 
     # Writes the readout under the pointer again.
@@ -1959,6 +2226,10 @@ module Roguelike::Ui
     private def show_ending : Nil
       return unless @game.over?
       return if @ended || @app.nil?
+
+      # A recorded run ends on the banner. The box asks whether to play
+      # again, and a recorded run has nothing to play again.
+      return if @viewer
 
       @ended = true
       stop_aiming
@@ -2128,7 +2399,7 @@ module Roguelike::Ui
       @columns = columns
       @rows = rows
       @screen.fit columns, rows
-      @pager.resize Screen.log_width(columns), Screen::LOG_ROWS
+      @pager.resize Screen.log_width(columns), @screen.log_rows
 
       @placard.fit_into Rect.new(0, 0, columns, rows)
       @entry.fit_into Rect.new(0, 0, columns, rows)

@@ -64,6 +64,41 @@ module Roguelike
       ran
     end
 
+    # Plays *viewer* back on the terminal. Answers the session that ran it.
+    #
+    # Answers `nil` when the window is too small, the way `.open` does.
+    #
+    # There is no loop around it. A recorded run plays once, and somebody who
+    # wants it again runs the command again.
+    def self.view(viewer : Replay::Viewer, flicker : Bool = true) : Session?
+      size = TermBuf::SizeDetector.detect
+
+      unless Ui::Screen.fits? size.columns, size.rows
+        STDERR.puts Ui::Screen.too_small(size.columns, size.rows)
+        return
+      end
+
+      ran = nil.as Session?
+
+      TermBuf::Terminal.open do |terminal|
+        played = new terminal, Rng.for(viewer.game.world.seed), flicker,
+          viewer: viewer
+        ran = played
+        played.run
+      end
+
+      ran
+    end
+
+    # The run a session begins on.
+    protected def self.starting(viewer : Replay::Viewer?, rng : Rng,
+                                generate : Bool) : Game
+      found = viewer
+      return found.game if found
+
+      generate ? Game.dug(rng) : Game.start(rng)
+    end
+
     # The device. This class touches no other.
     getter terminal : TermBuf::Terminal
 
@@ -92,11 +127,17 @@ module Roguelike
     def initialize(@terminal : TermBuf::Terminal, @rng : Rng,
                    flicker : Bool = true, generate : Bool = true,
                    console : Bool = false, store : Save::Store? = nil,
-                   character : String? = nil, previous : String? = nil)
+                   character : String? = nil, previous : String? = nil,
+                   viewer : Replay::Viewer? = nil)
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
-      @play = Ui::Play.new(generate ? Game.dug(@rng) : Game.start(@rng), console)
+      @play = Ui::Play.new Session.starting(viewer, @rng, generate), console
+
+      # The banner takes a row from the message pane, and `#bindings` reads
+      # the viewer, so this comes before the fit and before the keymap.
+      @play.view viewer if viewer
+
       @play.store = store
       @play.previous_name = previous
       @play.fit size.columns, size.rows
@@ -126,6 +167,9 @@ module Roguelike
 
       @play.flicker.burning = flicker
       waver if flicker
+
+      # A recorded run is already under way. It asks nobody who is playing.
+      return if viewer
 
       # `--character` says who is playing, so the title screen and the name
       # question are both answered already.

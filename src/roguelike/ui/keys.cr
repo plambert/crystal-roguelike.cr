@@ -136,6 +136,34 @@ module Roguelike::Ui
       end
     end
 
+    # The keys that drive a recorded run.
+    #
+    # `Play#bindings` merges these instead of `Keys.acting` and `Keys.aiming`
+    # while `replay view` is up. Nothing here takes a turn. Each key moves
+    # the run through actions the file already holds.
+    def self.viewing(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Space"), "play the run, or stop it",
+          ->(_context : Widgets::Context) { play.toggle_playback; nil }
+        map.bind TermBuf::Key.parse("Right"), "one action forward",
+          ->(_context : Widgets::Context) { play.view_forward; nil }
+        map.bind TermBuf::Key.parse("Left"), "one action back",
+          ->(_context : Widgets::Context) { play.view_back; nil }
+        map.bind TermBuf::Key.parse("g"), "go to a turn",
+          ->(_context : Widgets::Context) { play.ask_for_turn; nil }
+        map.bind TermBuf::Key.parse("+"), "one speed faster",
+          ->(_context : Widgets::Context) { play.view_faster; nil }
+        map.bind TermBuf::Key.parse("-"), "one speed slower",
+          ->(_context : Widgets::Context) { play.view_slower; nil }
+
+        Play::VIEW_SPEEDS.each_index do |index|
+          speed = index + 1
+          map.bind TermBuf::Key.parse(speed.to_s), "play at speed #{speed}",
+            ->(_context : Widgets::Context) { play.view_speed = speed; nil }
+        end
+      end
+    end
+
     # `` ` `` puts the debug console up and takes it down.
     #
     # `Play` merges this only when it has a console, so the key is unbound in

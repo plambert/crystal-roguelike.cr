@@ -32,6 +32,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   directory takes `<started_at>_<seed>_<player>.jsonl` inside it.
 * `--replay-every N` sets how many turns there are between two fingerprints in a replay log. The
   default is 25.
+* `crystal-roguelike replay view FILE` plays a recorded run back in the game's own interface.
+  Space plays it and stops it, `l` and the right arrow perform one action, `h` and the left arrow
+  take one action back, `g` goes to a turn, and `Q` leaves. `1` to `5` set the speed, from two
+  seconds between actions to no pause at all, and `+` and `-` step the same ladder. `x` reads a
+  square while the run stands still. A banner under the map holds the turn, the action number,
+  whether the run is playing and the speed. Nothing is recorded and nothing is saved. A file whose
+  fingerprints disagree with this build still plays, and the first disagreement is written to the
+  message log.
 * `crystal-roguelike replay verify FILE...` plays the runs in those files again and compares them
   against what was recorded. It names the turns a difference is between, and exits 1 when any file
   differs. It refuses a file recorded by a build whose draw sequences have since moved, and

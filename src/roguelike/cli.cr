@@ -144,9 +144,9 @@ module Roguelike
   class Cli
     # `crystal-roguelike replay`, which works on recorded runs.
     #
-    # It does nothing on its own. `replay verify` is the one thing under it.
-    # `bots/PROTOCOL.md` section 3.3 has two more, which are a viewer and an
-    # export for analysis. Neither is built.
+    # It does nothing on its own. `replay verify` and `replay view` are what
+    # sit under it. `bots/PROTOCOL.md` section 3.3 asks for one more, which
+    # is an export for analysis, and that is not built.
     Shell::AutoComplete.command Replaying,
       name: "replay",
       description: "Work on a run recorded with --replay-log" do
@@ -178,11 +178,48 @@ module Roguelike
       end
     end
 
+    # `crystal-roguelike replay view`, which plays a recorded run on the
+    # terminal.
+    #
+    # The keys drive the run rather than the character. The banner under the
+    # map says which turn it is on and what the keys are.
+    #
+    # Nothing is recorded and nothing is saved. The run reaches
+    # `Game#perform` through the file and through nothing else.
+    Shell::AutoComplete.command Watching,
+      name: "view",
+      description: "Watch a recorded run play back" do
+      flag flicker : Bool = true, "--flicker",
+        "Let flames waver. --no-flicker holds them still"
+
+      positional file : Path, "The replay file to watch"
+
+      def run
+        found = opened file
+        return exit 1 unless found
+
+        begin
+          exit 1 unless Session.view found, flicker: flicker
+        ensure
+          found.close
+        end
+      end
+
+      # The file at *path*, ready to play. `nil` when it does not read.
+      private def opened(path : Path) : Replay::Viewer?
+        Replay::Viewer.open path
+      rescue error : Replay::Error | JSON::Error | ::File::Error
+        STDERR.puts "#{path}: #{error.message}"
+        nil
+      end
+    end
+
     subcommand Replaying
   end
 
   class Cli::Replaying
     subcommand Verifying
+    subcommand Watching
   end
 
   # The flags that belong to whoever works on the game rather than to whoever

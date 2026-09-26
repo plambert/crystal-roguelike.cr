@@ -29,7 +29,7 @@ module Playing
     end
 
     delegate game, screen, map, examine, examiner, nearby, pointer, prompt, pager, menu,
-      console, placard, entry, store, to: @play
+      console, placard, entry, store, viewer, to: @play
 
     # Whether the run should end.
     def finished? : Bool
@@ -198,16 +198,23 @@ module Playing
                 console : Bool = false,
                 title : Bool = false,
                 clock : Bool = false,
-                store : Roguelike::Save::Store? = nil) : Run
+                store : Roguelike::Save::Store? = nil,
+                viewer : Roguelike::Replay::Viewer? = nil) : Run
     # A spec that builds its own run with `Game.new` has not numbered what is
     # in it. `Game.start`, `Game.dug` and a save read back all call `#enroll`,
     # and a hand-built floor has been through none of the three. `Ui::Play`
     # names an item by its id when it builds an action, so a run with no ids
     # would refuse every verb that names one.
-    wanted = game || Roguelike::Game.start(Roguelike::Rng.new(SEED))
-    wanted.enroll
+    found = viewer
+    wanted = found.try(&.game) || game || Roguelike::Game.start(Roguelike::Rng.new(SEED))
+    wanted.enroll unless found
 
     play = Roguelike::Ui::Play.new wanted, console
+
+    # The banner takes a row from the message pane, and the keymap below
+    # reads the viewer. `Session` orders these the same way.
+    play.view found if found
+
     play.store = store
     play.fit columns, rows
 
@@ -235,7 +242,7 @@ module Playing
     # same.
     session.render
     play.look_at_player
-    play.show_title if title
+    play.show_title if title && found.nil?
     session.render
 
     Run.new play, session, told

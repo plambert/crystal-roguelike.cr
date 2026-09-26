@@ -36,6 +36,16 @@ module Roguelike::Ui
     # Rows the message log is given.
     LOG_ROWS = 4
 
+    # What a banner too wide for the window ends with.
+    BANNER_ELLIPSIS = "\u2026"
+
+    # The banner, or `nil` when nothing put one up.
+    #
+    # `replay view` puts the transport on it. It takes the top row of the log
+    # pane, so the map keeps every row it has and the log shows one line
+    # fewer.
+    getter banner : Widgets::Label? = nil
+
     # How many rows are not the map. The rule and the log.
     #
     # There was a status row between them. Everything on it is in the
@@ -189,10 +199,42 @@ module Roguelike::Ui
 
     # Puts *widget* in the log pane. Takes out whatever was there.
     #
-    # `TermBuf::Widgets::Pager` goes here.
+    # `TermBuf::Widgets::Pager` goes here. A banner already up stays up, and
+    # it stays above whatever this puts in.
     def show_log(widget : Widgets::Widget) : Nil
+      found = @banner
       @log.clear
+      @log.add found if found
       @log.add widget
+    end
+
+    # Puts a one row banner above the log. Answers the label it wrote in.
+    #
+    # The caller writes the text. This decides where the row is and how wide
+    # it is.
+    def show_banner : Widgets::Label
+      found = @banner
+      return found if found
+
+      made = Widgets::Label.new "",
+        wrap: Layout::Wrap::None,
+        ellipsis: BANNER_ELLIPSIS
+      made.style = Palette::STRONG
+
+      @banner = made
+
+      held = @log.children.dup
+      @log.clear
+      @log.add made
+      held.each { |child| @log.add child }
+      made
+    end
+
+    # How many rows the message log has for its lines.
+    #
+    # A banner takes one of them.
+    def log_rows : Int32
+      @banner ? LOG_ROWS - 1 : LOG_ROWS
     end
 
     # How wide the log pane's text is on a screen of *columns*.

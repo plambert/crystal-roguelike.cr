@@ -3,6 +3,7 @@ require "./replay/lines"
 require "./replay/naming"
 require "./replay/reading"
 require "./replay/verifier"
+require "./replay/viewer"
 require "./replay/log"
 
 module Roguelike

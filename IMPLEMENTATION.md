@@ -2491,6 +2491,101 @@ name.
 `NearbyPane` builds its rows again every turn. A rebuild takes the mark off, because the row it was
 on no longer exists.
 
+## Watching a recorded run
+
+`crystal-roguelike replay view FILE` opens a recorded run in the game's own interface and plays it
+back. `bots/PROTOCOL.md` section 3.3 asks for it.
+
+Three pieces were there already. `Replay::Reading` reads the file. `Replay::Verifier.rebuild`
+restores the run from the header. `Ui::Play` draws a `Game` and owns no device, and `Session` owns
+the terminal. The viewer is those pieces with the keyboard changed.
+
+### The transport
+
+Space plays the run and stops it. `l` and the right arrow perform one action. `h` and the left arrow
+take one action back. `g` goes to a turn. `Q` leaves.
+
+`1` to `5` set the speed. `+` and `-` step up and down the same ladder.
+
+| Key | Between two actions |
+| --- | --- |
+| `1` | 2000 ms |
+| `2` | 500 ms |
+| `3` | 125 ms |
+| `4` | 30 ms |
+| `5` | no pause |
+
+The four numbers between the ends are a first guess and are meant to be tuned after somebody has
+watched a run with them.
+
+The banner under the map holds the turn, the action number, whether the run is playing, the speed
+and the keys. It takes the top row of the message pane, so the map keeps every row it has and the
+pane shows three lines rather than four.
+
+### Speed
+
+Playback runs on the timer a walk and a rest already use. `app.after` wakes the frame loop, so
+`Session#run` needs no change.
+
+One action is about 1 ms and one repaint is about 77 ms, so the repaint sets the rate.
+
+Speeds `1` to `4` perform one action per repaint and wait the interval between them. Speed `5`
+performs actions back to back until `Ui::Play::VIEW_BUDGET` is spent, which is 100 ms, and then
+repaints. That is what `Ui::Play.breath_size` does for a rest.
+
+### Going back
+
+A snapshot is `Game#to_json`. One is 116 KB. Writing one is 0.63 ms and reading one back is 1.42 ms,
+before the file itself.
+
+`Replay::Viewer::EVERY` is 250, so a snapshot is kept every 250 actions. A jump backwards reads the
+nearest snapshot and performs at most 250 actions after it, which is under 300 ms. A run of 5,109
+actions needs 21 snapshots and 2.4 MB.
+
+Playing from the start instead would be 6 seconds on that run, which is too slow to scrub with.
+
+A snapshot is a file under `Dir.tempdir`, and its name holds the process id. The viewer removes its
+own files as it stops.
+
+A viewer that starts reads the directory first. A file whose process id belongs to no running
+process is left over from a viewer that was killed, and it is removed. `Process.exists?` answers
+whether the process is there. A process id is handed out again eventually, so a file whose id
+belongs to some other running process is left alone.
+
+A jump backwards reads a snapshot into a new `Game`, so `Ui::Play#resume` is what takes it. That
+method already existed for a character carried on from a save.
+
+### The keyboard
+
+`Play#bindings` composes `Keys.examining`, `Keys.moving`, `Keys.acting` and `Keys.aiming`. A viewing
+run keeps `Keys.examining`, replaces `Keys.acting` and `Keys.aiming` with `Keys.viewing`, and sends
+the movement keys to `Play#view_move`. So `x` reads a square while the run stands still, and the
+movement keys move that cursor. West and east drive the transport while the cursor is off the map.
+
+The message pane holds nothing while a recorded run is up. One action forward writes several lines
+and a jump writes hundreds. A page marker between them would take the keyboard from the transport.
+
+### What reaches the rules
+
+The actions in the file reach `Game#perform`, and nothing else does. `Replay::Log.pattern` is nil in
+a viewing process, so nothing is recorded. `Play#store` is nil, so nothing is saved. The screen a
+run ends with stays down, because it asks whether to play again and a recorded run has nothing to
+play again.
+
+### A file this build plays differently
+
+Format 1 is refused, because its fingerprints cover the message log. A format 2 file whose
+fingerprints disagree still plays. The viewer writes the first disagreement to the message log and
+carries on, because watching a run is worth doing after the build has moved. `replay verify` is what
+answers whether a file still matches.
+
+### Files
+
+`src/roguelike/replay/viewer.cr` holds `Replay::Viewer`. `src/roguelike/ui/keys.cr` gained
+`Keys.viewing`. `src/roguelike/ui/screen.cr` gained the banner. `src/roguelike/ui/play.cr` gained
+the transport. `src/roguelike/cli.cr` gained `Cli::Watching`. `src/roguelike/session.cr` gained
+`Session.view`. The specs are `spec/roguelike/replay_view_spec.cr`.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
@@ -2549,101 +2644,11 @@ menu of what can be done with that item: equip, take off, wear, quaff, read, thr
 identify. The menu should be a fixed list with the entries that do not apply dimmed rather than
 left out, so the same key is in the same place every time.
 
-### A replay viewer
+### Two more replay commands
 
-`crystal-roguelike replay view FILE` opens a recorded run in the normal UI and plays it back.
-`bots/PROTOCOL.md` section 3.3 asks for it in one sentence. This is the plan for it.
-
-Three pieces exist already. `Replay::Reading` reads the file. `Replay::Verifier.rebuild` restores
-the run from the header. `Ui::Play` renders a `Game` and owns no device, and `Session` owns the
-terminal. The viewer is those pieces with the keyboard changed.
-
-#### The transport
-
-Space pauses and plays. `l` and the right arrow take one action forward. `h` and the left arrow take
-one action back. `g` jumps to a turn. Escape leaves.
-
-`1` to `5` set the speed. `+` and `-` step up and down the same ladder.
-
-| Key | Between two actions |
-| --- | --- |
-| `1` | 2000 ms |
-| `2` | 500 ms |
-| `3` | 125 ms |
-| `4` | 30 ms |
-| `5` | no pause |
-
-The four numbers between the ends are a first guess and are meant to be tuned after somebody has
-watched a run with them.
-
-The status line holds the turn, the action index, whether it is playing, and the speed.
-
-#### Speed
-
-Playback runs on the timer a walk and a rest already use. `app.after` wakes the frame loop, so
-`Session#run` needs no change.
-
-One action is about 1 ms and one repaint is about 77 ms, so the repaint sets the rate.
-
-Speeds `1` to `4` perform one action per repaint and wait the interval between them. Speed `5`
-performs actions back to back and repaints on a budget of 100 ms, which is what
-`Ui::Play.breath_size` does for a rest.
-
-#### Going back
-
-A snapshot is `Game#to_json`. One is 116 KB. Writing one is 0.63 ms and reading one back is 1.42 ms,
-before the file itself.
-
-Keep a snapshot every 250 actions while playing forward. A jump backward reads the nearest snapshot
-and replays at most 250 actions, which is under 300 ms. A run of 5,109 actions needs 21 snapshots
-and 2.4 MB.
-
-Replaying from the start instead would be 6 seconds on that run, which is too slow to scrub with.
-
-A snapshot is a file under `Dir.tempdir`, and its name holds the process id. The viewer removes its
-own files as it exits.
-
-A viewer that starts reads the directory first. A file whose process id belongs to no running
-process is left over from a viewer that was killed, and it is removed. `Process.exists?` answers
-whether the process is there. A process id is reused eventually, so a file whose id belongs to some
-other running process is left alone.
-
-#### The keyboard
-
-`Play#bindings` composes `Keys.examining`, `Keys.moving`, `Keys.acting` and `Keys.aiming`. The
-viewer keeps `Keys.examining` and replaces the other three with `Keys.viewing`. A person can then
-inspect a creature or an item while the run is paused.
-
-#### What the viewer must not do
-
-No action reaches `Game#perform` except the ones read from the file. `Replay::Log.pattern` stays
-nil, so a viewing session records nothing. `Play#store` stays nil, so nothing is saved.
-
-#### A file this build cannot check
-
-Format 1 is refused, because its fingerprints cover the message log. A format 2 file whose
-fingerprints disagree still plays. The viewer reports the first disagreement and carries on, because
-watching a run is useful after the build has moved.
-
-#### Files
-
-New are `src/roguelike/replay/viewer.cr` and `spec/roguelike/replay_view_spec.cr`.
-`src/roguelike/ui/keys.cr` gains `Keys.viewing`. `src/roguelike/cli.cr` gains a `Viewing`
-subcommand. `src/roguelike/session.cr` gains a way to open on a prepared game rather than on a fresh
-run.
-
-#### Verification
-
-A spec opens the golden replay, steps ten actions forward, steps five back, and asserts the turn and
-the fingerprint match a run played forward to the same point. Another asserts that a viewing session
-writes no replay file and no save.
-
-Through a pty, play a recorded run, pause it, rewind it and jump to a turn.
-
-#### What stays deferred
-
-`replay export` emits observation and action pairs for imitation learning. `replay dump` writes the
-messages of a run so two builds can be compared. Neither is built.
+`replay export` emits observation and action pairs for imitation learning. `bots/PROTOCOL.md`
+section 3.3 asks for it. `replay dump` writes the messages of a run, so the messages of two builds
+over one run can be put side by side. Neither is built.
 
 ### A note on where the game is drifting
 
