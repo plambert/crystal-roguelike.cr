@@ -2527,11 +2527,14 @@ pane shows three lines rather than four.
 Playback runs on the timer a walk and a rest already use. `app.after` wakes the frame loop, so
 `Session#run` needs no change.
 
-One action is about 1 ms and one repaint is about 77 ms, so the repaint sets the rate.
+One action is about 3.4 ms and one repaint is about 3.1 ms, measured on a release build playing a
+5,109 action run one step at a time. Neither one sets the rate on its own. See "What a turn and a
+repaint cost".
 
 Speeds `1` to `4` perform one action per repaint and wait the interval between them. Speed `5`
 performs actions back to back until `Ui::Play::VIEW_BUDGET` is spent, which is 100 ms, and then
-repaints. That is what `Ui::Play.breath_size` does for a rest.
+repaints. That is what `Ui::Play.breath_size` does for a rest. Speed `5` plays that run through in
+about 18 seconds, at about 28 actions per repaint.
 
 ### Going back
 
@@ -2614,6 +2617,73 @@ answers whether a file still matches.
 `Keys.viewing`. `src/roguelike/ui/screen.cr` gained the banner. `src/roguelike/ui/play.cr` gained
 the transport. `src/roguelike/cli.cr` gained `Cli::Watching`. `src/roguelike/session.cr` gained
 `Session.view`. The specs are `spec/roguelike/replay_view_spec.cr`.
+
+## What a turn and a repaint cost
+
+These are measured rather than reasoned about. The binary is a release build. The run is
+`Skikriand-04`, which is 5,109 actions over 5,078 turns and ends in a win. It is played back
+through `replay view` in a pty at 120 by 36, with `--no-flicker`. The sections are timed by hand
+and the profile is `xctrace` with the Time Profiler template.
+
+### One repaint
+
+A repaint is `Ui::Play#refresh`, then `App#frame`, then `Terminal#paint`.
+
+| | Idle | One action | About 28 actions |
+| --- | --- | --- | --- |
+| `Play#refresh` | 1.66 ms | 1.56 ms | 1.33 ms |
+| `App#frame` | 1.06 ms | 1.12 ms | 1.11 ms |
+| `Terminal#paint` | 0.06 ms | 0.44 ms | 2.25 ms |
+| Bytes to the terminal | 16 | 931 | 5,475 |
+
+`Terminal#paint` is what termbuf's delta is for, and it behaves that way. It is 0.06 ms with
+nothing to send and 2.25 ms when the camera scrolled and most of the map changed.
+
+`App#frame` is about 1.1 ms whatever changed. It lays the whole tree out and draws it into the
+buffer on every frame, including a frame where nothing moved. That is the largest part of a repaint
+in ordinary play.
+
+### One action
+
+| | One action | About 28 actions |
+| --- | --- | --- |
+| `Game#perform` | 1.97 ms | 1.37 ms |
+| `Game#look` after it | 1.41 ms | 1.19 ms |
+
+### Where the time goes
+
+Of the samples the process spent running, the viewer's own work is 36%. Inside it:
+
+| Frame | Share of running samples |
+| --- | --- |
+| `Game#sight` | 21.3% |
+| `Lighting#pour`, inside `Game#sight` | 19.7% |
+| `Game#perform` | 13.2% |
+| `Game#fingerprint` | 12.5% |
+| `Game#spend` | 11.4% |
+| `FieldOfView#scan` | 9.3% |
+| `Game#look` | 9.3% |
+
+Three things follow.
+
+**`Game#sight` is the hot path, and the light is what makes it hot.** `Lighting#pour` is 92% of
+`sight`. `Lighting.over` walks every glowing square of the floor and then pours every light source,
+from nothing, on every call. `FieldOfView#scan` is the smaller half.
+
+**`Game#sight` is worked out about 2.2 times per action.** One of those is `#look`. The rest are
+`#can_see?`, `#melee?` and `#monsters_in_sight` inside `#perform`, each of which starts again.
+There is no cache. What `sight` depends on is the character's position, the floor and the light
+sources, and two of those three move inside a single turn, so a cache has to be keyed rather than
+held for the turn.
+
+**The string keys in `Knowledge` are not the cost.** `Knowledge#learn` is 0.03 ms, which is 3% of a
+`look` and under 1% of a turn. The `Hash` traffic the profile shows is in `Lighting`, which keys on
+`{Int32, Int32}`.
+
+`Game#fingerprint` is 16 ms per call. It is `Game#to_json`, then a canonical re-serialization
+through a pull parser, then SHA-256. The viewer takes one at each of the run's 203 checkpoints.
+Nothing in ordinary play takes one, so this is a cost to `replay verify` and to recording rather
+than to playing.
 
 ## Asked for, not yet built
 
