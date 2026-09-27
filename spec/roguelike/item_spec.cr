@@ -144,6 +144,30 @@ Spectator.describe Roguelike::Item do
     end
   end
 
+  describe "#damage_per_turn" do
+    it "is the mean of the dice while a swing takes one turn" do
+      item = described_class.new Kind::LongSword
+
+      expect(item.damage_per_turn).to eq item.damage.average
+      expect(Roguelike::Item::SWING_TURNS).to eq 1.0
+    end
+
+    it "carries the plus and the condition the way the dice do" do
+      item = described_class.new Kind::LongSword, 2, Condition::Masterwork
+
+      expect(item.damage_per_turn).to eq item.damage.average
+      expect(item.damage_per_turn)
+        .to eq described_class.new(Kind::LongSword).damage_per_turn + 3
+    end
+
+    it "ranks a heavier weapon above a lighter one" do
+      dagger = described_class.new Kind::Dagger
+      sword = described_class.new Kind::LongSword
+
+      expect(sword.damage_per_turn).to be > dagger.damage_per_turn
+    end
+  end
+
   describe "#armor" do
     it "adds the plus and the condition" do
       item = described_class.new Kind::ChainMail, 1, Condition::Masterwork

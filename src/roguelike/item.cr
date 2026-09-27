@@ -232,6 +232,27 @@ module Roguelike
       @kind.damage.with_bonus @enchantment + @condition.modifier
     end
 
+    # How many turns one swing of this takes.
+    #
+    # One, for every weapon. `Costs` prices a blow at `Costs::TURN` and
+    # reads nothing off the weapon. A weapon that carries its own swing cost
+    # changes this number and nothing else about `#damage_per_turn`.
+    SWING_TURNS = 1.0
+
+    # What this item does to whatever it hits in one turn of the world.
+    #
+    # The mean of `#damage`, over how many turns a swing takes. The two
+    # numbers are equal while every weapon swings in one turn. They part
+    # once a weapon carries its own swing cost, and a spear that hits harder
+    # than a dagger and takes three turns to swing then does less in a turn
+    # than the dagger does.
+    #
+    # Somebody choosing which weapon to fight with wants this one. Somebody
+    # choosing which to throw wants `#damage`, because a throw is one blow.
+    def damage_per_turn : Float64
+      damage.average / SWING_TURNS
+    end
+
     # What this item takes off an attack against whoever wears it.
     def armor : Int32
       return 0 unless @kind.item_class.armor?

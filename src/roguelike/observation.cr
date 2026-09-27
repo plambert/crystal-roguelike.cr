@@ -280,11 +280,22 @@ module Roguelike
 
       # The mean of `#damage`. `nil` wherever that is `nil`.
       #
-      # `Trial::Bot` ranks two weapons by this number. The mean follows from
-      # the dice, and how it follows is a rule of the game rather than of
-      # JSON, so it is written here rather than left to every client to
-      # work out.
+      # This is what one blow does. The mean follows from the dice, and how
+      # it follows is a rule of the game rather than of JSON, so it is
+      # written here rather than left to every client to work out.
       getter damage_average : Float64?
+
+      # What it does in one turn of the world. `nil` wherever `#damage` is.
+      #
+      # `#damage_average` over how many turns a swing takes, which is
+      # `Item#damage_per_turn`. Every weapon swings in one turn, so the two
+      # numbers are equal today. They part once a weapon carries its own
+      # swing cost.
+      #
+      # A bot choosing which weapon to fight with wants this one. One
+      # choosing which to throw wants `#damage_average`, because a throw is
+      # one blow.
+      getter damage_per_turn : Float64?
 
       # What it takes off an attack against whoever wears it. `nil` short of
       # a kind the character knows, and `nil` for anything that is not
@@ -323,6 +334,7 @@ module Roguelike
                      @condition : Condition? = nil,
                      @enchantment : Int32? = nil, @damage : Dice? = nil,
                      @damage_average : Float64? = nil,
+                     @damage_per_turn : Float64? = nil,
                      @armor : Int32? = nil, @charges : Int32? = nil,
                      @letter : String? = nil, @slot : Slot? = nil,
                      @pos : {Int32, Int32}? = nil,
@@ -356,6 +368,7 @@ module Roguelike
           enchantment: known ? item.enchantment : nil,
           damage: hits,
           damage_average: hits.try &.average,
+          damage_per_turn: hits ? item.damage_per_turn : nil,
           armor: known ? Seen.guarding(item) : nil,
           charges: item.charges,
           letter: letter,
