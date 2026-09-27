@@ -214,6 +214,110 @@ Spectator.describe Roguelike::Observation do
     end
   end
 
+  describe "what a weapon does" do
+    # A short sword throws 1d6, which is 3.5 a swing.
+    it "gives the dice and the mean" do
+      game = played ROOMS, items: [Item.new(Kind::ShortSword)]
+      found = Observation.of(game).inventory.first
+
+      expect(found.damage).to eq Roguelike::Dice.new(1, 6)
+      expect(found.damage_average).to eq 3.5
+    end
+
+    it "puts the enchantment and the condition in the bonus" do
+      game = played ROOMS, items: [Item.new(Kind::ShortSword,
+        enchantment: 2, condition: Roguelike::Condition::Masterwork)]
+      found = Observation.of(game).inventory.first
+
+      expect(found.damage).to eq Roguelike::Dice.new(1, 6, 3)
+      expect(found.damage_average).to eq 6.5
+    end
+
+    it "leaves a blessing out of it" do
+      plain = Item.new Kind::ShortSword
+      blessed = Item.new Kind::ShortSword,
+        blessing: Roguelike::Blessing::Blessed, blessing_known: true
+      game = played ROOMS, items: [plain, blessed]
+      found = Observation.of(game).inventory
+
+      expect(found.size).to eq 2
+      expect(found.map &.damage).to eq [plain.damage, plain.damage]
+    end
+
+    it "gives the same dice the readout writes" do
+      item = Item.new Kind::Spear, enchantment: 1
+      game = played ROOMS, items: [item]
+      found = Observation.of(game).inventory.first
+
+      expect(Roguelike::Ui::Detail.about(game, item)).to contain "damage #{item.damage}"
+      expect(found.damage.to_s).to eq item.damage.to_s
+    end
+
+    it "gives ammunition its dice" do
+      game = played ROOMS, items: [Item.new(Kind::Arrow, count: 3)]
+      found = Observation.of(game).inventory.first
+
+      expect(found.damage).to eq Roguelike::Dice.new(1, 6)
+    end
+
+    it "gives a thrown thing its dice" do
+      game = played ROOMS, items: [Item.new(Kind::Dart, count: 2)]
+      found = Observation.of(game).inventory.first
+
+      expect(found.damage).to eq Roguelike::Dice.new(1, 4)
+    end
+
+    # What a shot does comes from the arrow. `Ui::Detail` writes no damage
+    # for a bow either.
+    it "gives a bow none" do
+      game = played ROOMS, items: [Item.new(Kind::Bow)]
+      found = Observation.of(game).inventory.first
+
+      expect(found.damage).to be_nil
+      expect(found.damage_average).to be_nil
+    end
+
+    it "gives a potion none" do
+      game = played ROOMS, items: [Item.new(Kind::HealingPotion)]
+      game.lore.learn Kind::HealingPotion
+      found = Observation.of(game).inventory.first
+
+      expect(found.identified?).to be_true
+      expect(found.damage).to be_nil
+      expect(found.armor).to be_nil
+    end
+  end
+
+  describe "what armor takes off an attack" do
+    it "gives the rating" do
+      game = played ROOMS, items: [Item.new(Kind::LeatherArmor)]
+      found = Observation.of(game).inventory.first
+
+      expect(found.armor).to eq 2
+      expect(found.damage).to be_nil
+    end
+
+    it "puts the enchantment and the condition in it" do
+      game = played ROOMS, items: [Item.new(Kind::LeatherArmor,
+        enchantment: 1, condition: Roguelike::Condition::Damaged)]
+
+      expect(Observation.of(game).inventory.first.armor).to eq 2
+    end
+
+    # `Item#armor` never answers below zero, and neither does this.
+    it "never gives less than nothing" do
+      game = played ROOMS, items: [Item.new(Kind::LeatherArmor, enchantment: -5)]
+
+      expect(Observation.of(game).inventory.first.armor).to eq 0
+    end
+
+    it "gives a weapon none" do
+      game = played ROOMS, items: [Item.new(Kind::ShortSword)]
+
+      expect(Observation.of(game).inventory.first.armor).to be_nil
+    end
+  end
+
   # One long lit room. The far end is past `Regards::READING`, so an item
   # lying there is made out as its kind and no more.
   HALL = ["#" * 20, "#<" + "." * 17 + "#", "#" * 20]
@@ -252,6 +356,33 @@ Spectator.describe Roguelike::Observation do
       expect(found.kind).to eq Kind::Spear
       expect(found.enchantment).to be_nil
       expect(found.name).to eq "a spear"
+    end
+
+    # The dice follow the enchantment and the condition, and a spear across a
+    # hall shows neither.
+    it "gives no damage for a weapon too far off to read" do
+      game = played HALL
+      game.floor.drop FAR[0], FAR[1], Item.new(Kind::Spear, enchantment: 3)
+      found = Observation.of(game).items.first
+
+      expect(found.damage).to be_nil
+      expect(found.damage_average).to be_nil
+    end
+
+    it "gives no armor for a suit too far off to read" do
+      game = played HALL
+      game.floor.drop FAR[0], FAR[1], Item.new(Kind::ChainMail, enchantment: 3)
+      found = Observation.of(game).items.first
+
+      expect(found.kind).to eq Kind::ChainMail
+      expect(found.armor).to be_nil
+    end
+
+    it "writes no enchanted damage into the JSON from across the room" do
+      game = played HALL
+      game.floor.drop FAR[0], FAR[1], Item.new(Kind::Spear, enchantment: 3)
+
+      expect(Observation.of(game).to_json.includes? "damage").to be_false
     end
 
     it "is left out for a square the character cannot see" do

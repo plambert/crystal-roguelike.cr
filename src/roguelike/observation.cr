@@ -266,6 +266,34 @@ module Roguelike
       # What it adds to a roll. `nil` short of a kind the character knows.
       getter enchantment : Int32?
 
+      # What it does to whatever it hits. `nil` short of a kind the character
+      # knows.
+      #
+      # `nil` as well for anything that is not swung, thrown or shot. A bow
+      # has none, because what a shot does comes from the arrow.
+      # `Ui::Detail` draws the line in the same place and writes the same
+      # dice beside the name.
+      #
+      # The enchantment and the condition are in the bonus. A blessing is
+      # not. See `Item#damage`.
+      getter damage : Dice?
+
+      # The mean of `#damage`. `nil` wherever that is `nil`.
+      #
+      # `Trial::Bot` ranks two weapons by this number. The mean follows from
+      # the dice, and how it follows is a rule of the game rather than of
+      # JSON, so it is written here rather than left to every client to
+      # work out.
+      getter damage_average : Float64?
+
+      # What it takes off an attack against whoever wears it. `nil` short of
+      # a kind the character knows, and `nil` for anything that is not
+      # armor.
+      #
+      # The enchantment and the condition are in it and it is never below
+      # zero. `Ui::Detail` writes the same number. See `Item#armor`.
+      getter armor : Int32?
+
       # How many uses a wand has left. `nil` for anything else.
       getter charges : Int32?
 
@@ -293,7 +321,9 @@ module Roguelike
                      @lit : Bool, @kind : ItemKind? = nil,
                      @appearance : String? = nil, @blessing : Blessing? = nil,
                      @condition : Condition? = nil,
-                     @enchantment : Int32? = nil, @charges : Int32? = nil,
+                     @enchantment : Int32? = nil, @damage : Dice? = nil,
+                     @damage_average : Float64? = nil,
+                     @armor : Int32? = nil, @charges : Int32? = nil,
                      @letter : String? = nil, @slot : Slot? = nil,
                      @pos : {Int32, Int32}? = nil,
                      @last_seen_turn : Int32? = nil)
@@ -310,6 +340,7 @@ module Roguelike
 
         kind = item.kind
         known = lore.known? kind
+        hits = known ? Seen.hitting(item) : nil
 
         new id: item.id,
           name: lore.name(item),
@@ -323,6 +354,9 @@ module Roguelike
           blessing: item.blessing_known? ? item.blessing : nil,
           condition: known ? item.condition : nil,
           enchantment: known ? item.enchantment : nil,
+          damage: hits,
+          damage_average: hits.try &.average,
+          armor: known ? Seen.guarding(item) : nil,
           charges: item.charges,
           letter: letter,
           slot: slot,
@@ -357,6 +391,27 @@ module Roguelike
           slot: slot,
           pos: pos,
           last_seen_turn: last_seen_turn
+      end
+
+      # What *item* does to whatever it hits. `nil` for one that hits
+      # nothing.
+      #
+      # A weapon swung by hand, a thrown thing and ammunition each throw
+      # dice. Every other class throws none. `ItemKind#damage` answers for
+      # all of them, so the class is what decides rather than the dice.
+      def self.hitting(item : Item) : Dice?
+        found = item.kind.item_class
+        return unless found.melee? || found.thrown? || found.ammunition?
+
+        item.damage
+      end
+
+      # What *item* takes off an attack against whoever wears it. `nil` for
+      # one that is not armor.
+      def self.guarding(item : Item) : Int32?
+        return unless item.kind.item_class.armor?
+
+        item.armor
       end
     end
 
