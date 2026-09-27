@@ -2639,9 +2639,16 @@ A repaint is `Ui::Play#refresh`, then `App#frame`, then `Terminal#paint`.
 `Terminal#paint` is what termbuf's delta is for, and it behaves that way. It is 0.06 ms with
 nothing to send and 2.25 ms when the camera scrolled and most of the map changed.
 
-`App#frame` is about 1.1 ms whatever changed. It lays the whole tree out and draws it into the
-buffer on every frame, including a frame where nothing moved. That is the largest part of a repaint
-in ordinary play.
+`App#frame` is about 1.1 ms whatever changed. Laying out is 0.024 ms on a frame that needs it and
+nothing on one that does not, so the invalidation works. `Renderer.render` is the rest, and it runs
+on every frame. It drew the tree 401 times over a run where nothing moved. That is the largest part
+of a repaint in ordinary play.
+
+Nothing waits on that while a person plays, because a keystroke costs one turn and one repaint
+together. The flames are the one thing that repaints without being asked. `Flicker::PERIOD` is
+140 ms, so an open game renders seven frames a second for as long as it is open. A coming release
+of `termbuf-input` reports when the terminal gains and loses focus, and the flames can then slow or
+stop while the window is in the background.
 
 ### One action
 
