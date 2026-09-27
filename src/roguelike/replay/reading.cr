@@ -116,10 +116,23 @@ module Roguelike
       end
 
       # What *line* calls itself. `nil` for a line that is not JSON.
+      #
+      # `JSON.parse` is not what reads it. That method holds every number it
+      # finds as an `Int64`, and a seed is a `UInt64`. A run on a seed above
+      # `Int64::MAX` has one in its header, and about half of all seeds are
+      # above it. `Kind` reads the one field this wants and steps over the
+      # rest without holding any of it.
       private def self.kind_of(line : String) : String?
-        JSON.parse(line)["type"]?.try &.as_s?
+        Kind.from_json(line).type
       rescue JSON::ParseException
         nil
+      end
+
+      # The one field of a line that says which kind of line it is.
+      struct Kind
+        include JSON::Serializable
+
+        getter type : String?
       end
 
       # How many actions the file holds.

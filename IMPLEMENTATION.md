@@ -2572,6 +2572,18 @@ a viewing process, so nothing is recorded. `Play#store` is nil, so nothing is sa
 run ends with stays down, because it asks whether to play again and a recorded run has nothing to
 play again.
 
+### A seed above Int64::MAX
+
+`Rng` rolls a `UInt64`, so about half of all runs are on a seed above `Int64::MAX`. `JSON.parse`
+holds every number it reads as an `Int64` and raises on one of those, so a reader built on it
+cannot read the header of half of all replay files.
+
+`Fingerprint.canonical` reads with a `JSON::PullParser` for this reason. `Reading.kind_of` read
+with `JSON.parse`, which made `replay verify`, `replay view` and `replay upgrade` all report
+`line 1 is not JSON` for such a file. It now reads the one field it wants through
+`Reading::Kind`, which is a `JSON::Serializable` struct holding `type` alone. A pull parser steps
+over the numbers it is not asked for without holding any of them.
+
 ### Writing an old file out again
 
 `crystal-roguelike replay upgrade SOURCE TARGET` reads the actions out of a format 1 file, performs

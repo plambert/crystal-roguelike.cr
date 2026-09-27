@@ -395,6 +395,36 @@ Spectator.describe Roguelike::Replay do
     end
   end
 
+  describe "a seed above Int64::MAX" do
+    # `Rng` rolls a `UInt64`, so about half of all runs are on one of these.
+    # A generic JSON parser holds every number it reads as an `Int64` and
+    # raises on one of them, which once made these files unreadable.
+    LARGE = 11635920628973383420_u64
+
+    it "records and verifies a run on one" do
+      where = spot "large-seed"
+      Recording.played where, seed: LARGE, turns: 20
+
+      expect(Recording.read(where).header.seed).to eq LARGE
+      expect(Verifier.check(where).ok?).to be_true
+    end
+
+    it "reads a header on one" do
+      where = spot "large-seed"
+      Recording.played where, seed: LARGE, turns: 20
+
+      read = Recording.read where
+      expect(read.acts).to be > 0
+      expect(read.footer).to_not be_nil
+    end
+
+    it "still names a line that is not JSON" do
+      where = Recording.file ["{this is not json"], "rubbish"
+
+      expect(Verifier.check(where).trouble.to_s).to contain "no header"
+    end
+  end
+
   describe "the replay that ships with the specs" do
     it "verifies" do
       expect(Verifier.check(Recording.golden).trouble).to be_nil

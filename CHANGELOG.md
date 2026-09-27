@@ -157,6 +157,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* A replay file recorded on a seed above `Int64::MAX` reads. `Rng` rolls a `UInt64`, so about half
+  of all runs are on one. `crystal-roguelike replay verify`, `replay view` and `replay upgrade`
+  each reported `line 1 is not JSON` for such a file and would not open it.
 * Carrying a saved character on no longer pages through their whole message history before showing
   where they are. The log comes back whole and counts as read.
 * Healing a character who is above their maximum hit points no longer reduces them to their
