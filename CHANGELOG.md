@@ -40,6 +40,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   whether the run is playing and the speed. Nothing is recorded and nothing is saved. A file whose
   fingerprints disagree with this build still plays, and the first disagreement is written to the
   message log.
+* `crystal-roguelike replay upgrade SOURCE TARGET` writes a recorded run out again under this
+  build's fingerprints. It is for a file this build refuses, which is one recorded before the
+  message log came out of the fingerprint. The actions, the seed, the character, and the times the
+  run started and ended all carry over, and the checkpoints stay on the turns they were on. The new
+  file records what this build does with those actions, so what the build that recorded it did is
+  no longer there to compare against. A file already at the target name stops the command.
 * `crystal-roguelike replay verify FILE...` plays the runs in those files again and compares them
   against what was recorded. It names the turns a difference is between, and exits 1 when any file
   differs. It refuses a file recorded by a build whose draw sequences have since moved, and

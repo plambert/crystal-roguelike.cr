@@ -62,8 +62,12 @@ module Recording
   end
 
   # The lines of the file at *path*, as the objects they hold.
-  def self.read(path : Path | String) : Roguelike::Replay::Reading
-    Roguelike::Replay::Reading.read path
+  #
+  # *fingerprints* says the file has to be one this build takes. A spec
+  # about a file recorded by an older build passes false.
+  def self.read(path : Path | String,
+                fingerprints : Bool = true) : Roguelike::Replay::Reading
+    Roguelike::Replay::Reading.read path, fingerprints
   end
 
   # Where the replay that ships with the specs is.

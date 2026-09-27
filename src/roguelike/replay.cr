@@ -5,6 +5,7 @@ require "./replay/reading"
 require "./replay/verifier"
 require "./replay/viewer"
 require "./replay/log"
+require "./replay/upgrade"
 
 module Roguelike
   # A run written down, and a run read back.

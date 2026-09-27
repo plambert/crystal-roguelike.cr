@@ -2572,6 +2572,23 @@ a viewing process, so nothing is recorded. `Play#store` is nil, so nothing is sa
 run ends with stays down, because it asks whether to play again and a recorded run has nothing to
 play again.
 
+### Writing an old file out again
+
+`crystal-roguelike replay upgrade SOURCE TARGET` reads the actions out of a format 1 file, performs
+them, and writes a format 2 file holding the same actions with the fingerprints this build takes.
+`Replay::Upgrade` does the work.
+
+The actions, the seed, the character, what wrote the file, the time the run started and the time it
+ended all carry over. The checkpoints land on the turns they landed on before, because
+`Upgrade.every_of` reads the spacing out of the file rather than taking the setting in force.
+
+What is lost is the check. The new file records what this build does with those actions. A
+difference between the build that first recorded the run and this one is gone, so an upgrade is
+worth doing for a run somebody wants to keep and watch rather than for one under test.
+
+The run is written to a file of its own and moved into place once it is whole, so a refused action
+leaves the target alone. A file already at the target name stops the command.
+
 ### A file this build plays differently
 
 Format 1 is refused, because its fingerprints cover the message log. A format 2 file whose

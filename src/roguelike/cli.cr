@@ -144,9 +144,10 @@ module Roguelike
   class Cli
     # `crystal-roguelike replay`, which works on recorded runs.
     #
-    # It does nothing on its own. `replay verify` and `replay view` are what
-    # sit under it. `bots/PROTOCOL.md` section 3.3 asks for one more, which
-    # is an export for analysis, and that is not built.
+    # It does nothing on its own. `replay verify`, `replay view` and
+    # `replay upgrade` are what sit under it. `bots/PROTOCOL.md` section 3.3
+    # asks for one more, which is an export for analysis, and that is not
+    # built.
     Shell::AutoComplete.command Replaying,
       name: "replay",
       description: "Work on a run recorded with --replay-log" do
@@ -214,12 +215,48 @@ module Roguelike
       end
     end
 
+    # `crystal-roguelike replay upgrade`, which writes a recorded run out
+    # again under this build's fingerprints.
+    #
+    # It is for a file this build refuses. A format 1 file holds
+    # fingerprints taken with the message log in them, and this build leaves
+    # the log out, so neither `replay verify` nor `replay view` opens one.
+    # The actions in it are still good, and this is what keeps them.
+    #
+    # The new file is written beside the old one rather than over it. A file
+    # already at that name stops the command.
+    Shell::AutoComplete.command Upgrading,
+      name: "upgrade",
+      description: "Write a recorded run out again under this build's fingerprints" do
+      positional source : Path, "The replay file to read"
+      positional target : Path, "The replay file to write"
+
+      def run
+        if ::File.exists? target
+          STDERR.puts "#{target} is already there"
+          exit 1
+        end
+
+        report = upgraded
+        puts report
+        exit 1 unless report.ok?
+      end
+
+      # The run in *source*, written to *target*.
+      private def upgraded : Replay::Report
+        Replay::Upgrade.run source, target
+      rescue error : Replay::Error | JSON::Error | ::File::Error
+        Replay::Report.new target, 0, 0, 0, "#{source}: #{error.message}"
+      end
+    end
+
     subcommand Replaying
   end
 
   class Cli::Replaying
     subcommand Verifying
     subcommand Watching
+    subcommand Upgrading
   end
 
   # The flags that belong to whoever works on the game rather than to whoever

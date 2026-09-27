@@ -37,6 +37,17 @@ module Roguelike
       # What is being recorded. `human` for a person at the keyboard.
       class_property source : String = "human"
 
+      # When a log says recording began, or `nil` for the moment it opens.
+      #
+      # `Replay::Upgrade` sets it, so a run written out again carries the
+      # time it was played rather than the time it was written out.
+      class_property started_at : Time? = nil
+
+      # When a log says recording stopped, or `nil` for the moment it does.
+      #
+      # `Replay::Upgrade` sets it, for the reason `.started_at` is set.
+      class_property ended_at : Time? = nil
+
       # Whether the floor was dug from the seed. `--no-generate` clears it.
       class_property? generate : Bool = true
 
@@ -94,7 +105,7 @@ module Roguelike
       @file : File
 
       def initialize(@game : Game, pattern : String)
-        @started_at = Time.utc
+        @started_at = Log.started_at || Time.utc
         @path = Naming.resolve pattern, @game.player.name, @game.world.seed,
           @started_at
         @file = File.new @path, "w"
@@ -129,7 +140,8 @@ module Roguelike
       # Writes the footer of a run the game ended, and closes the file.
       private def over : Nil
         finish Footer.new @game.turn, Replay.word_for(@game.outcome),
-          @game.outcome.to_s.downcase, Time.utc, @game.fingerprint
+          @game.outcome.to_s.downcase, Log.ended_at || Time.utc,
+          @game.fingerprint
       end
 
       # Writes the footer of a run the process went out from under.
@@ -141,7 +153,7 @@ module Roguelike
         return unless open?
 
         finish Footer.new @game.turn, error ? "crash" : "truncated",
-          @game.outcome.to_s.downcase, Time.utc
+          @game.outcome.to_s.downcase, Log.ended_at || Time.utc
       end
 
       # Writes *footer* and closes the file.
