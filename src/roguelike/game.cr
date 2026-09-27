@@ -2114,10 +2114,49 @@ module Roguelike
     # touches a few hundred squares. A cache goes in when a profile asks for
     # one.
     def sight : Vision
-      return Vision.blind @player.at if @player.blind?
+      blind = @player.blind?
+      sources = blind ? NO_LIGHTS : lights
+      key = {@player.floor, floor.version, @player.at, blind, sources}
 
-      Vision.from floor, @player.at, lights
+      held = @seen
+      return held if held && @seen_from == key
+
+      made = blind ? Vision.blind(@player.at) : Vision.from(floor, @player.at, sources)
+      @seen = made
+      @seen_from = key
+      made
     end
+
+    # What a field of view was worked out from.
+    #
+    # The floor and its version cover the walls, the glow and the ambient
+    # level. The sources cover every flame, whoever is holding it and
+    # wherever it stands. The square and the blindness cover the character.
+    # Nothing else reaches `Vision.from`, and a creature blocks neither sight
+    # nor light.
+    alias Seeing = {String, Int32, {Int32, Int32}, Bool, Array(LightSource)}
+
+    # The sources a character who cannot see reads. `Vision.blind` reads
+    # none, so the list is the same every time and is made once.
+    NO_LIGHTS = [] of LightSource
+
+    # The last field of view worked out, and what it was worked out from.
+    #
+    # `#sight` is asked for more than twice per action. The rule that decides
+    # whether a step is a swing asks, a band deciding where to walk asks, and
+    # `#look` asks again at the end of the turn. Working a field of view out
+    # is the largest single cost in a turn, and every ask after the first
+    # gives the same answer while nothing in `Seeing` has moved.
+    #
+    # Both are left out of the JSON. A save holds the run. What was worked
+    # out from the run is not part of it, and a run read back works it out
+    # again on the first ask.
+    @[JSON::Field(ignore: true)]
+    @seen : Vision? = nil
+
+    # :ditto:
+    @[JSON::Field(ignore: true)]
+    @seen_from : Seeing? = nil
 
     # Whether the character can see *x*, *y* from where they stand.
     def can_see?(x : Int32, y : Int32) : Bool

@@ -57,7 +57,30 @@ module Roguelike
     # Zero for a dungeon floor, which is dark until somebody brings a light.
     # A town at noon and a cavern with a hole in its roof are the other case,
     # and a spec that is not about light uses this to see the whole floor.
-    property ambient : Int32
+    getter ambient : Int32
+
+    # :ditto:
+    def ambient=(level : Int32) : Int32
+      changed
+      @ambient = level
+    end
+
+    # How many times this floor has been written to.
+    #
+    # `Game#sight` works a field of view and a lighting out of the walls, the
+    # glow and the ambient level, and holds the answer while none of the
+    # three has moved. This is what tells it they have.
+    #
+    # Every method that writes to the floor raises it. Some of those writes
+    # change nothing a field of view depends on, and raising it for one of
+    # those throws an answer away that was still good. That is the safe
+    # direction to be wrong in.
+    #
+    # It is left out of the JSON and out of `#==`. Two floors that hold the
+    # same squares are the same floor whatever each was written to on the way
+    # there.
+    @[JSON::Field(ignore: true)]
+    getter version : Int32 = 0
 
     # What is fitted to each square: a sconce, and later a brazier or an
     # altar. A fixture is part of the room rather than loot, so it is here
@@ -222,6 +245,11 @@ module Roguelike
       {@columns, @rows}
     end
 
+    # Records that this floor has been written to. See `#version`.
+    protected def changed : Nil
+      @version &+= 1
+    end
+
     # Whether *x*, *y* is on the floor.
     def contains?(x : Int32, y : Int32) : Bool
       0 <= x < @columns && 0 <= y < @rows
@@ -246,6 +274,7 @@ module Roguelike
 
     # Puts *tile* at *x*, *y*.
     def set(x : Int32, y : Int32, tile : Tile) : Nil
+      changed
       @tiles[index x, y] = tile
     end
 
@@ -282,6 +311,7 @@ module Roguelike
       return false unless contains? creature.x, creature.y
       return false if monster? creature.x, creature.y
 
+      changed
       @monsters[Floor.spot creature.x, creature.y] = creature
       @bands[creature.band] ||= Band.new creature.band
       true
@@ -289,6 +319,7 @@ module Roguelike
 
     # Takes whatever is standing on *x*, *y* off the floor. Answers it.
     def remove(x : Int32, y : Int32) : Monster?
+      changed
       @monsters.delete Floor.spot(x, y)
     end
 
@@ -302,6 +333,7 @@ module Roguelike
       return false unless contains? to[0], to[1]
       return false if monster? to[0], to[1]
 
+      changed
       @monsters.delete Floor.spot(from[0], from[1])
       creature.move_to to
       @monsters[Floor.spot to[0], to[1]] = creature
@@ -340,6 +372,7 @@ module Roguelike
 
     # Fits *fitting* to *x*, *y*. A `nil` takes whatever is there away.
     def set_fixture(x : Int32, y : Int32, fitting : Fixture?) : Nil
+      changed
       key = Floor.spot x, y
 
       if fitting
@@ -365,6 +398,7 @@ module Roguelike
     # Makes *x*, *y* glow at *level*. A level of zero or less takes the glow
     # away.
     def set_glow(x : Int32, y : Int32, level : Int32) : Nil
+      changed
       key = Floor.spot x, y
 
       if level > 0
@@ -449,6 +483,7 @@ module Roguelike
     # A stack joins one already there rather than making a second pile of the
     # same thing.
     def drop(x : Int32, y : Int32, item : Item) : Nil
+      changed
       pile = @litter[Floor.spot(x, y)] ||= [] of Item
       found = pile.index &.stacks_with?(item)
 
@@ -461,6 +496,7 @@ module Roguelike
 
     # Takes *item* off *x*, *y*. Answers whether it was there.
     def take(x : Int32, y : Int32, item : Item) : Bool
+      changed
       spot = Floor.spot x, y
       pile = @litter[spot]?
       return false unless pile
@@ -475,6 +511,7 @@ module Roguelike
 
     # Takes everything off *x*, *y* and answers it.
     def clear_items(x : Int32, y : Int32) : Array(Item)
+      changed
       @litter.delete(Floor.spot(x, y)) || [] of Item
     end
 

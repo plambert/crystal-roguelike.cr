@@ -2677,11 +2677,9 @@ Three things follow.
 `sight`. `Lighting.over` walks every glowing square of the floor and then pours every light source,
 from nothing, on every call. `FieldOfView#scan` is the smaller half.
 
-**`Game#sight` is worked out about 2.2 times per action.** One of those is `#look`. The rest are
-`#can_see?`, `#melee?` and `#monsters_in_sight` inside `#perform`, each of which starts again.
-There is no cache. What `sight` depends on is the character's position, the floor and the light
-sources, and two of those three move inside a single turn, so a cache has to be keyed rather than
-held for the turn.
+**`Game#sight` was worked out about 2.2 times per action.** One of those is `#look`. The rest are
+`#can_see?`, `#melee?` and `#monsters_in_sight` inside `#perform`, each of which started again.
+"Holding a field of view" below is what answers it.
 
 **The string keys in `Knowledge` are not the cost.** `Knowledge#learn` is 0.03 ms, which is 3% of a
 `look` and under 1% of a turn. The `Hash` traffic the profile shows is in `Lighting`, which keys on
@@ -2691,6 +2689,72 @@ held for the turn.
 through a pull parser, then SHA-256. The viewer takes one at each of the run's 203 checkpoints.
 Nothing in ordinary play takes one, so this is a cost to `replay verify` and to recording rather
 than to playing.
+
+## Holding a field of view
+
+`Game#sight` gives the same answer every time while nothing it reads has moved, so it holds the
+last one and gives that back.
+
+### What it is worked out from
+
+`Vision.from` reads the floor, the square the character stands on and the light sources. A creature
+blocks neither sight nor light, so where the creatures stand is not in it except through the flames
+they carry.
+
+The key is five parts.
+
+| Part | What it covers |
+| --- | --- |
+| The floor's id | The floor the character is on |
+| `Floor#version` | The walls, the glow and the ambient level |
+| The character's square | Where the field of view is cast from |
+| Whether they are blind | A blind character sees their own square |
+| The light sources | Every flame, wherever it stands and whoever holds it |
+
+`Game#lights` builds the source list by walking the fixtures, the piles, the pack and the
+creatures. That walk is 0.03 ms against the 1.1 ms it decides whether to spend, so the key is
+cheap enough to take on every ask.
+
+`Floor#version` counts how many times the floor has been written to. Every method that writes to it
+raises the number, including ones that change nothing a field of view reads. Raising it too often
+throws away an answer that was still good, which is the safe direction to be wrong in.
+
+Neither the held answer nor the version is written to the JSON. A save holds the run, and what was
+worked out from the run is not part of it. A run read back works it out again on the first ask.
+
+### What it is worth
+
+| | Before | After |
+| --- | --- | --- |
+| `replay verify` on a 5,109 action run | 18.4 s | 11.2 s |
+| One headless step, whole | 147 a second | 328 a second |
+| The Python harness, one worker | 132 steps a second | 317 steps a second |
+| `crystal spec` | 4:00 | 2:06 |
+| `--trial 100` | 69.7 s | 70.0 s |
+
+`--trial` is unchanged because `Trial::Bot` never calls `#look`. It asks for a field of view, acts,
+and the creatures move, so the next ask reads a floor that has changed. The paths that gain are the
+ones that look after an action, which are `Ui::Play`, the headless binary, `replay verify` and
+`replay view`.
+
+The step phases say where the gain lands.
+
+| Phase | Before | After |
+| --- | --- | --- |
+| `perform` | 697 a second | 876 a second |
+| `look` | 371 a second | 815 a second |
+| `sight` | 249 a second | 853 a second |
+| `legal` | 199 a second | 825 a second |
+| `observation` | 150 a second | 350 a second |
+
+### Checking it
+
+`Knowledge` is what `#look` writes and it is part of `Game#fingerprint`, so a stale answer moves
+every checkpoint of a replay. The golden replay and a 5,109 action winning run both verify to the
+turn they ended on, which is 203 checkpoints on the longer one.
+
+`spec/roguelike/sight_cache_spec.cr` asks twice and gets one object back, then moves each part of
+the key in turn.
 
 ## Asked for, not yet built
 

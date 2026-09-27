@@ -103,6 +103,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* The game works a field of view out once per turn rather than about twice, and holds the answer
+  while nothing it reads has moved. Playing a recorded run back, checking one and driving the game
+  from a bot are each about twice as fast. What the game does is unchanged, and a recorded run
+  verifies to the same fingerprints.
 * The fingerprint of a run leaves the message log out. A save still holds the log, and a person who
   comes back to a run reads their last lines. `replay verify` no longer reports a difference for a
   line the game wrote outside an action, such as the one `G` writes when it asks which way to run.
