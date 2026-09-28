@@ -1,5 +1,4 @@
-require "./attributes"
-require "./species"
+require "../roguelike"
 
 module Roguelike
   # Whether a creature notices the character.

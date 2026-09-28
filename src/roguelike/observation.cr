@@ -1,5 +1,5 @@
 require "json"
-require "./game"
+require "../roguelike"
 
 module Roguelike
   # What the character knows now, as one value.

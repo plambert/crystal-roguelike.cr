@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # Why a walk or a rest stopped.
   #

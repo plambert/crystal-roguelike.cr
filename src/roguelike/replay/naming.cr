@@ -1,4 +1,4 @@
-require "../save"
+require "../../roguelike"
 
 module Roguelike
   module Replay

@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # Everything the character knows about one thing, written out.
   #

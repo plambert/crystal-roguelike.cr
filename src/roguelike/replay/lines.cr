@@ -1,5 +1,5 @@
 require "json"
-require "../action"
+require "../../roguelike"
 
 module Roguelike
   module Replay

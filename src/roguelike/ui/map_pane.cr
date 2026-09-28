@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # A floor, as something a `CellGrid` can draw.
   #

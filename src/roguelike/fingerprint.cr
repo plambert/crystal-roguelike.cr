@@ -1,5 +1,6 @@
 require "digest/sha256"
 require "json"
+require "../roguelike"
 
 module Roguelike
   # What a run is, as one string, the same in every process.

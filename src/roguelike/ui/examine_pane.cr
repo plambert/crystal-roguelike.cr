@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # What is on one square, written out in the sidebar.
   #

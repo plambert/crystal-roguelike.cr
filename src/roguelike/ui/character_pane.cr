@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # What the character is, stacked down the sidebar.
   #

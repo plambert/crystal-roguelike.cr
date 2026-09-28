@@ -1,4 +1,5 @@
 require "json"
+require "../roguelike"
 
 module Roguelike
   # A number of dice, their sides, and a flat bonus.

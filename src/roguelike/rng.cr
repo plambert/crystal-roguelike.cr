@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # A generator for one part of one run.
   #

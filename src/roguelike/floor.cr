@@ -1,8 +1,5 @@
 require "json"
-require "./fixture"
-require "./item"
-require "./monster"
-require "./tile"
+require "../roguelike"
 
 module Roguelike
   # One floor of the world.

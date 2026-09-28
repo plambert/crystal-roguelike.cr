@@ -1,4 +1,5 @@
 require "json"
+require "../roguelike"
 
 module Roguelike
   # Saved characters on disk.

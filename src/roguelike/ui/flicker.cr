@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # How a flame wavers.
   #

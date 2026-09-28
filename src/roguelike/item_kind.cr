@@ -1,6 +1,5 @@
 require "json"
-require "./dice"
-require "./effect"
+require "../roguelike"
 
 module Roguelike
   # What sort of thing an item is.

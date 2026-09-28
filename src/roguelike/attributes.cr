@@ -1,4 +1,5 @@
 require "json"
+require "../roguelike"
 
 module Roguelike
   # What a creature is made of.

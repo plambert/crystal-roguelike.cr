@@ -1,5 +1,4 @@
-require "./rng"
-require "./save"
+require "../roguelike"
 
 module Roguelike
   # Names to offer somebody who has not thought of one.

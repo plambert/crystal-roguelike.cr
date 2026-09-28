@@ -1,7 +1,4 @@
-require "./descent"
-require "./knowledge"
-require "./line"
-require "./vision"
+require "../roguelike"
 
 module Roguelike
   # A way from where the character stands to a square they picked.

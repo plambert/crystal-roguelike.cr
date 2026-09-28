@@ -1,5 +1,5 @@
 require "json"
-require "./item"
+require "../roguelike"
 
 module Roguelike
   # What a character carries, one letter at a time.

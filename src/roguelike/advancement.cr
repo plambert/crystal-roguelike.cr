@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # How a character grows.
   #

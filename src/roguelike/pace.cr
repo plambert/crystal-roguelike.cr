@@ -1,4 +1,5 @@
 require "json"
+require "../roguelike"
 
 module Roguelike
   # How fast one actor is, and how much of its next action it has paid for.

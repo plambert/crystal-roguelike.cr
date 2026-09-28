@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # What goes on the title screen and on the screen a run ends with.
   #

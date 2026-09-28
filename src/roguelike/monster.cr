@@ -1,8 +1,5 @@
 require "json"
-require "./item"
-require "./knowledge"
-require "./pace"
-require "./species"
+require "../roguelike"
 
 module Roguelike
   # One creature on a floor.

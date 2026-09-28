@@ -1,4 +1,5 @@
 require "shell-auto_complete"
+require "../crystal-roguelike"
 
 module Roguelike
   # The command line.

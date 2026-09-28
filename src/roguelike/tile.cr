@@ -1,4 +1,4 @@
-require "./terrain"
+require "../roguelike"
 
 module Roguelike
   # One square of a floor.

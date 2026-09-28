@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # A box of lines hanging beside one row of the sidebar or of a menu.
   #

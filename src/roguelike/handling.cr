@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # How much attention an item has had, and when that is enough to tell a
   # blessing from a curse.

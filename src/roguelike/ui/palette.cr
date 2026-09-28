@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # What one thing looks like on the screen.
   record Look, glyph : Char, style : Style

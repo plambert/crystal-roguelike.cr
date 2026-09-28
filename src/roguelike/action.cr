@@ -1,6 +1,5 @@
 require "json"
-require "./direction"
-require "./slot"
+require "../roguelike"
 
 module Roguelike
   # One thing the character does, as a value.

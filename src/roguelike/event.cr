@@ -1,7 +1,5 @@
 require "json"
-require "./action"
-require "./direction"
-require "./slot"
+require "../roguelike"
 
 module Roguelike
   # One thing that happened, as a value.

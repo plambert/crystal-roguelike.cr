@@ -1,7 +1,4 @@
-require "./item"
-require "./items"
-require "./rng"
-require "./species"
+require "../roguelike"
 
 module Roguelike
   # What a monster is carrying when it is put on a floor.

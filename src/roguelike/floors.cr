@@ -1,4 +1,4 @@
-require "./floor"
+require "../roguelike"
 
 module Roguelike
   # The floors that ship with the game.

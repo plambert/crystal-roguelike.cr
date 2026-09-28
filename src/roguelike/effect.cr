@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # What using an item does.
   #

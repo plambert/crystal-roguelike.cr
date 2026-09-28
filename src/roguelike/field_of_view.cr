@@ -1,4 +1,4 @@
-require "./floor"
+require "../roguelike"
 
 module Roguelike
   # Which squares a creature can see from where it stands.

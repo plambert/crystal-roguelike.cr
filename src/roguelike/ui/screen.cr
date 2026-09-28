@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # The regions the game is drawn in. This class does not decide what goes in
   # them.

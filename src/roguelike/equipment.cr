@@ -1,6 +1,5 @@
 require "json"
-require "./inventory"
-require "./slot"
+require "../roguelike"
 
 module Roguelike
   # What a character has readied, one slot at a time.

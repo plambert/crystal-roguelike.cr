@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # What is underfoot and what is in sight, written out in the sidebar.
   #

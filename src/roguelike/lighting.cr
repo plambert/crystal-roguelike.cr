@@ -1,6 +1,4 @@
-require "./direction"
-require "./field_of_view"
-require "./floor"
+require "../roguelike"
 
 module Roguelike
   # What sort of light a source throws.

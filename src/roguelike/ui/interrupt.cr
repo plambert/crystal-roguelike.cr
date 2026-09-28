@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # Something that holds the keyboard and answers every key the same way.
   #

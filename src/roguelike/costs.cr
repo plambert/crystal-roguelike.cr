@@ -1,5 +1,4 @@
-require "./pace"
-require "./slot"
+require "../roguelike"
 
 module Roguelike
   # What each action costs, in energy.

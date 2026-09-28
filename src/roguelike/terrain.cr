@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # Everything one kind of terrain is.
   #

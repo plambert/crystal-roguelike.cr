@@ -1,5 +1,4 @@
-require "../item"
-require "../item_kind"
+require "../../roguelike"
 
 module Roguelike
   # The debug console and what it runs.

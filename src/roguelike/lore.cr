@@ -1,7 +1,5 @@
 require "json"
-require "./item"
-require "./regard"
-require "./rng"
+require "../roguelike"
 
 module Roguelike
   # What a run looks like, and what the character has found out about it.

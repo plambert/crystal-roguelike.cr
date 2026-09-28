@@ -10,7 +10,7 @@
 # unless a tracked file was edited to require it, and counting them would
 # mark every working tree with a stray note in it.
 #
-# `src/crystal-roguelike.cr` runs this while the compiler expands its macros.
+# `src/roguelike/version.cr` runs this while the compiler expands its macros.
 # The compiler caches that expansion, so a rebuild that changes no source
 # carries the stamp the last full build wrote.
 

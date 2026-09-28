@@ -1,5 +1,5 @@
 require "json"
-require "./direction"
+require "../roguelike"
 
 module Roguelike
   # What sort of fitting stands on a square.

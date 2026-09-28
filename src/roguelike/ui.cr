@@ -18,11 +18,7 @@ module Roguelike::Ui
   alias View = TermBuf::View
 end
 
-require "./direction"
-require "./attributes"
-require "./item"
-require "./game"
-require "./floor"
+require "../roguelike"
 require "./ui/palette"
 require "./ui/line"
 require "./ui/meter"

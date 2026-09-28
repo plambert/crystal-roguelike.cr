@@ -1,4 +1,4 @@
-require "./item"
+require "../roguelike"
 
 module Roguelike
   # Where one thing a character has readied is held.

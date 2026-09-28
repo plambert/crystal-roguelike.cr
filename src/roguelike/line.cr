@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # The squares a straight line passes through.
   #

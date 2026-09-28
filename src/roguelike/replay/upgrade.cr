@@ -1,8 +1,4 @@
-require "../game"
-require "./log"
-require "./naming"
-require "./reading"
-require "./verifier"
+require "../../roguelike"
 
 module Roguelike
   module Replay

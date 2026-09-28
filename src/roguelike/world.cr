@@ -1,5 +1,5 @@
 require "json"
-require "./floor"
+require "../roguelike"
 
 module Roguelike
   # Every floor of one run, and the seed that made them.

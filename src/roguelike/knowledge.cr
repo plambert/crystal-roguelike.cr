@@ -1,8 +1,5 @@
 require "json"
-require "./fixture"
-require "./item"
-require "./regard"
-require "./terrain"
+require "../roguelike"
 
 module Roguelike
   # What one square looked like the last time somebody saw it.

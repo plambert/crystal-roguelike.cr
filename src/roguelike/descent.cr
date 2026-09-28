@@ -1,6 +1,4 @@
-require "./direction"
-require "./knowledge"
-require "./line"
+require "../roguelike"
 
 module Roguelike
   # A number on every square saying how many steps it is from a goal.

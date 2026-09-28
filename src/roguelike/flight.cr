@@ -1,6 +1,4 @@
-require "./floor"
-require "./item"
-require "./line"
+require "../roguelike"
 
 module Roguelike
   # Why a thing thrown or fired stopped where it did.

@@ -1,3 +1,5 @@
+require "../../crystal-roguelike"
+
 module Roguelike::Ui
   # What the mouse pointer is doing. What the terminal should be told about
   # it.

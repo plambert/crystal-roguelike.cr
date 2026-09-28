@@ -1,4 +1,5 @@
 require "json"
+require "../roguelike"
 
 module Roguelike
   # What has just happened, oldest first.

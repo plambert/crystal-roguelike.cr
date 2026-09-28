@@ -1,7 +1,4 @@
-require "./descent"
-require "./direction"
-require "./knowledge"
-require "./line"
+require "../roguelike"
 
 module Roguelike
   # How a creature decides where to go.

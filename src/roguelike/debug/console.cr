@@ -1,5 +1,4 @@
-require "../game"
-require "./naming"
+require "../../roguelike"
 
 module Roguelike::Debug
   # A line typed into the debug console, and what it does.

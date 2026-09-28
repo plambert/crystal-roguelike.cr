@@ -1,4 +1,4 @@
-require "./game"
+require "../roguelike"
 
 module Roguelike
   # Plays the game without a terminal and says how it went.

@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # How well the character has made something out.
   #

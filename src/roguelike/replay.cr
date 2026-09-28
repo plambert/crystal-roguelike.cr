@@ -1,3 +1,4 @@
+require "../roguelike"
 require "./replay/streams"
 require "./replay/lines"
 require "./replay/naming"

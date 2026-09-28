@@ -1,3 +1,5 @@
+require "../../roguelike"
+
 module Roguelike
   module Replay
     # Which draw sequence each part of the game is on.

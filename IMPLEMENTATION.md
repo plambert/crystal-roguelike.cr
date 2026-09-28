@@ -227,6 +227,53 @@ none of it is fixed and a preset can rebind the lot.
 
 `Shift` plus a letter is deliberately unbound and kept for later commands.
 
+## How the files require each other
+
+Every file under `src/roguelike/` requires one hub, and the hub requires every file. Whichever file
+the compiler is handed, the whole model arrives with it, and the order the files load in is the
+order the hub lists them in.
+
+### The two hubs
+
+| Hub | What it requires | Who requires it |
+| --- | --- | --- |
+| `src/roguelike.cr` | Every model file | Every model file |
+| `src/crystal-roguelike.cr` | The model hub, then `ui`, `session` and `cli` | Every file under `src/roguelike/ui/`, and `session.cr` and `cli.cr` |
+
+`src/roguelike/ui.cr` and `src/roguelike/replay.cr` list the files of their own directory. They are
+hubs of a smaller kind and they each require the model hub as well.
+
+The model hub holds no terminal file. `bots/headless/` compiles against the model, and the binary
+it builds has none of termbuf in it. That is 7,428 termbuf symbols in the game binary and zero in
+the headless one.
+
+`src/roguelike/termbuf_ext/` requires neither hub. Those six files are written here and moved to
+`termbuf-widgets.cr` once their shape settles, and a require pointing back at the game would make
+that move more than a move.
+
+### What it fixes
+
+A file used to require the files it named types from, and several named none at all. Every file
+under `src/roguelike/ui/` required nothing, so each one compiled only because `ui.cr` listed it
+after the files it needed. `game.cr` used `Replay::Log` and required nothing that defined it; the
+game binary compiled because `src/crystal-roguelike.cr` required `roguelike/replay` further down
+its own list, and `bots/headless/main.cr` did not compile at all. Fixing that one case took 13
+requires across four files.
+
+`script/check-requires` compiles each file under `src` on its own. A file that reaches for a type
+without the hub having loaded it fails there rather than in whichever binary happens to notice
+first. It takes a couple of minutes, so it is not part of `crystal spec`.
+
+### What it costs
+
+Nothing measurable. A hub means the compiler is handed every model file whatever it was asked for,
+and the work of deciding what to compile is small next to compiling it.
+
+| | Before | After |
+| --- | --- | --- |
+| `crystal build --no-codegen src/main.cr` | 2.6 s | 2.6 s |
+| `crystal build --no-codegen bots/headless/main.cr` | 1.34 s | 1.34 s |
+
 ## Shard extraction
 
 Six pieces are general-purpose rather than roguelike-specific. They are built here first, in

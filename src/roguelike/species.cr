@@ -1,8 +1,5 @@
 require "json"
-require "./attributes"
-require "./dice"
-require "./knowledge"
-require "./pace"
+require "../roguelike"
 
 module Roguelike
   # Who fights whom.

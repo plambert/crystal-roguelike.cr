@@ -1,3 +1,5 @@
+require "../roguelike"
+
 # A terminal roguelike.
 #
 # The shard is named `crystal-roguelike`. The namespace is `Roguelike`

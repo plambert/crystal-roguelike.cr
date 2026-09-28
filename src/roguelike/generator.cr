@@ -1,9 +1,4 @@
-require "./direction"
-require "./fixture"
-require "./floor"
-require "./items"
-require "./rng"
-require "./species"
+require "../roguelike"
 
 module Roguelike
   # One rectangle of a floor, in squares.

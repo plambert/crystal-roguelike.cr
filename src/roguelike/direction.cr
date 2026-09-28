@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # One step on the eight-way grid.
   #

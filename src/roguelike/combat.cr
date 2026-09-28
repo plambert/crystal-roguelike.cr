@@ -1,6 +1,5 @@
 require "json"
-require "./dice"
-require "./rng"
+require "../roguelike"
 
 module Roguelike
   # What one swing did.

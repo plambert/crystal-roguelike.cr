@@ -1,5 +1,5 @@
 require "termbuf"
-require "./ui"
+require "../crystal-roguelike"
 
 module Roguelike
   # One run, from taking the terminal over to giving it back.

@@ -1,8 +1,4 @@
-require "../version"
-require "./lines"
-require "./naming"
-require "./streams"
-require "./verifier"
+require "../../roguelike"
 
 module Roguelike
   module Replay

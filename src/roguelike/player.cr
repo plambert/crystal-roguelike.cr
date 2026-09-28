@@ -1,10 +1,5 @@
 require "json"
-require "./advancement"
-require "./attributes"
-require "./equipment"
-require "./inventory"
-require "./knowledge"
-require "./pace"
+require "../roguelike"
 
 module Roguelike
   # The character the person plays.

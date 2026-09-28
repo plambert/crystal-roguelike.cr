@@ -1,3 +1,5 @@
+require "../roguelike"
+
 module Roguelike
   # Something the character could apply.
   #

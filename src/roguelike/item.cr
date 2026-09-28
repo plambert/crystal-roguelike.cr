@@ -1,6 +1,5 @@
 require "json"
-require "./handling"
-require "./item_kind"
+require "../roguelike"
 
 module Roguelike
   # One thing a character can pick up.

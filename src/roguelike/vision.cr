@@ -1,6 +1,4 @@
-require "./field_of_view"
-require "./lighting"
-require "./line"
+require "../roguelike"
 
 module Roguelike
   # What a creature can actually see.

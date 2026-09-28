@@ -1,0 +1,34 @@
+#!/bin/sh
+#
+# Compiles each file under `src` on its own.
+#
+# Every file requires a hub, and the hub requires every file, so any one of
+# them carries the whole model. A file that reaches for a type without saying
+# where it comes from still compiles inside the game binary, because some
+# other file happened to require it first. It fails here.
+#
+# This takes a couple of minutes. It is not part of `crystal spec`.
+#
+#     script/check-requires
+
+set -e
+
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+failed=0
+
+for file in $(find src -name '*.cr' | sort); do
+  if ! output=$(crystal build --no-codegen "$file" 2>&1); then
+    failed=$((failed + 1))
+    echo "$file"
+    echo "$output" | sed 's/^/    /'
+  fi
+done
+
+if [ "$failed" -gt 0 ]; then
+  echo "$failed files do not compile on their own"
+  exit 1
+fi
+
+echo "every file under src compiles on its own"

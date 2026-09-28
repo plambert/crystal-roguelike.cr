@@ -1,5 +1,4 @@
-require "./item"
-require "./rng"
+require "../roguelike"
 
 module Roguelike
   # Where items come from.
