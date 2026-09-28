@@ -103,6 +103,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
+  takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
+  build of this format still verifies.
 * The game works a field of view out once per turn rather than about twice, and holds the answer
   while nothing it reads has moved. Playing a recorded run back, checking one and driving the game
   from a bot are each about twice as fast. What the game does is unchanged, and a recorded run

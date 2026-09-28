@@ -2756,6 +2756,66 @@ turn they ended on, which is 203 checkpoints on the longer one.
 `spec/roguelike/sight_cache_spec.cr` asks twice and gets one object back, then moves each part of
 the key in turn.
 
+## What a fingerprint costs
+
+`Game#fingerprint` writes the run out as JSON, puts the fields of every object in order by name,
+and hashes the result. A late turn of a long run is a megabyte and a half of JSON, and the whole of
+it goes through on every checkpoint.
+
+### Where the time went
+
+One fingerprint at turn 5078 of a 5,109 action run, measured over fifty calls of each stage.
+
+| Stage | Before | After |
+| --- | --- | --- |
+| `Game#to_json` | 8.6 ms | 8.8 ms |
+| `Fingerprint.canonical` | 28.4 ms | 16.5 ms |
+| SHA-256 over 1.46 MB | 0.6 ms | 0.6 ms |
+| `Game#fingerprint`, whole | 39.8 ms | 26.1 ms |
+
+The hash was never the cost. Neither was copying the bytes, because a megabyte and a half of memcpy
+is under a millisecond. Reading the JSON takes 7.8 ms of the 16.5, and that is the floor for
+anything that reads text.
+
+Four things were paid for and are not any more.
+
+* **A `JSON::Builder` for every name and every string.** `String#to_json(io)` builds one, and that
+  turn has 131,439 names and strings in it. `Writer#quote` writes the same bytes and builds
+  nothing. `fingerprint_spec.cr` compares the two over every string that needs an escape, which is
+  every control byte, the quote, the backslash, the delete byte, and characters of two, three and
+  four bytes.
+* **A string for every field.** An object's fields have to be read before the first one is written,
+  so each field's bytes were held in a `String` of their own. They are now held in one buffer per
+  depth of nesting. One object is open at each depth at a time, so those buffers serve the whole
+  document.
+* **A second array for every object.** `Array#sort_by!` maps the array it sorts into a new one
+  first. The names of one object are all different, so `#unstable_sort!` with a comparison leaves
+  them in the one order there is and allocates nothing.
+* **A megabyte and a half held twice.** `Fingerprint.of` used to build the canonical form as a
+  string and then hash it. It now writes those bytes to a `Sink`, which is an `IO` that hands them
+  to the digest a block at a time.
+
+### What it is worth
+
+| | Before | After |
+| --- | --- | --- |
+| One fingerprint, turn 5078 | 39.8 ms | 26.1 ms |
+| `replay verify` on a 5,109 action run | 11.5 s | 9.8 s |
+
+A fingerprint is taken once every `--replay-every` turns, which is 25 by default, so it is a
+quarter of what `replay verify` does and nothing at all in a run nobody is recording.
+
+### Checking it
+
+The value has to be the one earlier builds wrote, or every recorded replay stops verifying. A
+5,109 action winning run recorded before this change verifies to turn 5078, 203 checkpoints. The
+cross-process specs still agree, which is what says the value depends on the state and not on
+anything the process brought with it.
+
+`Fingerprint.of` and `Fingerprint.canonical` now send the same bytes to different places, so they
+could drift apart. Two specs compare them, one on a fresh floor and one on a run part way through
+whose character has looked around.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

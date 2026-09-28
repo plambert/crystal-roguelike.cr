@@ -57,6 +57,28 @@ Spectator.describe Roguelike::Fingerprint do
   # A seed with a floor worth walking about on.
   SEED = 4271_u64
 
+  # Strings that a JSON writer does not write out as they are.
+  #
+  # Every control byte is here, because a JSON writer spells each one out.
+  # So are the two bytes that carry a backslash, the delete byte, and
+  # characters of two, three and four bytes.
+  AWKWARD = [
+    "",
+    "plain",
+    %(a "quoted" word),
+    "a\\backslash",
+    "a/slash",
+    "tab\tand\nnewline",
+    "carriage\rreturn",
+    "bell\aand\bbackspace",
+    "form\ffeed",
+    "vertical\vtab",
+    "delete\u007fbyte",
+    "caf\u00e9",
+    "\u4e2d\u6587",
+    "\u{1f600}",
+  ] + (0x00..0x1f).map { |byte| "before#{byte.unsafe_chr}after" }
+
   describe "the value" do
     it "says which algorithm made it" do
       expect(Game.dug(Rng.new(SEED)).fingerprint)
@@ -66,6 +88,20 @@ Spectator.describe Roguelike::Fingerprint do
     it "is the digest of the canonical form" do
       game = Game.dug Rng.new(SEED)
 
+      expect(game.fingerprint)
+        .to eq described_class.digest(described_class.canonical(game))
+    end
+
+    # `#of` sends the canonical bytes to a digest and `#canonical` sends them
+    # to a string. A run part way through has a floor the character has
+    # looked at, which is the deepest part of a save and the part the two
+    # would most easily differ over.
+    it "is the digest of the canonical form of a run in progress" do
+      game = Game.dug Rng.new(SEED)
+      10.times { game.wait }
+      game.look
+
+      expect(game.player.memory).not_to be_empty
       expect(game.fingerprint)
         .to eq described_class.digest(described_class.canonical(game))
     end
@@ -94,6 +130,24 @@ Spectator.describe Roguelike::Fingerprint do
     it "keeps a field called log deeper in the document" do
       expect(described_class.canonical %({"player":{"log":1}}))
         .to eq %({"player":{"log":1}})
+    end
+
+    # A field name and a string value are written out escaped. The standard
+    # library builds a `JSON::Builder` for each one, and a late turn of a
+    # long run has a hundred thousand of them, so this writes the bytes
+    # itself. These cases say the bytes are the ones a builder writes.
+    it "escapes a string the way a JSON writer does" do
+      AWKWARD.each do |value|
+        expect(described_class.canonical({"k" => value}.to_json))
+          .to eq %({"k":#{value.to_json}})
+      end
+    end
+
+    it "escapes a field name the way a JSON writer does" do
+      AWKWARD.each do |value|
+        expect(described_class.canonical({value => 1}.to_json))
+          .to eq %({#{value.to_json}:1})
+      end
     end
 
     it "answers the same string for two hashes filled in different orders" do
