@@ -42,11 +42,6 @@ module Roguelike
 
       # Performs every action of *read* into a log at *where*.
       #
-      # Answers what went wrong, or `nil`. The settings on `Replay::Log` are
-      # put back however this ends, because they hold for every run the
-      # process plays.
-      # Performs every action of *read* into a log at *where*.
-      #
       # Answers what went wrong, or `nil`. The settings on `Replay::Log` hold
       # for every run the process plays, so they are read first and put back
       # however this ends.

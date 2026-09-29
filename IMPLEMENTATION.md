@@ -2863,6 +2863,51 @@ anything the process brought with it.
 could drift apart. Two specs compare them, one on a fresh floor and one on a run part way through
 whose character has looked around.
 
+## Writing out what a run saw
+
+`replay export FILE...` writes one line per action holding the turn, what the character knew, the
+actions that were legal and the action that was taken. It is JSON Lines, the way a replay is.
+
+A policy learned from nothing sees a death long before it sees a staircase, so it is warmed up on
+runs somebody else played. This is where those runs come from. `bots/PROTOCOL.md` section 3.3 asks
+for it.
+
+### How it is built
+
+The run is rebuilt from the header and every action performed in the order it was recorded, which
+is what `Replay::Verifier` does. The difference is where the writing happens. The observation goes
+down *before* the action is performed, because that is what the character knew when they chose it.
+
+The fingerprints are compared as the run goes. A file that no longer plays out the way it was
+recorded stops the export and the report says to check it with `replay verify`. Pairs from a run
+nobody played are worse than no pairs, because nothing downstream would notice.
+
+### What a line holds
+
+| Line | What it says |
+| --- | --- |
+| `export` | The build that recorded the run, the build exporting it, the seed, the character, whether a person or a bot played it, and how many actions there are |
+| `pair` | The turn, the observation, the legal actions and the action taken |
+| `footer` | The turn the run reached, how many pairs there are, and how it ended |
+
+`legal` is there because a loss over a policy is taken against the actions that were open rather
+than against every action there is. `--no-legal` leaves it out.
+
+### Size
+
+A pair holds the whole map the character remembers, and the grid saying what they can see this
+turn. The floor is 216 by 84, so each of those is about 18 KB and most of it is unexplored.
+
+| | Bytes |
+| --- | --- |
+| The golden replay, 80 pairs | 3,090,022 |
+| The same, gzip | 72,678 |
+| The same, `--no-legal` | 3,070,315 |
+
+The map is what costs, and it compresses about forty to one. `--output` with a name ending `.gz`
+writes it compressed, which is what a five thousand action run wants. Leaving the legal actions
+out saves under one percent.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
@@ -2921,11 +2966,10 @@ menu of what can be done with that item: equip, take off, wear, quaff, read, thr
 identify. The menu should be a fixed list with the entries that do not apply dimmed rather than
 left out, so the same key is in the same place every time.
 
-### Two more replay commands
+### One more replay command
 
-`replay export` emits observation and action pairs for imitation learning. `bots/PROTOCOL.md`
-section 3.3 asks for it. `replay dump` writes the messages of a run, so the messages of two builds
-over one run can be put side by side. Neither is built.
+`replay dump` writes the messages of a run, so the messages of two builds over one run can be put
+side by side. It is not built. `replay export` was in this list and is now built.
 
 ### A note on where the game is drifting
 

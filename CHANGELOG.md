@@ -40,6 +40,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   whether the run is playing and the speed. Nothing is recorded and nothing is saved. A file whose
   fingerprints disagree with this build still plays, and the first disagreement is written to the
   message log.
+* `crystal-roguelike replay export FILE...` writes out what a recorded run saw and what it did,
+  as JSON Lines. One line per action holds the turn, the observation, the actions that were legal
+  and the action that was taken. It is for learning a policy from runs somebody else played. The
+  fingerprints are checked as the run is played again, so a file that no longer plays out the way
+  it was recorded stops the export rather than producing pairs from a run nobody played.
+  `--no-legal` leaves the legal actions out. `--output` names a file, and a name ending `.gz` is
+  compressed, which is about forty times smaller.
 * `crystal-roguelike replay upgrade SOURCE TARGET` writes a recorded run out again under this
   build's fingerprints. It is for a file this build refuses, which is one recorded before the
   message log came out of the fingerprint. The actions, the seed, the character, and the times the

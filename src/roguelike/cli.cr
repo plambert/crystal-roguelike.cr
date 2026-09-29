@@ -1,3 +1,4 @@
+require "compress/gzip"
 require "shell-auto_complete"
 require "../crystal-roguelike"
 
@@ -145,10 +146,8 @@ module Roguelike
   class Cli
     # `crystal-roguelike replay`, which works on recorded runs.
     #
-    # It does nothing on its own. `replay verify`, `replay view` and
-    # `replay upgrade` are what sit under it. `bots/PROTOCOL.md` section 3.3
-    # asks for one more, which is an export for analysis, and that is not
-    # built.
+    # It does nothing on its own. `replay verify`, `replay view`,
+    # `replay upgrade` and `replay export` are what sit under it.
     Shell::AutoComplete.command Replaying,
       name: "replay",
       description: "Work on a run recorded with --replay-log" do
@@ -216,6 +215,66 @@ module Roguelike
       end
     end
 
+    # `crystal-roguelike replay export`, which writes what a recorded run
+    # saw and what it did.
+    #
+    # It is for learning a policy from runs somebody else played.
+    # `bots/PROTOCOL.md` section 3.3 asks for it.
+    Shell::AutoComplete.command Exporting,
+      name: "export",
+      description: "Write out what a recorded run saw and what it did" do
+      flag legal : Bool = true, "--legal",
+        "Write the legal actions beside each observation. --no-legal leaves them out"
+
+      flag output : Path? = nil, "--output",
+        "Where to write. Standard output by default. A name ending .gz is compressed"
+
+      positionals files : Array(Path), "The replay files to export", min: 1
+
+      # What a compressed export is named.
+      #
+      # A pair holds the whole map the character remembers, twice, and most
+      # of it is unexplored. The golden replay is 3.1 MB of pairs and 73 KB
+      # of gzip, so the compressed form is what a long run wants.
+      GZIP = ".gz"
+
+      def run
+        target = output
+
+        unless target
+          exit 1 if wrote STDOUT
+          return
+        end
+
+        ::File.open target, "w" do |file|
+          if target.to_s.ends_with? GZIP
+            Compress::Gzip::Writer.open(file) { |packed| exit 1 if wrote packed }
+          else
+            exit 1 if wrote file
+          end
+        end
+      end
+
+      # Exports every file to *to*. Answers whether any of them failed.
+      #
+      # A report goes to standard error, so that an export written to
+      # standard output holds the pairs and nothing else.
+      private def wrote(to : IO) : Bool
+        files.count do |file|
+          report = exported file, to
+          STDERR.puts report
+          !report.ok?
+        end > 0
+      end
+
+      # What exporting *file* found.
+      private def exported(file : Path, to : IO) : Replay::Export::Report
+        Replay::Export.run file, to, legal: legal
+      rescue error : Replay::Error | JSON::Error | ::File::Error
+        Replay::Export::Report.new file, 0, 0, error.message || error.class.name
+      end
+    end
+
     # `crystal-roguelike replay upgrade`, which writes a recorded run out
     # again under this build's fingerprints.
     #
@@ -258,6 +317,7 @@ module Roguelike
     subcommand Verifying
     subcommand Watching
     subcommand Upgrading
+    subcommand Exporting
   end
 
   # The flags that belong to whoever works on the game rather than to whoever
