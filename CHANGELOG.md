@@ -171,6 +171,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* A build of the game as another shard's dependency records the game's own commit, which
+  `lib/.shards.info` names. It recorded the other shard's commit.
 * A replay file recorded on a seed above `Int64::MAX` reads. `Rng` rolls a `UInt64`, so about half
   of all runs are on one. `crystal-roguelike replay verify`, `replay view` and `replay upgrade`
   each reported `line 1 is not JSON` for such a file and would not open it.

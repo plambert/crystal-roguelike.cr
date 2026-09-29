@@ -21,7 +21,8 @@ module Roguelike
   #
   # `script/build-id` answers it: the short hash, with a "+" after it when a
   # tracked file differed from that commit, and "unknown" when there was no
-  # repository to ask. The debug console prints it beside `VERSION`, so a
+  # repository to ask. Built as another shard's dependency, it is the commit
+  # `shards install` checked out. The debug console prints it beside `VERSION`, so a
   # screenshot of a failure says which build it came from.
   {% begin %}
   {% root = __DIR__.gsub(%r{'}, "'\\''") %}

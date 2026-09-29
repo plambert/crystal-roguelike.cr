@@ -988,10 +988,12 @@ The box opens with `version X build Y` on its first line. `Y` is the short commi
 built from, with a `+` after it when a tracked file differed from that commit. `script/build-id`
 answers it and `src/crystal-roguelike.cr` runs that while the compiler expands its macros, beside
 the `shards version` call that fills `VERSION`. A build from a release tarball has no repository to
-ask and gets `unknown`. Untracked files are not counted: nothing untracked reaches the binary
-unless a tracked file was edited to require it, and counting them would mark every working tree
-that has a stray note in it. The compiler caches macro expansion, so a rebuild that changes no
-source carries the stamp the last full build wrote.
+ask and gets `unknown`. A shard that depends on this one holds it under its own `lib/`, where the
+nearest repository is the other shard's. There the answer comes from `lib/.shards.info`, which
+names the commit `shards install` checked out. Untracked files are not counted: nothing untracked
+reaches the binary unless a tracked file was edited to require it, and counting them would mark
+every working tree that has a stray note in it. The compiler caches macro expansion, so a rebuild
+that changes no source carries the stamp the last full build wrote.
 
 The reason for it is the cost of finding the thing to test. Firing a bow needs a bow and arrows to
 turn up on the floor, and a seed that drops them there drops something else after the next change
