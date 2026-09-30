@@ -180,6 +180,27 @@ module Roguelike
       found
     end
 
+    # Every direction from *x*, *y* onto a square further from the goal than
+    # the one the creature is standing on.
+    #
+    # A neighbor is never more than one step further than the square, so each
+    # of these is exactly one step further. A creature running from the goal
+    # takes one of them. Empty for a square the descent never reached and for
+    # one with nothing further off beside it.
+    def uphill(x : Int32, y : Int32,
+               blocked : Set({Int32, Int32}) = EMPTY) : Array(Direction)
+      here = @steps[{x, y}]?
+      return NOWHERE unless here
+
+      Direction.values.select do |direction|
+        wanted = direction.from x, y
+        next false if blocked.includes? wanted
+
+        away = @steps[wanted]?
+        !away.nil? && away > here
+      end
+    end
+
     # No way down at all. What `#downhill` answers for a dead end.
     NOWHERE = [] of Direction
 

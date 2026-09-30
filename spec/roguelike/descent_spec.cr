@@ -210,6 +210,47 @@ Spectator.describe Roguelike::Descent do
     end
   end
 
+  describe "#uphill" do
+    it "answers every way that is one step further from the goal" do
+      _floor, knowledge = known FIELD
+      map = Descent.toward knowledge, {2, 4}
+
+      found = map.uphill 20, 4
+      expect(found).not_to be_empty
+      found.each do |direction|
+        expect(map[direction.from 20, 4]).to eq map[20, 4].try(&.+ 1)
+      end
+    end
+
+    it "answers one way in a corridor" do
+      _floor, knowledge = known ["#########", "#.......#", "#########"]
+      map = Descent.toward knowledge, {1, 1}
+
+      expect(map.uphill 3, 1).to eq [Direction::East]
+    end
+
+    it "answers nothing at the far end of a corridor" do
+      _floor, knowledge = known ["#########", "#.......#", "#########"]
+      map = Descent.toward knowledge, {1, 1}
+
+      expect(map.uphill 7, 1).to be_empty
+    end
+
+    it "leaves out a square something else stands on" do
+      _floor, knowledge = known ["#########", "#.......#", "#########"]
+      map = Descent.toward knowledge, {1, 1}
+
+      expect(map.uphill(3, 1, [{4, 1}].to_set)).to be_empty
+    end
+
+    it "answers nothing for a square the descent never reached" do
+      _floor, knowledge = known
+      map = Descent.toward knowledge, {1, 1}
+
+      expect(map.uphill 50, 50).to be_empty
+    end
+  end
+
   describe "the shape of a path" do
     # A creature that picks by the order the directions happen to be declared
     # walks diagonally until one axis lines up and straight after that. That
