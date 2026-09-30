@@ -317,7 +317,9 @@ module Roguelike
       player = Player.new floor.id, *entrance(floor)
       outfit player
 
-      game = new world, player, lore: Lore.roll(rng)
+      lore = Lore.roll rng
+      lore.learn ItemKind::HealingPotion
+      game = new world, player, lore: lore
       game.scatter rng
       game.equip rng
       game.enroll
@@ -328,7 +330,7 @@ module Roguelike
       # yet. The first line names what the character is holding, which the
       # pack already lists, and the second is about the keyboard.
       game.log.add "You are in a dungeon with a short sword, leather armor and a lit torch."
-      game.log.add "You carry three iron spikes. Press ? for the keys."
+      game.log.add "You carry three iron spikes and a potion of healing. Press ? for the keys."
       game
     end
 
@@ -346,6 +348,10 @@ module Roguelike
     # The spikes are here because a floor hands them out rarely. A person who
     # had to find one before learning what it is for would mostly never find
     # one.
+    #
+    # The potion of healing is here because a character on floor 1 with none
+    # dies there more often than not. `IMPLEMENTATION.md` has the numbers.
+    # The character knows what it is, so the kind starts out known.
     #
     # The slots are filled rather than wielded. `#wield` and `#wear` each
     # spend a turn and write to the log, and neither has happened yet.
@@ -365,6 +371,8 @@ module Roguelike
       player.inventory.add Item.new(ItemKind::Torch, lit: true,
         blessing_known: true)
       player.inventory.add Item.new(ItemKind::Spike, count: SPIKES,
+        blessing_known: true)
+      player.inventory.add Item.new(ItemKind::HealingPotion,
         blessing_known: true)
     end
 

@@ -63,6 +63,15 @@ Spectator.describe Roguelike::Game do
       expect(spikes.size).to eq 1
       expect(spikes.first[1].count).to eq(Roguelike::Game::SPIKES)
     end
+
+    # Floor 1 kills a character with nothing to drink more often than not.
+    it "hands out one potion of healing, already known" do
+      potions = game.player.inventory.select &.kind.healing_potion?
+
+      expect(potions.size).to eq 1
+      expect(potions.first[1].count).to eq 1
+      expect(game.lore.known? Roguelike::ItemKind::HealingPotion).to be_true
+    end
   end
 
   describe ".entrance" do

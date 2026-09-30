@@ -127,6 +127,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   third. Nothing on floors 1 and 2 is better than +1, and nothing on floors 3 and 4 is better than
   +2.
 * A save written before there were several floors loads as floor 1 of its run.
+* The character starts with a potion of healing, and knows what it is.
 * Climbing up from floor 2 or deeper asks nothing. Climbing up from floor 1 still asks before the
   character leaves the dungeon.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run

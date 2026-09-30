@@ -3033,6 +3033,32 @@ Two hundred runs of at most 1500 turns from seed 5000, default kit:
 The bot rarely finds a staircase down on a floor of 216 by 84 squares inside 1500 turns. The
 deepest floor says more about how it explores than about how hard the floors are.
 
+### The starting potion
+
+The plan set a bar. If a character at level 1 on the default kit survives floor 1 at least 60 times
+in 100 under `--trial`, the kit stays as it is. Otherwise it gains one potion of healing.
+
+Floor 1 without orcs came in at 37.5, under the bar, so the kit holds a potion of healing. The
+character knows what it is: `Game.start` marks the kind known in the run's lore.
+
+Two hundred runs of at most 1500 turns from seed 5000:
+
+| | one floor, before | five floors, no potion | five floors, potion |
+|---|---|---|---|
+| died | 152 (76%) | 127 (63%) | 118 (59%) |
+| gave up | 44 (22%) | 73 (36%) | 82 (41%) |
+| survived floor 1 | 24% | 37.5% | 42.5% |
+| deepest floor, mean | — | 1.02 | 1.03 |
+| reached floor 2 | 4 won | 4 | 5 |
+| reached floor 3 | — | 1 | 1 |
+| turns until death, median | 101 | 114 | 137 |
+| killed by | goblin 103, orc 43, slime 6 | goblin 122, slime 4, orc 1 | goblin 113, slime 3, orc 2 |
+
+The potion moves survival five points and still leaves it under 60. `Trial::Bot` walks into every
+fight and never retreats, so its survival is the pessimistic end. A goblin is still the fight that
+kills a character on floor 1. The next lever is the goblin itself, which the species branch splits
+into a weaker scout on floors 1 and 2 and the current goblin from floor 2.
+
 ### Left undone
 
 * Creatures following the character up or down a staircase.
