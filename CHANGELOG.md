@@ -115,6 +115,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   what the launcher says, 120 for a bow and 100 for a sling, and a throw costs what the thrown item
   says. A hit and a miss cost the same. An orc's swing takes 120 and a goblin's and a slime's take
   100. A recorded run that fought with a dagger, a long sword, a bow or an orc no longer verifies.
+* An item's description gives its speed as a word and a number, such as `swing quick (75)` for a
+  dagger and `swing slow (120)` for a long sword.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.

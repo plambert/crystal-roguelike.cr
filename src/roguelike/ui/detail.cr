@@ -125,13 +125,20 @@ module Roguelike::Ui
     # What a weapon swung by hand does.
     private def self.hitting(item : Item) : Array(String)
       found = ["damage #{item.damage}"]
+      found << pace(item.kind.item_class.melee? ? "swing" : "throw", item)
       found << "thrown #{item.kind.reach} squares" if item.kind.reach > 0
       found
     end
 
+    # How long one use of *item* takes, as a word and as a number.
+    private def self.pace(verb : String, item : Item) : String
+      cost = item.kind.swing
+      "#{verb} #{Costs.pace_word cost} (#{cost})"
+    end
+
     # What a ranged weapon does, and what it takes.
     private def self.shooting(item : Item) : Array(String)
-      found = ["shoots #{item.kind.reach} squares"]
+      found = ["shoots #{item.kind.reach} squares", pace("shot", item)]
       ammunition = item.kind.ammunition
       found << "takes #{ammunition.plural}" if ammunition
       found
