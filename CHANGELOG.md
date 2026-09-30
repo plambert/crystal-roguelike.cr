@@ -110,6 +110,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* A blow costs what the weapon says rather than one turn. A dagger takes 75 energy, a short sword
+  100, a rapier 115, a long sword 120, and a mace or a spear 125. Bare hands take 80. A shot costs
+  what the launcher says, 120 for a bow and 100 for a sling, and a throw costs what the thrown item
+  says. A hit and a miss cost the same. An orc's swing takes 120 and a goblin's and a slime's take
+  100. A recorded run that fought with a dagger, a long sword, a bow or an orc no longer verifies.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.
