@@ -94,6 +94,9 @@ module Roguelike
     # `#after_initialize` gives such a creature its kind's average.
     getter max_hit_points : Int32 = 0
 
+    # How many turns until it can mend a neighbour again. Zero when it can.
+    getter mending : Int32 = 0
+
     def initialize(kind : Kind, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
@@ -130,6 +133,34 @@ module Roguelike
     # Which kind of its species it is.
     def kind : Kind
       @kind || @species.default
+    end
+
+    # Whether it can mend a neighbour this turn.
+    def ready_to_mend? : Bool
+      kind.mends? && @mending <= 0
+    end
+
+    # Starts the wait before it can mend again.
+    def mended(wait : Int32) : Nil
+      @mending = wait
+    end
+
+    # Passes one turn of the wait before it can mend again.
+    def rest_from_mending : Nil
+      @mending -= 1 if @mending > 0
+    end
+
+    # Gives back *amount* hit points, never past full. Answers how many it
+    # took.
+    def heal(amount : Int32) : Int32
+      before = @hit_points
+      @hit_points = Math.min @hit_points + amount, @max_hit_points
+      @hit_points - before
+    end
+
+    # Whether it has lost any hit points.
+    def hurt? : Bool
+      alive? && @hit_points < @max_hit_points
     end
 
     # Gives this creature the id *id*. Answers whether it took one.
@@ -267,7 +298,8 @@ module Roguelike
       kind == other.kind && @x == other.x && @y == other.y &&
         @hit_points == other.hit_points && @band == other.band &&
         @attributes.to_a == other.attributes.to_a && @memory == other.memory &&
-        @carrying == other.carrying && @max_hit_points == other.max_hit_points
+        @carrying == other.carrying && @max_hit_points == other.max_hit_points &&
+        @mending == other.mending
     end
 
     def to_s(io : IO) : Nil

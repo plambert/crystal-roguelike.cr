@@ -100,6 +100,12 @@ module Roguelike
     # counter existed loads and carries on from zero.
     getter handled : Int32 = 0
 
+    # How many times a creature has mended a neighbour.
+    #
+    # A fifth stream, so a shaman healing a goblin does not shift what the
+    # next swing rolls. It has a default, so an older save loads.
+    getter mends : Int32 = 0
+
     # What has just happened.
     getter log : MessageLog
 
@@ -1476,6 +1482,9 @@ module Roguelike
           break unless floor.monster? creature.x, creature.y
 
           creature.pace.spend Costs::TURN
+          next if cast_bolt creature
+          next if mend creature
+
           perform creature, plan(creature, maps)
         end
       end
@@ -1561,6 +1570,59 @@ module Roguelike
       in .step?   then walk_creature creature, wanted
       in .strike? then strike creature if @player.at? wanted[0], wanted[1]
       end
+    end
+
+    # How many turns a creature waits between one mending and the next.
+    MEND_WAIT = 4
+
+    # What one mending puts back.
+    MEND = Dice.new 1, 4
+
+    # *creature* heals a hurt neighbour of its species. Answers whether it
+    # did, which spends its action.
+    #
+    # Only a kind that `Kind#mends?` does this, and only when its wait since
+    # the last one has run out. It picks the neighbour missing the most hit
+    # points, the first in `Direction` order on a tie. A creature does not
+    # mend itself.
+    private def mend(creature : Monster) : Bool
+      return false unless creature.ready_to_mend?
+
+      patient = nil.as(Monster?)
+      Direction.values.each do |direction|
+        spot = direction.from creature.x, creature.y
+        other = floor.monster spot[0], spot[1]
+        next unless other && other.species == creature.species && other.hurt?
+
+        wound = other.max_hit_points - other.hit_points
+        if patient.nil? || wound > patient.max_hit_points - patient.hit_points
+          patient = other
+        end
+      end
+      return false unless patient
+
+      root = (@root ||= Rng.new @world.seed)
+      amount = patient.heal MEND.roll(root.derive("mend", @mends))
+      @mends += 1
+      creature.mended MEND_WAIT
+
+      if regard_of(creature).everything?
+        say "The #{creature.label} mends the #{patient.label}.",
+          Event::Healed.new(amount, who: patient.id)
+      end
+
+      true
+    end
+
+    # *creature* throws a bolt at the character. Answers whether it did.
+    #
+    # A kind that `Kind#casts?` asks here first on each of its actions. No
+    # kind has a bolt to throw yet, so this always answers false and the
+    # creature goes on to mend or to fight.
+    private def cast_bolt(creature : Monster) : Bool
+      return false unless creature.kind.casts?
+
+      false
     end
 
     # Moves *creature* onto *wanted*, when nothing is in the way.
@@ -3028,7 +3090,10 @@ module Roguelike
         say "You can see again.", Event::StatusEnd.new(:blind)
       end
 
-      floor.each_monster { |_column, _row, creature| creature.blink }
+      floor.each_monster do |_column, _row, creature|
+        creature.blink
+        creature.rest_from_mending
+      end
     end
 
     # ------------------------------------------------------------- detection

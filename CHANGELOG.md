@@ -111,7 +111,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Each species comes in kinds. Slimes are white, blue, red and green. A blue slime has more hit
   points and chills what it touches. A red slime scalds for more damage, and a green slime eats at
   its target for the most. Goblins are scouts, warriors and shamans. A scout is quick, carries a
-  dagger, has poor armor and always appears alone. A shaman fights weakly. Orcs are orcs and orc archers. An archer has no bow yet.
+  dagger, has poor armor and always appears alone. A shaman fights weakly and heals a hurt goblin
+  beside it for 1d4 once every few turns. Orcs are orcs and orc archers. An archer has no bow yet.
 * Every kind of a species shares its letter and has a colour of its own. The examine pane, the
   sidebar and the message log name the kind.
 * Each kind has the depths it appears at. The one floor there is stands for every depth, so every

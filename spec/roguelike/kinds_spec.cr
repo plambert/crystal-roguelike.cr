@@ -1,11 +1,16 @@
 require "../spec_helper"
 
 Spectator.describe Roguelike::Kind do
+  alias Awareness = Roguelike::Awareness
+  alias Floor = Roguelike::Floor
+  alias Game = Roguelike::Game
   alias Kind = Roguelike::Kind
   alias Kinds = Roguelike::Kinds
   alias Monster = Roguelike::Monster
   alias Palette = Roguelike::Ui::Palette
+  alias Player = Roguelike::Player
   alias Species = Roguelike::Species
+  alias World = Roguelike::World
 
   # How far the colour of a creature must stand out from the ground, as a
   # contrast ratio.
@@ -167,6 +172,107 @@ Spectator.describe Roguelike::Kind do
 
       expect(again.kind).to eq Kind::GoblinWarrior
       expect(again.max_hit_points).to eq Kind::GoblinWarrior.hit_points
+    end
+  end
+
+  describe "a goblin shaman" do
+    # A lit room with the character in it, and a sealed cell beside it.
+    # The two goblins stand in the cell, where they cannot get out and the
+    # character cannot get in, so nothing but mending changes their hit
+    # points.
+    CELL = ["############",
+            "#.<.....#..#",
+            "############"]
+
+    # A game with a shaman at 9,1 and a warrior beside it at 10,1, hunting
+    # the character. *wound* is how many hit points the warrior has lost.
+    def hall(wound : Int32) : {Game, Monster, Monster}
+      floor = Floor.parse "cell", CELL.join('\n')
+      floor.ambient = 1
+
+      shaman = Monster.new Kind::GoblinShaman, 9, 1, "band-one"
+      warrior = Monster.new Kind::GoblinWarrior, 10, 1, "band-one"
+      warrior.hurt wound
+      floor.place shaman
+      floor.place warrior
+
+      band = floor.band "band-one"
+      raise "no band" unless band
+      band.knowledge("cell").saw Roguelike::Knowledge::PLAYER, 2, 1, 0
+      band.awareness = Awareness::Hunting
+
+      game = Game.new World.new(Playing::SEED, {"cell" => floor}),
+        Player.new("cell", 2, 1)
+
+      {game, shaman, warrior}
+    end
+
+    it "mends a hurt goblin beside it" do
+      game, _, warrior = hall 5
+      before = warrior.hit_points
+
+      game.wait
+
+      expect(warrior.hit_points).to be_between(before + 1, before + 4)
+    end
+
+    it "does not mend a goblin that is not hurt" do
+      game, shaman, warrior = hall 0
+
+      game.wait
+
+      expect(warrior.hit_points).to eq warrior.max_hit_points
+      expect(shaman.mending).to eq 0
+      expect(game.log.lines.none? &.includes?("mends")).to be_true
+    end
+
+    it "never mends past full" do
+      game, _, warrior = hall 1
+
+      game.wait
+
+      expect(warrior.hit_points).to eq warrior.max_hit_points
+    end
+
+    it "waits a few turns before it mends again" do
+      game, shaman, warrior = hall 8
+
+      game.wait
+      after_one = warrior.hit_points
+      game.wait
+
+      expect(warrior.hit_points).to eq after_one
+      expect(shaman.mending).to be > 0
+
+      Game::MEND_WAIT.times { game.wait }
+
+      expect(warrior.hit_points).to be > after_one
+    end
+
+    it "says so when the character can see it" do
+      floor = Floor.parse "room", ["#######", "#.<...#", "#######"].join('\n')
+      floor.ambient = 1
+      shaman = Monster.new Kind::GoblinShaman, 4, 1, "band-one"
+      warrior = Monster.new Kind::GoblinWarrior, 5, 1, "band-one"
+      warrior.hurt 4
+      floor.place shaman
+      floor.place warrior
+      floor.band("band-one").try &.awareness=(Awareness::Hunting)
+      game = Game.new World.new(Playing::SEED, {"room" => floor}), Player.new("room", 2, 1)
+
+      game.wait
+
+      expect(game.log.lines).to contain "The goblin shaman mends the goblin warrior."
+    end
+
+    it "mends the same amount from the same seed" do
+      first, _, one = hall 5
+      second, _, two = hall 5
+
+      first.wait
+      second.wait
+
+      expect(one.hit_points).to eq two.hit_points
     end
   end
 end
