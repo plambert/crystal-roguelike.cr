@@ -124,6 +124,16 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Floors vary in size. Most are near the old 216 by 84, and they range from a quarter of that area
+  to four times it. A floor is square, or wider than it is tall by half, twice or three times, or
+  taller than it is wide by half or twice. The amulet chamber keeps its size.
+* Floors are laid out three ways. Most are rooms cut as a tree and joined by corridors, mirrored
+  across, down, both ways or neither. Some are a grid of rooms joined to most of their neighbors,
+  and some are a natural cave. Part of a tree floor is sometimes a grid or a cave. A grid or a cave
+  is full of loops.
+* A cut of a tree is joined through its two closest rooms. Two corridors running side by side
+  between the same rooms were on every floor and are now on about one floor in sixteen.
+* A floor that fails the generator's checks is dug again.
 * `--trial` stops a run once `--trial-turns` turns have passed, where it counted the bot's actions.
   One slow blow takes two turns, so a run could go past its limit. The bot readies a better weapon
   on the turn after it picks one up, rather than in the same turn.

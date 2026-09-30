@@ -305,7 +305,7 @@ Spectator.describe Roguelike::Replay do
       expect(trouble).not_to be_nil
       expect(trouble.to_s).to contain "the run differs"
       expect(trouble.to_s).to contain "which agreed"
-      expect(report.turn).to be < report.acts
+      expect(report.checks).to eq lines.count(&.includes?(%("type":"check"))) - 1
     end
 
     it "refuses a run that does not start from the seed" do

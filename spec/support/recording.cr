@@ -7,7 +7,7 @@ require "file_utils"
 # a run and puts it back.
 module Recording
   # A seed with a floor worth walking about on.
-  SEED = 4271_u64
+  SEED = 4272_u64
 
   # What the character is called in a recorded run.
   PLAYER = "tester"
