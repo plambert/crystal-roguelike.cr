@@ -2953,8 +2953,8 @@ Attributes are the defaults for every kit, so depth moves level, weapon and armo
 ### Rows and streams
 
 `Matchup.opponents` returns `Kind.values`. A kind added to the enum is a row with no other edit.
-The monster rolls its hit points from its kind's hit dice, as one the generator places does, and
-pays its kind's swing cost.
+The monster rolls its hit points from its kind's hit dice, as one the generator places does. It
+draws its starting gear from `Loot` at the kit's depth and readies it, and pays `Monster#swing`.
 
 Each cell rolls on `Rng.new(seed)` derived through `matchup`, `kit:<depth>` and `kind:<name>`.
 Each fight in the cell derives its own stream from that. A table is the same from run to run, and
@@ -3515,6 +3515,147 @@ a door and spikes it would show the rule far more.
 * No bot spikes a door.
 * A band that mixes kinds that open doors with ones that cannot keeps the whole band off doors.
   Every band holds one species today, and every kind of a species agrees, so no band is mixed.
+
+## Monsters that use their gear
+
+Goblins and orcs hold a weapon and wear armor in slots, apart from what they carry. They fight with
+it, and they pick up better gear they step on. Armor has a size, and only a wearer of that size can
+put it on.
+
+### What was built
+
+* `Monster#gear` is a `Hash(Slot, Item)`, one item a slot, apart from `#carrying`. It uses the
+  character's `Slot`, so a creature has melee, ranged, quiver and the five armor slots.
+* `Monster#wielded`, `#launcher`, `#quivered`, `#wand` and `#worn` read the slots.
+  `#slot_for(item)` says where an item goes, or `nil`. `#ready(item)` puts it there and answers what
+  came out. `#outfit(items)` readies what fits an empty slot and carries the rest.
+* A creature with a weapon in hand hits with the weapon's dice, which carry its enchantment and
+  condition, plus its strength modifier. `#to_hit` adds the weapon's aim. `#swing` is what
+  `Costs.swing` says for the weapon. Without a weapon it hits with its kind's dice and swing, as
+  before. `Game#perform` charges `Monster#swing` for a blow.
+* `Monster#armor_class` is the kind's hide, plus the worn armor, plus the dexterity modifier.
+* `KindFacts#wields` says which kinds ready gear. Every goblin and orc kind does. No slime does.
+* `Game#equip` hands what `Loot.for` rolls to `Monster#outfit`. The weapon comes first in that
+  list, so it goes in the hand. A scout's dagger and a warrior's short sword are wielded.
+* `Game#rearm` runs at the start of a creature's action, before a bolt and a mend. A creature that
+  wields and stands on something `Monster#better?` than what it holds takes it up, drops what it
+  held on the same square, and spends a turn. It picks the first such item in the pile. Each later
+  action can pick again, and each pick is a strict improvement, so it stops.
+* The character is told when they can see the creature: "The goblin scout drops a dagger and picks
+  up a short sword." An `Event::Rearmed` goes with the line.
+* `Monster#drop_everything` answers the slots and the pack, so a kill drops both.
+* `Game#lights` and the id index read `Monster#belongings`, which is the slots and then the pack.
+* The examine pane has a row saying what a creature wields and wears. The tooltip on a creature in
+  the `Seen` list says the same. The debug console lists the slots.
+
+### Better
+
+* A weapon is better when `Monster#offense` is higher: the mean of its damage dice plus the
+  strength modifier, per 100 energy of its swing cost. The creature's own attack is the baseline
+  when its hand is empty. A creature knows every enchantment and condition.
+* Armor is better when its `Item#armor` is higher than what is in that slot, or the slot is empty.
+  It must fit.
+* A goblin shaman takes up a wand of striking when it holds none, or when the one it holds is
+  spent. The wand goes in `Slot::Ranged`. `Game#cast_bolt` still answers false. Zapping it is the
+  ranged branch's hook.
+* Curses do not hold a creature. It drops a cursed weapon for a better one.
+
+With a strength modifier of 0, a goblin warrior's own 1d6 at 100 is 3.5 per 100 energy. A long
+sword at 3.75 beats it and a dagger at 3.33 does not. A goblin scout has strength 8, a modifier
+of -1, so its own 1d4 at 100 is 1.5, its dagger is 2.0 and a short sword is 2.5. An orc's own 1d8
+at 120 with a modifier of +2 is 5.42, and a dagger at 75 is 6.0.
+
+### Sizes
+
+* `Item` has a size. It is `nil` in the object for medium and for anything that is not armor, so a
+  save holds the field only on small and large armor. An item written before sizes loads as medium.
+* `Item#fits?(size)` is true for anything that is not armor, and for armor of that size.
+* `Size` is the creature size the silhouettes already use. Goblins are small, the character is
+  medium (`Player::SIZE`), and orcs are large. Orcs are large in `Kinds::FACTS`, so the armor an orc
+  starts with or picks up is large. Neither the character nor a goblin can wear it.
+* `Game#wear` refuses armor of another size: "You cannot wear small leather armor, which was made
+  for somebody smaller." `Event::Refused` carries `wrong_size`. `Game#legal` offers no wear for it.
+* `Lore#name` puts the size before the kind when it is not medium: "a small cap", "large chain
+  mail".
+* `Loot.for` cuts armor for the creature it is rolled for. That rolls nothing.
+* Litter armor rolls its size on the `sizes:<floor>` stream. The litter stream is untouched, so
+  everything else on a floor lies where it lay before. `Items.sizes_at` picks the table from the
+  nearest goblin or orc within eight squares.
+
+| Where | Small | Medium | Large |
+| --- | --- | --- | --- |
+| Anywhere | 10 | 80 | 10 |
+| Near a goblin | 60 | 35 | 5 |
+| Near an orc | 5 | 35 | 60 |
+
+### Gates and ceilings
+
+Monster starting gear and litter both roll through `Loot.gated` and `Loot.ceiling`, as the floors
+branch left them. A spec rolls 300 scouts on floor 1 and finds nothing gated and no plus above the
+ceiling. A creature only picks up what lies on its floor, which was gated when it was dropped.
+
+### Slots for the ranged branch
+
+`Slot::Ranged` holds a sling or a bow, read through `Monster#launcher`. `Slot::Quiver` holds
+stones or arrows, read through `Monster#quivered`. `Monster#outfit` puts both there when `Loot`
+hands them over, because `Slot.for` already names those slots. `Monster#better?` says false for
+both today, so no creature picks one up.
+
+### Determinism and saves
+
+* The only new roll is an armor size on `sizes:<floor>`. `Replay::Streams` gains `sizes` at 1.
+* `Loot` draws what it drew before. The draws go into slots rather than the pack, which changes
+  what a save holds and therefore every fingerprint. The golden replay was recorded again, and the
+  six screen fixtures that show the proving ground's gloves were written again. Those gloves are now
+  large.
+* `Monster#gear` is `nil` while it is empty, so a creature with nothing readied writes the bytes it
+  wrote before. A save written before this branch loads each creature with its pack as it was and
+  nothing readied. Such a creature fights with its own attack until it steps on something better.
+
+### Measured
+
+`--trial 200 --seed 5000` on a release build, before and after:
+
+| | before | after |
+| --- | --- | --- |
+| died | 16 (8%) | 26 (13%) |
+| gave up | 184 | 174 |
+| survived floor 1 | 93.5% | 88.5% |
+| reached floor 2 | 10 | 10 |
+| turns until death, median | 264 | 263 |
+| killed by | scout 9, white slime 4, warrior 2, blue slime 1 | scout 19, white slime 3, warrior 2, blue slime 2 |
+
+The goblin scout is the change. Its dagger swings at 75 and its speed is 110, so it now attacks
+about one and a half times for each blow the character lands. Its dagger is usually damaged, so
+each blow is weaker, but the rate wins. Deaths to scouts double.
+
+`--matchup`, 2000 fights a cell from seed 5000. The monster draws its starting gear from `Loot` at
+the kit's depth, on a stream of its own. Win rates, before and after, for the rows that moved:
+
+| kind | D1 | D2 | D3 | D4 | D5 |
+| --- | --- | --- | --- | --- | --- |
+| goblin scout, before | 94.2 | 99.4 | 100.0 | 100.0 | 100.0 |
+| goblin scout, after | 87.2 | 97.6 | 98.8 | 99.3 | 99.9 |
+| goblin warrior, before | 59.6 | 86.4 | 96.8 | 98.4 | 100.0 |
+| goblin warrior, after | 62.2 | 86.4 | 94.6 | 97.0 | 99.8 |
+| orc, before | 19.3 | 51.0 | 74.6 | 85.5 | 99.2 |
+| orc, after | 20.4 | 51.2 | 75.0 | 82.0 | 98.0 |
+| orc archer, before | 29.0 | 64.2 | 82.3 | 89.8 | 99.6 |
+| orc archer, after | 25.2 | 59.3 | 77.5 | 85.9 | 99.2 |
+
+Slime and shaman rows win at the same rates. The warrior is a little weaker on floor 1, where its
+short sword is usually damaged, and a little stronger deeper, where armor and a plus appear. Orcs
+move little either way. Armor makes them harder to kill, and a weapon that is often a damaged
+dagger makes each blow weaker. The archer holds no bow yet, so it draws nothing but armor and gets
+harder to kill.
+
+### Left for later
+
+* Monsters do not shoot, zap or throw. The ranged branch fills the ranged slot and `#cast_bolt`.
+* A monster does not walk to gear it can see. It picks up only what it steps on in pursuit.
+* Nothing weighs a weapon's chance to hit against its damage.
+* A creature does not pick up a better item from a pile it was already standing on while asleep.
+  A creature acts only once its band is awake.
 
 ## Asked for, not yet built
 
