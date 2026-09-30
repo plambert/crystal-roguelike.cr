@@ -2910,6 +2910,93 @@ The map is what costs, and it compresses about forty to one. `--output` with a n
 writes it compressed, which is what a five thousand action run wants. Leaving the legal actions
 out saves under one percent.
 
+## Creatures that open doors, and spikes that stop them
+
+Goblins and orcs open shut doors. Slimes do not. The character drives the three iron spikes in the
+starting kit into shut doors to hold them.
+
+### What was built
+
+* `SpeciesFacts#opens_doors` says which species open doors. It defaults to false.
+* A creature that walks into a shut door it can open opens it. That is its action, and it steps
+  through on the next, the same as the character.
+* A band whose members all open doors builds its `Descent` with `doors: true`, so it paths through
+  a door it remembers as shut. A band with one member that cannot keeps the old rule, so no member
+  is left behind at the first door.
+* `a` offers an iron spike once for each shut, unspiked door beside the character. Driving one
+  takes a turn and one spike from the pack.
+* A spiked door does not open from the far side. The attempt takes no turn. From the spiked side
+  it opens, and the spike goes back into the pack, or to the character's feet when the pack is
+  full.
+* A goblin or orc on the spiked side opens the door too, and the spike drops at its feet. Monsters
+  never drive spikes.
+* A spiked door draws as `ǂ` in bright steel. The glyph is not East Asian Ambiguous.
+* `--trial-doors` has the trial bot shut each door it walks through.
+
+### Where a spike lives
+
+A spike is a `DoorSpike` record in `Floor#spikes`, keyed by `Floor.spot`. It holds the spike item
+and `side`, the direction from the door toward the square it was driven from. A creature at `from`
+is held when the dot product of `from - door` with `side` is zero or less. A square beside the door
+along the wall counts as the far side.
+
+New `Terrain` members were the other choice. They would need a member for each side of each
+orientation, the terrain mark is part of the floor file format, and the spike item would still need
+somewhere to live. A record keeps the item and its id through a save.
+
+### What a band knows
+
+`Knowledge#barred` holds the doors found spiked against whoever holds it. A band member that walks
+into one bars it for the band, and `Knowledge#crossable?` stops crossing it. The band's next descent
+routes round the door or finds no way. With no way, pursuit falls back to walking straight, meets
+the shut door and waits until its persistence runs out. Seeing or touching the door when it is no
+longer shut takes it off the list.
+
+The character's knowledge uses the same list. A route that meets a door spiked from the far side
+stops crossing it after the first try.
+
+`Memory#spiked?` records whether a remembered door had a spike in it, so the map draws a remembered
+spiked door with the right glyph.
+
+### Save files and fingerprints
+
+`Floor::Stored#spikes`, `Knowledge#barred` and `Memory#spiked` are written only when they hold
+something. A floor with no spike, and knowledge with no barred door, writes the bytes it wrote
+before. Every fingerprint in an existing replay is unchanged, and the golden replay still verifies.
+An old save loads with no spikes.
+
+No new roll was added, so no new `Rng` stream was needed.
+
+### What it did to the trial
+
+The stock bot gives the same numbers before and after, to the digit, over `--trial 200 --seed 1`.
+It never shuts a door, and a count of door attempts over 30 of those runs found none. The shut
+doors the generator leaves never stood between a band that had noticed the character and the
+character.
+
+`--trial-doors` is the measurement. The same 200 seeds, with door opening switched off for every
+species in a scratch build and then on as committed:
+
+| `--trial 200 --seed 1` | Stock bot | Shuts doors, none open | Shuts doors, goblins and orcs open |
+| --- | --- | --- | --- |
+| Died | 150 (75%) | 140 (70%) | 144 (72%) |
+| Won | 2 | 1 | 1 |
+| Gave up | 48 | 59 | 55 |
+| Median turns until death | 117 | 121 | 121 |
+| Killed by goblin, orc, slime | 92, 56, 2 | 88, 49, 3 | 89, 52, 3 |
+
+Shutting doors saves ten runs of the two hundred. Creatures that open them take four of those back,
+all to goblins and orcs, which are the two species that open doors. The effect is small because the
+bot only shuts a door it happens to walk through and never runs to one. A bot that retreats through
+a door and spikes it would show the rule far more.
+
+### What was left
+
+* The examine and nearby panes still call a spiked door a closed door.
+* No bot spikes a door.
+* A band that mixes species that open doors with ones that cannot keeps the whole band off doors.
+  Every band holds one species today.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
@@ -2950,16 +3037,8 @@ fill would then move by a pixel rather than by a cell.
 
 ### A bot that plays well enough to trust
 
-`Trial::Bot` never retreats and never shuts a door, so what it measures is narrow. It needs to shut
-doors, brace and spike them, and decide whether a fight is worth having. Shutting doors looks like a
-large gain in survival now, and it will not be one once most creatures can open them, so the bot and
-the door rules have to arrive together.
-
-### Creatures that open doors
-
-A shut door currently ends a pursuit, because `Knowledge#walkable?` says a shut door cannot be
-walked onto and a band paths over what it knows. Most creatures should be able to open one. That is
-what makes bracing and spiking a door worth doing.
+`Trial::Bot` shuts doors behind it under `--trial-doors`, and the cautious bot backs away. Neither
+spikes a door or decides whether a fight is worth having, so what they measure is still narrow.
 
 ### An action menu on an inventory letter
 
