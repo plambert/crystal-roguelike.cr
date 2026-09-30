@@ -178,7 +178,8 @@ rule to keep: **an AI function takes a snapshot and returns an action, and touch
 A `Monster` carries a `band` and the band carries a `faction`, from Phase 16, even though nothing
 reads either until much later. A band is the unit that shares knowledge, and a faction is the
 unit that decides who fights whom. Adding the fields to a serialized type later means migrating
-save files; adding them now costs two lines.
+save files; adding them now costs two lines. "Creatures that fight each other" is where the
+faction is first read.
 
 ### A creature knows two things: what it saw and what it was told
 
@@ -3515,6 +3516,129 @@ a door and spikes it would show the rule far more.
 * No bot spikes a door.
 * A band that mixes kinds that open doors with ones that cannot keeps the whole band off doors.
   Every band holds one species today, and every kind of a species agrees, so no band is mixed.
+
+## Creatures that fight each other
+
+Goblins, orcs and slimes fight each other as well as the character. A band notices a hostile
+creature by the rule it notices the character by, and goes after the nearest hostile it knows of.
+
+### Who is hostile to whom
+
+| | goblin | orc | slime | character |
+| --- | --- | --- | --- | --- |
+| goblin | no | yes | yes | yes |
+| orc | yes | no | yes | yes |
+| slime | yes | yes | another band | yes |
+
+* `Faction` gains `Goblin`, `Orc` and `Slime`. `Dungeon` stays, because an old save names it. A
+  `Dungeon` band is hostile to the character and to nothing else, so an old save plays as it did.
+* `KindFacts#faction` names each kind's faction. `Floor#place` gives a new band its first member's
+  faction.
+* `Faction#hostile?` holds the table. `Band#hostile?` adds that a band never fights itself.
+
+### What was built
+
+| Piece | What it does |
+| --- | --- |
+| `Game#spotting` | Pairs each creature with every hostile creature it notices this tick |
+| `Game#creatures_cast` | The per-creature cast `creatures_look` already made, taken out so `spotting` reads it too |
+| `Game#creatures_notice` | Writes a sighting per target, wakes the band, and forgets cold sightings one by one |
+| `Knowledge.creature` | The sighting key for a monster, `creature-<id>`. The character keeps `player` |
+| `Game#chases` | Each awake band's quarry and its fresh foes, worked out once a tick |
+| `Pursuit::Snapshot#foes` | Squares of fresh hostiles other than the quarry. A member swings at one beside it |
+| `Game#brawl` | One creature's swing at another, on the `brawl` stream |
+| `Game#felled` | How many creatures other creatures have killed. The trial prints it |
+
+### Decisions
+
+* **Noticing a creature uses `Notice.notices?`.** The target's stealth and the light on its square
+  go in where the character's would. A goblin in the dark does not see a slime in the dark.
+* **The quarry is the nearest sighting.** Distance is king moves from whichever member is nearest.
+  The character wins a tie, then the lower key. Freshness does not count, so a band can walk to a
+  stale sighting next to it before a fresh one further off.
+* **A member swings at any fresh hostile beside it.** The quarry comes first. Other foes follow, the
+  character first. A foe is fresh within `Pursuit::FRESH` turns, the rule the character had.
+* **Sightings go cold one at a time.** Each sighting older than the band's patience is dropped. A
+  searching band with none left sleeps. With only the character tracked this is the old rule, turn
+  for turn.
+* **A dead creature is forgotten at once.** Every band on the floor drops its sighting, whoever
+  killed it.
+* **Being hit wakes the victim's band** and records where the attacker stands, as the character's
+  blows do.
+* **Messages.** "The orc hits the goblin warrior for 4." and the miss and kill lines are written
+  only when the character makes out both creatures in full. A shape is not named, so nothing is
+  said. The events go with the lines, so a recording learns of nothing the character did not see.
+* **The readout.** A band that knows where the character is reads "hunting you" and "looking for
+  you" as before. One that does not reads "hunting" and "searching".
+* **No experience.** A kill by a creature drops the victim's gear on its square and awards nothing.
+* **Streams.** Creature-on-creature swings roll on `brawl`, version 1, counted by `Game#brawls`. The
+  character's own fights roll the same numbers they did. The golden replay was recorded again,
+  because every band's faction is in the fingerprint and the header's stream table gained `brawl`.
+* **`Sharing` is still not read.** Every band shares what one member sees with all of them.
+* **No monster shoots yet.** The orc archer has no bow on this branch. A ranged monster should pick
+  its target from the same `Chase`.
+
+### What a line costs
+
+The character's own cast stays the only cast an asleep floor makes. No cast was added.
+
+* An awake creature already cast a field of view each tick for `creatures_look`. That cast is now
+  made first and read twice. A creature that cast answers from its own field.
+* Symmetric shadowcasting means a creature standing in another's field has a line back to it. An
+  asleep creature is seen by an awake hostile's field for free.
+* Two creatures that neither cast have a line when both stand in the character's field and
+  `Line` crosses nothing opaque between them. That is one Bresenham walk per pair, and only for
+  pairs the character can see.
+* Two asleep creatures out of the character's sight never notice each other. A floor does not wake
+  itself up before the character arrives.
+
+This is cheaper than the radius-limited line check that was proposed for bands out of the
+character's view, because those bands are awake and their casts are already paid for. The notice
+reach bounds the distance, so no separate radius is applied.
+
+The first build looked each band up by its string id, and the floor by its own, for every pair. That
+put the turn at 1.98 ms. Looking each creature's band up once and comparing bands by identity
+brought it to 1.68 ms.
+
+| Twenty trial runs from seed 5000, 27,630 turns, release | ms a turn, three runs |
+| --- | --- |
+| Before | 1.63, 1.60, 1.60 |
+| After | 1.68, 1.69, 1.67 |
+
+The timing section above was measured by hand with `xctrace`, and no tool for it is in the tree.
+These numbers come from a scratch program that times `Trial::Bot#turn` over those twenty runs, the
+two builds run alternately. `Game#sight` is still most of a turn.
+
+### What it did to a run
+
+`--trial 200 --seed 5000`, release, before and after:
+
+| | before | after |
+| --- | --- | --- |
+| died | 16 (8%) | 13 (6%) |
+| gave up at the turn limit | 184 | 187 |
+| turns until death, median | 264 | 133 |
+| survived floor 1 | 93.5% | 95.0% |
+| reached floor 2 | 10 | 10 |
+| killed by creatures | not counted | 24 |
+
+| killed by, before | runs | killed by, after | runs |
+| --- | --- | --- | --- |
+| goblin scout | 9 | goblin scout | 8 |
+| white slime | 4 | white slime | 3 |
+| goblin warrior | 2 | goblin warrior | 2 |
+| blue slime | 1 | | |
+
+Twenty-four creatures died to other creatures over two hundred runs. The generator places each
+room's creatures as one band, in rooms apart, so two bands seldom stand in sight of each other.
+Three runs fewer end in a death, and the median turn of death halves.
+
+### Left undone
+
+* No ranged monster exists to shoot at another.
+* A band's quarry ignores how fresh a sighting is.
+* Creatures do not flee a losing fight.
+* `Sharing` is not read, and bands have no languages.
 
 ## Asked for, not yet built
 
