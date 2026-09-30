@@ -2922,13 +2922,15 @@ One character and one monster, side by side in an empty room. The character swin
 until one is dead. The character does not retreat, drink or regenerate, and the monster does not
 path, sleep or flee, so a cell measures the two sets of numbers and nothing around them.
 
-Time runs as `Game` runs it. The character swings and pays `Costs::TURN`. The world then ticks until
-the character can act again. On each tick the monster takes every action it has banked, and then
-the two paces gain their speed. A slime at speed 80 swings four times in five and an orc at 95 a
-little under once a turn. Swings use `Combat.swing` with `Player#to_hit`, `Player#damage`,
+Time runs as `Game` runs it. The character swings and pays `Costs.swing` for the weapon in its
+hand. The world then ticks until the character can act again. On each tick the monster takes every
+action it has banked, paying its species' swing cost for each, and then the two paces gain their
+speed. A slime at speed 80 swings four times in five. An orc at 95 with a swing of 120 swings a
+little under four times in five. A turn in the table is a tick of the world, counting the tick the
+fight ends in. Swings use `Combat.swing` with `Player#to_hit`, `Player#damage`,
 `Player#armor_class` and the `Monster` equivalents, so a change to any of them moves the table.
 
-A fight is stopped at 1000 turns and counts as not won. A landed swing always does damage and a
+A fight is stopped at 1000 ticks and counts as not won. A landed swing always does damage and a
 critical always lands, so none reaches it.
 
 ### Kits
@@ -2963,24 +2965,27 @@ Two thousand fights a cell, from seed 5000. It runs in about one second.
 win rate, out of a hundred
                 D1      D2      D3      D4      D5
   slime      100.0   100.0   100.0   100.0   100.0
-  goblin      57.8    87.8    96.8    98.8   100.0
-  orc         14.2    43.1    68.2    87.0    99.5
+  goblin      57.8    87.8    96.8    98.6   100.0
+  orc         19.6    48.4    74.8    86.0    99.2
 
 mean turns to a decision
                 D1      D2      D3      D4      D5
-  slime        3.9     2.9     2.9     2.6     2.1
-  goblin       5.6     5.2     5.5     4.8     3.7
-  orc          5.8     6.2     7.5     7.1     5.8
+  slime        3.9     2.9     2.9     3.2     2.8
+  goblin       5.6     5.2     5.5     5.9     4.7
+  orc          6.3     6.6     7.8     8.6     7.1
 
 mean hit points the character lost
                 D1      D2      D3      D4      D5
-  slime        1.2     0.7     0.5     0.3     0.1
-  goblin       8.4     7.3     6.3     4.8     1.8
-  orc         11.2    12.5    12.3    10.0     3.9
+  slime        1.2     0.7     0.5     0.4     0.1
+  goblin       8.4     7.3     6.3     5.9     2.6
+  orc         10.9    12.0    11.4    11.2     4.5
 ```
 
 The orc row of the damage table rises from D1 to D2. A D1 character dies early in many fights and
 loses at most its hit points, so the mean is held down by the deaths.
+
+The long sword at D4 and D5 swings at 120, so those fights take more turns than the short sword's
+at D3. The larger die still lifts the win rate against the orc, from 74.8 to 86.0.
 
 ### Left out
 

@@ -93,7 +93,7 @@ module Roguelike
       # How many fights a cell holds unless told otherwise.
       FIGHTS = 2000
 
-      # The most turns one fight is given.
+      # The most ticks one fight is given.
       #
       # A landed swing does damage and a critical always lands, so every
       # fight ends. This is a bound for the loop, and a fight that reaches it
@@ -134,40 +134,43 @@ module Roguelike
 
       # Plays one fight of *kit* against *species*, rolled on *rng*.
       #
-      # Time runs the way `Game` runs it. The character swings and pays a
-      # turn. The world then ticks until the character can act again, and on
-      # each tick the monster takes every action it has banked. A slime that
-      # moves at 80 swings four times in five, and an orc at 95 a little
-      # less often than the character does.
+      # Time runs the way `Game` runs it. The character swings and pays what
+      # its weapon costs. The world then ticks until the character can act
+      # again, and on each tick the monster takes every action it has banked,
+      # each paying what its species' swing costs. A dagger at 75 swings four
+      # times in three ticks, and an orc at speed 95 with a swing of 120
+      # attacks a little under four times in five.
+      #
+      # Turns are ticks of the world, counting the one the fight ends in.
       def self.fight(kit : Kit, species : Species, rng : Rng) : Result
         player = kit.character
         monster = Monster.new species, 1, 0, "matchup"
         start = player.hit_points
-        turns = 0
+        swing = Costs.swing player.wielded
+        ticks = 0
 
-        while turns < LIMIT
-          turns += 1
-
+        while ticks < LIMIT
           blow = Combat.swing rng, player.to_hit, monster.armor_class, player.damage
           monster.hurt blow.damage if blow.hit?
-          return Result.new true, turns, start - player.hit_points unless monster.alive?
+          return Result.new true, ticks + 1, start - player.hit_points unless monster.alive?
 
-          player.pace.spend Costs::TURN
+          player.pace.spend swing
 
           until player.pace.ready?
             while monster.pace.ready?
-              monster.pace.spend Costs::TURN
+              monster.pace.spend species.swing
               blow = Combat.swing rng, monster.to_hit, player.armor_class, monster.damage
               player.hurt blow.damage if blow.hit?
-              return Result.new false, turns, start - player.hit_points unless player.alive?
+              return Result.new false, ticks + 1, start - player.hit_points unless player.alive?
             end
 
             player.pace.gain
             monster.pace.gain
+            ticks += 1
           end
         end
 
-        Result.new false, turns, start - player.hit_points
+        Result.new false, ticks, start - player.hit_points
       end
 
       # The stream the fights of one cell roll on.
