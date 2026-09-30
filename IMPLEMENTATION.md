@@ -2048,9 +2048,9 @@ who is not average.
 Regeneration writes nothing to the log. A line a turn saying the character is a little better would
 fill the log, and anything written to the log stops a walk.
 
-Only the character regenerates. A creature that lost the character and healed while it looked for
-them would undo what hitting it and walking away buys, which is the one thing a slower creature
-leaves open.
+Only the character regenerates by this rule. A creature recovers one hit point every ten turns
+whatever it is made of, which is what lets a creature that ran away come back. See "Creatures that
+run".
 
 Losing hit points stops a walk. Gaining one does not, or a character regenerating along a corridor
 would stop every twenty steps for good news.
@@ -3515,6 +3515,82 @@ a door and spikes it would show the rule far more.
 * No bot spikes a door.
 * A band that mixes kinds that open doors with ones that cannot keeps the whole band off doors.
   Every band holds one species today, and every kind of a species agrees, so no band is mixed.
+
+## Creatures that run
+
+A goblin or an orc below a quarter of its hit points runs from the character. It turns back once
+it has more than half. A slime never runs.
+
+### What was built
+
+| Piece | What it does |
+| --- | --- |
+| `KindFacts#flees` | Says which kinds run. Every goblin and orc kind does, and no slime |
+| `Monster#fleeing?` | Whether the creature is running. Saved, and false in a save that lacks it |
+| `Monster#shaken?`, `#steadied?` | Below a quarter of its maximum, and above half of it |
+| `Game#nerve` | Turns a creature to running before it acts, and says so. Turns it back on recovery |
+| `Game#creatures_recover` | Gives every hurt creature one hit point every ten turns |
+| `Descent#uphill` | The neighbors one step further from the goal |
+| `Pursuit.decide` | A running creature steps uphill, shuts a door behind it, or swings when cornered |
+| `Event::Fled` | The creature that turned to run |
+
+### Decisions
+
+* **Below a quarter, above half.** The two thresholds leave a band in between where a creature keeps
+  doing what it was doing. A goblin warrior with 9 hit points runs at 2 and turns back at 5. A
+  creature that healed from 2 to 4 is still running.
+* **Uphill on the band's map.** The character's last sighting is the goal of the band's `Descent`.
+  Each neighbor is either nearer, the same distance, or exactly one step further. A running
+  creature picks among the ones one step further.
+* **Light, then company, then direction.** Among the squares one step further it takes the one with
+  the least light on it. A tie goes to the square nearest another member of its band, by squared
+  distance. A tie after that goes to whichever direction `Direction` names first. Light is
+  `Lighting.over` the floor's sources, worked out once a turn for the first running creature that
+  asks.
+* **Cornered means nothing further off.** A creature with no free uphill square swings when the
+  character is beside it and the sighting is fresh. Otherwise it waits. A creature at the edge of
+  its map has got away as far as the band can see, and waits there.
+* **A door behind it.** A running creature whose kind opens doors shuts an open door beside it
+  that is nearer the character than it is, unless the character is beside it. Shutting takes the
+  turn. A door with a creature, the character or an item in the doorway stays open. The band
+  writes the door down as shut. A shut door is opened again the way any other is.
+* **Messages.** "The goblin warrior flees!" when the character can see the creature turn. "The
+  goblin warrior shuts the door." when they can see the door and could see the creature. "A door
+  swings shut." when they cannot see the creature.
+* **Recovery on no roll.** Every creature on the floor gains one hit point whenever the turn count
+  is a multiple of ten, up to full. Nothing is rolled, so no stream was added. The hit points come
+  back whether the band is awake or not, and a creature that recovers past half stops running even
+  when its band has lost the character.
+* **Saves.** `fleeing` has a default, so an older save loads with every creature standing its
+  ground. The golden replay was recorded again, because hurt creatures now heal.
+* **A spec helper changed.** The drops spec swung at a goblin until it was gone. A goblin now runs,
+  so the spec kills it directly.
+
+### The trial
+
+The trial bot never chases. It walks toward the stairs or wanders, and swings at what stands beside
+it. A goblin that runs away is left behind, so no run spends its turns on one, and the bot needed
+no change.
+
+`--trial 200 --seed 5000` on a release build, at most 1500 turns a run, before and after:
+
+| | Before | After |
+| --- | --- | --- |
+| Died | 16 (8%) | 16 (8%) |
+| Survived floor 1 | 93.5% | 94.0% |
+| Turns until death, median | 264 | 265 |
+| Killed by | goblin scout 9, white slime 4, goblin warrior 2, blue slime 1 | goblin scout 9, goblin warrior 4, white slime 2, blue slime 1 |
+
+The deaths hold at sixteen. Two white slime deaths became goblin warrior deaths, and the survivors
+of floor 1 rose by one run in two hundred. The bot seldom wins a fight against a goblin it does
+not then walk away from, so little of the run reaches the rule.
+
+### Left undone
+
+* A running creature does not head for a shaman or a door on purpose. Band members and light are
+  the only things it looks at.
+* A creature does not call for help, and a band does not cover for a running member.
+* Only the floor the character stands on recovers.
 
 ## Asked for, not yet built
 

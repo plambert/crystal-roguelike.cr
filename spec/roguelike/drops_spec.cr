@@ -38,13 +38,13 @@ Spectator.describe "what a monster leaves behind" do
     {Game.new(World.new(SEED, {floor.id => floor}), player), creature}
   end
 
-  # Swings north until the creature is off the floor.
+  # Kills the creature beside the character. A goblin that has been hit
+  # badly enough runs, so the spec does not swing at it until it dies.
   def kill(game : Game) : Nil
-    200.times do
-      break unless game.floor.monster(*BESIDE)
+    creature = game.floor.monster(*BESIDE)
+    raise "nothing is standing beside the character" unless creature
 
-      game.step Direction::North
-    end
+    game.kill creature
   end
 
   describe "killing it" do

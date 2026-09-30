@@ -20,6 +20,9 @@ module Roguelike
 
       # Swing at whatever is one square away.
       Strike
+
+      # Shut the open door one square away.
+      Shut
     end
 
     # One creature's decision.
@@ -47,6 +50,11 @@ module Roguelike
         new Intent::Strike, direction
       end
 
+      # Shut the open door one step *direction*.
+      def self.shut(direction : Direction) : Action
+        new Intent::Shut, direction
+      end
+
       # Whether every nearer square was taken.
       def hemmed? : Bool
         @hemmed
@@ -70,7 +78,13 @@ module Roguelike
     # it knows about where the character is is `quarry`, which is where the
     # band last saw them. Neither is necessarily what is on the floor now.
     #
-    # `blocked` is the only field here that is not belief.
+    # `blocked` and `closable` are the only fields here that are not belief.
+    # `closable` names the squares beside the creature holding an open door
+    # that nothing stands in, and is empty for a creature that cannot shut one.
+    #
+    # `fleeing` says the creature is running. `shade` is the light on the
+    # floor, and `company` is where the rest of its band stands. A running
+    # creature reads both.
     #
     # `stumble` says this creature is about to put a foot wrong. `Game` rolls
     # it, because nothing here rolls anything.
@@ -81,7 +95,11 @@ module Roguelike
       stale : Int32 = 0,
       descent : Descent? = nil,
       blocked : Set({Int32, Int32}) = Descent::EMPTY,
-      stumble : Bool = false
+      stumble : Bool = false,
+      fleeing : Bool = false,
+      shade : Lighting? = nil,
+      company : Array({Int32, Int32}) = [] of {Int32, Int32},
+      closable : Set({Int32, Int32}) = Descent::EMPTY
 
     # How many turns old a sighting may be and still be worth swinging at.
     #
@@ -102,6 +120,7 @@ module Roguelike
     def self.decide(snapshot : Snapshot) : Action
       quarry = snapshot.quarry
       return Action.wait unless quarry
+      return flee snapshot, quarry if snapshot.fleeing
 
       beside = beside snapshot.at, quarry
       return Action.strike(beside) if beside && snapshot.stale <= FRESH
@@ -110,6 +129,57 @@ module Roguelike
       hemmed = hemmed? snapshot
       direction = walk snapshot, hemmed
       direction ? Action.step(direction, hemmed) : Action.wait(hemmed)
+    end
+
+    # What a running creature does.
+    #
+    # It shuts an open door it has just come through, unless the character is
+    # beside it. Otherwise it steps to a square further from the quarry, one
+    # step further than its own on the band's map. Of those it takes the one
+    # with the least light on it, then the one nearest the rest of its band,
+    # then the first in `Direction` order.
+    #
+    # A creature with no square further off swings when the character is
+    # beside it, because it is cornered. It waits otherwise, which is what a
+    # creature at the edge of its map has done when it has got away.
+    private def self.flee(snapshot : Snapshot, quarry : {Int32, Int32}) : Action
+      at = snapshot.at
+      near = beside at, quarry
+      descent = snapshot.descent
+      here = descent.try &.[at]
+      away = descent && here ? descent.uphill(at[0], at[1], snapshot.blocked) : Descent::NOWHERE
+
+      if away.empty?
+        return Action.strike(near) if near && snapshot.stale <= FRESH
+        return Action.wait
+      end
+
+      if descent && here && !near
+        door = Direction.values.find do |direction|
+          spot = direction.from at[0], at[1]
+          next false unless snapshot.closable.includes? spot
+
+          stepped = descent[spot]
+          !stepped.nil? && stepped < here
+        end
+        return Action.shut(door) if door
+      end
+
+      Action.step away.min_by { |direction| shelter snapshot, direction.from(at[0], at[1]) }
+    end
+
+    # How good a square to run to *spot* is. Lower is better.
+    #
+    # The light on it, then the squared distance to the nearest other member
+    # of the band.
+    private def self.shelter(snapshot : Snapshot,
+                             spot : {Int32, Int32}) : {Int32, Int32}
+      light = snapshot.shade.try(&.level(spot[0], spot[1])) || 0
+      gap = snapshot.company.min_of? do |other|
+        (other[0] - spot[0]) ** 2 + (other[1] - spot[1]) ** 2
+      end
+
+      {light, gap || 0}
     end
 
     # Whether every square nearer the quarry holds another creature.

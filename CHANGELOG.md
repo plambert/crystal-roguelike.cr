@@ -10,6 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Goblins and orcs run when they are below a quarter of their hit points. A running creature walks
+  away from the character, keeps to the darker squares, and heads for the rest of its band. It
+  turns back once it has more than half of its hit points. The log says "The goblin flees!" when
+  the character sees it turn. A creature with nowhere left to run fights. One that opens doors
+  shuts the door behind it, which takes its turn. Slimes never run.
 * `--matchup` prints who beats whom and stops. Each kind of creature fights a character of each of
   five kits, one per depth, in an empty room. The tables give the win rate, the mean turns to a
   decision and the mean hit points the character lost. `--matchup-fights N` sets the fights in a
@@ -141,6 +146,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Creatures recover one hit point every ten turns. A creature that ran away comes back healed
+  enough to fight again.
 * A blow costs what the weapon says rather than one turn. A dagger takes 75 energy, a short sword
   100, a rapier 115, a long sword 120, and a mace or a spear 125. Bare hands take 80. A shot costs
   what the launcher says, 120 for a bow and 100 for a sling, and a throw costs what the thrown item

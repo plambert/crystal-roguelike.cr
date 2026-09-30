@@ -1,4 +1,4 @@
-{"type":"header","format":2,"game_version":"0.1.0+gc79be92+","crystal_version":"1.21.1","seed":4271,"generate":true,"streams":{"generator":3,"litter":2,"loot":3,"ammunition":2,"lore":1,"combat":1,"handling":1,"use":1,"wander":1,"mend":1},"player":"tester","source":"human","started_at":"2026-09-30T21:49:25Z","turn":0,"log":["You are in a dungeon with a short sword, leather armor and a lit torch.","You carry three iron spikes and a potion of healing. Press ? for the keys."],"state":"sha256:64b8b3f2b6c87896dba78b71112742768ba1c19db912a9ac38b622557f20a581"}
+{"type":"header","format":2,"game_version":"0.1.0+g7605b19+","crystal_version":"1.21.1","seed":4271,"generate":true,"streams":{"generator":3,"litter":2,"loot":3,"ammunition":2,"lore":1,"combat":1,"handling":1,"use":1,"wander":1,"mend":1},"player":"tester","source":"human","started_at":"2026-09-30T22:39:06Z","turn":0,"log":["You are in a dungeon with a short sword, leather armor and a lit torch.","You carry three iron spikes and a potion of healing. Press ? for the keys."],"state":"sha256:ecc6e44814aa2a45f4e494decb0f0a8da0f1156f3c8d8ea1ab9809a42e5c4bd4"}
 {"type":"act","turn":1,"action":{"t":"move","dir":"sw"}}
 {"type":"act","turn":2,"action":{"t":"move","dir":"w"}}
 {"type":"act","turn":3,"action":{"t":"close","dir":"w"}}
@@ -22,7 +22,7 @@
 {"type":"act","turn":23,"action":{"t":"move","dir":"e"}}
 {"type":"act","turn":24,"action":{"t":"move","dir":"n"}}
 {"type":"act","turn":25,"action":{"t":"drop","item":383}}
-{"type":"check","turn":25,"state":"sha256:002be61bb1bb361575edf218b5ec3c10b283f39d1d4c5863d1f815f5fd7fefcf"}
+{"type":"check","turn":25,"state":"sha256:f1858dd73f24fcfea6a5b9f7ab22cc0ba3829f87496d79625989add7c16dce53"}
 {"type":"act","turn":26,"action":{"t":"wait"}}
 {"type":"act","turn":27,"action":{"t":"move","dir":"sw"}}
 {"type":"act","turn":28,"action":{"t":"pickup","item":385}}
@@ -48,7 +48,7 @@
 {"type":"act","turn":48,"action":{"t":"apply","at":[99,68]}}
 {"type":"act","turn":49,"action":{"t":"move","dir":"sw"}}
 {"type":"act","turn":50,"action":{"t":"move","dir":"w"}}
-{"type":"check","turn":50,"state":"sha256:63c3df011ee9816c175dc382c1472863f0a6cf53f10fee0408d0c22669da2d22"}
+{"type":"check","turn":50,"state":"sha256:9edd5bf7c5e082d28e60e97c2b0120902b20388c1c1755ebda2f05070a93f414"}
 {"type":"act","turn":51,"action":{"t":"pickup","item":383}}
 {"type":"act","turn":52,"action":{"t":"move","dir":"nw"}}
 {"type":"act","turn":53,"action":{"t":"drop","item":383}}
@@ -74,7 +74,7 @@
 {"type":"act","turn":73,"action":{"t":"move","dir":"e"}}
 {"type":"act","turn":74,"action":{"t":"move","dir":"s"}}
 {"type":"act","turn":75,"action":{"t":"move","dir":"n"}}
-{"type":"check","turn":75,"state":"sha256:7a5f6efe1d9edbfa858afd8bc5b343608dc63d463ad65e1dc8acaa2bcfa01baf"}
+{"type":"check","turn":75,"state":"sha256:a43eb57916a41cae6e99575a8df2969f43e9cb2cf4d593e564f3a442ebe9932f"}
 {"type":"act","turn":76,"action":{"t":"move","dir":"se"}}
 {"type":"act","turn":77,"action":{"t":"move","dir":"e"}}
 {"type":"act","turn":78,"action":{"t":"wait"}}
@@ -82,4 +82,4 @@
 {"type":"act","turn":80,"action":{"t":"move","dir":"ne"}}
 {"type":"act","turn":81,"action":{"t":"move","dir":"sw"}}
 {"type":"act","turn":82,"action":{"t":"move","dir":"n"}}
-{"type":"footer","turn":82,"outcome":"truncated","ending":"playing","ended_at":"2026-09-30T21:49:26Z"}
+{"type":"footer","turn":82,"outcome":"truncated","ending":"playing","ended_at":"2026-09-30T22:39:07Z"}

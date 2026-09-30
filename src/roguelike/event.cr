@@ -39,6 +39,7 @@ module Roguelike
       "door"           => Door,
       "dropped"        => Dropped,
       "fizzled"        => Fizzled,
+      "fled"           => Fled,
       "floor_lit"      => FloorLit,
       "floor_mapped"   => FloorMapped,
       "gold"           => Gold,
@@ -508,6 +509,16 @@ module Roguelike
       getter status : Status
 
       def initialize(@status : Status, @who : Int32? = nil)
+      end
+    end
+
+    # The creature *who* turned to run from the character.
+    class Fled < Event
+      getter kind : String = "fled"
+
+      getter who : Int32
+
+      def initialize(@who : Int32)
       end
     end
 

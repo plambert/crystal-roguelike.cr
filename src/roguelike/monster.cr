@@ -112,6 +112,12 @@ module Roguelike
     # How many turns until it can mend a neighbour again. Zero when it can.
     getter mending : Int32 = 0
 
+    # Whether it is running from the character.
+    #
+    # It has a default, so a save written before this field existed loads
+    # with every creature standing its ground.
+    getter? fleeing : Bool = false
+
     def initialize(kind : Kind, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
@@ -171,6 +177,26 @@ module Roguelike
       before = @hit_points
       @hit_points = Math.min @hit_points + amount, @max_hit_points
       @hit_points - before
+    end
+
+    # Whether it is below a quarter of its hit points.
+    def shaken? : Bool
+      alive? && @hit_points * 4 < @max_hit_points
+    end
+
+    # Whether it has more than half of its hit points.
+    def steadied? : Bool
+      @hit_points * 2 > @max_hit_points
+    end
+
+    # Starts running.
+    def flee : Nil
+      @fleeing = true
+    end
+
+    # Stops running.
+    def rally : Nil
+      @fleeing = false
     end
 
     # Whether it has lost any hit points.
@@ -345,7 +371,7 @@ module Roguelike
         @hit_points == other.hit_points && @band == other.band &&
         @attributes.to_a == other.attributes.to_a && @memory == other.memory &&
         @carrying == other.carrying && @max_hit_points == other.max_hit_points &&
-        @mending == other.mending
+        @mending == other.mending && @fleeing == other.fleeing?
     end
 
     def to_s(io : IO) : Nil
