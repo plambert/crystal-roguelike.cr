@@ -16,6 +16,9 @@ module Roguelike
   class Player
     include JSON::Serializable
 
+    # How big the character is. Armor cut for any other size does not fit.
+    SIZE = Size::Medium
+
     # What the person called this character.
     #
     # Empty for a character nobody has named, which is what a spec builds and

@@ -137,15 +137,18 @@ module Roguelike
     #
     # *ceiling* caps a plus. `Loot.ceiling` says how high one goes on each
     # floor. `nil` leaves it uncapped.
+    #
+    # *size* is who a piece of armor is cut for. It rolls nothing, and
+    # anything that is not armor ignores it.
     def self.make(rng : Rng, kind : ItemKind, conditions = CONDITIONS,
-                  ceiling : Int32? = nil) : Item
+                  ceiling : Int32? = nil, size : Size = Size::Medium) : Item
       blessing = pick rng, BLESSINGS
       condition = kind.enchantable? ? pick(rng, conditions) : Condition::Plain
       enchantment = kind.enchantable? ? pick(rng, enchantments_for(blessing)) : 0
       enchantment = Math.min enchantment, ceiling if ceiling
       count = STACKS[kind]?.try { |range| rng.rand range } || 1
 
-      Item.new kind, enchantment, condition, count, blessing: blessing
+      Item.new kind, enchantment, condition, count, blessing: blessing, size: size
     end
 
     # Which enchantment table *blessing* rolls on.
@@ -154,6 +157,57 @@ module Roguelike
       in .cursed?   then CURSED_ENCHANTMENTS
       in .uncursed? then ENCHANTMENTS
       in .blessed?  then BLESSED_ENCHANTMENTS
+      end
+    end
+
+    # How often armor lying about is cut for each size.
+    #
+    # Most of it is cut for somebody the character's size. `NEAR_GOBLINS`
+    # and `NEAR_ORCS` lean it toward whoever lives close by.
+    SIZES = {
+      {Size::Small, 10},
+      {Size::Medium, 80},
+      {Size::Large, 10},
+    }
+
+    # The same, within `NEARBY` squares of a goblin.
+    NEAR_GOBLINS = {
+      {Size::Small, 60},
+      {Size::Medium, 35},
+      {Size::Large, 5},
+    }
+
+    # The same, within `NEARBY` squares of an orc.
+    NEAR_ORCS = {
+      {Size::Small, 5},
+      {Size::Medium, 35},
+      {Size::Large, 60},
+    }
+
+    # How near a creature armor lies for it to be cut for that creature.
+    NEARBY = 8
+
+    # Which table armor lying at *spot* on *ground* rolls its size on.
+    #
+    # The nearest goblin or orc within `NEARBY` squares decides. With none
+    # that near it rolls on `SIZES`.
+    def self.sizes_at(ground : Floor, spot : {Int32, Int32})
+      nearest = nil.as({Int32, Species}?)
+
+      ground.each_monster do |column, row, creature|
+        next if creature.species.slime?
+
+        apart = Math.max (column - spot[0]).abs, (row - spot[1]).abs
+        next if apart > NEARBY
+        next if nearest && nearest[0] <= apart
+
+        nearest = {apart, creature.species}
+      end
+
+      case nearest.try &.[1]
+      when Species::Goblin then NEAR_GOBLINS
+      when Species::Orc    then NEAR_ORCS
+      else                      SIZES
       end
     end
 

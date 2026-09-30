@@ -64,16 +64,18 @@ module Roguelike
     # serialized type later means migrating save files.
     getter memory : Hash(String, Knowledge)
 
-    # What it is carrying.
+    # What it is carrying loose, apart from what it has readied.
     #
-    # `Loot` rolls this when the floor is made. Everything in it goes on the
-    # square the creature dies on. Nothing else reads it: a monster does not
-    # swing the sword it is holding until a later phase gives it a reason to,
-    # and its armor does not add to what it takes off a blow either.
-    #
-    # A lit torch in here does throw light. `Game#lights` reads it, which is
-    # where Phase 13's carried source finally has a carrier.
+    # Everything in it goes on the square the creature dies on. A lit torch
+    # in here throws light, and `Game#lights` reads it.
     getter carrying : Array(Item)
+
+    # What it has readied, one item to a slot.
+    #
+    # `nil` rather than empty while it holds nothing, so a creature with no
+    # gear writes what it wrote before gear existed. A save from then loads
+    # with everything in `#carrying` and nothing readied.
+    @gear : Hash(Slot, Item)? = nil
 
     # How many turns this creature cannot see for.
     #
@@ -276,31 +278,163 @@ module Roguelike
       @x == x && @y == y
     end
 
+    # What it has readied, by slot. Empty when it holds nothing.
+    def gear : Hash(Slot, Item)
+      @gear || {} of Slot => Item
+    end
+
+    # What is in *slot*. `nil` for an empty slot.
+    def in_slot(slot : Slot) : Item?
+      @gear.try &.[slot]?
+    end
+
+    # The weapon in its hand, when it swings one for its own dice.
+    #
+    # A thing with no dice of its own is not swung. A creature holding one
+    # hits with its kind's own attack.
+    def wielded : Item?
+      held = in_slot Slot::Melee
+      held if held && Player.swung?(held)
+    end
+
+    # The sling or bow it holds. `nil` when it holds none.
+    def launcher : Item?
+      in_slot(Slot::Ranged).try { |held| held if held.kind.item_class.ranged_weapon? }
+    end
+
+    # What it has to shoot. `nil` when its quiver is empty.
+    def quivered : Item?
+      in_slot Slot::Quiver
+    end
+
+    # The wand it holds ready. `nil` when it holds none.
+    #
+    # A wand goes in `Slot::Ranged`, the hand a sling or a bow would be in.
+    # Only a kind that `Kind#casts?` readies one.
+    def wand : Item?
+      in_slot(Slot::Ranged).try { |held| held if held.kind.item_class.wand? }
+    end
+
+    # Every piece of armor it wears, in the order `Slot.listed` gives.
+    def worn : Array(Item)
+      Slot.listed.compact_map { |slot| in_slot slot if slot.armor? }
+    end
+
+    # Where it would ready *item*. `nil` for anything it would not.
+    #
+    # A kind that does not `Kind#wields?` readies nothing. Armor cut for
+    # another size does not go on. A wand goes in the ranged hand of a kind
+    # that casts, and nowhere for any other.
+    def slot_for(item : Item) : Slot?
+      return unless kind.wields?
+      return (kind.casts? ? Slot::Ranged : nil) if item.kind.item_class.wand?
+      return unless item.fits? kind.size
+
+      Slot.for item
+    end
+
+    # Puts *item* in the slot it goes in. Answers what was there, or `nil`.
+    #
+    # The caller has already asked `#slot_for`. What comes out is no longer
+    # held anywhere, and the caller decides where it goes.
+    def ready(item : Item) : Item?
+      slot = slot_for item
+      raise ArgumentError.new "#{label} cannot ready #{item}" unless slot
+
+      held = (@gear ||= {} of Slot => Item)
+      taken = held[slot]?
+      held[slot] = item
+      taken
+    end
+
+    # Readies each of *items* that goes in an empty slot and carries the
+    # rest.
+    #
+    # The first of two that want one slot is readied and the second is
+    # carried, so the order *items* is in decides.
+    def outfit(items : Enumerable(Item)) : Nil
+      items.each do |item|
+        slot = slot_for item
+        if slot && in_slot(slot).nil?
+          ready item
+        else
+          @carrying << item
+        end
+      end
+    end
+
+    # What it hits for, in every 100 energy, holding *weapon* in its hand.
+    #
+    # `nil` is its own attack. The strength modifier is in it, so a quick
+    # weapon gains more from strength than a slow one.
+    def offense(weapon : Item?) : Float64
+      dice = weapon ? weapon.damage : kind.damage
+      cost = weapon ? Costs.swing(weapon) : kind.swing
+      strength = @attributes.modifier Attributes::Which::Strength
+
+      dice.with_bonus(strength).average * Costs::TURN / cost
+    end
+
+    # Whether *item* is better than what it holds in the slot *item* goes in.
+    #
+    # A weapon is better when it does more in every 100 energy than the one
+    # in hand, or than the creature's own attack. Armor is better when it
+    # takes more off a blow. A wand is better than none, and than one with
+    # no charges left. The creature knows every enchantment and condition.
+    def better?(item : Item) : Bool
+      slot = slot_for item
+      return false unless slot
+
+      held = in_slot slot
+      case item.kind.item_class
+      when .wand?
+        item.kind.effect.strike? && !item.spent? && (held.nil? || held.spent?)
+      when .armor?
+        held.nil? || item.armor > held.armor
+      when .melee?
+        Player.swung?(item) && offense(item) > offense(wielded)
+      else
+        false
+      end
+    end
+
     # What this creature adds to a swing.
     #
-    # Its dexterity modifier and nothing else. A creature carrying a sword is
-    # not yet swinging it: `#carrying` is what drops when it dies and nothing
-    # more than that.
+    # Its dexterity modifier, plus what its weapon adds. `Player#to_hit` has
+    # the same shape.
     def to_hit : Int32
-      @attributes.modifier Attributes::Which::Dexterity
+      bonus = @attributes.modifier Attributes::Which::Dexterity
+      weapon = wielded
+
+      weapon ? bonus + weapon.aim : bonus
     end
 
     # How much an attack on this creature is reduced by.
     #
-    # Its kind's hide, plus the dexterity modifier, never below zero. That
-    # is the shape `Player#armor_class` has, which is worn armor plus the
-    # same modifier.
+    # Its kind's hide, plus the armor it wears, plus the dexterity modifier,
+    # never below zero.
     def armor_class : Int32
-      hide = kind.armor + @attributes.modifier(Attributes::Which::Dexterity)
+      hide = kind.armor + worn.sum(&.armor) +
+             @attributes.modifier(Attributes::Which::Dexterity)
 
       Math.max hide, 0
     end
 
     # What this creature hits for.
     #
-    # Its kind's dice plus the strength modifier.
+    # The dice of the weapon in its hand, or its kind's own when it holds
+    # none, plus the strength modifier.
     def damage : Dice
-      kind.damage.with_bonus @attributes.modifier(Attributes::Which::Strength)
+      dice = wielded.try(&.damage) || kind.damage
+      dice.with_bonus @attributes.modifier(Attributes::Which::Strength)
+    end
+
+    # What one of its blows costs, in energy.
+    #
+    # What the weapon in its hand costs, or its kind's own swing.
+    def swing : Int32
+      weapon = wielded
+      weapon ? Costs.swing(weapon) : kind.swing
     end
 
     # Whether it is still alive.
@@ -318,9 +452,16 @@ module Roguelike
       items.each { |item| @carrying << item }
     end
 
-    # Takes everything it is carrying off it. Answers what was taken.
+    # Everything it holds: what it has readied, in the order `Slot.listed`
+    # gives, then what it carries.
+    def belongings : Array(Item)
+      Slot.listed.compact_map { |slot| in_slot slot } + @carrying
+    end
+
+    # Takes everything it holds off it. Answers what was taken.
     def drop_everything : Array(Item)
-      taken = @carrying.dup
+      taken = belongings
+      @gear = nil
       @carrying.clear
       taken
     end
@@ -344,7 +485,8 @@ module Roguelike
       kind == other.kind && @x == other.x && @y == other.y &&
         @hit_points == other.hit_points && @band == other.band &&
         @attributes.to_a == other.attributes.to_a && @memory == other.memory &&
-        @carrying == other.carrying && @max_hit_points == other.max_hit_points &&
+        @carrying == other.carrying && gear == other.gear &&
+        @max_hit_points == other.max_hit_points &&
         @mending == other.mending
     end
 

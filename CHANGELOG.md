@@ -138,6 +138,18 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   door.
 * `--trial-doors` plays `--trial` with a bot that shuts each door behind it. It combines with
   `--trial-cautious`.
+* Armor is cut for a wearer's size: small for goblins, medium for the character, and large for
+  orcs. Its name says so when it is not medium, as in "small leather armor". The character cannot
+  wear armor of another size and is told why. Armor lying about is medium most of the time, mostly
+  small near goblins and mostly large near orcs.
+* Goblins and orcs hold a weapon and wear armor. A creature with a weapon in hand hits with the
+  weapon's dice, its enchantment and its swing cost rather than its own attack. Worn armor adds to
+  its armor class. What a creature starts with goes on it rather than into its pack.
+* A goblin or orc that stands on a weapon or a piece of armor better than what it holds picks it up
+  and drops the old one where it stands. That takes its turn. A weapon is better when it does more
+  damage in the same time, and armor when it stops more. Slimes pick up nothing. A goblin shaman
+  picks up a wand of striking.
+* The examine pane and the tooltip on a creature say what it wields and wears.
 
 ### Changed
 

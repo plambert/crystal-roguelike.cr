@@ -147,6 +147,7 @@ module Roguelike
                                       (identified || item.blessing_known?)
       words << (item.condition.label || "") unless item.condition.plain?
       words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
+      words << item.size.word unless item.size.medium?
       words << (plural ? kind.plural : kind.label)
 
       words.reject(&.empty?).join ' '

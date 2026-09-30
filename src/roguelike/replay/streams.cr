@@ -23,9 +23,10 @@ module Roguelike
       #
       # `generator` covers the rooms, the cuts between them, the corridors,
       # the doors, the sconces, the creatures and the staircases. Those are
-      # separate streams and one algorithm. `lore` is the appearances a run
-      # rolls for its potions, its scrolls and its wands. `combat`,
-      # `handling`, `use`, `wander` and `mend` are the counters on the run.
+      # separate streams and one algorithm. `sizes` is who each piece of armor
+      # lying about is cut for. `lore` is the appearances a run rolls for its
+      # potions, its scrolls and its wands. `combat`, `handling`, `use`,
+      # `wander` and `mend` are the counters on the run.
       #
       # The stream the name suggestion draws from is not here. It names
       # nobody and nothing in the run.
@@ -40,6 +41,7 @@ module Roguelike
         "use"        => 1,
         "wander"     => 1,
         "mend"       => 1,
+        "sizes"      => 1,
       }
 
       # This build's table, as a header holds it.

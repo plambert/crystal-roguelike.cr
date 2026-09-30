@@ -177,6 +177,19 @@ module Roguelike
       end
     end
 
+    # The key a JSON object uses for this slot.
+    #
+    # `Monster#gear` is a `Hash(Slot, Item)`. A save holds the member name,
+    # so inserting a member later does not change what an old key means.
+    def to_json_object_key : String
+      to_s
+    end
+
+    # :ditto:
+    def self.from_json_object_key?(key : String) : Slot?
+      parse? key
+    end
+
     # Every weapon slot, in order.
     def self.weapons : Array(Slot)
       values.select &.weapon?

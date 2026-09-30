@@ -206,11 +206,17 @@ module Roguelike
     # that creature carries and nothing else on the floor.
     #
     # *depth* is the floor it lives on. `nil` holds nothing back.
+    #
+    # Armor comes out cut for the creature's own size. That rolls nothing.
+    #
+    # The weapon comes first, so `Monster#outfit` readies it before anything
+    # else that wants the hand.
     def self.for(kind : Kind | Species, rng : Rng, depth : Int32? = nil) : Array(Item)
       found = [] of Item
+      size = kind.size
 
       draws(kind).each do |draw|
-        taken = one draw, rng, depth
+        taken = one draw, rng, depth, size
         found << taken if taken
       end
 
@@ -221,7 +227,7 @@ module Roguelike
     #
     # Anything that burns comes out alight, and `Game#lights` reads it as a
     # carried source.
-    private def self.one(draw : Draw, rng : Rng, depth : Int32?) : Item?
+    private def self.one(draw : Draw, rng : Rng, depth : Int32?, size : Size) : Item?
       return unless rng.rand(100) < draw.chance
 
       kinds = depth ? gated(draw.kinds, depth) : draw.kinds
@@ -230,7 +236,7 @@ module Roguelike
       kind = Items.pick rng, kinds
       return Item.new kind, count: rng.rand(draw.count) if kind.item_class.treasure?
 
-      item = Items.make rng, kind, CONDITIONS, depth.try { |deep| ceiling deep }
+      item = Items.make rng, kind, CONDITIONS, depth.try { |deep| ceiling deep }, size
       item.kindle
       item
     end

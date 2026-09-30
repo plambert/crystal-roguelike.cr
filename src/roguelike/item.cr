@@ -58,6 +58,13 @@ module Roguelike
     # field existed loads and starts from nothing.
     getter handling : Int32 = 0
 
+    # Who a piece of armor is cut for. `nil` is `Size::Medium`.
+    #
+    # Armor fits a wearer of its own size and no other. Anything that is not
+    # armor holds `nil`. A save holds the field only when it is not medium,
+    # so an item written before sizes existed loads as medium.
+    @size : Size? = nil
+
     def initialize(@kind : ItemKind,
                    @enchantment : Int32 = 0,
                    @condition : Condition = Condition::Plain,
@@ -66,8 +73,10 @@ module Roguelike
                    @blessing : Blessing = Blessing::Uncursed,
                    @blessing_known : Bool = false,
                    lit : Bool = false,
-                   @handling : Int32 = 0)
+                   @handling : Int32 = 0,
+                   size : Size = Size::Medium)
       @lit = @kind.light? && lit
+      @size = size if @kind.item_class.armor? && !size.medium?
       @count = @kind.stacks? ? Math.max(count, 1) : 1
       @charges = charges || (@kind.charges > 0 ? @kind.charges : nil)
       @enchantment = @kind.enchantable? ? @enchantment : 0
@@ -259,6 +268,26 @@ module Roguelike
       Math.max @kind.armor + @enchantment + @condition.modifier, 0
     end
 
+    # Who a piece of armor is cut for. Medium for anything that is not armor.
+    def size : Size
+      @size || Size::Medium
+    end
+
+    # Cuts this for a wearer of *wearer*'s size. Anything that is not armor
+    # stays as it is.
+    def cut_for(wearer : Size) : Nil
+      return unless @kind.item_class.armor?
+
+      @size = wearer.medium? ? nil : wearer
+    end
+
+    # Whether a wearer of size *wearer* can put this on.
+    #
+    # Armor fits one size. Everything else fits anybody.
+    def fits?(wearer : Size) : Bool
+      !@kind.item_class.armor? || size == wearer
+    end
+
     # How much the whole stack weighs.
     def weight : Int32
       @kind.facts.weight * @count
@@ -280,7 +309,7 @@ module Roguelike
       @kind.stacks? && @kind == other.kind &&
         @enchantment == other.enchantment && @condition == other.condition &&
         @blessing == other.blessing && @blessing_known == other.blessing_known? &&
-        @lit == other.lit?
+        @lit == other.lit? && size == other.size
     end
 
     # Whether *other* would sit under the same letter as this.
@@ -296,7 +325,7 @@ module Roguelike
     def looks_like?(other : Item) : Bool
       @kind.stacks? && @kind == other.kind &&
         @enchantment == other.enchantment && @condition == other.condition &&
-        @lit == other.lit? &&
+        @lit == other.lit? && size == other.size &&
         @blessing_known == other.blessing_known? &&
         (!@blessing_known || @blessing == other.blessing)
     end
@@ -326,7 +355,7 @@ module Roguelike
     # happens.
     def with_count(count : Int32, id : Int32 = @id) : Item
       found = Item.new @kind, @enchantment, @condition, count, @charges,
-        @blessing, @blessing_known, @lit, @handling
+        @blessing, @blessing_known, @lit, @handling, size
       found.enroll id
       found
     end
@@ -373,12 +402,13 @@ module Roguelike
       @kind == other.kind && @enchantment == other.enchantment &&
         @condition == other.condition && @count == other.count &&
         @charges == other.charges && @blessing == other.blessing &&
-        @blessing_known == other.blessing_known? && @lit == other.lit?
+        @blessing_known == other.blessing_known? && @lit == other.lit? &&
+        size == other.size
     end
 
     def hash(hasher)
       {@kind, @enchantment, @condition, @count, @charges,
-       @blessing, @blessing_known, @lit}.hash hasher
+       @blessing, @blessing_known, @lit, size}.hash hasher
     end
 
     def to_s(io : IO) : Nil
@@ -389,6 +419,7 @@ module Roguelike
       io << " +" << @enchantment if @enchantment > 0
       io << ' ' << @enchantment if @enchantment < 0
       io << " lit" if @lit
+      io << ' ' << size unless size.medium?
       io << ')'
     end
   end
