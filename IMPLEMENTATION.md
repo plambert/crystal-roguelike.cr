@@ -1117,6 +1117,7 @@ Everything asked for in the basic game, against the phase that delivers it.
 | Items: potions, ammunition, thrown weapons, melee, ranged weapons, armor, scrolls, wands | 9 |
 | Item variants: appearance, `+N`, damaged and masterwork, blessed and cursed | 9 |
 | Enemy types: slime, goblin, orc | 16 |
+| Enemy kinds: four slimes, three goblins, two orcs | Kinds of creature |
 | Enemy pathfinding and attack | 17, 19 |
 | Detection range against stealth and light | 18 |
 | Orc darkvision, goblin without | 18 |
@@ -2909,6 +2910,105 @@ turn. The floor is 216 by 84, so each of those is about 18 KB and most of it is 
 The map is what costs, and it compresses about forty to one. `--output` with a name ending `.gz`
 writes it compressed, which is what a five thousand action run wants. Leaving the legal actions
 out saves under one percent.
+
+## Kinds of creature
+
+`Kind` is a species and a variant of it. `Kinds::FACTS` holds one `KindFacts` per kind. `Species`
+stays as the family: `Kind#species` names it, and `Species#default` names the kind a bare species
+stands for. The default kinds carry the numbers the three species had before, so a floor file's
+`j`, `g` and `o` and an old save mean what they always meant.
+
+### The table
+
+| kind | glyph | colour | hit dice | avg | AC | damage | speed | dark | light | weapon | depths | alone | xp |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| white slime | `j` | `#EEEEEE` | 2d4+1 | 6 | 0 | 1d4 | 80 | no | 0 | none | 1-3 | no | 3 |
+| blue slime | `j` | `#5CB8FF` | 2d6+4 | 11 | 0 | 1d4 | 80 | no | 0 | none | 1-4 | no | 5 |
+| red slime | `j` | `#FF5C5C` | 2d4+1 | 6 | 0 | 1d8 | 80 | no | 0 | none | 2-5 | no | 6 |
+| green slime | `j` | `#5CF05C` | 2d6+2 | 9 | 0 | 2d6 | 80 | no | 0 | none | 3-5 | no | 10 |
+| goblin scout | `g` | `#FFE040` | 2d4+2 | 7 | 0 | 1d4 | 110 | no | 40 | dagger | 1-2 | yes | 5 |
+| goblin warrior | `g` | `#A8E040` | 2d4+4 | 9 | 2 | 1d6 | 100 | no | 25 | short sword | 2-4 | no | 7 |
+| goblin shaman | `g` | `#FF70FF` | 2d4+2 | 7 | 1 | 1d3 | 100 | no | 50 | none | 3-5 | no | 12 |
+| orc | `o` | `#FF6850` | 2d6+7 | 14 | 4 | 1d8 | 95 | yes | 20 | 90% drawn | 3-5 | no | 14 |
+| orc archer | `o` | `#60E8E8` | 2d6+4 | 11 | 3 | 1d6 | 95 | yes | 10 | none yet | 4-5 | no | 16 |
+
+AC is the hide before the dexterity modifier. Light is the chance, out of a hundred, of carrying a
+lit torch or candle. The spawn weights are 40, 20, 20 and 15 for the slimes, 30, 45 and 15 for the
+goblins, and 15 and 10 for the orcs. A weight counts only against the other kinds at the same
+depth.
+
+### Decisions
+
+* The glyph is the species letter for every kind. The colour names the kind. The colour lives in
+  `Ui::Palette::MONSTERS`, keyed by `Kind`, because the model holds no styles.
+* Every colour reads at a contrast ratio of at least 6:1 against the map ground `#0C0E12`. The
+  lowest is the red slime at 6.4. The orc moved from `#E06050` at 5.5 to `#FF6850` at 6.8. Kinds of
+  one species sit far apart in hue: white, blue, red and green slimes; yellow, lime and magenta
+  goblins; red and cyan orcs. A spec holds every kind to 4.5:1 and every species to distinct
+  colours.
+* A creature the generator places rolls its hit points from its hit dice. A creature a floor file
+  or a spec places starts at the average. `Monster#max_hit_points` is stored. A save without it
+  takes the kind's average on load.
+* A save names the kind as well as the species. A save without a kind loads as the species'
+  default kind.
+* A room's first creature is rolled from `Kinds.at(Generator::SPAWN_DEPTHS)`. A kind that appears
+  alone has the room to itself. Otherwise the room holds one or two creatures of that species, drawn
+  from the kinds that go about in company, and they share one band. Before this every creature had a
+  band of its own.
+* `Kind#depths` is a plain range, so the floors branch can read it. The generator takes a depth,
+  `Generator::DEPTH` by default. `Generator::SPAWN_DEPTHS` is 1..5: the one floor stands for every
+  depth, so every kind can appear on it. Floors with depths of their own replace
+  `SPAWN_DEPTHS` with the floor's depth.
+* With every kind in play the species shares of a room's first creature are 45% slime, 43% goblin
+  and 12% orc. They were 38%, 43% and 14%.
+* A kind's `weapon` is carried every time. A kind without one draws from `Loot::WEAPONS` as often
+  as `armed` says. Only the orc does. A creature still hits with its own damage dice rather than
+  the weapon it holds.
+* Blows land with the kind's verb: a blue slime chills, a red slime scalds, a green slime eats at.
+* A shaman heals the most hurt goblin beside it for 1d4, never past full, then waits
+  `Game::MEND_WAIT` turns. It does this in place of its action. It does not heal itself. The roll
+  is on the `mend` stream. The line is written only when the character can see the shaman.
+* `Game#cast_bolt` is the hook for a shaman's bolt. It answers false. A kind that `casts?` asks it
+  first on each action.
+* The replay stream versions for `generator` and `loot` went to 2, and `mend` joined at 1. The
+  golden replay was recorded again from its seed, because the item ids it named had moved.
+
+### What it did to a run
+
+Two hundred trial runs from seed 5000, at most 1500 turns each, before and after:
+
+| | before | after |
+| --- | --- | --- |
+| died | 152 (76%) | 119 (59%) |
+| won | 4 (2%) | 4 (2%) |
+| gave up at the turn limit | 44 (22%) | 77 (38%) |
+| turns until death, median | 101 | 123 |
+| squares from start, median | 18 | 22 |
+| level reached, mean | 1.04 | 1.29 |
+| gold, mean | 20.27 | 31.22 |
+
+| killed by, before | runs | killed by, after | runs |
+| --- | --- | --- | --- |
+| goblin | 103 | goblin warrior | 56 |
+| orc | 43 | orc | 26 |
+| slime | 6 | orc archer | 14 |
+| | | green slime | 9 |
+| | | red slime | 7 |
+| | | goblin scout | 3 |
+| | | goblin shaman | 2 |
+| | | blue slime | 1 |
+| | | white slime | 1 |
+
+Deaths fall by a fifth. Goblin warriors kill half as often as goblins did, because half of the
+goblins are now weaker scouts and shamans. Orc deaths hold at about forty once archers are counted.
+The red and green slimes are the first slimes that kill often. More runs reach level two, and more
+of them survive to the turn limit.
+
+### Left for later
+
+* The orc archer's bow and arrows, and the shaman's bolt.
+* A creature swinging the weapon it carries.
+* Depth-scaled floors. Until they arrive, the one floor draws from every depth.
 
 ## Asked for, not yet built
 
