@@ -33,9 +33,22 @@ module Roguelike
     # saves meant: the name was written in full whatever the distance.
     getter regard : Regard = Regard::Everything
 
+    # Whether the door was seen with a spike in it.
+    #
+    # `nil` rather than false for a square without one, so a memory written
+    # before spikes existed and one written now read the same.
+    @spiked : Bool? = nil
+
     def initialize(@terrain : Terrain, @fixture : Fixture? = nil,
                    @item : Item? = nil, @turn : Int32 = 0,
-                   @regard : Regard = Regard::Everything)
+                   @regard : Regard = Regard::Everything,
+                   spiked : Bool = false)
+      @spiked = spiked || nil
+    end
+
+    # Whether the door was seen with a spike in it.
+    def spiked? : Bool
+      @spiked == true
     end
 
     # How many turns ago this was seen, as of *turn*.
@@ -45,7 +58,8 @@ module Roguelike
 
     def ==(other : Memory) : Bool
       @terrain == other.terrain && @fixture == other.fixture &&
-        @item == other.item && @turn == other.turn && @regard == other.regard
+        @item == other.item && @turn == other.turn && @regard == other.regard &&
+        spiked? == other.spiked?
     end
 
     def to_s(io : IO) : Nil
@@ -53,6 +67,7 @@ module Roguelike
       io << " +" << @fixture if @fixture
       io << " +" << @item if @item
       io << ' ' << @regard unless @regard.everything?
+      io << " spiked" if spiked?
       io << " turn " << @turn << ')'
     end
   end
@@ -109,10 +124,46 @@ module Roguelike
     # The key is `Floor.spot`, the same key `#memories` uses.
     getter openings : Set(String)
 
+    # Shut doors found to be spiked against whoever holds this knowledge.
+    #
+    # A band that tried one and could not open it stops pathing through it.
+    # Seeing the door open again takes it off this list.
+    #
+    # `nil` rather than empty when there are none, so knowledge that holds
+    # none writes what it wrote before spikes existed. The key is
+    # `Floor.spot`.
+    @barred : Set(String)? = nil
+
     def initialize(@floor : String,
                    @memories : Hash(String, Memory) = {} of String => Memory,
                    @sightings : Hash(String, Sighting) = {} of String => Sighting,
-                   @openings : Set(String) = Set(String).new)
+                   @openings : Set(String) = Set(String).new,
+                   @barred : Set(String)? = nil)
+    end
+
+    # Every door found spiked against whoever holds this.
+    def barred : Set(String)
+      @barred || Set(String).new
+    end
+
+    # Records that the door at *x*, *y* would not open.
+    def bar(x : Int32, y : Int32) : Nil
+      (@barred ||= Set(String).new) << Floor.spot(x, y)
+    end
+
+    # Whether the door at *x*, *y* is known to be spiked against whoever
+    # holds this.
+    def barred?(x : Int32, y : Int32) : Bool
+      @barred.try(&.includes? Floor.spot(x, y)) || false
+    end
+
+    # Forgets that the door at *x*, *y* would not open.
+    private def unbar(x : Int32, y : Int32) : Nil
+      held = @barred
+      return unless held
+
+      held.delete Floor.spot(x, y)
+      @barred = nil if held.empty?
     end
 
     # The key `#sightings` holds the character under.
@@ -138,7 +189,8 @@ module Roguelike
     # A band whose members each keep their own beliefs gives each of them one
     # of these. What one of them learns after that is its own.
     def copy : Knowledge
-      Knowledge.new @floor, @memories.dup, @sightings.dup, @openings.dup
+      Knowledge.new @floor, @memories.dup, @sightings.dup, @openings.dup,
+        @barred.try(&.dup)
     end
 
     # What *x*, *y* looked like. `nil` for a square never seen.
@@ -185,10 +237,15 @@ module Roguelike
     # route crosses one. A door remembered as shut that somebody else has
     # since opened is crossed for the same reason.
     #
+    # A door known to be spiked against whoever holds this is not crossed.
+    #
     # `#walkable?` is the answer for a band. A band does not open doors.
     def crossable?(x : Int32, y : Int32) : Bool
       found = self[x, y]
-      return found.terrain.passable? || found.terrain.door? if found
+      if found
+        return true if found.terrain.passable?
+        return found.terrain.door? && !barred?(x, y)
+      end
 
       @openings.includes? Floor.spot(x, y)
     end
@@ -232,8 +289,10 @@ module Roguelike
       made_out = regard
       made_out = made_out.at_least held.regard if held && held.item == lying
 
-      @memories[Floor.spot x, y] = Memory.new floor.terrain(x, y),
-        fitting.try(&.copy), lying, turn, made_out
+      terrain = floor.terrain x, y
+      @memories[Floor.spot x, y] = Memory.new terrain,
+        fitting.try(&.copy), lying, turn, made_out, floor.spiked?(x, y)
+      unbar x, y unless terrain.closed_door?
     end
 
     # Records the shape of *x*, *y* and what is fixed to it, and no more.
@@ -249,9 +308,11 @@ module Roguelike
       return unless floor.contains? x, y
 
       held = self[x, y]
-      @memories[Floor.spot x, y] = Memory.new floor.terrain(x, y),
+      terrain = floor.terrain x, y
+      @memories[Floor.spot x, y] = Memory.new terrain,
         floor.fixture(x, y).try(&.copy), held.try(&.item), turn,
-        held.try(&.regard) || Regard::Nothing
+        held.try(&.regard) || Regard::Nothing, floor.spiked?(x, y)
+      unbar x, y unless terrain.closed_door?
     end
 
     # Writes *memory* down at *x*, *y*, over whatever was there.
@@ -312,6 +373,7 @@ module Roguelike
       @memories.clear
       @sightings.clear
       @openings.clear
+      @barred = nil
     end
 
     # *floor* drawn as it is remembered, with *unknown* wherever it is not.
@@ -330,7 +392,8 @@ module Roguelike
 
     def ==(other : Knowledge) : Bool
       @floor == other.floor && @memories == other.memories &&
-        @sightings == other.sightings && @openings == other.openings
+        @sightings == other.sightings && @openings == other.openings &&
+        barred == other.barred
     end
 
     def to_s(io : IO) : Nil

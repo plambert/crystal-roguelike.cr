@@ -2,6 +2,16 @@ require "json"
 require "../roguelike"
 
 module Roguelike
+  # An iron spike driven into a shut door.
+  #
+  # *side* points from the door toward the square the spike was driven from.
+  # The door opens from that side, which pulls the spike. It stays shut to
+  # anyone on the other side. *item* is the spike itself, so pulling it hands
+  # back the same item that went in.
+  record DoorSpike, side : Direction, item : Item do
+    include JSON::Serializable
+  end
+
   # One floor of the world.
   #
   # The world keeps a floor after the player leaves it. A floor keeps its
@@ -95,6 +105,9 @@ module Roguelike
 
     # The bands the monsters on this floor belong to, by `Band#id`.
     getter bands : Hash(String, Band)
+
+    # The spikes driven into shut doors, by `Floor.spot`.
+    getter spikes : Hash(String, DoorSpike) = {} of String => DoorSpike
 
     def initialize(@id : String, @columns : Int32, @rows : Int32, @tiles : Array(Tile),
                    @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
@@ -413,6 +426,52 @@ module Roguelike
       end
     end
 
+    # ------------------------------------------------------------ spikes
+
+    # The spike in the door at *x*, *y*. `nil` for a square with none.
+    def spike(x : Int32, y : Int32) : DoorSpike?
+      @spikes[Floor.spot x, y]?
+    end
+
+    # Whether the door at *x*, *y* has a spike in it.
+    def spiked?(x : Int32, y : Int32) : Bool
+      @spikes.has_key? Floor.spot(x, y)
+    end
+
+    # Drives *item* into the door at *x*, *y* from the side *side* points to.
+    def drive_spike(x : Int32, y : Int32, side : Direction, item : Item) : Nil
+      changed
+      @spikes[Floor.spot x, y] = DoorSpike.new side, item
+    end
+
+    # Takes the spike out of the door at *x*, *y*. Answers it, or `nil` when
+    # there was none.
+    def pull_spike(x : Int32, y : Int32) : DoorSpike?
+      changed
+      @spikes.delete Floor.spot(x, y)
+    end
+
+    # Whether the spike in the door at *door* holds it shut against somebody
+    # standing on *from*.
+    #
+    # The door holds against every square not on the spiked side. A square
+    # beside the door along the wall counts as the far side.
+    def spiked_against?(door : {Int32, Int32}, from : {Int32, Int32}) : Bool
+      held = spike door[0], door[1]
+      return false unless held
+
+      across = (from[0] - door[0]) * held.side.dx + (from[1] - door[1]) * held.side.dy
+      across <= 0
+    end
+
+    # Yields every spiked door, with its spike.
+    def each_spike(& : Int32, Int32, DoorSpike ->) : Nil
+      @spikes.each do |spot, held|
+        parts = spot.split ','
+        yield parts[0].to_i, parts[1].to_i, held
+      end
+    end
+
     # Whether a creature could see through *x*, *y*. A square off the floor
     # answers true.
     def blocks_sight?(x : Int32, y : Int32) : Bool
@@ -535,19 +594,25 @@ module Roguelike
       getter monsters : Hash(String, Monster)
       getter bands : Hash(String, Band)
 
+      # Left out when no door is spiked, so a floor without one writes what
+      # it wrote before spikes existed.
+      getter spikes : Hash(String, DoorSpike)? = nil
+
       def initialize(@id : String, @map : Array(String),
                      @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
                      @glow : Hash(String, Int32) = {} of String => Int32,
                      @ambient : Int32 = 0,
                      @fixtures : Hash(String, Fixture) = {} of String => Fixture,
                      @monsters : Hash(String, Monster) = {} of String => Monster,
-                     @bands : Hash(String, Band) = {} of String => Band)
+                     @bands : Hash(String, Band) = {} of String => Band,
+                     @spikes : Hash(String, DoorSpike)? = nil)
       end
     end
 
     # The stored form of this floor.
     def stored : Stored
-      Stored.new @id, to_map, @litter, @glow, @ambient, @fixtures, @monsters, @bands
+      Stored.new @id, to_map, @litter, @glow, @ambient, @fixtures, @monsters,
+        @bands, @spikes.empty? ? nil : @spikes
     end
 
     def self.new(pull : JSON::PullParser) : Floor
@@ -558,6 +623,7 @@ module Roguelike
       held.fixtures.each { |spot, fitting| floor.fixtures[spot] = fitting }
       held.bands.each { |id, band| floor.bands[id] = band }
       held.monsters.each { |spot, creature| floor.monsters[spot] = creature }
+      held.spikes.try &.each { |spot, spike| floor.spikes[spot] = spike }
       floor.ambient = held.ambient
 
       floor
@@ -572,7 +638,8 @@ module Roguelike
         @rows == other.rows && @tiles == other.tiles &&
         @litter == other.litter && @glow == other.glow &&
         @ambient == other.ambient && @fixtures == other.fixtures &&
-        @monsters == other.monsters && @bands == other.bands
+        @monsters == other.monsters && @bands == other.bands &&
+        @spikes == other.spikes
     end
 
     def to_s(io : IO) : Nil

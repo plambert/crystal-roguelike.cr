@@ -494,7 +494,8 @@ module Roguelike
     #
     # A step into a shut door opens it. The character stays where they are.
     # The turn counts. A person opens a door in one turn and walks through it
-    # in the next.
+    # in the next. A door spiked from the other side does not open, and the
+    # step counts no turn.
     #
     # A step into any other impassable square moves nothing. It counts no
     # turn.
@@ -510,17 +511,7 @@ module Roguelike
       end
 
       if shut_door? wanted
-        floor.set wanted[0], wanted[1], Terrain::OpenDoor
-        handled wanted
-
-        # A walk along a route opens a door and carries on, so the line about
-        # it is forgiven the way a line about a remembered pile is.
-        wrote = @log.written
-        say "You open the door.", Event::Door.new(wanted, open: true)
-        @forgiven = @log.written - wrote
-
-        spend_turn
-        return Step::Opened
+        return open_by_hand(wanted, forgive: true) ? Step::Opened : Step::Blocked
       end
 
       unless floor.passable? wanted[0], wanted[1]
@@ -2009,11 +2000,100 @@ module Roguelike
         return false
       end
 
-      floor.set wanted[0], wanted[1], Terrain::OpenDoor
-      handled wanted
-      say "You open the door.", Event::Door.new(wanted, open: true)
+      open_by_hand wanted
+    end
+
+    # Opens the shut door on *spot*. Answers whether it opened.
+    #
+    # A door spiked from the far side stays shut and takes no turn. The
+    # character then knows it is held, and a route stops crossing it. A door
+    # spiked from the character's side opens, and the spike goes back into
+    # the pack.
+    #
+    # *forgive* marks the line as one a walk carries on through. A walk
+    # along a route opens a door and goes on, the way it goes on past a
+    # remembered pile.
+    private def open_by_hand(spot : {Int32, Int32}, forgive : Bool = false) : Bool
+      if floor.spiked_against? spot, @player.at
+        @player.knowledge.bar spot[0], spot[1]
+        handled spot
+        say "The door is spiked shut from the other side.",
+          Event::Refused.new(:spiked_shut)
+        return false
+      end
+
+      pulled = pull_spike spot
+      floor.set spot[0], spot[1], Terrain::OpenDoor
+      handled spot
+
+      wrote = @log.written
+      line = pulled ? "You pull the spike out and open the door." : "You open the door."
+      say line, Event::Door.new(spot, open: true)
+      @forgiven = @log.written - wrote if forgive
+
       spend_turn
       true
+    end
+
+    # Pulls the spike out of the door on *spot* and puts it in the pack.
+    # Answers whether there was one.
+    #
+    # A full pack leaves it at the character's feet.
+    private def pull_spike(spot : {Int32, Int32}) : Bool
+      held = floor.pull_spike spot[0], spot[1]
+      return false unless held
+
+      floor.drop @player.x, @player.y, held.item unless @player.inventory.add held.item
+      record Event::Spiked.new(spot, driven: false)
+      true
+    end
+
+    # Drives the iron spike under *letter* into the shut door at *x*, *y*.
+    # Answers whether it went in.
+    #
+    # The spike holds the door from the side the character stands on. It
+    # takes a turn.
+    private def drive_spike(letter : Char, x : Int32, y : Int32) : Bool
+      item = @player.inventory[letter]
+      return false unless item && item.kind.spike?
+
+      spot = {x, y}
+      side = Direction.between spot, @player.at
+      unless side && shut_door? spot
+        say "There is no shut door there.", Event::Refused.new(:no_door)
+        return false
+      end
+
+      if floor.spiked? x, y
+        say "The door already has a spike in it.", Event::Refused.new(:already_spiked)
+        return false
+      end
+
+      one = draw_one letter
+      return false unless one
+
+      floor.drive_spike x, y, side, one
+      handled spot
+      say "You drive a spike into the door.", Event::Spiked.new(spot, driven: true)
+      spend_turn
+      true
+    end
+
+    # Every shut door beside the character with no spike in it yet.
+    private def spikeable : Array({Int32, Int32})
+      Direction.values.compact_map do |direction|
+        wanted = direction.from @player.x, @player.y
+        next unless shut_door? wanted
+        next if floor.spiked? wanted[0], wanted[1]
+
+        wanted
+      end
+    end
+
+    # Whether the door one step *direction* is spiked shut against the
+    # character.
+    private def held_shut?(direction : Direction) : Bool
+      floor.spiked_against? direction.from(@player.x, @player.y), @player.at
     end
 
     # Closes the door *direction*. Answers whether it closed.
@@ -2300,8 +2380,9 @@ module Roguelike
     # Everything the character could apply right now.
     #
     # A carried torch or candle, lit or not. A sconce on their own square or
-    # beside them, lit or not. Each is one entry, and `#apply` does whatever
-    # that entry's state calls for.
+    # beside them, lit or not. An iron spike for each shut door beside them
+    # with no spike in it. Each is one entry, and `#apply` does whatever that
+    # entry's state calls for.
     def appliable : Array(Apply)
       found = [] of Apply
 
@@ -2318,14 +2399,23 @@ module Roguelike
         found << Apply.fixture(wanted[0], wanted[1])
       end
 
+      doors = spikeable
+      @player.inventory.each do |letter, item|
+        next unless item.kind.spike?
+
+        doors.each { |door| found << Apply.aimed(letter, door[0], door[1]) }
+      end
+
       found
     end
 
     # Does whatever *target* calls for. Answers whether anything happened.
     #
-    # An unlit thing is lit. A lit thing is put out. Either takes a turn.
+    # An unlit thing is lit. A lit thing is put out. A spike goes into its
+    # door. Each takes a turn.
     def apply(target : Apply) : Bool
       letter = target.letter
+      return drive_spike letter, target.x, target.y if letter && target.aimed?
       return apply_carried letter if letter
 
       apply_fixture target.x, target.y
@@ -4549,7 +4639,7 @@ module Roguelike
       Verdict.done
     end
 
-    # Lights or puts out what the action names.
+    # Lights or puts out what the action names, or drives a spike.
     #
     # The target has to be one `#appliable` offers. A sconce across the room
     # is out of reach. A potion is not a light.
@@ -4557,7 +4647,10 @@ module Roguelike
       held = action.item
       spot = action.at
 
-      wanted = if held
+      wanted = if held && spot
+                 letter = letter_of held
+                 letter ? Roguelike::Apply.aimed(letter, spot[0], spot[1]) : nil
+               elsif held
                  letter = letter_of held
                  letter ? Roguelike::Apply.carried(letter) : nil
                elsif spot
@@ -4668,7 +4761,9 @@ module Roguelike
       end
 
       found << Action::Wait.new
-      doors(Terrain::ClosedDoor).each { |direction| found << Action::Open.new direction }
+      doors(Terrain::ClosedDoor).each do |direction|
+        found << Action::Open.new direction unless held_shut? direction
+      end
       doors(Terrain::OpenDoor).each { |direction| found << Action::Close.new direction }
       found << Action::Descend.new if standing_on.stairs_down?
       found << Action::Ascend.new if standing_on.stairs_up?
@@ -4680,7 +4775,7 @@ module Roguelike
     private def steps?(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
       return true if floor.monster wanted[0], wanted[1]
-      return true if floor.tile?(wanted[0], wanted[1]).try &.terrain.closed_door?
+      return !held_shut?(direction) if shut_door? wanted
 
       floor.passable? wanted[0], wanted[1]
     end
@@ -4709,7 +4804,9 @@ module Roguelike
         letter = target.letter
         held = letter ? @player.inventory[letter] : nil
 
-        found << if held
+        found << if held && target.aimed?
+          Action::Apply.new item: held.id, at: {target.x, target.y}
+        elsif held
           Action::Apply.new item: held.id
         else
           Action::Apply.new at: {target.x, target.y}

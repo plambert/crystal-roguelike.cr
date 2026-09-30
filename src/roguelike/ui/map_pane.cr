@@ -218,6 +218,7 @@ module Roguelike::Ui
 
       fitting = floor.fixture x, y
       return Palette[fitting] if fitting
+      return Palette::SPIKED if tile.terrain.closed_door? && floor.spiked?(x, y)
 
       Palette[tile.terrain]
     end
@@ -238,6 +239,8 @@ module Roguelike::Ui
                Palette[item]
              elsif fitting
                Palette[fitting]
+             elsif memory.spiked? && memory.terrain.closed_door?
+               Palette::SPIKED
              else
                Palette[memory.terrain]
              end

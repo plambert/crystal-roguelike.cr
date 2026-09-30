@@ -409,6 +409,10 @@ module Roguelike::Ui
       LOOKS[terrain]
     end
 
+    # A shut door with an iron spike in it. The glyph differs from a plain
+    # shut door's, so it reads without the color.
+    SPIKED = Look.new('ǂ', Style::DEFAULT.fg(TermBuf::Color.rgb(0xD8, 0xDC, 0xE4)).bold)
+
     # What each sort of fixture is drawn as.
     #
     # The glyph does not change when it is lit. A burning bracket is the same

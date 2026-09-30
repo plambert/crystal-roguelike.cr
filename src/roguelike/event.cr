@@ -61,6 +61,7 @@ module Roguelike
       "repaired"       => Repaired,
       "scroll_kept"    => ScrollKept,
       "slain"          => Slain,
+      "spiked"         => Spiked,
       "spilled"        => Spilled,
       "status_end"     => StatusEnd,
       "status_start"   => StatusStart,
@@ -134,14 +135,32 @@ module Roguelike
       end
     end
 
-    # A door the character opened or shut.
+    # A door opened or shut.
+    #
+    # *by* is the creature that opened it, when the character saw it done.
+    # *unseen* says a creature the character could not see opened it. Both
+    # are unset for the character.
     class Door < Event
       getter kind : String = "door"
 
       getter at : {Int32, Int32}
       getter? open : Bool
+      getter by : Int32?
+      getter? unseen : Bool = false
 
-      def initialize(@at : {Int32, Int32}, @open : Bool)
+      def initialize(@at : {Int32, Int32}, @open : Bool, @by : Int32? = nil,
+                     @unseen : Bool = false)
+      end
+    end
+
+    # An iron spike driven into the door at *at*, or pulled out of it.
+    class Spiked < Event
+      getter kind : String = "spiked"
+
+      getter at : {Int32, Int32}
+      getter? driven : Bool
+
+      def initialize(@at : {Int32, Int32}, @driven : Bool)
       end
     end
 
@@ -268,6 +287,12 @@ module Roguelike
 
         # Something is lying in the doorway.
         DoorwayItems
+
+        # The door is spiked shut from the other side.
+        SpikedShut
+
+        # The door already has a spike in it.
+        AlreadySpiked
       end
 
       getter kind : String = "refused"

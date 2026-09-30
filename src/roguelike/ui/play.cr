@@ -2050,7 +2050,8 @@ module Roguelike::Ui
       end
     end
 
-    # Lights or puts out a torch, a candle or a wall sconce.
+    # Lights or puts out a torch, a candle or a wall sconce, or drives an
+    # iron spike into a shut door.
     #
     # One thing to apply needs no question. More than one does. Nothing is
     # said and nothing else happens.
@@ -2059,7 +2060,7 @@ module Roguelike::Ui
 
       case found.size
       when 0
-        say "You have nothing to light and there is no sconce beside you."
+        say "You have nothing to light or spike, and there is no sconce beside you."
       when 1
         @game.perform lighting(found.first)
         refresh
@@ -2109,12 +2110,13 @@ module Roguelike::Ui
 
     # *target* as the action that lights it or puts it out.
     #
-    # `Roguelike::Apply` names a carried light by its letter and a sconce by
-    # its square. `Action::Apply` is divided the same way. This method is a
-    # translation and nothing more.
+    # `Roguelike::Apply` names a carried light by its letter, a sconce by its
+    # square and a spike by both. `Action::Apply` is divided the same way.
+    # This method is a translation and nothing more.
     private def lighting(target : Apply) : Action::Apply
       letter = target.letter
       return Action::Apply.new(at: {target.x, target.y}) unless letter
+      return Action::Apply.new(item: id_under(letter), at: {target.x, target.y}) if target.aimed?
 
       Action::Apply.new(item: id_under letter)
     end
@@ -2122,6 +2124,11 @@ module Roguelike::Ui
     # What one row of the apply menu says.
     private def applying(target : Apply) : String
       letter = target.letter
+
+      if letter && target.aimed?
+        way = Direction.between @game.player.at, {target.x, target.y}
+        return "#{letter} - spike the door #{way.try(&.label) || "beside you"}"
+      end
 
       if letter
         item = @game.player.inventory[letter]

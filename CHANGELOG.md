@@ -107,6 +107,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   committed. It holds the same three platform tarballs as a tagged release, under names that do not
   change, so a download link goes on working. The release notes give the commit it was built from
   and the commits since the last nightly.
+* `a` drives an iron spike into a shut door beside the character. The spike holds the door shut
+  against anything on the far side. Opening the door from the spiked side pulls the spike out and
+  puts it back in the pack. A spiked door draws as `ǂ`.
 
 ### Changed
 
