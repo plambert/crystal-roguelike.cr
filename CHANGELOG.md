@@ -215,6 +215,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* A route across a floor longer than 320 squares end to end is found. The search stopped at 320
+  steps.
 * `replay upgrade` keeps the checkpoint spacing a file was recorded with when an action of several
   turns ran past a checkpoint. It took the shorter gap after that checkpoint as the spacing.
 * A build of the game as another shard's dependency records the game's own commit, which
