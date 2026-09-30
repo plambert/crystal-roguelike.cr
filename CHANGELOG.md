@@ -138,6 +138,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   door.
 * `--trial-doors` plays `--trial` with a bot that shuts each door behind it. It combines with
   `--trial-cautious`.
+* Goblins and orcs run when they are below a quarter of their hit points. A running creature walks
+  away from the character, keeps to the darker squares, and heads for the rest of its band. It
+  turns back once it has more than half of its hit points. The log says "The goblin flees!" when
+  the character sees it turn. A creature with nowhere left to run fights. One that opens doors
+  shuts the door behind it, which takes its turn. Slimes never run.
 
 ### Changed
 
@@ -192,6 +197,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `--trial` stops a run once `--trial-turns` turns have passed, where it counted the bot's actions.
   One slow blow takes two turns, so a run could go past its limit. The bot readies a better weapon
   on the turn after it picks one up, rather than in the same turn.
+* Creatures recover one hit point every ten turns. A creature that ran away comes back healed
+  enough to fight again.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.

@@ -1538,6 +1538,8 @@ module Roguelike
           break if over?
           break unless floor.monster? creature.x, creature.y
 
+          nerve creature
+
           if cast_bolt(creature) || mend(creature)
             creature.pace.spend Costs::TURN
             next
@@ -1601,7 +1603,58 @@ module Roguelike
         stale: quarry.try(&.age(@turn)) || 0,
         descent: creature.kind.paths? ? route(creature, knowledge, quarry, maps) : nil,
         blocked: standing_on_squares(creature),
-        stumble: stumbles?(creature))
+        stumble: stumbles?(creature),
+        fleeing: creature.fleeing?,
+        shade: creature.fleeing? ? shade : nil,
+        company: creature.fleeing? ? company(creature) : [] of {Int32, Int32},
+        closable: creature.fleeing? ? closable(creature) : Descent::EMPTY)
+    end
+
+    # The light on every square of this floor this turn.
+    #
+    # It is worked out for the first running creature that asks and held for
+    # the rest of the turn. It does not depend on where the character stands
+    # or on whether they can see.
+    private def shade : Lighting
+      key = {@turn, floor.id}
+      held = @shaded
+      return held if held && @shaded_at == key
+
+      made = Lighting.over floor, lights
+      @shaded = made
+      @shaded_at = key
+      made
+    end
+
+    # Where the other members of *creature*'s band are standing.
+    private def company(creature : Monster) : Array({Int32, Int32})
+      found = [] of {Int32, Int32}
+
+      floor.each_monster do |_column, _row, other|
+        found << other.at if other.band == creature.band && !other.same?(creature)
+      end
+
+      found
+    end
+
+    # The squares beside *creature* holding an open door it could shut.
+    #
+    # A kind that does not open doors shuts none. A door with a creature or
+    # the character in the doorway, or something lying in it, stays open.
+    private def closable(creature : Monster) : Set({Int32, Int32})
+      found = Set({Int32, Int32}).new
+      return found unless creature.kind.opens_doors?
+
+      Direction.values.each do |direction|
+        spot = direction.from creature.x, creature.y
+        next unless floor.terrain(spot[0], spot[1]).open_door?
+        next if floor.monster?(spot[0], spot[1]) || @player.at?(spot[0], spot[1])
+        next if floor.items? spot[0], spot[1]
+
+        found << spot
+      end
+
+      found
     end
 
     # The map *creature* walks down.
@@ -1691,11 +1744,48 @@ module Roguelike
       in .step?
         walk_creature creature, wanted
         Costs::TURN
+      in .shut?
+        creature_shuts creature, wanted
+        Costs::TURN
       in .strike?
         return Costs::TURN unless @player.at? wanted[0], wanted[1]
 
         strike creature
         creature.kind.swing
+      end
+    end
+
+    # Turns *creature* to running, or back to fighting.
+    #
+    # A kind that flees runs once it is below a quarter of its hit points. It
+    # stops once it has more than half. Between the two it keeps doing what
+    # it was doing. The character is told when they can see it turn.
+    private def nerve(creature : Monster) : Nil
+      return unless creature.kind.flees?
+
+      if creature.fleeing?
+        creature.rally if creature.steadied?
+      elsif creature.shaken?
+        creature.flee
+        return unless regard_of(creature).everything?
+
+        say "The #{creature.label} flees!", Event::Fled.new(creature.id)
+      end
+    end
+
+    # How many turns a creature takes to regain a hit point.
+    RECOVERY = 10
+
+    # Gives every hurt creature on the floor a hit point every `RECOVERY`
+    # turns. Nothing is rolled, and nothing is said. A running creature that
+    # has come back above half stops running, whether or not its band is
+    # still awake to see it.
+    private def creatures_recover : Nil
+      return unless (@turn % RECOVERY).zero?
+
+      floor.each_monster do |_column, _row, creature|
+        creature.heal 1 if creature.hurt?
+        creature.rally if creature.fleeing? && creature.steadied?
       end
     end
 
@@ -1797,6 +1887,32 @@ module Roguelike
       end
     end
 
+    # *creature* shuts the open door on *spot*.
+    #
+    # The band writes the door down as shut. The character is told when they
+    # can see the door, and the creature is named when they could see it
+    # before the door closed on it.
+    private def creature_shuts(creature : Monster, spot : {Int32, Int32}) : Nil
+      return unless floor.terrain(spot[0], spot[1]).open_door?
+      return if floor.monster?(spot[0], spot[1]) || @player.at?(spot[0], spot[1])
+      return if floor.items? spot[0], spot[1]
+
+      seen = can_see? spot[0], spot[1]
+      named = can_see_creature? creature.x, creature.y
+
+      floor.set spot[0], spot[1], Terrain::ClosedDoor
+      floor.band(creature.band).try &.knowledge(floor.id).touch(floor, spot[0], spot[1], @turn)
+
+      return unless seen
+
+      if named
+        say "The #{creature.label} shuts the door.",
+          Event::Door.new(spot, open: false, by: creature.id)
+      else
+        say "A door swings shut.", Event::Door.new(spot, open: false, unseen: true)
+      end
+    end
+
     # Whether the band *creature* belongs to has noticed the character.
     def awake?(creature : Monster) : Bool
       floor.awareness(creature).awake?
@@ -1877,6 +1993,7 @@ module Roguelike
       handle_items
       blink
       regenerate
+      creatures_recover
       act_on_the_floor unless over?
 
       # Last, so that nothing acts on energy it earned during the same tick.
@@ -1930,9 +2047,7 @@ module Roguelike
     # An event is recorded. An event is not a line, so it stops nothing. A
     # bot resting to heal reads `#events` and sees the hit points come back.
     #
-    # Only the character regenerates. A creature that lost the character and
-    # healed while it looked for them would undo what hitting it and walking
-    # away buys, and that is the one thing a slower creature leaves open.
+    # Creatures recover on their own clock. See `#creatures_recover`.
     private def regenerate : Nil
       rested = @player.rest
       return if rested < REST
@@ -2446,6 +2561,14 @@ module Roguelike
     # :ditto:
     @[JSON::Field(ignore: true)]
     @seen_from : Seeing? = nil
+
+    # The light on the floor for the turn `@shaded_at` names. Not saved.
+    @[JSON::Field(ignore: true)]
+    @shaded : Lighting? = nil
+
+    # :ditto:
+    @[JSON::Field(ignore: true)]
+    @shaded_at : {Int32, String}? = nil
 
     # Whether the character can see *x*, *y* from where they stand.
     def can_see?(x : Int32, y : Int32) : Bool
