@@ -4,8 +4,7 @@ require "../support/scripted"
 # What a run reports, in fields rather than in English.
 #
 # Every line the model writes to the message log has an event beside it. A bot
-# reads the events. `bots/PROTOCOL.md` section 5.2 asks for that, and it asks
-# that no event hold a fact the character cannot know.
+# reads the events, and no event holds a fact the character cannot know.
 Spectator.describe Roguelike::Event do
   alias Action = Roguelike::Action
   alias Direction = Roguelike::Direction

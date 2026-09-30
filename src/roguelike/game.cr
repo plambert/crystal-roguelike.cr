@@ -295,9 +295,9 @@ module Roguelike
     # Adds *event* to `#events` with no line beside it.
     #
     # Two endings use this. Climbing out and reaching the staircase down both
-    # end the run and write nothing to the log. `bots/PROTOCOL.md` section 5.2
-    # asks for one event per ending, and a client that saw two of the three
-    # would have to work the third out from the outcome.
+    # end the run and write nothing to the log. The event stream holds one
+    # event per ending, and a client that saw two of the three would have to
+    # work the third out from the outcome.
     private def record(event : Event) : Nil
       @events << event
     end
@@ -726,8 +726,8 @@ module Roguelike
       end
 
       # The step goes through `#perform` rather than straight to `#step`. A
-      # walk is a series of steps. `bots/PROTOCOL.md` section 2 says a macro
-      # is logged as the primitive actions it expands into. A replay log and
+      # walk is a series of steps. A macro is logged as the primitive actions
+      # it expands into. A replay log and
       # a bot both read `#perform`. A walk that reached `#step` directly would
       # replay as a character standing still.
       #
@@ -1144,8 +1144,8 @@ module Roguelike
     # Takes one turn of *rest*. Answers whether it is still going.
     #
     # The turn goes through `#perform` rather than straight to `#wait`. A
-    # rest is a series of waits. `bots/PROTOCOL.md` section 2 says a macro is
-    # logged as the primitive actions it expands into. A replay log and a bot
+    # rest is a series of waits. A macro is logged as the primitive actions
+    # it expands into. A replay log and a bot
     # both read `#perform`. A rest that reached `#wait` directly would replay
     # as a character who never rested.
     #
@@ -4898,8 +4898,8 @@ module Roguelike
     # Takes one thing off the square underfoot.
     #
     # An action with no id takes the only thing there. An action with no id
-    # is refused where several things lie there. `bots/PROTOCOL.md` section 2
-    # asks for that. A client that meant one of them has to say which.
+    # is refused where several things lie there. A client that meant one of
+    # them has to say which.
     private def taking(action : Action::PickUp) : Verdict
       pile = here
       wanted = action.item
@@ -5032,7 +5032,6 @@ module Roguelike
       return found if over?
 
       # Answering a scroll that is waiting is the only thing there is to do.
-      # `bots/PROTOCOL.md` section 4.5 asks for that.
       scroll = @asking
       return answers scroll, seen if scroll
 

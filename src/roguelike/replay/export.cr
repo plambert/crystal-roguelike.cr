@@ -4,9 +4,8 @@ module Roguelike
   module Replay
     # A recorded run written out as what the character saw and what they did.
     #
-    # `bots/PROTOCOL.md` section 3.3 asks for it. A policy learned from
-    # scratch sees a death long before it sees a staircase, so it is warmed
-    # up on runs somebody else played. This is where those runs come from.
+    # A policy learned from scratch sees a death long before it sees a
+    # staircase, so it is warmed up on runs somebody else played. This is where those runs come from.
     #
     # The run is rebuilt from the header and every action is performed in the
     # order it was recorded, the way `Replay::Verifier` does it. Before each

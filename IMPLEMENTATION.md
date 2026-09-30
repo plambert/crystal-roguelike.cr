@@ -243,9 +243,8 @@ order the hub lists them in.
 `src/roguelike/ui.cr` and `src/roguelike/replay.cr` list the files of their own directory. They are
 hubs of a smaller kind and they each require the model hub as well.
 
-The model hub holds no terminal file. `bots/headless/` compiles against the model, and the binary
-it builds has none of termbuf in it. That is 7,428 termbuf symbols in the game binary and zero in
-the headless one.
+The model hub holds no terminal file. A program that requires only the model hub builds a binary
+with none of termbuf in it.
 
 `src/roguelike/termbuf_ext/` requires neither hub. Those six files are written here and moved to
 `termbuf-widgets.cr` once their shape settles, and a require pointing back at the game would make
@@ -257,8 +256,7 @@ A file used to require the files it named types from, and several named none at 
 under `src/roguelike/ui/` required nothing, so each one compiled only because `ui.cr` listed it
 after the files it needed. `game.cr` used `Replay::Log` and required nothing that defined it; the
 game binary compiled because `src/crystal-roguelike.cr` required `roguelike/replay` further down
-its own list, and `bots/headless/main.cr` did not compile at all. Fixing that one case took 13
-requires across four files.
+its own list. Fixing that one case took 13 requires across four files.
 
 `script/check-requires` compiles each file under `src` on its own. A file that reaches for a type
 without the hub having loaded it fails there rather than in whichever binary happens to notice
@@ -272,7 +270,6 @@ and the work of deciding what to compile is small next to compiling it.
 | | Before | After |
 | --- | --- | --- |
 | `crystal build --no-codegen src/main.cr` | 2.6 s | 2.6 s |
-| `crystal build --no-codegen bots/headless/main.cr` | 1.34 s | 1.34 s |
 
 ## Shard extraction
 
@@ -2545,7 +2542,7 @@ on no longer exists.
 ## Watching a recorded run
 
 `crystal-roguelike replay view FILE` opens a recorded run in the game's own interface and plays it
-back. `bots/PROTOCOL.md` section 3.3 asks for it.
+back.
 
 Three pieces were there already. `Replay::Reading` reads the file. `Replay::Verifier.rebuild`
 restores the run from the header. `Ui::Play` draws a `Game` and owns no device, and `Session` owns
@@ -2873,8 +2870,7 @@ whose character has looked around.
 actions that were legal and the action that was taken. It is JSON Lines, the way a replay is.
 
 A policy learned from nothing sees a death long before it sees a staircase, so it is warmed up on
-runs somebody else played. This is where those runs come from. `bots/PROTOCOL.md` section 3.3 asks
-for it.
+runs somebody else played. This is where those runs come from.
 
 ### How it is built
 

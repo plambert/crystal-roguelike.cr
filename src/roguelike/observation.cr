@@ -17,7 +17,7 @@ module Roguelike
   #
   # There is one departure. `Ui` writes a creature's hit points in the threat
   # bar and in the examine pane. `Creature#condition` gives how hurt it is
-  # and not the count, which is what `bots/PROTOCOL.md` section 5.1 asks for.
+  # and not the count, so a client learns how hurt a creature looks.
   #
   # It includes `JSON::Serializable`. A bot reads one line of JSON per turn
   # and never parses English.

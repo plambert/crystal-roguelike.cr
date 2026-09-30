@@ -13,8 +13,7 @@ module Roguelike
   # A run written down, and a run read back.
   #
   # `--replay-log PATH` records every run this process plays. The file is
-  # JSON Lines, which `bots/PROTOCOL.md` section 3 describes. `Replay::Log`
-  # writes it and `Replay::Verifier` checks it.
+  # JSON Lines. `Replay::Log` writes it and `Replay::Verifier` checks it.
   #
   # A replay holds the seed and the actions. It does not hold the run. The
   # game is a function of the seed and the actions, so playing them again

@@ -14,8 +14,7 @@ module Roguelike
     # * `%%` is one per cent sign.
     #
     # A pattern that names a directory that exists takes the name
-    # `bots/PROTOCOL.md` section 3.2 asks for inside it, which is
-    # `<started_at>_<seed>_<player>.jsonl`.
+    # `<started_at>_<seed>_<player>.jsonl` inside it.
     #
     # A pattern with no `%d` in it is used as it stands, and an old file of
     # that name is written over. A person who passed one name asked for one
@@ -52,7 +51,7 @@ module Roguelike
         end
       end
 
-      # The name a directory takes, which the spec spells out.
+      # The name a directory takes.
       private def self.directory(pattern : String, player : String,
                                  seed : UInt64, started : Time) : Path
         slug = Save.slug player

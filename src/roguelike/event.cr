@@ -10,8 +10,7 @@ module Roguelike
   # ones the last `Game#perform` produced, oldest first.
   #
   # An event serializes with a `kind` field naming what happened, the way an
-  # `Action` serializes with a `t` field. `bots/PROTOCOL.md` section 5.2 asks
-  # for that name.
+  # `Action` serializes with a `t` field.
   #
   # An event holds nothing the character cannot know. The line beside it is
   # the bound. An event may carry what its line says. It leaves out what its
@@ -76,8 +75,7 @@ module Roguelike
     # The line written beside this event.
     #
     # `Game#say` fills it in. It is for a person reading a log. A client reads
-    # the fields. `bots/PROTOCOL.md` section 5.2 asks for it and calls it
-    # optional.
+    # the fields, and the text is optional.
     property text : String? = nil
 
     # One thing, as the character would name it.
@@ -606,9 +604,9 @@ module Roguelike
 
     # The shape of the floor, written into what the character remembers.
     #
-    # *tiles* counts the squares it added or confirmed. `bots/PROTOCOL.md`
-    # section 5.2 calls this `tiles_revealed`. The squares themselves are in
-    # the snapshot.
+    # *tiles* counts the squares it added or confirmed. The event stream
+    # calls this `tiles_revealed`. The squares themselves are in the
+    # snapshot.
     class FloorMapped < Event
       getter kind : String = "floor_mapped"
 

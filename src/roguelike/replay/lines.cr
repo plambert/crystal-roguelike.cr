@@ -123,10 +123,9 @@ module Roguelike
 
     # How the run ended.
     #
-    # `#outcome` is the word `bots/PROTOCOL.md` section 3.1 asks for.
-    # `#ending` is the game's own `Outcome`, in lower case. The game has a
-    # third ending, which is the character climbing back out, and the spec has
-    # no word for it. Both are here so that neither reading is lost.
+    # `#outcome` is the word the recording format asks for. `#ending` is the
+    # game's own `Outcome`, in lower case. The game has a third ending, which
+    # is the character climbing back out, and the format has no word for it. Both are here so that neither reading is lost.
     #
     # `#state` is the fingerprint the run ended on. It is `nil` on a footer
     # written by the exit handler, because that footer is written after the

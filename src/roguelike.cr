@@ -7,8 +7,8 @@
 #
 # The terminal is not in here. `src/crystal-roguelike.cr` requires this and
 # then the parts that draw a run, which are the only parts that need termbuf.
-# `bots/headless/` compiles against the model alone, and the binary it builds
-# links no terminal library.
+# A program that requires only this file compiles against the model alone,
+# and the binary it builds links no terminal library.
 require "./roguelike/version"
 require "./roguelike/rng"
 require "./roguelike/direction"

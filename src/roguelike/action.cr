@@ -11,18 +11,18 @@ module Roguelike
   # the same value. All three reach the same rule.
   #
   # An action serializes with a `t` field naming the verb, so one is written
-  # to a replay line and read back from it. The names are the ones
-  # `bots/PROTOCOL.md` section 2 asks for, where this game has that verb.
+  # to a replay line and read back from it. The names are the bot
+  # protocol's verbs, where this game has that verb.
   #
-  # The game and the spec differ in four ways. The game is what this type
+  # The game and the protocol differ in four ways. The game is what this type
   # follows.
   #
-  # * The spec's `remove` names an item. `Game#take_off` names a slot. One
+  # * The protocol's `remove` names an item. `Game#take_off` names a slot. One
   #   key takes off whatever is in a slot, and a person picks between slots.
   #   `Remove` carries the slot.
-  # * The spec has no `zap`, `apply`, `ascend`, `fire` or `aim`. This game
+  # * The protocol has no `zap`, `apply`, `ascend`, `fire` or `aim`. This game
   #   has all five.
-  # * The spec has one `choose` for every mid-action question. A scroll here
+  # * The protocol has one `choose` for every mid-action question. A scroll here
   #   asks for a carried item or for a square. A `choose` cannot carry a
   #   square. `Aim` is the answer that carries one.
   # * `throw` takes a square and never a direction. The game aims at a
@@ -65,8 +65,8 @@ module Roguelike
 
     # How a direction is written in JSON.
     #
-    # `bots/PROTOCOL.md` section 2 names the eight directions `n ne e se s
-    # sw w nw`. The enum's own member names are `NorthEast` and the like.
+    # The recording format names the eight directions `n ne e se s sw w
+    # nw`. The enum's own member names are `NorthEast` and the like.
     # Those names are particular to Crystal. They are not what a client in
     # another language expects.
     module Compass
@@ -99,7 +99,7 @@ module Roguelike
     # How a slot is written in JSON.
     #
     # A slot is the member name in lower case, so `Slot::Ranged` is
-    # `"ranged"`. The spec has no names for slots. This game needs them.
+    # `"ranged"`. The protocol has no names for slots. This game needs them.
     module Slots
       def self.from_json(pull : JSON::PullParser) : Slot
         Slot.parse pull.read_string
@@ -183,7 +183,7 @@ module Roguelike
     #
     # *item* is the id of one thing lying there. An action with no *item*
     # takes the only thing there. It is refused where several things lie
-    # there, which is what the spec asks for.
+    # there, which is what the protocol asks for.
     class PickUp < Action
       getter t : String = "pickup"
 
@@ -332,7 +332,7 @@ module Roguelike
 
     # Climbing out of the dungeon by the staircase underfoot. `<` does this.
     #
-    # The spec has no word for this ending. It is a third ending. The run
+    # The protocol has no word for this ending. It is a third ending. The run
     # is over and it was not won.
     class Ascend < Action
       getter t : String = "ascend"
@@ -373,7 +373,7 @@ module Roguelike
   # An action the run will not take is refused in the return value rather
   # than raised. Three ordinary things send one: a bot picking outside
   # `Game#legal`, a replay recorded against an older build, and a key that
-  # arrives after the thing it names is gone. The headless protocol reports
+  # arrives after the thing it names is gone. The bot protocol reports
   # each of those on a line of its own. An exception would need a rescue
   # around every call. A refused action changes nothing and spends no turn,
   # because `Game#perform` checks before it dispatches.

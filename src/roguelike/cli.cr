@@ -240,7 +240,6 @@ module Roguelike
     # saw and what it did.
     #
     # It is for learning a policy from runs somebody else played.
-    # `bots/PROTOCOL.md` section 3.3 asks for it.
     Shell::AutoComplete.command Exporting,
       name: "export",
       description: "Write out what a recorded run saw and what it did" do

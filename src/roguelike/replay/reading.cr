@@ -14,10 +14,9 @@ module Roguelike
     # process it was recording went away without one, and that is a file this
     # reads rather than refuses.
     #
-    # A line of a kind this does not know is counted and passed over.
-    # `bots/PROTOCOL.md` section 3.1 has two of those, which are a
-    # playtester's note and a record of what the screen did. Neither is
-    # played back.
+    # A line of a kind this does not know is counted and passed over. The
+    # recording format allows two of those, which are a playtester's note and
+    # a record of what the screen did. Neither is played back.
     class Reading
       # Where the file is.
       getter path : Path
