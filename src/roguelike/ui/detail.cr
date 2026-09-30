@@ -74,7 +74,7 @@ module Roguelike::Ui
         creature.label,
         creature.description,
         "hit points #{creature.hit_points}/#{creature.max_hit_points}",
-        game.floor.awareness(creature).label,
+        game.floor.doing(creature),
       ]
     end
 

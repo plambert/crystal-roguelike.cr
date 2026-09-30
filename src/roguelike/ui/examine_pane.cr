@@ -131,7 +131,7 @@ module Roguelike::Ui
         @what.text = creature.label
         @what.style = Palette[creature].style
         @detail.text = creature.description
-        @doing.text = "It is #{floor.awareness(creature).label}."
+        @doing.text = "It is #{floor.doing creature}."
       elsif fitting
         @what.text = fitting.label
         @what.style = Palette[fitting].style

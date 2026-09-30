@@ -4,15 +4,30 @@ require "../roguelike"
 module Roguelike
   # Who fights whom.
   #
-  # A faction is the unit that decides that. Every monster on a floor is
-  # `Dungeon` for now, which is hostile to the character and to nothing else.
-  # Goblins turning on slimes is a second member and a rule, not a rewrite.
+  # Every faction is hostile to the character. Goblins and orcs are hostile
+  # to each other and to slimes. Slimes are hostile to everything, other
+  # slimes included. Members of one band never fight each other.
   #
   # A member is never removed and never reordered. A save file holds the
   # member name.
   enum Faction
-    # Everything that lives down here. Hostile to the character.
+    # What an old save calls every band. Hostile to the character and to
+    # nothing else.
     Dungeon
+
+    Goblin
+    Orc
+    Slime
+
+    # Whether a band of this faction fights a band of *other*.
+    #
+    # Answers for two different bands. One band never fights itself.
+    def hostile?(other : Faction) : Bool
+      return false if dungeon? || other.dungeon?
+      return true if slime? || other.slime?
+
+      self != other
+    end
 
     # What this faction is called.
     def label : String
@@ -61,12 +76,10 @@ module Roguelike
     end
   end
 
-  # What a band knows about the character.
+  # What a band knows about the creatures it is hostile to.
   #
   # This is a band's state rather than a monster's. Waking one member wakes
-  # the band, which is how a pack calls out to each other. Every band holds
-  # one creature for now, so waking a band and waking a monster come to the
-  # same thing today.
+  # the band, which is how a pack calls out to each other.
   #
   # A member is never removed and never reordered. A save file holds the
   # member name.
@@ -74,11 +87,11 @@ module Roguelike
     # It has noticed nothing. It does not act.
     Asleep
 
-    # It has noticed the character and cannot see them now. It knows where
-    # they were.
+    # It has noticed something it is hostile to and cannot see it now. It
+    # knows where it was.
     Alert
 
-    # It can see the character.
+    # It can see something it is hostile to.
     Hunting
 
     # Whether it acts at all.
@@ -86,12 +99,13 @@ module Roguelike
       !asleep?
     end
 
-    # What this is called, for a readout.
-    def label : String
+    # What this is called, for a readout. *you* says the band knows where
+    # the character is.
+    def label(you : Bool = true) : String
       case self
       in .asleep?  then "asleep"
-      in .alert?   then "looking for you"
-      in .hunting? then "hunting you"
+      in .alert?   then you ? "looking for you" : "searching"
+      in .hunting? then you ? "hunting you" : "hunting"
       end
     end
   end
@@ -119,7 +133,7 @@ module Roguelike
     # Floors persist, so a band that has walked two of them remembers both.
     getter memory : Hash(String, Knowledge)
 
-    # What it knows about the character.
+    # What it knows about the creatures it is hostile to.
     #
     # A band that has noticed nothing takes no turn. `Game#creatures_notice`
     # is the only method that writes this, apart from being hit, which wakes a
@@ -135,6 +149,11 @@ module Roguelike
     # Whether this band acts at all.
     def awake? : Bool
       @awareness.awake?
+    end
+
+    # Whether this band fights *other*.
+    def hostile?(other : Band) : Bool
+      @id != other.id && @faction.hostile?(other.faction)
     end
 
     # What the band knows of the floor *id*, empty until it learns something.
@@ -228,7 +247,7 @@ module Roguelike
   # *depths* is the floors it appears on. `Spawns::TABLE` says how common it
   # is there. *alone* says a room holding one holds nothing else. *swing* is
   # what one of its attacks costs, in energy. *opens_doors* says it opens a
-  # shut door by walking into it.
+  # shut door by walking into it. *faction* is who a band of them fights.
   record KindFacts,
     species : Species,
     mark : Char,
@@ -245,6 +264,7 @@ module Roguelike
     attributes : Attributes,
     persistence : Int32,
     depths : Range(Int32, Int32),
+    faction : Faction,
     size : Size = Size::Medium,
     speed : Int32 = Pace::NORMAL,
     swing : Int32 = Costs::TURN,
@@ -563,6 +583,11 @@ module Roguelike
       facts.armed
     end
 
+    # Who a band of these fights.
+    def faction : Faction
+      facts.faction
+    end
+
     # Whether it heals a hurt neighbour of its own species.
     def mends? : Bool
       facts.mends
@@ -600,28 +625,28 @@ module Roguelike
         hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 4), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 3,
         persistence: 4, speed: 80, attributes: SLIMY,
-        depths: 1..3),
+        depths: 1..3, faction: Faction::Slime),
 
       Kind::BlueSlime => KindFacts.new(Species::Slime, 'j', "blue slime",
         "blue slimes", "a slow blue ooze, cold as meltwater, that numbs what it touches",
         hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 4), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 5,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "chills",
-        depths: 1..4),
+        depths: 1..4, faction: Faction::Slime),
 
       Kind::RedSlime => KindFacts.new(Species::Slime, 'j', "red slime",
         "red slimes", "a steaming red ooze that scalds what it touches",
         hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 8), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 6,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "scalds",
-        depths: 2..5),
+        depths: 2..5, faction: Faction::Slime),
 
       Kind::GreenSlime => KindFacts.new(Species::Slime, 'j', "green slime",
         "green slimes", "a bubbling green acid that eats through leather and skin",
         hit_dice: Dice.new(2, 6, 2), damage: Dice.new(2, 6), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 10,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "eats at",
-        depths: 3..5),
+        depths: 3..5, faction: Faction::Slime),
 
       Kind::GoblinScout => KindFacts.new(Species::Goblin, 'g', "goblin scout",
         "goblin scouts", "a wiry goblin with a dagger, alone and quick on its feet",
@@ -629,7 +654,7 @@ module Roguelike
         notice: 10, darkvision: false, paths: true, experience: 5,
         size: Size::Small, persistence: 8, speed: 110,
         weapon: ItemKind::Dagger, light: 40, alone: true, opens_doors: true,
-        depths: 1..2,
+        depths: 1..2, faction: Faction::Goblin,
         attributes: Attributes.new(strength: 8, dexterity: 14, constitution: 9,
           intelligence: 8, stealth: 15)),
 
@@ -639,7 +664,7 @@ module Roguelike
         notice: 8, darkvision: false, paths: true, experience: 7,
         size: Size::Small, persistence: 6, opens_doors: true,
         weapon: ItemKind::ShortSword, light: 25,
-        depths: 2..4,
+        depths: 2..4, faction: Faction::Goblin,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 7, stealth: 13)),
 
@@ -649,7 +674,7 @@ module Roguelike
         notice: 9, darkvision: false, paths: true, experience: 12,
         size: Size::Small, persistence: 8, light: 50,
         mends: true, casts: true, opens_doors: true,
-        depths: 3..5,
+        depths: 3..5, faction: Faction::Goblin,
         attributes: Attributes.new(strength: 7, dexterity: 11, constitution: 9,
           intelligence: 12, stealth: 11)),
 
@@ -659,6 +684,7 @@ module Roguelike
         notice: 8, darkvision: true, paths: true, experience: 14,
         size: Size::Large, persistence: 30, speed: 95, swing: 120,
         armed: 90, light: 20, depths: 3..5, opens_doors: true,
+        faction: Faction::Orc,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 10, stealth: 8)),
 
@@ -668,6 +694,7 @@ module Roguelike
         notice: 10, darkvision: true, paths: true, experience: 16,
         size: Size::Large, persistence: 24, speed: 95, swing: 120,
         light: 10, depths: 4..5, opens_doors: true,
+        faction: Faction::Orc,
         attributes: Attributes.new(strength: 12, dexterity: 14, constitution: 12,
           intelligence: 10, stealth: 9)),
     }
