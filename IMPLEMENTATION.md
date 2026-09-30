@@ -2910,6 +2910,66 @@ The map is what costs, and it compresses about forty to one. `--output` with a n
 writes it compressed, which is what a five thousand action run wants. Leaving the legal actions
 out saves under one percent.
 
+## Creatures that path around each other
+
+A member whose way to the character is taken by another creature no longer waits for it to move.
+It steps sideways, and after two turns of being held it walks round the blocker.
+
+### What was built
+
+| Piece | What it does |
+| --- | --- |
+| `Action#hemmed?` | True when every square nearer the quarry holds another creature. The character does not count, because a creature beside the quarry swings or waits |
+| `Pursuit.decide` | When hemmed, takes the equal-distance neighbor that `Descent.nearest` prefers, and waits if there is none |
+| `Monster#hemmed` | Turns in a row the creature was hemmed. `Game` updates it after every action |
+| `Monster#avoiding`, `#detour` | The squares the creature treats as solid, and how many turns it keeps doing so |
+| `Descent.toward avoid:` | A flood that treats the given squares as solid |
+| `Game#route` | Gives a creature the band's map, or a map built with its blockers left out |
+
+### Decisions
+
+* **Hemmed means no free nearer square.** A creature with a free nearer square takes it, as before.
+  Only one with none left sidesteps. A creature in a dead end is not hemmed, because nothing nearer
+  is held by a creature.
+* **The detour lasts twenty turns.** A detour that lasted one turn walked the creature a step
+  round and then back to the blocker, because the next turn's map had no blocker in it. The
+  blocker squares are stored on the monster and held for `Game::DETOUR_LASTS` turns. The flood
+  limit is 40, so a detour longer than that finds nothing and the creature goes back to the band's
+  map.
+* **A sealed creature goes back to the band's map.** When the detour map does not reach the
+  creature's own square, the detour ends at once. This is the corridor with nowhere round.
+* **Blockers are read from the band's map.** A neighbor counts as a blocker when it is nearer the
+  goal than the creature is. The character is excluded.
+* **No new rolls.** Nothing here rolls, so no stream was added. Two runs on one seed stay identical.
+* **Saves.** `hemmed`, `avoiding` and `detour` have defaults, so an older save loads with every
+  creature free.
+* **The golden replay was recorded again.** Creatures walk differently, so its fingerprints moved.
+
+### Measured
+
+`bin/crystal-roguelike --trial 60 --seed 1`, before and after. The output is identical, line for
+line.
+
+| | Before | After |
+| --- | --- | --- |
+| Died | 46 (76%) | 46 (76%) |
+| Gave up | 14 (23%) | 14 (23%) |
+| Turns until death | median 118, range 8..1418 | median 118, range 8..1418 |
+| Killed by | goblin 25, orc 21 | goblin 25, orc 21 |
+
+The generator puts every creature in a band of its own and places them apart, so no `--trial` run
+has two members of one band converging on the character. The feature does nothing there. The
+specs are what show it working: two goblins behind a blocker in a corridor reach the character by
+the loop, and three goblins in a line converge on all three squares beside a character in a
+corner. A trial of the feature needs groups, which arrive with the swarms and species branches.
+
+### Left undone
+
+* A detour around a blocker that is itself a member waiting behind the same target can send the
+  creature the long way round to the same queue. It is bounded by the twenty turns.
+* Squares are not spread between members ahead of time. Two members pick the same nearer square
+  and the second one sidesteps the turn after.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
