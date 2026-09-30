@@ -74,6 +74,10 @@ module Roguelike
     #
     # `stumble` says this creature is about to put a foot wrong. `Game` rolls
     # it, because nothing here rolls anything.
+    #
+    # `surrounds` says this creature moves round its quarry to face a
+    # bandmate across it. `bandmates` is where the other members of its band
+    # stand beside the quarry.
     record Snapshot,
       at : {Int32, Int32},
       knowledge : Knowledge,
@@ -81,7 +85,9 @@ module Roguelike
       stale : Int32 = 0,
       descent : Descent? = nil,
       blocked : Set({Int32, Int32}) = Descent::EMPTY,
-      stumble : Bool = false
+      stumble : Bool = false,
+      surrounds : Bool = false,
+      bandmates : Array({Int32, Int32}) = [] of {Int32, Int32}
 
     # How many turns old a sighting may be and still be worth swinging at.
     #
@@ -102,6 +108,11 @@ module Roguelike
     def self.decide(snapshot : Snapshot) : Action
       quarry = snapshot.quarry
       return Action.wait unless quarry
+
+      if snapshot.stale <= FRESH
+        round = encircle snapshot, quarry
+        return Action.step(round) if round
+      end
 
       beside = beside snapshot.at, quarry
       return Action.strike(beside) if beside && snapshot.stale <= FRESH
@@ -127,6 +138,95 @@ module Roguelike
       return false if nearer.empty?
 
       nearer.none? { |direction| direction.from(x, y) == descent.goal }
+    end
+
+    # How far from its quarry a creature that surrounds looks for a square
+    # to flank from, and walks round to reach one.
+    REACH = 2
+
+    # The step a creature near its quarry takes to flank it, or `nil` to go
+    # on as it would.
+    #
+    # Only one that `surrounds` does this. It looks for a free square beside
+    # the quarry across from a bandmate that is beside the quarry too. It
+    # pairs only with a bandmate whose square sorts before its own, north
+    # to south and west to east, so of two unpaired members one stays and
+    # swings while the other walks round. One already across from a bandmate
+    # stays.
+    #
+    # The walk keeps within `REACH` squares of the quarry and goes round
+    # the quarry and the bandmates beside it. It steps only when the step
+    # brings it nearer, so it never circles for nothing.
+    private def self.encircle(snapshot : Snapshot, quarry : {Int32, Int32}) : Direction?
+      return unless snapshot.surrounds
+
+      at = snapshot.at
+      mates = snapshot.bandmates
+      return if mates.empty?
+      return if apart(at, quarry) > REACH
+      return if touches?(at, quarry) && mates.includes?(Combat.opposite(at, quarry))
+
+      targets = mates.select { |mate| {mate[1], mate[0]} < {at[1], at[0]} }
+        .map { |mate| Combat.opposite mate, quarry }
+        .select { |spot| free? snapshot, quarry, spot }
+      return if targets.empty?
+
+      away = distances snapshot, quarry, targets
+      here = away[at]?
+      return unless here
+
+      best = Direction.values.select { |direction| away.has_key? direction.from(*at) }
+        .min_by? { |direction| away[direction.from(*at)] }
+      return unless best
+
+      best if away[best.from(*at)] < here
+    end
+
+    # How many steps each square within `REACH` of *quarry* is from the
+    # nearest of *targets*, walking only on free squares. The creature's own
+    # square counts as free.
+    private def self.distances(snapshot : Snapshot, quarry : {Int32, Int32},
+                               targets : Array({Int32, Int32})) : Hash({Int32, Int32}, Int32)
+      away = {} of {Int32, Int32} => Int32
+      queue = Deque({Int32, Int32}).new
+      targets.each do |spot|
+        away[spot] = 0
+        queue << spot
+      end
+
+      while spot = queue.shift?
+        Direction.values.each do |direction|
+          next_spot = direction.from(*spot)
+          next if away.has_key? next_spot
+          next if apart(next_spot, quarry) > REACH
+          next unless next_spot == snapshot.at || free?(snapshot, quarry, next_spot)
+
+          away[next_spot] = away[spot] + 1
+          queue << next_spot
+        end
+      end
+
+      away
+    end
+
+    # Whether *spot* is free to walk on, as far as the creature knows.
+    private def self.free?(snapshot : Snapshot, quarry : {Int32, Int32},
+                           spot : {Int32, Int32}) : Bool
+      return false if spot == quarry
+      return false if snapshot.bandmates.includes? spot
+      return false if snapshot.blocked.includes? spot
+
+      snapshot.knowledge.walkable? spot[0], spot[1]
+    end
+
+    # Whether *spot* is one of the eight squares around *quarry*.
+    private def self.touches?(spot : {Int32, Int32}, quarry : {Int32, Int32}) : Bool
+      apart(spot, quarry) == 1
+    end
+
+    # How many steps apart two squares are.
+    private def self.apart(one : {Int32, Int32}, other : {Int32, Int32}) : Int32
+      Math.max (one[0] - other[0]).abs, (one[1] - other[1]).abs
     end
 
     # Which way *quarry* is, when it is one step from *at*. `nil` otherwise.

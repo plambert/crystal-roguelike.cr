@@ -10,6 +10,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Giant ants (`a`, orange) hunt in bands of three to five from floor 2. They are fast, bite
+  weakly and have few hit points. An ant beside the character walks round to stand across from a
+  nestmate, so a band ends up on every side.
+* Violet jellies (`J`, lavender) appear alone from floor 3. A jelly that has noticed the character
+  and is above half its hit points splits into a second jelly beside it every 40 turns, up to six
+  jellies on a floor.
+* Flanking. An attacker with another attacker across the target from it, diagonals included, adds
+  2 to hit. It works the same whoever the target is. The character is told "You are flanked!" the
+  first time it happens in a run, and a flanking blow reads "The giant ant bites you from behind".
 * `--matchup` prints who beats whom and stops. Each kind of creature fights a character of each of
   five kits, one per depth, in an empty room. The tables give the win rate, the mean turns to a
   decision and the mean hit points the character lost. `--matchup-fights N` sets the fights in a

@@ -112,6 +112,12 @@ module Roguelike
     # How many turns until it can mend a neighbour again. Zero when it can.
     getter mending : Int32 = 0
 
+    # How many turns it has counted toward its next split.
+    #
+    # `nil` while it has counted none, so a creature that never splits
+    # writes out the bytes it wrote before splitting existed.
+    @bud : Int32? = nil
+
     def initialize(kind : Kind, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
@@ -158,6 +164,21 @@ module Roguelike
     # Starts the wait before it can mend again.
     def mended(wait : Int32) : Nil
       @mending = wait
+    end
+
+    # How many turns it has counted toward its next split.
+    def bud : Int32
+      @bud || 0
+    end
+
+    # Counts one turn toward its next split.
+    def grow : Nil
+      @bud = bud + 1
+    end
+
+    # Starts the count toward its next split again.
+    def budded : Nil
+      @bud = nil
     end
 
     # Passes one turn of the wait before it can mend again.
@@ -345,7 +366,7 @@ module Roguelike
         @hit_points == other.hit_points && @band == other.band &&
         @attributes.to_a == other.attributes.to_a && @memory == other.memory &&
         @carrying == other.carrying && @max_hit_points == other.max_hit_points &&
-        @mending == other.mending
+        @mending == other.mending && bud == other.bud
     end
 
     def to_s(io : IO) : Nil

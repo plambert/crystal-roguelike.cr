@@ -10,13 +10,18 @@ module Roguelike
     #
     # *weight* is relative to every other row whose kind appears on the same
     # floor. Which floors those are is the kind's own `Kind#depths`.
-    record Row, kind : Kind, weight : Int32
+    #
+    # *crowd* is how many a room holds when this kind is the first one
+    # rolled. `nil` reads the floor's `Density#crowd`.
+    record Row, kind : Kind, weight : Int32, crowd : Range(Int32, Int32)? = nil
 
     # Every creature the generator may put on a floor.
     #
     # Slimes and goblins are common. Orcs appear from floor 3, and the orc
     # archer joins them from floor 4, so orcs grow commoner the deeper the
-    # floor. Floor 1 holds white and blue slimes and goblin scouts.
+    # floor. Floor 1 holds white and blue slimes and goblin scouts. Ants come
+    # in bands of three to five from floor 2. A jelly comes alone from floor
+    # 3.
     TABLE = [
       Row.new(Kind::WhiteSlime, 40),
       Row.new(Kind::BlueSlime, 20),
@@ -27,6 +32,8 @@ module Roguelike
       Row.new(Kind::GoblinShaman, 15),
       Row.new(Kind::Orc, 15),
       Row.new(Kind::OrcArcher, 10),
+      Row.new(Kind::Ant, 20, crowd: 3..5),
+      Row.new(Kind::Jelly, 10),
     ]
 
     # How often a room holds a creature, and how many it holds.
@@ -68,6 +75,12 @@ module Roguelike
     # One kind for the floor at *depth*, rolled on *rng*.
     def self.pick(rng : Rng, depth : Int32) : Kind
       Items.pick rng, weights(depth)
+    end
+
+    # How many creatures a room whose first creature is *kind* holds, on the
+    # floor at *depth*.
+    def self.crowd(kind : Kind, depth : Int32) : Range(Int32, Int32)
+      TABLE.find(&.kind.== kind).try(&.crowd) || density(depth).crowd
     end
 
     # How full the floor at *depth* is.

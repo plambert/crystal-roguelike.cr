@@ -372,7 +372,7 @@ module Roguelike::Ui
     # What each kind is drawn as.
     #
     # The glyph is the letter of its species, which is the roguelike
-    # convention: `j` for a jelly, `g` for a goblin, `o` for an orc. The
+    # convention: `j` for a slime, `g` for a goblin, `o` for an orc. The
     # colour names the kind. Each is bright enough to read against the
     # dark ground at a contrast of well over three to one, and the kinds of
     # one species sit far apart in hue so no two share a look.
@@ -385,6 +385,8 @@ module Roguelike::Ui
     GOBLIN_SHAMAN  = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0x70, 0xFF)
     ORC            = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0x68, 0x50)
     ORC_ARCHER     = Style::DEFAULT.fg TermBuf::Color.rgb(0x60, 0xE8, 0xE8)
+    ANT            = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0xA0, 0x40)
+    JELLY          = Style::DEFAULT.fg TermBuf::Color.rgb(0xC8, 0xA0, 0xFF)
 
     MONSTERS = {
       Kind::WhiteSlime    => WHITE_SLIME,
@@ -396,6 +398,8 @@ module Roguelike::Ui
       Kind::GoblinShaman  => GOBLIN_SHAMAN,
       Kind::Orc           => ORC,
       Kind::OrcArcher     => ORC_ARCHER,
+      Kind::Ant           => ANT,
+      Kind::Jelly         => JELLY,
     }
 
     # How *kind* draws.

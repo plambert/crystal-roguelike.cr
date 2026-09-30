@@ -39,6 +39,7 @@ module Roguelike
       "door"           => Door,
       "dropped"        => Dropped,
       "fizzled"        => Fizzled,
+      "flanked"        => Flanked,
       "floor_lit"      => FloorLit,
       "floor_mapped"   => FloorMapped,
       "gold"           => Gold,
@@ -64,6 +65,7 @@ module Roguelike
       "slain"          => Slain,
       "spiked"         => Spiked,
       "spilled"        => Spilled,
+      "split"          => Split,
       "status_end"     => StatusEnd,
       "status_start"   => StatusStart,
       "teleported"     => Teleported,
@@ -182,9 +184,34 @@ module Roguelike
       getter damage : Int32?
       getter with : String?
 
+      # True when the swing had a second attacker across the target. `nil`
+      # otherwise, so an ordinary swing writes what it wrote before.
+      getter flanking : Bool?
+
       def initialize(@hit : Bool, @attacker : Int32? = nil,
                      @target : Int32? = nil, @damage : Int32? = nil,
-                     @with : String? = nil)
+                     @with : String? = nil, flanking : Bool = false)
+        @flanking = true if flanking
+      end
+    end
+
+    # The first time in a run the character has attackers on opposite
+    # sides.
+    class Flanked < Event
+      getter kind : String = "flanked"
+
+      def initialize
+      end
+    end
+
+    # A creature that budded off a copy of itself beside it.
+    class Split < Event
+      getter kind : String = "split"
+
+      getter creature : Int32
+      getter copy : Int32
+
+      def initialize(@creature : Int32, @copy : Int32)
       end
     end
 

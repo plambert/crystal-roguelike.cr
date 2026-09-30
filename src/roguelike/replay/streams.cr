@@ -25,12 +25,13 @@ module Roguelike
       # the doors, the sconces, the creatures and the staircases. Those are
       # separate streams and one algorithm. `lore` is the appearances a run
       # rolls for its potions, its scrolls and its wands. `combat`,
-      # `handling`, `use`, `wander` and `mend` are the counters on the run.
+      # `handling`, `use`, `wander`, `mend` and `split` are the counters on
+      # the run.
       #
       # The stream the name suggestion draws from is not here. It names
       # nobody and nothing in the run.
       VERSIONS = {
-        "generator"  => 3,
+        "generator"  => 4,
         "litter"     => 2,
         "loot"       => 3,
         "ammunition" => 2,
@@ -40,6 +41,7 @@ module Roguelike
         "use"        => 1,
         "wander"     => 1,
         "mend"       => 1,
+        "split"      => 1,
       }
 
       # This build's table, as a header holds it.
