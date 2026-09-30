@@ -106,16 +106,18 @@ module Roguelike
     # Plays *runs* games from *first* and answers how they went.
     #
     # *cautious* plays the bot that backs away when it is badly hurt rather
-    # than the one that never retreats.
+    # than the one that never retreats. *doors* has either one shut each door
+    # behind it.
     def self.play(runs : Int32, first : UInt64 = FIRST,
-                  turns : Int32 = TURNS, cautious : Bool = false) : Report
-      Report.new (0...runs).map { |index| one first + index, turns, cautious }
+                  turns : Int32 = TURNS, cautious : Bool = false,
+                  doors : Bool = false) : Report
+      Report.new (0...runs).map { |index| one first + index, turns, cautious, doors }
     end
 
     # Plays one game from *seed* and answers how it went.
     def self.one(seed : UInt64, turns : Int32 = TURNS,
-                 cautious : Bool = false) : Played
-      bot = cautious ? Cautious.new(seed) : Bot.new(seed)
+                 cautious : Bool = false, doors : Bool = false) : Played
+      bot = cautious ? Cautious.new(seed, doors) : Bot.new(seed, doors)
 
       turns.times do
         break if bot.game.over?
@@ -137,10 +139,11 @@ module Roguelike
     # 3. Swing at whatever is standing next to it.
     # 4. Pick up what is underfoot, and hold the heaviest hitting weapon it
     #    is carrying.
-    # 5. Step to a neighbor, preferring one it has never stood on.
+    # 5. Shut the door it has just walked through, when it shuts doors.
+    # 6. Step to a neighbor, preferring one it has never stood on.
     #
-    # It never retreats, never shuts a door behind it, never shoots and never
-    # puts its torch out. Those are the things that keep a person alive, so
+    # It never retreats, never shuts a door behind it unless told to, never
+    # shoots and never puts its torch out. Those are the things that keep a person alive, so
     # these numbers are the pessimistic end of what the game is.
     class Bot
       # The run being played.
@@ -152,7 +155,13 @@ module Roguelike
       # Below this many hit points out of a hundred, it drinks.
       HURT = 40
 
-      def initialize(seed : UInt64)
+      # Whether it shuts each door behind it.
+      getter? shuts_doors : Bool
+
+      # Where it stood before its last step.
+      @behind : {Int32, Int32}? = nil
+
+      def initialize(seed : UInt64, @shuts_doors : Bool = false)
         @game = Game.dug Rng.new(seed)
         @rng = Rng.new(seed).derive "trial"
         @start = @game.player.at
@@ -174,8 +183,25 @@ module Roguelike
         return if drank
         return if swung
         return if took
+        return if shut
 
         wander
+      end
+
+      # Shuts the door it has just walked off. Answers whether it did.
+      #
+      # A door with something in the doorway stays open, and the bot walks on.
+      protected def shut : Bool
+        return false unless @shuts_doors
+
+        behind = @behind
+        return false unless behind
+        return false unless @game.floor.terrain(behind[0], behind[1]).open_door?
+
+        way = Direction.between @game.player.at, behind
+        return false unless way
+
+        @game.close way
       end
 
       # Whether it is below `HURT` out of a hundred hit points.
@@ -243,6 +269,7 @@ module Roguelike
       # the bot needs.
       protected def wander : Nil
         here = @game.player.at
+        @behind = here
         @been << here
 
         ways = Direction.values.select do |direction|
@@ -279,6 +306,7 @@ module Roguelike
         return if fled
         return if swung
         return if took
+        return if shut
 
         wander
       end

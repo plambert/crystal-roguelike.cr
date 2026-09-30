@@ -61,6 +61,9 @@ module Roguelike
     flag trial_cautious : Bool = false, "--trial-cautious",
       "Play --trial with the bot that backs away when it is badly hurt"
 
+    flag trial_doors : Bool = false, "--trial-doors",
+      "Play --trial with a bot that shuts each door behind it"
+
     # A measurement rather than a game. Every species moves at this instead
     # of its own speed, which is how the death rate is read as a curve
     # against how fast the floor is.
@@ -136,8 +139,9 @@ module Roguelike
       puts "from seed #{first}, at most #{trial_turns} turns a run"
       puts "every species at speed #{trial_speed}" if trial_speed > 0
       puts "the bot backs away when it is badly hurt" if trial_cautious
+      puts "the bot shuts each door behind it" if trial_doors
 
-      print Trial.play(trial, first, trial_turns, trial_cautious)
+      print Trial.play(trial, first, trial_turns, trial_cautious, trial_doors)
     end
   end
 end

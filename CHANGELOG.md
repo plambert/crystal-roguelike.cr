@@ -110,6 +110,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `a` drives an iron spike into a shut door beside the character. The spike holds the door shut
   against anything on the far side. Opening the door from the spiked side pulls the spike out and
   puts it back in the pack. A spiked door draws as `ǂ`.
+* `--trial-doors` plays `--trial` with a bot that shuts each door behind it. It combines with
+  `--trial-cautious`.
 
 ### Changed
 
