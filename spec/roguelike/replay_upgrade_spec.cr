@@ -189,6 +189,18 @@ Spectator.describe Roguelike::Replay::Upgrade do
       expect(Upgrade.every_of read).to eq 10
     end
 
+    # Two actions ran past a checkpoint, so the gaps are 10, 10, 12, 8, 10,
+    # 12 and 8. Three sizes of gap come up twice each.
+    it "takes the spacing when the gaps tie" do
+      header = File.read_lines(Recording.golden).first
+      checks = {10, 20, 32, 40, 50, 62, 70}.map do |turn|
+        %({"type":"check","turn":#{turn},"state":"sha256:#{"0" * 64}"})
+      end
+
+      read = Recording.read Recording.file([header] + checks.to_a, "tied"), fingerprints: false
+      expect(Upgrade.every_of read).to eq 10
+    end
+
     it "takes the setting in force for a file with one checkpoint" do
       read = Recording.read Recording.golden
       expect(Upgrade.every_of read).to eq Log.every if read.checks < 2
