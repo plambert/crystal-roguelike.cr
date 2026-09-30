@@ -165,6 +165,14 @@ Spectator.describe Roguelike::Trial do
       expect(bot.game.floor.terrain(*door)).to eq Roguelike::Terrain::OpenDoor
     end
 
+    it "shuts nothing from the floor above after taking a staircase" do
+      # Seed 5050 walks off a doorway and down a staircase. The doorway it
+      # left lies outside the floor below.
+      played = Trial.one 5050_u64, 50, doors: true
+
+      expect(played.deepest).to eq 2
+    end
+
     it "plays a whole set of runs" do
       report = Trial.play RUNS, Trial::FIRST, TURNS, doors: true
 

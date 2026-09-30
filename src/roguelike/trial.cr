@@ -244,8 +244,11 @@ module Roguelike
       # Shuts the door it has just walked off. Answers whether it did.
       #
       # A door with something in the doorway stays open, and the bot walks on.
+      # A square it stood on before taking a staircase is on another floor,
+      # so it shuts nothing on the turn it arrives.
       protected def shut : Bool
         return false unless @shuts_doors
+        return false unless @game.player.floor == @on
 
         behind = @behind
         return false unless behind
