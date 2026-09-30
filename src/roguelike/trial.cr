@@ -13,6 +13,9 @@ module Roguelike
   # difference between two sets of runs is what to read.
   module Trial
     # What one run came to.
+    #
+    # *deepest* is the deepest floor the character set foot on. *depth* is
+    # the floor the run ended on.
     record Played,
       seed : UInt64,
       turns : Int32,
@@ -20,7 +23,9 @@ module Roguelike
       gold : Int32,
       reached : Int32,
       outcome : Outcome,
-      killer : String?
+      killer : String?,
+      deepest : Int32 = 1,
+      depth : Int32 = 1
 
     # What a set of runs came to.
     record Report, played : Array(Played) do
@@ -46,6 +51,25 @@ module Roguelike
         100.0 * deaths.size / runs
       end
 
+      # How many runs out of a hundred ended anywhere but in a death on
+      # floor 1.
+      def first_floor_survival : Float64
+        return 0.0 if runs.zero?
+
+        lost = deaths.count { |run| run.depth == 1 }
+        100.0 * (runs - lost) / runs
+      end
+
+      # How many runs set foot on each floor, from floor 1 to the deepest
+      # any run reached.
+      def reaching : Array({Int32, Int32})
+        return [] of {Int32, Int32} if runs.zero?
+
+        (1..@played.max_of(&.deepest)).map do |depth|
+          {depth, @played.count { |run| run.deepest >= depth }}
+        end
+      end
+
       # What killed the character, most often first.
       def killers : Array({String, Int32})
         found = Hash(String, Int32).new 0
@@ -65,6 +89,14 @@ module Roguelike
         spread io, "squares from start", @played.map &.reached
         mean io, "level reached", @played.map &.level
         mean io, "gold", @played.map &.gold
+        mean io, "deepest floor", @played.map &.deepest
+
+        io << "  " << "survived floor 1".ljust(20)
+        io << first_floor_survival.round(1) << "%\n"
+
+        reaching.each do |depth, many|
+          count io, "reached floor #{depth}", many
+        end
 
         io << "  killed by           "
         io << killers.map { |name, many| "#{name} #{many}" }.join(", ")
@@ -125,7 +157,7 @@ module Roguelike
 
       game = bot.game
       Played.new seed, game.turn, game.player.level, game.player.gold,
-        bot.reached, game.outcome, game.killer
+        bot.reached, game.outcome, game.killer, game.deepest, game.depth
     end
 
     # One game, played by a rule rather than by a person.
@@ -137,7 +169,8 @@ module Roguelike
     # 3. Swing at whatever is standing next to it.
     # 4. Pick up what is underfoot, and hold the heaviest hitting weapon it
     #    is carrying.
-    # 5. Step to a neighbor, preferring one it has never stood on.
+    # 5. Walk toward a down staircase it remembers.
+    # 6. Step to a neighbor, preferring one it has never stood on.
     #
     # It never retreats, never shuts a door behind it, never shoots and never
     # puts its torch out. Those are the things that keep a person alive, so
@@ -157,6 +190,7 @@ module Roguelike
         @rng = Rng.new(seed).derive "trial"
         @start = @game.player.at
         @been = Set({Int32, Int32}).new
+        @on = @game.player.floor
       end
 
       # How far from where it started the character got, in squares walked
@@ -174,6 +208,7 @@ module Roguelike
         return if drank
         return if swung
         return if took
+        return if headed
 
         wander
       end
@@ -237,11 +272,35 @@ module Roguelike
         @game.wield best[0]
       end
 
+      # Takes one step toward the nearest down staircase it remembers.
+      # Answers whether it did.
+      protected def headed : Bool
+        @game.look
+        stairs = @game.knowledge.where(Terrain::StairsDown).min_by? do |spot|
+          Route.apart spot, @game.player.at
+        end
+        return false unless stairs
+
+        here = @game.player.at
+        next_square = @game.route_to(stairs).find { |spot| spot != here }
+        return false unless next_square
+
+        way = Direction.values.find { |direction| direction.from(here[0], here[1]) == next_square }
+        return false unless way
+
+        @game.step(way).turn?
+      end
+
       # Steps to a neighbor, preferring one it has never stood on.
       #
       # Walking into a shut door opens it, so this is all the door handling
       # the bot needs.
       protected def wander : Nil
+        unless @game.player.floor == @on
+          @on = @game.player.floor
+          @been.clear
+        end
+
         here = @game.player.at
         @been << here
 
@@ -279,6 +338,7 @@ module Roguelike
         return if fled
         return if swung
         return if took
+        return if headed
 
         wander
       end

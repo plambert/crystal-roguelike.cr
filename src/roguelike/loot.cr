@@ -85,6 +85,64 @@ module Roguelike
     # Coins. One kind, so the weight says nothing; the count is what varies.
     COINS = {ItemKind::Gold => 1}
 
+    # A kind or a whole class that does not turn up above some depth.
+    #
+    # *what* is an `ItemKind` or an `ItemClass`. *from* is the shallowest
+    # floor it turns up on. A kind covered by a kind row and a class row
+    # waits for the deeper of the two.
+    record Gate, what : ItemKind | ItemClass, from : Int32 do
+      # Whether this row is about *kind*.
+      def covers?(kind : ItemKind) : Bool
+        what = @what
+        what.is_a?(ItemKind) ? what == kind : what == kind.item_class
+      end
+    end
+
+    # What waits for a deeper floor, on the ground and in a monster's hands.
+    #
+    # The better weapons and the heavy armor wait, and so does anything
+    # zapped. A new row holds a kind or a class back; nothing here makes
+    # anything commoner.
+    GATES = [
+      Gate.new(ItemKind::LongSword, 2),
+      Gate.new(ItemKind::Rapier, 2),
+      Gate.new(ItemKind::Spear, 2),
+      Gate.new(ItemKind::ChainMail, 3),
+      Gate.new(ItemKind::Shield, 2),
+      Gate.new(ItemClass::Wand, 2),
+      Gate.new(ItemKind::StrikingWand, 3),
+      Gate.new(ItemKind::HastePotion, 2),
+      Gate.new(ItemKind::BlessingScroll, 2),
+      Gate.new(ItemKind::HasteScroll, 3),
+    ]
+
+    # The highest `+N` anything turns up with, from floor 1 down. A floor
+    # deeper than the last entry reads the last entry.
+    #
+    # A minus is never capped. A curse is as bad on floor 1 as anywhere.
+    CEILINGS = [1, 1, 2, 2, 3]
+
+    # The shallowest floor *kind* turns up on.
+    def self.from(kind : ItemKind) : Int32
+      GATES.select(&.covers?(kind)).max_of?(&.from) || 1
+    end
+
+    # Whether *kind* turns up on the floor at *depth*.
+    def self.allowed?(kind : ItemKind, depth : Int32) : Bool
+      from(kind) <= depth
+    end
+
+    # The highest `+N` on the floor at *depth*.
+    def self.ceiling(depth : Int32) : Int32
+      CEILINGS[(depth - 1).clamp(0, CEILINGS.size - 1)]
+    end
+
+    # *table* with every kind that waits for a floor deeper than *depth*
+    # left out.
+    def self.gated(table : Hash(ItemKind, Int32), depth : Int32) : Hash(ItemKind, Int32)
+      table.select { |kind, _weight| allowed? kind, depth }
+    end
+
     # What each species draws for.
     #
     # A species is never given a draw for something it would not be carrying.
@@ -130,11 +188,13 @@ module Roguelike
     # *rng* belongs to that one creature. `Game#equip` derives a stream from
     # where the creature stands, so adding an entry to a table shifts what
     # that creature carries and nothing else on the floor.
-    def self.for(species : Species, rng : Rng) : Array(Item)
+    #
+    # *depth* is the floor it lives on. `nil` holds nothing back.
+    def self.for(species : Species, rng : Rng, depth : Int32? = nil) : Array(Item)
       found = [] of Item
 
       draws(species).each do |draw|
-        taken = one draw, rng
+        taken = one draw, rng, depth
         found << taken if taken
       end
 
@@ -145,13 +205,16 @@ module Roguelike
     #
     # Anything that burns comes out alight, and `Game#lights` reads it as a
     # carried source.
-    private def self.one(draw : Draw, rng : Rng) : Item?
+    private def self.one(draw : Draw, rng : Rng, depth : Int32?) : Item?
       return unless rng.rand(100) < draw.chance
 
-      kind = Items.pick rng, draw.kinds
+      kinds = depth ? gated(draw.kinds, depth) : draw.kinds
+      return if kinds.empty?
+
+      kind = Items.pick rng, kinds
       return Item.new kind, count: rng.rand(draw.count) if kind.item_class.treasure?
 
-      item = Items.make rng, kind, CONDITIONS
+      item = Items.make rng, kind, CONDITIONS, depth.try { |deep| ceiling deep }
       item.kindle
       item
     end

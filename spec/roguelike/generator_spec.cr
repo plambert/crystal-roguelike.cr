@@ -31,7 +31,7 @@ Spectator.describe Roguelike::Generator do
   # floor alone, because a spec about the rooms needs the rectangles the
   # generator cut and a floor carries only the squares.
   DUG = (0...RUNS).map do |index|
-    Generator.new(Rng.new(FIRST + index), "dungeon",
+    Generator.new(Rng.new(FIRST + index), Roguelike::World.id(1),
       Generator::COLUMNS, Generator::ROWS).tap &.dig
   end
 
@@ -344,7 +344,7 @@ Spectator.describe Roguelike::Generator do
     it "plays on a floor the generator dug" do
       game = Roguelike::Game.dug Rng.new(FIRST)
 
-      expect(game.floor.id).to eq "dungeon"
+      expect(game.floor.id).to eq "floor-1"
       expect(game.floor.to_map).to eq dug(FIRST).to_map
     end
 

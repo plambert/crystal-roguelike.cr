@@ -230,6 +230,7 @@ module Roguelike::Ui
       ItemClass::Light        => Look.new('(', TOOL),
       ItemClass::Tool         => Look.new('(', TOOL),
       ItemClass::Treasure     => Look.new('$', COIN),
+      ItemClass::Amulet       => Look.new('"', COIN),
     }
 
     # How *item* is drawn where it lies.

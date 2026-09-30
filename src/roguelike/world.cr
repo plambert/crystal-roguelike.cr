@@ -12,6 +12,31 @@ module Roguelike
   class World
     include JSON::Serializable
 
+    # How many floors of dungeon there are.
+    DEEPEST = 5
+
+    # The depth of the chamber under the last floor. It holds the amulet.
+    VAULT = DEEPEST + 1
+
+    # The floor a save written before there was more than one floor holds.
+    #
+    # It is floor 1 of that run.
+    LEGACY = "dungeon"
+
+    # What the floor at *depth* is called.
+    def self.id(depth : Int32) : String
+      "floor-#{depth}"
+    end
+
+    # How deep the floor called *id* is. `nil` for a floor outside the
+    # dungeon's numbering, such as the proving ground.
+    def self.depth(id : String) : Int32?
+      return 1 if id == LEGACY
+
+      found = id.match /\Afloor-(\d+)\z/
+      found.try &.[1].to_i
+    end
+
     # What this run started from.
     getter seed : UInt64
 
@@ -44,6 +69,15 @@ module Roguelike
     # Puts *floor* in the world under its own id. Answers *floor*.
     def add(floor : Floor) : Floor
       @floors[floor.id] = floor
+    end
+
+    # The floor at *depth*, whatever it is called. `nil` before it is dug.
+    #
+    # A save from before there were several floors calls floor 1 `LEGACY`,
+    # so this looks the floor up by depth rather than by name.
+    def at(depth : Int32) : Floor?
+      @floors[World.id depth]? ||
+        @floors.values.find { |floor| World.depth(floor.id) == depth }
     end
 
     # How many floors there are.

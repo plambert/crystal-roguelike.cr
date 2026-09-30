@@ -1,22 +1,20 @@
-  3,2   scroll of repair
-  3,4   short sword
- 17,5   scroll of slow monster
- 22,5   arrow
- 37,5   spear
- 13,6   candle
- 45,7   spear
- 12,8   stone
- 10,12  cap
- 48,14  wand of striking
- 55,14  gold piece
- 57,14  arrow
- 69,15  gold piece
+  7,2   scroll of item detection
+ 38,3   potion of healing
+ 17,5   dagger
+ 17,5   stone
+ 37,5   leather armor
+ 44,6   short sword
+ 12,8   mace
+ 60,12  short sword
+ 57,14  candle
+ 67,15  potion of healing
   9,16  gold piece
- 64,17  gold piece
- 69,17  scroll of repair
- 10,19  scroll of minor teleport
-  8,20  scroll of treasure detection
- 14,20  arrow
- 12,22  arrow
- 58,22  dagger
- 13,23  bow
+ 61,16  dagger
+ 55,17  dagger
+ 62,18  short sword
+  5,19  mace
+ 16,19  dagger
+ 63,19  gold piece
+ 67,19  arrow
+ 62,20  stone
+ 56,21  potion of healing

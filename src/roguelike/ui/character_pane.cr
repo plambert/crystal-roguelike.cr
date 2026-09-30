@@ -283,7 +283,7 @@ module Roguelike::Ui
 
       @who.clear
       @who.put 0, player.name.empty? ? NOBODY : player.name, Palette::STRONG
-      @who.put_right "Lv #{player.level}", Palette::PLAIN
+      @who.put_right "D#{game.depth} Lv #{player.level}", Palette::PLAIN
 
       @health.show player.hit_points, player.max_hit_points
       @magic.show 0, 0

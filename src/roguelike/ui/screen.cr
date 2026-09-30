@@ -97,6 +97,9 @@ module Roguelike::Ui
     # hides.
     getter gutter : Widgets::Divider
 
+    # The rule under the map. It names the floor.
+    getter rule : Widgets::Divider
+
     def initialize
       # A map pane has no padding. A map is a grid of cells, and a column
       # given to a margin is one fewer column of the floor.
@@ -113,6 +116,7 @@ module Roguelike::Ui
         gap: 1)
 
       @gutter = Widgets::Divider.new Widgets::Divider::Orientation::Vertical
+      @rule = Widgets::Divider.new Widgets::Divider::Orientation::Horizontal
 
       @log = Widgets::Panel.new(
         width: Layout::Sizing.grow,
@@ -129,9 +133,7 @@ module Roguelike::Ui
         direction: Layout::Direction::Column,
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)
-      @playing.add upper,
-        Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        @log
+      @playing.add upper, @rule, @log
 
       @notice_text = Widgets::Label.new "", align: TermBuf::Unicode::Align::Center
       @notice = Widgets::Panel.new(
