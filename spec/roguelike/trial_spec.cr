@@ -134,12 +134,15 @@ Spectator.describe Roguelike::Trial do
   end
 
   describe Roguelike::Trial::Cautious do
-    # A hall, the character at one end on their last few hit points, and a
-    # goblin standing next to them.
+    # A hall, the character at one end on their last few hit points with
+    # nothing to drink, and a goblin standing next to them.
     def cornered : Trial::Cautious
       bot = Trial::Cautious.new Trial::FIRST
       game = bot.game
       game.player.hurt game.player.hit_points - 1
+      game.player.inventory.select(&.kind.item_class.potion?).each do |letter, _item|
+        game.player.inventory.remove letter
+      end
 
       spot = Roguelike::Direction::East.from game.player.x, game.player.y
       game.floor.place Roguelike::Monster.new(

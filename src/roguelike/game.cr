@@ -325,7 +325,9 @@ module Roguelike
       player = Player.new floor.id, *entrance(floor)
       outfit player
 
-      game = new world, player, lore: Lore.roll(rng)
+      lore = Lore.roll rng
+      lore.learn ItemKind::HealingPotion
+      game = new world, player, lore: lore
       game.scatter rng
       game.equip rng
       game.enroll
@@ -336,7 +338,7 @@ module Roguelike
       # yet. The first line names what the character is holding, which the
       # pack already lists, and the second is about the keyboard.
       game.log.add "You are in a dungeon with a short sword, leather armor and a lit torch."
-      game.log.add "You carry three iron spikes. Press ? for the keys."
+      game.log.add "You carry three iron spikes and a potion of healing. Press ? for the keys."
       game
     end
 
@@ -354,6 +356,10 @@ module Roguelike
     # The spikes are here because a floor hands them out rarely. A person who
     # had to find one before learning what it is for would mostly never find
     # one.
+    #
+    # The potion of healing is here because a character on floor 1 with none
+    # dies there more often than not. `IMPLEMENTATION.md` has the numbers.
+    # The character knows what it is, so the kind starts out known.
     #
     # The slots are filled rather than wielded. `#wield` and `#wear` each
     # spend a turn and write to the log, and neither has happened yet.
@@ -374,14 +380,16 @@ module Roguelike
         blessing_known: true)
       player.inventory.add Item.new(ItemKind::Spike, count: SPIKES,
         blessing_known: true)
+      player.inventory.add Item.new(ItemKind::HealingPotion,
+        blessing_known: true)
     end
 
-    # A new run on *rng*, played on a floor dug from the same seed.
+    # A new run on *rng*, played on floor 1 dug from the same seed.
     #
     # `--seed N` twice digs the same floor, because `Generator` derives every
     # roll from the seed and from nothing else.
     def self.dug(rng : Rng) : Game
-      start rng, Generator.floor(rng)
+      start rng, Generator.floor(rng, World.id(1), 1)
     end
 
     # How many items a floor starts with, per hundred squares of open floor.
@@ -394,21 +402,40 @@ module Roguelike
     # How much gold one pile holds.
     PURSE = 5..40
 
-    # Puts items about the floor on *rng*.
+    # How deep *ground* counts as for what lives and lies on it.
+    #
+    # A floor outside the dungeon's numbering, such as the proving ground,
+    # counts as floor 1.
+    def self.depth_of(ground : Floor) : Int32
+      World.depth(ground.id) || 1
+    end
+
+    # How deep the floor the character is on is.
+    def depth : Int32
+      Game.depth_of floor
+    end
+
+    # The deepest floor the character has set foot on.
+    def deepest : Int32
+      @world.floors.each_value.max_of { |ground| Game.depth_of ground }
+    end
+
+    # Puts items about *ground* on *rng*.
     #
     # Placement is its own stream, so the loot does not shift when anything
     # else changes how much it rolls.
-    def scatter(rng : Rng) : Nil
-      stream = rng.derive "litter:#{floor.id}"
+    def scatter(rng : Rng, ground : Floor = floor) : Nil
+      stream = rng.derive "litter:#{ground.id}"
+      deep = Game.depth_of ground
       squares = [] of {Int32, Int32}
-      floor.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
+      ground.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
       return if squares.empty?
 
       (squares.size * LITTER // 100).times do
         spot = squares.sample stream
-        item = stream.rand(4).zero? ? gold(stream) : Items.random(stream)
-        floor.drop spot[0], spot[1], item
-        supply rng, spot, item
+        item = stream.rand(4).zero? ? gold(stream) : Items.random(stream, deep)
+        ground.drop spot[0], spot[1], item
+        supply rng, ground, spot, item
       end
     end
 
@@ -428,16 +455,18 @@ module Roguelike
     # This rolls on a stream named by the square rather than on the litter's
     # own. The litter then falls where it always fell, and a floor from an
     # old seed gains arrows without moving anything else.
-    private def supply(rng : Rng, spot : {Int32, Int32}, weapon : Item) : Nil
+    private def supply(rng : Rng, ground : Floor, spot : {Int32, Int32},
+                       weapon : Item) : Nil
       kind = weapon.kind.ammunition
       return unless kind
 
-      stream = rng.derive "ammunition:#{floor.id}:#{spot[0]},#{spot[1]}"
+      stream = rng.derive "ammunition:#{ground.id}:#{spot[0]},#{spot[1]}"
       return unless stream.rand(100) < QUIVERED
 
+      ceiling = Loot.ceiling Game.depth_of(ground)
       stream.rand(SUPPLY).times do
-        where = near stream, spot
-        floor.drop where[0], where[1], Items.make(stream, kind)
+        where = near stream, ground, spot
+        ground.drop where[0], where[1], Items.make(stream, kind, ceiling: ceiling)
       end
     end
 
@@ -445,13 +474,13 @@ module Roguelike
     #
     # The square the ranged weapon is on counts, so the ammunition may land
     # on top of it.
-    private def near(rng : Rng, spot : {Int32, Int32}) : {Int32, Int32}
+    private def near(rng : Rng, ground : Floor, spot : {Int32, Int32}) : {Int32, Int32}
       found = [] of {Int32, Int32}
 
       ((spot[1] - NEARBY)..(spot[1] + NEARBY)).each do |row|
         ((spot[0] - NEARBY)..(spot[0] + NEARBY)).each do |column|
-          next unless floor.contains? column, row
-          next unless floor.terrain(column, row).floor?
+          next unless ground.contains? column, row
+          next unless ground.terrain(column, row).floor?
 
           found << {column, row}
         end
@@ -460,17 +489,45 @@ module Roguelike
       found.empty? ? spot : found.sample(rng)
     end
 
-    # Gives every monster on the floor what it is carrying.
+    # Gives every monster on *ground* what it is carrying.
     #
     # Each creature draws on a stream of its own, named by where it stands.
     # That is its stable identity on a floor written by hand: adding an entry
     # to a loot table shifts what one creature carries and nothing else, and
     # the order the creatures are walked in does not matter at all.
-    def equip(rng : Rng) : Nil
-      floor.each_monster do |column, row, creature|
-        stream = rng.derive "loot:#{floor.id}:#{column},#{row}"
-        creature.carry Loot.for(creature.species, stream)
+    def equip(rng : Rng, ground : Floor = floor) : Nil
+      deep = Game.depth_of ground
+      ground.each_monster do |column, row, creature|
+        stream = rng.derive "loot:#{ground.id}:#{column},#{row}"
+        creature.carry Loot.for(creature.species, stream, deep)
       end
+    end
+
+    # The floor at *depth*, dug and stocked the first time it is asked for.
+    #
+    # Every roll is on the run's root generator and a stream named after
+    # the floor, so a floor comes out the same whichever floors were dug
+    # before it. The chamber under the last floor is built rather than dug.
+    def dig(depth : Int32) : Floor
+      found = @world.at depth
+      return found if found
+
+      root = (@root ||= Rng.new @world.seed)
+      id = World.id depth
+
+      ground = if depth >= World::VAULT
+                 @world.add Generator.chamber(id)
+               else
+                 @world.add Generator.floor(root, id, depth)
+               end
+
+      unless depth >= World::VAULT
+        scatter root, ground
+        equip root, ground
+      end
+
+      enroll
+      ground
     end
 
     # One pile of gold.
@@ -2437,25 +2494,87 @@ module Roguelike
     # Goes down the staircase the character stands on. Answers whether there
     # was one.
     #
-    # There is one floor, so down is out. The run ends as a win.
+    # The character arrives on the up staircase of the floor below, which is
+    # dug the first time anybody goes down to it. A floor outside the
+    # dungeon's numbering, such as the proving ground, has nothing below it,
+    # and its down staircase ends the run as a win.
     def descend : Bool
+      return false if over?
       return false unless standing_on.stairs_down?
 
-      @outcome = Outcome::Won
-      record Event::Over.new(@outcome)
+      here = World.depth floor.id
+      unless here
+        @outcome = Outcome::Won
+        record Event::Over.new(@outcome)
+        return true
+      end
+
+      below = dig here + 1
+      go below, Terrain::StairsUp, "You climb down the staircase."
       true
     end
 
     # Goes up the staircase the character stands on. Answers whether there was
     # one.
     #
-    # The character climbs out of the dungeon. The run ends without a win.
+    # The character arrives on the down staircase of the floor above. From
+    # floor 1, and from a floor outside the dungeon's numbering, they climb
+    # out of the dungeon and the run ends without a win.
     def ascend : Bool
+      return false if over?
       return false unless standing_on.stairs_up?
 
-      @outcome = Outcome::Left
-      record Event::Over.new(@outcome)
+      here = World.depth floor.id
+      above = here.try { |deep| @world.at deep - 1 }
+      unless above
+        @outcome = Outcome::Left
+        record Event::Over.new(@outcome)
+        return true
+      end
+
+      go above, Terrain::StairsDown, "You climb up the staircase."
       true
+    end
+
+    # Puts the character on *ground*, on its *terrain* staircase, and spends
+    # the turn the climb took.
+    #
+    # Nothing follows them. The creatures of the floor they left stand where
+    # they were until the character comes back. A creature standing on the
+    # staircase they arrive on moves nobody; the character steps off to the
+    # nearest square that is free.
+    private def go(ground : Floor, terrain : Terrain, line : String) : Nil
+      @discovery = false
+      @forgiven = 0
+      @fought = nil
+      @fought_at = nil
+      @in_flight = nil
+
+      spot = landing(ground, ground.find(terrain) || Game.entrance(ground))
+      @player.floor = ground.id
+      @player.move_to spot
+      clear_bearers
+
+      deep = Game.depth_of ground
+      say line, Event::Climbed.new(ground.id, deep, spot)
+      arrived
+      spend_turn
+    end
+
+    # *spot*, or the nearest square to it on *ground* a character can stand
+    # on, when a creature is standing there.
+    private def landing(ground : Floor, spot : {Int32, Int32}) : {Int32, Int32}
+      return spot unless ground.monster? spot[0], spot[1]
+
+      free = [] of {Int32, Int32}
+      ground.each do |column, row, tile|
+        next unless tile.passable?
+        next if ground.monster? column, row
+
+        free << {column, row}
+      end
+
+      free.min_by? { |square| {Route.apart(square, spot), square[1], square[0]} } || spot
     end
 
     # ---------------------------------------------------------------- items
@@ -2493,8 +2612,18 @@ module Roguelike
 
       say "#{letter} - #{name item}",
         Event::PickedUp.new(taken_id(letter, item), name item)
+      claim item
       spend_turn
       true
+    end
+
+    # Ends the run as a win when *item* is the amulet.
+    private def claim(item : Item) : Nil
+      return unless item.kind.amulet?
+
+      @outcome = Outcome::Won
+      say "The amulet is yours. The dungeon has nothing left to keep you.",
+        Event::Over.new(@outcome)
     end
 
     # Takes any gold on the square, without a turn of its own.

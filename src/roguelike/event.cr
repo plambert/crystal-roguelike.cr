@@ -31,6 +31,7 @@ module Roguelike
       "attack"         => Attack,
       "blessing_known" => BlessingKnown,
       "blocked"        => Blocked,
+      "climbed"        => Climbed,
       "bolt_stopped"   => BoltStopped,
       "cracked"        => Cracked,
       "destroyed"      => Destroyed,
@@ -610,6 +611,21 @@ module Roguelike
       getter terrain : String
 
       def initialize(@at : {Int32, Int32}, @terrain : String)
+      end
+    end
+
+    # The character took a staircase to another floor.
+    #
+    # *floor* is the id of the floor they arrived on, *depth* how deep it is
+    # and *at* the square they stand on.
+    class Climbed < Event
+      getter kind : String = "climbed"
+
+      getter floor : String
+      getter depth : Int32
+      getter at : {Int32, Int32}
+
+      def initialize(@floor : String, @depth : Int32, @at : {Int32, Int32})
       end
     end
 

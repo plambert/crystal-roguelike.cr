@@ -91,22 +91,6 @@ module Roguelike
     # How often a lit sconce is lit, out of a hundred.
     BURNING = 70
 
-    # How often a room holds a creature, out of a hundred.
-    INHABITED = 45
-
-    # How many creatures such a room holds.
-    CROWD = 1..2
-
-    # What each species is worth when a creature is rolled.
-    #
-    # A slime and a goblin are common and an orc is not. The numbers are
-    # relative and nothing depends on their sum.
-    CREATURES = {
-      Species::Slime  => 40,
-      Species::Goblin => 45,
-      Species::Orc    => 15,
-    }
-
     # What a room's floor is made of.
     GROUND = {
       Terrain::StoneFloor => 70,
@@ -123,10 +107,43 @@ module Roguelike
     # The stream every roll here derives from.
     DOMAIN = "worldgen"
 
-    # A floor called *id*, dug on *rng*.
-    def self.floor(rng : Rng, id : String = "dungeon",
+    # A floor called *id*, dug on *rng*, as deep as *depth*.
+    #
+    # Every stream is named after *id*. A floor id names its depth, so floor
+    # 3 of a seed is the same floor whether floor 2 was dug before it or not.
+    def self.floor(rng : Rng, id : String = World.id(1), depth : Int32 = 1,
                    columns : Int32 = COLUMNS, rows : Int32 = ROWS) : Floor
-      new(rng, id, columns, rows).dig
+      new(rng, id, columns, rows, depth).dig
+    end
+
+    # How wide the chamber under the last floor is.
+    CHAMBER_COLUMNS = 31
+
+    # How tall it is.
+    CHAMBER_ROWS = 11
+
+    # The chamber under the last floor, called *id*.
+    #
+    # One room of dressed stone with the up staircase at the west end and
+    # the amulet at the east end, lit by four sconces. Nothing lives there.
+    # It rolls nothing, so it is the same chamber on every seed.
+    def self.chamber(id : String = World.id(World::VAULT)) : Floor
+      floor = Floor.solid id, CHAMBER_COLUMNS, CHAMBER_ROWS
+      room = Area.new 3, 2, CHAMBER_COLUMNS - 6, CHAMBER_ROWS - 4
+      room.each { |column, row| floor.set column, row, Terrain::StoneFloor }
+
+      middle = room.middle[1]
+      floor.set room.x, middle, Terrain::StairsUp
+      floor.drop room.right, middle, Item.new(ItemKind::Amulet)
+
+      {room.x + 4, room.right - 4}.each do |column|
+        floor.set_fixture column, room.y,
+          Fixture.new(FixtureKind::Sconce, true, Direction::North)
+        floor.set_fixture column, room.bottom,
+          Fixture.new(FixtureKind::Sconce, true, Direction::South)
+      end
+
+      floor
     end
 
     # The floor being dug.
@@ -138,7 +155,11 @@ module Roguelike
     # The room the up staircase is in. `nil` before the stairs are put down.
     getter arrival : Area? = nil
 
-    def initialize(rng : Rng, id : String, columns : Int32, rows : Int32)
+    # How deep the floor is. `Spawns` reads it.
+    getter depth : Int32
+
+    def initialize(rng : Rng, id : String, columns : Int32, rows : Int32,
+                   @depth : Int32 = 1)
       @rng = rng.derive "#{DOMAIN}:#{id}"
       @floor = Floor.solid id, columns, rows
     end
@@ -451,7 +472,7 @@ module Roguelike
       found
     end
 
-    # Puts creatures in *room*.
+    # Puts creatures in *room*, as `Spawns` says for this depth.
     #
     # Each is in a band of its own. `Floor#place` writes the band down, the
     # same way it does for a creature a floor file names.
@@ -462,11 +483,12 @@ module Roguelike
       return if room == @arrival
 
       stream = @rng.derive "monsters:#{index}:#{room}"
-      return unless stream.rand(100) < INHABITED
+      density = Spawns.density @depth
+      return unless stream.rand(100) < density.inhabited
 
-      stream.rand(CROWD).times do |which|
+      stream.rand(density.crowd).times do |which|
         spot = plain(room).sample stream
-        species = Items.pick stream, CREATURES
+        species = Spawns.pick stream, @depth
         band = "#{@floor.id}-#{index}-#{which}"
 
         @floor.place Monster.new(species, spot[0], spot[1], band)

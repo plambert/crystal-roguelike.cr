@@ -134,10 +134,15 @@ module Roguelike
     # *conditions* is the table the condition rolls on. `Loot` passes a
     # different one, because what a monster is carrying is more battered than
     # what is lying about the floor.
-    def self.make(rng : Rng, kind : ItemKind, conditions = CONDITIONS) : Item
+    #
+    # *ceiling* caps a plus. `Loot.ceiling` says how high one goes on each
+    # floor. `nil` leaves it uncapped.
+    def self.make(rng : Rng, kind : ItemKind, conditions = CONDITIONS,
+                  ceiling : Int32? = nil) : Item
       blessing = pick rng, BLESSINGS
       condition = kind.enchantable? ? pick(rng, conditions) : Condition::Plain
       enchantment = kind.enchantable? ? pick(rng, enchantments_for(blessing)) : 0
+      enchantment = Math.min enchantment, ceiling if ceiling
       count = STACKS[kind]?.try { |range| rng.rand range } || 1
 
       Item.new kind, enchantment, condition, count, blessing: blessing
@@ -153,8 +158,13 @@ module Roguelike
     end
 
     # One item of any kind, rolled on *rng*.
-    def self.random(rng : Rng) : Item
-      make rng, pick(rng, WEIGHTS)
+    #
+    # *depth* is the floor it lies on. `Loot` says what waits for a deeper
+    # one and how high a plus goes. `nil` holds nothing back.
+    def self.random(rng : Rng, depth : Int32? = nil) : Item
+      return make rng, pick(rng, WEIGHTS) unless depth
+
+      make rng, pick(rng, Loot.gated(WEIGHTS, depth)), ceiling: Loot.ceiling(depth)
     end
 
     # One of *choices*, picked by weight.

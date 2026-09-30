@@ -742,6 +742,30 @@ Spectator.describe Roguelike::Observation do
       expect(Observation.from_json(found.to_json).to_json).to eq found.to_json
     end
 
+    it "gives the depth of a dug floor" do
+      game = Roguelike::Game.dug Roguelike::Rng.new(5000_u64)
+      found = Observation.of game
+
+      expect(found.depth).to eq 1
+      expect(JSON.parse(found.to_json)["depth"].as_i).to eq 1
+    end
+
+    it "leaves the depth out on a floor outside the numbering" do
+      game = Roguelike::Game.start Roguelike::Rng.new(5000_u64)
+      found = Observation.of game
+
+      expect(found.depth).to be_nil
+      expect(JSON.parse(found.to_json).as_h).not_to have_key "depth"
+    end
+
+    it "reads an observation written before there was a depth" do
+      game = Roguelike::Game.dug Roguelike::Rng.new(5000_u64)
+      written = JSON.parse(Observation.of(game).to_json).as_h
+      written.delete "depth"
+
+      expect(Observation.from_json(written.to_json).depth).to be_nil
+    end
+
     it "gives the turn and the floor" do
       game = played ROOMS
       found = Observation.of game

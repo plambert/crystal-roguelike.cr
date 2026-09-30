@@ -26,7 +26,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     it "heads it with the name and the level" do
       run = playing name: "Sparky"
 
-      expect(run.play.character.who.text).to eq "SparkyLv 1"
+      expect(run.play.character.who.text).to eq "SparkyD1 Lv 1"
     end
 
     # A run holds no name until the title screen has been answered, and a
@@ -34,7 +34,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     it "heads a character nobody has named with a dash" do
       run = playing
 
-      expect(run.play.character.who.text).to eq "#{Pane::NOBODY}Lv 1"
+      expect(run.play.character.who.text).to eq "#{Pane::NOBODY}D1 Lv 1"
     end
 
     it "draws the level against the right edge" do

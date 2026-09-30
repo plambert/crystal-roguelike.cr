@@ -1360,10 +1360,28 @@ module Roguelike::Ui
       refresh
     end
 
-    # Climbs out of the dungeon, after asking.
+    # What the rule under the map says about *floor*. `nil` for a floor
+    # outside the dungeon's numbering.
+    def self.floor_name(floor : Floor) : String?
+      depth = World.depth floor.id
+      return unless depth
+      return "The amulet chamber" if depth >= World::VAULT
+
+      "Floor #{depth}"
+    end
+
+    # Climbs up a floor. From the top floor it climbs out of the dungeon,
+    # after asking.
     def ascend : Nil
       unless @game.standing_on.stairs_up?
         point_out Terrain::StairsUp, "up"
+        return
+      end
+
+      if (World.depth(@game.floor.id) || 1) > 1
+        @game.perform Action::Ascend.new
+        keep
+        refresh
         return
       end
 
@@ -2162,6 +2180,8 @@ module Roguelike::Ui
     # Everything shown comes from `Game`. This method is the one place the two
     # are put in step. It runs after anything that changes the game.
     def refresh : Nil
+      @map.floor = @game.floor unless @map.floor.same? @game.floor
+      @screen.rule.label = Play.floor_name(@game.floor)
       @map.clear_marks
       @map.clear_highlights
 

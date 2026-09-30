@@ -233,7 +233,7 @@ Spectator.describe Roguelike::Items do
 
     it "weights every kind that is rolled as loot" do
       Kind.each do |kind|
-        next if kind.item_class.treasure?
+        next if kind.item_class.treasure? || kind.item_class.amulet?
 
         expect(Roguelike::Items::WEIGHTS[kind]?).not_to be_nil
       end
@@ -242,6 +242,7 @@ Spectator.describe Roguelike::Items do
     it "weights nothing that is placed on its own" do
       Roguelike::Items::WEIGHTS.each_key do |kind|
         expect(kind.item_class.treasure?).to be_false
+        expect(kind.item_class.amulet?).to be_false
       end
     end
 

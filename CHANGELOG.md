@@ -112,6 +112,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   committed. It holds the same three platform tarballs as a tagged release, under names that do not
   change, so a download link goes on working. The release notes give the commit it was built from
   and the commits since the last nightly.
+* The dungeon is five floors deep. The down staircase on each floor leads to the up staircase of
+  the floor below, which is dug the first time the character reaches it. The up staircase leads
+  back to the floor above, as it was left. Creatures stay on their own floor. A save file holds
+  every floor visited.
+* A small chamber under floor 5 holds an ancient amulet. Picking it up wins the run.
+* The sidebar shows the depth beside the character's level, and the rule under the map names the
+  floor.
+* `--trial` reports the deepest floor each run reached, how many runs reached each floor, and how
+  many runs did not die on floor 1. Its bot walks to a down staircase it remembers.
 
 ### Changed
 
@@ -128,6 +137,20 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   instead of queuing behind each other. One that has waited on another for two turns in a row
   treats that creature's square as solid for the next twenty turns and walks round it by another
   route when there is one.
+* Floor 1 holds slimes and goblins only. Orcs appear from floor 2 and are commoner from floor 4.
+  Deeper floors hold more creatures.
+* Better kinds wait for deeper floors, on the ground and in a monster's hands. A long sword, a
+  rapier, a spear, a shield, a wand, a potion of haste and a scroll of blessing appear from the
+  second floor down. Chain mail, a wand of striking and a scroll of haste monster appear from the
+  third. Nothing on floors 1 and 2 is better than +1, and nothing on floors 3 and 4 is better than
+  +2.
+* A save written before there were several floors loads as floor 1 of its run.
+* The character starts with a potion of healing, and knows what it is.
+* `replay export` writes format 2. Each observation carries the depth of the floor the character
+  is on, and leaves it out on a floor outside the dungeon's numbering. An observation without it
+  reads back with no depth.
+* Climbing up from floor 2 or deeper asks nothing. Climbing up from floor 1 still asks before the
+  character leaves the dungeon.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.
@@ -189,6 +212,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* `replay upgrade` keeps the checkpoint spacing a file was recorded with when an action of several
+  turns ran past a checkpoint. It took the shorter gap after that checkpoint as the spacing.
 * A build of the game as another shard's dependency records the game's own commit, which
   `lib/.shards.info` names. It recorded the other shard's commit.
 * A replay file recorded on a seed above `Int64::MAX` reads. `Rng` rolls a `UInt64`, so about half

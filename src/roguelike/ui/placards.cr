@@ -114,7 +114,11 @@ module Roguelike::Ui
     private def self.ended(game : Game) : String
       case game.outcome
       in .won?
-        "You climbed down and out of the dungeon with your life."
+        if game.player.inventory.entries.any?(&.[1].kind.amulet?)
+          "You took the amulet from the bottom of the dungeon."
+        else
+          "You climbed down and out of the dungeon with your life."
+        end
       in .died?
         killer = game.killer
         killer ? "Killed by #{Lore.article killer} #{killer}." : "You were killed."

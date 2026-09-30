@@ -1028,9 +1028,10 @@ compared over the same dungeons.
 It is an instrument for tuning rather than a way to play. `Trial::Bot` plays badly and plays the
 same way every time: it takes the staircase down when it is standing on one, drinks when badly
 hurt, swings at whatever is next to it, picks up what is underfoot and holds the heaviest hitting
-weapon it is carrying, and otherwise steps to a neighbor it has not stood on. It never retreats,
-never shuts a door behind it, never shoots and never puts its torch out, which are the four things
-that keep a person alive. So the numbers are the pessimistic end of what the game is.
+weapon it is carrying, walks toward a down staircase it remembers, and otherwise steps to a
+neighbor it has not stood on. It never retreats, never shuts a door behind it, never shoots and
+never puts its torch out, which are the four things that keep a person alive. So the numbers are
+the pessimistic end of what the game is.
 
 The size of a number here means little on its own. The difference between two sets of runs is what
 to read, and the seeds have to be the same in both.
@@ -3137,6 +3138,164 @@ corner. A trial of the feature needs groups, which arrive with the swarms and sp
   creature the long way round to the same queue. It is bounded by the twenty turns.
 * Squares are not spread between members ahead of time. Two members pick the same nearer square
   and the second one sidesteps the turn after.
+
+## Five floors and the amulet
+
+### What was built
+
+* Five floors, `floor-1` to `floor-5`. `Game#dig` digs a floor the first time it is asked for and
+  answers the one in `World` after that. `World#at` finds a floor by depth.
+* `>` on a down staircase puts the character on the up staircase of the floor below. `<` on an up
+  staircase puts them on the down staircase of the floor above. Each climb takes a turn and writes
+  a `climbed` event with the floor, the depth and the square.
+* `<` on floor 1 leaves the dungeon, after asking, as before. `<` deeper down asks nothing.
+* A creature standing on the staircase the character arrives on moves nobody. The character lands
+  on the nearest free square.
+* Nothing follows the character between floors. Only the floor the character is on ticks, so the
+  floor they left stands still until they come back.
+* Under floor 5 is `floor-6`, the amulet chamber. `Generator.chamber` builds it rather than digging
+  it: 31 by 11, one room, the up staircase at the west end, the amulet at the east end, four lit
+  sconces, no creatures. It rolls nothing.
+* Picking the amulet up ends the run as a win. The ending screen says the character took it.
+* The proving ground has no depth. Its down staircase still ends the run as a win, so
+  `--no-generate` and every spec written against the shipped floor keep working.
+* The first row of the sidebar reads `D2 Lv 1`. The rule under the map names the floor: `Floor 2`,
+  or `The amulet chamber`. A floor outside the numbering gets no name.
+* `Observation` carries `depth` beside `floor`, so a reader of an export does not parse the floor
+  id. It is `nil` for a floor outside the numbering and the key is left out. The export format is 2.
+  A format 1 observation has no depth and reads back with `nil`.
+
+### Determinism
+
+* Every stream a floor rolls on is named after the floor's id: `worldgen:floor-3`,
+  `litter:floor-3`, `loot:floor-3:x,y` and `ammunition:floor-3:x,y`. The id holds the depth.
+* `Game#dig` rolls on the run's root generator, the same one `Game.dug` digs floor 1 on. Floor 3
+  of a seed is the same floor whether floor 2 was dug first or not. A spec digs it both ways and
+  compares.
+* `Game#enroll` numbers a new floor's things when it is dug, so an id depends on the order floors
+  were visited. Floors are reached in order, and `Floor#==` does not compare ids.
+* Floor 1 is now called `floor-1` and its spawns and loot changed, so the replay stream versions
+  for `generator`, `litter`, `loot` and `ammunition` are 2. `golden.jsonl` was recorded again from
+  scratch.
+
+### Saves
+
+* `World` holds every floor visited, and a save holds the world.
+* A save written before this has one floor called `dungeon`. `World::LEGACY` counts it as depth 1
+  and `World#at` looks floors up by depth, so the run goes on as floor 1 and floor 2 is dug below
+  it.
+* Save size grows with the floors visited, at about 120 KB a floor before the character's memory
+  of it:
+
+| floors | bytes |
+|---|---|
+| 1 | 114,177 |
+| 3 | 371,365 |
+| 6 | 702,980 |
+
+### The spawn table
+
+`Spawns::TABLE` in `spawns.cr` is a list of rows. A row names a species, a range of depths and a
+weight. The weights of every row covering a depth are summed per species and picked from.
+
+| species | depths | weight |
+|---|---|---|
+| slime | 1..5 | 40 |
+| goblin | 1..5 | 45 |
+| orc | 2..3 | 12 |
+| orc | 4..5 | 25 |
+
+* A species may take several rows, one per stretch of depths.
+* A variant is a new row. When `Species` becomes a kind, `Row#species` holds the kind and nothing
+  else changes.
+* `Spawns::DENSITY` says, per depth, how often a room is inhabited and how many creatures it holds:
+  40, 45, 50, 50 and 55 out of 100, with one or two creatures to floor 3 and one to three below.
+
+Creatures per dug floor, averaged over 20 seeds:
+
+| depth | slime | goblin | orc |
+|---|---|---|---|
+| 1 | 46.2 | 51.9 | 0 |
+| 2 | 47.7 | 54.1 | 13.6 |
+| 3 | 51.9 | 56.4 | 15.2 |
+| 4 | 59.4 | 70.3 | 34.9 |
+| 5 | 68.1 | 72.5 | 38.2 |
+
+### Loot gating
+
+`Loot::GATES` in `loot.cr` is a list of rows. A row names an `ItemKind` or an `ItemClass` and the
+shallowest floor it turns up on. A kind covered by a kind row and a class row waits for the deeper
+of the two.
+
+| kind or class | from floor |
+|---|---|
+| long sword, rapier, spear, shield | 2 |
+| any wand | 2 |
+| potion of haste, scroll of blessing | 2 |
+| chain mail, wand of striking, scroll of haste monster | 3 |
+
+* `Loot::CEILINGS` caps a plus by depth: +1 on floors 1 and 2, +2 on floors 3 and 4, +3 on floor
+  5. A minus is never capped.
+* The gate and the cap apply to litter, to ammunition beside a ranged weapon, and to what a monster
+  carries. `Items.random`, `Items.make` and `Loot.for` take the depth or the cap as an argument, and
+  `nil` holds nothing back, so the tables read the same to a spec that passes none.
+* A gated kind is left out of the table before the pick. The weights of what remains keep their
+  proportions.
+
+### The trial
+
+* `--trial` reports the deepest floor each run reached, a row for how many runs reached each floor,
+  and how many runs out of 100 ended anywhere but in a death on floor 1.
+* `Trial::Bot` walks toward the nearest down staircase it remembers before it wanders. It looks
+  every turn, so what it remembers is what it has seen.
+
+Two hundred runs of at most 1500 turns from seed 5000, default kit:
+
+| | |
+|---|---|
+| died | 127 (63%) |
+| gave up | 73 (36%) |
+| survived floor 1 | 37.5% |
+| deepest floor, mean | 1.02 |
+| reached floor 2 | 4 |
+| reached floor 3 | 1 |
+| killed by | goblin 122, slime 4, orc 1 |
+
+The bot rarely finds a staircase down on a floor of 216 by 84 squares inside 1500 turns. The
+deepest floor says more about how it explores than about how hard the floors are.
+
+### The starting potion
+
+The plan set a bar. If a character at level 1 on the default kit survives floor 1 at least 60 times
+in 100 under `--trial`, the kit stays as it is. Otherwise it gains one potion of healing.
+
+Floor 1 without orcs came in at 37.5, under the bar, so the kit holds a potion of healing. The
+character knows what it is: `Game.start` marks the kind known in the run's lore.
+
+Two hundred runs of at most 1500 turns from seed 5000:
+
+| | one floor, before | five floors, no potion | five floors, potion |
+|---|---|---|---|
+| died | 152 (76%) | 127 (63%) | 118 (59%) |
+| gave up | 44 (22%) | 73 (36%) | 82 (41%) |
+| survived floor 1 | 24% | 37.5% | 42.5% |
+| deepest floor, mean | — | 1.02 | 1.03 |
+| reached floor 2 | 4 won | 4 | 5 |
+| reached floor 3 | — | 1 | 1 |
+| turns until death, median | 101 | 114 | 137 |
+| killed by | goblin 103, orc 43, slime 6 | goblin 122, slime 4, orc 1 | goblin 113, slime 3, orc 2 |
+
+The potion moves survival five points and still leaves it under 60. `Trial::Bot` walks into every
+fight and never retreats, so its survival is the pessimistic end. A goblin is still the fight that
+kills a character on floor 1. The next lever is the goblin itself, which the species branch splits
+into a weaker scout on floors 1 and 2 and the current goblin from floor 2.
+
+### Left undone
+
+* Creatures following the character up or down a staircase.
+* Floor themes: terrain, inhabitants and loot chosen together per floor.
+* The trial bot explores badly, so the deepest-floor numbers are a floor for comparison between
+  builds rather than a measure of the game.
 
 ## Asked for, not yet built
 

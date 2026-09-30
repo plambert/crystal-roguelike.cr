@@ -25,6 +25,9 @@ module Roguelike
     # Coins. A character counts them rather than carrying them.
     Treasure
 
+    # Worn about the neck. The one amulet there is ends the run.
+    Amulet
+
     # Whether a `+N` means anything on this class.
     def enchantable? : Bool
       melee? || ranged_weapon? || ammunition? || thrown? || armor?
@@ -280,6 +283,9 @@ module Roguelike
     # Read to hurry one along.
     HasteScroll
 
+    # What the run is for. Picking it up wins.
+    Amulet
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -520,6 +526,8 @@ module Roguelike
       ItemKind::HasteScroll => ItemFacts.new("scroll of haste monster",
         "scrolls of haste monster", ItemClass::Scroll, weight: 5,
         effect: Effect::HasteOther, power: Dice.new(4, 6, 20)),
+      ItemKind::Amulet => ItemFacts.new("ancient amulet", "ancient amulets",
+        ItemClass::Amulet, weight: 5),
     }
   end
 end

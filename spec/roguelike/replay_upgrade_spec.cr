@@ -177,6 +177,18 @@ Spectator.describe Roguelike::Replay::Upgrade do
       expect(Upgrade.every_of read).to eq 10
     end
 
+    # A three-turn action ran past turn 30, so the checkpoint due then was
+    # written on turn 32 and the gap after it is 8.
+    it "takes the commonest gap when an action ran past a checkpoint" do
+      header = File.read_lines(Recording.golden).first
+      checks = {10, 20, 32, 40, 50}.map do |turn|
+        %({"type":"check","turn":#{turn},"state":"sha256:#{"0" * 64}"})
+      end
+
+      read = Recording.read Recording.file([header] + checks.to_a, "jumped"), fingerprints: false
+      expect(Upgrade.every_of read).to eq 10
+    end
+
     it "takes the setting in force for a file with one checkpoint" do
       read = Recording.read Recording.golden
       expect(Upgrade.every_of read).to eq Log.every if read.checks < 2

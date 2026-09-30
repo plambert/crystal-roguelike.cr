@@ -19,7 +19,10 @@ module Roguelike
     # line holds one decision, and a footer line says how the run ended.
     module Export
       # What version of this file this build writes.
-      FORMAT = 1
+      #
+      # Format 2 adds `depth` to each observation. A format 1 file reads
+      # the same way, with no depth.
+      FORMAT = 2
 
       # What exporting one replay found.
       record Report,
