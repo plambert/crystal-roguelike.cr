@@ -143,8 +143,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   turns back once it has more than half of its hit points. The log says "The goblin flees!" when
   the character sees it turn. A creature with nowhere left to run fights. One that opens doors
   shuts the door behind it, which takes its turn. Slimes never run.
-* Armor is cut for a wearer's size: small for goblins, medium for the character, and large for
-  orcs. Its name says so when it is not medium, as in "small leather armor". The character cannot
+* Armor is cut for a wearer's size: small for goblins, and medium for the character and for orcs.
+  Its name says so when it is not medium, as in "small leather armor". The character cannot
   wear armor of another size and is told why. Armor lying about is medium most of the time, mostly
   small near goblins and mostly large near orcs.
 * Goblins and orcs hold a weapon and wear armor. A creature with a weapon in hand hits with the
@@ -211,6 +211,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   on the turn after it picks one up, rather than in the same turn.
 * Creatures recover one hit point every ten turns. A creature that ran away comes back healed
   enough to fight again.
+* Orcs and orc archers are medium-sized, the same as the character. An orc seen only as a shape
+  draws as a medium shape, and the armor an orc carries fits the character.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.

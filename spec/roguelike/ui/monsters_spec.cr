@@ -79,9 +79,9 @@ Spectator.describe "monsters on the screen" do
       expect(run.row(1)[7]).to eq Roguelike::Size::Small.glyph
     end
 
-    it "draws a large creature as a larger shape than a small one" do
-      expect(Roguelike::Size::Large.glyph).not_to eq Roguelike::Size::Small.glyph
-      expect(Roguelike::Species::Orc.size).to eq Roguelike::Size::Large
+    it "draws an orc as a larger shape than a goblin" do
+      expect(Roguelike::Size::Medium.glyph).not_to eq Roguelike::Size::Small.glyph
+      expect(Roguelike::Species::Orc.size).to eq Roguelike::Size::Medium
       expect(Roguelike::Species::Goblin.size).to eq Roguelike::Size::Small
     end
 

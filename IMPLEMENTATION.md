@@ -3329,17 +3329,17 @@ stands for. The default kinds carry the numbers the three species had before, so
 
 ### The table
 
-| kind | glyph | colour | hit dice | avg | AC | damage | speed | dark | light | weapon | depths | alone | xp |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| white slime | `j` | `#EEEEEE` | 2d4+1 | 6 | 0 | 1d4 | 80 | no | 0 | none | 1-3 | no | 3 |
-| blue slime | `j` | `#5CB8FF` | 2d6+4 | 11 | 0 | 1d4 | 80 | no | 0 | none | 1-4 | no | 5 |
-| red slime | `j` | `#FF5C5C` | 2d4+1 | 6 | 0 | 1d8 | 80 | no | 0 | none | 2-5 | no | 6 |
-| green slime | `j` | `#5CF05C` | 2d6+2 | 9 | 0 | 2d6 | 80 | no | 0 | none | 3-5 | no | 10 |
-| goblin scout | `g` | `#FFE040` | 2d4+2 | 7 | 0 | 1d4 | 110 | no | 40 | dagger | 1-2 | yes | 5 |
-| goblin warrior | `g` | `#A8E040` | 2d4+4 | 9 | 2 | 1d6 | 100 | no | 25 | short sword | 2-4 | no | 7 |
-| goblin shaman | `g` | `#FF70FF` | 2d4+2 | 7 | 1 | 1d3 | 100 | no | 50 | none | 3-5 | no | 12 |
-| orc | `o` | `#FF6850` | 2d6+7 | 14 | 4 | 1d8 | 95 | yes | 20 | 90% drawn | 3-5 | no | 14 |
-| orc archer | `o` | `#60E8E8` | 2d6+4 | 11 | 3 | 1d6 | 95 | yes | 10 | none yet | 4-5 | no | 16 |
+| kind | glyph | colour | size | hit dice | avg | AC | damage | speed | dark | light | weapon | depths | alone | xp |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| white slime | `j` | `#EEEEEE` | medium | 2d4+1 | 6 | 0 | 1d4 | 80 | no | 0 | none | 1-3 | no | 3 |
+| blue slime | `j` | `#5CB8FF` | medium | 2d6+4 | 11 | 0 | 1d4 | 80 | no | 0 | none | 1-4 | no | 5 |
+| red slime | `j` | `#FF5C5C` | medium | 2d4+1 | 6 | 0 | 1d8 | 80 | no | 0 | none | 2-5 | no | 6 |
+| green slime | `j` | `#5CF05C` | medium | 2d6+2 | 9 | 0 | 2d6 | 80 | no | 0 | none | 3-5 | no | 10 |
+| goblin scout | `g` | `#FFE040` | small | 2d4+2 | 7 | 0 | 1d4 | 110 | no | 40 | dagger | 1-2 | yes | 5 |
+| goblin warrior | `g` | `#A8E040` | small | 2d4+4 | 9 | 2 | 1d6 | 100 | no | 25 | short sword | 2-4 | no | 7 |
+| goblin shaman | `g` | `#FF70FF` | small | 2d4+2 | 7 | 1 | 1d3 | 100 | no | 50 | none | 3-5 | no | 12 |
+| orc | `o` | `#FF6850` | medium | 2d6+7 | 14 | 4 | 1d8 | 95 | yes | 20 | 90% drawn | 3-5 | no | 14 |
+| orc archer | `o` | `#60E8E8` | medium | 2d6+4 | 11 | 3 | 1d6 | 95 | yes | 10 | none yet | 4-5 | no | 16 |
 
 AC is the hide before the dexterity modifier. Light is the chance, out of a hundred, of carrying a
 lit torch or candle. The spawn weights are 40, 20, 20 and 15 for the slimes, 30, 45 and 15 for the
@@ -3814,9 +3814,9 @@ at 120 with a modifier of +2 is 5.42, and a dagger at 75 is 6.0.
 * `Item` has a size. It is `nil` in the object for medium and for anything that is not armor, so a
   save holds the field only on small and large armor. An item written before sizes loads as medium.
 * `Item#fits?(size)` is true for anything that is not armor, and for armor of that size.
-* `Size` is the creature size the silhouettes already use. Goblins are small, the character is
-  medium (`Player::SIZE`), and orcs are large. Orcs are large in `Kinds::FACTS`, so the armor an orc
-  starts with or picks up is large. Neither the character nor a goblin can wear it.
+* `Size` is the creature size the silhouettes already use. Goblins are small, and the character
+  (`Player::SIZE`) and orcs are medium. The armor an orc starts with or picks up is medium, so the
+  character can wear it, and an orc and the character want the same armor.
 * `Game#wear` refuses armor of another size: "You cannot wear small leather armor, which was made
   for somebody smaller." `Event::Refused` carries `wrong_size`. `Game#legal` offers no wear for it.
 * `Lore#name` puts the size before the kind when it is not medium: "a small cap", "large chain

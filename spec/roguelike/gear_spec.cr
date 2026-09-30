@@ -112,7 +112,7 @@ Spectator.describe "what a monster wields and wears" do
     it "raises its armor class by the armor's bonus" do
       orc = Monster.new Kind::Orc, 3, 1, "band-one"
       bare = orc.armor_class
-      orc.ready Item.new(ItemKind::ChainMail, 5, size: Size::Large)
+      orc.ready Item.new(ItemKind::ChainMail, 5)
 
       expect(orc.armor_class).to eq bare + 9
     end
@@ -122,7 +122,8 @@ Spectator.describe "what a monster wields and wears" do
       goblin = Monster.new Kind::GoblinWarrior, 3, 1, "band-one"
       medium = Item.new ItemKind::ChainMail
 
-      expect(orc.slot_for medium).to be_nil
+      expect(orc.slot_for medium).to eq Slot::Body
+      expect(orc.slot_for Item.new(ItemKind::ChainMail, size: Size::Large)).to be_nil
       expect(goblin.slot_for medium).to be_nil
       expect(goblin.slot_for Item.new(ItemKind::ChainMail, size: Size::Small)).to eq Slot::Body
     end
@@ -146,7 +147,7 @@ Spectator.describe "what a monster wields and wears" do
                                         "which was made for somebody smaller."
     end
 
-    it "refuses armor cut for an orc and says why" do
+    it "refuses armor cut for somebody larger and says why" do
       game, letter = wearing Size::Large
 
       expect(game.wear letter).to be_false
@@ -291,7 +292,7 @@ Spectator.describe "what a monster wields and wears" do
       1.upto(200) do |index|
         items = Loot.for Kind::Orc, Rng.new(GEAR_SEED).derive("orc", index), 5
         items.select(&.kind.item_class.armor?).each do |item|
-          expect(item.size).to eq Size::Large
+          expect(item.size).to eq Size::Medium
         end
       end
     end
