@@ -179,7 +179,8 @@ module Roguelike
     attributes : Attributes,
     persistence : Int32,
     size : Size = Size::Medium,
-    speed : Int32 = Pace::NORMAL
+    speed : Int32 = Pace::NORMAL,
+    opens_doors : Bool = false
 
   # How big a creature is.
   #
@@ -315,6 +316,15 @@ module Roguelike
       facts.paths
     end
 
+    # Whether one opens a shut door by walking into it.
+    #
+    # Opening takes its turn, the same as it does for the character, and it
+    # steps through on the next. A band whose members open doors paths
+    # through a door it remembers as shut.
+    def opens_doors? : Bool
+      facts.opens_doors
+    end
+
     # What killing one is worth.
     def experience : Int32
       facts.experience
@@ -393,7 +403,7 @@ module Roguelike
         "a small green thing with a large knife",
         hit_points: 9, damage: Dice.new(1, 6), armor: 2,
         notice: 8, darkvision: false, paths: true, experience: 7,
-        size: Size::Small, persistence: 6,
+        size: Size::Small, persistence: 6, opens_doors: true,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 7, stealth: 13)),
 
@@ -401,7 +411,7 @@ module Roguelike
         "a heavy gray brute with a notched blade",
         hit_points: 14, damage: Dice.new(1, 8), armor: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
-        size: Size::Large, persistence: 30, speed: 95,
+        size: Size::Large, persistence: 30, speed: 95, opens_doors: true,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 10, stealth: 8)),
     }

@@ -76,6 +76,40 @@ Spectator.describe "creatures and doors" do
     game.apply Apply.aimed(spikes(game), *DOOR)
   end
 
+  describe "a goblin behind a shut door" do
+    it "opens it and comes on" do
+      game, creature = rooms
+
+      8.times { game.wait }
+
+      expect(game.floor.terrain(*DOOR)).to eq Terrain::OpenDoor
+      expect(Notice.touching? creature.at, game.player.at).to be_true
+      expect(game.log.lines.any? &.includes?("opens the door")).to be_true
+    end
+
+    it "spends a turn opening it" do
+      game, creature = rooms at: {5, 1}
+
+      game.wait
+      expect(game.floor.terrain(*DOOR)).to eq Terrain::OpenDoor
+      expect(creature.at).to eq({5, 1})
+
+      game.wait
+      expect(creature.at).to eq DOOR
+    end
+  end
+
+  describe "a slime behind a shut door" do
+    it "stays behind it" do
+      game, creature = rooms Species::Slime
+
+      12.times { game.wait }
+
+      expect(game.floor.terrain(*DOOR)).to eq Terrain::ClosedDoor
+      expect(creature.x).to be > DOOR[0]
+    end
+  end
+
   describe "a spiked door" do
     it "takes a spike out of the pack" do
       game, _ = rooms
@@ -91,6 +125,17 @@ Spectator.describe "creatures and doors" do
       expect(game.appliable).to contain Apply.aimed(spikes(game), *DOOR)
       spiked game
       expect(game.appliable.none? &.aimed?).to be_true
+    end
+
+    it "stops a goblin on the far side" do
+      game, creature = rooms
+      spiked game
+
+      20.times { game.wait }
+
+      expect(game.floor.terrain(*DOOR)).to eq Terrain::ClosedDoor
+      expect(creature.x).to be > DOOR[0]
+      expect(knowledge(game, creature).barred?(*DOOR)).to be_true
     end
 
     it "opens from the near side and gives the spike back" do
@@ -126,6 +171,16 @@ Spectator.describe "creatures and doors" do
         action.is_a?(Roguelike::Action::Move) && action.dir == Direction::West
       end).to be_false
     end
+
+    it "opens for a goblin on the spiked side, and the spike drops" do
+      game, _ = rooms at: {3, 1}, hero: {8, 3}
+      game.floor.drive_spike DOOR[0], DOOR[1], Direction::West, Item.new(ItemKind::Spike)
+
+      game.wait
+
+      expect(game.floor.terrain(*DOOR)).to eq Terrain::OpenDoor
+      expect(game.floor.spiked?(*DOOR)).to be_false
+    end
   end
 
   describe "saving" do
@@ -152,6 +207,16 @@ Spectator.describe "creatures and doors" do
 
       expect(again[*DOOR].try &.spiked?).to be_true
       expect(again).to eq game.player.knowledge
+    end
+
+    it "round-trips a door a band found barred" do
+      game, creature = rooms
+      spiked game
+      20.times { game.wait }
+
+      again = Knowledge.from_json knowledge(game, creature).to_json
+
+      expect(again.barred?(*DOOR)).to be_true
     end
 
     it "writes nothing about spikes when there are none" do

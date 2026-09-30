@@ -113,6 +113,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Goblins and orcs open shut doors. Walking into one opens it and takes the creature's turn, and it
+  steps through on the next. A band of them paths through doors it remembers as shut. Slimes do
+  not open doors. A creature that finds a door spiked against it stops trying that door. The
+  character is told when they see a door opened.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.

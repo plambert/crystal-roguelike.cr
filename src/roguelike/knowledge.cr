@@ -239,7 +239,8 @@ module Roguelike
     #
     # A door known to be spiked against whoever holds this is not crossed.
     #
-    # `#walkable?` is the answer for a band. A band does not open doors.
+    # A band whose members open doors paths with this. One whose members do
+    # not paths with `#walkable?`.
     def crossable?(x : Int32, y : Int32) : Bool
       found = self[x, y]
       if found

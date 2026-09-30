@@ -11,8 +11,8 @@ module Roguelike
   #
   # It is built over what somebody believes rather than over the floor. A
   # square nobody has looked at is not in it, so a band does not walk a
-  # shortcut it has never found, and one that remembers a door as shut does
-  # not path through it.
+  # shortcut it has never found. One that remembers a door as shut paths
+  # through it only when its members open doors.
   #
   # This is derived rather than stored. It is built again whenever the goal
   # moves or the band learns something, and it is not in a save file.
@@ -39,9 +39,10 @@ module Roguelike
     # The goal square goes in whatever is remembered of it, so a creature
     # walks to where it believes the character is standing.
     #
-    # *doors* crosses a door remembered as shut. A route the person picked
-    # does that, because the character opens any door they can reach. A band
-    # does not, so the default leaves a shut door in the way.
+    # *doors* crosses a door remembered as shut, unless it is known to be
+    # spiked against whoever holds *knowledge*. A route the person picked
+    # does that, and so does a band whose members open doors. The default
+    # leaves a shut door in the way.
     def self.toward(knowledge : Knowledge, goal : {Int32, Int32},
                     limit : Int32 = LIMIT, doors : Bool = false) : Descent
       steps = {goal => 0}

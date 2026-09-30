@@ -1478,6 +1478,7 @@ module Roguelike
     # what it is after and has no use for a map.
     private def descents : Hash(String, Descent)
       maps = {} of String => Descent
+      openers = door_openers
 
       floor.each_band do |band|
         next unless band.awake?
@@ -1485,10 +1486,26 @@ module Roguelike
         quarry = band.knowledge(floor.id).sighting(Knowledge::PLAYER)
         next unless quarry
 
-        maps[band.id] = Descent.toward band.knowledge(floor.id), quarry.at
+        maps[band.id] = Descent.toward band.knowledge(floor.id), quarry.at,
+          doors: openers.includes?(band.id)
       end
 
       maps
+    end
+
+    # Every band on this floor whose members all open doors.
+    #
+    # Such a band paths through a door it remembers as shut. A band with one
+    # member that cannot would leave it behind at the first door.
+    private def door_openers : Set(String)
+      opens = Set(String).new
+      cannot = Set(String).new
+
+      floor.each_monster do |_column, _row, creature|
+        (creature.species.opens_doors? ? opens : cannot) << creature.band
+      end
+
+      opens - cannot
     end
 
     # What *creature* has decided to do.
@@ -1555,12 +1572,48 @@ module Roguelike
     end
 
     # Moves *creature* onto *wanted*, when nothing is in the way.
+    #
+    # A shut door in the way is tried instead. Opening it is the action, and
+    # the creature steps through on its next.
     private def walk_creature(creature : Monster, wanted : {Int32, Int32}) : Nil
+      return creature_opens creature, wanted if shut_door? wanted
       return unless floor.passable? wanted[0], wanted[1]
       return if floor.monster? wanted[0], wanted[1]
       return if @player.at? wanted[0], wanted[1]
 
       floor.walk creature.at, wanted
+    end
+
+    # *creature* tries the shut door on *spot*.
+    #
+    # A species that does not open doors does nothing. A door spiked against
+    # it stays shut, and its band stops pathing through that door. One
+    # spiked from its own side opens, and the spike drops at its feet.
+    #
+    # The character is told when they can see the door. The creature is
+    # named when they can see it as well.
+    private def creature_opens(creature : Monster, spot : {Int32, Int32}) : Nil
+      return unless creature.species.opens_doors?
+
+      knowledge = floor.band(creature.band).try &.knowledge(floor.id)
+      if floor.spiked_against? spot, creature.at
+        knowledge.try &.bar(spot[0], spot[1])
+        return
+      end
+
+      held = floor.pull_spike spot[0], spot[1]
+      floor.drop creature.x, creature.y, held.item if held
+      floor.set spot[0], spot[1], Terrain::OpenDoor
+      knowledge.try &.touch(floor, spot[0], spot[1], @turn)
+
+      return unless can_see? spot[0], spot[1]
+
+      if can_see_creature? creature.x, creature.y
+        say "The #{creature.label} opens the door.",
+          Event::Door.new(spot, open: true, by: creature.id)
+      else
+        say "The door swings open.", Event::Door.new(spot, open: true, unseen: true)
+      end
     end
 
     # Whether the band *creature* belongs to has noticed the character.
