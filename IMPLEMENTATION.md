@@ -2933,6 +2933,9 @@ out saves under one percent.
   `--no-generate` and every spec written against the shipped floor keep working.
 * The first row of the sidebar reads `D2 Lv 1`. The rule under the map names the floor: `Floor 2`,
   or `The amulet chamber`. A floor outside the numbering gets no name.
+* `Observation` carries `depth` beside `floor`, so a reader of an export does not parse the floor
+  id. It is `nil` for a floor outside the numbering and the key is left out. The export format is 2.
+  A format 1 observation has no depth and reads back with `nil`.
 
 ### Determinism
 
@@ -3063,8 +3066,6 @@ into a weaker scout on floors 1 and 2 and the current goblin from floor 2.
 
 * Creatures following the character up or down a staircase.
 * Floor themes: terrain, inhabitants and loot chosen together per floor.
-* `Observation` names the floor by id and carries no depth. The bot repo reads the depth from the
-  id until the observation grows a field.
 * The trial bot explores badly, so the deepest-floor numbers are a floor for comparison between
   builds rather than a measure of the game.
 

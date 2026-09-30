@@ -494,6 +494,11 @@ module Roguelike
     # Which floor the character is on.
     getter floor : String
 
+    # How deep that floor is. `nil` for a floor outside the dungeon's
+    # numbering, such as the proving ground, and the key is then left out.
+    # An observation written before this field existed reads back as `nil`.
+    getter depth : Int32? = nil
+
     # The character.
     getter player : Character
 
@@ -545,7 +550,7 @@ module Roguelike
                    @map : Grid, @visible : Grid, @inventory : Array(Seen),
                    @monsters : Array(Creature), @items : Array(Seen),
                    @remembered_items : Array(Seen),
-                   @fixtures : Array(Fitting))
+                   @fixtures : Array(Fitting), @depth : Int32? = nil)
     end
 
     # What the character knows about *game* now.
@@ -576,6 +581,7 @@ module Roguelike
 
       new turn: game.turn,
         floor: ground.id,
+        depth: World.depth(ground.id),
         player: Character.of(game.player),
         map: Grid.new(ground.columns, ground.rows,
           known.to_map(ground, UNKNOWN)),

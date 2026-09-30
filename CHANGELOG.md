@@ -128,6 +128,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   +2.
 * A save written before there were several floors loads as floor 1 of its run.
 * The character starts with a potion of healing, and knows what it is.
+* `replay export` writes format 2. Each observation carries the depth of the floor the character
+  is on, and leaves it out on a floor outside the dungeon's numbering. An observation without it
+  reads back with no depth.
 * Climbing up from floor 2 or deeper asks nothing. Climbing up from floor 1 still asks before the
   character leaves the dungeon.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
