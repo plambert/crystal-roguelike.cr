@@ -103,5 +103,23 @@ module Roguelike
 
       Blow.new roll, bonus, against, true, Math.max(damage.roll(rng), LEAST)
     end
+
+    # What a shooter adds to a shot from *weapon* with *ammunition*.
+    #
+    # *modifier* is the shooter's dexterity modifier. What each of the two
+    # adds goes on top. A masterwork bow and a bent arrow both count, and so
+    # does a blessing on either. The character and a monster aim alike.
+    def self.aim(modifier : Int32, weapon : Item, ammunition : Item) : Int32
+      modifier + weapon.aim + ammunition.aim
+    end
+
+    # What a shot of *ammunition* from *weapon* hits for.
+    #
+    # The ammunition's dice, which already carry its own enchantment and its
+    # condition, plus the weapon's enchantment and condition. Strength adds
+    # nothing. The bow throws the arrow, not the arm.
+    def self.shot(weapon : Item, ammunition : Item) : Dice
+      ammunition.damage.with_bonus weapon.enchantment + weapon.condition.modifier
+    end
   end
 end

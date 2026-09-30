@@ -203,8 +203,7 @@ module Roguelike
     # The dexterity modifier, plus what each of the two adds. A masterwork
     # bow and a bent arrow both count, and so does a blessing on either.
     def to_shoot(weapon : Item, ammunition : Item) : Int32
-      @attributes.modifier(Attributes::Which::Dexterity) +
-        weapon.aim + ammunition.aim
+      Combat.aim @attributes.modifier(Attributes::Which::Dexterity), weapon, ammunition
     end
 
     # What a shot of *ammunition* from *weapon* hits for.
@@ -213,7 +212,7 @@ module Roguelike
     # condition, plus the weapon's enchantment and condition. Strength adds
     # nothing. The bow throws the arrow, not the arm.
     def shot_damage(weapon : Item, ammunition : Item) : Dice
-      ammunition.damage.with_bonus weapon.enchantment + weapon.condition.modifier
+      Combat.shot weapon, ammunition
     end
 
     # What the character adds to a throw of *item*.

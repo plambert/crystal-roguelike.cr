@@ -67,8 +67,8 @@ module Roguelike
     # What it is carrying.
     #
     # `Loot` rolls this when the floor is made. Everything in it goes on the
-    # square the creature dies on. Nothing else reads it: a monster does not
-    # swing the sword it is holding until a later phase gives it a reason to,
+    # square the creature dies on. A monster shoots the sling or bow in here
+    # and the ammunition for it. It does not swing the sword it is holding,
     # and its armor does not add to what it takes off a blow either.
     #
     # A lit torch in here does throw light. `Game#lights` reads it, which is
@@ -311,6 +311,54 @@ module Roguelike
     # Takes *amount* off its hit points. Answers how many are left.
     def hurt(amount : Int32) : Int32
       @hit_points = Math.max @hit_points - amount, 0
+    end
+
+    # The ranged weapon it carries. `nil` when it carries none.
+    def ranged_weapon : Item?
+      @carrying.find &.kind.item_class.ranged_weapon?
+    end
+
+    # What it has left to shoot from its `#ranged_weapon`. `nil` when it has none.
+    def ammunition : Item?
+      weapon = ranged_weapon
+      return unless weapon
+
+      @carrying.find &.kind.ranged_weapon.==(weapon.kind)
+    end
+
+    # How far it can shoot now. Zero when it has nothing to shoot or nothing
+    # to shoot with.
+    def shooting_reach : Int32
+      return 0 unless ammunition
+
+      ranged_weapon.try(&.kind.reach) || 0
+    end
+
+    # What it adds to a shot from *weapon* with *ammunition*.
+    #
+    # The same sum `Player#to_shoot` makes, from this creature's dexterity.
+    def to_shoot(weapon : Item, ammunition : Item) : Int32
+      Combat.aim @attributes.modifier(Attributes::Which::Dexterity), weapon, ammunition
+    end
+
+    # Takes one piece of its ammunition out of the stack. *id* numbers the
+    # piece when the stack holds more than one.
+    #
+    # The last piece leaves the stack as it is, id and all.
+    def draw_shot(id : Int32) : Item?
+      held = ammunition
+      return unless held
+
+      index = @carrying.index &.same?(held)
+      return unless index
+
+      if held.count <= 1
+        @carrying.delete_at index
+        return held
+      end
+
+      @carrying[index] = held.add -1
+      held.with_count 1, id
     end
 
     # Gives it *items* to carry, on top of whatever it already had.

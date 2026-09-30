@@ -125,7 +125,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   points and chills what it touches. A red slime scalds for more damage, and a green slime eats at
   its target for the most. Goblins are scouts, warriors and shamans. A scout is quick, carries a
   dagger, has poor armor and always appears alone. A shaman fights weakly and heals a hurt goblin
-  beside it for 1d4 once every few turns. Orcs are orcs and orc archers. An archer has no bow yet.
+  beside it for 1d4 once every few turns. Orcs are orcs and orc archers.
 * Every kind of a species shares its letter and has a colour of its own. The examine pane, the
   sidebar and the message log name the kind.
 * Each kind has the depths it appears at. Red slimes and goblin warriors appear from floor 2, green
@@ -138,6 +138,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   door.
 * `--trial-doors` plays `--trial` with a bot that shuts each door behind it. It combines with
   `--trial-cautious`.
+* Goblin scouts carry a sling and 2d4 stones. Orc archers carry a bow and 3d6 arrows, which are
+  sometimes +1 on floors 3 and deeper. A creature with something to shoot and a clear line to the
+  character stays three to six squares away and shoots. It backs off when the character comes
+  within two squares and it has room. Out of ammunition it closes in and fights hand to hand. A
+  shot rolls to hit and for damage the way the character's shots do.
+* The message log says what shot at the character and from which direction. A shooter the
+  character cannot see is "something".
+* A shot that hits lands at the character's feet. One that misses lands up to two squares past
+  them. Either can be picked up.
 
 ### Changed
 
