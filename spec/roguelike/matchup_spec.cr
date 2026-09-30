@@ -91,8 +91,8 @@ Spectator.describe Roguelike::Trial::Matchup do
     it "has a row for every kind and a column for every kit" do
       table = Matchup.play 5
 
-      expect(table.opponents).to eq Kind.values
-      expect(table.cells.size).to eq Kind.values.size
+      expect(table.opponents.map(&.kind).first(Kind.values.size)).to eq Kind.values
+      expect(table.cells.size).to eq Kind.values.size + Matchup::BANDS.size
       expect(table.cells.map(&.size).uniq!).to eq [Matchup::KITS.size]
     end
 
@@ -105,6 +105,18 @@ Spectator.describe Roguelike::Trial::Matchup do
 
       Kind.values.each { |kind| expect(text).to contain kind.label }
       Matchup::KITS.each { |kit| expect(text).to contain kit.heading }
+    end
+  end
+
+  describe "a band" do
+    it "has a row for three ants that is harder than one" do
+      kit = Matchup::KITS.first
+      one = Matchup.cell kit, Kind::Ant, 200
+      three = Matchup.cell kit, Matchup::Opponent.new(Kind::Ant, 3), 200
+
+      expect(Matchup.opponents.map(&.label)).to contain "3 giant ants"
+      expect(three.win_rate).to be < one.win_rate
+      expect(three.mean_damage).to be > one.mean_damage
     end
   end
 end

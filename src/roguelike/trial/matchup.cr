@@ -9,6 +9,9 @@ module Roguelike
     # them dies. Nothing else is in the room, so a cell is the two creatures
     # and nothing more: no light, no doors, no retreat and no potion.
     #
+    # A kind that comes in bands has a second row as well, where several of
+    # it stand round the character from the first swing.
+    #
     # The table has a row for each opponent and a column for each kit. A kit
     # is what a character has by the time they reach a given depth. Both
     # axes are read from tables, so a kind or a kit added to either shows
@@ -100,9 +103,33 @@ module Roguelike
       # counts as not won.
       LIMIT = 1000
 
-      # Everyone the character is matched against, one row for each kind.
-      def self.opponents : Array(Kind)
-        Kind.values
+      # What one row of the table fights: *count* creatures of *kind*.
+      record Opponent, kind : Kind, count : Int32 = 1 do
+        # The row heading.
+        def label : String
+          return @kind.label if @count == 1
+
+          "#{@count} #{@kind.plural}"
+        end
+
+        # What its stream is named for.
+        def stream : String
+          return "kind:#{@kind}" if @count == 1
+
+          "kind:#{@kind}x#{@count}"
+        end
+      end
+
+      # The rows with more than one creature in them.
+      #
+      # Three ants is the smallest band the generator places. Surrounding is
+      # what ants do, so the three stand round the character from the start.
+      BANDS = [Opponent.new(Kind::Ant, 3)]
+
+      # Everyone the character is matched against: one row for each kind,
+      # then each of `BANDS`.
+      def self.opponents : Array(Opponent)
+        Kind.values.map { |kind| Opponent.new kind } + BANDS
       end
 
       # How one fight came out.
@@ -144,32 +171,45 @@ module Roguelike
       # The monster rolls its hit points from its kind's hit dice, as one the
       # generator places does. Turns are ticks of the world, counting the one
       # the fight ends in.
-      def self.fight(kit : Kit, kind : Kind, rng : Rng) : Result
+      #
+      # Against a band the character swings at one creature until it dies
+      # and then the next. Every creature left swings in turn. They stand in
+      # opposite pairs, so while two or more are alive each member of a pair
+      # adds `Combat::FLANKING`, and an odd one out does not.
+      def self.fight(kit : Kit, opponent : Opponent, rng : Rng) : Result
         player = kit.character
-        health = kind.hit_dice.roll rng
-        monster = Monster.new kind, 1, 0, "matchup",
-          hit_points: health, max_hit_points: health
+        kind = opponent.kind
+        band = Array.new opponent.count do
+          health = kind.hit_dice.roll rng
+          Monster.new kind, 1, 0, "matchup", hit_points: health, max_hit_points: health
+        end
         start = player.hit_points
         swing = Costs.swing player.wielded
         ticks = 0
 
         while ticks < LIMIT
-          blow = Combat.swing rng, player.to_hit, monster.armor_class, player.damage
-          monster.hurt blow.damage if blow.hit?
-          return Result.new true, ticks + 1, start - player.hit_points unless monster.alive?
+          target = band.first
+          blow = Combat.swing rng, player.to_hit, target.armor_class, player.damage
+          target.hurt blow.damage if blow.hit?
+          band.shift unless target.alive?
+          return Result.new true, ticks + 1, start - player.hit_points if band.empty?
 
           player.pace.spend swing
 
           until player.pace.ready?
-            while monster.pace.ready?
-              monster.pace.spend kind.swing
-              blow = Combat.swing rng, monster.to_hit, player.armor_class, monster.damage
-              player.hurt blow.damage if blow.hit?
-              return Result.new false, ticks + 1, start - player.hit_points unless player.alive?
+            paired = band.size // 2 * 2
+            band.each_with_index do |monster, index|
+              bonus = index < paired ? Combat::FLANKING : 0
+              while monster.pace.ready?
+                monster.pace.spend kind.swing
+                blow = Combat.swing rng, monster.to_hit + bonus, player.armor_class, monster.damage
+                player.hurt blow.damage if blow.hit?
+                return Result.new false, ticks + 1, start - player.hit_points unless player.alive?
+              end
             end
 
             player.pace.gain
-            monster.pace.gain
+            band.each &.pace.gain
             ticks += 1
           end
         end
@@ -177,20 +217,31 @@ module Roguelike
         Result.new false, ticks, start - player.hit_points
       end
 
+      # :ditto: One creature of *kind*.
+      def self.fight(kit : Kit, kind : Kind, rng : Rng) : Result
+        fight kit, Opponent.new(kind), rng
+      end
+
       # The stream the fights of one cell roll on.
-      def self.stream(seed : UInt64, kit : Kit, kind : Kind) : Rng
+      def self.stream(seed : UInt64, kit : Kit, opponent : Opponent) : Rng
         Rng.new(seed).derive("matchup").derive("kit:#{kit.depth}")
-          .derive("kind:#{kind}")
+          .derive(opponent.stream)
       end
 
       # Plays *fights* fights of *kit* against *kind* and sums them.
       def self.cell(kit : Kit, kind : Kind, fights : Int32 = FIGHTS,
                     seed : UInt64 = FIRST) : Cell
-        rng = stream seed, kit, kind
+        cell kit, Opponent.new(kind), fights, seed
+      end
+
+      # :ditto: Against *opponent*.
+      def self.cell(kit : Kit, opponent : Opponent, fights : Int32 = FIGHTS,
+                    seed : UInt64 = FIRST) : Cell
+        rng = stream seed, kit, opponent
         wins = turns = damage = 0
 
         fights.times do |index|
-          result = fight kit, kind, rng.derive("fight", index)
+          result = fight kit, opponent, rng.derive("fight", index)
           wins += 1 if result.won
           turns += result.turns
           damage += result.damage
@@ -202,16 +253,16 @@ module Roguelike
       # Every cell, from *seed*.
       def self.play(fights : Int32 = FIGHTS, seed : UInt64 = FIRST,
                     kits : Array(Kit) = KITS,
-                    opponents : Array(Kind) = self.opponents) : Table
-        cells = opponents.map do |kind|
-          kits.map { |kit| cell kit, kind, fights, seed }
+                    opponents : Array(Opponent) = self.opponents) : Table
+        cells = opponents.map do |opponent|
+          kits.map { |kit| cell kit, opponent, fights, seed }
         end
 
         Table.new opponents, kits, cells, fights, seed
       end
 
       # The cells of a matchup, with the axes they sit on.
-      record Table, opponents : Array(Kind), kits : Array(Kit),
+      record Table, opponents : Array(Opponent), kits : Array(Kit),
         cells : Array(Array(Cell)), fights : Int32, seed : UInt64 do
         # The cell for row *row* and column *column*.
         def [](row : Int32, column : Int32) : Cell
@@ -247,8 +298,8 @@ module Roguelike
           @kits.each { |kit| io << kit.heading.rjust(8) }
           io << '\n'
 
-          @opponents.each_with_index do |kind, row|
-            io << "  " << kind.label.ljust(label)
+          @opponents.each_with_index do |opponent, row|
+            io << "  " << opponent.label.ljust(label)
             @kits.each_index { |column| io << (yield self[row, column]).rjust(8) }
             io << '\n'
           end
