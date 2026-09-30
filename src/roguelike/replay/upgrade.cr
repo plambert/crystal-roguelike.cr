@@ -95,18 +95,20 @@ module Roguelike
       #
       # `--replay-every` sets it, so a file recorded with something other
       # than the default keeps the spacing it was recorded with and its
-      # checkpoints land on the turns they landed on before. The smallest
-      # gap is the setting: a larger one is a turn that jumped. A file with
-      # fewer than two checkpoints says nothing about it, and the setting in
-      # force is used.
+      # checkpoints land on the turns they landed on before. The commonest
+      # gap is the setting, the smaller on a tie. An action that takes
+      # several turns can run past a checkpoint's turn, and that leaves one
+      # gap longer and the next one shorter. A file with fewer than two
+      # checkpoints says nothing about it, and the setting in force is used.
       def self.every_of(read : Reading) : Int32
         turns = read.records.compact_map { |record| record.as?(Check).try &.turn }
         return Log.every if turns.size < 2
 
-        gaps = turns.each_cons_pair.select { |first, second| second > first }
-        found = gaps.min_of? { |first, second| second - first }
+        gaps = [] of Int32
+        turns.each_cons_pair { |first, second| gaps << second - first if second > first }
+        return Log.every if gaps.empty?
 
-        found || Log.every
+        gaps.tally.max_by { |gap, many| {many, -gap} }[0]
       end
     end
   end
