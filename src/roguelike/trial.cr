@@ -103,6 +103,17 @@ module Roguelike
     # How many turns one run is given before it is stopped.
     TURNS = 1500
 
+    # What the starting weapon hits for, a blow and every hundred energy.
+    def self.kit(seed : UInt64 = FIRST) : String
+      player = Game.dug(Rng.new(seed)).player
+      cost = Costs.swing player.wielded
+      average = player.damage.average
+
+      "starting kit hits for #{average.round(2)} a blow, " \
+      "#{(average * Pace::TICK / cost).round(2)} per #{Pace::TICK} energy " \
+      "(swing #{cost})"
+    end
+
     # Plays *runs* games from *first* and answers how they went.
     #
     # *cautious* plays the bot that backs away when it is badly hurt rather

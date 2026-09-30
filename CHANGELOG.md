@@ -117,6 +117,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   100. A recorded run that fought with a dagger, a long sword, a bow or an orc no longer verifies.
 * An item's description gives its speed as a word and a number, such as `swing quick (75)` for a
   dagger and `swing slow (120)` for a long sword.
+* `--trial` prints what the starting weapon hits for in a blow and in every hundred energy.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.
