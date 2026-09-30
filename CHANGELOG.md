@@ -10,6 +10,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Creatures fight each other. Goblins and orcs are hostile to each other and to slimes, and slimes
+  are hostile to everything, other slime bands included. A band notices a hostile creature by the
+  same rule it notices the character, wakes, and goes after the nearest hostile it knows of. It
+  prefers the character at an equal distance. The character sees "The orc hits the goblin warrior
+  for 4." only when they can make out both creatures. A creature killed by another drops what it
+  carried and gives the character no experience.
+* `--trial` reports how many creatures other creatures killed.
 * `--matchup` prints who beats whom and stops. Each kind of creature fights a character of each of
   five kits, one per depth, in an empty room. The tables give the win rate, the mean turns to a
   decision and the mean hit points the character lost. `--matchup-fights N` sets the fights in a

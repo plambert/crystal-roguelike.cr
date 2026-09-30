@@ -67,13 +67,16 @@ module Roguelike
     #
     # There is no `Floor` here and no `Player`. What an AI knows about the
     # shape of the floor is `knowledge`, which is its band's belief, and what
-    # it knows about where the character is is `quarry`, which is where the
-    # band last saw them. Neither is necessarily what is on the floor now.
+    # it is after is `quarry`, which is where the band last saw it. Neither
+    # is necessarily what is on the floor now.
     #
     # `blocked` is the only field here that is not belief.
     #
     # `stumble` says this creature is about to put a foot wrong. `Game` rolls
     # it, because nothing here rolls anything.
+    #
+    # `foes` is where the band saw every other hostile within the last
+    # `FRESH` turns, the character first.
     record Snapshot,
       at : {Int32, Int32},
       knowledge : Knowledge,
@@ -81,7 +84,8 @@ module Roguelike
       stale : Int32 = 0,
       descent : Descent? = nil,
       blocked : Set({Int32, Int32}) = Descent::EMPTY,
-      stumble : Bool = false
+      stumble : Bool = false,
+      foes : Array({Int32, Int32}) = [] of {Int32, Int32}
 
     # How many turns old a sighting may be and still be worth swinging at.
     #
@@ -94,17 +98,22 @@ module Roguelike
 
     # What the creature *snapshot* describes does this turn.
     #
-    # It swings when the character is one square away and it knew where they
-    # were within the last `FRESH` turns. It walks toward where it last saw
-    # them otherwise. It waits when it has never seen them, when it is
-    # standing on the square it last saw them, and when there is nowhere to
-    # go.
+    # It swings when its quarry is one square away and it knew where the
+    # quarry was within the last `FRESH` turns. It swings at another foe one
+    # square away when the quarry is not. It walks toward where it last saw
+    # the quarry otherwise. It waits when it has never seen one, when it is
+    # standing on the square it last saw it, and when there is nowhere to go.
     def self.decide(snapshot : Snapshot) : Action
       quarry = snapshot.quarry
       return Action.wait unless quarry
 
       beside = beside snapshot.at, quarry
       return Action.strike(beside) if beside && snapshot.stale <= FRESH
+
+      snapshot.foes.each do |foe|
+        near = beside snapshot.at, foe
+        return Action.strike(near) if near
+      end
       return Action.wait if snapshot.at == quarry
 
       hemmed = hemmed? snapshot
