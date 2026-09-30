@@ -123,6 +123,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * An item's description gives its speed as a word and a number, such as `swing quick (75)` for a
   dagger and `swing slow (120)` for a long sword.
 * `--trial` prints what the starting weapon hits for in a blow and in every hundred energy.
+* A creature whose way to the character is taken by another creature steps to a square the same
+  distance off rather than waiting, so members of a group come at the character from several sides
+  instead of queuing behind each other. One that has waited on another for two turns in a row
+  treats that creature's square as solid for the next twenty turns and walks round it by another
+  route when there is one.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.

@@ -27,20 +27,29 @@ module Roguelike
     # An `Action` changes nothing. `Pursuit.decide` answers one and `Game`
     # applies it, checking it against the floor. A creature that decides to
     # walk into a wall walks nowhere.
-    record Action, intent : Intent, direction : Direction? = nil do
-      # Stay put.
-      def self.wait : Action
-        new Intent::Wait
+    #
+    # `hemmed` says every square nearer the quarry was taken by another
+    # creature. `Game` counts how many turns in a row that has held.
+    record Action, intent : Intent, direction : Direction? = nil,
+      hemmed : Bool = false do
+      # Stay put. *hemmed* says why.
+      def self.wait(hemmed : Bool = false) : Action
+        new Intent::Wait, hemmed: hemmed
       end
 
       # Walk one square *direction*.
-      def self.step(direction : Direction) : Action
-        new Intent::Step, direction
+      def self.step(direction : Direction, hemmed : Bool = false) : Action
+        new Intent::Step, direction, hemmed
       end
 
       # Swing at the square one step *direction*.
       def self.strike(direction : Direction) : Action
         new Intent::Strike, direction
+      end
+
+      # Whether every nearer square was taken.
+      def hemmed? : Bool
+        @hemmed
       end
 
       # Whether this does nothing at all.
@@ -98,8 +107,26 @@ module Roguelike
       return Action.strike(beside) if beside && snapshot.stale <= FRESH
       return Action.wait if snapshot.at == quarry
 
-      direction = walk snapshot
-      direction ? Action.step(direction) : Action.wait
+      hemmed = hemmed? snapshot
+      direction = walk snapshot, hemmed
+      direction ? Action.step(direction, hemmed) : Action.wait(hemmed)
+    end
+
+    # Whether every square nearer the quarry holds another creature.
+    #
+    # A creature beside the quarry is not hemmed. The character is what
+    # holds that square, and it swings or waits for a fresh sighting.
+    private def self.hemmed?(snapshot : Snapshot) : Bool
+      descent = snapshot.descent
+      return false unless descent
+
+      x, y = snapshot.at
+      return false unless descent.downhill(x, y, snapshot.blocked).empty?
+
+      nearer = descent.downhill x, y
+      return false if nearer.empty?
+
+      nearer.none? { |direction| direction.from(x, y) == descent.goal }
     end
 
     # Which way *quarry* is, when it is one step from *at*. `nil` otherwise.
@@ -113,6 +140,10 @@ module Roguelike
     # A species that paths descends the band's map. One that does not walks
     # straight at the quarry.
     #
+    # A creature whose every nearer square is taken steps to a square as far
+    # from the quarry as it is now, which takes it toward another side of
+    # what it is chasing. It waits when there is none.
+    #
     # A creature that paths but is not on its own map walks straight at the
     # quarry as well. A creature that can see the character is on its map,
     # because seeing them writes down the ground between. One that has not
@@ -124,7 +155,7 @@ module Roguelike
     # off looks like from the other side. There is nowhere sideways to go in a
     # corridor, and a creature there walks on properly: nothing is shaken off
     # in a corridor.
-    private def self.walk(snapshot : Snapshot) : Direction?
+    private def self.walk(snapshot : Snapshot, hemmed : Bool) : Direction?
       descent = snapshot.descent
       if descent
         astray = wrong_foot descent, snapshot
@@ -134,11 +165,20 @@ module Roguelike
           descent.downhill(snapshot.at[0], snapshot.at[1], snapshot.blocked),
           snapshot.at, descent.goal)
         return downhill if downhill
+        return around descent, snapshot if hemmed
       end
 
       return if snapshot.stumble
 
       blunder snapshot
+    end
+
+    # The step to a square as far from the goal as the creature is, or `nil`
+    # when every one is taken.
+    private def self.around(descent : Descent, snapshot : Snapshot) : Direction?
+      Descent.nearest descent.sideways(
+        snapshot.at[0], snapshot.at[1], snapshot.blocked),
+        snapshot.at, descent.goal
     end
 
     # The sideways step a creature that is putting a foot wrong takes, or
@@ -147,9 +187,7 @@ module Roguelike
                                 snapshot : Snapshot) : Direction?
       return unless snapshot.stumble
 
-      Descent.nearest descent.sideways(
-        snapshot.at[0], snapshot.at[1], snapshot.blocked),
-        snapshot.at, descent.goal
+      around descent, snapshot
     end
 
     # The step a creature that does not path takes.

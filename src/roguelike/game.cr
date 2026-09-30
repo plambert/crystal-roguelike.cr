@@ -136,6 +136,14 @@ module Roguelike
     # about as long as the creature would need to close again.
     FIGHT_LASTS = 8
 
+    # How many turns in a row a creature waits on another before it treats
+    # that creature's square as solid and walks round.
+    DETOUR = 2
+
+    # How many turns a creature walking round a blocker goes on treating the
+    # blocker's square as solid.
+    DETOUR_LASTS = 20
+
     # The creature the character last traded blows with.
     #
     # This is not written out. A creature held here would be a second copy of
@@ -1476,7 +1484,9 @@ module Roguelike
           break if over?
           break unless floor.monster? creature.x, creature.y
 
-          creature.pace.spend perform(creature, plan(creature, maps))
+          action = plan creature, maps
+          creature.hem action.hemmed?
+          creature.pace.spend perform(creature, action)
         end
       end
     end
@@ -1513,9 +1523,49 @@ module Roguelike
         knowledge: knowledge,
         quarry: quarry.try(&.at),
         stale: quarry.try(&.age(@turn)) || 0,
-        descent: creature.species.paths? ? maps[creature.band]? : nil,
+        descent: creature.species.paths? ? route(creature, knowledge, quarry, maps) : nil,
         blocked: standing_on_squares(creature),
         stumble: stumbles?(creature))
+    end
+
+    # The map *creature* walks down.
+    #
+    # It is the band's map, until the creature has been hemmed in for
+    # `DETOUR` turns in a row. Then the creatures standing on the nearer
+    # squares beside it are left out of its map for `DETOUR_LASTS` turns, so
+    # it walks round them and does not walk back to them once it has
+    # stepped away. A creature shut in with nowhere to go round goes back to
+    # the band's map.
+    private def route(creature : Monster, knowledge : Knowledge,
+                      quarry : Sighting?,
+                      maps : Hash(String, Descent)) : Descent?
+      shared = maps[creature.band]?
+      return shared unless shared && quarry
+
+      if !creature.detouring? && creature.hemmed >= DETOUR
+        solid = blockers creature, shared
+        creature.detour solid, DETOUR_LASTS unless solid.empty?
+      end
+      return shared unless creature.detouring?
+
+      round = Descent.toward knowledge, quarry.at, avoid: creature.avoiding.to_set
+      creature.detour_turn
+      return round if round[creature.at]
+
+      creature.end_detour
+      shared
+    end
+
+    # The squares beside *creature* that hold another creature and are
+    # nearer the goal of *shared* than it is.
+    private def blockers(creature : Monster, shared : Descent) : Array({Int32, Int32})
+      here = shared[creature.at]
+      return [] of {Int32, Int32} unless here
+
+      standing_on_squares(creature).select do |spot|
+        away = shared[spot]
+        away && away > 0 && away < here
+      end
     end
 
     # Whether *creature* puts a foot wrong this turn.

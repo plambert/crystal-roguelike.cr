@@ -95,6 +95,50 @@ Spectator.describe Roguelike::Monster do
     end
   end
 
+  describe "being hemmed in" do
+    it "counts turns in a row" do
+      3.times { goblin.hem true }
+
+      expect(goblin.hemmed).to eq 3
+    end
+
+    it "clears on a free turn" do
+      3.times { goblin.hem true }
+      goblin.hem false
+
+      expect(goblin.hemmed).to eq 0
+    end
+
+    it "round-trips through JSON" do
+      2.times { goblin.hem true }
+
+      expect(described_class.from_json(goblin.to_json).hemmed).to eq 2
+    end
+
+    it "round-trips a detour through JSON" do
+      goblin.detour [{3, 1}, {4, 2}], 7
+      again = described_class.from_json goblin.to_json
+
+      expect(again.avoiding).to eq [{3, 1}, {4, 2}]
+      expect(again.detour).to eq 7
+    end
+
+    it "ends a detour when its turns run out" do
+      goblin.detour [{3, 1}], 2
+      2.times { goblin.detour_turn }
+
+      expect(goblin.detouring?).to be_false
+      expect(goblin.avoiding).to be_empty
+    end
+
+    it "loads as free from a save that has no count" do
+      found = JSON.parse(goblin.to_json).as_h
+      found.delete "hemmed"
+
+      expect(described_class.from_json(found.to_json).hemmed).to eq 0
+    end
+  end
+
   describe "how a band shares" do
     alias Sharing = Roguelike::Sharing
 

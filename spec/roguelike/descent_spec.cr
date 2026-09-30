@@ -77,6 +77,21 @@ Spectator.describe Roguelike::Descent do
       expect(round).to be > 5
     end
 
+    it "goes round a square it was told to avoid" do
+      floor = Floor.parse "test", ["#######", "#.....#", "#.###.#", "#.....#", "#######"]
+      knowledge = Knowledge.new floor.id
+      floor.each { |column, row, _tile| knowledge.see floor, column, row }
+      solid = Set({Int32, Int32}).new
+      solid << {3, 1}
+
+      plain = Descent.toward knowledge, {1, 1}
+      round = Descent.toward knowledge, {1, 1}, avoid: solid
+
+      expect(plain[5, 1]).to eq 4
+      expect(round[3, 1]).to be_nil
+      expect(round[5, 1]).to eq 6
+    end
+
     it "leaves out what nobody has seen" do
       _floor, knowledge = partial SPLIT, [{1, 1}, {2, 1}, {3, 1}]
       map = Descent.toward knowledge, {1, 1}
