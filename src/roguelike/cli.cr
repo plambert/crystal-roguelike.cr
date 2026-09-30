@@ -68,8 +68,17 @@ module Roguelike
       "Move every species at this speed during --trial. 100 is the character",
       range: 0..300
 
+    # A development tool. Every species against every kit, in an empty room.
+    # `Trial::Matchup` says what a cell is.
+    flag matchup : Bool = false, "--matchup",
+      "Print who beats whom, for each species against a kit for each depth, and stop"
+
+    flag matchup_fights : Int32 = Trial::Matchup::FIGHTS, "--matchup-fights",
+      "How many fights one --matchup cell holds", range: 1..1_000_000
+
     def run
       return listed if saves
+      return matched if matchup
       return played if trial > 0
 
       Replay::Log.pattern = replay_log
@@ -123,6 +132,13 @@ module Roguelike
         puts "#{one.name}\t#{Save.slug one.name}\tlevel #{one.level}" \
              "\tturn #{one.turn}\t#{one.outcome.to_s.downcase}\t#{one.saved}"
       end
+    end
+
+    # Prints the `--matchup` table.
+    #
+    # No terminal is opened. `--seed` names the stream the fights roll on.
+    private def matched : Nil
+      print Trial::Matchup.play(matchup_fights, seed || Trial::FIRST)
     end
 
     # Plays `--trial` games and prints how they went.

@@ -2910,6 +2910,85 @@ The map is what costs, and it compresses about forty to one. `--output` with a n
 writes it compressed, which is what a five thousand action run wants. Leaving the legal actions
 out saves under one percent.
 
+## Who beats whom
+
+`--matchup` prints a table of fights and stops. No terminal is opened. `--matchup-fights N` sets how
+many fights a cell holds (2000) and `--seed` names the stream they roll on (5000). The model is
+`Trial::Matchup` in `src/roguelike/trial/matchup.cr`. It builds no `Game`.
+
+### What a fight is
+
+One character and one monster, side by side in an empty room. The character swings first. Both swing
+until one is dead. The character does not retreat, drink or regenerate, and the monster does not
+path, sleep or flee, so a cell measures the two sets of numbers and nothing around them.
+
+Time runs as `Game` runs it. The character swings and pays `Costs::TURN`. The world then ticks until
+the character can act again. On each tick the monster takes every action it has banked, and then
+the two paces gain their speed. A slime at speed 80 swings four times in five and an orc at 95 a
+little under once a turn. Swings use `Combat.swing` with `Player#to_hit`, `Player#damage`,
+`Player#armor_class` and the `Monster` equivalents, so a change to any of them moves the table.
+
+A fight is stopped at 1000 turns and counts as not won. A landed swing always does damage and a
+critical always lands, so none reaches it.
+
+### Kits
+
+`Matchup::KITS` holds five, one per intended depth. A kit is a level and a list of gear. The gear is
+readied the way the game's own kit is.
+
+| Depth | Level | Gear |
+| --- | --- | --- |
+| 1 | 1 | short sword, leather armor |
+| 2 | 2 | +1 short sword, leather armor |
+| 3 | 3 | +1 short sword, chain mail |
+| 4 | 4 | +1 long sword, chain mail, cap |
+| 5 | 5 | +2 long sword, +1 chain mail, cap, shield |
+
+Attributes are the defaults for every kit, so depth moves level, weapon and armor only.
+
+### Rows and streams
+
+`Matchup.opponents` returns `Species.values`. A species added to the enum is a row with no other
+edit. The `species` branch moves this one method if it adds a table of kinds.
+
+Each cell rolls on `Rng.new(seed)` derived through `matchup`, `kit:<depth>` and `species:<name>`.
+Each fight in the cell derives its own stream from that. A table is the same from run to run, and
+a new row or column moves no other cell.
+
+### The table
+
+Two thousand fights a cell, from seed 5000. It runs in about one second.
+
+```text
+win rate, out of a hundred
+                D1      D2      D3      D4      D5
+  slime      100.0   100.0   100.0   100.0   100.0
+  goblin      57.8    87.8    96.8    98.8   100.0
+  orc         14.2    43.1    68.2    87.0    99.5
+
+mean turns to a decision
+                D1      D2      D3      D4      D5
+  slime        3.9     2.9     2.9     2.6     2.1
+  goblin       5.6     5.2     5.5     4.8     3.7
+  orc          5.8     6.2     7.5     7.1     5.8
+
+mean hit points the character lost
+                D1      D2      D3      D4      D5
+  slime        1.2     0.7     0.5     0.3     0.1
+  goblin       8.4     7.3     6.3     4.8     1.8
+  orc         11.2    12.5    12.3    10.0     3.9
+```
+
+The orc row of the damage table rises from D1 to D2. A D1 character dies early in many fights and
+loses at most its hit points, so the mean is held down by the deaths.
+
+### Left out
+
+* Regeneration. A long fight would regenerate a little in the game.
+* Potions, light, doors and the room around the fight.
+* Attributes other than the default.
+* Variants of a species. They appear once `opponents` reads them.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

@@ -42,6 +42,24 @@ Spectator.describe Roguelike::Cli do
     end
   end
 
+  describe "--matchup" do
+    it "is off unless it is passed" do
+      expect(described_class.parse(%w[]).matchup).to be_false
+    end
+
+    it "is on when it is passed" do
+      expect(described_class.parse(%w[--matchup]).matchup).to be_true
+    end
+
+    it "holds 2000 fights a cell unless told otherwise" do
+      expect(described_class.parse(%w[--matchup]).matchup_fights).to eq 2000
+    end
+
+    it "takes the number of fights" do
+      expect(described_class.parse(%w[--matchup --matchup-fights 50]).matchup_fights).to eq 50
+    end
+  end
+
   describe "--seed" do
     it "is nil when nobody asked for one" do
       expect(described_class.parse(%w[]).seed).to be_nil

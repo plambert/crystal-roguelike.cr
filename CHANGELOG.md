@@ -10,6 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* `--matchup` prints who beats whom and stops. Each species fights a character of each of five kits,
+  one per depth, in an empty room. The tables give the win rate, the mean turns to a decision and
+  the mean hit points the character lost. `--matchup-fights N` sets the fights in a cell, 2000 by
+  default, and `--seed` names the stream they roll on. A species added to the game gets a row
+  without any other change.
 * `R` rests turn after turn until the character is healed. It stops when their hit points are
   full, when a creature comes into sight, when they lose hit points, when a line is written to the
   message log, and on any key. It refuses to start when the character is already at full health or
