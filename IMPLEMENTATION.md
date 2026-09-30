@@ -3339,11 +3339,11 @@ stands for. The default kinds carry the numbers the three species had before, so
 | blue slime | `j` | `#5CB8FF` | 2d6+4 | 11 | 0 | 1d4 | 80 | no | 0 | none | 1-4 | no | 5 |
 | red slime | `j` | `#FF5C5C` | 2d4+1 | 6 | 0 | 1d8 | 80 | no | 0 | none | 2-5 | no | 6 |
 | green slime | `j` | `#5CF05C` | 2d6+2 | 9 | 0 | 2d6 | 80 | no | 0 | none | 3-5 | no | 10 |
-| goblin scout | `g` | `#FFE040` | 2d4+2 | 7 | 0 | 1d4 | 110 | no | 40 | dagger | 1-2 | yes | 5 |
+| goblin scout | `g` | `#FFE040` | 2d4+2 | 7 | 0 | 1d4 | 110 | no | 40 | dagger, sling | 1-2 | yes | 5 |
 | goblin warrior | `g` | `#A8E040` | 2d4+4 | 9 | 2 | 1d6 | 100 | no | 25 | short sword | 2-4 | no | 7 |
 | goblin shaman | `g` | `#FF70FF` | 2d4+2 | 7 | 1 | 1d3 | 100 | no | 50 | none | 3-5 | no | 12 |
 | orc | `o` | `#FF6850` | 2d6+7 | 14 | 4 | 1d8 | 95 | yes | 20 | 90% drawn | 3-5 | no | 14 |
-| orc archer | `o` | `#60E8E8` | 2d6+4 | 11 | 3 | 1d6 | 95 | yes | 10 | none yet | 4-5 | no | 16 |
+| orc archer | `o` | `#60E8E8` | 2d6+4 | 11 | 3 | 1d6 | 95 | yes | 10 | bow | 4-5 | no | 16 |
 
 AC is the hide before the dexterity modifier. Light is the chance, out of a hundred, of carrying a
 lit torch or candle. The spawn weights are 40, 20, 20 and 15 for the slimes, 30, 45 and 15 for the
@@ -3422,7 +3422,7 @@ of them survive to the turn limit.
 
 ### Left for later
 
-* The orc archer's bow and arrows, and the shaman's bolt.
+* The shaman's bolt.
 * A creature swinging the weapon it carries.
 
 ## Creatures that open doors, and spikes that stop them
@@ -3515,6 +3515,118 @@ a door and spikes it would show the rule far more.
 * No bot spikes a door.
 * A band that mixes kinds that open doors with ones that cannot keeps the whole band off doors.
   Every band holds one species today, and every kind of a species agrees, so no band is mixed.
+
+## Monsters that shoot
+
+Goblin scouts carry a sling and orc archers a bow. Each keeps its distance and shoots until its
+ammunition runs out, then closes to melee.
+
+### What was built
+
+* `KindFacts#ranged_weapon` and `KindFacts#quiver` name what a kind shoots with and how much
+  ammunition it carries. A scout has a sling and 2d4 stones. An archer has a bow and 3d6 arrows.
+* `Loot.for` rolls the ranged weapon and the ammunition after every other draw, on the creature's
+  own `loot` stream. The weapon rolls its condition and plus the way any carried weapon does. The
+  whole stack of ammunition is +1 as often as `Loot::FLETCHED` says for the depth: never on floors
+  1 and 2, then 10, 20 and 30 in a hundred.
+* `Monster#ranged_weapon`, `#ammunition`, `#shooting_reach` and `#draw_shot` read and spend what it
+  carries. The ammunition lives in `Monster#carrying`, so a save round-trips it with no new field
+  and an old save loads unchanged.
+* `Pursuit::Intent::Shoot` joins `Wait`, `Step` and `Strike`. `Action#target` names the square.
+* `Pursuit::Snapshot` gains `reach` and `clear`. `Game#plan` fills them. `Game#clear_shot?` asks
+  `Flight` whether a shot would arrive, so a wall or another creature in the line means no shot.
+* `Game#shoot` rolls with `Combat.aim` and `Combat.shot`, the sums the character's own shots use,
+  moved out of `Player` so both sides share them. It costs the ranged weapon's swing: 100 for a
+  sling, 120 for a bow.
+* `Event::Shot` carries the ammunition's name, the direction the shot came from, and the shooter's
+  id when the character can make it out.
+
+### How a shooter decides
+
+A creature with something to shoot and a sighting no older than `Pursuit::FRESH` decides in this
+order.
+
+1. Closer than `Pursuit::NEAREST` (3), it steps to the square farthest from the character, by steps
+   and then by straight line. It does this only when that square is farther than where it stands.
+2. The character beside it and nowhere to back away to, it swings.
+3. A clear line and the character within `Pursuit::FARTHEST` (6) and its reach, it shoots.
+4. Otherwise it walks as any other creature does. That brings it nearer or round to a clear line.
+
+A creature from two squares with nowhere to go shoots. It shoots from six rather than from the full
+reach of a bow. A shot from sixteen squares would come out of the dark with no answer.
+
+### Where a shot lands
+
+A hit lands at the character's feet. A miss flies on along the line for 0 to `Game::OVERSHOOT` (2)
+squares past them, rolled on the `stray` stream keyed by the `combat` counter. `Flight` stops it
+short of a wall. It lands under a creature it meets. A shot aimed at a square the character has
+left misses without a roll and lies where it stopped.
+
+### What the character is told
+
+"The orc archer shoots an arrow at you from the east." when the character can see the shooter, "A
+large shape shoots ..." when they see only its outline, and "Something shoots ..." otherwise. A
+second line says whether the arrow hit and for how much. The direction is the first step of the
+line from the character to the shooter.
+
+### The matchup
+
+A kind with a ranged weapon starts `Matchup::RANGE` (6) squares off with `Matchup::ROOM` (4)
+squares behind it. The character walks in a square a turn. The monster follows the rules above,
+counting the room as it backs away, and swings once cornered or empty. The table prints which kinds
+start at range and with what.
+
+`--matchup`, 2000 fights a cell, seed 5000:
+
+| Row | D1 | D2 | D3 | D4 | D5 |
+| --- | --- | --- | --- | --- | --- |
+| Scout win rate, before | 94.2 | 99.4 | 100.0 | 100.0 | 100.0 |
+| Scout win rate, after | 57.2 | 88.8 | 98.6 | 100.0 | 100.0 |
+| Archer win rate, before | 29.0 | 64.2 | 82.3 | 89.8 | 99.6 |
+| Archer win rate, after | 10.9 | 35.2 | 62.6 | 78.0 | 98.8 |
+| Scout damage taken, before | 4.1 | 3.0 | 2.4 | 2.5 | 1.1 |
+| Scout damage taken, after | 9.4 | 9.2 | 7.8 | 7.3 | 4.1 |
+| Archer damage taken, before | 10.3 | 10.2 | 9.8 | 9.8 | 4.9 |
+| Archer damage taken, after | 11.5 | 13.8 | 14.4 | 14.8 | 8.4 |
+
+Every other row is unchanged to the digit.
+
+### What it did to the trial
+
+`--trial 200 --seed 5000`, release build:
+
+| Measure | Before | After |
+| --- | --- | --- |
+| Died | 16 (8%) | 51 (25%) |
+| Gave up | 184 | 149 |
+| Median turns until death | 264 | 218 |
+| Mean level reached | 1.36 | 1.25 |
+| Survived floor 1 | 93.5% | 76.0% |
+| Reached floor 2 | 10 | 10 |
+| Killed by goblin scout | 9 | 43 |
+
+Floor 1 got much harder. A scout at speed 110 backs away as fast as the bot closes, and a
+level-one character loses about half the fights against one. Floor 1 still clears the 60% mark the
+levels branch set. Fewer stones, or a scout that stops backing away once hurt, would pull it back.
+
+### Decisions
+
+* The `+1` goes on the arrows rather than on the bow. It dies with the archer either way, and a
+  +1 stack is the find a character can use with any bow.
+* The ranged weapon rolls last on the creature's `loot` stream rather than on a derived stream.
+  `Rng#derive` reads nothing from its parent, so a derived stream would give every creature rolled
+  from one generator the same quiver. The `loot` stream version is 4.
+* A monster's shot does not set `Game#in_flight`. The screen draws the character's own shot from
+  it, and the creatures act inside the same command.
+* `Game#cast_bolt` stays as it was. A shaman carries no ranged weapon, and the character's bolt is
+  a wand's path rather than a shot's, so filling it here would be new code rather than this code.
+
+### What was left
+
+* A shaman's bolt.
+* Creatures do not pick up the ammunition lying about. The `gear` branch owns picking things up.
+* The trial bot neither shoots back nor picks up what was shot at it.
+* A monster's shot is not drawn crossing the floor.
 
 ## Asked for, not yet built
 
