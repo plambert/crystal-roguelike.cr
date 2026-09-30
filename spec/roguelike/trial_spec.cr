@@ -34,8 +34,11 @@ Spectator.describe Roguelike::Trial do
       expect(REPORT.played.map(&.seed).uniq!.size).to eq RUNS
     end
 
+    # The slowest blow there is spends two turns, so the last action of a
+    # run can end one turn past where it was stopped.
     it "gives up at the turn it was told to" do
-      expect(REPORT.played.all? { |run| run.turns <= TURNS }).to be_true
+      expect(REPORT.played.all? { |run| run.turns <= TURNS + 1 }).to be_true
+      expect(REPORT.played.any? { |run| run.turns >= TURNS }).to be_true
     end
 
     it "names what killed the character on every death" do

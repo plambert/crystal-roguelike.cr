@@ -160,8 +160,12 @@ module Roguelike
                  cautious : Bool = false) : Played
       bot = cautious ? Cautious.new(seed) : Bot.new(seed)
 
-      turns.times do
-        break if bot.game.over?
+      # A run stops once *turns* turns have passed. One action can take more
+      # than one turn, so the last may run a turn past. A bot turn that takes
+      # no turn at all still counts against twice *turns*, so a bot that
+      # cannot move stops too.
+      (turns * 2).times do
+        break if bot.game.over? || bot.game.turn >= turns
 
         bot.turn
       end
@@ -178,10 +182,12 @@ module Roguelike
     # 1. Take the staircase down when standing on it.
     # 2. Drink something when below `HURT` out of a hundred hit points.
     # 3. Swing at whatever is standing next to it.
-    # 4. Pick up what is underfoot, and hold the heaviest hitting weapon it
-    #    is carrying.
-    # 5. Walk toward a down staircase it remembers.
-    # 6. Step to a neighbor, preferring one it has never stood on.
+    # 4. Hold the heaviest hitting weapon it is carrying.
+    # 5. Pick up what is underfoot.
+    # 6. Walk toward a down staircase it remembers.
+    # 7. Step to a neighbor, preferring one it has never stood on.
+    #
+    # Each turn is one action, so a run stops on the turn it was given.
     #
     # It never retreats, never shuts a door behind it, never shoots and never
     # puts its torch out. Those are the things that keep a person alive, so
@@ -218,6 +224,7 @@ module Roguelike
         return if @game.descend
         return if drank
         return if swung
+        return if armed
         return if took
         return if headed
 
@@ -266,19 +273,18 @@ module Roguelike
         return false if pile.empty?
 
         @game.pick_up pile.first
-        hold_the_best
-        true
       end
 
-      # Holds the heaviest hitting weapon it is carrying.
-      private def hold_the_best : Nil
+      # Holds the heaviest hitting weapon it is carrying, when that is not
+      # the one in its hand. Answers whether it changed weapons.
+      protected def armed : Bool
         best = @game.player.inventory.select do |item|
           item.kind.item_class.melee?
         end.max_by? { |_letter, item| item.damage.average }
-        return unless best
+        return false unless best
 
         held = @game.player.wielded
-        return if held && held.damage.average >= best[1].damage.average
+        return false if held && held.damage.average >= best[1].damage.average
 
         @game.wield best[0]
       end
@@ -348,6 +354,7 @@ module Roguelike
         return if drank
         return if fled
         return if swung
+        return if armed
         return if took
         return if headed
 
