@@ -432,6 +432,7 @@ module Roguelike
     # else changes how much it rolls.
     def scatter(rng : Rng, ground : Floor = floor) : Nil
       stream = rng.derive "litter:#{ground.id}"
+      sizes = rng.derive "sizes:#{ground.id}"
       deep = Game.depth_of ground
       squares = [] of {Int32, Int32}
       ground.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
@@ -440,9 +441,22 @@ module Roguelike
       (squares.size * LITTER // 100).times do
         spot = squares.sample stream
         item = stream.rand(4).zero? ? gold(stream) : Items.random(stream, deep)
+        cut item, sizes, ground, spot
         ground.drop spot[0], spot[1], item
         supply rng, ground, spot, item
       end
+    end
+
+    # Cuts *item* for a wearer, when it is armor, on *rng*.
+    #
+    # The size rolls on a stream of its own, so the litter falls where it
+    # always fell. Armor near a goblin is usually small and armor near an orc
+    # usually large. `Items.sizes_at` says how usually.
+    private def cut(item : Item, rng : Rng, ground : Floor,
+                    spot : {Int32, Int32}) : Nil
+      return unless item.kind.item_class.armor?
+
+      item.cut_for Items.pick(rng, Items.sizes_at(ground, spot))
     end
 
     # How often a ranged weapon lands with ammunition for it nearby.
@@ -501,11 +515,14 @@ module Roguelike
     # That is its stable identity on a floor written by hand: adding an entry
     # to a loot table shifts what one creature carries and nothing else, and
     # the order the creatures are walked in does not matter at all.
+    #
+    # A weapon and armor go into its slots. `Monster#outfit` carries what it
+    # cannot ready.
     def equip(rng : Rng, ground : Floor = floor) : Nil
       deep = Game.depth_of ground
       ground.each_monster do |column, row, creature|
         stream = rng.derive "loot:#{ground.id}:#{column},#{row}"
-        creature.carry Loot.for(creature.kind, stream, deep)
+        creature.outfit Loot.for(creature.kind, stream, deep)
       end
     end
 
@@ -1304,8 +1321,8 @@ module Roguelike
 
     # Takes *creature* off the floor and awards its experience.
     #
-    # Whatever it was carrying lands on the square it died on. A lit torch
-    # goes on burning there.
+    # Whatever it held, readied or carried, lands on the square it died on. A
+    # lit torch goes on burning there.
     #
     # This is public so that the debug console's `kill` command can call it
     # rather than repeat it. Nothing in a normal run reaches it from outside
@@ -1540,7 +1557,7 @@ module Roguelike
 
           nerve creature
 
-          if cast_bolt(creature) || mend(creature)
+          if rearm(creature) || cast_bolt(creature) || mend(creature)
             creature.pace.spend Costs::TURN
             next
           end
@@ -1732,7 +1749,8 @@ module Roguelike
     #
     # A creature that decided to walk into a wall walks nowhere, and one
     # that decided to swing at an empty square swings at nothing. Both take
-    # a turn. A swing that reaches the character costs what its species says.
+    # a turn. A swing that reaches the character costs what its weapon or its
+    # kind says.
     private def perform(creature : Monster, action : Pursuit::Action) : Int32
       direction = action.direction
       return Costs::TURN unless direction
@@ -1751,7 +1769,7 @@ module Roguelike
         return Costs::TURN unless @player.at? wanted[0], wanted[1]
 
         strike creature
-        creature.kind.swing
+        creature.swing
       end
     end
 
@@ -1831,11 +1849,45 @@ module Roguelike
       true
     end
 
+    # *creature* takes up something lying under it that beats what it holds.
+    # Answers whether it did, which spends its action.
+    #
+    # `Monster#better?` decides. What it held in that slot goes down where it
+    # stands. The character is told when they can see the creature.
+    private def rearm(creature : Monster) : Bool
+      return false unless creature.kind.wields?
+
+      found = floor.items(creature.x, creature.y).find { |item| creature.better? item }
+      return false unless found
+
+      floor.take creature.x, creature.y, found
+      dropped = creature.ready found
+      floor.drop creature.x, creature.y, dropped if dropped
+
+      rearmed creature, found, dropped
+      true
+    end
+
+    # Tells the character that *creature* took up *taken* and put down
+    # *dropped*, when they can see it.
+    private def rearmed(creature : Monster, taken : Item, dropped : Item?) : Nil
+      return unless regard_of(creature).everything?
+
+      line = "The #{creature.label} "
+      line += "drops #{name dropped} and " if dropped
+      line += "picks up #{name taken}."
+      say line, Event::Rearmed.new(creature.id, taken.id, name(taken),
+        dropped.try(&.id), dropped.try { |item| name item })
+    end
+
     # *creature* throws a bolt at the character. Answers whether it did.
     #
     # A kind that `Kind#casts?` asks here first on each of its actions. No
     # kind has a bolt to throw yet, so this always answers false and the
     # creature goes on to mend or to fight.
+    #
+    # A shaman that has picked up a wand of striking holds it in
+    # `Monster#wand`. Zapping it belongs here.
     private def cast_bolt(creature : Monster) : Bool
       return false unless creature.kind.casts?
 
@@ -2726,7 +2778,7 @@ module Roguelike
       end
 
       floor.each_monster do |column, row, creature|
-        creature.carrying.each do |item|
+        creature.belongings.each do |item|
           found << LightSource.new(column, row, item.light) if item.lit?
         end
       end
@@ -4539,6 +4591,13 @@ module Roguelike
         return false
       end
 
+      unless item.fits? Player::SIZE
+        say "You cannot wear #{name item}, which was made for somebody " \
+            "#{item.size < Player::SIZE ? "smaller" : "larger"}.",
+          Event::Refused.new(:wrong_size, item: item.id, name: name(item))
+        return false
+      end
+
       held = @player.in_slot slot
       if held
         say "You are already wearing #{name held}.",
@@ -4754,7 +4813,7 @@ module Roguelike
           next unless creature
 
           yield creature
-          creature.carrying.each { |held| yield held }
+          creature.belongings.each { |held| yield held }
         end
 
         lying = [] of {Int32, Int32}
@@ -5277,7 +5336,8 @@ module Roguelike
     #
     # A slot already filled offers nothing. `#wear` refuses a second item
     # rather than taking the first one off. An action for it would be an
-    # action that is refused.
+    # action that is refused. Armor cut for another size offers nothing for
+    # the same reason.
     private def legal_readying(found : Array(Action), letter : Char,
                                item : Item) : Nil
       slot = Slot.for item
@@ -5286,7 +5346,7 @@ module Roguelike
 
       if slot.weapon?
         found << Action::Wield.new item.id
-      elsif @player.in_slot(slot).nil?
+      elsif @player.in_slot(slot).nil? && item.fits?(Player::SIZE)
         found << Action::Wear.new item.id
       end
     end

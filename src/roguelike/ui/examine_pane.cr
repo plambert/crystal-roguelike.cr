@@ -48,6 +48,10 @@ module Roguelike::Ui
     # What a creature on the square is doing. Blank for a square with none.
     getter doing : Widgets::Label
 
+    # What a creature on the square wields and wears. Hidden when it has
+    # nothing readied.
+    getter arms : Widgets::Label
+
     # What is lying on the square.
     getter litter : Widgets::Label
 
@@ -61,6 +65,8 @@ module Roguelike::Ui
       @doing = Widgets::Label.new ""
       @doing.hidden = true
       @doing.style = Style::DEFAULT.faint
+      @arms = Widgets::Label.new ""
+      @arms.hidden = true
 
       @litter = Widgets::Label.new ""
       @litter.hidden = true
@@ -81,7 +87,7 @@ module Roguelike::Ui
         height: Layout::Sizing.grow)
       @root.add heading,
         Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        @where, @what, @detail, @doing, @litter, @aim
+        @where, @what, @detail, @doing, @arms, @litter, @aim
     end
 
     # Says what a shot at the square being pointed at would do. `nil` says
@@ -126,6 +132,9 @@ module Roguelike::Ui
       @where.hidden = false
 
       @doing.hidden = creature.nil?
+      armed = creature.try { |held| ExaminePane.gear held, lore }
+      @arms.text = armed || ""
+      @arms.hidden = armed.nil?
 
       if creature
         @what.text = creature.label
@@ -163,6 +172,8 @@ module Roguelike::Ui
       @detail.text = MOVING
       @doing.text = ""
       @doing.hidden = true
+      @arms.text = ""
+      @arms.hidden = true
       @litter.text = ""
       @litter.hidden = true
     end
@@ -176,6 +187,8 @@ module Roguelike::Ui
       @where.hidden = false
       @doing.text = ""
       @doing.hidden = true
+      @arms.text = ""
+      @arms.hidden = true
       @litter.text = ""
       @litter.hidden = true
 
@@ -218,6 +231,32 @@ module Roguelike::Ui
       "Here: #{named.join ", "}"
     end
 
+    # A sentence saying what *creature* wields and wears, or `nil` when it
+    # has nothing readied.
+    #
+    # *lore* names each item. With no lore an item is named by its kind.
+    def self.gear(creature : Monster, lore : Lore?) : String?
+      named = ->(item : Item) { lore ? lore.name(item) : Lore.bare_noun(item) }
+      clauses = [] of String
+
+      creature.wielded.try { |item| clauses << "wields #{named.call item}" }
+      held = creature.launcher || creature.wand
+      held.try { |item| clauses << "holds #{named.call item}" }
+      creature.quivered.try { |item| clauses << "has #{named.call item} to shoot" }
+      worn = creature.worn
+      clauses << "wears #{ExaminePane.listing worn.map(&named)}" unless worn.empty?
+      return if clauses.empty?
+
+      "It #{ExaminePane.listing clauses}."
+    end
+
+    # *words* joined with commas and a last "and".
+    def self.listing(words : Array(String)) : String
+      return words.join if words.size < 2
+
+      "#{words[...-1].join ", "} and #{words.last}"
+    end
+
     # Puts the pane back to the state before anything was looked at.
     def clear : Nil
       @where.text = ""
@@ -229,6 +268,8 @@ module Roguelike::Ui
       @detail.text = ""
       @doing.text = ""
       @doing.hidden = true
+      @arms.text = ""
+      @arms.hidden = true
       @litter.text = ""
       @litter.hidden = true
       self.aiming = nil

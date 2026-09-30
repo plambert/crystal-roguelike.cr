@@ -286,6 +286,9 @@ module Roguelike::Debug
       say "  #{creature.attributes}, band #{creature.band}, " \
           "worth #{creature.kind.experience}"
 
+      creature.gear.each do |slot, item|
+        say "  #{slot.label}: #{game.name item}"
+      end
       describe_pack game, creature.carrying
     end
 

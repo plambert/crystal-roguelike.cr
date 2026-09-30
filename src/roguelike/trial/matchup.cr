@@ -137,18 +137,20 @@ module Roguelike
       # Time runs the way `Game` runs it. The character swings and pays what
       # its weapon costs. The world then ticks until the character can act
       # again, and on each tick the monster takes every action it has banked,
-      # each paying what its kind's swing costs. A dagger at 75 swings four
+      # each paying what its weapon or its kind's swing costs. A dagger at 75 swings four
       # times in three ticks, and an orc at speed 95 with a swing of 120
       # attacks a little under four times in five.
       #
       # The monster rolls its hit points from its kind's hit dice, as one the
-      # generator places does. Turns are ticks of the world, counting the one
-      # the fight ends in.
+      # generator places does. It draws its gear from `Loot` at the kit's
+      # depth, on a stream of its own, and readies it the same way. Turns are
+      # ticks of the world, counting the one the fight ends in.
       def self.fight(kit : Kit, kind : Kind, rng : Rng) : Result
         player = kit.character
         health = kind.hit_dice.roll rng
         monster = Monster.new kind, 1, 0, "matchup",
           hit_points: health, max_hit_points: health
+        monster.outfit Loot.for(kind, rng.derive("gear"), kit.depth)
         start = player.hit_points
         swing = Costs.swing player.wielded
         ticks = 0
@@ -162,7 +164,7 @@ module Roguelike
 
           until player.pace.ready?
             while monster.pace.ready?
-              monster.pace.spend kind.swing
+              monster.pace.spend monster.swing
               blow = Combat.swing rng, monster.to_hit, player.armor_class, monster.damage
               player.hurt blow.damage if blow.hit?
               return Result.new false, ticks + 1, start - player.hit_points unless player.alive?

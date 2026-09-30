@@ -57,6 +57,7 @@ module Roguelike
       "picked_up"      => PickedUp,
       "pile"           => Pile,
       "readied"        => Readied,
+      "rearmed"        => Rearmed,
       "refused"        => Refused,
       "removed"        => Removed,
       "repaired"       => Repaired,
@@ -293,6 +294,9 @@ module Roguelike
 
         # The door already has a spike in it.
         AlreadySpiked
+
+        # The armor was made for somebody of another size.
+        WrongSize
       end
 
       getter kind : String = "refused"
@@ -766,6 +770,24 @@ module Roguelike
       getter name : String
 
       def initialize(@slot : Slot, @item : Int32, @name : String)
+      end
+    end
+
+    # A creature the character can see took up a weapon, armor or a wand.
+    #
+    # *who* is the creature. *dropped* is what it put down to make room, and
+    # `nil` when the slot was empty.
+    class Rearmed < Event
+      getter kind : String = "rearmed"
+
+      getter who : Int32
+      getter item : Int32
+      getter name : String
+      getter dropped : Int32?
+      getter dropped_name : String?
+
+      def initialize(@who : Int32, @item : Int32, @name : String,
+                     @dropped : Int32? = nil, @dropped_name : String? = nil)
       end
     end
 

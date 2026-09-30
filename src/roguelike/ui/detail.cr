@@ -70,12 +70,14 @@ module Roguelike::Ui
       return unless regard.made_out?
       return [creature.kind.size.label, ExaminePane::MOVING] unless regard.everything?
 
-      [
+      lines = [
         creature.label,
         creature.description,
         "hit points #{creature.hit_points}/#{creature.max_hit_points}",
         game.floor.awareness(creature).label,
       ]
+      ExaminePane.gear(creature, game.lore).try { |armed| lines << armed }
+      lines
     end
 
     # What to write about *fitting*.
