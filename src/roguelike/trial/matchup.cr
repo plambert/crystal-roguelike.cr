@@ -9,6 +9,10 @@ module Roguelike
     # them dies. Nothing else is in the room, so a cell is the two creatures
     # and nothing more: no light, no doors, no retreat and no potion.
     #
+    # A kind that shoots starts `RANGE` squares off with `ROOM` squares behind
+    # it. The character walks in. The monster shoots, backs away as
+    # `Pursuit` says, and closes to melee once its ammunition is gone.
+    #
     # The table has a row for each opponent and a column for each kit. A kit
     # is what a character has by the time they reach a given depth. Both
     # axes are read from tables, so a kind or a kit added to either shows
@@ -100,6 +104,13 @@ module Roguelike
       # counts as not won.
       LIMIT = 1000
 
+      # How many squares off a kind that shoots starts.
+      RANGE = Pursuit::FARTHEST
+
+      # How many squares a kind that shoots can back away before a wall stops
+      # it.
+      ROOM = 4
+
       # Everyone the character is matched against, one row for each kind.
       def self.opponents : Array(Kind)
         Kind.values
@@ -144,27 +155,35 @@ module Roguelike
       # The monster rolls its hit points from its kind's hit dice, as one the
       # generator places does. Turns are ticks of the world, counting the one
       # the fight ends in.
+      #
+      # A kind that shoots then rolls its ammunition. The character spends a
+      # turn on each step while it is more than a square away.
       def self.fight(kit : Kit, kind : Kind, rng : Rng) : Result
         player = kit.character
         health = kind.hit_dice.roll rng
         monster = Monster.new kind, 1, 0, "matchup",
           hit_points: health, max_hit_points: health
+        arm monster, rng
         start = player.hit_points
         swing = Costs.swing player.wielded
+        field = Field.new(monster.ranged_weapon ? RANGE : 1, ROOM)
         ticks = 0
 
         while ticks < LIMIT
-          blow = Combat.swing rng, player.to_hit, monster.armor_class, player.damage
-          monster.hurt blow.damage if blow.hit?
-          return Result.new true, ticks + 1, start - player.hit_points unless monster.alive?
+          if field.distance > 1
+            field.distance -= 1
+            player.pace.spend Costs::TURN
+          else
+            blow = Combat.swing rng, player.to_hit, monster.armor_class, player.damage
+            monster.hurt blow.damage if blow.hit?
+            return Result.new true, ticks + 1, start - player.hit_points unless monster.alive?
 
-          player.pace.spend swing
+            player.pace.spend swing
+          end
 
           until player.pace.ready?
             while monster.pace.ready?
-              monster.pace.spend kind.swing
-              blow = Combat.swing rng, monster.to_hit, player.armor_class, monster.damage
-              player.hurt blow.damage if blow.hit?
+              monster.pace.spend act(monster, player, field, rng)
               return Result.new false, ticks + 1, start - player.hit_points unless player.alive?
             end
 
@@ -175,6 +194,63 @@ module Roguelike
         end
 
         Result.new false, ticks, start - player.hit_points
+      end
+
+      # How far apart the two stand, and how far the monster can still back
+      # away.
+      class Field
+        property distance : Int32
+        property room : Int32
+
+        def initialize(@distance : Int32, @room : Int32)
+        end
+      end
+
+      # Gives *monster* its kind's ranged weapon and ammunition, rolled on
+      # *rng*. Plain pieces, with no plus.
+      def self.arm(monster : Monster, rng : Rng) : Nil
+        ranged_weapon = monster.kind.ranged_weapon
+        ammunition = ranged_weapon.try &.ammunition
+        return unless ranged_weapon && ammunition
+
+        count = Math.max monster.kind.quiver.roll(rng), 1
+        monster.carry [Item.new(ranged_weapon), Item.new(ammunition, count: count)]
+      end
+
+      # What *monster* does with one action. Answers what it cost.
+      #
+      # It follows `Pursuit`. Closer than `Pursuit::NEAREST` it backs away
+      # while the room lets it. It shoots from farther than a square. Out of
+      # ammunition, or cornered beside the character, it walks in and swings.
+      def self.act(monster : Monster, player : Player, field : Field, rng : Rng) : Int32
+        weapon = monster.ranged_weapon
+        ammunition = monster.ammunition
+
+        if weapon && ammunition
+          if field.distance < Pursuit::NEAREST && field.room > 0
+            field.distance += 1
+            field.room -= 1
+            return Costs::TURN
+          end
+
+          if field.distance > 1
+            bonus = monster.to_shoot weapon, ammunition
+            damage = Combat.shot weapon, ammunition
+            monster.draw_shot 0
+            blow = Combat.swing rng, bonus, player.armor_class, damage
+            player.hurt blow.damage if blow.hit?
+            return Costs.loose weapon
+          end
+        end
+
+        if field.distance > 1
+          field.distance -= 1
+          return Costs::TURN
+        end
+
+        blow = Combat.swing rng, monster.to_hit, player.armor_class, monster.damage
+        player.hurt blow.damage if blow.hit?
+        monster.kind.swing
       end
 
       # The stream the fights of one cell roll on.
@@ -220,7 +296,17 @@ module Roguelike
 
         def to_s(io : IO) : Nil
           io << "matchup from seed " << @seed << ", " << @fights << " fights a cell\n"
-          io << "the character strikes first, in an empty room, until one of them dies\n\n"
+          io << "the character strikes first, in an empty room, until one of them dies\n"
+          shooters = @opponents.select &.ranged_weapon
+          unless shooters.empty?
+            io << "these start " << RANGE << " squares off with " << ROOM
+            io << " to back into, and shoot until their ammunition is gone:\n"
+            shooters.each do |kind|
+              io << "  " << kind.label << ", " << kind.ranged_weapon.try(&.label)
+              io << " and " << kind.quiver << ' ' << kind.ranged_weapon.try(&.ammunition).try(&.plural) << '\n'
+            end
+          end
+          io << '\n'
 
           @kits.each { |kit| io << "  " << kit.heading << "  " << kit.label << '\n' }
 

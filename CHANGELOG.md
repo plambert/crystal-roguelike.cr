@@ -150,6 +150,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* `--matchup` starts a fight against a kind with a sling or bow six squares apart, with four
+  squares behind the creature to back into. The character walks in while it shoots. The table
+  lists these kinds above the kits.
 * A blow costs what the weapon says rather than one turn. A dagger takes 75 energy, a short sword
   100, a rapier 115, a long sword 120, and a mace or a spear 125. Bare hands take 80. A shot costs
   what the launcher says, 120 for a bow and 100 for a sling, and a throw costs what the thrown item
