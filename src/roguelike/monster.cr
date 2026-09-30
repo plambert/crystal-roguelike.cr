@@ -22,8 +22,15 @@ module Roguelike
     # refused.
     getter id : Int32 = 0
 
-    # What sort of creature it is.
+    # What family of creature it is.
     getter species : Species
+
+    # Which kind of its species it is.
+    #
+    # A save written before kinds existed has no such field. `#kind` answers
+    # the species' default kind for one of those, which is the creature the
+    # species was then.
+    @kind : Kind? = nil
 
     # The column it stands in.
     getter x : Int32
@@ -96,23 +103,79 @@ module Roguelike
     # species again on the way in, which is where it came from.
     getter pace : Pace = Pace.new
 
-    def initialize(@species : Species, @x : Int32, @y : Int32,
+    # Hit points at full health.
+    #
+    # Zero in a save written before creatures rolled their hit points.
+    # `#after_initialize` gives such a creature its kind's average.
+    getter max_hit_points : Int32 = 0
+
+    # How many turns until it can mend a neighbour again. Zero when it can.
+    getter mending : Int32 = 0
+
+    def initialize(kind : Kind, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
                    attributes : Attributes? = nil,
                    @memory : Hash(String, Knowledge) = {} of String => Knowledge,
-                   @carrying : Array(Item) = [] of Item)
-      @hit_points = hit_points || @species.hit_points
-      @attributes = attributes || @species.attributes
-      @pace = Pace.new @species.speed
+                   @carrying : Array(Item) = [] of Item,
+                   max_hit_points : Int32? = nil)
+      @kind = kind
+      @species = kind.species
+      @max_hit_points = max_hit_points || kind.hit_points
+      @hit_points = hit_points || @max_hit_points
+      @attributes = attributes || kind.attributes
+      @pace = Pace.new kind.speed
     end
 
-    # Takes the speed from the species after a load.
+    # A creature of *species*' default kind.
+    def self.new(species : Species, x : Int32, y : Int32, band : String,
+                 hit_points : Int32? = nil, attributes : Attributes? = nil,
+                 memory : Hash(String, Knowledge) = {} of String => Knowledge,
+                 carrying : Array(Item) = [] of Item) : Monster
+      new species.default, x, y, band, hit_points, attributes, memory, carrying
+    end
+
+    # Fills in after a load what an older save does not hold.
     #
-    # The base belongs to the species rather than to the creature, so a save
-    # written before creatures had a pace still loads a slime that oozes.
+    # The speed belongs to the kind rather than to the creature, so it is
+    # taken from the kind again on the way in.
     def after_initialize : Nil
-      @pace.base = @species.speed
+      @kind ||= @species.default
+      @max_hit_points = kind.hit_points if @max_hit_points <= 0
+      @pace.base = kind.speed
+    end
+
+    # Which kind of its species it is.
+    def kind : Kind
+      @kind || @species.default
+    end
+
+    # Whether it can mend a neighbour this turn.
+    def ready_to_mend? : Bool
+      kind.mends? && @mending <= 0
+    end
+
+    # Starts the wait before it can mend again.
+    def mended(wait : Int32) : Nil
+      @mending = wait
+    end
+
+    # Passes one turn of the wait before it can mend again.
+    def rest_from_mending : Nil
+      @mending -= 1 if @mending > 0
+    end
+
+    # Gives back *amount* hit points, never past full. Answers how many it
+    # took.
+    def heal(amount : Int32) : Int32
+      before = @hit_points
+      @hit_points = Math.min @hit_points + amount, @max_hit_points
+      @hit_points - before
+    end
+
+    # Whether it has lost any hit points.
+    def hurt? : Bool
+      alive? && @hit_points < @max_hit_points
     end
 
     # Gives this creature the id *id*. Answers whether it took one.
@@ -213,11 +276,6 @@ module Roguelike
       @x == x && @y == y
     end
 
-    # Hit points at full health.
-    def max_hit_points : Int32
-      @species.hit_points
-    end
-
     # What this creature adds to a swing.
     #
     # Its dexterity modifier and nothing else. A creature carrying a sword is
@@ -229,20 +287,20 @@ module Roguelike
 
     # How much an attack on this creature is reduced by.
     #
-    # Its species' hide, plus the dexterity modifier, never below zero. That
+    # Its kind's hide, plus the dexterity modifier, never below zero. That
     # is the shape `Player#armor_class` has, which is worn armor plus the
     # same modifier.
     def armor_class : Int32
-      hide = @species.armor + @attributes.modifier(Attributes::Which::Dexterity)
+      hide = kind.armor + @attributes.modifier(Attributes::Which::Dexterity)
 
       Math.max hide, 0
     end
 
     # What this creature hits for.
     #
-    # Its species' dice plus the strength modifier.
+    # Its kind's dice plus the strength modifier.
     def damage : Dice
-      @species.damage.with_bonus @attributes.modifier(Attributes::Which::Strength)
+      kind.damage.with_bonus @attributes.modifier(Attributes::Which::Strength)
     end
 
     # Whether it is still alive.
@@ -269,12 +327,12 @@ module Roguelike
 
     # What it is called.
     def label : String
-      @species.label
+      kind.label
     end
 
     # A sentence about it, for the examine pane.
     def description : String
-      @species.description
+      kind.description
     end
 
     # Whether this creature and *other* are the same in every way the game
@@ -283,14 +341,15 @@ module Roguelike
     # The id is left out, for the reason `Item#==` leaves it out. An id is
     # which creature this is rather than what it is.
     def ==(other : Monster) : Bool
-      @species == other.species && @x == other.x && @y == other.y &&
+      kind == other.kind && @x == other.x && @y == other.y &&
         @hit_points == other.hit_points && @band == other.band &&
         @attributes.to_a == other.attributes.to_a && @memory == other.memory &&
-        @carrying == other.carrying
+        @carrying == other.carrying && @max_hit_points == other.max_hit_points &&
+        @mending == other.mending
     end
 
     def to_s(io : IO) : Nil
-      io << "Monster(" << @species << ' ' << @x << ',' << @y
+      io << "Monster(" << kind << ' ' << @x << ',' << @y
       io << ' ' << @hit_points << '/' << max_hit_points << ')'
     end
   end

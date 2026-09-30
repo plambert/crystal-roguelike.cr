@@ -152,20 +152,31 @@ Spectator.describe "floors of the dungeon" do
   end
 
   describe Spawns do
-    it "puts no orc on floor 1" do
-      expect(Spawns.weights 1).not_to have_key Species::Orc
+    it "puts white and blue slimes and goblin scouts on floor 1, and nothing else" do
+      expect(Spawns.weights(1).keys.to_set)
+        .to eq Set{Roguelike::Kind::WhiteSlime, Roguelike::Kind::BlueSlime, Roguelike::Kind::GoblinScout}
     end
 
-    it "puts orcs deeper down" do
-      expect(Spawns.weights 4).to have_key Species::Orc
+    it "puts no orc above floor 3" do
+      (1..2).each do |depth|
+        expect(Spawns.weights(depth).keys.map(&.species)).not_to contain Species::Orc
+      end
     end
 
-    it "digs floor 1 with slimes and goblins only" do
+    it "makes orcs commoner from floor 4" do
+      orcs = (3..4).map { |depth| Spawns.weights(depth, Species::Orc).values.sum }
+
+      expect(orcs[1]).to be > orcs[0]
+    end
+
+    it "digs floor 1 with those kinds only" do
+      allowed = Spawns.weights(1).keys
+
       FLOORS.times do |index|
         floor = Generator.floor Rng.new(SEED + index), World.id(1), 1
 
         floor.each_monster do |_column, _row, creature|
-          expect(creature.species).not_to eq Species::Orc
+          expect(allowed).to contain creature.kind
         end
       end
     end

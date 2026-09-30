@@ -119,7 +119,7 @@ Spectator.describe "monsters on the screen" do
 
       run.hover 3, 1
 
-      expect(run.examine.what.text).to eq "goblin"
+      expect(run.examine.what.text).to eq "goblin warrior"
       expect(run.examine.detail.text).to eq Species::Goblin.description
     end
 
@@ -138,7 +138,7 @@ Spectator.describe "monsters on the screen" do
 
       run.hover 3, 1
 
-      expect(run.examine.what.text).to eq "goblin"
+      expect(run.examine.what.text).to eq "goblin warrior"
       expect(run.examine.litter.text).to contain "long sword"
     end
 
@@ -220,7 +220,7 @@ Spectator.describe "monsters on the screen" do
 
       run.press "k"
 
-      expect(run.log.any? &.starts_with?("The slime")).to be_true
+      expect(run.log.any? &.starts_with?("The white slime")).to be_true
     end
   end
 
@@ -243,16 +243,24 @@ Spectator.describe "monsters on the screen" do
   # east end and a goblin between it and the approach from the west. Walking
   # up it, the goblin is a shape long before a carried torch reaches it.
   describe "the corridor on the shipped floor" do
-    # *dark* puts out whatever the goblin is carrying.
+    # *dark* puts out whatever the goblin is carrying. Otherwise it is given
+    # a lit candle.
     #
-    # Phase 20 gives a monster loot, and on this seed that goblin comes up
-    # with a lit candle. A creature holding a light is lit by it and is not a
-    # silhouette at all, so the examples about the silhouette rule take it
-    # off and the one about carrying a light leaves it on.
+    # A creature holding a light is lit by it and is not a silhouette at all,
+    # so the examples about the silhouette rule put it out and the one about
+    # carrying a light makes sure there is one.
     def approaching(column : Int32, dark : Bool = true) : Playing::Run
       game = Roguelike::Game.start Roguelike::Rng.new(Playing::SEED)
       game.player.move_to column, 20
-      game.floor.monster(42, 20).try(&.carrying.each &.douse) if dark
+      goblin = game.floor.monster 42, 20
+
+      if dark
+        goblin.try(&.carrying.each &.douse)
+      else
+        candle = Roguelike::Item.new Roguelike::ItemKind::Candle
+        candle.kindle
+        goblin.try &.carry([candle])
+      end
 
       run = Playing.open game, 120, 30
       run.play.refresh

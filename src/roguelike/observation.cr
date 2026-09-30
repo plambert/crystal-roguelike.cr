@@ -176,8 +176,11 @@ module Roguelike
       # How big it is. A shape gives this much.
       getter size : Size
 
-      # What sort of creature it is. `nil` for a shape.
+      # What family of creature it is. `nil` for a shape.
       getter species : Species?
+
+      # Which kind of its species it is. `nil` for a shape.
+      getter kind : Kind?
 
       # What the character calls it. Its species, or the size of the shape.
       getter name : String
@@ -190,12 +193,12 @@ module Roguelike
 
       def initialize(@id : Int32, @pos : {Int32, Int32}, @regard : Regard,
                      @size : Size, @name : String, @species : Species? = nil,
-                     @condition : Health? = nil, @awareness : Awareness? = nil)
+                     @kind : Kind? = nil, @condition : Health? = nil, @awareness : Awareness? = nil)
       end
 
       # What the character has made out of *creature*, at *regard*.
       def self.of(floor : Floor, creature : Monster, regard : Regard) : Creature
-        size = creature.species.size
+        size = creature.kind.size
         return new(id: creature.id, pos: creature.at, regard: regard,
           size: size, name: size.label) unless regard.everything?
 
@@ -205,6 +208,7 @@ module Roguelike
           size: size,
           name: creature.label,
           species: creature.species,
+          kind: creature.kind,
           condition: Health.of(creature),
           awareness: floor.awareness(creature)
       end

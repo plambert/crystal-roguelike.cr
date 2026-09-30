@@ -10,11 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
-* `--matchup` prints who beats whom and stops. Each species fights a character of each of five kits,
-  one per depth, in an empty room. The tables give the win rate, the mean turns to a decision and
-  the mean hit points the character lost. `--matchup-fights N` sets the fights in a cell, 2000 by
-  default, and `--seed` names the stream they roll on. A species added to the game gets a row
-  without any other change.
+* `--matchup` prints who beats whom and stops. Each kind of creature fights a character of each of
+  five kits, one per depth, in an empty room. The tables give the win rate, the mean turns to a
+  decision and the mean hit points the character lost. `--matchup-fights N` sets the fights in a
+  cell, 2000 by default, and `--seed` names the stream they roll on. A kind added to the game gets
+  a row without any other change.
 * `R` rests turn after turn until the character is healed. It stops when their hit points are
   full, when a creature comes into sight, when they lose hit points, when a line is written to the
   message log, and on any key. It refuses to start when the character is already at full health or
@@ -121,6 +121,17 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   floor.
 * `--trial` reports the deepest floor each run reached, how many runs reached each floor, and how
   many runs did not die on floor 1. Its bot walks to a down staircase it remembers.
+* Each species comes in kinds. Slimes are white, blue, red and green. A blue slime has more hit
+  points and chills what it touches. A red slime scalds for more damage, and a green slime eats at
+  its target for the most. Goblins are scouts, warriors and shamans. A scout is quick, carries a
+  dagger, has poor armor and always appears alone. A shaman fights weakly and heals a hurt goblin
+  beside it for 1d4 once every few turns. Orcs are orcs and orc archers. An archer has no bow yet.
+* Every kind of a species shares its letter and has a colour of its own. The examine pane, the
+  sidebar and the message log name the kind.
+* Each kind has the depths it appears at. Red slimes and goblin warriors appear from floor 2, green
+  slimes, goblin shamans and orcs from floor 3, and orc archers from floor 4. The weaker kinds
+  thin out deeper down: goblin scouts stop after floor 2, white slimes after floor 3, and blue
+  slimes and goblin warriors after floor 4.
 
 ### Changed
 
@@ -137,8 +148,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   instead of queuing behind each other. One that has waited on another for two turns in a row
   treats that creature's square as solid for the next twenty turns and walks round it by another
   route when there is one.
-* Floor 1 holds slimes and goblins only. Orcs appear from floor 2 and are commoner from floor 4.
-  Deeper floors hold more creatures.
+* Floor 1 holds white and blue slimes and goblin scouts only. Orcs appear from floor 3 and grow
+  commoner from floor 4, where orc archers join them. Deeper floors hold more creatures.
 * Better kinds wait for deeper floors, on the ground and in a monster's hands. A long sword, a
   rapier, a spear, a shield, a wand, a potion of haste and a scroll of blessing appear from the
   second floor down. Chain mail, a wand of striking and a scroll of haste monster appear from the
@@ -151,6 +162,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   reads back with no depth.
 * Climbing up from floor 2 or deeper asks nothing. Climbing up from floor 1 still asks before the
   character leaves the dungeon.
+* A creature placed on a generated floor rolls its hit points from its kind's hit dice. It
+  used to start with a fixed number.
+* The creatures in one room belong to one band and are one species. Waking one wakes the others.
+* A goblin warrior always carries a short sword and a goblin scout a dagger. A kind's chance of
+  carrying a lit torch or candle is its own.
+* An orc is drawn in a brighter red, so it stands out further from the ground.
+* A save written before kinds existed loads each creature as its species' original kind.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.

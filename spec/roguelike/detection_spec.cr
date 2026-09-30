@@ -230,7 +230,7 @@ Spectator.describe "noticing the character" do
 
       expect(game.awake? creature).to be_true
       expect(awareness(game, creature)).to eq Awareness::Alert
-      expect(game.log.lines).to contain "The goblin notices you."
+      expect(game.log.lines).to contain "The goblin warrior notices you."
     end
 
     # It cannot see who hit it. It knows which side the blow came from, so it
@@ -265,7 +265,7 @@ Spectator.describe "noticing the character" do
 
       walk game, 5
 
-      expect(game.log.lines).to contain "The goblin notices you."
+      expect(game.log.lines).to contain "The goblin warrior notices you."
     end
 
     # An orc in a dark corridor notices the character long before the
@@ -284,7 +284,7 @@ Spectator.describe "noticing the character" do
 
       walk game, 8
 
-      said = game.log.lines.count &.== "The goblin notices you."
+      said = game.log.lines.count &.== "The goblin warrior notices you."
       expect(said).to eq 1
     end
   end

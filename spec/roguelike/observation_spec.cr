@@ -84,7 +84,7 @@ Spectator.describe Roguelike::Observation do
 
       expect(found.regard).to eq Regard::Everything
       expect(found.species).to eq Species::Goblin
-      expect(found.name).to eq "goblin"
+      expect(found.name).to eq "goblin warrior"
       expect(found.condition).to eq Observation::Health::Unhurt
       expect(found.awareness).to eq Roguelike::Awareness::Asleep
     end

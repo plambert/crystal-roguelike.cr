@@ -1118,6 +1118,7 @@ Everything asked for in the basic game, against the phase that delivers it.
 | Items: potions, ammunition, thrown weapons, melee, ranged weapons, armor, scrolls, wands | 9 |
 | Item variants: appearance, `+N`, damaged and masterwork, blessed and cursed | 9 |
 | Enemy types: slime, goblin, orc | 16 |
+| Enemy kinds: four slimes, three goblins, two orcs | Kinds of creature |
 | Enemy pathfinding and attack | 17, 19 |
 | Detection range against stealth and light | 18 |
 | Orc darkvision, goblin without | 18 |
@@ -2951,10 +2952,11 @@ Attributes are the defaults for every kit, so depth moves level, weapon and armo
 
 ### Rows and streams
 
-`Matchup.opponents` returns `Species.values`. A species added to the enum is a row with no other
-edit. The `species` branch moves this one method if it adds a table of kinds.
+`Matchup.opponents` returns `Kind.values`. A kind added to the enum is a row with no other edit.
+The monster rolls its hit points from its kind's hit dice, as one the generator places does, and
+pays its kind's swing cost.
 
-Each cell rolls on `Rng.new(seed)` derived through `matchup`, `kit:<depth>` and `species:<name>`.
+Each cell rolls on `Rng.new(seed)` derived through `matchup`, `kit:<depth>` and `kind:<name>`.
 Each fight in the cell derives its own stream from that. A table is the same from run to run, and
 a new row or column moves no other cell.
 
@@ -2964,36 +2966,54 @@ Two thousand fights a cell, from seed 5000. It runs in about one second.
 
 ```text
 win rate, out of a hundred
-                D1      D2      D3      D4      D5
-  slime      100.0   100.0   100.0   100.0   100.0
-  goblin      57.8    87.8    96.8    98.6   100.0
-  orc         19.6    48.4    74.8    86.0    99.2
+                      D1      D2      D3      D4      D5
+  white slime      100.0   100.0   100.0   100.0   100.0
+  blue slime        99.7   100.0   100.0   100.0   100.0
+  red slime         97.0    99.8   100.0   100.0   100.0
+  green slime       80.5    94.5    99.4    99.8   100.0
+  goblin scout      94.2    99.4   100.0   100.0   100.0
+  goblin warrior    59.6    86.4    96.8    98.4   100.0
+  goblin shaman    100.0   100.0   100.0   100.0   100.0
+  orc               19.3    51.0    74.6    85.5    99.2
+  orc archer        29.0    64.2    82.3    89.8    99.6
 
 mean turns to a decision
-                D1      D2      D3      D4      D5
-  slime        3.9     2.9     2.9     3.2     2.8
-  goblin       5.6     5.2     5.5     5.9     4.7
-  orc          6.3     6.6     7.8     8.6     7.1
+                      D1      D2      D3      D4      D5
+  white slime        3.9     2.9     2.9     3.4     2.8
+  blue slime         6.6     4.8     4.9     5.2     4.3
+  red slime          3.9     2.9     3.0     3.4     2.7
+  green slime        4.9     4.0     4.0     4.5     3.7
+  goblin scout       5.3     4.1     4.0     4.5     3.5
+  goblin warrior     5.6     5.1     5.4     5.9     4.6
+  goblin shaman      4.9     3.7     3.6     4.1     3.3
+  orc                6.3     6.5     7.7     8.6     7.4
+  orc archer         6.4     6.5     7.5     8.4     6.8
 
 mean hit points the character lost
-                D1      D2      D3      D4      D5
-  slime        1.2     0.7     0.5     0.4     0.1
-  goblin       8.4     7.3     6.3     5.9     2.6
-  orc         10.9    12.0    11.4    11.2     4.5
+                      D1      D2      D3      D4      D5
+  white slime        1.1     0.7     0.5     0.4     0.1
+  blue slime         2.2     1.5     1.0     0.8     0.2
+  red slime          2.3     1.5     1.1     0.9     0.2
+  green slime        5.0     4.2     2.7     2.2     0.5
+  goblin scout       4.1     3.0     2.4     2.5     1.1
+  goblin warrior     8.1     7.2     6.1     6.0     2.7
+  goblin shaman      1.8     1.2     0.9     0.9     0.3
+  orc               10.8    11.5    11.2    11.0     4.6
+  orc archer        10.3    10.2     9.8     9.8     4.9
 ```
 
 The orc row of the damage table rises from D1 to D2. A D1 character dies early in many fights and
 loses at most its hit points, so the mean is held down by the deaths.
 
 The long sword at D4 and D5 swings at 120, so those fights take more turns than the short sword's
-at D3. The larger die still lifts the win rate against the orc, from 74.8 to 86.0.
+at D3. The larger die still lifts the win rate against the orc, from 74.6 to 85.5.
 
 ### Left out
 
 * Regeneration. A long fight would regenerate a little in the game.
 * Potions, light, doors and the room around the fight.
 * Attributes other than the default.
-* Variants of a species. They appear once `opponents` reads them.
+* A shaman's mend. It heals another goblin, and a fight holds one monster.
 
 ## What a blow costs
 
@@ -3195,23 +3215,30 @@ corner. A trial of the feature needs groups, which arrive with the swarms and sp
 
 ### The spawn table
 
-`Spawns::TABLE` in `spawns.cr` is a list of rows. A row names a species, a range of depths and a
-weight. The weights of every row covering a depth are summed per species and picked from.
+`Spawns::TABLE` in `spawns.cr` is a list of rows. A row names a `Kind` and a weight. The floors a
+kind appears on are its own `Kind#depths`, so a depth range lives in one place. `Spawns.weights`
+answers the rows whose kind appears at a depth, and the generator picks from them.
 
-| species | depths | weight |
+| kind | depths | weight |
 |---|---|---|
-| slime | 1..5 | 40 |
-| goblin | 1..5 | 45 |
-| orc | 2..3 | 12 |
-| orc | 4..5 | 25 |
+| white slime | 1..3 | 40 |
+| blue slime | 1..4 | 20 |
+| red slime | 2..5 | 20 |
+| green slime | 3..5 | 15 |
+| goblin scout | 1..2 | 30 |
+| goblin warrior | 2..4 | 45 |
+| goblin shaman | 3..5 | 15 |
+| orc | 3..5 | 15 |
+| orc archer | 4..5 | 10 |
 
-* A species may take several rows, one per stretch of depths.
-* A variant is a new row. When `Species` becomes a kind, `Row#species` holds the kind and nothing
-  else changes.
+* Floor 1 holds white and blue slimes and goblin scouts. Orcs start on floor 3, and the archer
+  joins them on floor 4, so the orc share grows with depth.
+* A new kind is a new row and a `KindFacts` entry. A spec holds every kind to exactly one row.
 * `Spawns::DENSITY` says, per depth, how often a room is inhabited and how many creatures it holds:
   40, 45, 50, 50 and 55 out of 100, with one or two creatures to floor 3 and one to three below.
 
-Creatures per dug floor, averaged over 20 seeds:
+Creatures per dug floor, averaged over 20 seeds, measured with the species table before kinds
+were merged:
 
 | depth | slime | goblin | orc |
 |---|---|---|---|
@@ -3296,6 +3323,107 @@ into a weaker scout on floors 1 and 2 and the current goblin from floor 2.
 * Floor themes: terrain, inhabitants and loot chosen together per floor.
 * The trial bot explores badly, so the deepest-floor numbers are a floor for comparison between
   builds rather than a measure of the game.
+
+## Kinds of creature
+
+`Kind` is a species and a variant of it. `Kinds::FACTS` holds one `KindFacts` per kind. `Species`
+stays as the family: `Kind#species` names it, and `Species#default` names the kind a bare species
+stands for. The default kinds carry the numbers the three species had before, so a floor file's
+`j`, `g` and `o` and an old save mean what they always meant.
+
+### The table
+
+| kind | glyph | colour | hit dice | avg | AC | damage | speed | dark | light | weapon | depths | alone | xp |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| white slime | `j` | `#EEEEEE` | 2d4+1 | 6 | 0 | 1d4 | 80 | no | 0 | none | 1-3 | no | 3 |
+| blue slime | `j` | `#5CB8FF` | 2d6+4 | 11 | 0 | 1d4 | 80 | no | 0 | none | 1-4 | no | 5 |
+| red slime | `j` | `#FF5C5C` | 2d4+1 | 6 | 0 | 1d8 | 80 | no | 0 | none | 2-5 | no | 6 |
+| green slime | `j` | `#5CF05C` | 2d6+2 | 9 | 0 | 2d6 | 80 | no | 0 | none | 3-5 | no | 10 |
+| goblin scout | `g` | `#FFE040` | 2d4+2 | 7 | 0 | 1d4 | 110 | no | 40 | dagger | 1-2 | yes | 5 |
+| goblin warrior | `g` | `#A8E040` | 2d4+4 | 9 | 2 | 1d6 | 100 | no | 25 | short sword | 2-4 | no | 7 |
+| goblin shaman | `g` | `#FF70FF` | 2d4+2 | 7 | 1 | 1d3 | 100 | no | 50 | none | 3-5 | no | 12 |
+| orc | `o` | `#FF6850` | 2d6+7 | 14 | 4 | 1d8 | 95 | yes | 20 | 90% drawn | 3-5 | no | 14 |
+| orc archer | `o` | `#60E8E8` | 2d6+4 | 11 | 3 | 1d6 | 95 | yes | 10 | none yet | 4-5 | no | 16 |
+
+AC is the hide before the dexterity modifier. Light is the chance, out of a hundred, of carrying a
+lit torch or candle. The spawn weights are 40, 20, 20 and 15 for the slimes, 30, 45 and 15 for the
+goblins, and 15 and 10 for the orcs. A weight counts only against the other kinds at the same
+depth.
+
+### Decisions
+
+* The glyph is the species letter for every kind. The colour names the kind. The colour lives in
+  `Ui::Palette::MONSTERS`, keyed by `Kind`, because the model holds no styles.
+* Every colour reads at a contrast ratio of at least 6:1 against the map ground `#0C0E12`. The
+  lowest is the red slime at 6.4. The orc moved from `#E06050` at 5.5 to `#FF6850` at 6.8. Kinds of
+  one species sit far apart in hue: white, blue, red and green slimes; yellow, lime and magenta
+  goblins; red and cyan orcs. A spec holds every kind to 4.5:1 and every species to distinct
+  colours.
+* A creature the generator places rolls its hit points from its hit dice. A creature a floor file
+  or a spec places starts at the average. `Monster#max_hit_points` is stored. A save without it
+  takes the kind's average on load.
+* A save names the kind as well as the species. A save without a kind loads as the species'
+  default kind.
+* A room's first creature is rolled from `Spawns.weights` at the floor's depth. A kind that appears
+  alone has the room to itself. Otherwise the room holds one or two creatures of that species, drawn
+  from the kinds that go about in company, and they share one band. Before this every creature had a
+  band of its own.
+* `Kind#depths` is where a kind's floors live. `Spawns::TABLE` holds only its weight. The
+  generator reads the floor's own depth, so no floor draws from every depth.
+* `Spawns::DENSITY` decides whether a room is inhabited and how large a crowd is. The kind decides
+  whether the crowd is one creature or several. A room is placed once, as one band.
+* A kind's swing cost is in `KindFacts#swing`. The orc and the orc archer swing at 120 and every
+  other kind at 100.
+* With every kind drawn on one floor, before depths were merged, the species shares of a room's
+  first creature were 45% slime, 43% goblin and 12% orc. They had been 38%, 43% and 14%.
+* A kind's `weapon` is carried every time. A kind without one draws from `Loot::WEAPONS` as often
+  as `armed` says. Only the orc does. A creature still hits with its own damage dice rather than
+  the weapon it holds.
+* Blows land with the kind's verb: a blue slime chills, a red slime scalds, a green slime eats at.
+* A shaman heals the most hurt goblin beside it for 1d4, never past full, then waits
+  `Game::MEND_WAIT` turns. It does this in place of its action. It does not heal itself. The roll
+  is on the `mend` stream. The line is written only when the character can see the shaman.
+* `Game#cast_bolt` is the hook for a shaman's bolt. It answers false. A kind that `casts?` asks it
+  first on each action.
+* The replay stream versions for `generator` and `loot` are 3, one past the floors branch, and
+  `mend` joined at 1. The golden replay was recorded again from its seed.
+
+### What it did to a run
+
+Two hundred trial runs from seed 5000, at most 1500 turns each, before and after, on the one floor
+that stood for every depth:
+
+| | before | after |
+| --- | --- | --- |
+| died | 152 (76%) | 119 (59%) |
+| won | 4 (2%) | 4 (2%) |
+| gave up at the turn limit | 44 (22%) | 77 (38%) |
+| turns until death, median | 101 | 123 |
+| squares from start, median | 18 | 22 |
+| level reached, mean | 1.04 | 1.29 |
+| gold, mean | 20.27 | 31.22 |
+
+| killed by, before | runs | killed by, after | runs |
+| --- | --- | --- | --- |
+| goblin | 103 | goblin warrior | 56 |
+| orc | 43 | orc | 26 |
+| slime | 6 | orc archer | 14 |
+| | | green slime | 9 |
+| | | red slime | 7 |
+| | | goblin scout | 3 |
+| | | goblin shaman | 2 |
+| | | blue slime | 1 |
+| | | white slime | 1 |
+
+Deaths fall by a fifth. Goblin warriors kill half as often as goblins did, because half of the
+goblins are now weaker scouts and shamans. Orc deaths hold at about forty once archers are counted.
+The red and green slimes are the first slimes that kill often. More runs reach level two, and more
+of them survive to the turn limit.
+
+### Left for later
+
+* The orc archer's bow and arrows, and the shaman's bolt.
+* A creature swinging the weapon it carries.
 
 ## Asked for, not yet built
 

@@ -38,7 +38,7 @@ module Roguelike
     # light to see by, and a lit character is what such a species is looking
     # for. A species with darkvision reads the same reach in a lit room and
     # in a dark corridor, because the light is not what it is looking with.
-    def self.reach(species : Species, stealth : Int32, light : Int32) : Int32
+    def self.reach(species : Kind | Species, stealth : Int32, light : Int32) : Int32
       found = species.notice - Attributes.modifier(stealth)
       found += light * REACH_PER_LIGHT unless species.darkvision?
 
@@ -59,7 +59,7 @@ module Roguelike
     #
     # A character with light on them is noticed at arm's reach whatever
     # their stealth.
-    def self.notices?(species : Species, stealth : Int32, light : Int32,
+    def self.notices?(species : Kind | Species, stealth : Int32, light : Int32,
                       from : {Int32, Int32}, to : {Int32, Int32},
                       line : Bool = true) : Bool
       return false unless line

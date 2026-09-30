@@ -474,8 +474,13 @@ module Roguelike
 
     # Puts creatures in *room*, as `Spawns` says for this depth.
     #
-    # Each is in a band of its own. `Floor#place` writes the band down, the
-    # same way it does for a creature a floor file names.
+    # The first creature's kind is rolled from every kind that appears at
+    # the floor's depth. A kind that appears alone has the room to itself.
+    # Any other is joined by more of its species that also go about in
+    # company, and every creature in the room is in one band. `Floor#place`
+    # writes the band down.
+    #
+    # Each rolls its hit points from its kind's hit dice.
     #
     # The room with the up staircase in it gets none. A character who arrives
     # standing next to a goblin has been given no turn to decide anything.
@@ -486,12 +491,18 @@ module Roguelike
       density = Spawns.density @depth
       return unless stream.rand(100) < density.inhabited
 
-      stream.rand(density.crowd).times do |which|
-        spot = plain(room).sample stream
-        species = Spawns.pick stream, @depth
-        band = "#{@floor.id}-#{index}-#{which}"
+      first = Spawns.pick stream, @depth
+      company = Spawns.weights @depth, first.species, alone: false
+      count = first.alone? || company.empty? ? 1 : stream.rand(density.crowd)
+      band = "#{@floor.id}-#{index}"
 
-        @floor.place Monster.new(species, spot[0], spot[1], band)
+      count.times do |which|
+        kind = which.zero? ? first : Items.pick(stream, company)
+        spot = plain(room).sample stream
+        health = kind.hit_dice.roll stream
+
+        @floor.place Monster.new(kind, spot[0], spot[1], band,
+          hit_points: health, max_hit_points: health)
       end
     end
   end

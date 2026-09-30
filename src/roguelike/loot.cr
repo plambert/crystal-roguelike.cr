@@ -7,12 +7,12 @@ module Roguelike
   # spec that rolls ten thousand goblins twice gets the same ten thousand
   # both times.
   #
-  # A species makes several draws rather than one. Each is rolled on its own,
+  # A kind makes several draws rather than one. Each is rolled on its own,
   # so a goblin can come up with a weapon and no armor, with both, or with
   # neither. One table of everything a goblin might have would make those
   # exclusive, and a goblin with a sword and no boots is the ordinary case.
   module Loot
-    # One roll a species makes for what it is carrying.
+    # One roll a kind makes for what it is carrying.
     #
     # *kinds* is what the draw may produce, by weight. *chance* is how often
     # it produces anything at all, out of a hundred. *count* is how many,
@@ -33,10 +33,10 @@ module Roguelike
       {Condition::Masterwork, 8},
     }
 
-    # What a creature carrying a weapon has.
+    # What a kind with no weapon of its own draws when it is armed.
     #
-    # Weighted toward the plain weapons. A goblin is far more likely to have
-    # a dagger than a rapier.
+    # Weighted toward the plain weapons. An orc is far more likely to have a
+    # dagger than a rapier.
     WEAPONS = {
       ItemKind::Dagger     => 40,
       ItemKind::ShortSword => 25,
@@ -143,11 +143,11 @@ module Roguelike
       table.select { |kind, _weight| allowed? kind, depth }
     end
 
-    # What each species draws for.
+    # What each species draws for, apart from a weapon and a light.
     #
     # A species is never given a draw for something it would not be carrying.
-    # A slime has no hands, so there is no weapon draw in its list at all
-    # rather than a weapon draw it almost never makes.
+    # A slime has no hands, so there is no armor draw in its list at all
+    # rather than an armor draw it almost never makes.
     DRAWS = {
       Species::Slime => [
         Draw.new(COINS, chance: 70, count: 1..12),
@@ -155,45 +155,61 @@ module Roguelike
       ],
 
       Species::Goblin => [
-        Draw.new(WEAPONS, chance: 80),
         Draw.new(ARMOR, chance: 35),
-        Draw.new(LIGHTS, chance: 25),
         Draw.new(COINS, chance: 60, count: 3..25),
       ],
 
       Species::Orc => [
-        Draw.new(WEAPONS, chance: 90),
         Draw.new(ARMOR, chance: 55),
-        Draw.new(LIGHTS, chance: 20),
         Draw.new(COINS, chance: 70, count: 8..45),
       ],
     }
 
-    # The draws *species* makes.
-    def self.draws(species : Species) : Array(Draw)
-      DRAWS[species]
-    end
-
-    # Every kind *species* could be carrying.
+    # The draws *kind* makes.
     #
-    # A spec asserts that nothing outside this ever turns up.
-    def self.kinds(species : Species) : Set(ItemKind)
-      found = Set(ItemKind).new
-      draws(species).each { |draw| draw.kinds.each_key { |kind| found << kind } }
+    # Its weapon first: the one it always carries, or a roll on `WEAPONS` as
+    # often as `Kind#armed` says. Then what its species draws for. Then a
+    # light, as often as `Kind#light` says.
+    def self.draws(kind : Kind) : Array(Draw)
+      found = [] of Draw
+      weapon = kind.weapon
+
+      if weapon
+        found << Draw.new({weapon => 1}, chance: 100)
+      elsif kind.armed > 0
+        found << Draw.new(WEAPONS, chance: kind.armed)
+      end
+
+      found.concat DRAWS[kind.species]
+      found << Draw.new(LIGHTS, chance: kind.light) if kind.light > 0
       found
     end
 
-    # What one creature of *species* is carrying, rolled on *rng*.
+    # :ditto:
+    def self.draws(species : Species) : Array(Draw)
+      draws species.default
+    end
+
+    # Every kind of item *kind* could be carrying.
+    #
+    # A spec asserts that nothing outside this ever turns up.
+    def self.kinds(kind : Kind | Species) : Set(ItemKind)
+      found = Set(ItemKind).new
+      draws(kind).each { |draw| draw.kinds.each_key { |item| found << item } }
+      found
+    end
+
+    # What one creature of *kind* is carrying, rolled on *rng*.
     #
     # *rng* belongs to that one creature. `Game#equip` derives a stream from
     # where the creature stands, so adding an entry to a table shifts what
     # that creature carries and nothing else on the floor.
     #
     # *depth* is the floor it lives on. `nil` holds nothing back.
-    def self.for(species : Species, rng : Rng, depth : Int32? = nil) : Array(Item)
+    def self.for(kind : Kind | Species, rng : Rng, depth : Int32? = nil) : Array(Item)
       found = [] of Item
 
-      draws(species).each do |draw|
+      draws(kind).each do |draw|
         taken = one draw, rng, depth
         found << taken if taken
       end

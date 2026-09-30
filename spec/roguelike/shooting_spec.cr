@@ -80,7 +80,7 @@ Spectator.describe "shooting and throwing" do
 
   # What was said about the goblin, if anything.
   def about_the_goblin(game : Game) : String
-    game.log.lines.find(&.includes? "goblin").to_s
+    game.log.lines.find(&.includes? "goblin warrior").to_s
   end
 
   describe "Game#cannot_fire" do
@@ -216,7 +216,7 @@ Spectator.describe "shooting and throwing" do
       game = archer 20, monsters: [goblin({6, 1})]
       20.times { game.fire EAST }
 
-      expect(game.log.lines).to contain "You kill the goblin."
+      expect(game.log.lines).to contain "You kill the goblin warrior."
     end
 
     it "drops what the creature carried where it fell" do

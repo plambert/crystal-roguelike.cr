@@ -175,7 +175,7 @@ Spectator.describe Roguelike::Combat do
         back = Combat.swing rng, creature.to_hit, player.armor_class,
           creature.damage
 
-        lines << ("%3d %-6s  you %s  it %s" % [
+        lines << ("%3d %-14s  you %s  it %s" % [
           index, creature.label, written(forward), written(back),
         ]).rstrip
       end

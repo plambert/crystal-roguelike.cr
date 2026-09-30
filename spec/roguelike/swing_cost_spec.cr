@@ -209,9 +209,11 @@ Spectator.describe "what a blow costs" do
       Kinds.override = nil
     end
 
-    it "costs what its species says" do
-      expect(Species::Goblin.swing).to eq Costs::TURN
-      expect(Species::Orc.swing).to eq 120
+    it "costs what its kind says" do
+      Roguelike::Kind.each do |kind|
+        cost = kind.species.orc? ? 120 : Costs::TURN
+        expect(kind.swing).to eq cost
+      end
     end
 
     it "gives an orc fewer swings than a goblin over the same ticks" do

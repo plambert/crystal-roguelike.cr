@@ -249,7 +249,7 @@ Spectator.describe Roguelike::Debug::Console do
 
       expect(game.floor.monster 3, 3).to be_nil
       expect(game.player.experience).to be > before
-      expect(console.lines.last).to eq "killed the goblin."
+      expect(console.lines.last).to eq "killed the goblin warrior."
     end
 
     it "takes a square written with a space" do
@@ -321,7 +321,7 @@ Spectator.describe Roguelike::Debug::Console do
       game.floor.place Monster.new(Species::Goblin, 3, 3, "band-one")
       console.run "goto 3,3", game
 
-      expect(console.lines.last).to eq "the goblin is standing there."
+      expect(console.lines.last).to eq "the goblin warrior is standing there."
     end
   end
 

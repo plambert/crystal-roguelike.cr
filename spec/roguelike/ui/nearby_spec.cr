@@ -147,7 +147,7 @@ Spectator.describe Roguelike::Ui::NearbyPane do
       run.game.floor.place Monster.new(Species::Goblin, 8, 3, "band-one")
       run.play.refresh
 
-      expect(in_sight run).to contain "goblin"
+      expect(in_sight run).to contain "goblin warrior"
     end
 
     it "names an item the character can see" do
@@ -173,7 +173,7 @@ Spectator.describe Roguelike::Ui::NearbyPane do
       run.game.floor.place Monster.new(Species::Goblin, 8, 3, "band-one")
       run.play.refresh
 
-      expect(in_sight run).to eq ["goblin", "a long sword"]
+      expect(in_sight run).to eq ["goblin warrior", "a long sword"]
     end
 
     it "puts the nearest first" do
@@ -216,13 +216,13 @@ Spectator.describe Roguelike::Ui::NearbyPane do
       run = hall_shape
 
       expect(in_sight run).to contain Roguelike::Size::Small.label
-      expect(in_sight run).not_to contain "goblin"
+      expect(in_sight run).not_to contain "goblin warrior"
     end
 
     it "names it once there is light on it" do
       run = hall_shape lit: true
 
-      expect(in_sight run).to contain "goblin"
+      expect(in_sight run).to contain "goblin warrior"
     end
 
     it "drops a creature that has walked out of sight" do
@@ -230,7 +230,7 @@ Spectator.describe Roguelike::Ui::NearbyPane do
       creature = Monster.new Species::Goblin, 8, 3, "band-one"
       run.game.floor.place creature
       run.play.refresh
-      expect(in_sight run).to contain "goblin"
+      expect(in_sight run).to contain "goblin warrior"
 
       run.game.floor.remove 8, 3
       run.play.refresh

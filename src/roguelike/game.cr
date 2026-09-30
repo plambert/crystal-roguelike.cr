@@ -100,6 +100,12 @@ module Roguelike
     # counter existed loads and carries on from zero.
     getter handled : Int32 = 0
 
+    # How many times a creature has mended a neighbour.
+    #
+    # A fifth stream, so a shaman healing a goblin does not shift what the
+    # next swing rolls. It has a default, so an older save loads.
+    getter mends : Int32 = 0
+
     # What has just happened.
     getter log : MessageLog
 
@@ -499,7 +505,7 @@ module Roguelike
       deep = Game.depth_of ground
       ground.each_monster do |column, row, creature|
         stream = rng.derive "loot:#{ground.id}:#{column},#{row}"
-        creature.carry Loot.for(creature.species, stream, deep)
+        creature.carry Loot.for(creature.kind, stream, deep)
       end
     end
 
@@ -1327,7 +1333,7 @@ module Roguelike
       say "You kill the #{creature.label}.",
         Event::Slain.new(creature.id, creature.label)
 
-      gained = @player.gain creature.species.experience
+      gained = @player.gain creature.kind.experience
       return unless gained > 0
 
       say "Welcome to level #{@player.level}.",
@@ -1541,6 +1547,11 @@ module Roguelike
           break if over?
           break unless floor.monster? creature.x, creature.y
 
+          if cast_bolt(creature) || mend(creature)
+            creature.pace.spend Costs::TURN
+            next
+          end
+
           action = plan creature, maps
           creature.hem action.hemmed?
           creature.pace.spend perform(creature, action)
@@ -1580,7 +1591,7 @@ module Roguelike
         knowledge: knowledge,
         quarry: quarry.try(&.at),
         stale: quarry.try(&.age(@turn)) || 0,
-        descent: creature.species.paths? ? route(creature, knowledge, quarry, maps) : nil,
+        descent: creature.kind.paths? ? route(creature, knowledge, quarry, maps) : nil,
         blocked: standing_on_squares(creature),
         stumble: stumbles?(creature))
     end
@@ -1631,7 +1642,7 @@ module Roguelike
     # creature that never put a foot wrong could never be shaken off in open
     # ground, whatever else it is like.
     private def stumbles?(creature : Monster) : Bool
-      chance = creature.species.clumsiness
+      chance = creature.kind.clumsiness
       return false unless chance > 0
 
       wander.rand(100) < chance
@@ -1674,8 +1685,61 @@ module Roguelike
         return Costs::TURN unless @player.at? wanted[0], wanted[1]
 
         strike creature
-        creature.species.swing
+        creature.kind.swing
       end
+    end
+
+    # How many turns a creature waits between one mending and the next.
+    MEND_WAIT = 4
+
+    # What one mending puts back.
+    MEND = Dice.new 1, 4
+
+    # *creature* heals a hurt neighbour of its species. Answers whether it
+    # did, which spends its action.
+    #
+    # Only a kind that `Kind#mends?` does this, and only when its wait since
+    # the last one has run out. It picks the neighbour missing the most hit
+    # points, the first in `Direction` order on a tie. A creature does not
+    # mend itself.
+    private def mend(creature : Monster) : Bool
+      return false unless creature.ready_to_mend?
+
+      patient = nil.as(Monster?)
+      Direction.values.each do |direction|
+        spot = direction.from creature.x, creature.y
+        other = floor.monster spot[0], spot[1]
+        next unless other && other.species == creature.species && other.hurt?
+
+        wound = other.max_hit_points - other.hit_points
+        if patient.nil? || wound > patient.max_hit_points - patient.hit_points
+          patient = other
+        end
+      end
+      return false unless patient
+
+      root = (@root ||= Rng.new @world.seed)
+      amount = patient.heal MEND.roll(root.derive("mend", @mends))
+      @mends += 1
+      creature.mended MEND_WAIT
+
+      if regard_of(creature).everything?
+        say "The #{creature.label} mends the #{patient.label}.",
+          Event::Healed.new(amount, who: patient.id)
+      end
+
+      true
+    end
+
+    # *creature* throws a bolt at the character. Answers whether it did.
+    #
+    # A kind that `Kind#casts?` asks here first on each of its actions. No
+    # kind has a bolt to throw yet, so this always answers false and the
+    # creature goes on to mend or to fight.
+    private def cast_bolt(creature : Monster) : Bool
+      return false unless creature.kind.casts?
+
+      false
     end
 
     # Moves *creature* onto *wanted*, when nothing is in the way.
@@ -1711,7 +1775,7 @@ module Roguelike
 
       if blow.hit?
         @player.hurt blow.damage
-        say "The #{creature.label} hits you for #{blow.damage}.",
+        say "The #{creature.label} #{creature.kind.verb} you for #{blow.damage}.",
           Event::Attack.new(true, attacker: creature.id, damage: blow.damage)
         character_died creature unless @player.alive?
       else
@@ -1918,7 +1982,7 @@ module Roguelike
       floor.each_monster do |_column, _row, creature|
         next unless creature.band == band.id
 
-        found = creature.species.persistence
+        found = creature.kind.persistence
         most = found if most.nil? || found > most
       end
 
@@ -1963,7 +2027,7 @@ module Roguelike
         next unless band
 
         looking = Vision.new FieldOfView.from(floor, column, row),
-          creature.species.darkvision? ? nil : lighting
+          creature.kind.darkvision? ? nil : lighting
         knowledge = band.knowledge floor.id
         knowledge.learn floor, looking, @turn
         feel knowledge, column, row
@@ -2021,7 +2085,7 @@ module Roguelike
       floor.each_monster do |column, row, creature|
         next if found.has_key? creature.band
         next if creature.blind?
-        next unless Notice.notices? creature.species, stealth, light,
+        next unless Notice.notices? creature.kind, stealth, light,
                       {column, row}, @player.at, seen.field.includes?(column, row)
 
         found[creature.band] = creature
@@ -3215,7 +3279,10 @@ module Roguelike
         say "You can see again.", Event::StatusEnd.new(:blind)
       end
 
-      floor.each_monster { |_column, _row, creature| creature.blink }
+      floor.each_monster do |_column, _row, creature|
+        creature.blink
+        creature.rest_from_mending
+      end
     end
 
     # ------------------------------------------------------------- detection
@@ -3759,7 +3826,7 @@ module Roguelike
       worst = nil.as Monster?
       floor.each_monster do |_column, _row, creature|
         worst = creature if worst.nil? ||
-                            creature.species.experience > worst.species.experience
+                            creature.kind.experience > worst.kind.experience
       end
 
       unless worst

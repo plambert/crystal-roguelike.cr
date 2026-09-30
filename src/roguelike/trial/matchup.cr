@@ -11,7 +11,7 @@ module Roguelike
     #
     # The table has a row for each opponent and a column for each kit. A kit
     # is what a character has by the time they reach a given depth. Both
-    # axes are read from tables, so a species or a kit added to either shows
+    # axes are read from tables, so a kind or a kit added to either shows
     # up here without an edit.
     #
     # Every fight rolls on a stream named for the seed, the kit and the
@@ -100,9 +100,9 @@ module Roguelike
       # counts as not won.
       LIMIT = 1000
 
-      # Everyone the character is matched against, one row each.
-      def self.opponents : Array(Species)
-        Species.values
+      # Everyone the character is matched against, one row for each kind.
+      def self.opponents : Array(Kind)
+        Kind.values
       end
 
       # How one fight came out.
@@ -132,19 +132,23 @@ module Roguelike
         end
       end
 
-      # Plays one fight of *kit* against *species*, rolled on *rng*.
+      # Plays one fight of *kit* against *kind*, rolled on *rng*.
       #
       # Time runs the way `Game` runs it. The character swings and pays what
       # its weapon costs. The world then ticks until the character can act
       # again, and on each tick the monster takes every action it has banked,
-      # each paying what its species' swing costs. A dagger at 75 swings four
+      # each paying what its kind's swing costs. A dagger at 75 swings four
       # times in three ticks, and an orc at speed 95 with a swing of 120
       # attacks a little under four times in five.
       #
-      # Turns are ticks of the world, counting the one the fight ends in.
-      def self.fight(kit : Kit, species : Species, rng : Rng) : Result
+      # The monster rolls its hit points from its kind's hit dice, as one the
+      # generator places does. Turns are ticks of the world, counting the one
+      # the fight ends in.
+      def self.fight(kit : Kit, kind : Kind, rng : Rng) : Result
         player = kit.character
-        monster = Monster.new species, 1, 0, "matchup"
+        health = kind.hit_dice.roll rng
+        monster = Monster.new kind, 1, 0, "matchup",
+          hit_points: health, max_hit_points: health
         start = player.hit_points
         swing = Costs.swing player.wielded
         ticks = 0
@@ -158,7 +162,7 @@ module Roguelike
 
           until player.pace.ready?
             while monster.pace.ready?
-              monster.pace.spend species.swing
+              monster.pace.spend kind.swing
               blow = Combat.swing rng, monster.to_hit, player.armor_class, monster.damage
               player.hurt blow.damage if blow.hit?
               return Result.new false, ticks + 1, start - player.hit_points unless player.alive?
@@ -174,19 +178,19 @@ module Roguelike
       end
 
       # The stream the fights of one cell roll on.
-      def self.stream(seed : UInt64, kit : Kit, species : Species) : Rng
+      def self.stream(seed : UInt64, kit : Kit, kind : Kind) : Rng
         Rng.new(seed).derive("matchup").derive("kit:#{kit.depth}")
-          .derive("species:#{species}")
+          .derive("kind:#{kind}")
       end
 
-      # Plays *fights* fights of *kit* against *species* and sums them.
-      def self.cell(kit : Kit, species : Species, fights : Int32 = FIGHTS,
+      # Plays *fights* fights of *kit* against *kind* and sums them.
+      def self.cell(kit : Kit, kind : Kind, fights : Int32 = FIGHTS,
                     seed : UInt64 = FIRST) : Cell
-        rng = stream seed, kit, species
+        rng = stream seed, kit, kind
         wins = turns = damage = 0
 
         fights.times do |index|
-          result = fight kit, species, rng.derive("fight", index)
+          result = fight kit, kind, rng.derive("fight", index)
           wins += 1 if result.won
           turns += result.turns
           damage += result.damage
@@ -198,16 +202,16 @@ module Roguelike
       # Every cell, from *seed*.
       def self.play(fights : Int32 = FIGHTS, seed : UInt64 = FIRST,
                     kits : Array(Kit) = KITS,
-                    opponents : Array(Species) = self.opponents) : Table
-        cells = opponents.map do |species|
-          kits.map { |kit| cell kit, species, fights, seed }
+                    opponents : Array(Kind) = self.opponents) : Table
+        cells = opponents.map do |kind|
+          kits.map { |kit| cell kit, kind, fights, seed }
         end
 
         Table.new opponents, kits, cells, fights, seed
       end
 
       # The cells of a matchup, with the axes they sit on.
-      record Table, opponents : Array(Species), kits : Array(Kit),
+      record Table, opponents : Array(Kind), kits : Array(Kit),
         cells : Array(Array(Cell)), fights : Int32, seed : UInt64 do
         # The cell for row *row* and column *column*.
         def [](row : Int32, column : Int32) : Cell
@@ -243,8 +247,8 @@ module Roguelike
           @kits.each { |kit| io << kit.heading.rjust(8) }
           io << '\n'
 
-          @opponents.each_with_index do |species, row|
-            io << "  " << species.label.ljust(label)
+          @opponents.each_with_index do |kind, row|
+            io << "  " << kind.label.ljust(label)
             @kits.each_index { |column| io << (yield self[row, column]).rjust(8) }
             io << '\n'
           end

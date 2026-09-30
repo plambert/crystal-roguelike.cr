@@ -2,7 +2,7 @@ require "../spec_helper"
 
 Spectator.describe Roguelike::Trial::Matchup do
   alias Matchup = Roguelike::Trial::Matchup
-  alias Species = Roguelike::Species
+  alias Kind = Roguelike::Kind
 
   # Small, because a spec checks the rules and the command line takes the
   # measurement.
@@ -37,10 +37,10 @@ Spectator.describe Roguelike::Trial::Matchup do
   end
 
   describe ".fight" do
-    it "ends, for every species and every kit" do
-      Matchup.opponents.each do |species|
+    it "ends, for every kind and every kit" do
+      Matchup.opponents.each do |kind|
         Matchup::KITS.each do |kit|
-          result = Matchup.fight kit, species, Roguelike::Rng.new(7_u64)
+          result = Matchup.fight kit, kind, Roguelike::Rng.new(7_u64)
 
           expect(result.turns).to be_between(1, Matchup::LIMIT)
         end
@@ -48,7 +48,7 @@ Spectator.describe Roguelike::Trial::Matchup do
     end
 
     it "leaves the character at most as hurt as they were" do
-      result = Matchup.fight first, Species::Orc, Roguelike::Rng.new(7_u64)
+      result = Matchup.fight first, Kind::Orc, Roguelike::Rng.new(7_u64)
 
       expect(result.damage).to be_between(0, first.character.max_hit_points)
     end
@@ -56,30 +56,30 @@ Spectator.describe Roguelike::Trial::Matchup do
 
   describe ".cell" do
     it "counts the fights it was asked for" do
-      cell = Matchup.cell first, Species::Goblin, FIGHTS
+      cell = Matchup.cell first, Kind::GoblinWarrior, FIGHTS
 
       expect(cell.fights).to eq FIGHTS
       expect(cell.wins).to be <= FIGHTS
     end
 
     it "gives the same answer for the same seed" do
-      once = Matchup.cell first, Species::Goblin, FIGHTS, 11_u64
-      again = Matchup.cell first, Species::Goblin, FIGHTS, 11_u64
+      once = Matchup.cell first, Kind::GoblinWarrior, FIGHTS, 11_u64
+      again = Matchup.cell first, Kind::GoblinWarrior, FIGHTS, 11_u64
 
       expect(again).to eq once
     end
 
     it "gives another answer for another seed" do
-      once = Matchup.cell first, Species::Goblin, FIGHTS, 11_u64
-      other = Matchup.cell first, Species::Goblin, FIGHTS, 12_u64
+      once = Matchup.cell first, Kind::GoblinWarrior, FIGHTS, 11_u64
+      other = Matchup.cell first, Kind::GoblinWarrior, FIGHTS, 12_u64
 
       expect(other).not_to eq once
     end
 
     it "is won more often by a stronger kit" do
-      Matchup.opponents.each do |species|
-        weak = Matchup.cell first, species, FIGHTS
-        strong = Matchup.cell last, species, FIGHTS
+      Matchup.opponents.each do |kind|
+        weak = Matchup.cell first, kind, FIGHTS
+        strong = Matchup.cell last, kind, FIGHTS
 
         expect(strong.win_rate).to be >= weak.win_rate
         expect(strong.mean_damage).to be <= weak.mean_damage
@@ -88,11 +88,11 @@ Spectator.describe Roguelike::Trial::Matchup do
   end
 
   describe ".play" do
-    it "has a row for every species and a column for every kit" do
+    it "has a row for every kind and a column for every kit" do
       table = Matchup.play 5
 
-      expect(table.opponents).to eq Species.values
-      expect(table.cells.size).to eq Species.values.size
+      expect(table.opponents).to eq Kind.values
+      expect(table.cells.size).to eq Kind.values.size
       expect(table.cells.map(&.size).uniq!).to eq [Matchup::KITS.size]
     end
 
@@ -100,10 +100,10 @@ Spectator.describe Roguelike::Trial::Matchup do
       expect(Matchup.play(20, 3_u64).to_s).to eq Matchup.play(20, 3_u64).to_s
     end
 
-    it "names every species and every kit" do
+    it "names every kind and every kit" do
       text = Matchup.play(5).to_s
 
-      Species.values.each { |species| expect(text).to contain species.label }
+      Kind.values.each { |kind| expect(text).to contain kind.label }
       Matchup::KITS.each { |kit| expect(text).to contain kit.heading }
     end
   end
