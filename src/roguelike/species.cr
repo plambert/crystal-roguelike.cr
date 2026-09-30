@@ -153,7 +153,7 @@ module Roguelike
 
     # Whether this band fights *other*.
     def hostile?(other : Band) : Bool
-      @id != other.id && @faction.hostile?(other.faction)
+      !same?(other) && @faction.hostile?(other.faction)
     end
 
     # What the band knows of the floor *id*, empty until it learns something.

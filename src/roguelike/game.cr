@@ -2238,25 +2238,29 @@ module Roguelike
     # `#in_line?`.
     private def spotting(seen : Vision,
                          fields : Hash({Int32, Int32}, Vision)) : Array({Monster, Monster})
+      ground = floor
       held = [] of Monster
-      floor.each_monster { |_column, _row, creature| held << creature }
+      ground.each_monster { |_column, _row, creature| held << creature }
       held.sort_by! { |creature| {creature.y, creature.x} }
       enroll if held.any? &.id.zero?
 
+      bands = held.map { |creature| ground.band creature.band }
       found = [] of {Monster, Monster}
-      known = Set({String, Int32}).new
+      known = Set({UInt64, Int32}).new
 
-      held.each do |looker|
-        next if looker.blind?
+      held.each_with_index do |looker, mine|
+        band = bands[mine]
+        next if band.nil? || looker.blind?
 
-        held.each do |other|
-          next if known.includes?({looker.band, other.id})
-          next unless hostile? looker, other
+        held.each_with_index do |other, theirs|
+          against = bands[theirs]
+          next unless against && band.hostile?(against)
+          next if known.includes?({band.object_id, other.id})
           next unless in_line? looker, other, fields, seen
           next unless Notice.notices? looker.kind, other.attributes.stealth,
                         seen.light(other.x, other.y), looker.at, other.at
 
-          known << {looker.band, other.id}
+          known << {band.object_id, other.id}
           found << {looker, other}
         end
       end
