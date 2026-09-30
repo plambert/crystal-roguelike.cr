@@ -139,7 +139,7 @@ Spectator.describe "walking a route" do
       went = game.follow route(game, {12, 2})
 
       expect(went.halt).to eq Halt::Told
-      expect(game.log.last?).to eq "The goblin notices you."
+      expect(game.log.last?).to eq "The goblin warrior notices you."
     end
 
     # A route is worked out over what the character remembers, and the floor

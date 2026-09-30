@@ -284,7 +284,7 @@ module Roguelike::Debug
       say "  #{creature.hit_points}/#{creature.max_hit_points} hit points, " \
           "armor class #{creature.armor_class}, damage #{creature.damage}"
       say "  #{creature.attributes}, band #{creature.band}, " \
-          "worth #{creature.species.experience}"
+          "worth #{creature.kind.experience}"
 
       describe_pack game, creature.carrying
     end

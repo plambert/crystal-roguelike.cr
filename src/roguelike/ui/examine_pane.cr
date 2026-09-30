@@ -148,8 +148,8 @@ module Roguelike::Ui
     private def outlined(x : Int32, y : Int32, creature : Monster) : Nil
       @where.text = "#{x}, #{y}"
       @where.hidden = false
-      @what.text = creature.species.size.label
-      @what.style = Palette.shape(creature.species.size).style
+      @what.text = creature.kind.size.label
+      @what.style = Palette.shape(creature.kind.size).style
       @detail.text = MOVING
       @doing.text = ""
       @doing.hidden = true

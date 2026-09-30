@@ -68,7 +68,7 @@ module Roguelike::Ui
     # `nil` for a creature the character cannot see at all.
     def self.about(game : Game, creature : Monster, regard : Regard) : Array(String)?
       return unless regard.made_out?
-      return [creature.species.size.label, ExaminePane::MOVING] unless regard.everything?
+      return [creature.kind.size.label, ExaminePane::MOVING] unless regard.everything?
 
       [
         creature.label,

@@ -368,25 +368,43 @@ module Roguelike::Ui
     # person who has played one looks for it first.
     PLAYER = Look.new '@', HERO
 
-    # What each species is drawn as.
+    # What each kind is drawn as.
     #
-    # The glyph is the letter a floor file writes, which is the roguelike
+    # The glyph is the letter of its species, which is the roguelike
     # convention: `j` for a jelly, `g` for a goblin, `o` for an orc. The
-    # colors are far enough apart to tell the three of them apart at the
-    # dimmest step of the ramp.
-    SLIME  = Style::DEFAULT.fg TermBuf::Color.rgb(0x7C, 0xD8, 0x6C)
-    GOBLIN = Style::DEFAULT.fg TermBuf::Color.rgb(0xB8, 0xE0, 0x40)
-    ORC    = Style::DEFAULT.fg TermBuf::Color.rgb(0xE0, 0x60, 0x50)
+    # colour names the kind. Each is bright enough to read against the
+    # dark ground at a contrast of well over three to one, and the kinds of
+    # one species sit far apart in hue so no two share a look.
+    WHITE_SLIME    = Style::DEFAULT.fg TermBuf::Color.rgb(0xEE, 0xEE, 0xEE)
+    BLUE_SLIME     = Style::DEFAULT.fg TermBuf::Color.rgb(0x5C, 0xB8, 0xFF)
+    RED_SLIME      = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0x5C, 0x5C)
+    GREEN_SLIME    = Style::DEFAULT.fg TermBuf::Color.rgb(0x5C, 0xF0, 0x5C)
+    GOBLIN_SCOUT   = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0xE0, 0x40)
+    GOBLIN_WARRIOR = Style::DEFAULT.fg TermBuf::Color.rgb(0xA8, 0xE0, 0x40)
+    GOBLIN_SHAMAN  = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0x70, 0xFF)
+    ORC            = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0x68, 0x50)
+    ORC_ARCHER     = Style::DEFAULT.fg TermBuf::Color.rgb(0x60, 0xE8, 0xE8)
 
     MONSTERS = {
-      Species::Slime  => SLIME,
-      Species::Goblin => GOBLIN,
-      Species::Orc    => ORC,
+      Kind::WhiteSlime    => WHITE_SLIME,
+      Kind::BlueSlime     => BLUE_SLIME,
+      Kind::RedSlime      => RED_SLIME,
+      Kind::GreenSlime    => GREEN_SLIME,
+      Kind::GoblinScout   => GOBLIN_SCOUT,
+      Kind::GoblinWarrior => GOBLIN_WARRIOR,
+      Kind::GoblinShaman  => GOBLIN_SHAMAN,
+      Kind::Orc           => ORC,
+      Kind::OrcArcher     => ORC_ARCHER,
     }
+
+    # How *kind* draws.
+    def self.[](kind : Kind) : Look
+      Look.new kind.mark, MONSTERS[kind]
+    end
 
     # How *creature* draws.
     def self.[](creature : Monster) : Look
-      Look.new creature.species.mark, MONSTERS[creature.species]
+      self[creature.kind]
     end
 
     # All three rocks draw as `#`. Their colors differ. That is the roguelike

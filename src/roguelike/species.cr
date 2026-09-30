@@ -159,28 +159,6 @@ module Roguelike
     end
   end
 
-  # Everything one kind of monster is.
-  #
-  # No member here carries a glyph or a style. `Ui::Palette` holds both, the
-  # same way it does for terrain. A theme changes that table. A spec reads a
-  # monster with no terminal open.
-  record SpeciesFacts,
-    mark : Char,
-    label : String,
-    plural : String,
-    description : String,
-    hit_points : Int32,
-    damage : Dice,
-    armor : Int32,
-    notice : Int32,
-    darkvision : Bool,
-    paths : Bool,
-    experience : Int32,
-    attributes : Attributes,
-    persistence : Int32,
-    size : Size = Size::Medium,
-    speed : Int32 = Pace::NORMAL
-
   # How big a creature is.
   #
   # This is what somebody makes out when they cannot see the creature itself.
@@ -234,7 +212,58 @@ module Roguelike
     end
   end
 
-  # What sort of creature a monster is.
+  # Everything one kind of monster is.
+  #
+  # No member here carries a style. `Ui::Palette` holds the colour, the same
+  # way it does for terrain. A spec reads a monster with no terminal open.
+  #
+  # *hit_dice* is what a creature placed by the generator rolls for its hit
+  # points. `#hit_points` is their average, which is what a creature a floor
+  # file or a spec names starts with.
+  #
+  # *light* is how often one carries something burning, out of a hundred.
+  # *weapon* is the one weapon it always carries. A kind with no *weapon*
+  # draws from `Loot::WEAPONS` *armed* times in a hundred.
+  #
+  # *depths* is the floors it appears on. *alone* says a room holding one
+  # holds nothing else. *weight* is how common it is against the other kinds
+  # that appear at the same depth.
+  record KindFacts,
+    species : Species,
+    mark : Char,
+    label : String,
+    plural : String,
+    description : String,
+    hit_dice : Dice,
+    damage : Dice,
+    armor : Int32,
+    notice : Int32,
+    darkvision : Bool,
+    paths : Bool,
+    experience : Int32,
+    attributes : Attributes,
+    persistence : Int32,
+    depths : Range(Int32, Int32),
+    weight : Int32,
+    size : Size = Size::Medium,
+    speed : Int32 = Pace::NORMAL,
+    verb : String = "hits",
+    light : Int32 = 0,
+    weapon : ItemKind? = nil,
+    armed : Int32 = 0,
+    alone : Bool = false,
+    mends : Bool = false,
+    casts : Bool = false do
+    # Hit points of an average one.
+    def hit_points : Int32
+      hit_dice.average.round.to_i
+    end
+  end
+
+  # What family of creature a monster is.
+  #
+  # Every `Kind` belongs to one. A save file written before kinds existed
+  # names a species and loads as that species' `#default` kind.
   #
   # A member is never removed and never reordered. A save file holds the
   # member name.
@@ -243,12 +272,141 @@ module Roguelike
     Goblin
     Orc
 
-    # What this species is. Every method below reads one field of it.
-    def facts : SpeciesFacts
+    # The kind a bare species stands for.
+    #
+    # Each is the creature the species was before it had kinds, with the same
+    # numbers, so an old save and a floor file mean what they always meant.
+    def default : Kind
+      case self
+      in .slime?  then Kind::WhiteSlime
+      in .goblin? then Kind::GoblinWarrior
+      in .orc?    then Kind::Orc
+      end
+    end
+
+    # Every kind of this species, in the order `Kind` names them.
+    def kinds : Array(Kind)
+      Kind.values.select &.species.== self
+    end
+
+    # What one of these is called, whatever kind it is.
+    def label : String
+      to_s.downcase
+    end
+
+    # The facts of the default kind.
+    def facts : KindFacts
+      default.facts
+    end
+
+    # The default kind's `Kind#mark`.
+    def mark : Char
+      default.mark
+    end
+
+    # The default kind's `Kind#plural`.
+    def plural : String
+      default.plural
+    end
+
+    # The default kind's `Kind#description`.
+    def description : String
+      default.description
+    end
+
+    # The default kind's `Kind#hit_points`.
+    def hit_points : Int32
+      default.hit_points
+    end
+
+    # The default kind's `Kind#damage`.
+    def damage : Dice
+      default.damage
+    end
+
+    # The default kind's `Kind#armor`.
+    def armor : Int32
+      default.armor
+    end
+
+    # The default kind's `Kind#size`.
+    def size : Size
+      default.size
+    end
+
+    # The default kind's `Kind#notice`.
+    def notice : Int32
+      default.notice
+    end
+
+    # The default kind's `Kind#darkvision?`.
+    def darkvision? : Bool
+      default.darkvision?
+    end
+
+    # The default kind's `Kind#paths?`.
+    def paths? : Bool
+      default.paths?
+    end
+
+    # The default kind's `Kind#experience`.
+    def experience : Int32
+      default.experience
+    end
+
+    # The default kind's `Kind#attributes`.
+    def attributes : Attributes
+      default.attributes
+    end
+
+    # The default kind's `Kind#speed`.
+    def speed : Int32
+      default.speed
+    end
+
+    # The default kind's `Kind#persistence`.
+    def persistence : Int32
+      default.persistence
+    end
+
+    # The default kind's `Kind#clumsiness`.
+    def clumsiness : Int32
+      default.clumsiness
+    end
+
+    # Which species a floor file's *mark* names. `nil` for a character that
+    # names none.
+    def self.from_mark?(mark : Char) : Species?
+      Kinds::MARKS[mark]?.try &.species
+    end
+  end
+
+  # What sort of creature a monster is: a species and a variant of it.
+  #
+  # A member is never removed and never reordered. A save file holds the
+  # member name.
+  enum Kind
+    WhiteSlime
+    BlueSlime
+    RedSlime
+    GreenSlime
+    GoblinScout
+    GoblinWarrior
+    GoblinShaman
+    Orc
+    OrcArcher
+
+    # What this kind is. Every method below reads one field of it.
+    def facts : KindFacts
       Kinds::FACTS[self]
     end
 
-    # The character a floor file writes for one of these.
+    # The family it belongs to.
+    def species : Species
+      facts.species
+    end
+
+    # The character it draws as. Every kind of a species shares the letter.
     def mark : Char
       facts.mark
     end
@@ -268,7 +426,12 @@ module Roguelike
       facts.description
     end
 
-    # How much punishment one takes before it dies.
+    # What a placed one rolls for its hit points.
+    def hit_dice : Dice
+      facts.hit_dice
+    end
+
+    # Hit points of an average one.
     def hit_points : Int32
       facts.hit_points
     end
@@ -278,10 +441,14 @@ module Roguelike
       facts.damage
     end
 
+    # The word for its blow landing: "The blue slime chills you for 3."
+    def verb : String
+      facts.verb
+    end
+
     # How much an attack on one is reduced by, before its dexterity.
     #
-    # This is hide and scraps rather than a worn piece. Phase 20 gives a
-    # monster armor it carries, and that adds to this.
+    # This is hide and scraps rather than a worn piece.
     def armor : Int32
       facts.armor
     end
@@ -299,18 +466,17 @@ module Roguelike
 
     # Whether one sees without light.
     #
-    # A species with darkvision reads the same reach in a lit room and in a
-    # dark corridor. One without it sees by the light on what it looks at,
-    # and notices a character standing in the dark only in arm's reach.
+    # A kind with darkvision reads the same reach in a lit room and in a dark
+    # corridor. One without it sees by the light on what it looks at, and
+    # notices a character standing in the dark only in arm's reach.
     def darkvision? : Bool
       facts.darkvision
     end
 
     # Whether one works out a way round a wall.
     #
-    # A species that paths descends its band's `Descent`. One that does not
-    # walks straight at whatever it is after and comes up against whatever is
-    # in the way.
+    # A kind that paths descends its band's `Descent`. One that does not
+    # walks straight at whatever it is after.
     def paths? : Bool
       facts.paths
     end
@@ -327,9 +493,8 @@ module Roguelike
 
     # What one of these gains in a tick.
     #
-    # `Pace::NORMAL` is the character's own speed. A creature under that
-    # takes fewer actions than the character does over the same stretch of
-    # time, and one over it takes more.
+    # `Pace::NORMAL` is the character's own speed. `--trial-speed` replaces
+    # every kind's speed with its own.
     def speed : Int32
       Kinds.override || facts.speed
     end
@@ -337,12 +502,8 @@ module Roguelike
     # How many turns one goes on looking after it has lost the character.
     #
     # It walks to the square it last saw them on and casts about there until
-    # this runs out, and then it gives up and goes back to sleep. This is what
-    # decides whether a person can run away: an orc follows a cold trail for a
-    # long time and a goblin gives up quickly.
-    #
-    # This is not intelligence. A goblin is quicker than an orc and knows
-    # perfectly well where you went; it would simply rather not follow you.
+    # this runs out. An orc follows a cold trail for a long time and a goblin
+    # gives up quickly.
     def persistence : Int32
       facts.persistence
     end
@@ -350,66 +511,187 @@ module Roguelike
     # How often one steps somewhere other than the best square, as a
     # percentage of its steps.
     #
-    # Inversely proportional to intelligence, so a slime blunders about and a
-    # goblin rarely puts a foot wrong. Nothing is perfect: a creature that
-    # never made a mistake would be a creature nobody could ever shake off in
-    # open ground, whatever its persistence.
+    # Falls as intelligence rises, so a slime blunders about and a goblin
+    # rarely puts a foot wrong.
     def clumsiness : Int32
       (Kinds::CLUMSY - attributes.intelligence).clamp 0, 100
     end
 
-    # Which species a floor file's *mark* names. `nil` for a character that
-    # names none.
-    def self.from_mark?(mark : Char) : Species?
+    # The floors it appears on, shallowest first.
+    def depths : Range(Int32, Int32)
+      facts.depths
+    end
+
+    # Whether it appears on the floor at *depth*.
+    def appears_at?(depth : Int32) : Bool
+      depths.includes? depth
+    end
+
+    # How common it is against the other kinds at its depth.
+    def weight : Int32
+      facts.weight
+    end
+
+    # Whether a room holding one holds nothing else.
+    def alone? : Bool
+      facts.alone
+    end
+
+    # How often one carries something burning, out of a hundred.
+    def light : Int32
+      facts.light
+    end
+
+    # The weapon it always carries. `nil` for one that draws or has none.
+    def weapon : ItemKind?
+      facts.weapon
+    end
+
+    # How often one without a `#weapon` carries one, out of a hundred.
+    def armed : Int32
+      facts.armed
+    end
+
+    # Whether it heals a hurt neighbour of its own species.
+    def mends? : Bool
+      facts.mends
+    end
+
+    # Whether it throws a bolt. `Game#cast_bolt` is where that happens.
+    def casts? : Bool
+      facts.casts
+    end
+
+    # Which kind a floor file's *mark* names: the default kind of the species
+    # with that letter. `nil` for a character that names none.
+    def self.from_mark?(mark : Char) : Kind?
       Kinds::MARKS[mark]?
     end
   end
 
-  # The table behind `Species`. An enum body cannot hold it.
+  # The table behind `Kind`. An enum body cannot hold it.
   module Kinds
-    # What every species moves at instead of its own speed, or `nil`.
+    # What every kind moves at instead of its own speed, or `nil`.
     #
-    # `--trial-speed` sets this and nothing else does. It is for sweeping the
-    # speed of the whole floor across a set of runs to see what the death
-    # rate does. A run with this set is a measurement rather than a game.
+    # `--trial-speed` sets this and nothing else does. A run with this set is
+    # a measurement rather than a game.
     class_property override : Int32? = nil
 
     # The intelligence at which a creature stops putting a foot wrong.
-    #
-    # This lives here rather than in the enum because a name in an enum body
-    # with a number after it is a member of the enum, not a constant.
     CLUMSY = 18
 
-    FACTS = {
-      Species::Slime => SpeciesFacts.new('j', "slime", "slimes",
-        "a puddle of acid that moves on its own",
-        hit_points: 6, damage: Dice.new(1, 4), armor: 0,
-        notice: 4, darkvision: false, paths: false, experience: 3,
-        size: Size::Medium, persistence: 4, speed: 80,
-        attributes: Attributes.new(strength: 8, dexterity: 4, constitution: 12,
-          intelligence: 3, stealth: 6)),
+    SLIMY = Attributes.new(strength: 8, dexterity: 4, constitution: 12,
+      intelligence: 3, stealth: 6)
 
-      Species::Goblin => SpeciesFacts.new('g', "goblin", "goblins",
-        "a small green thing with a large knife",
-        hit_points: 9, damage: Dice.new(1, 6), armor: 2,
+    FACTS = {
+      Kind::WhiteSlime => KindFacts.new(Species::Slime, 'j', "white slime",
+        "white slimes", "a pale puddle of acid that moves on its own",
+        hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 4), armor: 0,
+        notice: 4, darkvision: false, paths: false, experience: 3,
+        persistence: 4, speed: 80, attributes: SLIMY,
+        depths: 1..3, weight: 40),
+
+      Kind::BlueSlime => KindFacts.new(Species::Slime, 'j', "blue slime",
+        "blue slimes", "a slow blue ooze, cold as meltwater, that numbs what it touches",
+        hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 4), armor: 0,
+        notice: 4, darkvision: false, paths: false, experience: 5,
+        persistence: 4, speed: 80, attributes: SLIMY, verb: "chills",
+        depths: 1..4, weight: 20),
+
+      Kind::RedSlime => KindFacts.new(Species::Slime, 'j', "red slime",
+        "red slimes", "a steaming red ooze that scalds what it touches",
+        hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 8), armor: 0,
+        notice: 4, darkvision: false, paths: false, experience: 6,
+        persistence: 4, speed: 80, attributes: SLIMY, verb: "scalds",
+        depths: 2..5, weight: 20),
+
+      Kind::GreenSlime => KindFacts.new(Species::Slime, 'j', "green slime",
+        "green slimes", "a bubbling green acid that eats through leather and skin",
+        hit_dice: Dice.new(2, 6, 2), damage: Dice.new(2, 6), armor: 0,
+        notice: 4, darkvision: false, paths: false, experience: 10,
+        persistence: 4, speed: 80, attributes: SLIMY, verb: "eats at",
+        depths: 3..5, weight: 15),
+
+      Kind::GoblinScout => KindFacts.new(Species::Goblin, 'g', "goblin scout",
+        "goblin scouts", "a wiry goblin with a dagger, alone and quick on its feet",
+        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 0,
+        notice: 10, darkvision: false, paths: true, experience: 5,
+        size: Size::Small, persistence: 8, speed: 110,
+        weapon: ItemKind::Dagger, light: 40, alone: true,
+        depths: 1..2, weight: 30,
+        attributes: Attributes.new(strength: 8, dexterity: 14, constitution: 9,
+          intelligence: 8, stealth: 15)),
+
+      Kind::GoblinWarrior => KindFacts.new(Species::Goblin, 'g', "goblin warrior",
+        "goblin warriors", "a small green thing with a short sword",
+        hit_dice: Dice.new(2, 4, 4), damage: Dice.new(1, 6), armor: 2,
         notice: 8, darkvision: false, paths: true, experience: 7,
         size: Size::Small, persistence: 6,
+        weapon: ItemKind::ShortSword, light: 25,
+        depths: 2..4, weight: 45,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 7, stealth: 13)),
 
-      Species::Orc => SpeciesFacts.new('o', "orc", "orcs",
+      Kind::GoblinShaman => KindFacts.new(Species::Goblin, 'g', "goblin shaman",
+        "goblin shamans", "a hunched goblin in bone charms who mends its kin",
+        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 3), armor: 1,
+        notice: 9, darkvision: false, paths: true, experience: 12,
+        size: Size::Small, persistence: 8, light: 50,
+        mends: true, casts: true,
+        depths: 3..5, weight: 15,
+        attributes: Attributes.new(strength: 7, dexterity: 11, constitution: 9,
+          intelligence: 12, stealth: 11)),
+
+      Kind::Orc => KindFacts.new(Species::Orc, 'o', "orc", "orcs",
         "a heavy gray brute with a notched blade",
-        hit_points: 14, damage: Dice.new(1, 8), armor: 4,
+        hit_dice: Dice.new(2, 6, 7), damage: Dice.new(1, 8), armor: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
         size: Size::Large, persistence: 30, speed: 95,
+        armed: 90, light: 20,
+        depths: 3..5, weight: 15,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 10, stealth: 8)),
+
+      Kind::OrcArcher => KindFacts.new(Species::Orc, 'o', "orc archer",
+        "orc archers", "a lean orc with a quiver and a long reach",
+        hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 6), armor: 3,
+        notice: 10, darkvision: true, paths: true, experience: 16,
+        size: Size::Large, persistence: 24, speed: 95, light: 10,
+        depths: 4..5, weight: 10,
+        attributes: Attributes.new(strength: 12, dexterity: 14, constitution: 12,
+          intelligence: 10, stealth: 9)),
     }
 
-    # Every character a floor file may hold for a monster.
+    # Every kind that appears at *depth*, with its weight.
+    #
+    # *species* keeps only that species. *alone* false keeps only the kinds
+    # that go about in company.
+    def self.at(depth : Int32, species : Species? = nil,
+                alone : Bool? = nil) : Hash(Kind, Int32)
+      at depth..depth, species, alone
+    end
+
+    # Every kind that appears at any of *depths*, with its weight.
+    def self.at(depths : Range(Int32, Int32), species : Species? = nil,
+                alone : Bool? = nil) : Hash(Kind, Int32)
+      found = {} of Kind => Int32
+
+      Kind.each do |kind|
+        next unless kind.depths.begin <= depths.end && depths.begin <= kind.depths.end
+        next if species && kind.species != species
+        next if !alone.nil? && kind.alone? != alone
+
+        found[kind] = kind.weight
+      end
+
+      found
+    end
+
+    # Every character a floor file may hold for a monster, and the kind it
+    # names. A letter names the default kind of its species.
     MARKS = begin
-      table = {} of Char => Species
-      FACTS.each { |species, facts| table[facts.mark] = species }
+      table = {} of Char => Kind
+      Species.each { |species| table[species.default.mark] = species.default }
       table
     end
   end

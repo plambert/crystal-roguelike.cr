@@ -322,12 +322,15 @@ Spectator.describe Roguelike::Replay do
   end
 
   describe "a build whose draw sequences have moved" do
+    # The version of the loot stream this build writes.
+    LOOT = Roguelike::Replay::Streams::VERSIONS["loot"]
+
     it "names the parts that moved and refuses" do
       where = spot "stale"
       Recording.played where, turns: 20
 
       lines = File.read_lines where
-      lines[0] = lines[0].sub %("loot":1), %("loot":2)
+      lines[0] = lines[0].sub %("loot":#{LOOT}), %("loot":#{LOOT + 1})
 
       report = Verifier.check Recording.file(lines, "stale")
 
@@ -340,7 +343,7 @@ Spectator.describe Roguelike::Replay do
       Recording.played where, turns: 20
 
       lines = File.read_lines where
-      lines[0] = lines[0].sub %("loot":1), %("loot":2)
+      lines[0] = lines[0].sub %("loot":#{LOOT}), %("loot":#{LOOT + 1})
 
       expect(Verifier.check(Recording.file(lines, "forced"), force: true).ok?)
         .to be_true

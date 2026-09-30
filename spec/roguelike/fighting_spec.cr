@@ -98,7 +98,7 @@ Spectator.describe "fighting" do
       game.step Direction::North
 
       said = game.log.lines.any? do |line|
-        line.starts_with?("You hit the slime") || line == "You miss the slime."
+        line.starts_with?("You hit the white slime") || line == "You miss the white slime."
       end
 
       expect(said).to be_true
@@ -118,7 +118,7 @@ Spectator.describe "fighting" do
       fight(game) { game.floor.monster(*BESIDE).nil? }
 
       expect(game.floor.monster(*BESIDE)).to be_nil
-      expect(game.log.lines).to contain "You kill the slime."
+      expect(game.log.lines).to contain "You kill the white slime."
     end
 
     it "awards the species' experience" do
@@ -151,18 +151,18 @@ Spectator.describe "fighting" do
       fight(game) { game.floor.monster(*BESIDE).nil? }
 
       said = game.log.lines
-      killed = said.index "You kill the slime."
+      killed = said.index "You kill the white slime."
       expect(killed).not_to be_nil
-      expect(said[(killed || 0)..].none? &.starts_with?("The slime")).to be_true
+      expect(said[(killed || 0)..].none? &.starts_with?("The white slime")).to be_true
     end
   end
 
   describe "a creature's own turn" do
     it "swings back at a character beside it" do
       game, _ = arena
-      fight(game) { game.log.lines.any? &.starts_with?("The slime") }
+      fight(game) { game.log.lines.any? &.starts_with?("The white slime") }
 
-      expect(game.log.lines.any? &.starts_with?("The slime")).to be_true
+      expect(game.log.lines.any? &.starts_with?("The white slime")).to be_true
     end
 
     # A creature out of reach walks toward the character rather than
@@ -174,7 +174,7 @@ Spectator.describe "fighting" do
       game.step Direction::East
 
       swung = game.log.lines.any? do |line|
-        line.starts_with?("The slime hits") || line.starts_with?("The slime misses")
+        line.starts_with?("The white slime hits") || line.starts_with?("The white slime misses")
       end
 
       expect(game.player.hit_points).to eq game.player.max_hit_points

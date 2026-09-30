@@ -461,7 +461,7 @@ module Roguelike
     def equip(rng : Rng) : Nil
       floor.each_monster do |column, row, creature|
         stream = rng.derive "loot:#{floor.id}:#{column},#{row}"
-        creature.carry Loot.for(creature.species, stream)
+        creature.carry Loot.for(creature.kind, stream)
       end
     end
 
@@ -1262,7 +1262,7 @@ module Roguelike
       say "You kill the #{creature.label}.",
         Event::Slain.new(creature.id, creature.label)
 
-      gained = @player.gain creature.species.experience
+      gained = @player.gain creature.kind.experience
       return unless gained > 0
 
       say "Welcome to level #{@player.level}.",
@@ -1513,7 +1513,7 @@ module Roguelike
         knowledge: knowledge,
         quarry: quarry.try(&.at),
         stale: quarry.try(&.age(@turn)) || 0,
-        descent: creature.species.paths? ? maps[creature.band]? : nil,
+        descent: creature.kind.paths? ? maps[creature.band]? : nil,
         blocked: standing_on_squares(creature),
         stumble: stumbles?(creature))
     end
@@ -1524,7 +1524,7 @@ module Roguelike
     # creature that never put a foot wrong could never be shaken off in open
     # ground, whatever else it is like.
     private def stumbles?(creature : Monster) : Bool
-      chance = creature.species.clumsiness
+      chance = creature.kind.clumsiness
       return false unless chance > 0
 
       wander.rand(100) < chance
@@ -1596,7 +1596,7 @@ module Roguelike
 
       if blow.hit?
         @player.hurt blow.damage
-        say "The #{creature.label} hits you for #{blow.damage}.",
+        say "The #{creature.label} #{creature.kind.verb} you for #{blow.damage}.",
           Event::Attack.new(true, attacker: creature.id, damage: blow.damage)
         character_died creature unless @player.alive?
       else
@@ -1803,7 +1803,7 @@ module Roguelike
       floor.each_monster do |_column, _row, creature|
         next unless creature.band == band.id
 
-        found = creature.species.persistence
+        found = creature.kind.persistence
         most = found if most.nil? || found > most
       end
 
@@ -1848,7 +1848,7 @@ module Roguelike
         next unless band
 
         looking = Vision.new FieldOfView.from(floor, column, row),
-          creature.species.darkvision? ? nil : lighting
+          creature.kind.darkvision? ? nil : lighting
         knowledge = band.knowledge floor.id
         knowledge.learn floor, looking, @turn
         feel knowledge, column, row
@@ -1906,7 +1906,7 @@ module Roguelike
       floor.each_monster do |column, row, creature|
         next if found.has_key? creature.band
         next if creature.blind?
-        next unless Notice.notices? creature.species, stealth, light,
+        next unless Notice.notices? creature.kind, stealth, light,
                       {column, row}, @player.at, seen.field.includes?(column, row)
 
         found[creature.band] = creature
@@ -3572,7 +3572,7 @@ module Roguelike
       worst = nil.as Monster?
       floor.each_monster do |_column, _row, creature|
         worst = creature if worst.nil? ||
-                            creature.species.experience > worst.species.experience
+                            creature.kind.experience > worst.kind.experience
       end
 
       unless worst

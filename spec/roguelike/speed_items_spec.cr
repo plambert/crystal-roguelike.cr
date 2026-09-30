@@ -158,7 +158,7 @@ Spectator.describe "the potion and the two scrolls that change a speed" do
 
       expect(goblin.pace.dragging?).to be_true
       expect(goblin.pace.speed).to eq Species::Goblin.speed - Pace::SLOW
-      expect(game.log.last?.to_s).to eq "The goblin slows to a crawl."
+      expect(game.log.last?.to_s).to eq "The goblin warrior slows to a crawl."
     end
 
     it "settles on nothing when it is aimed at nothing" do
@@ -215,7 +215,7 @@ Spectator.describe "the potion and the two scrolls that change a speed" do
 
       expect(goblin.pace.hurried?).to be_true
       expect(goblin.pace.speed).to eq Species::Goblin.speed + Pace::HASTE
-      expect(game.log.last?.to_s).to eq "The goblin speeds up."
+      expect(game.log.last?.to_s).to eq "The goblin warrior speeds up."
     end
 
     # A god turns the words on the reader instead.

@@ -127,7 +127,7 @@ module Roguelike::Ui
     def self.creature(creature : Monster, regard : Regard) : String
       return creature.label if regard >= Regard::Kind
 
-      creature.species.size.short
+      creature.kind.size.short
     end
 
     # What *item* is, without the count and without the variants.

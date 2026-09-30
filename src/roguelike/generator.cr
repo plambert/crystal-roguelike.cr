@@ -97,15 +97,15 @@ module Roguelike
     # How many creatures such a room holds.
     CROWD = 1..2
 
-    # What each species is worth when a creature is rolled.
+    # How deep a floor is when nothing says otherwise.
+    DEPTH = 1
+
+    # The depths every floor draws its creatures from.
     #
-    # A slime and a goblin are common and an orc is not. The numbers are
-    # relative and nothing depends on their sum.
-    CREATURES = {
-      Species::Slime  => 40,
-      Species::Goblin => 45,
-      Species::Orc    => 15,
-    }
+    # There is one floor, and it stands for every depth, so every kind can
+    # appear on it. A floor with a depth of its own draws from that depth
+    # alone, and this goes when floors have one.
+    SPAWN_DEPTHS = 1..5
 
     # What a room's floor is made of.
     GROUND = {
@@ -125,8 +125,9 @@ module Roguelike
 
     # A floor called *id*, dug on *rng*.
     def self.floor(rng : Rng, id : String = "dungeon",
-                   columns : Int32 = COLUMNS, rows : Int32 = ROWS) : Floor
-      new(rng, id, columns, rows).dig
+                   columns : Int32 = COLUMNS, rows : Int32 = ROWS,
+                   depth : Int32 = DEPTH) : Floor
+      new(rng, id, columns, rows, depth).dig
     end
 
     # The floor being dug.
@@ -138,7 +139,11 @@ module Roguelike
     # The room the up staircase is in. `nil` before the stairs are put down.
     getter arrival : Area? = nil
 
-    def initialize(rng : Rng, id : String, columns : Int32, rows : Int32)
+    # How deep the floor is.
+    getter depth : Int32
+
+    def initialize(rng : Rng, id : String, columns : Int32, rows : Int32,
+                   @depth : Int32 = DEPTH)
       @rng = rng.derive "#{DOMAIN}:#{id}"
       @floor = Floor.solid id, columns, rows
     end
@@ -453,8 +458,13 @@ module Roguelike
 
     # Puts creatures in *room*.
     #
-    # Each is in a band of its own. `Floor#place` writes the band down, the
-    # same way it does for a creature a floor file names.
+    # The first creature's kind is rolled from every kind that appears at
+    # `SPAWN_DEPTHS`. A kind that appears alone has the room to itself. Any other
+    # is joined by more of its species that also go about in company, and
+    # every creature in the room is in one band. `Floor#place` writes the
+    # band down.
+    #
+    # Each rolls its hit points from its kind's hit dice.
     #
     # The room with the up staircase in it gets none. A character who arrives
     # standing next to a goblin has been given no turn to decide anything.
@@ -464,12 +474,18 @@ module Roguelike
       stream = @rng.derive "monsters:#{index}:#{room}"
       return unless stream.rand(100) < INHABITED
 
-      stream.rand(CROWD).times do |which|
-        spot = plain(room).sample stream
-        species = Items.pick stream, CREATURES
-        band = "#{@floor.id}-#{index}-#{which}"
+      first = Items.pick stream, Kinds.at(SPAWN_DEPTHS)
+      company = Kinds.at SPAWN_DEPTHS, first.species, alone: false
+      count = first.alone? || company.empty? ? 1 : stream.rand(CROWD)
+      band = "#{@floor.id}-#{index}"
 
-        @floor.place Monster.new(species, spot[0], spot[1], band)
+      count.times do |which|
+        kind = which.zero? ? first : Items.pick(stream, company)
+        spot = plain(room).sample stream
+        health = kind.hit_dice.roll stream
+
+        @floor.place Monster.new(kind, spot[0], spot[1], band,
+          hit_points: health, max_hit_points: health)
       end
     end
   end

@@ -167,7 +167,7 @@ Spectator.describe "running" do
 
       expect(went.halt).to eq Halt::Told
       expect(game.player.at).to eq({5, 2})
-      expect(game.log.last?).to eq "The goblin notices you."
+      expect(game.log.last?).to eq "The goblin warrior notices you."
     end
 
     it "stops where something is said" do
@@ -193,7 +193,7 @@ Spectator.describe "running" do
       expect(went.steps).to eq 0
       expect(game.player.at).to eq START
       expect(game.floor.monster(2, 2).try &.hit_points).to eq 30
-      expect(game.log.last?).to eq "The goblin is in the way."
+      expect(game.log.last?).to eq "The goblin warrior is in the way."
     end
 
     it "stops at the end of a corridor" do

@@ -258,21 +258,100 @@ Spectator.describe Roguelike::Generator do
       expect(found).to be_empty
     end
 
-    it "gives every creature a band of its own" do
+    it "gives every creature a band the floor knows" do
       found = complaints do |generator, seed|
         floor = generator.floor
         bands = [] of String
         floor.each_monster { |_column, _row, creature| bands << creature.band }
 
-        next "seed #{seed} shares a band" unless bands.uniq.size == bands.size
-
         lost = bands.find { |id| floor.band(id).nil? }
-        next unless lost
-
-        "seed #{seed} lost band #{lost}"
+        "seed #{seed} lost band #{lost}" if lost
       end
 
       expect(found).to be_empty
+    end
+  end
+
+  describe "who lives on a floor" do
+    # The floors deeper than the first that these examples dig, by depth.
+    DEEP = (1..5).to_h do |depth|
+      {depth, (0...12).map { |index| Generator.floor Rng.new(FIRST + index), depth: depth }}
+    end
+
+    # Every band on *floor*, and the kinds of its members.
+    def bands(floor : Floor) : Hash(String, Array(Roguelike::Kind))
+      found = {} of String => Array(Roguelike::Kind)
+      floor.each_monster do |_column, _row, creature|
+        (found[creature.band] ||= [] of Roguelike::Kind) << creature.kind
+      end
+      found
+    end
+
+    it "places only kinds that appear at the depths a floor draws from" do
+      drawn = Roguelike::Kinds.at Generator::SPAWN_DEPTHS
+
+      DEEP.each_value do |floors|
+        floors.each do |floor|
+          floor.each_monster do |_column, _row, creature|
+            expect(drawn.has_key? creature.kind).to be_true
+          end
+        end
+      end
+    end
+
+    it "places every kind somewhere while the one floor stands for every depth" do
+      found = Set(Roguelike::Kind).new
+      DEEP.each_value do |floors|
+        floors.each { |floor| floor.each_monster { |_column, _row, creature| found << creature.kind } }
+      end
+
+      expect(found).to eq Roguelike::Kind.values.to_set
+    end
+
+    it "puts a scout in a room by itself" do
+      scouts = 0
+
+      DEEP.each_value do |floors|
+        floors.each do |floor|
+          bands(floor).each_value do |kinds|
+            next unless kinds.any? &.alone?
+
+            scouts += 1
+            expect(kinds.size).to eq 1
+          end
+        end
+      end
+
+      expect(scouts).to be > 0
+    end
+
+    it "keeps each band to one species" do
+      DEEP.each_value do |floors|
+        floors.each do |floor|
+          bands(floor).each_value do |kinds|
+            expect(kinds.map(&.species).uniq!.size).to eq 1
+          end
+        end
+      end
+    end
+
+    it "puts more than one creature in some bands" do
+      shared = DEEP.values.flatten.sum { |floor| bands(floor).count &.[1].size.>(1) }
+
+      expect(shared).to be > 0
+    end
+
+    it "rolls hit points within each kind's hit dice" do
+      DEEP.each_value do |floors|
+        floors.each do |floor|
+          floor.each_monster do |_column, _row, creature|
+            dice = creature.kind.hit_dice
+
+            expect(creature.max_hit_points).to be_between(dice.minimum, dice.maximum)
+            expect(creature.hit_points).to eq creature.max_hit_points
+          end
+        end
+      end
     end
   end
 

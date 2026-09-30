@@ -183,7 +183,7 @@ module Roguelike::Ui
       behind = found.backlight floor, x, y
       return unless behind
 
-      Palette.shaded Palette.shape(creature.species.size), shape_step(behind)
+      Palette.shaded Palette.shape(creature.kind.size), shape_step(behind)
     end
 
     # Which step of the ramp a shape lit from *behind* draws at.

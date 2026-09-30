@@ -108,6 +108,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   change, so a download link goes on working. The release notes give the commit it was built from
   and the commits since the last nightly.
 
+* Each species comes in kinds. Slimes are white, blue, red and green. A blue slime has more hit
+  points and chills what it touches. A red slime scalds for more damage, and a green slime eats at
+  its target for the most. Goblins are scouts, warriors and shamans. A scout is quick, carries a
+  dagger, has poor armor and always appears alone. A shaman fights weakly. Orcs are orcs and orc archers. An archer has no bow yet.
+* Every kind of a species shares its letter and has a colour of its own. The examine pane, the
+  sidebar and the message log name the kind.
+* Each kind has the depths it appears at. The one floor there is stands for every depth, so every
+  kind can appear on it.
+
 ### Changed
 
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
@@ -168,6 +177,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   `Seen` list: "a spear" rather than "a cursed -2 spear", "a scroll" rather than "a scroll YLOH",
   "a potion" rather than "a swirly potion". Walking within eight squares of it names it in
   full from then on.
+
+* A creature placed on a generated floor rolls its hit points from its kind's hit dice. It
+  used to start with a fixed number.
+* The creatures in one room belong to one band and are one species. Waking one wakes the others.
+* A goblin warrior always carries a short sword and a goblin scout a dagger. A kind's chance of
+  carrying a lit torch or candle is its own.
+* An orc is drawn in a brighter red, so it stands out further from the ground.
+* A save written before kinds existed loads each creature as its species' original kind.
 
 ### Fixed
 

@@ -185,7 +185,7 @@ module Roguelike::Ui
       lines = Detail.about game, creature, regard
       return row(creature.label, Palette[creature].style, lines) if regard.everything?
 
-      size = creature.species.size
+      size = creature.kind.size
       row size.label, Palette.shape(size).style, lines
     end
 

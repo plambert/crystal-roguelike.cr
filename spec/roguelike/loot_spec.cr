@@ -7,16 +7,16 @@ Spectator.describe Roguelike::Loot do
   alias Kind = Roguelike::ItemKind
   alias Loot = Roguelike::Loot
   alias Rng = Roguelike::Rng
-  alias Species = Roguelike::Species
+  alias Creature = Roguelike::Kind
 
-  # How many creatures of each species the distribution examples roll.
+  # How many creatures of each kind the distribution examples roll.
   ROLLS = 10_000
 
   # The seed they roll on. A failure names a run somebody can repeat.
   SEED = 20260912_u64
 
   # Everything *species* comes up with over `ROLLS` creatures.
-  def rolled(species : Species, seed : UInt64 = SEED) : Array(Array(Item))
+  def rolled(species : Creature, seed : UInt64 = SEED) : Array(Array(Item))
     rng = Rng.new(seed).derive "loot:#{species}"
 
     Array.new(ROLLS) { Loot.for species, rng }
@@ -24,14 +24,14 @@ Spectator.describe Roguelike::Loot do
 
   describe ".for" do
     it "rolls the same loot twice from the same generator" do
-      first = Loot.for Species::Goblin, Rng.new(7_u64)
-      second = Loot.for Species::Goblin, Rng.new(7_u64)
+      first = Loot.for Creature::GoblinWarrior, Rng.new(7_u64)
+      second = Loot.for Creature::GoblinWarrior, Rng.new(7_u64)
 
       expect(first).to eq second
     end
 
     it "gives a creature nothing it should not have" do
-      Species.values.each do |species|
+      Creature.values.each do |species|
         allowed = Loot.kinds species
 
         rolled(species).each do |carried|
@@ -42,16 +42,33 @@ Spectator.describe Roguelike::Loot do
 
     # A slime has no hands. It has swallowed things, and it has coins in it.
     it "gives a slime no weapon and no armor" do
-      rolled(Species::Slime).each do |carried|
-        carried.each do |item|
-          expect(item.kind.item_class.melee?).to be_false
-          expect(item.kind.item_class.armor?).to be_false
+      Roguelike::Species::Slime.kinds.each do |slime|
+        rolled(slime).each do |carried|
+          carried.each do |item|
+            expect(item.kind.item_class.melee?).to be_false
+            expect(item.kind.item_class.armor?).to be_false
+          end
         end
       end
     end
 
+    it "always gives a kind the weapon it carries" do
+      Creature.values.each do |creature|
+        weapon = creature.weapon
+        next unless weapon
+
+        rolled(creature).each do |carried|
+          expect(carried.count &.kind.== weapon).to eq 1
+        end
+      end
+    end
+
+    it "arms a goblin scout with a dagger" do
+      expect(Creature::GoblinScout.weapon).to eq Kind::Dagger
+    end
+
     it "lights whatever burns" do
-      Species.values.each do |species|
+      Creature.values.each do |species|
         rolled(species).each do |carried|
           carried.each { |item| expect(item.lit?).to be_true if item.burns? }
         end
@@ -59,7 +76,7 @@ Spectator.describe Roguelike::Loot do
     end
 
     it "never gives a creature two of the same draw" do
-      rolled(Species::Orc).each do |carried|
+      rolled(Creature::Orc).each do |carried|
         weapons = carried.count &.kind.item_class.melee?
 
         expect(weapons).to be <= 1
@@ -86,7 +103,7 @@ Spectator.describe Roguelike::Loot do
     end
 
     it "matches what each species' draws say" do
-      Species.values.each do |species|
+      Creature.values.each do |species|
         carried = rolled species
 
         Loot.draws(species).each do |draw|
@@ -96,9 +113,9 @@ Spectator.describe Roguelike::Loot do
     end
 
     it "holds from a second seed" do
-      carried = rolled Species::Goblin, 99_u64
+      carried = rolled Creature::GoblinWarrior, 99_u64
 
-      Loot.draws(Species::Goblin).each do |draw|
+      Loot.draws(Creature::GoblinWarrior).each do |draw|
         expect(share carried, draw.kinds).to be_close draw.chance, TOLERANCE
       end
     end
@@ -118,7 +135,7 @@ Spectator.describe Roguelike::Loot do
     end
 
     it "matches the weights in the weapon table" do
-      found = shares rolled(Species::Orc), Loot::WEAPONS
+      found = shares rolled(Creature::Orc), Loot::WEAPONS
       total = Loot::WEAPONS.values.sum
 
       Loot::WEAPONS.each do |kind, weight|
@@ -127,7 +144,7 @@ Spectator.describe Roguelike::Loot do
     end
 
     it "matches the weights in the armor table" do
-      found = shares rolled(Species::Orc), Loot::ARMOR
+      found = shares rolled(Creature::Orc), Loot::ARMOR
       total = Loot::ARMOR.values.sum
 
       Loot::ARMOR.each do |kind, weight|
@@ -142,7 +159,7 @@ Spectator.describe Roguelike::Loot do
     # Most of what a monster carries is battered, which is a different table
     # from the one the floor litter rolls on.
     it "matches the condition table" do
-      made = rolled(Species::Orc).flatten.select &.kind.enchantable?
+      made = rolled(Creature::Orc).flatten.select &.kind.enchantable?
       total = Loot::CONDITIONS.sum { |pair| pair[1] }
 
       Loot::CONDITIONS.each do |condition, weight|
@@ -160,7 +177,7 @@ Spectator.describe Roguelike::Loot do
     end
   end
 
-  # What each species carries, written out.
+  # What each kind carries, written out.
   #
   # Every number the tables hold is in here: how often each draw comes up and
   # what share of it each kind takes. A change to any of them shows as a diff
@@ -169,7 +186,7 @@ Spectator.describe Roguelike::Loot do
     def table : Array(String)
       lines = [] of String
 
-      Species.values.each do |species|
+      Creature.values.each do |species|
         carried = rolled species
         lines << "#{species.label} over #{ROLLS} of them"
 
