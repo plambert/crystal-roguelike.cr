@@ -3516,6 +3516,169 @@ a door and spikes it would show the rule far more.
 * A band that mixes kinds that open doors with ones that cannot keeps the whole band off doors.
   Every band holds one species today, and every kind of a species agrees, so no band is mixed.
 
+## Ants, jellies and flanking
+
+Two new species, each with one kind, and a to-hit bonus for attackers on opposite sides of a
+target.
+
+### The kinds
+
+| kind | glyph | colour | contrast | hit dice | avg | AC | damage | speed | depths | crowd | xp |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| giant ant | `a` | `#FFA040` | 9.5:1 | 1d4+1 | 4 | 2 | 1d3 | 130 | 2-5 | 3-5 | 3 |
+| violet jelly | `J` | `#C8A0FF` | 9.1:1 | 3d4 | 8 | 0 | 1d6 | 60 | 3-5 | alone | 6 |
+
+* Contrast is against the map ground `#0C0E12`. Both clear the 6:1 every other kind meets.
+* Spawn weights: ant 20, jelly 10.
+* The ant: small, paths, no light, no darkvision, does not open doors, carries nothing. Its band
+  is `Sharing::Hive`. `Sharing` is not read yet, so this labels the band for when it is.
+* The jelly: large, does not path, blunders straight like a slime, does not open doors. It draws
+  coins and swallowed items like a slime.
+* Both are new `Species` members, `Ant` and `Jelly`, because a species shares one letter.
+
+### What was built
+
+| Piece | What it does |
+| --- | --- |
+| `KindFacts#sharing`, `#surrounds`, `#splits` | The band's sharing, the flanking walk and the split |
+| `Spawns::Row#crowd` | A room's crowd for that kind. `nil` reads `Density#crowd` |
+| `Spawns.crowd` | The generator's one call for a crowd size |
+| `Floor#place` | Makes a new band with the kind's sharing |
+| `Combat.opposite`, `.flanks?`, `.flanking` | The flanking rule, with the hostility test as a block |
+| `Game#strike`, `#attack` | Add the bonus. The line reads "from behind" |
+| `Pursuit.encircle` | The ant's walk to a square across from a bandmate |
+| `Game#creatures_split` | Counts turns and splits jellies |
+| `Event::Flanked`, `Event::Split` | The two new lines as events. `Event::Attack#flanking` marks a flanked swing |
+| `Trial::Matchup::Opponent` | A matchup row of one kind and a count |
+
+### Flanking
+
+* An attacker flanks when the square across the target from it holds another creature fighting
+  the same target. Across is the attacker's square reflected through the target's, so diagonals
+  count.
+* A flanking attacker adds `Combat::FLANKING`, 2, to hit. Both of a pair get it.
+* The rule does not care who the target is. `Game` supplies who counts as fighting it. For the
+  character that is any awake creature. For a creature it is an awake creature of another
+  faction. Every band is `Faction::Dungeon` today, so the character never flanks anything yet.
+  The factions branch makes that test real.
+* "You are flanked!" is written once a run, before the first flanking blow. `Game#flanked?`
+  remembers it.
+* A flanking blow that lands reads "The giant ant bites you from behind for 2."
+* Ranged hits never flank.
+
+### How ants surround
+
+`Pursuit.encircle` runs before the swing. It applies to a kind that `surrounds?`, with a fresh
+sighting, within `Pursuit::REACH` (2) squares of its quarry, with a bandmate beside the quarry.
+
+* An ant already across from a bandmate stays and swings.
+* Otherwise it looks for free squares beside the quarry across from a bandmate. It pairs only with
+  a bandmate whose square sorts before its own, north to south then west to east. Of two unpaired
+  ants one stays and swings and the other walks. Without that rule two ants chased each other's
+  opposite squares.
+* It walks a breadth-first map of free squares within `REACH` of the quarry. The quarry and the
+  bandmates beside it are solid. It steps only when the step brings it nearer, so it cannot circle.
+* The ant sees the other creatures only beside itself, so it can plan through a square a
+  bandmate two away holds. The step then fails and the ant spends the turn.
+
+Measured in specs on a lit 13 by 9 room, the character standing still. Turns until every ant that
+can pair has a bandmate across the character:
+
+| start | encircle | encircle off |
+| --- | --- | --- |
+| 4 ants in a corner block | 8 | never, in 60 |
+| 3 ants in a row along a wall | 5 | never, in 60 |
+| 5 ants in a row along a wall | 5 | never, in 60 |
+| 4 ants through a one-wide gap | 12 | never, in 60 |
+| 3 ants through a one-wide gap | 5 | never, in 60 |
+| 5 ants through a one-wide gap | 11 | never, in 60 |
+
+`Game::DETOUR` at 1, 2 and 3 and `DETOUR_LASTS` at 10, 20 and 40 gave the same turns in every
+row, so both stay at 2 and 20. The hem and the sidestep bring ants to the ring. Encircle does the
+rest.
+
+### How a jelly splits
+
+* After the creatures act each tick, every awake creature that `splits?` and is above half its
+  hit points counts a turn on `Monster#bud`.
+* At `Game::SPLIT_EVERY` (40) the count resets and the jelly splits, when the floor holds fewer
+  than `Game::JELLIES` (6) jellies. The count is of the species, taken at split time. It is not
+  derived from the floor's size.
+* The copy goes on a free square beside it. It rolls its hit points from the kind's dice and joins
+  the parent's band.
+* The square and the hit points roll on the `split` stream, numbered by `Game#splits`.
+* A sleeping jelly does not count. A jelly left alone does not fill its floor before the
+  character arrives.
+* "The violet jelly splits in two." is written when the character can see it.
+
+### Saves and determinism
+
+* `Game#splits`, `Game#flanked?` and `Monster#bud` are backed by fields that are `nil` until
+  first set, and `nil` is not written. A run with no split and no flanking saves the bytes it
+  saved before, so the golden replay's fingerprints did not move. Its header was written again
+  for the stream table.
+* `Streams::VERSIONS`: `generator` to 4, because the new rows change depth 2 and deeper. `split`
+  joins at 1.
+* Specs play two ant fights and two splitting jellies from one seed and compare fingerprints.
+
+### The matchup
+
+A single fight puts one creature against the character. That misrepresents ants, whose threat is
+the band and the flanking bonus. `Matchup::BANDS` adds a "3 giant ants" row. The character swings
+at one ant until it dies, then the next. The ants stand in opposite pairs from the start, and each
+member of a pair adds 2 while two or more are alive. Single-kind cells roll on their old streams,
+so no other row moved.
+
+```text
+win rate, out of a hundred
+                      D1      D2      D3      D4      D5
+  giant ant         97.8    99.8   100.0   100.0   100.0
+  violet jelly      97.1    99.8   100.0   100.0   100.0
+  3 giant ants      28.8    64.0    84.6    88.4    99.6
+
+mean hit points the character lost
+                      D1      D2      D3      D4      D5
+  giant ant          2.3     1.4     1.1     1.3     0.4
+  violet jelly       2.8     1.8     1.3     1.2     0.2
+  3 giant ants      10.6    11.1    10.4    12.0     6.0
+```
+
+One ant is a slime. Three are an orc archer. The jelly row leaves out splitting, because a fight
+is over in four turns and a split takes forty.
+
+### What it did to the trial
+
+`--trial 200 --seed 5000` on a release build, before and after:
+
+| | before | after |
+| --- | --- | --- |
+| died | 16 (8%) | 17 (8%) |
+| gave up at the turn limit | 184 (92%) | 183 (91%) |
+| turns until death, median | 264 | 196 |
+| survived floor 1 | 93.5% | 93.5% |
+| reached floor 2 | 10 (5%) | 10 (5%) |
+| deepest floor | mean 1.05, best 2 | mean 1.05, best 2 |
+
+| killed by | before | after |
+| --- | --- | --- |
+| goblin scout | 9 | 9 |
+| white slime | 4 | 4 |
+| goblin warrior | 2 | 3 |
+| blue slime | 1 | 0 |
+| giant ant | 0 | 1 |
+
+The trial bot rarely leaves floor 1, and no run reached floor 3, so no jelly was met. Ants killed
+one of the ten runs that reached floor 2. Floor 1 is unchanged apart from flanking between two
+slimes of one band, which moved one death from a blue slime to a later one.
+
+### Left undone
+
+* The character flanks nothing until factions give creatures someone else to fight.
+* Nothing reads `Sharing` yet.
+* The proving ground floor file holds no ant or jelly. Only the generator places them.
+* A monster does not prefer an approach square that flanks. Only an ant already within two squares
+  of its quarry moves for it.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
