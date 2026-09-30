@@ -179,6 +179,19 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   creature's turn, and it steps through on the next. A band of them paths through doors it
   remembers as shut. Slimes do not open doors. A creature that finds a door spiked against it
   stops trying that door. The character is told when they see a door opened.
+* Floors vary in size. Most are near the old 216 by 84, and they range from a quarter of that area
+  to four times it. A floor is square, or wider than it is tall by half, twice or three times, or
+  taller than it is wide by half or twice. The amulet chamber keeps its size.
+* Floors are laid out three ways. Most are rooms cut as a tree and joined by corridors, mirrored
+  across, down, both ways or neither. Some are a grid of rooms joined to most of their neighbors,
+  and some are a natural cave. Part of a tree floor is sometimes a grid or a cave. A grid or a cave
+  is full of loops.
+* A cut of a tree is joined through its two closest rooms. Two corridors running side by side
+  between the same rooms were on every floor and are now on about one floor in sixteen.
+* A floor that fails the generator's checks is dug again.
+* `--trial` stops a run once `--trial-turns` turns have passed, where it counted the bot's actions.
+  One slow blow takes two turns, so a run could go past its limit. The bot readies a better weapon
+  on the turn after it picks one up, rather than in the same turn.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.
@@ -244,6 +257,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   turns ran past a checkpoint. It took the shorter gap after that checkpoint as the spacing.
 * A build of the game as another shard's dependency records the game's own commit, which
   `lib/.shards.info` names. It recorded the other shard's commit.
+* A route across a floor longer than 320 squares end to end is found. The search stopped at 320
+  steps.
 * A replay file recorded on a seed above `Int64::MAX` reads. `Rng` rolls a `UInt64`, so about half
   of all runs are on one. `crystal-roguelike replay verify`, `replay view` and `replay upgrade`
   each reported `line 1 is not JSON` for such a file and would not open it.

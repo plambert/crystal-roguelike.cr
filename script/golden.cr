@@ -13,7 +13,7 @@ require "../src/crystal-roguelike"
 GOLDEN = Path[ARGV[0]? || "spec/fixtures/replay/golden.jsonl"]
 
 # The seed a replay recorded from scratch is played on.
-SEED = 4271_u64
+SEED = 4272_u64
 
 # What the character is called in it.
 PLAYER = "tester"

@@ -2558,13 +2558,13 @@ module Roguelike
     # Empty when they can reach nothing that way. `Route.chosen` says what
     # counts as reaching it.
     def route_to(goal : {Int32, Int32}) : Array({Int32, Int32})
-      Route.chosen knowledge, sight, goal
+      Route.chosen knowledge, sight, goal, Route.limit(floor)
     end
 
     # The route the character would walk to reach *goal*, without settling
     # for somewhere near it. Empty when they know no way there.
     def way_to(goal : {Int32, Int32}) : Array({Int32, Int32})
-      Route.known knowledge, sight, goal
+      Route.known knowledge, sight, goal, Route.limit(floor)
     end
 
     # Where the character remembers the nearest staircase of *terrain*. `nil`

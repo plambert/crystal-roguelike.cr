@@ -5,15 +5,15 @@ Spectator.describe Roguelike::Generator do
   alias Area = Roguelike::Area
   alias Direction = Roguelike::Direction
   alias Floor = Roguelike::Floor
+  alias Layout = Roguelike::Layout
+  alias Audit = Roguelike::Audit
   alias Rng = Roguelike::Rng
   alias Terrain = Roguelike::Terrain
 
   # How many floors the examples about every floor dig.
   #
-  # The Verify line for phase 24 asked for a thousand, when a floor was 72 by
-  # 28. A floor is nine times that area now, so this many covers more squares
-  # than a thousand of the old ones did, and digging and walking them takes
-  # about as long.
+  # `script/floor-stats.cr` digs a thousand and prints what they come to.
+  # This many covers every layout several times over in a spec run.
   RUNS = 120
 
   # The first seed they dig from. A failure names a run somebody can start.
@@ -31,8 +31,7 @@ Spectator.describe Roguelike::Generator do
   # floor alone, because a spec about the rooms needs the rectangles the
   # generator cut and a floor carries only the squares.
   DUG = (0...RUNS).map do |index|
-    Generator.new(Rng.new(FIRST + index), Roguelike::World.id(1),
-      Generator::COLUMNS, Generator::ROWS).tap &.dig
+    Generator.dug Rng.new(FIRST + index), Roguelike::World.id(1)
   end
 
   # What the block found wrong with each of `RUNS` floors.
@@ -99,10 +98,10 @@ Spectator.describe Roguelike::Generator do
 
   describe "one floor" do
     it "is the size it was asked for" do
-      floor = dug FIRST
+      floor = Generator.floor Rng.new(FIRST), columns: 100, rows: 40
 
-      expect(floor.columns).to eq Generator::COLUMNS
-      expect(floor.rows).to eq Generator::ROWS
+      expect(floor.columns).to eq 100
+      expect(floor.rows).to eq 40
     end
 
     it "takes the id it was asked for" do
@@ -110,14 +109,14 @@ Spectator.describe Roguelike::Generator do
     end
 
     it "cuts rooms into it" do
-      rooms = Generator.new(Rng.new(FIRST), "dungeon", 72, 28).tap(&.dig).rooms
+      rooms = Generator.new(Rng.new(FIRST), "dungeon", 72, 28, layout: Layout::Tree).tap(&.dig).rooms
 
       expect(rooms.size).to be > 4
       expect(rooms.all? { |room| room.columns >= 4 && room.rows >= 3 }).to be_true
     end
 
     it "leaves a square of rock between two rooms" do
-      generator = Generator.new Rng.new(FIRST), "dungeon", 72, 28
+      generator = Generator.new Rng.new(FIRST), "dungeon", 72, 28, layout: Layout::Tree
       generator.dig
 
       generator.rooms.each_with_index do |room, index|
@@ -241,7 +240,7 @@ Spectator.describe Roguelike::Generator do
         up = where(floor, Terrain::StairsUp).first?
         next "seed #{seed} has no up staircase" unless up
 
-        room = generator.rooms.find &.holds?(up[0], up[1])
+        room = generator.zones.find &.holds?(up[0], up[1])
         next "seed #{seed} has its up staircase outside every room" unless room
 
         standing = [] of String
@@ -414,6 +413,156 @@ Spectator.describe Roguelike::Generator do
 
     it "leaves it dark" do
       expect(dug(FIRST).ambient).to eq 0
+    end
+  end
+
+  describe ".size" do
+    # How many sizes the examples draw. Drawing one rolls five numbers.
+    SIZES = (0...1000).map { |index| Generator.size Rng.new(FIRST + index), "floor-1" }
+
+    it "draws an area from a quarter of the average to four times it" do
+      areas = SIZES.map { |size| size[0] * size[1] / Generator::AREA.to_f }
+
+      expect(areas.min).to be >= 0.24
+      expect(areas.max).to be <= 4.1
+    end
+
+    it "centres the area on the average" do
+      areas = SIZES.map { |size| size[0] * size[1] / Generator::AREA.to_f }.sort!
+
+      expect(areas[areas.size // 2]).to be_within(0.1).of(1.0)
+    end
+
+    it "draws a bell rather than a flat spread" do
+      areas = SIZES.map { |size| size[0] * size[1] / Generator::AREA.to_f }
+      middle = areas.count { |area| area >= 0.7 && area <= 1.4 }
+
+      expect(middle).to be > SIZES.size // 2
+    end
+
+    it "favors the squarer shapes" do
+      square = SIZES.count { |size| (size[0] - size[1]).abs * 4 < size[1] }
+      long = SIZES.count { |size| size[0] > size[1] * 5 // 2 }
+
+      expect(square).to be > long
+    end
+
+    it "keeps a floor's size when it is dug again" do
+      first = Generator.new(Rng.new(FIRST), "floor-3", depth: 3).floor
+      retried = Generator.new(Rng.new(FIRST), "floor-3", depth: 3, attempt: 2).floor
+
+      expect({retried.columns, retried.rows}).to eq({first.columns, first.rows})
+    end
+
+    it "draws each floor's size on its own" do
+      sizes = (1..5).map { |depth| Generator.size Rng.new(FIRST), Roguelike::World.id(depth) }
+
+      expect(sizes.uniq.size).to be > 1
+    end
+  end
+
+  describe "layouts" do
+    it "digs every layout, the tree most often" do
+      counted = DUG.map(&.layout).tally
+
+      expect(counted.keys.to_set).to eq Layout.values.to_set
+      expect(counted[Layout::Tree]).to be > counted[Layout::Grid]
+      expect(counted[Layout::Tree]).to be > counted[Layout::Cave]
+    end
+
+    it "fills part of some trees another way" do
+      expect(DUG.count { |generator| generator.layout.tree? && !generator.mixed.empty? }).to be > 0
+    end
+
+    # A walk with one hand on the wall goes round a body of rock that no edge
+    # touches and never sees the far side of it.
+    it "digs some floors with loops a walk along one wall cannot cover" do
+      looped = DUG.count { |generator| Audit.loops(generator.floor, 40) >= 5 }
+
+      expect(looped).to be > RUNS // 5
+    end
+
+    # The first room a tree cuts is in its top left corner, until the floor
+    # is mirrored.
+    it "mirrors trees across, down, both ways and neither" do
+      corners = DUG.select(&.layout.tree?).map do |generator|
+        first = generator.rooms.first
+        {first.x * 2 < generator.floor.columns, first.y * 2 < generator.floor.rows}
+      end
+
+      expect(corners.uniq.size).to eq 4
+    end
+  end
+
+  describe "the audit" do
+    it "finds nothing wrong with any floor" do
+      found = complaints do |generator, seed|
+        faults = Audit.faults generator.floor, generator.rooms
+        "seed #{seed}: #{faults.join(", ")}" unless faults.empty?
+      end
+
+      expect(found).to be_empty
+    end
+
+    it "finds two corridors side by side on few floors" do
+      pairs = DUG.sum { |generator| Audit.alongside generator.floor }
+
+      expect(pairs).to be < RUNS // 10
+    end
+
+    it "digs again when a try is faulted, and stops after the last" do
+      generator = Generator.dug Rng.new(FIRST), "cramped", columns: 12, rows: 8
+
+      expect(generator.attempt).to eq Generator::TRIES - 1
+      expect(generator.rejected).not_to be_empty
+    end
+
+    it "digs again the same way from the same seed" do
+      first = Generator.dug Rng.new(FIRST), "cramped", columns: 12, rows: 8
+      again = Generator.dug Rng.new(FIRST), "cramped", columns: 12, rows: 8
+
+      expect(again.floor.to_map).to eq first.floor.to_map
+      expect(again.rejected).to eq first.rejected
+    end
+  end
+
+  describe "the staircases of two floors" do
+    # Nothing places a staircase from the floor above or below it, so the
+    # down staircase of one floor and the up staircase of the next fall
+    # where they fall.
+    it "do not line up" do
+      lined = (0...40).count do |index|
+        above = Generator.floor Rng.new(FIRST + index), Roguelike::World.id(1), 1
+        below = Generator.floor Rng.new(FIRST + index), Roguelike::World.id(2), 2
+
+        above.find(Terrain::StairsDown) == below.find(Terrain::StairsUp)
+      end
+
+      expect(lined).to eq 0
+    end
+  end
+
+  describe "what lives on a floor of any size" do
+    # Creatures per thousand open squares, over a few floors of *columns* by
+    # *rows*.
+    def crowding(columns : Int32, rows : Int32) : Float64
+      creatures = 0
+      open = 0
+
+      4.times do |index|
+        floor = Generator.floor Rng.new(FIRST + index), "floor-1", 1, columns, rows
+        floor.each { |_column, _row, tile| open += 1 if tile.terrain.passable? }
+        floor.each_monster { creatures += 1 }
+      end
+
+      creatures * 1000.0 / open
+    end
+
+    it "is as crowded on a floor a quarter the size as on one four times it" do
+      small = crowding 108, 42
+      large = crowding 432, 168
+
+      expect(small).to be_within(small / 2).of(large)
     end
   end
 

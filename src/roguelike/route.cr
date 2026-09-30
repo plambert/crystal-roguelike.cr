@@ -16,11 +16,18 @@ module Roguelike
   # and carries on. A band is the other case, and `Descent.toward` leaves a
   # shut door in its way by default.
   module Route
-    # How far a route is searched.
-    #
-    # The dug floor is 216 by 84, so this reaches any square of it from any
-    # other.
+    # How far a route is searched when nobody names a floor.
     LIMIT = 320
+
+    # How far a route over *floor* is searched.
+    #
+    # A route never crosses a square twice, so one as long as the floor has
+    # squares reaches any square from any other, however the floor winds.
+    # The flood runs over what the character remembers, which is what bounds
+    # the work.
+    def self.limit(floor : Floor) : Int32
+      Math.max floor.columns * floor.rows, LIMIT
+    end
 
     # No way at all.
     NOWHERE = [] of {Int32, Int32}

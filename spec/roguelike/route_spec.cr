@@ -273,4 +273,20 @@ Spectator.describe Roguelike::Route do
       expect(Route.apart({0, 0}, {5, 2})).to eq 5
     end
   end
+
+  describe ".limit" do
+    # A corridor that winds back and forth across a large floor is longer
+    # than the floor is wide and tall together.
+    it "searches as far as a floor has squares" do
+      large = Roguelike::Floor.solid "large", 466, 156
+
+      expect(Route.limit large).to eq 466 * 156
+    end
+
+    it "searches no less than it used to on a small floor" do
+      small = Roguelike::Floor.solid "small", 10, 10
+
+      expect(Route.limit small).to eq Route::LIMIT
+    end
+  end
 end

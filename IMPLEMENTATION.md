@@ -3512,6 +3512,177 @@ a door and spikes it would show the rule far more.
 * A band that mixes kinds that open doors with ones that cannot keeps the whole band off doors.
   Every band holds one species today, and every kind of a species agrees, so no band is mixed.
 
+## Floors of many sizes and layouts
+
+### Size
+
+* `Generator.size` draws each floor's size on its own stream, `worldgen:<id>` then `size`. A floor
+  dug again after a fault keeps its size.
+* The area is `AREA` times two to the power of an exponent. The exponent is the mean of four rolls,
+  scaled to run from -2 to +2. So the area runs from a quarter of 216 by 84 to four times it, on a
+  bell centred on 216 by 84.
+* The shape is picked by weight, as columns to rows: 1:1 30, 3:2 25, 2:1 20, 2:3 10, 3:1 10, 1:2 5.
+  A floor three times taller than wide is left out, because the window is wider than it is tall.
+* No floor is narrower than 32 or shorter than 20.
+* The amulet chamber keeps its fixed 31 by 11.
+
+### Layouts
+
+`Generator::LAYOUTS` picks the layout per floor on the stream `layout`: tree 60, grid 20, cave 20.
+
+* **Tree.** The binary space partition as before. Each cut is now joined through the two rooms, one
+  on each side, whose middles are closest. The old tree joined fixed representative rooms, so a
+  higher cut's corridor often retraced a lower cut's corridor one square over. That was 12 pairs of
+  side-by-side corridors a floor.
+* **Mirror.** Once the rooms and corridors are dug, every floor is mirrored across, down, both
+  ways or neither, rolled on the stream `mirror`. Only the rock, the ground and the room list
+  move, because nothing else is placed yet.
+* **Grid.** Cells of `CELL`, 14 by 9, each holding a carved room. Each room is joined to its right
+  and lower neighbor 65 times in 100. Any neighbors still in separate groups are then joined, in
+  reading order, so every room is reached and most by more than one way.
+* **Cave.** A cellular automaton over the area: 53 in 100 squares open at the start, four smoothing
+  passes, a square with 5 or more rock squares among the nine around it turning to rock. Every body
+  of 20 squares or more is kept and joined by a corridor to the nearest square of a larger one. The
+  cave is divided into caverns of 20 by 10 for staircases, sconces and creatures. A cavern takes no
+  doors.
+* **Mixing.** A tree floor draws how many of its rectangles to fill another way: none 60, one 30,
+  two 10. A rectangle at least 44 by 24 and no more than 40 in 100 of the floor is filled as a grid
+  or a cave 35 times in 100 while any are left to fill.
+* Every stream is named after the floor id and the rectangle, room or cell it is about. The id holds
+  the depth, so a floor is the same whatever order floors are visited in.
+* The replay stream version for `generator` is 4. The golden replay is recorded on seed 4272,
+  because the random walk on seed 4271 dies before its 80 actions on these floors.
+
+### The audit and retries
+
+* `Audit.faults(floor, rooms)` reads only the squares, so it judges a floor however it was made.
+* It faults: a staircase missing or doubled; any open square the up staircase cannot reach, shut
+  doors crossed; a door without open squares on two facing sides; a creature, pile or fixture in
+  rock; a stone corridor square with fewer than two ways off it; and, given the rooms, a room under
+  4 by 3 or both staircases in one room.
+* A square is part of a room when it lies in a block of 3 by 3 open squares. A corridor is any other
+  square of stone floor or door. A cave's dirt dead ends are not corridors.
+* `Generator.dug` digs up to `TRIES`, 6, times. Each retry derives its streams from `retry:<n>`
+  under the floor's stream. The last try is kept whatever it holds, so a floor always comes back.
+* Two corridors side by side are measured by `Audit.alongside` rather than faulted. A corridor is
+  two straight lengths meeting once, so no corridor doubles back on itself.
+
+### Staircases
+
+The staircases of two floors do not line up. `Generator#stairs` rolls both staircases on the
+floor's own stream over the floor's own rooms and caverns. Nothing reads the floor above or below.
+A spec digs floors 1 and 2 on 40 seeds and finds no down staircase on the square of the next up
+staircase.
+
+### What the size touches
+
+| Place | Finding |
+|---|---|
+| `Generator` | `COLUMNS` and `ROWS` are now the average. |
+| `Route` | `LIMIT` of 320 steps was sized for 216 by 84. `Route.limit(floor)` is the floor's area. |
+| Field of view, lighting, knowledge | read the floor's own size |
+| Fingerprint, save, replay | walk the floor they are given |
+| Map pane and scrolling | read `Floor#columns` and `Floor#rows` |
+| `Observation` | builds its grids from the floor |
+| Minimap | none exists |
+
+Nothing else in `src` held 216 or 84.
+
+### Density
+
+`Spawns::DENSITY` rolls per room or cavern, and `Game::LITTER` is per hundred open squares, so both
+scale with the floor. A tree leaf and a grid cell are about 110 to 130 squares. A cavern is 200, so
+a cave holds about half as many creatures for its area. Ten floors of each size and layout:
+
+| size | layout | creatures per 1000 open squares | piles per 1000 open squares |
+|---|---|---|---|
+| 108 by 42 | tree | 13.8 | 29.2 |
+| 216 by 84 | tree | 15.4 | 29.8 |
+| 432 by 168 | tree | 14.7 | 30.1 |
+| 108 by 42 | grid | 11.6 | 29.9 |
+| 432 by 168 | grid | 12.7 | 30.0 |
+
+Those were measured with caverns of 14 by 8. A cave floor 1 killed the trial bot in 89 of 100 runs
+with them, against 67 on a tree floor 1. Everything in a cave sees the character from further off.
+Caverns of 20 by 10 brought it to 69.
+
+### Measurements
+
+`script/floor-stats.cr`, 1000 floors from seed 1 at depth 1. A loop is a body of rock no edge of the
+floor touches. A large loop is one of 40 squares or more.
+
+| | before | after |
+|---|---|---|
+| area, percent of 216 by 84 | 100 on every floor | p10 63, median 103, p90 169, range 31 to 324 |
+| loops per floor, mean | 19.2 | 24.2 |
+| large loops per floor, mean | 0.4 | 13.1 |
+| corridors side by side | 12,031 pairs, every floor | 67 pairs, 63 floors |
+| audit faults on the first try | 0 | 0 |
+| unsound after retries | 0 | 0 |
+
+By layout, after:
+
+| layout | floors | loops | large loops | side by side |
+|---|---|---|---|---|
+| tree | 373 | 8.7 | 3.9 | 0.12 |
+| grid | 189 | 34.6 | 33.8 | 0 |
+| cave | 189 | 58.7 | 19.5 | 0 |
+| tree and cave | 114 | 14.1 | 4.6 | 0.07 |
+| tree and grid | 108 | 11.7 | 7.5 | 0.12 |
+| tree, cave and grid | 27 | 17.8 | 8.6 | 0 |
+
+Areas by band, after: 34 under 50 percent, 177 at 50 to 75, 258 at 75 to 100, 344 at 100 to 150,
+145 at 150 to 200, 41 at 200 to 300, 1 at 300 or more. Shapes: 306 square, 226 wide 3:2, 219 wide
+2:1, 96 wide 3:1, 85 tall 3:2, 68 tall 2:1.
+
+The old tree was never loop-free. A corridor from one room's middle to another's crossed corridors
+already dug, and each crossing closed a ring round a little rock. Almost all of those rings held a
+few squares. A walk along one wall missed little on it. On a grid or a cave, a walk along one wall
+misses most of the floor.
+
+No floor of 1000 failed the audit before or after, so the retry has not been needed on a dug floor.
+A spec forces it on a 12 by 8 floor with no room for two staircases.
+
+### The trial
+
+`--trial 200 --seed 5000` on a release build. Both columns use this branch's trial harness. Main
+with the old harness gave the same numbers. Both were measured before kinds of creature and doors
+that open were merged, so they compare with each other and not with later tables.
+
+| | before | after |
+|---|---|---|
+| died | 122 (61%) | 141 (70%) |
+| gave up | 78 (39%) | 59 (29%) |
+| survived floor 1 | 40.5% | 35.0% |
+| reached floor 2 | 6 | 16 |
+| reached floor 3 | 1 | 0 |
+| turns until death, median | 137 | 131 |
+| squares from the start, median | 21 | 26 |
+| gold, mean | 31.4 | 44.2 |
+| killed by | goblin 117, slime 4, orc 1 | goblin 134, slime 6, orc 1 |
+
+Floor 1 is harder by about five points. The same 200 runs by the layout and size of floor 1, dying
+on floor 1:
+
+| floor 1 | runs | died there |
+|---|---|---|
+| tree | 108 | 62% |
+| grid | 46 | 65% |
+| cave | 46 | 69% |
+| under 75% of the average area | 52 | 59% |
+| 75% to 130% | 100 | 62% |
+| over 130% | 48 | 77% |
+
+A large floor is the harder one: more creatures stand between the character and the staircase
+down. More runs reach floor 2, because a small floor puts the staircase closer.
+
+### Left undone
+
+* The staircases are placed in any two rooms or caverns, however close. In a cave they can be a
+  dozen squares apart.
+* A cavern of the arrival zone holds no creature, but the cavern beside it may.
+* Room shapes stay rectangles in trees and grids. A cave is the only irregular space.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
