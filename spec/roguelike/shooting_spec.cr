@@ -160,12 +160,12 @@ Spectator.describe "shooting and throwing" do
       expect(taken.pick_up_all).to eq 1
     end
 
-    it "counts a turn" do
+    it "takes the two ticks a bow costs" do
       game = archer
       before = game.turn
       game.fire EAST
 
-      expect(game.turn).to eq before + 1
+      expect(game.turn).to eq before + 2
     end
 
     it "stops at the pillar rather than reaching past it" do

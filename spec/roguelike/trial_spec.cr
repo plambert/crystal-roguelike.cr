@@ -17,6 +17,13 @@ Spectator.describe Roguelike::Trial do
   # here writes to it.
   REPORT = Trial.play RUNS, Trial::FIRST, TURNS
 
+  describe ".kit" do
+    it "reads damage a blow and per hundred energy" do
+      expect(Trial.kit).to eq "starting kit hits for 3.5 a blow, " \
+                              "3.5 per 100 energy (swing 100)"
+    end
+  end
+
   describe ".play" do
     it "plays the runs it was asked for" do
       expect(REPORT.runs).to eq RUNS

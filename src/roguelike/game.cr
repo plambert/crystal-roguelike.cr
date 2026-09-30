@@ -1236,7 +1236,7 @@ module Roguelike
       jar
 
       wake creature if creature.alive?
-      spend_turn
+      spend Costs.swing(@player.wielded)
       blow
     end
 
@@ -1346,7 +1346,8 @@ module Roguelike
 
       say "You shoot #{name one}.",
         Event::Loosed.new(one.id, name(one), target, thrown: false)
-      loose one, target, ranged_weapon.kind.reach, bonus, damage
+      loose one, target, ranged_weapon.kind.reach, bonus, damage,
+        Costs.loose(ranged_weapon)
       true
     end
 
@@ -1381,7 +1382,7 @@ module Roguelike
 
       say "You throw #{name one}.",
         Event::Loosed.new(one.id, name(one), target, thrown: true)
-      loose one, target, reach, bonus, damage
+      loose one, target, reach, bonus, damage, Costs.loose(item)
       true
     end
 
@@ -1400,7 +1401,7 @@ module Roguelike
     # A creature in the way is swung at, whether or not it was the square
     # aimed at. A missile stops at the first thing standing in the line.
     private def loose(missile : Item, target : {Int32, Int32}, reach : Int32,
-                      bonus : Int32, damage : Dice) : Nil
+                      bonus : Int32, damage : Dice, cost : Int32) : Nil
       shot = flight target, reach
       @in_flight = Missile.new shot, missile
       spot = shot.at
@@ -1409,7 +1410,7 @@ module Roguelike
       hit struck, missile.kind.label, bonus, damage if struck
 
       floor.drop spot[0], spot[1], missile
-      spend_turn
+      spend cost
     end
 
     # Something called *noun* meets *creature*. Answers what it did.
@@ -1475,8 +1476,7 @@ module Roguelike
           break if over?
           break unless floor.monster? creature.x, creature.y
 
-          creature.pace.spend Costs::TURN
-          perform creature, plan(creature, maps)
+          creature.pace.spend perform(creature, plan(creature, maps))
         end
       end
     end
@@ -1546,20 +1546,28 @@ module Roguelike
       taken
     end
 
-    # Does what *action* says, as far as the floor allows.
+    # Does what *action* says, as far as the floor allows. Answers what it
+    # cost, in energy.
     #
     # A creature that decided to walk into a wall walks nowhere, and one
-    # that decided to swing at an empty square swings at nothing.
-    private def perform(creature : Monster, action : Pursuit::Action) : Nil
+    # that decided to swing at an empty square swings at nothing. Both take
+    # a turn. A swing that reaches the character costs what its species says.
+    private def perform(creature : Monster, action : Pursuit::Action) : Int32
       direction = action.direction
-      return unless direction
+      return Costs::TURN unless direction
 
       wanted = direction.from creature.x, creature.y
 
       case action.intent
-      in .wait?   then nil
-      in .step?   then walk_creature creature, wanted
-      in .strike? then strike creature if @player.at? wanted[0], wanted[1]
+      in .wait? then Costs::TURN
+      in .step?
+        walk_creature creature, wanted
+        Costs::TURN
+      in .strike?
+        return Costs::TURN unless @player.at? wanted[0], wanted[1]
+
+        strike creature
+        creature.species.swing
       end
     end
 

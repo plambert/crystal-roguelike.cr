@@ -179,7 +179,8 @@ module Roguelike
     attributes : Attributes,
     persistence : Int32,
     size : Size = Size::Medium,
-    speed : Int32 = Pace::NORMAL
+    speed : Int32 = Pace::NORMAL,
+    swing : Int32 = Costs::TURN
 
   # How big a creature is.
   #
@@ -334,6 +335,11 @@ module Roguelike
       Kinds.override || facts.speed
     end
 
+    # What one of its attacks costs, in energy.
+    def swing : Int32
+      facts.swing
+    end
+
     # How many turns one goes on looking after it has lost the character.
     #
     # It walks to the square it last saw them on and casts about there until
@@ -401,7 +407,7 @@ module Roguelike
         "a heavy gray brute with a notched blade",
         hit_points: 14, damage: Dice.new(1, 8), armor: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
-        size: Size::Large, persistence: 30, speed: 95,
+        size: Size::Large, persistence: 30, speed: 95, swing: 120,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 10, stealth: 8)),
     }

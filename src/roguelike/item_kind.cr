@@ -145,6 +145,7 @@ module Roguelike
     light : Int32 = 0,
     range : Int32 = 0,
     melee_reach : Int32 = 1,
+    swing : Int32 = Costs::TURN,
     effect : Effect = Effect::None,
     power : Dice = Dice::NONE,
     uncountable : Bool = false do
@@ -329,6 +330,11 @@ module Roguelike
       ItemKind.values.find { |kind| kind.ranged_weapon == self }
     end
 
+    # What one swing, shot or throw of this costs, in energy.
+    def swing : Int32
+      facts.swing
+    end
+
     # How many times it can be used before it is spent.
     def charges : Int32
       facts.charges
@@ -415,22 +421,22 @@ module Roguelike
   module ItemKinds
     FACTS = {
       ItemKind::Dagger => ItemFacts.new("dagger", "daggers", ItemClass::Melee,
-        damage: Dice.new(1, 4), weight: 10),
+        damage: Dice.new(1, 4), weight: 10, swing: 75),
       ItemKind::ShortSword => ItemFacts.new("short sword", "short swords", ItemClass::Melee,
-        damage: Dice.new(1, 6), weight: 30),
+        damage: Dice.new(1, 6), weight: 30, swing: 100),
       ItemKind::LongSword => ItemFacts.new("long sword", "long swords", ItemClass::Melee,
-        damage: Dice.new(1, 8), weight: 40),
+        damage: Dice.new(1, 8), weight: 40, swing: 120),
       ItemKind::Rapier => ItemFacts.new("rapier", "rapiers", ItemClass::Melee,
-        damage: Dice.new(1, 6, 1), weight: 25),
+        damage: Dice.new(1, 6, 1), weight: 25, swing: 115),
       ItemKind::Mace => ItemFacts.new("mace", "maces", ItemClass::Melee,
-        damage: Dice.new(1, 6, 1), weight: 60),
+        damage: Dice.new(1, 6, 1), weight: 60, swing: 125),
       ItemKind::Spear => ItemFacts.new("spear", "spears", ItemClass::Melee,
-        damage: Dice.new(1, 8), weight: 50),
+        damage: Dice.new(1, 8), weight: 50, swing: 125),
 
       ItemKind::Sling => ItemFacts.new("sling", "slings",
         ItemClass::RangedWeapon, weight: 5, range: 12),
       ItemKind::Bow => ItemFacts.new("bow", "bows",
-        ItemClass::RangedWeapon, weight: 30, range: 16),
+        ItemClass::RangedWeapon, weight: 30, range: 16, swing: 120),
       ItemKind::Stone => ItemFacts.new("stone", "stones", ItemClass::Ammunition,
         damage: Dice.new(1, 4), ranged_weapon: ItemKind::Sling, weight: 5),
       ItemKind::Arrow => ItemFacts.new("arrow", "arrows", ItemClass::Ammunition,

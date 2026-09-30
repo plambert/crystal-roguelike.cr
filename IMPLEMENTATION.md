@@ -2989,6 +2989,90 @@ loses at most its hit points, so the mean is held down by the deaths.
 * Attributes other than the default.
 * Variants of a species. They appear once `opponents` reads them.
 
+## What a blow costs
+
+Every swing used to cost one tick, so a dagger and a spear attacked equally often and only the
+dice told them apart. A blow now costs the energy its weapon, launcher or species names. The
+character gains 100 energy a tick, so a dagger at 75 swings four times in three ticks and a long
+sword at 120 swings five times in six.
+
+### How it is built
+
+| Piece | Where |
+| --- | --- |
+| A weapon's cost | `swing` in the `ItemFacts` row, default 100 |
+| A species' cost | `swing` in the `SpeciesFacts` row, default 100 |
+| Bare hands | `Costs::BARE`, 80 |
+| Reading them | `Costs.swing(item)` for a blow in melee, `Costs.loose(item)` for a shot or a throw |
+| The character paying | `Game#attack` and `Game#loose` spend the cost where they used to spend a turn |
+| A creature paying | `Game#perform` answers what the action cost and `#creatures_act` spends it |
+
+A hit and a miss cost the same, because the cost is spent after the roll and nothing in it reads
+the outcome. A thing with no dice of its own, a cursed wand for one, is swung like a fist and costs
+`BARE`. A shot costs what the launcher says, so the arrow's own row is unused. A throw costs what
+the thrown item says, so a thrown dagger costs 75. A creature that steps, waits or swings at an
+empty square pays one turn. Only a swing that reaches the character costs the species' number.
+
+Energy carries over, so the ratio holds over a run of any length. A cost over a tick leaves the
+actor in debt until it is paid.
+
+### The numbers
+
+Damage is the weapon's dice alone. The character's strength modifier, an enchantment and a
+condition add the same amount to a slow weapon and a quick one, which favors the quick one a little
+more than this table says.
+
+| Weapon | Dice | Damage per hit | Swing cost | Damage per 100 energy |
+| --- | --- | --- | --- | --- |
+| Bare hands | 1d2 | 1.50 | 80 | 1.88 |
+| Dagger | 1d4 | 2.50 | 75 | 3.33 |
+| Short sword | 1d6 | 3.50 | 100 | 3.50 |
+| Mace | 1d6+1 | 4.50 | 125 | 3.60 |
+| Spear | 1d8 | 4.50 | 125 | 3.60 |
+| Long sword | 1d8 | 4.50 | 120 | 3.75 |
+| Rapier | 1d6+1 | 4.50 | 115 | 3.91 |
+| Sling, stone | 1d4 | 2.50 | 100 | 2.50 |
+| Bow, arrow | 1d6 | 3.50 | 120 | 2.92 |
+| Thrown dart | 1d4 | 2.50 | 100 | 2.50 |
+| Thrown rock | 1d3 | 2.00 | 100 | 2.00 |
+
+Before this change every cost was 100, so damage per 100 energy equalled damage per hit.
+
+The aim was for damage per 100 energy to rise with damage per hit, by less. From a dagger to a long
+sword a hit does 80 percent more and 100 energy does 12 percent more. The dagger is 75 rather than
+70 because at 70 it would out-damage a short sword per energy (3.57 against 3.50). The long sword,
+spear, mace and rapier all roll 4.5 on average, so they differ only by cost. A heavier weapon is
+not faster. The spear and the mace sit under the long sword because they are the heavy ones.
+
+An orc swings at 120. Its speed is 95, so it attacks about 79 times in a hundred ticks where a
+goblin attacks 100. A goblin and a slime keep the default.
+
+### What it did to a run
+
+`--trial 300` from seed 5000, the bot that never retreats and the one that backs away.
+
+| | Never retreats, before | after | Backs away, before | after |
+| --- | --- | --- | --- | --- |
+| Died | 225 (75%) | 225 (75%) | 229 (76%) | 232 (77%) |
+| Won | 4 | 3 | 4 | 3 |
+| Gave up | 71 | 72 | 67 | 65 |
+| Turns until death, median | 96 | 96 | 100 | 100 |
+| Killed by goblin, orc, slime | 154, 64, 7 | 158, 57, 10 | 154, 68, 7 | 158, 65, 9 |
+
+The starting short sword costs 100, so the character's own swing is unchanged. What moved is the
+orc, and the bot picking up a heavier weapon that swings slower. The deaths do not move outside
+what 300 runs can tell apart.
+
+`--trial` now prints what the starting weapon hits for in a blow and in every hundred energy.
+
+### What was left
+
+* A recorded run that fought with a quick or slow weapon, a bow, or an orc plays out differently
+  and no longer verifies. No format version is bumped for it.
+* The bot holds the weapon with the highest damage per hit. It does not weigh speed.
+* Enchantment and condition do not change a swing cost.
+* A creature's tooltip does not say how fast it attacks.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

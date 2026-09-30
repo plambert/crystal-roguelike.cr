@@ -152,6 +152,7 @@ module Roguelike
       puts "from seed #{first}, at most #{trial_turns} turns a run"
       puts "every species at speed #{trial_speed}" if trial_speed > 0
       puts "the bot backs away when it is badly hurt" if trial_cautious
+      puts Trial.kit(first)
 
       print Trial.play(trial, first, trial_turns, trial_cautious)
     end
