@@ -227,7 +227,8 @@ module Roguelike
   #
   # *depths* is the floors it appears on. `Spawns::TABLE` says how common it
   # is there. *alone* says a room holding one holds nothing else. *swing* is
-  # what one of its attacks costs, in energy.
+  # what one of its attacks costs, in energy. *opens_doors* says it opens a
+  # shut door by walking into it.
   record KindFacts,
     species : Species,
     mark : Char,
@@ -247,6 +248,7 @@ module Roguelike
     size : Size = Size::Medium,
     speed : Int32 = Pace::NORMAL,
     swing : Int32 = Costs::TURN,
+    opens_doors : Bool = false,
     verb : String = "hits",
     light : Int32 = 0,
     weapon : ItemKind? = nil,
@@ -481,6 +483,15 @@ module Roguelike
       facts.paths
     end
 
+    # Whether one opens a shut door by walking into it.
+    #
+    # Opening takes its turn, the same as it does for the character, and it
+    # steps through on the next. A band whose members open doors paths
+    # through a door it remembers as shut.
+    def opens_doors? : Bool
+      facts.opens_doors
+    end
+
     # What killing one is worth.
     def experience : Int32
       facts.experience
@@ -617,7 +628,7 @@ module Roguelike
         hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 0,
         notice: 10, darkvision: false, paths: true, experience: 5,
         size: Size::Small, persistence: 8, speed: 110,
-        weapon: ItemKind::Dagger, light: 40, alone: true,
+        weapon: ItemKind::Dagger, light: 40, alone: true, opens_doors: true,
         depths: 1..2,
         attributes: Attributes.new(strength: 8, dexterity: 14, constitution: 9,
           intelligence: 8, stealth: 15)),
@@ -626,7 +637,7 @@ module Roguelike
         "goblin warriors", "a small green thing with a short sword",
         hit_dice: Dice.new(2, 4, 4), damage: Dice.new(1, 6), armor: 2,
         notice: 8, darkvision: false, paths: true, experience: 7,
-        size: Size::Small, persistence: 6,
+        size: Size::Small, persistence: 6, opens_doors: true,
         weapon: ItemKind::ShortSword, light: 25,
         depths: 2..4,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
@@ -637,7 +648,7 @@ module Roguelike
         hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 3), armor: 1,
         notice: 9, darkvision: false, paths: true, experience: 12,
         size: Size::Small, persistence: 8, light: 50,
-        mends: true, casts: true,
+        mends: true, casts: true, opens_doors: true,
         depths: 3..5,
         attributes: Attributes.new(strength: 7, dexterity: 11, constitution: 9,
           intelligence: 12, stealth: 11)),
@@ -647,7 +658,7 @@ module Roguelike
         hit_dice: Dice.new(2, 6, 7), damage: Dice.new(1, 8), armor: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
         size: Size::Large, persistence: 30, speed: 95, swing: 120,
-        armed: 90, light: 20, depths: 3..5,
+        armed: 90, light: 20, depths: 3..5, opens_doors: true,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 10, stealth: 8)),
 
@@ -656,7 +667,7 @@ module Roguelike
         hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 6), armor: 3,
         notice: 10, darkvision: true, paths: true, experience: 16,
         size: Size::Large, persistence: 24, speed: 95, swing: 120,
-        light: 10, depths: 4..5,
+        light: 10, depths: 4..5, opens_doors: true,
         attributes: Attributes.new(strength: 12, dexterity: 14, constitution: 12,
           intelligence: 10, stealth: 9)),
     }

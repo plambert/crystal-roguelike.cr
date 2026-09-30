@@ -132,6 +132,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   slimes, goblin shamans and orcs from floor 3, and orc archers from floor 4. The weaker kinds
   thin out deeper down: goblin scouts stop after floor 2, white slimes after floor 3, and blue
   slimes and goblin warriors after floor 4.
+* `a` drives an iron spike into a shut door beside the character. The spike holds the door shut
+  against anything on the far side. Opening the door from the spiked side pulls the spike out and
+  puts it back in the pack. A spiked door draws as `ǂ`.
+* `--trial-doors` plays `--trial` with a bot that shuts each door behind it. It combines with
+  `--trial-cautious`.
 
 ### Changed
 
@@ -169,6 +174,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   carrying a lit torch or candle is its own.
 * An orc is drawn in a brighter red, so it stands out further from the ground.
 * A save written before kinds existed loads each creature as its species' original kind.
+* Goblins and orcs of every kind open shut doors. Walking into one opens it and takes the
+  creature's turn, and it steps through on the next. A band of them paths through doors it
+  remembers as shut. Slimes do not open doors. A creature that finds a door spiked against it
+  stops trying that door. The character is told when they see a door opened.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.

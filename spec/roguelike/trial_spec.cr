@@ -133,6 +133,42 @@ Spectator.describe Roguelike::Trial do
     end
   end
 
+  describe "a bot that shuts doors" do
+    # The character stands in an open doorway with nothing near. The first
+    # turn walks them off it and the second is the one that shuts it.
+    def in_doorway(shuts : Bool) : {Trial::Bot, {Int32, Int32}}
+      bot = Trial::Bot.new Trial::FIRST, shuts
+      game = bot.game
+      door = game.player.at
+      game.floor.set door[0], door[1], Roguelike::Terrain::OpenDoor
+
+      {bot, door}
+    end
+
+    it "shuts the door it walked through" do
+      bot, door = in_doorway true
+
+      2.times { bot.turn }
+
+      expect(bot.game.player.at).not_to eq door
+      expect(bot.game.floor.terrain(*door)).to eq Roguelike::Terrain::ClosedDoor
+    end
+
+    it "leaves it open when it does not shut doors" do
+      bot, door = in_doorway false
+
+      2.times { bot.turn }
+
+      expect(bot.game.floor.terrain(*door)).to eq Roguelike::Terrain::OpenDoor
+    end
+
+    it "plays a whole set of runs" do
+      report = Trial.play RUNS, Trial::FIRST, TURNS, doors: true
+
+      expect(report.runs).to eq RUNS
+    end
+  end
+
   describe Roguelike::Trial::Cautious do
     # A hall, the character at one end on their last few hit points with
     # nothing to drink, and a goblin standing next to them.

@@ -281,12 +281,12 @@ module Roguelike
       end
     end
 
-    # Lighting or putting out a torch, a candle or a wall sconce. `a` does
-    # this.
+    # Lighting or putting out a torch, a candle or a wall sconce, or driving
+    # an iron spike into a door. `a` does this.
     #
-    # *item* names a carried light. *at* names a sconce by the square it
-    # stands on. Exactly one of the two is set. `Roguelike::Apply` is
-    # divided the same way.
+    # *item* alone names a carried light. *at* alone names a sconce by the
+    # square it stands on. Both name a spike and the door it goes into.
+    # `Roguelike::Apply` is divided the same way.
     class Apply < Action
       getter t : String = "apply"
 
