@@ -3449,6 +3449,8 @@ starting kit into shut doors to hold them.
 * A goblin or orc on the spiked side opens the door too, and the spike drops at its feet. Monsters
   never drive spikes.
 * A spiked door draws as `ǂ` in bright steel. The glyph is not East Asian Ambiguous.
+* The examine pane calls a spiked door, seen or remembered, a "spiked door". The nearby pane names
+  only the square underfoot, and a shut door is never underfoot.
 * `--trial-doors` has the trial bot shut each door it walks through.
 
 ### Where a spike lives
@@ -3510,7 +3512,6 @@ a door and spikes it would show the rule far more.
 
 ### What was left
 
-* The examine and nearby panes still call a spiked door a closed door.
 * No bot spikes a door.
 * A band that mixes kinds that open doors with ones that cannot keeps the whole band off doors.
   Every band holds one species today, and every kind of a species agrees, so no band is mixed.

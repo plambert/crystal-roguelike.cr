@@ -134,7 +134,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   slimes and goblin warriors after floor 4.
 * `a` drives an iron spike into a shut door beside the character. The spike holds the door shut
   against anything on the far side. Opening the door from the spiked side pulls the spike out and
-  puts it back in the pack. A spiked door draws as `ǂ`.
+  puts it back in the pack. A spiked door draws as `ǂ`, and the examine pane calls it a spiked
+  door.
 * `--trial-doors` plays `--trial` with a bot that shuts each door behind it. It combines with
   `--trial-cautious`.
 

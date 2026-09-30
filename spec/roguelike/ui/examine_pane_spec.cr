@@ -101,6 +101,27 @@ Spectator.describe Roguelike::Ui::ExaminePane do
       expect([stone, dirt]).to eq ["stone floor", "dirt floor"]
     end
 
+    it "calls a shut door with a spike in it a spiked door" do
+      door = Roguelike::Floor.parse "door", "###\n.+.\n###"
+      door.drive_spike 1, 1, Roguelike::Direction::West, Roguelike::Item.new(Roguelike::ItemKind::Spike)
+
+      pane.show door, 1, 1
+
+      expect(pane.what.text).to eq Roguelike::Ui::ExaminePane::SPIKED
+      expect(pane.what.style).to eq Roguelike::Ui::Palette::SPIKED.style
+    end
+
+    it "calls a remembered spiked door a spiked door" do
+      door = Roguelike::Floor.parse "door", "###\n.+.\n###"
+      memory = Roguelike::Memory.new Terrain::ClosedDoor, spiked: true
+      knowledge = Roguelike::Knowledge.new door.id
+      knowledge.remember 1, 1, memory
+
+      pane.show door, 1, 1, nil, Roguelike::Vision.blind(0, 1), knowledge
+
+      expect(pane.what.text).to eq Roguelike::Ui::ExaminePane::SPIKED
+    end
+
     it "shows the coordinates it had been hiding" do
       pane.show floor, 2, 1
 

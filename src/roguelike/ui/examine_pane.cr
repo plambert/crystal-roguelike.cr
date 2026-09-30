@@ -27,6 +27,12 @@ module Roguelike::Ui
     # What the pane says about a shape against light behind it.
     MOVING = "something moving against the light"
 
+    # What the pane calls a shut door with an iron spike in it.
+    SPIKED = "spiked door"
+
+    # The sentence under it.
+    SPIKED_DETAIL = "a shut wooden door with an iron spike driven in"
+
     # The widget itself. A caller puts it in a tree.
     getter root : Widgets::Panel
 
@@ -130,6 +136,10 @@ module Roguelike::Ui
         @what.text = fitting.label
         @what.style = Palette[fitting].style
         @detail.text = fitting.description
+      elsif terrain.closed_door? && floor.spiked?(x, y)
+        @what.text = SPIKED
+        @what.style = Palette::SPIKED.style
+        @detail.text = SPIKED_DETAIL
       else
         @what.text = terrain.label
         @what.style = Palette[terrain].style
@@ -177,7 +187,7 @@ module Roguelike::Ui
       end
 
       fitting = memory.fixture
-      @what.text = fitting ? fitting.label : memory.terrain.label
+      @what.text = fitting ? fitting.label : remembered_terrain(memory)
       @what.style = Style::DEFAULT.faint
       @detail.text = REMEMBERED
 
@@ -186,6 +196,13 @@ module Roguelike::Ui
 
       @litter.hidden = false
       @litter.text = lore ? "Here: #{lore.name(item, regard: regard)}" : "Here: something"
+    end
+
+    # What a remembered square's terrain is called.
+    private def remembered_terrain(memory : Memory) : String
+      return SPIKED if memory.spiked? && memory.terrain.closed_door?
+
+      memory.terrain.label
     end
 
     # What is lying on a square, written out.
