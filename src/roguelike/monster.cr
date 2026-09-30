@@ -74,6 +74,21 @@ module Roguelike
     # with every creature able to see.
     getter blinded : Int32 = 0
 
+    # How many turns in a row every square nearer the character held another
+    # creature.
+    #
+    # `Game` reads it to send a creature round a blocker it has waited on.
+    # It has a default, so a save written before this field existed loads
+    # with every creature free.
+    getter hemmed : Int32 = 0
+
+    # The squares this creature treats as solid while it walks round a
+    # blocker. Empty when it is not.
+    getter avoiding : Array({Int32, Int32}) = [] of {Int32, Int32}
+
+    # How many more turns it keeps avoiding those squares.
+    getter detour : Int32 = 0
+
     # How fast it is, and how much of its next action it has paid for.
     #
     # It has a default, so a save written before this field existed loads a
@@ -110,6 +125,37 @@ module Roguelike
 
       @id = id
       true
+    end
+
+    # Counts this turn as hemmed in when *hemmed*, and clears the count
+    # otherwise.
+    def hem(hemmed : Bool) : Nil
+      @hemmed = hemmed ? @hemmed + 1 : 0
+    end
+
+    # Starts walking round *squares* for *turns* turns.
+    def detour(squares : Array({Int32, Int32}), turns : Int32) : Nil
+      @avoiding = squares
+      @detour = turns
+    end
+
+    # Whether it is walking round something.
+    def detouring? : Bool
+      @detour > 0
+    end
+
+    # Uses up one turn of the detour.
+    def detour_turn : Nil
+      return unless detouring?
+
+      @detour -= 1
+      end_detour if @detour.zero?
+    end
+
+    # Goes back to walking the band's map.
+    def end_detour : Nil
+      @detour = 0
+      @avoiding = [] of {Int32, Int32}
     end
 
     # Whether this creature cannot see.

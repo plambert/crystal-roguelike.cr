@@ -136,15 +136,43 @@ Spectator.describe Roguelike::Pursuit do
       expect(found.direction.try &.dy).to eq 1
     end
 
-    # A descent steps to a square strictly nearer the goal, never sideways,
-    # so a creature whose way down is taken waits for it rather than
-    # shuffling round and coming back next turn.
-    it "waits rather than pushing past its neighbor" do
+    # Nothing is nearer that is free, so it steps to a square as far from the
+    # quarry as it is now, and says it was hemmed in.
+    it "steps sideways when its way down is taken" do
       open = Pursuit.decide snapshot({3, 3}, quarry: {1, 1})
       shut = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, blocked: [{2, 2}])
 
       expect(open.direction).to eq Direction::NorthWest
-      expect(shut).to eq Action.wait
+      expect(open.hemmed?).to be_false
+      expect(shut.intent).to eq Intent::Step
+      expect(shut.hemmed?).to be_true
+
+      where = shut.direction
+      raise "it stayed put" unless where
+
+      descent = Descent.toward known, {1, 1}
+      expect(descent[where.from 3, 3]).to eq descent[3, 3]
+    end
+
+    it "waits in a corridor when its way down is taken" do
+      held = known TUNNEL
+      found = Pursuit.decide snapshot({6, 1}, quarry: {1, 1}, knowledge: held,
+        blocked: [{5, 1}])
+
+      expect(found).to eq Action.wait(true)
+    end
+
+    it "is not hemmed when a nearer square is free" do
+      found = Pursuit.decide snapshot({3, 4}, quarry: {1, 1}, blocked: [{2, 3}])
+
+      expect(found.hemmed?).to be_false
+    end
+
+    it "is not hemmed by the character" do
+      found = Pursuit.decide snapshot({2, 2}, quarry: {1, 1}, stale: 5,
+        blocked: [{1, 1}])
+
+      expect(found.hemmed?).to be_false
     end
 
     it "takes whichever way down is left when one of several is taken" do

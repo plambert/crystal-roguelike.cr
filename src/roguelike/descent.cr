@@ -42,8 +42,13 @@ module Roguelike
     # *doors* crosses a door remembered as shut. A route the person picked
     # does that, because the character opens any door they can reach. A band
     # does not, so the default leaves a shut door in the way.
+    #
+    # *avoid* names squares the flood treats as solid. A creature whose way is
+    # held by another creature floods with that square in it, and so finds the
+    # way round.
     def self.toward(knowledge : Knowledge, goal : {Int32, Int32},
-                    limit : Int32 = LIMIT, doors : Bool = false) : Descent
+                    limit : Int32 = LIMIT, doors : Bool = false,
+                    avoid : Set({Int32, Int32}) = EMPTY) : Descent
       steps = {goal => 0}
       edge = [goal]
       away = 0
@@ -56,6 +61,7 @@ module Roguelike
           Direction.values.each do |direction|
             wanted = direction.from spot[0], spot[1]
             next if steps.has_key? wanted
+            next if avoid.includes? wanted
             next unless crossable? knowledge, wanted, doors
 
             steps[wanted] = away
@@ -107,8 +113,8 @@ module Roguelike
     # waits rather than walking into its neighbor.
     #
     # Only a square strictly nearer the goal counts, never one the same
-    # distance off. A creature whose way down is taken waits for it to clear
-    # rather than stepping sideways and coming back the turn after.
+    # distance off. `Pursuit` decides what a creature does when every square
+    # nearer is taken.
     #
     # Several neighbors are usually the same distance nearer, because a
     # diagonal step costs what a straight one does. `.nearest` picks between
