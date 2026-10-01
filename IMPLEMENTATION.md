@@ -2692,8 +2692,8 @@ over the numbers it is not asked for without holding any of them.
 ### Writing an old file out again
 
 `crystal-roguelike replay upgrade SOURCE TARGET` reads the actions out of a format 1 file, performs
-them, and writes a format 2 file holding the same actions with the fingerprints this build takes.
-`Replay::Upgrade` does the work.
+them, and writes a file in this build's format holding the same actions with the fingerprints this
+build takes. `Replay::Upgrade` does the work.
 
 The actions, the seed, the character, what wrote the file, the time the run started and the time it
 ended all carry over. The checkpoints land on the turns they landed on before, because
@@ -2961,6 +2961,125 @@ turn. The floor is 216 by 84, so each of those is about 18 KB and most of it is 
 The map is what costs, and it compresses about forty to one. `--output` with a name ending `.gz`
 writes it compressed, which is what a five thousand action run wants. Leaving the legal actions
 out saves under one percent.
+
+## Test builds record every run
+
+A test build is compiled with `-Dtest_build`, as `crystal build -Dtest_build src/main.cr` or
+`shards build -Dtest_build`. It plays the same game. It records a replay log of every run it plays,
+so a bug found in play can be played again here, and the runs can be studied in bulk.
+
+### The flag
+
+`src/main.cr` holds the one line the flag changes. It sets `Replay::Log.always` to
+`Replay::Log.test_logs`. Everything that line switches on is ordinary code, and the specs drive it
+without compiling with the flag.
+
+`Roguelike::TEST_BUILD` says whether the flag was given. `Roguelike::EDITION` is the version with
+"(test build)" after it in a test build. `--version`, `--help` and the title screen all show it.
+
+Trials, matchups and the `replay` commands record nothing. `Cli#run` sets the pattern only on the
+path that opens a terminal and plays.
+
+### Where the files go
+
+`$XDG_STATE_HOME/roguelike/test_logs/` when that variable is set and absolute, and
+`~/.local/state/roguelike/test_logs/` when it is not. That is the directory the saves are under,
+resolved by `Save.state_home`. `Log.pattern_for` makes it on the first run.
+
+A file is named `<started>_<seed>_<character>.jsonl`, where `<started>` is the UTC time recording
+began in the compact form `20261001T043135Z`. That is the name `Replay::Naming` already gives a
+file inside a directory. The names sort by time, and a second run in the same second takes `-2`.
+
+`--replay-log` still wins when it is given.
+
+### One run across a save
+
+A run that is saved and carried on later with `--character` goes on in the file it began in.
+`replay verify` plays it from its seed across the load, and `replay export` sees one run.
+
+| Line | When | What it holds |
+| --- | --- | --- |
+| `pause` | A save is written | Its number in the file, the turn, the fingerprint, the time |
+| `resume` | The first action after a load | The pause it goes on from, the turn, the fingerprint of the loaded run, the time, the build |
+
+* Each save writes a pause, and the save names the file and the pause in its `replay` field. A save
+  is written on every staircase as well as on a quit, so a pause does not mean the process stopped.
+* A log closed with nothing written since its last pause gets no footer. The run is paused rather
+  than over, and a file that ends in a pause says so.
+* The first action after a load opens the file the save names, cuts off a last line written part
+  way, and appends the resume. The run's actions follow it.
+* The checkpoints keep the turns they were due on. The header records the spacing as `every`, and
+  the next checkpoint after a load is the first multiple of it past the turn the file began on.
+* The save holds a full path. A file not found there is looked for by name in the test logs
+  directory, so a state directory that moved still finds its logs.
+* `--replay-log` given on the carried run does not split it. A save that names a log continues
+  that log.
+
+A replay plays straight through a pause and its resume, because the actions and the rolls are the
+same whether or not the process stopped. A save is the whole `Game`, the random streams included.
+The fingerprint on the resume is compared with the run at that point. A difference there and none
+at the pause means the save did not hold the whole run. That is a bug, and the verifier names it.
+
+### Going back to a save
+
+A process that played on after a save and then went away without another leaves actions the save
+does not hold. A crash does this, and so does a kill. The next load carries on from the save, not
+from those actions.
+
+The resume then follows actions rather than its own pause. `Reading#rewound` names such pauses.
+`Replay::Bookmarks` keeps the run as JSON at each of them while it plays, and a resume puts the run
+back to the copy. That is what the process that loaded the save did. Only the pauses a resume goes
+back to are kept, at about a hundred kilobytes a floor.
+
+The actions in between stay in the file. `replay verify` checks them, and `replay export` writes
+them as pairs. The turns of the pairs after the resume start again from the pause's turn.
+
+### When the log is not there
+
+A save from before this change names no log. A log may have been deleted. Either way the run
+starts a new file, and its header's `continued` field names the save, when it was written, its
+turn, and the log and pause it named. The header carries the whole run in `run` as it does for any
+run the seed does not rebuild, so the file verifies from its own start and not from the seed.
+
+### The readers
+
+`Replay::FORMAT` is 3, and `Replay::READS` is 2 to 3. A format 2 reader would pass over the new
+lines and play a file that goes back to a save wrongly, so the number went up. A format 2 file has
+neither line and reads as it always did. The golden replay is format 2 and verifies unchanged.
+
+`replay verify`, `replay view`, `replay export` and `replay upgrade` all read pauses and resumes.
+The viewer files them under the action they follow, so a step backwards across a load works the way
+it does anywhere else. Upgrade writes each pause and resume again where it stood. A footer in the
+middle of the file, which ends one process's share, comes out as `truncated` whatever it said.
+
+### A crash, a kill, and what is lost
+
+Every line is flushed as it is written. Whatever ends the process, the file holds every action that
+reached `Game#perform`, and a last line cut off part way is passed over by a reader.
+
+| How the process ends | What the file ends with |
+| --- | --- |
+| The run ends in the game | A footer with the ending and the fingerprint |
+| A quit | The pause the save wrote, and no footer |
+| An exception | A footer saying `crash`, from the `at_exit` handler |
+| `SIGTERM`, `SIGINT` or `SIGHUP` | A footer saying `truncated` with `cause` `signal` |
+| `SIGKILL`, or the machine stopping | The last action, and no footer |
+
+termbuf handles the three signals by restoring the terminal and dying of the signal again, so
+`at_exit` does not run for them. `Session` adds a hook to termbuf's `before_exit` list, and
+`Log.signalled` writes the footer there.
+
+A signal does not save the run. A run killed after its last save goes back to that save on the
+next load, as above. Nothing covers a kill the process cannot catch, and nothing calls `fsync`. A
+crash of the machine itself can lose what the kernel had not yet written.
+
+### Files
+
+`src/roguelike/replay/lines.cr` gained `Pause`, `Resume`, `Mark` and `Carried`.
+`src/roguelike/replay/bookmarks.cr` is new. `src/roguelike/replay/log.cr` gained `.always`,
+`.test_logs`, `.pattern_for`, `.signalled`, `#pause` and the constructor that carries a file on.
+`Save::Held` gained `replay` and `#carried`. `Game` gained `#carried`, `#carry_on` and `#pause`.
+The specs are `spec/roguelike/replay_carry_spec.cr`.
 
 ## Who beats whom
 

@@ -29,4 +29,12 @@ module Roguelike
   {% command = "sh '" + root + "/../../script/build-id' '" + root + "'" %}
   BUILD = {{ `#{command.id}`.strip.stringify }}
   {% end %}
+
+  # Whether this is a test build, compiled with `-Dtest_build`.
+  #
+  # A test build records every run it plays. See `Replay::Log.always`.
+  TEST_BUILD = {{ flag?(:test_build) }}
+
+  # The version as a person reads it, which says when this is a test build.
+  EDITION = TEST_BUILD ? "#{VERSION} (test build)" : VERSION
 end

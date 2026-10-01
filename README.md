@@ -89,6 +89,23 @@ shards install`. The images are never read by the compiler.
 The version the binary reports comes from `shard.yml`, which a macro reads at
 compile time by running `shards version`.
 
+### A test build
+
+A test build records a replay log of every run it plays, so a bug found in
+play can be reproduced exactly:
+
+```bash
+shards build -Dtest_build
+./bin/crystal-roguelike --version   # crystal-roguelike 0.1.0 (test build)
+```
+
+The logs go to `$XDG_STATE_HOME/roguelike/test_logs/`, or
+`~/.local/state/roguelike/test_logs/` when that variable is not set, one
+file per run named for the time it started, the seed and the character.
+`--replay-log` still names a file of your own. A character saved and carried
+on with `--character` goes on in the same file. Check one with
+`crystal-roguelike replay verify FILE`.
+
 ## Usage
 
 TODO: Write usage instructions here

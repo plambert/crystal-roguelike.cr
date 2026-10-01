@@ -65,7 +65,7 @@ module Roguelike::Ui
     # compiled. A released binary carries the tag it was built from, so a
     # person reporting a run can say which build they played.
     def self.build : String
-      "version #{Roguelike::VERSION}"
+      "version #{Roguelike::EDITION}"
     end
 
     # What the title menu is headed with.
