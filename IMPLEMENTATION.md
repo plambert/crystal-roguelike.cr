@@ -1400,6 +1400,30 @@ least half its axis leaves no position that satisfies it, and that axis centers 
 The examine cursor is followed the same way. Reading the map from the keyboard wants the same
 context around the cursor that walking wants around the character.
 
+### After a teleport
+
+A teleport puts the character somewhere the camera is not looking. Following them with the dead
+zone would leave them at the edge of the box, and jumping there leaves the person hunting for where
+they went. So the camera pans instead, to the corner `MapPane#center_on` would pick. The edges of
+the floor stop it the same way.
+
+* **Path** — The straight line from the old corner to the new one, over `MapPane::PAN_FRAMES`
+  (eight) frames of `Play::PAN` (30 ms). `MapPane.eased` gives each frame a cubic ease-out, so the
+  camera slows as it arrives, and the last frame lands on the target exactly.
+* **Clock** — Each frame arms the next through `App#after`, the path the flames tick on. An
+  application with no clock arms nothing, so a spec with no clock and a run under `--no-flicker`
+  both put the camera there at once. A spec with `Playing.open clock: true` steps it with `#tick`.
+* **Keys** — `Play#hurry` is a second `Interrupt` that holds the keyboard during the pan. A key
+  ends the pan, lets go, and is dispatched again, so it does what it would have done. A `--More--`
+  the teleport line raised takes that key, as it does with no pan.
+* **Trigger** — `Play#refresh` looks for `Event::Teleported` among the events of the last action,
+  once per event. The replay viewer skips its dead-zone follow for that action, so the pan starts
+  from where the camera was.
+* **Layers** — `Interrupt#let_go` takes off its own focus layer wherever it sits in the stack. A
+  layer pushed over it since stays where it is.
+
+Nothing in the game reads the camera. A pan changes no roll, save or recording.
+
 ## Saved characters
 
 One character is one file, under `$XDG_STATE_HOME/roguelike` when that variable is set and

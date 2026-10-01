@@ -314,6 +314,7 @@ module Roguelike::Ui
     def floor=(floor : Floor) : Floor
       @cells.floor = floor
       @drifting = nil
+      @pan = nil
       @grid.scroll_to 0, 0
       clear_marks
       clear_highlights
@@ -331,6 +332,7 @@ module Roguelike::Ui
     # them.
     def follow(x : Int32, y : Int32) : Nil
       @drifting = nil
+      @pan = nil
       room = @grid.viewport_size
 
       @grid.reveal x, y, margin: margin(room[0]), margin_y: margin(room[1])
@@ -373,6 +375,94 @@ module Roguelike::Ui
       drifting?
     end
 
+    # A camera on its way from one corner to another over a fixed number of
+    # frames.
+    private record Pan,
+      from : {Int32, Int32},
+      to : {Int32, Int32},
+      frame : Int32
+
+    # How many frames a pan takes.
+    PAN_FRAMES = 8
+
+    # The pan under way. `nil` when the camera is not panning.
+    @pan : Pan? = nil
+
+    # Whether the camera is panning.
+    def panning? : Bool
+      !@pan.nil?
+    end
+
+    # Where a pan ends. `nil` when the camera is not panning.
+    def pan_target : {Int32, Int32}?
+      @pan.try &.to
+    end
+
+    # Starts the camera toward the corner that puts *x*, *y* in the middle of
+    # the window. Answers whether it has anywhere to go.
+    #
+    # The corner is the one `#center_on` picks, so the edges of the floor stop
+    # it the same way.
+    def pan_to(x : Int32, y : Int32) : Bool
+      wanted = center_for x, y
+      @drifting = nil
+      @pan = nil
+      return false if wanted == camera
+
+      @pan = Pan.new camera, wanted, 0
+      true
+    end
+
+    # Moves the camera one frame along the pan. Answers whether it has
+    # further to go.
+    def pan : Bool
+      going = @pan
+      return false unless going
+
+      frame = going.frame + 1
+      spot = MapPane.eased going.from, going.to, frame, PAN_FRAMES
+      @grid.scroll_to spot[0], spot[1]
+      @pan = frame < PAN_FRAMES ? going.copy_with(frame: frame) : nil
+      panning?
+    end
+
+    # Puts the camera where the pan ends, at once.
+    def finish_pan : Nil
+      going = @pan
+      return unless going
+
+      @pan = nil
+      @grid.scroll_to going.to[0], going.to[1]
+    end
+
+    # Where a camera going from *from* to *to* stands after *frame* of
+    # *frames*.
+    #
+    # It moves along the straight line between the two and slows as it
+    # arrives. Each step is a smaller share of the way than the one before.
+    # The last frame lands on *to* exactly.
+    def self.eased(from : {Int32, Int32}, to : {Int32, Int32},
+                   frame : Int32, frames : Int32) : {Int32, Int32}
+      return to if frame >= frames
+
+      share = 1.0 - (1.0 - frame / frames) ** 3
+      {from[0] + ((to[0] - from[0]) * share).round.to_i,
+       from[1] + ((to[1] - from[1]) * share).round.to_i}
+    end
+
+    # Where the camera would be if it centred on *x*, *y* now.
+    #
+    # It is worked out by centring and putting the camera back, for the same
+    # reason `#camera_for` follows and puts it back.
+    private def center_for(x : Int32, y : Int32) : {Int32, Int32}
+      held = camera
+      @grid.center_on x, y
+      found = camera
+      @grid.scroll_to held[0], held[1]
+
+      found
+    end
+
     # Where the camera would be if it followed *x*, *y* now.
     #
     # It is worked out by following and putting the camera back. The grid
@@ -405,6 +495,7 @@ module Roguelike::Ui
     # Puts the camera back where *camera* had it. Stops a drift.
     def camera=(camera : {Int32, Int32}) : Nil
       @drifting = nil
+      @pan = nil
       @grid.scroll_to camera[0], camera[1]
     end
 
@@ -412,6 +503,7 @@ module Roguelike::Ui
     # floor, and stops a drift.
     def center_on(x : Int32, y : Int32) : Nil
       @drifting = nil
+      @pan = nil
       @grid.center_on x, y
     end
 
