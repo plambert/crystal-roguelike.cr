@@ -7,12 +7,20 @@ module Roguelike
     class Error < Exception
     end
 
+    # One line of a file that is played back, in the order it was written.
+    alias Record = Act | Check | Pause | Resume
+
     # A replay file, read.
     #
-    # The header comes first, then the actions and the checkpoints in the
-    # order they were written, then the footer. A file has no footer when the
-    # process it was recording went away without one, and that is a file this
-    # reads rather than refuses.
+    # The header comes first, then the actions, the checkpoints, the pauses
+    # and the resumes in the order they were written, then the footer. A file
+    # has no footer when the process it was recording went away without one,
+    # or when the run is paused, and that is a file this reads rather than
+    # refuses.
+    #
+    # A footer with more lines after it ended one process's share of the
+    # run, and a resume carried the run on. Only a footer at the end of the
+    # file says how the run ended.
     #
     # A line of a kind this does not know is counted and passed over. The
     # recording format allows two of those, which are a playtester's note and
@@ -24,8 +32,9 @@ module Roguelike
       # What the run was written down with, and where it started.
       getter header : Header
 
-      # The actions and the checkpoints, in the order they were written.
-      getter records : Array(Act | Check)
+      # The actions, the checkpoints, the pauses and the resumes, in the
+      # order they were written.
+      getter records : Array(Record)
 
       # How the run ended. `nil` for a file with no footer.
       getter footer : Footer?
@@ -40,7 +49,7 @@ module Roguelike
       getter ignored : Int32
 
       def initialize(@path : Path, @header : Header,
-                     @records : Array(Act | Check), @footer : Footer?,
+                     @records : Array(Record), @footer : Footer?,
                      @truncated : Bool, @ignored : Int32)
       end
 
@@ -64,7 +73,7 @@ module Roguelike
       private def self.sorted(found : Array(String),
                               fingerprints : Bool = true)
         header = nil.as Header?
-        records = [] of Act | Check
+        records = [] of Record
         footer = nil.as Footer?
         truncated = false
         ignored = 0
@@ -80,21 +89,35 @@ module Roguelike
             next
           end
 
-          case kind
-          when "header" then header = Header.from_json line
-          when "act"    then records << Act.from_json line
-          when "check"  then records << Check.from_json line
-          when "footer" then footer = Footer.from_json line
-          else               ignored += 1
+          case read = decoded(kind, line)
+          in Header then header = read
+          in Footer then footer = read
+          in Nil    then ignored += 1
+          in Record
+            records << read
+            footer = nil
           end
         end
 
         raise Error.new "the file has no header" unless header
-        if fingerprints && header.format != FORMAT
+        if fingerprints && !READS.includes?(header.format)
           raise Error.new refused(header.format)
         end
 
         {header, records, footer, truncated, ignored}
+      end
+
+      # *line*, read as the *kind* it calls itself. `nil` for a kind this
+      # reader has no use for.
+      private def self.decoded(kind : String, line : String) : Header | Record | Footer | Nil
+        case kind
+        when "header" then Header.from_json line
+        when "act"    then Act.from_json line
+        when "check"  then Check.from_json line
+        when "pause"  then Pause.from_json line
+        when "resume" then Resume.from_json line
+        when "footer" then Footer.from_json line
+        end
       end
 
       # Why a file of *format* is not read.
@@ -112,7 +135,8 @@ module Roguelike
                  "leaves out. Record the run again to check it"
         end
 
-        "the file is format #{format}, and this build reads #{FORMAT}"
+        "the file is format #{format}, and this build reads " \
+        "#{READS.begin} to #{READS.end}"
       end
 
       # What *line* calls itself. `nil` for a line that is not JSON.
@@ -143,6 +167,38 @@ module Roguelike
       # How many checkpoints the file holds.
       def checks : Int32
         @records.count &.is_a?(Check)
+      end
+
+      # How many saves the file holds.
+      def pauses : Int32
+        @records.count &.is_a?(Pause)
+      end
+
+      # How many loads the file holds.
+      def resumes : Int32
+        @records.count &.is_a?(Resume)
+      end
+
+      # The pauses a resume goes back to, past actions written after them.
+      #
+      # A process that played on after a save and went away without another
+      # leaves actions the save does not hold. The resume that follows starts
+      # again from the save, so whatever plays the file back keeps the run as
+      # it stood at each of these pauses.
+      def rewound : Set(Int32)
+        acted = 0
+        at = {} of Int32 => Int32
+        found = Set(Int32).new
+
+        @records.each do |record|
+          case record
+          when Act    then acted += 1
+          when Pause  then at[record.pause] = acted
+          when Resume then found << record.pause if at[record.pause]?.try { |was| was < acted }
+          end
+        end
+
+        found
       end
     end
   end

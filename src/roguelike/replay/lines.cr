@@ -13,7 +13,16 @@ module Roguelike
     # Format 2 is the first whose fingerprints leave the message log out. A
     # format 1 file holds fingerprints taken with the log in them, so every
     # checkpoint in one differs from what this build takes.
-    FORMAT = 2
+    #
+    # Format 3 adds the `pause` and `resume` lines, which carry one run across
+    # a save and a load. A reader of format 2 would pass over them, and a run
+    # that went back to an earlier save would then play wrongly, so the
+    # number is raised. A format 2 file has neither line and reads as it
+    # always did.
+    FORMAT = 3
+
+    # The formats this build reads.
+    READS = 2..FORMAT
 
     # What a run was written down with, and where it started.
     #
@@ -77,12 +86,125 @@ module Roguelike
       # carried on from is not a function of the seed.
       getter run : String?
 
+      # How many turns there are between two checkpoints.
+      #
+      # A run carried on from a save keeps the spacing it began with. `nil` in
+      # a file written before format 3.
+      getter every : Int32?
+
+      # The save this run was carried on from, when its own log was not found.
+      #
+      # `nil` for a run recorded from its start. A run carried on into the log
+      # it began has a `resume` line instead.
+      getter continued : Carried?
+
       def initialize(@game_version : String, @crystal_version : String,
                      @seed : UInt64, @generate : Bool,
                      @streams : Hash(String, Int32), @player : String,
                      @source : String, @started_at : Time, @turn : Int32,
                      @log : Array(String), @state : String,
-                     @run : String? = nil)
+                     @run : String? = nil, @every : Int32? = nil,
+                     @continued : Carried? = nil)
+      end
+    end
+
+    # Where a saved run's log is, and the pause the save was written at.
+    #
+    # `Save::Held` carries one. A save written before format 3, or by a
+    # process recording nothing, carries none.
+    class Mark
+      include JSON::Serializable
+
+      # The log file.
+      getter log : String
+
+      # The number of the `pause` line written with the save.
+      getter pause : Int32
+
+      def initialize(@log : String, @pause : Int32)
+      end
+    end
+
+    # The save a run was carried on from.
+    #
+    # `Game#carried` holds one between the load and the first action, which
+    # is when the log opens. A header holds one when the log the save named
+    # could not be continued.
+    class Carried
+      include JSON::Serializable
+
+      # The save file.
+      getter save : String
+
+      # When the save was written.
+      getter saved_at : Time
+
+      # The turn the save was written on.
+      getter turn : Int32
+
+      # The log the save named, or `nil` for a save that named none.
+      getter log : String?
+
+      # The pause the save was written at, or `nil`.
+      getter pause : Int32?
+
+      def initialize(@save : String, @saved_at : Time, @turn : Int32,
+                     @log : String? = nil, @pause : Int32? = nil)
+      end
+    end
+
+    # A save was written here.
+    #
+    # The run may go on in the same process, as it does after a staircase,
+    # or the process may stop, as it does after a quit. Either way the save
+    # holds the run as it stands at this line. `#pause` counts from one
+    # within the file, and the save names it.
+    class Pause
+      include JSON::Serializable
+
+      getter type : String = "pause"
+
+      getter pause : Int32
+
+      getter turn : Int32
+
+      # The fingerprint of the run the save holds.
+      getter state : String
+
+      getter at : Time
+
+      def initialize(@pause : Int32, @turn : Int32, @state : String,
+                     @at : Time)
+      end
+    end
+
+    # A save was loaded, and the run goes on from pause `#pause`.
+    #
+    # The actions after this line were played by the process that loaded the
+    # save. When actions follow the pause in the file before this line, the
+    # process that wrote them went away without saving, and the run goes back
+    # to the state at the pause.
+    #
+    # `#state` is the fingerprint of the run as it was loaded. It differs from
+    # the pause's when the save did not hold the whole run.
+    class Resume
+      include JSON::Serializable
+
+      getter type : String = "resume"
+
+      getter pause : Int32
+
+      getter turn : Int32
+
+      getter state : String
+
+      getter at : Time
+
+      # The build that carried the run on.
+      getter game_version : String
+
+      def initialize(@pause : Int32, @turn : Int32, @state : String,
+                     @at : Time, @game_version : String)
       end
     end
 
@@ -145,8 +267,13 @@ module Roguelike
 
       getter ended_at : Time
 
+      # What stopped the process, for a footer the game did not write.
+      # `signal` for one it was sent. `nil` otherwise.
+      getter cause : String?
+
       def initialize(@turn : Int32, @outcome : String, @ending : String,
-                     @ended_at : Time, @state : String? = nil)
+                     @ended_at : Time, @state : String? = nil,
+                     @cause : String? = nil)
       end
     end
 

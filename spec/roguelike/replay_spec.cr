@@ -412,7 +412,7 @@ Spectator.describe Roguelike::Replay do
       where = Recording.file [later], "format-later"
 
       expect(Verifier.check(where).trouble.to_s)
-        .to contain "and this build reads #{Roguelike::Replay::FORMAT}"
+        .to contain "and this build reads 2 to #{Roguelike::Replay::FORMAT}"
     end
   end
 

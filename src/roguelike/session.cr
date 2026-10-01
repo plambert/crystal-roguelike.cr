@@ -44,6 +44,10 @@ module Roguelike
       previous = nil.as String?
 
       TermBuf::Terminal.open do |terminal|
+        # A signal stops the process without running `at_exit`, so the
+        # replay log's footer is written here or not at all.
+        terminal.signals.before_exit { Replay::Log.signalled }
+
         loop do
           played = new terminal, Rng.for(seed), flicker, generate, console,
             store, character, previous

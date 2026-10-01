@@ -14,6 +14,11 @@ module Roguelike
     # are compared as they go, so an export stops rather than writing pairs
     # from a run that no longer plays out the way it was recorded.
     #
+    # A run carried on from a save is one run. A resume that goes back past
+    # actions the save does not hold puts the run back to the pause, so the
+    # turns of the pairs after it start again from the pause's turn. The
+    # pairs before it are still decisions somebody made, and they stay.
+    #
     # The file is JSON Lines. A header line says where it came from, a `pair`
     # line holds one decision, and a footer line says how the run ended.
     module Export
@@ -146,6 +151,7 @@ module Roguelike
 
         pairs = 0
         seen = game.look
+        bookmarks = Bookmarks.for read
 
         read.records.each do |line|
           case line
@@ -162,11 +168,27 @@ module Roguelike
             end
 
             seen = game.look
-          in Check
+          in Check, Pause
             unless game.fingerprint == line.state
               return Report.new from, game.turn, pairs,
                 "turn #{line.turn}: the run differs from what was recorded. " \
                 "Check it with replay verify."
+            end
+
+            bookmarks.paused line, game if line.is_a? Pause
+          in Resume
+            unless bookmarks.seen? line
+              return Report.new from, game.turn, pairs,
+                "turn #{line.turn}: the file resumes from pause " \
+                "#{line.pause}, which it does not hold"
+            end
+
+            game = bookmarks.resumed line, game
+            seen = game.look
+            unless game.fingerprint == line.state
+              return Report.new from, game.turn, pairs,
+                "turn #{line.turn}: the loaded run differs from what was " \
+                "recorded. Check it with replay verify."
             end
           end
         end

@@ -5,12 +5,14 @@ require "../crystal-roguelike"
 module Roguelike
   # The command line.
   #
-  # This class does not declare `--version`. The shard finds
-  # `Roguelike::VERSION` in the enclosing namespace. The compiler reads that
-  # constant out of `shard.yml` at build time.
+  # This class does not declare `--version`. The shard prints
+  # `TOOL_VERSION`, which is `Roguelike::EDITION`: the version the compiler
+  # reads out of `shard.yml`, and whether this is a test build.
   Shell::AutoComplete.command Cli,
     name: "crystal-roguelike",
-    description: "A terminal roguelike" do
+    description: {{ flag?(:test_build) ? "A terminal roguelike (test build)" : "A terminal roguelike" }} do
+    TOOL_VERSION = EDITION
+
     flag seed : UInt64?, "--seed",
       "Start from this seed, which reproduces a run exactly"
 
@@ -30,7 +32,7 @@ module Roguelike
       "Play as this character, carrying on from their save if there is one"
 
     flag replay_log : String?, "--replay-log",
-      "Write every run to this file. %s is the character, %d a rising number"
+      {{ flag?(:test_build) ? "Write every run to this file, not to the test_logs state directory. %s is the character, %d a rising number" : "Write every run to this file. %s is the character, %d a rising number" }}
 
     flag replay_every : Int32 = Replay::Log::EVERY, "--replay-every",
       "Turns between two checkpoints in a replay log", range: 1..1_000_000
@@ -84,7 +86,7 @@ module Roguelike
       return matched if matchup
       return played if trial > 0
 
-      Replay::Log.pattern = replay_log
+      Replay::Log.pattern = Replay::Log.pattern_for replay_log
       Replay::Log.every = replay_every
       Replay::Log.generate = generate
 

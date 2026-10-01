@@ -7,8 +7,10 @@ module Roguelike
     # A format 1 file holds fingerprints taken with the message log in them,
     # and this build leaves the log out. So `Replay::Verifier` refuses one
     # and `Replay::Viewer` does not open one. The actions in such a file are
-    # still good. This reads them, performs them again, and writes a format 2
-    # file holding the same actions with the fingerprints this build takes.
+    # still good. This reads them, performs them again, and writes a file in
+    # this build's format holding the same actions with the fingerprints this
+    # build takes. The pauses and the resumes of a run carried on across a
+    # save are written again where they stood.
     #
     # The seed, the character, what wrote the file and the time the run
     # started all carry over, so the new file is the same run.
@@ -53,6 +55,8 @@ module Roguelike
           source:     Log.source,
           started_at: Log.started_at,
           ended_at:   Log.ended_at,
+          paused_at:  Log.paused_at,
+          resumed_at: Log.resumed_at,
         }
 
         begin
@@ -65,6 +69,8 @@ module Roguelike
           Log.source = held[:source]
           Log.started_at = held[:started_at]
           Log.ended_at = held[:ended_at]
+          Log.paused_at = held[:paused_at]
+          Log.resumed_at = held[:resumed_at]
         end
       end
 
@@ -80,15 +86,43 @@ module Roguelike
         Log.ended_at = read.footer.try &.ended_at
 
         game = Verifier.rebuild header
+        bookmarks = Bookmarks.for read
 
         read.records.each do |record|
-          next unless record.is_a? Act
-          next unless game.perform(record.action).refused?
+          case record
+          in Act
+            next unless game.perform(record.action).refused?
 
-          return "turn #{record.turn}: #{record.action.t} was refused"
+            return "turn #{record.turn}: #{record.action.t} was refused"
+          in Check
+            next
+          in Pause
+            Log.paused_at = record.at
+            game.pause
+            bookmarks.paused record, game
+          in Resume
+            return "turn #{record.turn}: the file resumes from a pause it does not hold" unless bookmarks.seen? record
+
+            game = resumed record, game, bookmarks, where
+          end
         end
 
         nil
+      end
+
+      # The run *resume* carries on, with its log closed and opened again.
+      #
+      # That is what a process that stops and one that loads the save do. The
+      # log written so far gets a footer when actions follow its last pause,
+      # and the next action writes the resume line.
+      private def self.resumed(resume : Resume, game : Game,
+                               bookmarks : Bookmarks, where : Path) : Game
+        Log.ended nil
+        game = bookmarks.resumed resume, game
+        game.carry_on Carried.new(where.to_s, resume.at, resume.turn,
+          where.to_s, resume.pause)
+        Log.resumed_at = resume.at
+        game
       end
 
       # How many turns there were between two checkpoints in *read*.
@@ -104,8 +138,16 @@ module Roguelike
       # distance from the start divided by its count. A file with fewer than
       # two checkpoints says nothing about it, and the setting in force is
       # used.
+      #
+      # A file says how far apart its checkpoints are in its header from
+      # format 3 on. Before that only the checkpoints before the first resume
+      # are read, because a resume that goes back past actions starts the
+      # turns again.
       def self.every_of(read : Reading) : Int32
-        turns = read.records.compact_map { |record| record.as?(Check).try &.turn }
+        read.header.every.try { |found| return found }
+
+        first = read.records.take_while { |record| !record.is_a?(Resume) }
+        turns = first.compact_map { |record| record.as?(Check).try &.turn }
         return Log.every if turns.size < 2
 
         start = read.header.turn

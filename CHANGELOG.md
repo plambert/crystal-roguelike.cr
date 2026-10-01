@@ -189,6 +189,16 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   experience. A monster shoots only at the character.
 * The character flanks a creature when another creature hostile to it stands across from them.
 * `--trial` reports how many creatures other creatures killed.
+* A test build, compiled with `-Dtest_build`, records a replay log of every run it plays into
+  `$XDG_STATE_HOME/roguelike/test_logs/`, or `~/.local/state/roguelike/test_logs/`. Each file is
+  named for the time the run started, the seed and the character. `--replay-log` still names
+  another file. `--version`, `--help` and the title screen say "test build".
+* A replay log carries one run across a save and a load. Each save writes a `pause` line and names
+  the log in the save file, and the run carried on with `--character` appends a `resume` line to
+  the same file. `replay verify`, `view`, `export` and `upgrade` play the whole run from its seed.
+  A run whose log is gone starts a new log whose header names the save. The log format is now 3,
+  and format 2 files still read.
+* A replay log gets a footer when the process is stopped by `SIGTERM`, `SIGINT` or `SIGHUP`.
 
 ### Changed
 

@@ -39,18 +39,35 @@ module Roguelike
       # How the run stood. `Playing` for one still going.
       getter outcome : Outcome
 
+      # The replay log recording the run, and the pause written with this
+      # save. `nil` when nothing was recording it.
+      getter replay : Replay::Mark?
+
       # The run.
       getter game : Game
 
       def initialize(@name : String, @version : String, @saved : Time,
                      @turn : Int32, @level : Int32, @outcome : Outcome,
-                     @game : Game)
+                     @game : Game, @replay : Replay::Mark? = nil)
       end
 
       # What *game* is written out as, now.
+      #
+      # A run being recorded gets a pause in its log, and the save names it.
       def self.of(game : Game) : Held
+        mark = game.pause
         new game.player.name, VERSION, Time.utc, game.turn,
-          game.player.level, game.outcome, game
+          game.player.level, game.outcome, game, mark
+      end
+
+      # The run, told which save it came from at *path*.
+      #
+      # The first action after this opens the log, and the log goes on in the
+      # file this save names.
+      def carried(path : Path) : Game
+        @game.carry_on Replay::Carried.new(path.to_s, @saved, @turn,
+          @replay.try(&.log), @replay.try(&.pause))
+        @game
       end
     end
 
