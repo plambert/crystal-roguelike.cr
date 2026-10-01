@@ -8,7 +8,9 @@ module Roguelike
       turn : Int32,
       acts : Int32,
       checks : Int32,
-      trouble : String? = nil do
+      trouble : String? = nil,
+      pauses : Int32 = 0,
+      resumes : Int32 = 0 do
       # Whether the replay played out the way it was recorded.
       def ok? : Bool
         @trouble.nil?
@@ -23,7 +25,9 @@ module Roguelike
           io << trouble
         else
           io << "verified " << @acts << " actions and " << @checks
-          io << " checkpoints, to turn " << @turn
+          io << " checkpoints"
+          io << ", across " << @resumes << (@resumes == 1 ? " load" : " loads") if @resumes > 0
+          io << ", to turn " << @turn
         end
       end
     end
@@ -36,6 +40,12 @@ module Roguelike
     # difference stops the check, and the report names the turn it was found
     # on and the turn of the last checkpoint that agreed. The fault is
     # somewhere between those two.
+    #
+    # A pause and a resume are compared the way a checkpoint is. The run is
+    # played straight through them, because the actions and the rolls are
+    # the same whether or not the process stopped in between. A resume that
+    # goes back past actions the save does not hold puts the run back to the
+    # pause first. See `Replay::Bookmarks`.
     #
     # The character looks after each action, which is what `Ui::Play#refresh`
     # does and what `Replay::Log` does. What the character remembers is part
@@ -94,8 +104,16 @@ module Roguelike
       # How many checkpoints have agreed.
       @checks : Int32 = 0
 
+      # The runs a resume goes back to.
+      @bookmarks : Bookmarks
+
+      # How many pauses and resumes have agreed.
+      @pauses : Int32 = 0
+      @resumes : Int32 = 0
+
       def initialize(@reading : Reading, @force : Bool = false)
         @agreed = @reading.header.turn
+        @bookmarks = Bookmarks.for @reading
       end
 
       # Checks the file.
@@ -118,11 +136,14 @@ module Roguelike
           case line
           in Act
             trouble = acted game, line
-            return failed trouble if trouble
           in Check
             trouble = checked game, line
-            return failed trouble if trouble
+          in Pause
+            trouble = held game, line
+          in Resume
+            game, trouble = resumed game, line
           end
+          return failed trouble if trouble
         end
 
         ended game
@@ -152,6 +173,44 @@ module Roguelike
         @checks += 1
         @agreed = check.turn
         nil
+      end
+
+      # Compares one pause, and keeps the run when a resume goes back to it.
+      private def held(game : Game, pause : Pause) : String?
+        trouble = compared game, pause.turn, pause.state, "the save"
+        return trouble if trouble
+
+        @bookmarks.paused pause, game
+        @pauses += 1
+        nil
+      end
+
+      # Carries the run on from a resume. Answers the run, and what went
+      # wrong or `nil`.
+      #
+      # A difference here and none at the pause says the save did not hold
+      # the whole run.
+      private def resumed(game : Game, resume : Resume) : {Game, String?}
+        unless @bookmarks.seen? resume
+          return {game, "turn #{resume.turn}: the file resumes from pause " \
+                        "#{resume.pause}, which it does not hold"}
+        end
+
+        game = @bookmarks.resumed resume, game
+        trouble = compared game, resume.turn, resume.state, "the loaded run"
+        @resumes += 1 unless trouble
+        {game, trouble}
+      end
+
+      # Compares the run with a fingerprint the file holds at *turn*.
+      private def compared(game : Game, turn : Int32, state : String,
+                           what : String) : String?
+        found = game.fingerprint
+        return if found == state && game.turn == turn
+
+        "turn #{turn}: #{what} differs#{window}\n" \
+        "  recorded #{state} on turn #{turn}\n" \
+        "  found    #{found} on turn #{game.turn}"
       end
 
       # Compares the footer, if there is one to compare.
@@ -202,11 +261,13 @@ module Roguelike
       end
 
       private def done(game : Game) : Report
-        Report.new @reading.path, game.turn, @acts, @checks
+        Report.new @reading.path, game.turn, @acts, @checks, nil, @pauses,
+          @resumes
       end
 
       private def failed(trouble : String) : Report
-        Report.new @reading.path, @agreed, @acts, @checks, trouble
+        Report.new @reading.path, @agreed, @acts, @checks, trouble, @pauses,
+          @resumes
       end
     end
   end

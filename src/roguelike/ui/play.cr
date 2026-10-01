@@ -632,9 +632,11 @@ module Roguelike::Ui
       whose = @store.try &.taken_by(name)
       return ask_the_name Placards.taken(whose) if whose
 
-      found = @store.try &.read(name)
-      return start_as name unless found
+      store = @store
+      held = store.try &.held(name)
+      return start_as name unless store && held
 
+      found = held.carried store.path(name)
       resume found
       say "Welcome back, #{found.player.name}. Turn #{found.turn}."
     end

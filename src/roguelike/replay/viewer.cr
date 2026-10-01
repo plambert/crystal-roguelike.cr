@@ -45,8 +45,12 @@ module Roguelike
       # is what answers whether a file still matches.
       getter trouble : String? = nil
 
-      # The checkpoints, under how many actions come before each.
-      @checks : Hash(Int32, Array(Check))
+      # The checkpoints, pauses and resumes, under how many actions come
+      # before each.
+      @checks : Hash(Int32, Array(Check | Pause | Resume))
+
+      # The runs a resume goes back to.
+      @bookmarks : Bookmarks
 
       # Which snapshots are written, in the order they were written.
       @kept = [] of Int32
@@ -58,12 +62,15 @@ module Roguelike
 
       def initialize(@reading : Reading)
         @acts = [] of Act
-        @checks = Hash(Int32, Array(Check)).new
+        @checks = Hash(Int32, Array(Check | Pause | Resume)).new
+        @bookmarks = Bookmarks.for @reading
 
         @reading.records.each do |record|
           case record
-          in Act   then @acts << record
-          in Check then (@checks[@acts.size] ||= [] of Check) << record
+          in Act
+            @acts << record
+          in Check, Pause, Resume
+            (@checks[@acts.size] ||= [] of Check | Pause | Resume) << record
           end
         end
 
@@ -144,14 +151,24 @@ module Roguelike
         goto found ? found + 1 : @acts.size
       end
 
-      # Compares the checkpoints that stand where the run now stands.
+      # Compares the checkpoints that stand where the run now stands, and
+      # carries the run on through a pause and a resume.
+      #
+      # A resume that goes back past actions puts another run here, the way a
+      # jump backwards does. `Ui::Play` notices and takes it.
       private def compared : Nil
         found = @checks[@at]?
         return unless found
 
-        state = @game.fingerprint
         found.each do |check|
-          note "turn #{check.turn}: the run differs from the file" unless state == check.state
+          if check.is_a?(Resume)
+            next note "turn #{check.turn}: the file resumes from a pause it does not hold" unless @bookmarks.seen? check
+
+            @game = @bookmarks.resumed check, @game
+          end
+
+          note "turn #{check.turn}: the run differs from the file" unless @game.fingerprint == check.state
+          @bookmarks.paused check, @game if check.is_a?(Pause)
         end
       end
 

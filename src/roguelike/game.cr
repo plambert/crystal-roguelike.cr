@@ -5466,6 +5466,26 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @recorded : Bool = false
 
+    # The save this run was loaded from, or `nil` for a run started fresh.
+    #
+    # The log opens on the first action, and it reads this to carry on the
+    # file the save names. See `Replay::Log.opened`.
+    @[JSON::Field(ignore: true)]
+    getter carried : Replay::Carried? = nil
+
+    # Says this run was loaded from *carried*, so the next action opens the
+    # log afresh and carries the file the save names on.
+    def carry_on(@carried : Replay::Carried?) : Nil
+      @recorder = nil
+      @recorded = false
+    end
+
+    # Writes a pause to this run's log, as a save of it is written. Answers
+    # what the save names, or `nil` when nothing records the run.
+    def pause : Replay::Mark?
+      @recorder.try &.pause
+    end
+
     # Opens the log for this run, once, on the first action.
     #
     # The first action is the earliest point a run is worth recording from.
