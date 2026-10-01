@@ -26,9 +26,9 @@ module Roguelike
       # separate streams and one algorithm. `sizes` is who each piece of armor
       # lying about is cut for. `lore` is the appearances a run rolls for its
       # potions, its scrolls and its wands. `combat`, `handling`, `use`,
-      # `wander`, `mend` and `split` are the counters on the run. `stray` is
-      # where a monster's shot that missed comes down, keyed by the `combat`
-      # counter.
+      # `wander`, `mend`, `split` and `brawl` are the counters on the run.
+      # `stray` is where a monster's shot that missed comes down, keyed by the
+      # `combat` counter.
       #
       # The stream the name suggestion draws from is not here. It names
       # nobody and nothing in the run.
@@ -46,6 +46,7 @@ module Roguelike
         "sizes"      => 2,
         "stray"      => 1,
         "split"      => 1,
+        "brawl"      => 1,
       }
 
       # This build's table, as a header holds it.

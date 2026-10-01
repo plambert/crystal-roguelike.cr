@@ -15,7 +15,8 @@ module Roguelike
     # What one run came to.
     #
     # *deepest* is the deepest floor the character set foot on. *depth* is
-    # the floor the run ended on.
+    # the floor the run ended on. *felled* is how many creatures other
+    # creatures killed.
     record Played,
       seed : UInt64,
       turns : Int32,
@@ -25,7 +26,8 @@ module Roguelike
       outcome : Outcome,
       killer : String?,
       deepest : Int32 = 1,
-      depth : Int32 = 1
+      depth : Int32 = 1,
+      felled : Int32 = 0
 
     # What a set of runs came to.
     record Report, played : Array(Played) do
@@ -101,6 +103,9 @@ module Roguelike
         io << "  killed by           "
         io << killers.map { |name, many| "#{name} #{many}" }.join(", ")
         io << '\n'
+
+        io << "  " << "killed by creatures".ljust(20)
+        io << @played.sum(&.felled).to_s.rjust(5) << '\n'
       end
 
       # One row: how many runs, and how many out of a hundred.
@@ -174,7 +179,8 @@ module Roguelike
 
       game = bot.game
       Played.new seed, game.turn, game.player.level, game.player.gold,
-        bot.reached, game.outcome, game.killer, game.deepest, game.depth
+        bot.reached, game.outcome, game.killer, game.deepest, game.depth,
+        game.felled
     end
 
     # One game, played by a rule rather than by a person.

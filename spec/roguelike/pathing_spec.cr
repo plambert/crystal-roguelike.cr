@@ -58,17 +58,17 @@ Spectator.describe "creatures pathing around each other" do
     turns.times { game.wait }
   end
 
-  # Puts a slime on *at* that cannot see the character, so it never wakes and
-  # never moves.
+  # Puts a goblin of another band on *at* that cannot see, so it never wakes
+  # and never moves. Goblins do not fight goblins, so it stays in the way.
   def plug(game : Game, at : {Int32, Int32}) : Monster
-    slime = Monster.new Species::Slime, at[0], at[1], "band-asleep"
-    slime.blind 1000
-    game.floor.place slime
-    slime
+    goblin = Monster.new Species::Goblin, at[0], at[1], "band-asleep"
+    goblin.blind 1000
+    game.floor.place goblin
+    goblin
   end
 
   describe "a corridor with a creature standing in it" do
-    # The slime is in the top corridor, and the two goblins behind it can
+    # The plug is in the top corridor, and the two goblins behind it can
     # only reach the character by the bottom one.
     it "sends the members behind it round by the other way" do
       game, members = hunt LOOP, [{5, 1}, {4, 1}]

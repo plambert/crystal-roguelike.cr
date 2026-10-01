@@ -188,7 +188,7 @@ module Roguelike
             # Each in a band of one. A generator will put several in one band
             # and this is where that will be decided.
             band = Band.new "#{id}-#{species.to_s.downcase}-#{column},#{row}",
-              sharing: species.default.sharing
+              species.default.faction, sharing: species.default.sharing
             bands[band.id] = band
             monsters[spot column, row] = Monster.new species, column, row, band.id
             mark = under read, columns, rows.size, column, row
@@ -324,7 +324,8 @@ module Roguelike
 
       changed
       @monsters[Floor.spot creature.x, creature.y] = creature
-      @bands[creature.band] ||= Band.new creature.band, sharing: creature.kind.sharing
+      @bands[creature.band] ||= Band.new creature.band, creature.kind.faction,
+        sharing: creature.kind.sharing
       true
     end
 
@@ -372,6 +373,15 @@ module Roguelike
     # band to have noticed anything.
     def awareness(creature : Monster) : Awareness
       band(creature.band).try(&.awareness) || Awareness::Asleep
+    end
+
+    # What the band *creature* belongs to is doing, for a readout.
+    def doing(creature : Monster) : String
+      found = band creature.band
+      return Awareness::Asleep.label unless found
+
+      you = found.knowledge?(@id).try(&.sighting Knowledge::PLAYER)
+      found.awareness.label !you.nil?
     end
 
     # ------------------------------------------------------------ fixtures

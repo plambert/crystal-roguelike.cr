@@ -86,8 +86,8 @@ module Roguelike
     #
     # There is no `Floor` here and no `Player`. What an AI knows about the
     # shape of the floor is `knowledge`, which is its band's belief, and what
-    # it knows about where the character is is `quarry`, which is where the
-    # band last saw them. Neither is necessarily what is on the floor now.
+    # it is after is `quarry`, which is where the band last saw it. Neither
+    # is necessarily what is on the floor now.
     #
     # `blocked` and `closable` are the only fields here that are not belief.
     # `closable` names the squares beside the creature holding an open door
@@ -108,6 +108,9 @@ module Roguelike
     # `surrounds` says this creature moves round its quarry to face a
     # bandmate across it. `bandmates` is where the other members of its band
     # stand beside the quarry.
+    #
+    # `foes` is where the band saw every other hostile within the last
+    # `FRESH` turns, the character first.
     record Snapshot,
       at : {Int32, Int32},
       knowledge : Knowledge,
@@ -123,7 +126,8 @@ module Roguelike
       reach : Int32 = 0,
       clear : Bool = false,
       surrounds : Bool = false,
-      bandmates : Array({Int32, Int32}) = [] of {Int32, Int32}
+      bandmates : Array({Int32, Int32}) = [] of {Int32, Int32},
+      foes : Array({Int32, Int32}) = [] of {Int32, Int32}
 
     # How many turns old a sighting may be and still be worth swinging at.
     #
@@ -144,35 +148,53 @@ module Roguelike
 
     # What the creature *snapshot* describes does this turn.
     #
-    # It swings when the character is one square away and it knew where they
-    # were within the last `FRESH` turns. It walks toward where it last saw
-    # them otherwise. It waits when it has never seen them, when it is
-    # standing on the square it last saw them, and when there is nowhere to
-    # go.
+    # It swings when its quarry is one square away and it knew where the
+    # quarry was within the last `FRESH` turns. It swings at another foe one
+    # square away when the quarry is not. It walks toward where it last saw
+    # the quarry otherwise. It waits when it has never seen one, when it is
+    # standing on the square it last saw it, and when there is nowhere to go.
     #
-    # A creature that can shoot and saw them within `FRESH` turns keeps its
-    # distance first. See `#stand_off`.
+    # A creature that is running runs first. See `#flee`. A creature that can
+    # shoot and saw its quarry within `FRESH` turns keeps its distance next.
+    # See `#stand_off`.
     def self.decide(snapshot : Snapshot) : Action
       quarry = snapshot.quarry
       return Action.wait unless quarry
       return flee snapshot, quarry if snapshot.fleeing
 
-      beside = beside snapshot.at, quarry
-      if snapshot.reach > 0 && snapshot.stale <= FRESH
-        ranged = stand_off snapshot, quarry, beside
-        return ranged if ranged
+      if snapshot.stale <= FRESH
+        engaged = engage snapshot, quarry
+        return engaged if engaged
       end
 
-      if snapshot.stale <= FRESH
-        round = encircle snapshot, quarry
-        return Action.step(round) if round
+      snapshot.foes.each do |foe|
+        near = beside snapshot.at, foe
+        return Action.strike(near) if near
       end
-      return Action.strike(beside) if beside && snapshot.stale <= FRESH
       return Action.wait if snapshot.at == quarry
 
       hemmed = hemmed? snapshot
       direction = walk snapshot, hemmed
       direction ? Action.step(direction, hemmed) : Action.wait(hemmed)
+    end
+
+    # What a creature that saw its quarry within `FRESH` turns does about
+    # it, or `nil` to go on as any other.
+    #
+    # One that can shoot keeps its distance or shoots. One that surrounds
+    # moves round to face a bandmate across the quarry. Any other swings
+    # when the quarry is beside it.
+    private def self.engage(snapshot : Snapshot, quarry : {Int32, Int32}) : Action?
+      beside = beside snapshot.at, quarry
+      if snapshot.reach > 0
+        ranged = stand_off snapshot, quarry, beside
+        return ranged if ranged
+      end
+
+      round = encircle snapshot, quarry
+      return Action.step(round) if round
+
+      Action.strike(beside) if beside
     end
 
     # What a running creature does.

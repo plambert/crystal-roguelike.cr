@@ -118,6 +118,16 @@ module Roguelike
     # `nil` until they have, for the same reason as `@splits`.
     @flanked : Bool? = nil
 
+    # How many swings one creature has aimed at another.
+    #
+    # The `brawl` stream, so a fight between two creatures does not shift
+    # what the character's next swing rolls. It has a default, so an older
+    # save loads.
+    getter brawls : Int32 = 0
+
+    # How many creatures other creatures have killed.
+    getter felled : Int32 = 0
+
     # What has just happened.
     getter log : MessageLog
 
@@ -1355,6 +1365,7 @@ module Roguelike
       creature.drop_everything.each do |item|
         floor.drop creature.x, creature.y, item
       end
+      forget_dead creature
       say "You kill the #{creature.label}.",
         Event::Slain.new(creature.id, creature.label)
 
@@ -1556,7 +1567,8 @@ module Roguelike
     private def creatures_act : Nil
       return if over?
 
-      maps = descents
+      hunts = chases
+      maps = descents hunts
       held = [] of Monster
       floor.each_monster { |_column, _row, creature| held << creature }
       held.sort_by! { |creature| {creature.y, creature.x} }
@@ -1570,7 +1582,7 @@ module Roguelike
         # other tick, which is what being that fast is.
         while creature.pace.ready?
           break if over?
-          break unless floor.monster? creature.x, creature.y
+          break unless floor.monster(creature.x, creature.y).try &.same?(creature)
 
           nerve creature
 
@@ -1579,28 +1591,78 @@ module Roguelike
             next
           end
 
-          action = plan creature, maps
+          action = plan creature, maps, hunts
           creature.hem action.hemmed?
           creature.pace.spend perform(creature, action)
         end
       end
     end
 
+    # What one awake band is after.
+    #
+    # *who* is the `Knowledge#sightings` key of its quarry and *quarry* where
+    # the band last saw it. *foes* is where the band saw every other hostile
+    # within the last `Pursuit::FRESH` turns, the character first.
+    record Chase, who : String, quarry : Sighting, foes : Array({Int32, Int32})
+
+    # What each awake band is after, by band id.
+    #
+    # The quarry is the nearest creature the band knows of, measured from
+    # whichever member is nearest it. The character wins a tie, and then the
+    # lower key does, so the choice holds from one run to the next.
+    private def chases : Hash(String, Chase)
+      members = Hash(String, Array({Int32, Int32})).new
+      floor.each_monster do |column, row, creature|
+        (members[creature.band] ||= [] of {Int32, Int32}) << {column, row}
+      end
+
+      found = {} of String => Chase
+      floor.each_band do |band|
+        next unless band.awake?
+
+        spots = members[band.id]?
+        next unless spots
+
+        sightings = band.knowledge(floor.id).sightings
+        next if sightings.empty?
+
+        who, quarry = sightings.min_by do |key, seen|
+          {spots.min_of { |spot| reach spot, seen.at }, key == Knowledge::PLAYER ? 0 : 1, key}
+        end
+        found[band.id] = Chase.new who, quarry, foes(sightings, who)
+      end
+
+      found
+    end
+
+    # Where *sightings* put every fresh hostile but *quarry*, the character
+    # first.
+    private def foes(sightings : Hash(String, Sighting), quarry : String) : Array({Int32, Int32})
+      fresh = sightings.select do |key, seen|
+        key != quarry && seen.age(@turn) <= Pursuit::FRESH
+      end
+
+      fresh.keys.sort_by! { |key| {key == Knowledge::PLAYER ? 0 : 1, key} }.map { |key| fresh[key].at }
+    end
+
+    # How many steps apart *from* and *to* are. A diagonal is one.
+    private def reach(from : {Int32, Int32}, to : {Int32, Int32}) : Int32
+      Math.max (to[0] - from[0]).abs, (to[1] - from[1]).abs
+    end
+
     # One descent for each awake band that has something to walk toward.
     #
     # A band whose species does not path gets none. A slime walks straight at
     # what it is after and has no use for a map.
-    private def descents : Hash(String, Descent)
+    private def descents(chases : Hash(String, Chase)) : Hash(String, Descent)
       maps = {} of String => Descent
       openers = door_openers
 
       floor.each_band do |band|
-        next unless band.awake?
+        chase = chases[band.id]?
+        next unless chase
 
-        quarry = band.knowledge(floor.id).sighting(Knowledge::PLAYER)
-        next unless quarry
-
-        maps[band.id] = Descent.toward band.knowledge(floor.id), quarry.at,
+        maps[band.id] = Descent.toward band.knowledge(floor.id), chase.quarry.at,
           doors: openers.includes?(band.id)
       end
 
@@ -1623,13 +1685,18 @@ module Roguelike
     end
 
     # What *creature* has decided to do.
-    private def plan(creature : Monster, maps : Hash(String, Descent)) : Pursuit::Action
+    private def plan(creature : Monster, maps : Hash(String, Descent),
+                     chases : Hash(String, Chase)) : Pursuit::Action
       band = floor.band creature.band
       return Pursuit::Action.wait unless band
 
       knowledge = band.knowledge floor.id
-      quarry = knowledge.sighting Knowledge::PLAYER
-      reach = creature.shooting_reach
+      chase = chases[band.id]?
+      quarry = chase.try &.quarry
+
+      # A creature shoots only at the character. One whose band is after
+      # another creature fights it hand to hand.
+      reach = chase.try(&.who) == Knowledge::PLAYER ? creature.shooting_reach : 0
 
       Pursuit.decide Pursuit::Snapshot.new(
         at: creature.at,
@@ -1646,7 +1713,8 @@ module Roguelike
         reach: reach,
         clear: reach > 0 && !!quarry.try { |seen| clear_shot? creature, seen.at, reach },
         surrounds: creature.kind.surrounds?,
-        bandmates: creature.kind.surrounds? ? beside_quarry(creature, quarry) : [] of {Int32, Int32})
+        bandmates: creature.kind.surrounds? ? beside_quarry(creature, quarry) : [] of {Int32, Int32},
+        foes: chase.try(&.foes) || [] of {Int32, Int32})
     end
 
     # The light on every square of this floor this turn.
@@ -1797,8 +1865,8 @@ module Roguelike
     #
     # A creature that decided to walk into a wall walks nowhere, and one
     # that decided to swing at an empty square swings at nothing. Both take
-    # a turn. A swing that reaches the character costs what its weapon or its
-    # kind says.
+    # a turn. A swing that reaches the character or a hostile creature costs
+    # what its weapon or its kind says.
     private def perform(creature : Monster, action : Pursuit::Action) : Int32
       target = action.target
       return shoot(creature, target) if action.intent.shoot? && target
@@ -1817,9 +1885,15 @@ module Roguelike
         creature_shuts creature, wanted
         Costs::TURN
       in .strike?
-        return Costs::TURN unless @player.at? wanted[0], wanted[1]
+        if @player.at? wanted[0], wanted[1]
+          strike creature
+          return creature.swing
+        end
 
-        strike creature
+        victim = floor.monster wanted[0], wanted[1]
+        return Costs::TURN unless victim && hostile?(creature, victim)
+
+        brawl creature, victim
         creature.swing
       in .shoot? then Costs::TURN
       end
@@ -2148,18 +2222,13 @@ module Roguelike
     # Whether a creature on *spot* is fighting *target* alongside the
     # character.
     #
-    # One of another faction would be. Every creature is `Faction::Dungeon`
-    # for now, so none is, and the character flanks nothing on their own.
+    # It is when its band is hostile to *target*'s band. `#hostile?` reads
+    # the faction table, so that test is the only one.
     private def against?(spot : {Int32, Int32}, target : Monster) : Bool
       other = floor.monster spot[0], spot[1]
       return false unless other && other.alive? && awake?(other)
 
-      faction_of(other) != faction_of(target)
-    end
-
-    # The faction *creature*'s band belongs to.
-    private def faction_of(creature : Monster) : Faction
-      floor.band(creature.band).try(&.faction) || Faction::Dungeon
+      hostile? other, target
     end
 
     # How many times a creature has split in this run.
@@ -2178,6 +2247,79 @@ module Roguelike
 
       @flanked = true
       say "You are flanked!", Event::Flanked.new
+    end
+
+    # Whether the bands of *creature* and *other* fight each other.
+    private def hostile?(creature : Monster, other : Monster) : Bool
+      mine = floor.band creature.band
+      theirs = floor.band other.band
+      return false unless mine && theirs
+
+      mine.hostile? theirs
+    end
+
+    # *creature* swings at *victim*, another creature. Answers what the swing
+    # did.
+    #
+    # The swing rolls on the `brawl` stream. The character is told only when
+    # they can make out both creatures.
+    private def brawl(creature : Monster, victim : Monster) : Blow
+      blow = Combat.swing brawling, creature.to_hit, victim.armor_class,
+        creature.damage
+      shown = regard_of(creature).everything? && regard_of(victim).everything?
+
+      if blow.hit?
+        victim.hurt blow.damage
+        if shown
+          say "The #{creature.label} #{creature.kind.verb} the #{victim.label} for #{blow.damage}.",
+            Event::Attack.new(true, attacker: creature.id, target: victim.id,
+              damage: blow.damage)
+        end
+      elsif shown
+        say "The #{creature.label} misses the #{victim.label}.",
+          Event::Attack.new(false, attacker: creature.id, target: victim.id)
+      end
+
+      if victim.alive?
+        provoke victim, creature
+      else
+        fell creature, victim, shown
+      end
+
+      blow
+    end
+
+    # *victim*'s band learns where *attacker* is, and wakes.
+    private def provoke(victim : Monster, attacker : Monster) : Nil
+      band = floor.band victim.band
+      return unless band
+
+      band.knowledge(floor.id).saw Knowledge.creature(attacker.id),
+        attacker.x, attacker.y, @turn
+      band.awareness = Awareness::Hunting if band.awareness.asleep?
+    end
+
+    # Takes *victim*, killed by *killer*, off the floor.
+    #
+    # What it carried lands where it fell. The character gains nothing.
+    private def fell(killer : Monster, victim : Monster, shown : Bool) : Nil
+      clear_bearers
+      floor.remove victim.x, victim.y
+      victim.drop_everything.each do |item|
+        floor.drop victim.x, victim.y, item
+      end
+      forget_dead victim
+      @felled += 1
+      return unless shown
+
+      say "The #{killer.label} kills the #{victim.label}.",
+        Event::Slain.new(victim.id, victim.label)
+    end
+
+    # Every band on this floor forgets where it saw *creature*, which is dead.
+    private def forget_dead(creature : Monster) : Nil
+      key = Knowledge.creature creature.id
+      floor.each_band { |band| band.knowledge?(floor.id).try &.lost(key) }
     end
 
     # Ends the run. *killer* is the creature that did it.
@@ -2244,8 +2386,11 @@ module Roguelike
     # Lets every band look, and the awake ones act.
     private def act_on_the_floor : Nil
       seen = sight
-      noticed = creatures_notice seen
-      creatures_look seen, noticed
+      noticed = noticing seen
+      fields = creatures_cast seen, noticed
+      spotted = spotting seen, fields
+      creatures_notice seen, noticed, spotted
+      creatures_look fields, noticed, spotted
       creatures_act
       creatures_split unless over?
     end
@@ -2378,37 +2523,45 @@ module Roguelike
 
     # ------------------------------------------------------------ detection
 
-    # Lets every band on this floor notice the character, or lose them.
+    # Lets every band on this floor notice what it is hostile to, or lose it.
     #
-    # *seen* is what the character can see, which is also what can see the
-    # character. The field of view is symmetric, so a creature the character
-    # has a line to has a line back. That is one cast for the whole floor
-    # rather than one for each creature standing on it.
+    # *noticed* is the bands that noticed the character, and which of their
+    # creatures did it. *spotted* is each creature that noticed a hostile
+    # creature, with that creature.
     #
-    # A band that notices writes down where the character is. Nothing reads
-    # that until Phase 19 walks a band to the square.
-    # Answers which bands noticed, and which of their creatures did it.
-    private def creatures_notice(seen : Vision) : Hash(String, Monster)
-      found = noticing seen
-
-      floor.each_band do |band|
-        creature = found[band.id]?
-
-        if creature
-          woke = band.awareness.asleep?
-          band.awareness = Awareness::Hunting
-          band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
-          say_noticed creature, seen if woke
-        elsif band.awareness.hunting?
-          # It knows where the character was and cannot see them now. It
-          # walks there, and gives up when the trail is cold enough.
-          band.awareness = Awareness::Alert
-        elsif band.awareness.alert?
-          give_up band if cold? band
-        end
+    # A band that notices anything writes down where it is and hunts. One
+    # that stops seeing anything searches from the next tick. A hunting or
+    # searching band forgets each sighting older than its patience, and a
+    # searching band with nothing left goes back to sleep.
+    private def creatures_notice(seen : Vision, noticed : Hash(String, Monster),
+                                 spotted : Array({Monster, Monster})) : Nil
+      targets = Hash(String, Array(Monster)).new
+      spotted.each do |looker, other|
+        (targets[looker.band] ||= [] of Monster) << other
       end
 
-      found
+      floor.each_band do |band|
+        creature = noticed[band.id]?
+        found = targets[band.id]?
+        knowledge = band.knowledge floor.id
+
+        if creature || found
+          woke = band.awareness.asleep?
+          band.awareness = Awareness::Hunting
+          knowledge.saw Knowledge::PLAYER, @player.x, @player.y, @turn if creature
+          found.try &.each do |other|
+            knowledge.saw Knowledge.creature(other.id), other.x, other.y, @turn
+          end
+          say_noticed creature, seen if creature && woke
+          forget_cold band
+        elsif band.awareness.hunting?
+          # It knows where its quarry was and cannot see it now. It walks
+          # there, and gives up when the trail is cold enough.
+          band.awareness = Awareness::Alert
+        elsif band.awareness.alert?
+          forget_cold band
+        end
+      end
     end
 
     # How many turns a band with nobody left on this floor goes on looking.
@@ -2417,19 +2570,28 @@ module Roguelike
     # is only what is left when there is nobody to ask.
     PATIENCE = 10
 
-    # Whether the trail *band* is following has gone cold.
-    private def cold?(band : Band) : Bool
-      seen = band.knowledge(floor.id).sighting Knowledge::PLAYER
-      return true unless seen
+    # *band* forgets every sighting older than its patience. A searching band
+    # left with none goes back to sleep.
+    #
+    # What it learned of the floor stays. A band that wakes again starts from
+    # where it finds whatever woke it.
+    private def forget_cold(band : Band) : Nil
+      knowledge = band.knowledge floor.id
+      limit = patience band
+      cold = knowledge.sightings.compact_map do |who, seen|
+        who if seen.age(@turn) > limit
+      end
+      cold.each { |who| knowledge.lost who }
 
-      seen.age(@turn) > patience(band)
+      return unless band.awareness.alert? && knowledge.sightings.empty?
+
+      band.awareness = Awareness::Asleep
     end
 
-    # How many turns *band* goes on looking after it has lost the character.
+    # How many turns *band* goes on looking after it has lost its quarry.
     #
-    # The most persistent of its members decides. A band is one species now,
-    # and when it is more than one the member that will not let go is what
-    # keeps the whole band looking.
+    # The most persistent of its members decides. The member that will not
+    # let go is what keeps the whole band looking.
     #
     # This is what decides whether a person can run away. An orc follows a
     # cold trail for a long time and a goblin gives up quickly.
@@ -2446,52 +2608,142 @@ module Roguelike
       most || PATIENCE
     end
 
-    # *band* stops looking and goes back to sleep.
+    # What every creature about to look can see, by the square it stands on.
     #
-    # What it learned of the floor stays. Where it last saw the character
-    # does not, so a band that wakes again starts from where it finds them.
-    private def give_up(band : Band) : Nil
-      band.awareness = Awareness::Asleep
-      band.knowledge(floor.id).lost Knowledge::PLAYER
-    end
-
-    # Lets every awake creature look about and write what it saw into its
-    # band's `Knowledge`.
-    #
-    # This is what a band builds its `Descent` over. A band that has walked a
-    # corridor can walk it again in the dark; one that has never been down it
-    # cannot use it as a shortcut.
+    # A creature looks when its band is awake or has just noticed the
+    # character. This is the one cast each such creature costs a tick.
+    # Noticing a hostile and learning the floor both read it.
     #
     # The lighting is worked out once for the whole floor and handed to each
     # of them. A species with darkvision is given none, so it learns the
     # shape of everything it has a line to whether there is light on it or
     # not.
     #
-    # An asleep band looks at nothing. That is what bounds the work: a floor
-    # of sleeping monsters costs one cast, the character's own.
-    private def creatures_look(seen : Vision, noticed : Hash(String, Monster)) : Nil
+    # An asleep band casts nothing. That is what bounds the work: a floor of
+    # sleeping monsters costs one cast, the character's own.
+    private def creatures_cast(seen : Vision,
+                               noticed : Hash(String, Monster)) : Hash({Int32, Int32}, Vision)
       lighting = seen.lighting
+      fields = {} of {Int32, Int32} => Vision
 
+      floor.each_monster do |column, row, creature|
+        next unless awake?(creature) || noticed.has_key?(creature.band)
+
+        fields[{column, row}] = Vision.new FieldOfView.from(floor, column, row),
+          creature.kind.darkvision? ? nil : lighting
+      end
+
+      fields
+    end
+
+    # Which hostile creatures each band notices, and which member noticed.
+    #
+    # Answers pairs of the creature that noticed and the creature it noticed,
+    # one pair for each band and target. `Notice.notices?` decides it, with
+    # the target's stealth and the light on its square.
+    #
+    # No cast is made here. A line between two creatures comes from
+    # `#in_line?`.
+    private def spotting(seen : Vision,
+                         fields : Hash({Int32, Int32}, Vision)) : Array({Monster, Monster})
+      ground = floor
+      held = [] of Monster
+      ground.each_monster { |_column, _row, creature| held << creature }
+      held.sort_by! { |creature| {creature.y, creature.x} }
+      enroll if held.any? &.id.zero?
+
+      bands = held.map { |creature| ground.band creature.band }
+      found = [] of {Monster, Monster}
+      known = Set({UInt64, Int32}).new
+
+      held.each_with_index do |looker, mine|
+        band = bands[mine]
+        next if band.nil? || looker.blind?
+
+        held.each_with_index do |other, theirs|
+          against = bands[theirs]
+          next unless against && band.hostile?(against)
+          next if known.includes?({band.object_id, other.id})
+          next unless in_line? looker, other, fields, seen
+          next unless Notice.notices? looker.kind, other.attributes.stealth,
+                        seen.light(other.x, other.y), looker.at, other.at
+
+          known << {band.object_id, other.id}
+          found << {looker, other}
+        end
+      end
+
+      found
+    end
+
+    # Whether *looker* and *other* have a line to each other.
+    #
+    # A creature that cast this tick answers from its own field. A field is
+    # symmetric, so one standing in the field of *other* has a line back to
+    # it. Two creatures that neither cast have a line when both stand in the
+    # character's field and nothing solid is on `Line` between them. Two
+    # asleep creatures out of the character's sight never notice each other.
+    private def in_line?(looker : Monster, other : Monster,
+                         fields : Hash({Int32, Int32}, Vision),
+                         seen : Vision) : Bool
+      mine = fields[looker.at]?
+      return mine.field.includes?(other.x, other.y) if mine
+
+      theirs = fields[other.at]?
+      return theirs.field.includes?(looker.x, looker.y) if theirs
+
+      return false unless seen.field.includes?(looker.x, looker.y)
+      return false unless seen.field.includes?(other.x, other.y)
+
+      clear? looker.at, other.at
+    end
+
+    # Whether nothing between *from* and *to* blocks sight.
+    private def clear?(from : {Int32, Int32}, to : {Int32, Int32}) : Bool
+      Line.walk(from, to) do |spot|
+        next if spot == from || spot == to
+        return false if floor.blocks_sight? spot[0], spot[1]
+      end
+
+      true
+    end
+
+    # Lets every awake creature that cast this tick write what it saw into
+    # its band's `Knowledge`.
+    #
+    # This is what a band builds its `Descent` over. A band that has walked a
+    # corridor can walk it again in the dark; one that has never been down it
+    # cannot use it as a shortcut.
+    #
+    # A band that noticed something writes down the ground between the
+    # creature that noticed and what it noticed.
+    private def creatures_look(fields : Hash({Int32, Int32}, Vision),
+                               noticed : Hash(String, Monster),
+                               spotted : Array({Monster, Monster})) : Nil
       noticed.each do |id, creature|
         band = floor.band id
-        trace band.knowledge(floor.id), creature.at if band
+        trace band.knowledge(floor.id), creature.at, @player.at if band
+      end
+
+      spotted.each do |looker, other|
+        band = floor.band looker.band
+        trace band.knowledge(floor.id), looker.at, other.at if band
       end
 
       floor.each_monster do |column, row, creature|
         next unless awake? creature
 
+        looking = fields[{column, row}]?
         band = floor.band creature.band
-        next unless band
+        next unless looking && band
 
-        looking = Vision.new FieldOfView.from(floor, column, row),
-          creature.kind.darkvision? ? nil : lighting
         knowledge = band.knowledge floor.id
         knowledge.learn floor, looking, @turn
         feel knowledge, column, row
       end
     end
 
-    # Records the ground between *from* and the character.
+    # Records the ground between *from* and *to*.
     #
     # A creature that can see the character can see that nothing solid stands
     # between them. A line that reached them ran through every square on the
@@ -2505,8 +2757,9 @@ module Roguelike
     # It records that they can be crossed and no more. What each one is made
     # of it has not looked at, and `Knowledge#opening` is careful not to
     # claim otherwise.
-    private def trace(knowledge : Knowledge, from : {Int32, Int32}) : Nil
-      Line.walk(from, @player.at) do |spot|
+    private def trace(knowledge : Knowledge, from : {Int32, Int32},
+                      to : {Int32, Int32}) : Nil
+      Line.walk(from, to) do |spot|
         knowledge.opening spot[0], spot[1]
       end
     end
@@ -2618,6 +2871,15 @@ module Roguelike
       root = (@root ||= Rng.new @world.seed)
       found = root.derive "wander", @wanders
       @wanders += 1
+
+      found
+    end
+
+    # The generator for the next swing one creature aims at another.
+    private def brawling : Rng
+      root = (@root ||= Rng.new @world.seed)
+      found = root.derive "brawl", @brawls
+      @brawls += 1
 
       found
     end

@@ -110,8 +110,8 @@ module Roguelike
 
     # Where each creature was last seen, by who.
     #
-    # `PLAYER` is the key for the character. A monster id will be the key for
-    # a monster, once a band has a reason to track one.
+    # `PLAYER` is the key for the character. `.creature` is the key for a
+    # monster.
     getter sightings : Hash(String, Sighting)
 
     # Squares known to be open, with nothing else known about them.
@@ -168,6 +168,11 @@ module Roguelike
 
     # The key `#sightings` holds the character under.
     PLAYER = "player"
+
+    # The key `#sightings` holds the monster *id* under.
+    def self.creature(id : Int32) : String
+      "creature-#{id}"
+    end
 
     # Records that *who* was at *x*, *y* on *turn*.
     def saw(who : String, x : Int32, y : Int32, turn : Int32) : Nil
