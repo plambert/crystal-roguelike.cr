@@ -230,6 +230,9 @@ module Roguelike
   # *weapon* is the one weapon it always carries. A kind with no *weapon*
   # draws from `Loot::WEAPONS` *armed* times in a hundred.
   #
+  # *ranged_weapon* is the ranged weapon it carries, and *quiver* is how much
+  # ammunition for it. `Loot` rolls both.
+  #
   # *depths* is the floors it appears on. `Spawns::TABLE` says how common it
   # is there. *alone* says a room holding one holds nothing else. *swing* is
   # what one of its attacks costs, in energy. *opens_doors* says it opens a
@@ -261,6 +264,8 @@ module Roguelike
     light : Int32 = 0,
     weapon : ItemKind? = nil,
     armed : Int32 = 0,
+    ranged_weapon : ItemKind? = nil,
+    quiver : Dice = Dice::NONE,
     alone : Bool = false,
     mends : Bool = false,
     casts : Bool = false,
@@ -585,6 +590,16 @@ module Roguelike
       facts.wields
     end
 
+    # The ranged weapon it carries. `nil` for one that shoots nothing.
+    def ranged_weapon : ItemKind?
+      facts.ranged_weapon
+    end
+
+    # How much ammunition for its `#ranged_weapon` it carries.
+    def quiver : Dice
+      facts.quiver
+    end
+
     # Whether it heals a hurt neighbour of its own species.
     def mends? : Bool
       facts.mends
@@ -646,12 +661,13 @@ module Roguelike
         depths: 3..5),
 
       Kind::GoblinScout => KindFacts.new(Species::Goblin, 'g', "goblin scout",
-        "goblin scouts", "a wiry goblin with a dagger, alone and quick on its feet",
+        "goblin scouts", "a wiry goblin with a sling and a dagger, alone and quick on its feet",
         hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 0,
         notice: 10, darkvision: false, paths: true, experience: 5,
         size: Size::Small, persistence: 8, speed: 110,
         weapon: ItemKind::Dagger, light: 40, alone: true, opens_doors: true,
         flees: true, wields: true,
+        ranged_weapon: ItemKind::Sling, quiver: Dice.new(2, 4),
         depths: 1..2,
         attributes: Attributes.new(strength: 8, dexterity: 14, constitution: 9,
           intelligence: 8, stealth: 15)),
@@ -687,11 +703,12 @@ module Roguelike
           intelligence: 10, stealth: 8)),
 
       Kind::OrcArcher => KindFacts.new(Species::Orc, 'o', "orc archer",
-        "orc archers", "a lean orc with a quiver and a long reach",
+        "orc archers", "a lean orc with a bow and a quiver of arrows",
         hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 6), armor: 3,
         notice: 10, darkvision: true, paths: true, experience: 16,
         size: Size::Medium, persistence: 24, speed: 95, swing: 120,
         light: 10, depths: 4..5, opens_doors: true, flees: true, wields: true,
+        ranged_weapon: ItemKind::Bow, quiver: Dice.new(3, 6),
         attributes: Attributes.new(strength: 12, dexterity: 14, constitution: 12,
           intelligence: 10, stealth: 9)),
     }

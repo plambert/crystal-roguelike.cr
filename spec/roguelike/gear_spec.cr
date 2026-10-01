@@ -254,6 +254,47 @@ Spectator.describe "what a monster wields and wears" do
       expect(game.floor.items(9, 1).empty?).to be_true
     end
 
+    it "takes up stones for the sling it holds when its quiver is empty" do
+      scout = Monster.new Kind::GoblinScout, 9, 1, "band-one"
+      scout.outfit [Item.new(ItemKind::Sling)]
+      game = caged scout, [Item.new(ItemKind::Stone, count: 4)]
+
+      game.wait
+
+      expect(scout.ammunition.try &.count).to eq 4
+      expect(game.floor.items(9, 1).empty?).to be_true
+    end
+
+    it "adds stones to the stones already in its quiver" do
+      scout = Monster.new Kind::GoblinScout, 9, 1, "band-one"
+      scout.outfit [Item.new(ItemKind::Sling), Item.new(ItemKind::Stone, count: 2)]
+      game = caged scout, [Item.new(ItemKind::Stone, count: 3)]
+
+      game.wait
+
+      expect(scout.ammunition.try &.count).to eq 5
+      expect(game.floor.items(9, 1).empty?).to be_true
+    end
+
+    it "takes up a bow when it is an archer with an empty hand" do
+      archer = Monster.new Kind::OrcArcher, 9, 1, "band-one"
+      game = caged archer, [Item.new(ItemKind::Bow)]
+
+      game.wait
+
+      expect(archer.ranged_weapon.try &.kind).to eq ItemKind::Bow
+    end
+
+    it "leaves a sling and stones alone when it does not shoot" do
+      goblin = Monster.new Kind::GoblinWarrior, 9, 1, "band-one"
+      game = caged goblin, [Item.new(ItemKind::Sling), Item.new(ItemKind::Stone, count: 3)]
+
+      game.wait
+
+      expect(goblin.ranged_weapon).to be_nil
+      expect(game.floor.items(9, 1).size).to eq 2
+    end
+
     it "leaves a wand alone when it is not a shaman" do
       goblin = Monster.new Kind::GoblinWarrior, 9, 1, "band-one"
       game = caged goblin, [Item.new(ItemKind::StrikingWand)]

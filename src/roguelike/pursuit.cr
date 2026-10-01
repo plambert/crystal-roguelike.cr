@@ -23,6 +23,9 @@ module Roguelike
 
       # Shut the open door one square away.
       Shut
+
+      # Shoot at a square along a clear line.
+      Shoot
     end
 
     # One creature's decision.
@@ -33,8 +36,10 @@ module Roguelike
     #
     # `hemmed` says every square nearer the quarry was taken by another
     # creature. `Game` counts how many turns in a row that has held.
+    #
+    # `target` is the square a shot is aimed at. Nothing else has one.
     record Action, intent : Intent, direction : Direction? = nil,
-      hemmed : Bool = false do
+      hemmed : Bool = false, target : {Int32, Int32}? = nil do
       # Stay put. *hemmed* says why.
       def self.wait(hemmed : Bool = false) : Action
         new Intent::Wait, hemmed: hemmed
@@ -55,6 +60,11 @@ module Roguelike
         new Intent::Shut, direction
       end
 
+      # Shoot at *target*.
+      def self.shoot(target : {Int32, Int32}) : Action
+        new Intent::Shoot, target: target
+      end
+
       # Whether every nearer square was taken.
       def hemmed? : Bool
         @hemmed
@@ -68,6 +78,7 @@ module Roguelike
       def to_s(io : IO) : Nil
         io << @intent
         @direction.try { |where| io << ' ' << where.label }
+        @target.try { |spot| io << ' ' << spot[0] << ',' << spot[1] }
       end
     end
 
@@ -88,6 +99,11 @@ module Roguelike
     #
     # `stumble` says this creature is about to put a foot wrong. `Game` rolls
     # it, because nothing here rolls anything.
+    #
+    # `reach` is how far the creature can shoot, and zero when it has nothing
+    # to shoot or nothing to shoot with. `clear` says a shot at the quarry
+    # would get there. `Game` works it out on the floor, as it does
+    # `blocked`, because a creature sees who is standing in the way.
     record Snapshot,
       at : {Int32, Int32},
       knowledge : Knowledge,
@@ -99,7 +115,9 @@ module Roguelike
       fleeing : Bool = false,
       shade : Lighting? = nil,
       company : Array({Int32, Int32}) = [] of {Int32, Int32},
-      closable : Set({Int32, Int32}) = Descent::EMPTY
+      closable : Set({Int32, Int32}) = Descent::EMPTY,
+      reach : Int32 = 0,
+      clear : Bool = false
 
     # How many turns old a sighting may be and still be worth swinging at.
     #
@@ -110,6 +128,14 @@ module Roguelike
     # the creature walks to the square instead, and finds nothing there.
     FRESH = 1
 
+    # The nearest a creature that shoots lets the character come before it
+    # backs away.
+    NEAREST = 3
+
+    # The farthest a creature that shoots lets fly from. Farther than this it
+    # walks nearer first.
+    FARTHEST = 6
+
     # What the creature *snapshot* describes does this turn.
     #
     # It swings when the character is one square away and it knew where they
@@ -117,12 +143,19 @@ module Roguelike
     # them otherwise. It waits when it has never seen them, when it is
     # standing on the square it last saw them, and when there is nowhere to
     # go.
+    #
+    # A creature that can shoot and saw them within `FRESH` turns keeps its
+    # distance first. See `#stand_off`.
     def self.decide(snapshot : Snapshot) : Action
       quarry = snapshot.quarry
       return Action.wait unless quarry
       return flee snapshot, quarry if snapshot.fleeing
 
       beside = beside snapshot.at, quarry
+      if snapshot.reach > 0 && snapshot.stale <= FRESH
+        ranged = stand_off snapshot, quarry, beside
+        return ranged if ranged
+      end
       return Action.strike(beside) if beside && snapshot.stale <= FRESH
       return Action.wait if snapshot.at == quarry
 
@@ -180,6 +213,61 @@ module Roguelike
       end
 
       {light, gap || 0}
+    end
+
+    # What a creature that can shoot does, or `nil` to fight as any other.
+    #
+    # Closer than `NEAREST` it steps back when there is a square farther from
+    # the quarry to step to. It shoots along a clear line from `FARTHEST` or
+    # nearer. It shoots from two squares when it cannot back away, and swings
+    # when the quarry is beside it and it cannot back away. Otherwise it walks
+    # as any other creature does, which brings it into range or round to a
+    # clear line.
+    private def self.stand_off(snapshot : Snapshot, quarry : {Int32, Int32},
+                               beside : Direction?) : Action?
+      distance = gap snapshot.at, quarry
+      if distance < NEAREST
+        away = retreat snapshot, quarry
+        return Action.step(away) if away
+      end
+      return if beside
+      return unless snapshot.clear
+      return unless distance <= Math.min(FARTHEST, snapshot.reach)
+
+      Action.shoot quarry
+    end
+
+    # The step that takes the creature farthest from *quarry*, or `nil` when
+    # every step brings it no farther.
+    #
+    # Farther by the count of steps between first, then by the straight line,
+    # so a creature backs straight away rather than along a wall. The first in
+    # `Direction` order wins a tie.
+    private def self.retreat(snapshot : Snapshot, quarry : {Int32, Int32}) : Direction?
+      here = gap snapshot.at, quarry
+      best = nil.as(Direction?)
+      best_key = {here, 0}
+
+      Direction.values.each do |direction|
+        spot = direction.from snapshot.at[0], snapshot.at[1]
+        next if snapshot.blocked.includes? spot
+        next unless snapshot.knowledge.walkable? spot[0], spot[1]
+
+        across = spot[0] - quarry[0]
+        down = spot[1] - quarry[1]
+        key = {gap(spot, quarry), across * across + down * down}
+        next unless key[0] > here && (best.nil? || key > best_key)
+
+        best = direction
+        best_key = key
+      end
+
+      best
+    end
+
+    # How many steps apart *one* and *other* are. A diagonal step is one step.
+    def self.gap(one : {Int32, Int32}, other : {Int32, Int32}) : Int32
+      Math.max (one[0] - other[0]).abs, (one[1] - other[1]).abs
     end
 
     # Whether every square nearer the quarry holds another creature.

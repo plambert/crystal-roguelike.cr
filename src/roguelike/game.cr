@@ -1612,6 +1612,7 @@ module Roguelike
 
       knowledge = band.knowledge floor.id
       quarry = knowledge.sighting Knowledge::PLAYER
+      reach = creature.shooting_reach
 
       Pursuit.decide Pursuit::Snapshot.new(
         at: creature.at,
@@ -1624,7 +1625,9 @@ module Roguelike
         fleeing: creature.fleeing?,
         shade: creature.fleeing? ? shade : nil,
         company: creature.fleeing? ? company(creature) : [] of {Int32, Int32},
-        closable: creature.fleeing? ? closable(creature) : Descent::EMPTY)
+        closable: creature.fleeing? ? closable(creature) : Descent::EMPTY,
+        reach: reach,
+        clear: reach > 0 && !!quarry.try { |seen| clear_shot? creature, seen.at, reach })
     end
 
     # The light on every square of this floor this turn.
@@ -1672,6 +1675,15 @@ module Roguelike
       end
 
       found
+    end
+
+    # Whether a shot from *creature* at *target* would get there.
+    #
+    # A wall or another creature in the line stops it, and so does running
+    # out of *reach*. A creature does not shoot through its own kind.
+    def clear_shot?(creature : Monster, target : {Int32, Int32}, reach : Int32) : Bool
+      shot = Flight.toward floor, creature.at, target, reach
+      shot.landing.reached? && shot.clear?
     end
 
     # The map *creature* walks down.
@@ -1752,6 +1764,9 @@ module Roguelike
     # a turn. A swing that reaches the character costs what its weapon or its
     # kind says.
     private def perform(creature : Monster, action : Pursuit::Action) : Int32
+      target = action.target
+      return shoot(creature, target) if action.intent.shoot? && target
+
       direction = action.direction
       return Costs::TURN unless direction
 
@@ -1770,6 +1785,7 @@ module Roguelike
 
         strike creature
         creature.swing
+      in .shoot? then Costs::TURN
       end
     end
 
@@ -1805,6 +1821,84 @@ module Roguelike
         creature.heal 1 if creature.hurt?
         creature.rally if creature.fleeing? && creature.steadied?
       end
+    end
+
+    # How far past the character a shot that misses them may go.
+    OVERSHOOT = 2
+
+    # *creature* shoots at *target*. Answers what the shot cost, in energy.
+    #
+    # The shot uses the character's rules for a shot. `Combat.aim` is what it
+    # adds, `Combat.shot` is what it hits for, and the ranged weapon's swing is
+    # what it costs. One piece of ammunition leaves the creature's stack and
+    # ends on the floor, hit or miss. One that hits lies at the character's
+    # feet. One that misses flies on up to `OVERSHOOT` squares past them.
+    #
+    # The character is told who shot and from which way. A creature they
+    # cannot make out is "something", and one they see only as a shape is
+    # that shape.
+    private def shoot(creature : Monster, target : {Int32, Int32}) : Int32
+      weapon = creature.ranged_weapon
+      ammunition = creature.ammunition
+      return Costs::TURN unless weapon && ammunition
+
+      bonus = creature.to_shoot weapon, ammunition
+      damage = Combat.shot weapon, ammunition
+      one = creature.draw_shot next_id
+      return Costs::TURN unless one
+
+      seen = regard_of creature
+      shooter = seen.everything? ? creature.id : nil
+      way = Pursuit.straight(@player.at, creature.at).try(&.label) || "close by"
+      say "#{shooter_name creature, seen} shoots #{name one} at you from the #{way}.",
+        Event::Shot.new(name(one), way, shooter)
+
+      shot = Flight.toward floor, creature.at, target, weapon.kind.reach
+      spot = shot.at
+      noun = one.kind.label
+
+      if @player.at? spot[0], spot[1]
+        fought_with creature
+        blow = Combat.swing exchange, bonus, @player.armor_class, damage
+        if blow.hit?
+          @player.hurt blow.damage
+          say "The #{noun} hits you for #{blow.damage}.",
+            Event::Attack.new(true, attacker: shooter, damage: blow.damage, with: noun)
+          character_died creature unless @player.alive?
+        else
+          say "The #{noun} misses you.", Event::Attack.new(false, attacker: shooter, with: noun)
+          spot = stray creature.at, spot
+        end
+      else
+        say "The #{noun} misses you.", Event::Attack.new(false, attacker: shooter, with: noun)
+      end
+
+      floor.drop spot[0], spot[1], one
+      Costs.loose weapon
+    end
+
+    # What the character calls *creature* when it shoots, seen as well as
+    # *seen* says.
+    private def shooter_name(creature : Monster, seen : Regard) : String
+      return "The #{creature.label}" if seen.everything?
+      return creature.kind.size.label.capitalize if seen.shape?
+
+      "Something"
+    end
+
+    # Where a shot from *from* that missed the character on *at* comes down.
+    #
+    # It flies on along its line for none to `OVERSHOOT` squares, rolled on a
+    # stream of its own, and stops short of a wall. It lands under a creature
+    # it meets.
+    private def stray(from : {Int32, Int32}, at : {Int32, Int32}) : {Int32, Int32}
+      root = (@root ||= Rng.new @world.seed)
+      reach = root.derive("stray", @blows).rand(0..OVERSHOOT)
+      far = at
+      Line.beyond(from, at, OVERSHOOT) { |spot| far = spot }
+      return at if reach.zero? || far == at
+
+      Flight.toward(floor, at, far, reach).at
     end
 
     # How many turns a creature waits between one mending and the next.

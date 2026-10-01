@@ -81,18 +81,18 @@ green slime over 10000 of them
 goblin scout over 10000 of them
   100.0% of the time (100% stated)
     dagger           100.0%
-   34.8% of the time (35% stated)
-    cap               29.7%
-    gloves            23.6%
-    boots             20.4%
-    leather armor     18.4%
-    shield             5.4%
+   35.5% of the time (35% stated)
+    cap               29.9%
+    gloves            21.8%
+    boots             21.1%
+    leather armor     18.9%
+    shield             5.9%
     chain mail         2.4%
    59.8% of the time (60% stated)
     gold piece       100.0%
-   40.2% of the time (40% stated)
-    torch             64.7%
-    candle            35.3%
+   39.7% of the time (40% stated)
+    torch             66.5%
+    candle            33.5%
 goblin warrior over 10000 of them
   100.0% of the time (100% stated)
     short sword      100.0%
@@ -142,15 +142,15 @@ orc over 10000 of them
     torch             64.2%
     candle            35.8%
 orc archer over 10000 of them
-   54.6% of the time (55% stated)
-    cap               30.0%
-    gloves            22.7%
-    boots             22.2%
-    leather armor     16.9%
-    shield             6.2%
+   54.3% of the time (55% stated)
+    cap               29.0%
+    gloves            22.8%
+    boots             21.7%
+    leather armor     18.0%
+    shield             6.5%
     chain mail         2.0%
-   69.4% of the time (70% stated)
+   69.5% of the time (70% stated)
     gold piece       100.0%
-    9.6% of the time (10% stated)
-    torch             67.9%
-    candle            32.1%
+   10.4% of the time (10% stated)
+    torch             65.9%
+    candle            34.1%

@@ -125,7 +125,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   points and chills what it touches. A red slime scalds for more damage, and a green slime eats at
   its target for the most. Goblins are scouts, warriors and shamans. A scout is quick, carries a
   dagger, has poor armor and always appears alone. A shaman fights weakly and heals a hurt goblin
-  beside it for 1d4 once every few turns. Orcs are orcs and orc archers. An archer has no bow yet.
+  beside it for 1d4 once every few turns. Orcs are orcs and orc archers.
 * Every kind of a species shares its letter and has a colour of its own. The examine pane, the
   sidebar and the message log name the kind.
 * Each kind has the depths it appears at. Red slimes and goblin warriors appear from floor 2, green
@@ -155,9 +155,24 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   damage in the same time, and armor when it stops more. Slimes pick up nothing. A goblin shaman
   picks up a wand of striking.
 * The examine pane and the tooltip on a creature say what it wields and wears.
+* Goblin scouts carry a sling and 2d4 stones. Orc archers carry a bow and 3d6 arrows, which are
+  sometimes +1 on floors 3 and deeper. A creature with something to shoot and a clear line to the
+  character stays three to six squares away and shoots. It backs off when the character comes
+  within two squares and it has room. Out of ammunition it closes in and fights hand to hand. A
+  shot rolls to hit and for damage the way the character's shots do.
+* The message log says what shot at the character and from which direction. A shooter the
+  character cannot see is "something".
+* A shot that hits lands at the character's feet. One that misses lands up to two squares past
+  them. Either can be picked up.
+* A goblin scout or an orc archer with an empty hand picks up a sling or a bow of its own kind, and
+  picks up stones or arrows for it when its quiver is empty or holds the same. It shoots with what
+  it readies.
 
 ### Changed
 
+* `--matchup` starts a fight against a kind with a sling or bow six squares apart, with four
+  squares behind the creature to back into. The character walks in while it shoots. The table
+  lists these kinds above the kits.
 * A blow costs what the weapon says rather than one turn. A dagger takes 75 energy, a short sword
   100, a rapier 115, a long sword 120, and a mace or a spear 125. Bare hands take 80. A shot costs
   what the launcher says, 120 for a bow and 100 for a sling, and a throw costs what the thrown item

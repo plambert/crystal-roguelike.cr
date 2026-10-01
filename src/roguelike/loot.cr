@@ -122,9 +122,23 @@ module Roguelike
     # A minus is never capped. A curse is as bad on floor 1 as anywhere.
     CEILINGS = [1, 1, 2, 2, 3]
 
+    # How often a monster's ammunition comes out +1, out of a hundred, from
+    # floor 1 down. A floor deeper than the last entry reads the last entry.
+    #
+    # The whole stack comes out +1 or none of it does.
+    FLETCHED = [0, 0, 10, 20, 30]
+
     # The shallowest floor *kind* turns up on.
     def self.from(kind : ItemKind) : Int32
       GATES.select(&.covers?(kind)).max_of?(&.from) || 1
+    end
+
+    # How often ammunition a monster carries on the floor at *depth* is +1,
+    # out of a hundred. `nil` holds nothing back.
+    def self.fletched(depth : Int32?) : Int32
+      return FLETCHED.last unless depth
+
+      FLETCHED[(depth - 1).clamp(0, FLETCHED.size - 1)]
     end
 
     # Whether *kind* turns up on the floor at *depth*.
@@ -196,6 +210,11 @@ module Roguelike
     def self.kinds(kind : Kind | Species) : Set(ItemKind)
       found = Set(ItemKind).new
       draws(kind).each { |draw| draw.kinds.each_key { |item| found << item } }
+      ranged_weapon = as_kind(kind).ranged_weapon
+      if ranged_weapon
+        found << ranged_weapon
+        ranged_weapon.ammunition.try { |ammunition| found << ammunition }
+      end
       found
     end
 
@@ -220,7 +239,32 @@ module Roguelike
         found << taken if taken
       end
 
-      found
+      found.concat shooting(as_kind(kind), rng, depth)
+    end
+
+    # What *kind* shoots with and how much it has to shoot, rolled on *rng*.
+    # Empty for a kind with no `Kind#ranged_weapon`, which rolls nothing.
+    #
+    # `#for` rolls this after every draw, so a kind with no ranged weapon carries
+    # what it carried before monsters shot.
+    #
+    # The ranged weapon rolls the way any other weapon a monster carries does.
+    # The ammunition is sound, and `#fletched` says how often it is +1.
+    def self.shooting(kind : Kind, rng : Rng, depth : Int32?) : Array(Item)
+      ranged_weapon = kind.ranged_weapon
+      ammunition = ranged_weapon.try &.ammunition
+      return [] of Item unless ranged_weapon && ammunition
+
+      weapon = Items.make rng, ranged_weapon, CONDITIONS, depth.try { |deep| ceiling deep }
+      count = Math.max kind.quiver.roll(rng), 1
+      plus = rng.rand(100) < fletched(depth) ? 1 : 0
+
+      [weapon, Item.new(ammunition, plus, count: count)]
+    end
+
+    # The kind *kind* stands for.
+    private def self.as_kind(kind : Kind | Species) : Kind
+      kind.is_a?(Species) ? kind.default : kind
     end
 
     # What one draw produces. `nil` when it produces nothing.

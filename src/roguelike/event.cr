@@ -62,6 +62,7 @@ module Roguelike
       "removed"        => Removed,
       "repaired"       => Repaired,
       "scroll_kept"    => ScrollKept,
+      "shot"           => Shot,
       "slain"          => Slain,
       "spiked"         => Spiked,
       "spilled"        => Spilled,
@@ -325,6 +326,21 @@ module Roguelike
 
       def initialize(@item : Int32, @name : String, @at : {Int32, Int32},
                      @thrown : Bool)
+      end
+    end
+
+    # Something a creature shot at the character.
+    #
+    # *shooter* is `nil` when the character could not make out who shot.
+    # *from* is the way the shot came from, such as "north-east".
+    class Shot < Event
+      getter kind : String = "shot"
+
+      getter shooter : Int32?
+      getter name : String
+      getter from : String
+
+      def initialize(@name : String, @from : String, @shooter : Int32? = nil)
       end
     end
 

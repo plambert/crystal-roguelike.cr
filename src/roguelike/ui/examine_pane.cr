@@ -240,9 +240,9 @@ module Roguelike::Ui
       clauses = [] of String
 
       creature.wielded.try { |item| clauses << "wields #{named.call item}" }
-      held = creature.launcher || creature.wand
+      held = creature.ranged_weapon || creature.wand
       held.try { |item| clauses << "holds #{named.call item}" }
-      creature.quivered.try { |item| clauses << "has #{named.call item} to shoot" }
+      creature.in_slot(Roguelike::Slot::Quiver).try { |item| clauses << "has #{named.call item} to shoot" }
       worn = creature.worn
       clauses << "wears #{ExaminePane.listing worn.map(&named)}" unless worn.empty?
       return if clauses.empty?

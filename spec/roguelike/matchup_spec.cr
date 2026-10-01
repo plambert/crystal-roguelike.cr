@@ -47,6 +47,21 @@ Spectator.describe Roguelike::Trial::Matchup do
       end
     end
 
+    it "readies a kind that shoots with its ranged weapon and ammunition" do
+      archer = Roguelike::Monster.new Kind::OrcArcher, 1, 0, "matchup"
+      archer.outfit Roguelike::Loot.for(Kind::OrcArcher, Roguelike::Rng.new(7_u64), 4)
+
+      expect(archer.ranged_weapon.try &.kind).to eq Roguelike::ItemKind::Bow
+      expect(archer.ammunition.try &.count).to be_between(3, 18).inclusive
+    end
+
+    it "gives a kind that shoots the turns it spends at range" do
+      archer = Matchup.cell first, Kind::OrcArcher, FIGHTS
+      orc = Matchup.cell first, Kind::Orc, FIGHTS
+
+      expect(archer.mean_turns).to be > orc.mean_turns
+    end
+
     it "leaves the character at most as hurt as they were" do
       result = Matchup.fight first, Kind::Orc, Roguelike::Rng.new(7_u64)
 
@@ -105,6 +120,13 @@ Spectator.describe Roguelike::Trial::Matchup do
 
       Kind.values.each { |kind| expect(text).to contain kind.label }
       Matchup::KITS.each { |kit| expect(text).to contain kit.heading }
+    end
+
+    it "says which kinds start at range" do
+      text = Matchup.play(5).to_s
+
+      expect(text).to contain "goblin scout, sling and 2d4 stones"
+      expect(text).to contain "orc archer, bow and 3d6 arrows"
     end
   end
 end

@@ -35,7 +35,7 @@ module Roguelike
       item.kind.swing
     end
 
-    # What shooting with *launcher* or throwing *item* costs.
+    # What shooting with the ranged weapon *item*, or throwing *item*, costs.
     def self.loose(item : Item) : Int32
       item.kind.swing
     end

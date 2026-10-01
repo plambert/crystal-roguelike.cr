@@ -324,13 +324,16 @@ module Roguelike
     end
 
     # The sling or bow it holds. `nil` when it holds none.
-    def launcher : Item?
+    def ranged_weapon : Item?
       in_slot(Slot::Ranged).try { |held| held if held.kind.item_class.ranged_weapon? }
     end
 
-    # What it has to shoot. `nil` when its quiver is empty.
-    def quivered : Item?
-      in_slot Slot::Quiver
+    # What it has left to shoot from its `#ranged_weapon`. `nil` when its
+    # quiver is empty or holds ammunition for another weapon.
+    def ammunition : Item?
+      weapon = ranged_weapon
+      held = in_slot Slot::Quiver
+      held if weapon && held && held.kind.ranged_weapon == weapon.kind
     end
 
     # The wand it holds ready. `nil` when it holds none.
@@ -362,13 +365,19 @@ module Roguelike
     # Puts *item* in the slot it goes in. Answers what was there, or `nil`.
     #
     # The caller has already asked `#slot_for`. What comes out is no longer
-    # held anywhere, and the caller decides where it goes.
+    # held anywhere, and the caller decides where it goes. Ammunition that
+    # stacks with the quiver joins it, and nothing comes out.
     def ready(item : Item) : Item?
       slot = slot_for item
       raise ArgumentError.new "#{label} cannot ready #{item}" unless slot
 
       held = (@gear ||= {} of Slot => Item)
       taken = held[slot]?
+      if taken && slot.quiver? && taken.stacks_with?(item)
+        held[slot] = taken.merge item
+        return
+      end
+
       held[slot] = item
       taken
     end
@@ -406,7 +415,10 @@ module Roguelike
     # A weapon is better when it does more in every 100 energy than the one
     # in hand, or than the creature's own attack. Armor is better when it
     # takes more off a blow. A wand is better than none, and than one with
-    # no charges left. The creature knows every enchantment and condition.
+    # no charges left. A kind that shoots takes up its own kind of ranged
+    # weapon when its hand is empty, and ammunition for it when its quiver is
+    # empty or holds the same. The creature knows every enchantment and
+    # condition.
     def better?(item : Item) : Bool
       slot = slot_for item
       return false unless slot
@@ -419,9 +431,21 @@ module Roguelike
         held.nil? || item.armor > held.armor
       when .melee?
         Player.swung?(item) && offense(item) > offense(wielded)
+      when .ranged_weapon?, .ammunition?
+        shoots_with? item, held
       else
         false
       end
+    end
+
+    # Whether *item* is what this kind shoots, or shoots with, and its slot,
+    # holding *held*, has room for it.
+    private def shoots_with?(item : Item, held : Item?) : Bool
+      shoots = kind.ranged_weapon
+      return false unless shoots
+      return held.nil? && item.kind == shoots if item.kind.item_class.ranged_weapon?
+
+      item.kind.ranged_weapon == shoots && (held.nil? || held.stacks_with?(item))
     end
 
     # What this creature adds to a swing.
@@ -471,6 +495,40 @@ module Roguelike
     # Takes *amount* off its hit points. Answers how many are left.
     def hurt(amount : Int32) : Int32
       @hit_points = Math.max @hit_points - amount, 0
+    end
+
+    # How far it can shoot now. Zero when it has nothing to shoot or nothing
+    # to shoot with.
+    def shooting_reach : Int32
+      return 0 unless ammunition
+
+      ranged_weapon.try(&.kind.reach) || 0
+    end
+
+    # What it adds to a shot from *weapon* with *ammunition*.
+    #
+    # The same sum `Player#to_shoot` makes, from this creature's dexterity.
+    def to_shoot(weapon : Item, ammunition : Item) : Int32
+      Combat.aim @attributes.modifier(Attributes::Which::Dexterity), weapon, ammunition
+    end
+
+    # Takes one piece of its ammunition out of the stack. *id* numbers the
+    # piece when the stack holds more than one.
+    #
+    # The last piece leaves the stack as it is, id and all.
+    def draw_shot(id : Int32) : Item?
+      held = ammunition
+      gear = @gear
+      return unless held && gear
+
+      if held.count <= 1
+        gear.delete Slot::Quiver
+        @gear = nil if gear.empty?
+        return held
+      end
+
+      gear[Slot::Quiver] = held.add -1
+      held.with_count 1, id
     end
 
     # Gives it *items* to carry, on top of whatever it already had.
