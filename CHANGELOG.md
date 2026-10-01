@@ -308,6 +308,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* The message pane holds at `--More--` late in a long run. Once the log reached its 200 line limit,
+  a turn that wrote more lines than the pane shows scrolled them past without holding.
 * `replay upgrade` keeps the checkpoint spacing a file was recorded with when an action of several
   turns ran past a checkpoint. It took the shorter gap after that checkpoint as the spacing.
 * A build of the game as another shard's dependency records the game's own commit, which

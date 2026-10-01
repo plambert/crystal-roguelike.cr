@@ -125,6 +125,65 @@ Spectator.describe TermBuf::Widgets::Pager do
     end
   end
 
+  # A capped log drops its oldest line for each one it gains, so its size
+  # stops changing once it is full.
+  describe "a source that drops its oldest lines" do
+    # A pager over 200 lines, every one of them read.
+    def full : Paged
+      run = paged
+      run.pager.show messages(200)
+      run.pager.catch_up
+      run
+    end
+
+    it "holds when as many arrive as are dropped" do
+      run = full
+      run.pager.show messages(206)[6..]
+
+      expect(run.pager.unread).to eq 6
+      expect(run.pager.holding?).to be_true
+    end
+
+    it "pages through what arrived, skipping none" do
+      run = full
+      run.pager.show messages(206)[6..]
+
+      pages = [] of String
+      while run.pager.holding?
+        pages.concat run.pager.showing
+        run.pager.advance
+      end
+
+      # The last view keeps older lines above the newest for context.
+      rest = run.pager.showing
+      pages.concat rest[(rest.index(pages.last) || -1) + 1..]
+
+      expect(pages).to eq messages(206).last(6)
+    end
+
+    # The read mark counts wrapped lines, so a dropped line that wrapped
+    # takes more than one off it. Taking one would leave three unread, which
+    # a four row pane shows without holding.
+    it "counts the wrapped lines of what was dropped" do
+      run = paged
+      long = "A single message far too long to fit on one row here."
+      run.pager.show [long] + messages(10)
+      run.pager.catch_up
+
+      run.pager.show messages(15)
+
+      expect(run.pager.unread).to eq 5
+      expect(run.pager.holding?).to be_true
+    end
+
+    it "holds nothing for a source that shares no lines with the last" do
+      run = full
+      run.pager.show ["Something else entirely."]
+
+      expect(run.pager.holding?).to be_false
+    end
+  end
+
   describe "a line longer than the pane" do
     it "wraps rather than being cut" do
       run = paged

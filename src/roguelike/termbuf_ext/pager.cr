@@ -92,6 +92,9 @@ module TermBuf::Widgets
     # for. `#hold` sets it and `#advance` clears it.
     @insisted = false
 
+    # How many wrapped lines each source line became, oldest first.
+    @rows_per_line = [] of Int32
+
     def initialize(style : Style? = nil)
       @width = Layout::Sizing.grow
       @height = Layout::Sizing.grow
@@ -120,9 +123,15 @@ module TermBuf::Widgets
     # The same lines a second time change nothing. An owner redraws on every
     # frame, and rewrapping text that has not moved would throw away a
     # scrolled window several times a second.
+    #
+    # A source may drop its oldest lines as it gains new ones. A capped log
+    # does this, and its size then stays the same however much is added. The
+    # read mark moves back by what was dropped, so the new lines still count
+    # as unread.
     def show(source : Array(String)) : Nil
       return if @source == source
 
+      @read -= dropped source
       @source = source.dup
       @back = 0
       rewrap
@@ -322,16 +331,41 @@ module TermBuf::Widgets
       view.write 0, spot, @marker, @marker_style
     end
 
+    # How many wrapped lines at the front of the shown source *source* no
+    # longer holds.
+    #
+    # The shown source is looked for at the front of *source*, with one more
+    # of its oldest lines left off each try. A source that shares nothing with
+    # the shown one is new text rather than a continuation, and drops nothing.
+    private def dropped(source : Array(String)) : Int32
+      gone = (0...@source.size).find { |shift| continues? source, shift }
+      return 0 unless gone
+
+      @rows_per_line.first(gone).sum
+    end
+
+    # Whether *source* starts with the shown source less its first *shift*
+    # lines.
+    private def continues?(source : Array(String), shift : Int32) : Bool
+      kept = @source.size - shift
+      return false if kept > source.size
+
+      kept.times.all? { |index| source[index] == @source[shift + index] }
+    end
+
     # Wraps the source to `#columns`. Keeps the read mark where it was.
     #
     # Rewrapping changes how many lines there are. The read mark counts
     # wrapped lines, so it is clamped rather than kept exactly.
     private def rewrap : Nil
-      @lines = if @columns > 0
-                 @source.flat_map { |line| Pager.wrap line, @columns }
-               else
-                 @source.dup
-               end
+      wrapped = if @columns > 0
+                  @source.map { |line| Pager.wrap line, @columns }
+                else
+                  @source.map { |line| [line] }
+                end
+
+      @rows_per_line = wrapped.map &.size
+      @lines = wrapped.flatten
 
       settle
     end
