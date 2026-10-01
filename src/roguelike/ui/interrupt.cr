@@ -16,6 +16,11 @@ module Roguelike::Ui
     # What to run when a key arrives.
     property on_key : Proc(Nil)? = nil
 
+    # Whether a key goes on to whatever has the keyboard once `#on_key` has
+    # let go. A camera pan uses this. The key ends the pan and then does what
+    # it always does.
+    property? passes : Bool = false
+
     # Whether it is holding the keyboard.
     getter? holding : Bool = false
 
@@ -48,12 +53,16 @@ module Roguelike::Ui
     end
 
     # Gives the keyboard back to whatever had it.
+    #
+    # It takes off its own layer wherever that sits. A layer pushed over it
+    # since, such as a page the pager holds, stays where it is.
     def let_go : Nil
-      return unless @scope
+      scope = @scope
+      return unless scope
 
       @holding = false
       @scope = nil
-      @app.try &.focus.pop
+      @app.try &.focus.scopes.delete(scope)
       @app = nil
     end
 
@@ -64,6 +73,7 @@ module Roguelike::Ui
 
       context.consume
       @on_key.try &.call
+      context.router.dispatch event if @passes && !@holding
     end
 
     def draw(view : View) : Nil
