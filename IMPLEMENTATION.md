@@ -3258,6 +3258,17 @@ of the two.
 | potion of haste, scroll of blessing | 2 |
 | chain mail, wand of striking, scroll of haste monster | 3 |
 
+* `Loot::SHARES` holds a kind to a share of another kind's weight by depth. The gates cannot do
+  this, because a gate only says from which floor a kind appears and never until which. The potion
+  of minor healing is 25 in 100 of the healing potions on floor 1 and 3 in 100 from floor 2 down.
+  `Loot.gated` works its weight out from the potion of healing's weight in the same table, so the
+  share holds in `Items::WEIGHTS` and in `Loot::SWALLOWED` alike. The weight a table lists for the
+  kind (11 and 15) is what it gets where no depth is named. A spec samples the shares at floors 1
+  and 3.
+* The replay stream versions for `litter` and `loot` are 3 and 5, because both tables gained a
+  row. `lore` is unchanged, since the new kind is last of the potions and the colours of the other
+  two stay where they were. `golden.jsonl` was recorded again from scratch, because the items on
+  floor 1 moved and its actions name items by id.
 * `Loot::CEILINGS` caps a plus by depth: +1 on floors 1 and 2, +2 on floors 3 and 4, +3 on floor
   5. A minus is never capped.
 * The gate and the cap apply to litter, to ammunition beside a ranged weapon, and to what a monster
@@ -3295,6 +3306,21 @@ in 100 under `--trial`, the kit stays as it is. Otherwise it gains one potion of
 
 Floor 1 without orcs came in at 37.5, under the bar, so the kit holds a potion of healing. The
 character knows what it is: `Game.start` marks the kind known in the run's lore.
+
+The kit now holds a potion of minor healing, 1d4+1 against the 2d4+2 of a potion of healing, and
+`Game.start` marks that kind known instead. The opening log line reads "You carry three spikes and
+a potion of minor healing." The word "iron" is gone so the line fits 80 columns. The numbers in the
+table above are from the potion of healing. The same 200 runs on seed 5000, with the full
+dungeon and the minor potion:
+
+| | potion of healing | potion of minor healing |
+|---|---|---|
+| died | 76 (38%) | 87 (43%) |
+| survived floor 1 | 69.0% | 64.0% |
+| killed by | goblin scout 57, giant ant 6, blue slime 5 | goblin scout 64, giant ant 7, blue slime 6 |
+
+The floors differ between the two runs, because the loot tables changed the draws. The runs share
+a seed and not a dungeon, so the five point drop mixes the smaller draught with different loot.
 
 Two hundred runs of at most 1500 turns from seed 5000:
 
