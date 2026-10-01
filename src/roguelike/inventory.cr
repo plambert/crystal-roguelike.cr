@@ -295,6 +295,96 @@ module Roguelike
       nil
     end
 
+    # Two piles that became one. *kept* is the id of the pile that stays and
+    # *gone* is the id of the pile that was put into it.
+    record Merge, letter : Char, kept : Int32, gone : Int32
+
+    # Puts together every pair of piles that now stack, and answers the
+    # merges it made.
+    #
+    # Learning a blessing can make a pile match one it was kept apart from.
+    # `#add` only looks when something is picked up, so `Game` calls this
+    # after anything that changes what the character knows.
+    #
+    # The pile that is readied in *equipment* keeps its letter and its id.
+    # Otherwise the earlier letter does. Two readied piles stay apart,
+    # because a slot holds one letter and the merged pile cannot be in both.
+    # Nothing here needs to repoint a slot, since the readied letter is
+    # always the one that stays.
+    def restack(equipment : Equipment) : Array(Merge)
+      merged = [] of Merge
+
+      while found = next_merge equipment
+        merged << found
+      end
+
+      merged
+    end
+
+    # Makes the first merge it finds. Answers it, or `nil` when no two piles
+    # stack.
+    private def next_merge(equipment : Equipment) : Merge?
+      held = LETTERS.select { |letter| @slots.has_key? letter }
+
+      held.each_with_index do |first, index|
+        held[index..].each do |second|
+          found = first == second ? fold(first) : join(first, second, equipment)
+          return found if found
+        end
+      end
+
+      nil
+    end
+
+    # Merges two piles under the same *letter*.
+    private def fold(letter : Char) : Merge?
+      items = @slots[letter].items
+
+      items.each_with_index do |keep, index|
+        found = items.index(index + 1) { |other| keep.stacks_with? other }
+        next unless found
+
+        gone = items.delete_at found
+        items[index] = keep.merge gone
+        return Merge.new letter, keep.id, gone.id
+      end
+
+      nil
+    end
+
+    # Merges a pile under *second* into one under *first*, or the other way
+    # round when only *second* is readied.
+    private def join(first : Char, second : Char, equipment : Equipment) : Merge?
+      return if equipment.readied?(first) && equipment.readied?(second)
+
+      keeper, loser = equipment.readied?(second) ? {second, first} : {first, second}
+      kept = @slots[keeper]
+      lost = @slots[loser]
+
+      kept.items.each_with_index do |keep, index|
+        gone = lost.items.find { |other| keep.stacks_with? other }
+        next unless gone
+
+        lost.pull gone
+        kept.items[index] = keep.merge gone
+        @slots.delete loser if lost.empty?
+        return Merge.new keeper, keep.id, gone.id
+      end
+
+      nil
+    end
+
+    # A number that changes when anything the character can know about an
+    # item in the pack changes. The count and the id are left out.
+    #
+    # `Game` compares it before and after an action to decide whether a
+    # `#restack` is due. It is never written out.
+    def signature : UInt64
+      found = 0_u64
+      each_item { |_letter, item| found &+= item.known.hash }
+      found
+    end
+
     # Takes everything but *keep* out from under *letter*.
     #
     # What comes out is the caller's to put somewhere. `Game` drops it on the

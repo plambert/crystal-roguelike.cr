@@ -312,6 +312,14 @@ module Roguelike
         @lit == other.lit? && size == other.size
     end
 
+    # What the character can know about this item, as one value.
+    #
+    # The count and the id are left out, because a stack that grows is the
+    # same stack. `Inventory#signature` adds these up.
+    def known : Tuple(ItemKind, Int32, Condition, Blessing, Bool, Bool, Size)
+      {@kind, @enchantment, @condition, @blessing, @blessing_known, @lit, size}
+    end
+
     # Whether *other* would sit under the same letter as this.
     #
     # Everything the character can see has to match. The blessing counts only
