@@ -145,6 +145,24 @@ Spectator.describe Roguelike::Replay do
       expect(Verifier.check(where).trouble).to be_nil
     end
 
+    it "verifies a run that drinks the potion of minor healing" do
+      where = spot "minor"
+      Log.every = 1
+
+      Recording.recording where do
+        run = Playing.open Game.dug(Rng.new(Recording::SEED))
+        run.game.player.name = "drinker"
+        letter = run.game.player.inventory.select(&.kind.minor_healing_potion?)[0][0]
+        run.press "q", letter.to_s, "l", "."
+        run.game
+      end
+
+      Log.every = Log::EVERY
+
+      expect(Recording.read(where).header.log.join).to contain "potion of minor healing"
+      expect(Verifier.check(where).trouble).to be_nil
+    end
+
     # One lit room with the character in the middle and a goblin one square
     # east of them.
     ARENA = [

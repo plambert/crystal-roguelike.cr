@@ -64,22 +64,23 @@ module Roguelike
 
     # What a slime has swallowed and not digested.
     SWALLOWED = {
-      ItemKind::HealingPotion     => 44,
-      ItemKind::IdentifyScroll    => 16,
-      ItemKind::MappingScroll     => 10,
-      ItemKind::RemoveCurseScroll => 8,
-      ItemKind::BlessingScroll    => 6,
-      ItemKind::TreasureScroll    => 8,
-      ItemKind::DetectionScroll   => 8,
-      ItemKind::DarknessScroll    => 5,
-      ItemKind::BlindnessScroll   => 6,
-      ItemKind::TeleportScroll    => 7,
-      ItemKind::RepairScroll      => 7,
-      ItemKind::HastePotion       => 8,
-      ItemKind::SlowScroll        => 6,
-      ItemKind::HasteScroll       => 3,
-      ItemKind::LightWand         => 10,
-      ItemKind::StrikingWand      => 6,
+      ItemKind::HealingPotion      => 44,
+      ItemKind::MinorHealingPotion => 15,
+      ItemKind::IdentifyScroll     => 16,
+      ItemKind::MappingScroll      => 10,
+      ItemKind::RemoveCurseScroll  => 8,
+      ItemKind::BlessingScroll     => 6,
+      ItemKind::TreasureScroll     => 8,
+      ItemKind::DetectionScroll    => 8,
+      ItemKind::DarknessScroll     => 5,
+      ItemKind::BlindnessScroll    => 6,
+      ItemKind::TeleportScroll     => 7,
+      ItemKind::RepairScroll       => 7,
+      ItemKind::HastePotion        => 8,
+      ItemKind::SlowScroll         => 6,
+      ItemKind::HasteScroll        => 3,
+      ItemKind::LightWand          => 10,
+      ItemKind::StrikingWand       => 6,
     }
 
     # Coins. One kind, so the weight says nothing; the count is what varies.
@@ -114,6 +115,20 @@ module Roguelike
       Gate.new(ItemKind::HastePotion, 2),
       Gate.new(ItemKind::BlessingScroll, 2),
       Gate.new(ItemKind::HasteScroll, 3),
+    ]
+
+    # A kind that turns up as a share of another kind, by floor.
+    #
+    # *percent* is the share of the two together that *kind* makes up, out of
+    # a hundred, from floor 1 down. A floor deeper than the last entry reads
+    # the last entry. A share of zero leaves *kind* out. The weight *kind*
+    # has in a table is what it gets where nothing names a floor.
+    record Share, kind : ItemKind, of : ItemKind, percent : Array(Int32)
+
+    # Minor healing potions are about a quarter of the healing potions on
+    # floor 1 and a rarity below it.
+    SHARES = [
+      Share.new(ItemKind::MinorHealingPotion, ItemKind::HealingPotion, [25, 3]),
     ]
 
     # The highest `+N` anything turns up with, from floor 1 down. A floor
@@ -152,9 +167,23 @@ module Roguelike
     end
 
     # *table* with every kind that waits for a floor deeper than *depth*
-    # left out.
+    # left out, and every kind in `SHARES` weighed to its share at *depth*.
     def self.gated(table : Hash(ItemKind, Int32), depth : Int32) : Hash(ItemKind, Int32)
-      table.select { |kind, _weight| allowed? kind, depth }
+      found = table.select { |kind, _weight| allowed? kind, depth }
+
+      SHARES.each do |share|
+        base = found[share.of]?
+        next unless base && found.has_key? share.kind
+
+        percent = share.percent[(depth - 1).clamp(0, share.percent.size - 1)]
+        if percent <= 0
+          found.delete share.kind
+        else
+          found[share.kind] = Math.max (base * percent / (100.0 - percent)).round.to_i, 1
+        end
+      end
+
+      found
     end
 
     # What each species draws for, apart from a weapon and a light.

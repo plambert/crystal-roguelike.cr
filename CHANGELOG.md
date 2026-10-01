@@ -10,6 +10,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* The potion of minor healing puts back 1d4+1 hit points, half as many when cursed and twice as
+  many when blessed. It has a colour of its own until one is drunk. About a quarter of the healing
+  potions on floor 1 are minor, and about three in a hundred from floor 2 down.
 * `--matchup` prints who beats whom and stops. Each kind of creature fights a character of each of
   five kits, one per depth, in an empty room. The tables give the win rate, the mean turns to a
   decision and the mean hit points the character lost. `--matchup-fights N` sets the fights in a
@@ -189,6 +192,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* The character starts with a potion of minor healing, already known, in place of the potion of
+  healing. The opening log line says so.
 * `--matchup` starts a fight against a kind with a sling or bow six squares apart, with four
   squares behind the creature to back into. The character walks in while it shoots. The table
   lists these kinds above the kits.

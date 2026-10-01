@@ -34,8 +34,8 @@ module Roguelike
       # nobody and nothing in the run.
       VERSIONS = {
         "generator"  => 5,
-        "litter"     => 2,
-        "loot"       => 4,
+        "litter"     => 3,
+        "loot"       => 5,
         "ammunition" => 2,
         "lore"       => 1,
         "combat"     => 1,

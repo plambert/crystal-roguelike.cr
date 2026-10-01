@@ -65,12 +65,22 @@ Spectator.describe Roguelike::Game do
     end
 
     # Floor 1 kills a character with nothing to drink more often than not.
-    it "hands out one potion of healing, already known" do
-      potions = game.player.inventory.select &.kind.healing_potion?
+    it "hands out one potion of minor healing, already known" do
+      potions = game.player.inventory.select &.kind.minor_healing_potion?
 
       expect(potions.size).to eq 1
       expect(potions.first[1].count).to eq 1
-      expect(game.lore.known? Roguelike::ItemKind::HealingPotion).to be_true
+      expect(game.lore.known? Roguelike::ItemKind::MinorHealingPotion).to be_true
+    end
+
+    it "hands out no potion of healing" do
+      expect(game.player.inventory.select(&.kind.healing_potion?)).to be_empty
+      expect(game.lore.known? Roguelike::ItemKind::HealingPotion).to be_false
+    end
+
+    it "says so in the opening log" do
+      expect(game.log.lines).to contain(
+        "You carry three spikes and a potion of minor healing. Press ? for the keys.")
     end
   end
 
@@ -326,6 +336,17 @@ Spectator.describe Roguelike::Game do
   end
 
   describe "serialization" do
+    it "round-trips the potion of minor healing and what the character knows of it" do
+      fresh = described_class.dug Roguelike::Rng.new(4272_u64)
+      again = described_class.from_json fresh.to_json
+
+      potions = again.player.inventory.select &.kind.minor_healing_potion?
+      expect(potions.size).to eq 1
+      expect(again.lore.known? Roguelike::ItemKind::MinorHealingPotion).to be_true
+      expect(again.lore.appearance Roguelike::ItemKind::MinorHealingPotion)
+        .to eq fresh.lore.appearance(Roguelike::ItemKind::MinorHealingPotion)
+    end
+
     it "round-trips through JSON" do
       3.times { game.step Direction::East }
       again = described_class.from_json game.to_json

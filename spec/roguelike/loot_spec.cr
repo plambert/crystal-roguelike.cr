@@ -84,6 +84,59 @@ Spectator.describe Roguelike::Loot do
     end
   end
 
+  describe "the share of healing potions that are minor" do
+    # Minor potions as a percentage of every healing potion of either kind
+    # that *table* gates to *depth* and rolls *count* times.
+    def minor_share(table : Hash(Kind, Int32), depth : Int32, count : Int32 = 20_000) : Float64
+      rng = Rng.new(SEED).derive "shares:#{depth}"
+      weights = Loot.gated table, depth
+
+      healing = minor = 0
+      count.times do
+        case Roguelike::Items.pick rng, weights
+        when Kind::HealingPotion      then healing += 1
+        when Kind::MinorHealingPotion then minor += 1
+        end
+      end
+
+      minor * 100.0 / (healing + minor)
+    end
+
+    it "is about a quarter on floor 1" do
+      expect(minor_share Roguelike::Items::WEIGHTS, 1).to be_close 25.0, 2.0
+      expect(minor_share Loot::SWALLOWED, 1).to be_close 25.0, 2.0
+    end
+
+    it "is about three in a hundred on floor 3" do
+      expect(minor_share Roguelike::Items::WEIGHTS, 3).to be_close 3.0, 1.5
+      expect(minor_share Loot::SWALLOWED, 3).to be_close 3.0, 1.5
+    end
+
+    it "is the same on every floor from 2 down" do
+      weights = (2..5).map { |depth| Loot.gated(Roguelike::Items::WEIGHTS, depth)[Kind::MinorHealingPotion] }
+
+      expect(weights.uniq.size).to eq 1
+    end
+
+    it "leaves the other weights as they were" do
+      gated = Loot.gated Roguelike::Items::WEIGHTS, 1
+
+      expect(gated[Kind::HealingPotion]).to eq Roguelike::Items::WEIGHTS[Kind::HealingPotion]
+    end
+
+    it "samples whole items at the depth asked for" do
+      rng = Rng.new SEED
+      kinds = Array.new(6_000) { Roguelike::Items.random(rng, 1).kind }
+      deeper = Array.new(6_000) { Roguelike::Items.random(rng, 3).kind }
+
+      minor = ->(found : Array(Kind)) { found.count(&.minor_healing_potion?).to_f }
+      healing = ->(found : Array(Kind)) { found.count(&.healing_potion?).to_f }
+
+      expect(minor.call(kinds) * 100 / (minor.call(kinds) + healing.call(kinds))).to be_close 25.0, 5.0
+      expect(minor.call(deeper) * 100 / (minor.call(deeper) + healing.call(deeper))).to be_close 3.0, 3.0
+    end
+  end
+
   describe "how often a draw comes up" do
     # How far from the stated chance a share of ten thousand may land.
     #
