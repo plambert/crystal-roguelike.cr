@@ -66,6 +66,7 @@ module Roguelike
       "shot"           => Shot,
       "slain"          => Slain,
       "spiked"         => Spiked,
+      "restacked"      => Restacked,
       "spilled"        => Spilled,
       "split"          => Split,
       "status_end"     => StatusEnd,
@@ -390,6 +391,21 @@ module Roguelike
       getter name : String
 
       def initialize(@items : Array(Int32), @name : String)
+      end
+    end
+
+    # Piles in the pack that became one, now that they match.
+    #
+    # Each pair is the id that stays and the id that was put into it. An id
+    # in `gone` names nothing afterward, the way a pile merged at pickup
+    # does not.
+    class Restacked < Event
+      getter kind : String = "restacked"
+
+      getter kept : Array(Int32)
+      getter gone : Array(Int32)
+
+      def initialize(@kept : Array(Int32), @gone : Array(Int32))
       end
     end
 

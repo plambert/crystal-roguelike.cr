@@ -5403,10 +5403,27 @@ module Roguelike
       return Verdict.refused if over?
 
       recording
+      before = @player.inventory.signature
       verdict = dispatched action
+      restack if @player.inventory.signature != before && !over?
       clear_bearers
       @recorder.try &.act action unless verdict.refused?
       verdict
+    end
+
+    # Merges every pair of piles that the last action made alike.
+    #
+    # Identifying, blessing, lifting a curse and noticing a blessing all end
+    # up here, because `#perform` calls this whenever what the character
+    # knows about the pack has changed. The line is written once however many
+    # piles joined.
+    private def restack : Nil
+      merged = @player.inventory.restack @player.equipment
+      return if merged.empty?
+
+      clear_bearers
+      say "You organize your pack more efficiently.",
+        Event::Restacked.new(merged.map(&.kept), merged.map(&.gone))
     end
 
     # The rule for *action*.

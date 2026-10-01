@@ -1721,6 +1721,24 @@ This replaced a rule that compared the hidden blessing when handing out letters.
 differed in a curse took two letters under it, which told the player something differed without
 telling them what.
 
+### Piles that become alike
+
+Learning a blessing can make a pile match one it was kept apart from. Known-blessed arrows under
+`a` and hidden-blessed arrows under `b` are two letters until the hidden blessing is learned, and
+`Inventory#add` only looks for a match at pickup.
+
+`Inventory#restack` puts together every pair that now passes `Item#stacks_with?` and answers the
+merges made. The pile that is readied keeps its letter and its id, so no slot has to move. With
+neither readied, the earlier letter keeps both. Two readied piles stay apart. `Item#merge` keeps the
+id of the pile that stays, the same as a pickup, and `Event::Restacked` lists the ids kept and the
+ids that went.
+
+`Game#perform` is the one caller. It compares `Inventory#signature` before and after the action and
+restacks when it changed, so identify, blessing, remove curse, a wand cracking and `handle_items`
+are all covered without each one calling it. A save holding two such piles keeps them until the
+first action that changes the signature. Nothing rolls. A turn that merges anything writes "You
+organize your pack more efficiently." once.
+
 ### Handling
 
 `Handling` holds four numbers. A turn in a slot is worth 3 and a turn merely carried is worth 1.

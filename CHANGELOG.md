@@ -313,6 +313,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Piles of ammunition, potions and the like that become identical once the character learns a
+  blessing are put together. Two stacks of `+1` arrows, one with its blessing known and one
+  without, stayed under two letters for the rest of the run. They now merge on the turn the second
+  blessing is learned, under the letter of the stack that is wielded, worn or quivered, or else the
+  earlier letter. The log reads "You organize your pack more efficiently." once for that turn.
 * `replay upgrade` keeps the checkpoint spacing a file was recorded with when an action of several
   turns ran past a checkpoint. It took the shorter gap after that checkpoint as the spacing.
 * A build of the game as another shard's dependency records the game's own commit, which
