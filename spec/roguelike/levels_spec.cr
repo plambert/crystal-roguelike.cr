@@ -253,6 +253,30 @@ Spectator.describe "floors of the dungeon" do
 
       expect(game.outcome).to eq Outcome::Won
     end
+
+    it "is named without an article on the floor, in the hand and in the pack" do
+      game = down Game.dug(Rng.new SEED), World::DEEPEST
+      name = "The Mighty Amulet of MacGuffin"
+      game.floor.each_pile do |column, row, pile|
+        game.player.move_to({column, row}) if pile.any? &.kind.amulet?
+      end
+
+      expect(game.name game.here.first).to eq name
+
+      game.pick_up game.here.first
+      expect(game.log.last?).to eq "The Mighty Amulet of MacGuffin is yours. The dungeon has nothing left to keep you."
+      letter, _ = game.player.inventory.entries.find! &.[1].kind.amulet?
+      expect(game.name_under letter).to eq name
+    end
+
+    it "lies in the chamber plain and uncursed" do
+      amulet = nil
+      Generator.chamber.each_pile { |_c, _r, pile| amulet = pile.first }
+
+      expect(amulet.try &.blessing).to eq Roguelike::Blessing::Uncursed
+      expect(amulet.try &.enchantment).to eq 0
+      expect(amulet.try &.condition).to eq Roguelike::Condition::Plain
+    end
   end
 
   describe "the rule under the map" do

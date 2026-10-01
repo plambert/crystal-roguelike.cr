@@ -123,6 +123,7 @@ module Roguelike
              identified : Bool = false,
              regard : Regard = Regard::Everything) : String
       noun = noun_for item, blessing, identified, regard
+      return noun if item.kind.proper?
       return "#{item.count} #{noun}" if item.count > 1
       return noun if item.kind.uncountable?
 
@@ -133,6 +134,13 @@ module Roguelike
     def noun_for(item : Item, blessing : Bool = true,
                  identified : Bool = false,
                  regard : Regard = Regard::Everything) : String
+      return item.kind.label if item.kind.proper?
+
+      composed_noun item, blessing, identified, regard
+    end
+
+    private def composed_noun(item : Item, blessing : Bool,
+                              identified : Bool, regard : Regard) : String
       kind = item.kind
       plural = item.count > 1
 

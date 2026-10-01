@@ -252,6 +252,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   enough to fight again.
 * Orcs and orc archers are medium-sized, the same as the character. An orc seen only as a shape
   draws as a medium shape, and the armor an orc carries fits the character.
+* The amulet is called The Mighty Amulet of MacGuffin. It takes no article, and no blessing,
+  condition or enchantment word, wherever it is named.
 * A fingerprint is worked out about a third faster. `replay verify` on a five thousand action run
   takes 9.8 seconds where it took 11.5. The value is the same one, so a run recorded by an earlier
   build of this format still verifies.

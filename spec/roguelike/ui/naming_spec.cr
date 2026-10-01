@@ -80,7 +80,8 @@ Spectator.describe Roguelike::Ui::Naming do
     it "fits the sidebar for a name with a plus and a condition" do
       too_long = [] of String
 
-      Kind.values.each do |kind|
+      # The amulet is a proper name written whole. Taking it ends the run.
+      Kind.values.reject(&.proper?).each do |kind|
         item = Item.new kind, enchantment: 1, condition: Condition::Masterwork
         [lore, known].each do |which|
           found = Naming.short which, item

@@ -3529,7 +3529,7 @@ module Roguelike
       return unless item.kind.amulet?
 
       @outcome = Outcome::Won
-      say "The amulet is yours. The dungeon has nothing left to keep you.",
+      say "The Mighty Amulet of MacGuffin is yours. The dungeon has nothing left to keep you.",
         Event::Over.new(@outcome)
     end
 
