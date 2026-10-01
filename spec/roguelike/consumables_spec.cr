@@ -101,6 +101,55 @@ Spectator.describe "drinking, reading and zapping" do
     end
   end
 
+  describe "a potion of minor healing" do
+    # What each of *count* draughts puts back, drunk by somebody hurt to
+    # one hit point.
+    def gains(blessing : Roguelike::Blessing, count : Int32 = 120) : Array(Int32)
+      game = carrying [Item.new(Kind::MinorHealingPotion, count: count,
+        blessing: blessing)]
+
+      Array.new(count) do
+        game.player.hurt game.player.hit_points - 1
+        game.quaff 'a'
+        game.player.hit_points - 1
+      end
+    end
+
+    it "is a drunk, healing potion that takes a colour of its own" do
+      look = Lore.roll(Rng.new SEED).appearance Kind::MinorHealingPotion
+
+      expect(Kind::MinorHealingPotion.effect).to eq Effect::Heal
+      expect(Kind::MinorHealingPotion.label).to eq "potion of minor healing"
+      expect(look).not_to be_nil
+      expect(look).not_to eq Lore.roll(Rng.new SEED).appearance(Kind::HealingPotion)
+    end
+
+    it "weighs what a potion of healing does" do
+      expect(Kind::MinorHealingPotion.facts.weight).to eq Kind::HealingPotion.facts.weight
+    end
+
+    it "puts back one die of four and one" do
+      found = gains Roguelike::Blessing::Uncursed
+
+      expect(found.min).to eq 2
+      expect(found.max).to eq 5
+    end
+
+    it "puts back half as much when it is cursed" do
+      found = gains Roguelike::Blessing::Cursed
+
+      expect(found.min).to eq 1
+      expect(found.max).to eq 2
+    end
+
+    it "puts back double when it is blessed" do
+      found = gains Roguelike::Blessing::Blessed
+
+      expect(found.min).to eq 4
+      expect(found.max).to eq 10
+    end
+  end
+
   describe "Game#quaff" do
     it "puts hit points back" do
       game = carrying [Item.new(Kind::HealingPotion)], hit_points: 1

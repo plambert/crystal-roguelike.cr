@@ -286,6 +286,9 @@ module Roguelike
     # What the run is for. Picking it up wins.
     Amulet
 
+    # Drunk to heal a little. The character starts with one.
+    MinorHealingPotion
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -471,6 +474,9 @@ module Roguelike
       ItemKind::HealingPotion => ItemFacts.new("potion of healing", "potions of healing",
         ItemClass::Potion, weight: 20,
         effect: Effect::Heal, power: Dice.new(2, 4, 2)),
+      ItemKind::MinorHealingPotion => ItemFacts.new("potion of minor healing",
+        "potions of minor healing", ItemClass::Potion, weight: 20,
+        effect: Effect::Heal, power: Dice.new(1, 4, 1)),
       ItemKind::IdentifyScroll => ItemFacts.new("scroll of identify", "scrolls of identify",
         ItemClass::Scroll, weight: 5, effect: Effect::Identify),
       ItemKind::MappingScroll => ItemFacts.new("scroll of magic mapping",

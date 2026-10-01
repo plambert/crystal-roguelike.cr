@@ -61,7 +61,9 @@ module Roguelike
     # A kind matches when its member name with the spaces taken out is exactly
     # what was typed, so `shortsword` names one thing. It also matches when
     # each word in turn is the start of a later word of its label, so
-    # `sh sword` names a short sword and `pot heal` a potion of healing.
+    # `sh sword` names a short sword and `pot heal` a potion of healing. When
+    # several labels match, the ones that skip the fewest of their words win,
+    # so `pot heal` leaves out the potion of minor healing.
     def self.kinds(words : Array(String)) : Array(ItemKind)
       return [] of ItemKind if words.empty?
 
@@ -71,24 +73,33 @@ module Roguelike
       end
       return exact unless exact.empty?
 
-      ItemKind.values.select { |kind| abbreviates? words, kind.label }
+      matches = ItemKind.values.compact_map do |kind|
+        skipped = skipped_by words, kind.label
+        {kind, skipped} if skipped
+      end
+      fewest = matches.min_of?(&.[1])
+
+      matches.select { |match| match[1] == fewest }.map(&.[0])
     end
 
-    # Whether *words* are the starts of words of *label*, in order.
+    # How many words of *label* *words* step over, or `nil` when they are
+    # not the starts of words of *label*, in order.
     #
     # Words of the label between them are skipped, which is what lets
     # `pot heal` reach "potion of healing".
-    private def self.abbreviates?(words : Array(String), label : String) : Bool
+    private def self.skipped_by(words : Array(String), label : String) : Int32?
       rest = label.split ' '
+      skipped = 0
 
       words.each do |word|
         found = rest.index &.starts_with?(word)
-        return false unless found
+        return unless found
 
+        skipped += found
         rest = rest[(found + 1)..]
       end
 
-      true
+      skipped
     end
 
     # The leading count, taken off *words*. `nil` when there is none.
