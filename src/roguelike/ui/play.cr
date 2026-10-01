@@ -2204,7 +2204,7 @@ module Roguelike::Ui
     # Everything shown comes from `Game`. This method is the one place the two
     # are put in step. It runs after anything that changes the game.
     def refresh : Nil
-      @map.floor = @game.floor unless @map.floor.same? @game.floor
+      arrive_on_floor unless @map.floor.same? @game.floor
       @screen.rule.label = Play.floor_name(@game.floor)
       @map.clear_marks
       @map.clear_highlights
@@ -2241,6 +2241,17 @@ module Roguelike::Ui
       show_ending
       restate_transport
       pan_after_teleport
+    end
+
+    # Shows the floor the character is on, with them in the middle of the
+    # window.
+    #
+    # A staircase leads to another map, often of another size, so there is
+    # nowhere to pan from. The camera goes straight there, before the new
+    # floor is first drawn.
+    private def arrive_on_floor : Nil
+      @map.floor = @game.floor
+      @map.center_on @game.player.x, @game.player.y
     end
 
     # The teleport the last action made, if the camera has not panned for it.

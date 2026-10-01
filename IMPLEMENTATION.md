@@ -1400,7 +1400,7 @@ least half its axis leaves no position that satisfies it, and that axis centers 
 The examine cursor is followed the same way. Reading the map from the keyboard wants the same
 context around the cursor that walking wants around the character.
 
-### After a teleport
+### After a teleport or a staircase
 
 A teleport puts the character somewhere the camera is not looking. Following them with the dead
 zone would leave them at the edge of the box, and jumping there leaves the person hunting for where
@@ -1422,7 +1422,12 @@ the floor stop it the same way.
 * **Layers** — `Interrupt#let_go` takes off its own focus layer wherever it sits in the stack. A
   layer pushed over it since stays where it is.
 
-Nothing in the game reads the camera. A pan changes no roll, save or recording.
+A staircase is the other way the character lands somewhere the camera is not looking. The new floor
+is another map, often of another size, so there is no line to pan along. `Play#refresh` notices
+that the floor it shows is not the character's, swaps it, and centers the camera on the character
+before the frame is drawn. `MapPane#floor=` alone leaves the camera at the top left corner.
+
+Nothing in the game reads the camera. Neither change touches a roll, a save or a recording.
 
 ## Saved characters
 

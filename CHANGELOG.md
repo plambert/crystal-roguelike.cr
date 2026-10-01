@@ -309,9 +309,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 ### Fixed
 
 * The camera moves to the character after a teleport. It stayed where it was, often with the
-  character off the screen. It pans there over about a quarter of a second and stops with the
+  character off the screen. It now pans there over about a quarter of a second and stops with the
   character as near the middle of the window as the edges of the floor allow. A key pressed during
   the pan ends it and then does what it always does. `--no-flicker` puts the camera there at once.
+* The camera starts on the character after going up or down a staircase. It showed the top left
+  corner of the new floor. It now puts the character as near the middle of the window as the edges
+  of the floor allow, in the first frame the new floor is drawn.
 * `replay upgrade` keeps the checkpoint spacing a file was recorded with when an action of several
   turns ran past a checkpoint. It took the shorter gap after that checkpoint as the spacing.
 * A build of the game as another shard's dependency records the game's own commit, which
