@@ -4253,8 +4253,10 @@ creature by the rule it notices the character by, and goes after the nearest hos
 * **Flanking reads the faction table.** `Game#against?` asks `#hostile?`, so a creature fighting the
   character's target from across it gives the character the flanking bonus. A swing between two
   creatures takes no flanking bonus.
-* **A running creature runs from its band's quarry.** That is the character when the character is
-  the nearest hostile the band knows of, and another creature otherwise.
+* **A running creature runs from the character.** Its band may be after another creature. Once the
+  band knows where the character is, `Game#plan` hands a running creature the character's
+  sighting and a `Descent` toward it, and it runs uphill from that. A band that has never seen the
+  character runs from its own quarry.
 
 ### What a line costs
 
@@ -4316,7 +4318,8 @@ Three runs fewer end in a death, and the median turn of death halves.
 
 * A ranged monster does not shoot at another creature.
 * A band's quarry ignores how fresh a sighting is.
-* A creature runs only when badly hurt, from its band's quarry. It does not judge a losing fight.
+* A creature runs only when badly hurt, and only from the character. It does not judge a losing
+  fight or run from another creature.
 * `Sharing` is not read, and bands have no languages.
 
 ## Asked for, not yet built

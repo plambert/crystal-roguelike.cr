@@ -199,20 +199,43 @@ Spectator.describe "factions" do
     end
   end
 
-  describe "a kill by a creature" do
-    it "gives the character no experience and drops what the victim carried" do
+  describe "a goblin running while its band chases an orc" do
+    it "runs from the character rather than from the orc" do
       game, placed = game_on HALL, [
-        {Kind::GoblinWarrior, {12, 2}, "goblin"},
-        {Kind::Orc, {13, 2}, "orc"},
+        {Kind::GoblinWarrior, {10, 2}, "goblins"},
+        {Kind::Orc, {12, 2}, "orcs"},
       ]
-      goblin = placed[0]
-      goblin.carry [Item.new(ItemKind::ShortSword)]
+      goblin, orc = placed
+      floor = game.floor
+      band = floor.band("goblins") || raise "the goblins have no band"
+      known = band.knowledge floor.id
+      known.saw Knowledge::PLAYER, *game.player.at, game.turn
+      known.saw Knowledge.creature(orc.id), *orc.at, game.turn
+      band.awareness = Awareness::Hunting
       goblin.hurt goblin.hit_points - 1
 
-      30.times { game.wait if goblin.alive? }
-      at = goblin.at
+      game.wait
 
-      expect(goblin.alive?).to be_false
+      expect(goblin.fleeing?).to be_true
+      expect(goblin.x).to be > 10
+    end
+  end
+
+  describe "a kill by a creature" do
+    it "gives the character no experience and drops what the victim carried" do
+      # A slime never runs, so it stays to be killed.
+      game, placed = game_on HALL, [
+        {Kind::WhiteSlime, {12, 2}, "slime"},
+        {Kind::Orc, {13, 2}, "orc"},
+      ]
+      slime = placed[0]
+      slime.carry [Item.new(ItemKind::ShortSword)]
+      slime.hurt slime.hit_points - 1
+
+      30.times { game.wait if slime.alive? }
+      at = slime.at
+
+      expect(slime.alive?).to be_false
       expect(game.felled).to eq 1
       expect(game.player.experience).to eq 0
       expect(game.floor.items(*at).map(&.kind)).to contain ItemKind::ShortSword

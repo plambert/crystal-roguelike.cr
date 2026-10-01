@@ -1693,6 +1693,8 @@ module Roguelike
       knowledge = band.knowledge floor.id
       chase = chases[band.id]?
       quarry = chase.try &.quarry
+      descent = creature.kind.paths? ? route(creature, knowledge, quarry, maps) : nil
+      quarry, descent = running_from creature, knowledge, chase, quarry, descent
 
       # A creature shoots only at the character. One whose band is after
       # another creature fights it hand to hand.
@@ -1703,7 +1705,7 @@ module Roguelike
         knowledge: knowledge,
         quarry: quarry.try(&.at),
         stale: quarry.try(&.age(@turn)) || 0,
-        descent: creature.kind.paths? ? route(creature, knowledge, quarry, maps) : nil,
+        descent: descent,
         blocked: standing_on_squares(creature),
         stumble: stumbles?(creature),
         fleeing: creature.fleeing?,
@@ -1715,6 +1717,21 @@ module Roguelike
         surrounds: creature.kind.surrounds?,
         bandmates: creature.kind.surrounds? ? beside_quarry(creature, quarry) : [] of {Int32, Int32},
         foes: chase.try(&.foes) || [] of {Int32, Int32})
+    end
+
+    # What *creature* runs from, and the map it runs on.
+    #
+    # A running creature runs from the character, whatever its band is
+    # after, once the band knows where the character is. Anything else keeps
+    # *quarry* and *descent*.
+    private def running_from(creature : Monster, knowledge : Knowledge, chase : Chase?,
+                             quarry : Sighting?, descent : Descent?) : {Sighting?, Descent?}
+      player = knowledge.sighting Knowledge::PLAYER
+      return {quarry, descent} unless creature.fleeing? && player
+      return {quarry, descent} if chase.try(&.who) == Knowledge::PLAYER
+
+      map = creature.kind.paths? ? Descent.toward(knowledge, player.at, doors: creature.kind.opens_doors?) : nil
+      {player, map}
     end
 
     # The light on every square of this floor this turn.
