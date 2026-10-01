@@ -21,7 +21,7 @@ module Roguelike
       "Threads for monster planning (not used yet)", range: 1..64
 
     flag flicker : Bool = true, "--flicker",
-      "Let flames waver. --no-flicker holds them still"
+      "Let flames waver and the camera pan. --no-flicker holds both still"
 
     flag generate : Bool = true, "--generate",
       "Dig a floor from the seed. --no-generate plays the floor that ships"
@@ -212,7 +212,7 @@ module Roguelike
       name: "view",
       description: "Watch a recorded run play back" do
       flag flicker : Bool = true, "--flicker",
-        "Let flames waver. --no-flicker holds them still"
+        "Let flames waver and the camera pan. --no-flicker holds both still"
 
       positional file : Path, "The replay file to watch"
 

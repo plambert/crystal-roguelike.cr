@@ -262,6 +262,21 @@ module Roguelike::Ui
     # What holds the keyboard while a walk is drawn.
     getter interrupt : Interrupt = Interrupt.new
 
+    # What holds the keyboard while the camera pans. A key ends the pan and
+    # then goes where it was going.
+    getter hurry : Interrupt = Interrupt.new
+
+    # How long the camera rests on each frame of a pan. `MapPane::PAN_FRAMES`
+    # of these is about a quarter of a second.
+    PAN = 30.milliseconds
+
+    # The timer for the next frame of a pan. `nil` when nothing is panning.
+    @pan_timer : UInt64? = nil
+
+    # The last teleport the camera panned for. A turn is refreshed many times,
+    # and the pan is for the first.
+    @panned : Event::Teleported? = nil
+
     # The application this play is drawn on.
     #
     # The owner sets this once it has built an `App`. A question and a held
@@ -381,6 +396,8 @@ module Roguelike::Ui
       @pager.on_release = -> { stop_pointing }
 
       @interrupt.on_key = -> { interrupted }
+      @hurry.passes = true
+      @hurry.on_key = -> { stop_panning }
 
       # Both are floats. `Overlay#open` puts one in the tree the first time it
       # is used.
@@ -1241,7 +1258,7 @@ module Roguelike::Ui
     # another object and `#resume` is what takes it.
     private def view_drew(found : Replay::Viewer) : Nil
       if @game.same? found.game
-        @map.follow @game.player.x, @game.player.y
+        @map.follow @game.player.x, @game.player.y unless teleport
         refresh
       else
         resume found.game
@@ -2187,7 +2204,7 @@ module Roguelike::Ui
     # Everything shown comes from `Game`. This method is the one place the two
     # are put in step. It runs after anything that changes the game.
     def refresh : Nil
-      @map.floor = @game.floor unless @map.floor.same? @game.floor
+      arrive_on_floor unless @map.floor.same? @game.floor
       @screen.rule.label = Play.floor_name(@game.floor)
       @map.clear_marks
       @map.clear_highlights
@@ -2223,6 +2240,82 @@ module Roguelike::Ui
 
       show_ending
       restate_transport
+      pan_after_teleport
+    end
+
+    # Shows the floor the character is on, with them in the middle of the
+    # window.
+    #
+    # A staircase leads to another map, often of another size, so there is
+    # nowhere to pan from. The camera goes straight there, before the new
+    # floor is first drawn.
+    private def arrive_on_floor : Nil
+      @map.floor = @game.floor
+      @map.center_on @game.player.x, @game.player.y
+    end
+
+    # The teleport the last action made, if the camera has not panned for it.
+    private def teleport : Event::Teleported?
+      found = @game.events.find(&.is_a?(Event::Teleported)).as(Event::Teleported?)
+      found unless found.same? @panned
+    end
+
+    # Pans the camera onto the character after a teleport.
+    #
+    # The pan ends with the character as near the middle of the window as the
+    # edges of the floor allow. Where the character landed is the one thing a
+    # person wants to find, and a camera that jumps there leaves them hunting
+    # for it.
+    private def pan_after_teleport : Nil
+      found = teleport
+      return unless found
+
+      @panned = found
+      return unless @map.pan_to @game.player.x, @game.player.y
+
+      start_panning
+    end
+
+    # Takes the keyboard and arms the first frame of the pan.
+    #
+    # An application with no clock cannot arm one, and `--no-flicker` asks
+    # for nothing to move on a clock, so the camera arrives at once in both.
+    private def start_panning : Nil
+      app = @app
+      return stop_panning unless app && @flicker.burning?
+
+      @hurry.grab app
+      arm_pan app
+    end
+
+    # Arms the next frame of the pan on *app*.
+    private def arm_pan(app : Widgets::App) : Nil
+      @pan_timer = app.after(PAN) { pan_on }
+      stop_panning unless @pan_timer
+    end
+
+    # Moves the camera one frame and arms the next.
+    private def pan_on : Nil
+      @pan_timer = nil
+      app = @app
+      return stop_panning unless app && @map.pan
+
+      arm_pan app
+    end
+
+    # Puts the camera where the pan ends and gives the keyboard back.
+    private def stop_panning : Nil
+      timer = @pan_timer
+      @pan_timer = nil
+      @app.try &.cancel(timer) if timer
+
+      @map.finish_pan
+      @hurry.let_go
+    end
+
+    # Whether the camera is panning.
+    def panning? : Bool
+      @map.panning?
     end
 
     # Writes the readout under the pointer again.

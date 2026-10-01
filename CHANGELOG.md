@@ -319,6 +319,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   `lib/.shards.info` names. It recorded the other shard's commit.
 * A route across a floor longer than 320 squares end to end is found. The search stopped at 320
   steps.
+* The camera moves to the character after a teleport. It stayed where it was, often with the
+  character off the screen. It now pans there over about a quarter of a second and stops with the
+  character as near the middle of the window as the edges of the floor allow. A key pressed during
+  the pan ends it and then does what it always does. `--no-flicker` puts the camera there at once.
+* The camera starts on the character after going up or down a staircase. It showed the top left
+  corner of the new floor. It now puts the character as near the middle of the window as the edges
+  of the floor allow, in the first frame the new floor is drawn.
 * A replay file recorded on a seed above `Int64::MAX` reads. `Rng` rolls a `UInt64`, so about half
   of all runs are on one. `crystal-roguelike replay verify`, `replay view` and `replay upgrade`
   each reported `line 1 is not JSON` for such a file and would not open it.
