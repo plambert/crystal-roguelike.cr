@@ -43,7 +43,7 @@ module Roguelike
         "use"        => 1,
         "wander"     => 1,
         "mend"       => 1,
-        "sizes"      => 1,
+        "sizes"      => 2,
         "stray"      => 1,
         "split"      => 1,
       }

@@ -10,7 +10,7 @@
   ########+                                            │
                                                        │ Seen
                       ╭──────────────────────────────────╮─────────────────────
-                      │  Really leave the dungeon? [yN]  │ large gloves
+                      │  Really leave the dungeon? [yN]  │ gloves
                       ╰──────────────────────────────────╯
                                                        │ Look
                                                        │ ──────────────────────

@@ -162,26 +162,19 @@ module Roguelike
 
     # How often armor lying about is cut for each size.
     #
-    # Most of it is cut for somebody the character's size. `NEAR_GOBLINS`
-    # and `NEAR_ORCS` lean it toward whoever lives close by.
+    # Most of it is cut for somebody the character's size. No kind is large,
+    # so none is cut large. `NEAR_GOBLINS` leans it small near a goblin.
     SIZES = {
       {Size::Small, 10},
-      {Size::Medium, 80},
-      {Size::Large, 10},
+      {Size::Medium, 90},
+      {Size::Large, 0},
     }
 
     # The same, within `NEARBY` squares of a goblin.
     NEAR_GOBLINS = {
       {Size::Small, 60},
-      {Size::Medium, 35},
-      {Size::Large, 5},
-    }
-
-    # The same, within `NEARBY` squares of an orc.
-    NEAR_ORCS = {
-      {Size::Small, 5},
-      {Size::Medium, 35},
-      {Size::Large, 60},
+      {Size::Medium, 40},
+      {Size::Large, 0},
     }
 
     # How near a creature armor lies for it to be cut for that creature.
@@ -189,13 +182,14 @@ module Roguelike
 
     # Which table armor lying at *spot* on *ground* rolls its size on.
     #
-    # The nearest goblin or orc within `NEARBY` squares decides. With none
-    # that near it rolls on `SIZES`.
+    # The nearest goblin or orc within `NEARBY` squares decides. A goblin
+    # leans it small. An orc is the character's size, so armor near one, and
+    # armor with neither near, rolls on `SIZES`.
     def self.sizes_at(ground : Floor, spot : {Int32, Int32})
       nearest = nil.as({Int32, Species}?)
 
       ground.each_monster do |column, row, creature|
-        next if creature.species.slime?
+        next unless creature.species.goblin? || creature.species.orc?
 
         apart = Math.max (column - spot[0]).abs, (row - spot[1]).abs
         next if apart > NEARBY
@@ -204,11 +198,7 @@ module Roguelike
         nearest = {apart, creature.species}
       end
 
-      case nearest.try &.[1]
-      when Species::Goblin then NEAR_GOBLINS
-      when Species::Orc    then NEAR_ORCS
-      else                      SIZES
-      end
+      nearest.try(&.[1]).try(&.goblin?) ? NEAR_GOBLINS : SIZES
     end
 
     # One item of any kind, rolled on *rng*.

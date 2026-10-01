@@ -3824,13 +3824,15 @@ at 120 with a modifier of +2 is 5.42, and a dagger at 75 is 6.0.
 * `Loot.for` cuts armor for the creature it is rolled for. That rolls nothing.
 * Litter armor rolls its size on the `sizes:<floor>` stream. The litter stream is untouched, so
   everything else on a floor lies where it lay before. `Items.sizes_at` picks the table from the
-  nearest goblin or orc within eight squares.
+  nearest goblin or orc within eight squares. An orc is medium, so armor near one rolls on the
+  table for anywhere.
+* No kind is large, so no armor is cut large. `Size::Large` and the refusal to wear armor of
+  another size stay, so a large kind needs only a row here.
 
 | Where | Small | Medium | Large |
 | --- | --- | --- | --- |
-| Anywhere | 10 | 80 | 10 |
-| Near a goblin | 60 | 35 | 5 |
-| Near an orc | 5 | 35 | 60 |
+| Anywhere, and near an orc | 10 | 90 | 0 |
+| Near a goblin | 60 | 40 | 0 |
 
 ### Gates and ceilings
 
@@ -3849,11 +3851,12 @@ the same. `Monster#ready` merges ammunition that stacks with the quiver rather t
 
 ### Determinism and saves
 
-* The only new roll is an armor size on `sizes:<floor>`. `Replay::Streams` gains `sizes` at 1.
+* The only new roll is an armor size on `sizes:<floor>`. `Replay::Streams` gains `sizes`, now at 2
+  since no armor is cut large.
 * `Loot` draws what it drew before. The draws go into slots rather than the pack, which changes
   what a save holds and therefore every fingerprint. The golden replay was recorded again, and the
-  six screen fixtures that show the proving ground's gloves were written again. Those gloves are now
-  large.
+  six screen fixtures that show the proving ground's gloves were written again. Those gloves are
+  medium, since no armor is cut large. The `sizes` stream is at version 2.
 * `Monster#gear` is `nil` while it is empty, so a creature with nothing readied writes the bytes it
   wrote before. A save written before this branch loads each creature with its pack as it was and
   nothing readied. Such a creature fights with its own attack until it steps on something better.

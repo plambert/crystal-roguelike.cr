@@ -376,13 +376,13 @@ Spectator.describe "what a monster wields and wears" do
       expect(sizes[Size::Medium]).to be > sizes[Size::Small] + sizes[Size::Large]
     end
 
-    it "leans small near a goblin and large near an orc" do
+    it "leans small near a goblin and medium near an orc" do
       floor = Floor.parse "room", ["#" * 40, "#" + "." * 38 + "#", "#" * 40].join('\n')
       floor.place Monster.new(Kind::GoblinScout, 2, 1, "band-one")
       floor.place Monster.new(Kind::Orc, 37, 1, "band-two")
 
       expect(Items.sizes_at floor, {4, 1}).to eq Items::NEAR_GOBLINS
-      expect(Items.sizes_at floor, {35, 1}).to eq Items::NEAR_ORCS
+      expect(Items.sizes_at floor, {35, 1}).to eq Items::SIZES
       expect(Items.sizes_at floor, {20, 1}).to eq Items::SIZES
     end
 

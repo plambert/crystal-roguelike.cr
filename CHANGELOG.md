@@ -145,8 +145,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   shuts the door behind it, which takes its turn. Slimes never run.
 * Armor is cut for a wearer's size: small for goblins, and medium for the character and for orcs.
   Its name says so when it is not medium, as in "small leather armor". The character cannot
-  wear armor of another size and is told why. Armor lying about is medium most of the time, mostly
-  small near goblins and mostly large near orcs.
+  wear armor of another size and is told why. Armor lying about is medium most of the time and
+  mostly small near goblins.
 * Goblins and orcs hold a weapon and wear armor. A creature with a weapon in hand hits with the
   weapon's dice, its enchantment and its swing cost rather than its own attack. Worn armor adds to
   its armor class. What a creature starts with goes on it rather than into its pack.

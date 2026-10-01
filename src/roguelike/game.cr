@@ -462,8 +462,8 @@ module Roguelike
     # Cuts *item* for a wearer, when it is armor, on *rng*.
     #
     # The size rolls on a stream of its own, so the litter falls where it
-    # always fell. Armor near a goblin is usually small and armor near an orc
-    # usually large. `Items.sizes_at` says how usually.
+    # always fell. Armor near a goblin is usually small, and armor anywhere
+    # else is usually medium. `Items.sizes_at` says how usually.
     private def cut(item : Item, rng : Rng, ground : Floor,
                     spot : {Int32, Int32}) : Nil
       return unless item.kind.item_class.armor?
