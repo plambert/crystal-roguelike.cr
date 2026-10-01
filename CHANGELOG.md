@@ -326,6 +326,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The camera starts on the character after going up or down a staircase. It showed the top left
   corner of the new floor. It now puts the character as near the middle of the window as the edges
   of the floor allow, in the first frame the new floor is drawn.
+* The message pane holds at `--More--` late in a long run. Once the log reached its 200 line limit,
+  a turn that wrote more lines than the pane shows scrolled them past without holding.
 * A replay file recorded on a seed above `Int64::MAX` reads. `Rng` rolls a `UInt64`, so about half
   of all runs are on one. `crystal-roguelike replay verify`, `replay view` and `replay upgrade`
   each reported `line 1 is not JSON` for such a file and would not open it.

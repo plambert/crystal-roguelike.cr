@@ -1654,6 +1654,12 @@ The log pane is four rows. Three things now keep a message from going past unrea
 `Widgets::Pager` holds at a page boundary and writes `--More--` on the last row, which it already
 did. A turn that says twelve things shows three at a time and takes any key for the next page.
 
+`MessageLog` keeps 200 lines and drops the oldest as each new one arrives, so a long run's log
+stops growing. `Pager#show` finds where the last source it was shown starts in the new one, and
+moves the read mark back by the wrapped lines that fell off the front. Counting unread lines by the
+log's size alone would find none once the log was full, and nothing would hold again for the rest
+of the run.
+
 The wheel scrolls the pane back over what has already been read. `Pager` is a `Scrolls` now, so the
 notch is the one the rest of the widgets answer, and `#back` is how many lines above the newest the
 window sits. A held page is not scrolled: what is showing then has not been read, and moving it is

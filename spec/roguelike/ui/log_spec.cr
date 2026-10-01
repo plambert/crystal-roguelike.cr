@@ -229,6 +229,107 @@ Spectator.describe "the message log" do
     end
   end
 
+  # A long run has a full log. Every line added then drops the oldest, so the
+  # log stops growing while the fight goes on writing.
+  describe "a fight late in a run" do
+    alias Creature = Roguelike::Kind
+    alias Item = Roguelike::Item
+    alias Kind = Roguelike::ItemKind
+    alias Monster = Roguelike::Monster
+
+    # A lit hall with the character at the west end.
+    HALL = [
+      "##############",
+      "#............#",
+      "#............#",
+      "#............#",
+      "##############",
+    ]
+
+    # Enough hit points that nobody dies.
+    PLENTY = 5_000
+
+    # An orc archer at *at*, with a bow and arrows.
+    def archer(at : {Int32, Int32}) : Monster
+      creature = Monster.new Creature::OrcArcher, at[0], at[1], "archers",
+        hit_points: PLENTY
+      creature.outfit [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 20)]
+      creature
+    end
+
+    # A run with a bow readied, three archers hunting the character, and a
+    # log already full.
+    def fight : Playing::Run
+      floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
+      player = Roguelike::Player.new "hall", 1, 2, hit_points: PLENTY
+      player.inventory.add Item.new(Kind::Bow)
+      player.inventory.add Item.new(Kind::Arrow, count: 20)
+
+      run = Playing.open Roguelike::Game.new(
+        Roguelike::World.new(Playing::SEED, {"hall" => floor}), player)
+      run.press "w", "a"
+      run.press "w", "b"
+
+      game = run.game
+      [{9, 1}, {10, 2}, {9, 3}].each { |spot| game.floor.place archer(spot) }
+      band = game.floor.band("archers") || raise "the floor has lost the band"
+      knowledge = band.knowledge game.floor.id
+      game.floor.each { |column, row, _tile| knowledge.see game.floor, column, row }
+      knowledge.saw Roguelike::Knowledge::PLAYER, *game.player.at, game.turn
+      band.awareness = Roguelike::Awareness::Hunting
+
+      Roguelike::MessageLog::LIMIT.times do |number|
+        game.log.add "Something earlier, number #{number}."
+      end
+      run.play.refresh
+      run.pager.catch_up
+      run.render
+      run
+    end
+
+    # Reads every held page, then fires once. Returns how many lines the
+    # shot and the turn after it wrote.
+    def volley(run : Playing::Run) : Int32
+      while run.pager.holding?
+        run.press "Enter"
+      end
+
+      run.press "f"
+      before = run.game.log.written
+      run.press "Enter"
+      run.game.log.written - before
+    end
+
+    it "holds on the lines a volley writes" do
+      run = fight
+
+      # The archers take a few turns to pick up arrows and come into range.
+      wrote = 0
+      10.times do
+        wrote = volley run
+        break if wrote > run.pager.rows
+      end
+      expect(wrote).to be > run.pager.rows
+
+      expect(run.pager.holding?).to be_true
+      expect(run.rows[23]).to contain "--More--"
+
+      pages = [] of String
+      while run.pager.holding?
+        pages.concat run.pager.showing
+        run.press "Enter"
+      end
+
+      # The last view keeps older lines above the newest for context.
+      rest = run.pager.showing
+      pages.concat rest[(rest.index(pages.last) || -1) + 1..]
+
+      # Every line of the volley shows, in order, with none skipped between
+      # one page and the next.
+      expect(pages).to eq run.game.log.lines.last(wrote)
+    end
+  end
+
   describe "drawn" do
     it "draws what it drew last time with a page held" do
       run = Playing.open
