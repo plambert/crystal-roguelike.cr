@@ -120,6 +120,12 @@ module Roguelike
     # with every creature standing its ground.
     getter? fleeing : Bool = false
 
+    # How many turns it has counted toward its next split.
+    #
+    # `nil` while it has counted none, so a creature that never splits
+    # writes out the bytes it wrote before splitting existed.
+    @bud : Int32? = nil
+
     def initialize(kind : Kind, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
@@ -166,6 +172,21 @@ module Roguelike
     # Starts the wait before it can mend again.
     def mended(wait : Int32) : Nil
       @mending = wait
+    end
+
+    # How many turns it has counted toward its next split.
+    def bud : Int32
+      @bud || 0
+    end
+
+    # Counts one turn toward its next split.
+    def grow : Nil
+      @bud = bud + 1
+    end
+
+    # Starts the count toward its next split again.
+    def budded : Nil
+      @bud = nil
     end
 
     # Passes one turn of the wait before it can mend again.
@@ -567,11 +588,16 @@ module Roguelike
     # which creature this is rather than what it is.
     def ==(other : Monster) : Bool
       kind == other.kind && @x == other.x && @y == other.y &&
-        @hit_points == other.hit_points && @band == other.band &&
+        @band == other.band && same_state?(other)
+    end
+
+    # Whether *other* holds the same hit points, attributes, memory,
+    # belongings and counts as this creature.
+    private def same_state?(other : Monster) : Bool
+      @hit_points == other.hit_points && @max_hit_points == other.max_hit_points &&
         @attributes.to_a == other.attributes.to_a && @memory == other.memory &&
         @carrying == other.carrying && gear == other.gear &&
-        @max_hit_points == other.max_hit_points &&
-        @mending == other.mending && @fleeing == other.fleeing?
+        @mending == other.mending && @fleeing == other.fleeing? && bud == other.bud
     end
 
     def to_s(io : IO) : Nil

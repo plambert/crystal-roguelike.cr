@@ -167,6 +167,16 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A goblin scout or an orc archer with an empty hand picks up a sling or a bow of its own kind, and
   picks up stones or arrows for it when its quiver is empty or holds the same. It shoots with what
   it readies.
+* Giant ants (`a`, orange) hunt in bands of three to five from floor 2. They are fast, bite
+  weakly and have few hit points. An ant beside the character walks round to stand across from a
+  nestmate, so a band ends up on every side.
+* Violet jellies (`J`, lavender) appear alone from floor 3. A jelly that has noticed the character
+  and is above half its hit points splits into a second jelly beside it every 40 turns, up to six
+  jellies on a floor.
+* Flanking. An attacker with another attacker across the target from it, diagonals included, adds
+  2 to hit. It works the same whoever the target is. The character is told "You are flanked!" the
+  first time it happens in a run, and a flanking blow reads "The giant ant bites you from behind".
+* `--matchup` has a row for three giant ants fighting together, flanking from the first swing.
 
 ### Changed
 

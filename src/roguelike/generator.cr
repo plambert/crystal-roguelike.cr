@@ -998,7 +998,7 @@ module Roguelike
 
       first = Spawns.pick stream, @depth
       company = Spawns.weights @depth, first.species, alone: false
-      count = first.alone? || company.empty? ? 1 : stream.rand(density.crowd)
+      count = first.alone? || company.empty? ? 1 : stream.rand(Spawns.crowd(first, @depth))
       band = "#{@floor.id}-#{index}"
 
       count.times do |which|

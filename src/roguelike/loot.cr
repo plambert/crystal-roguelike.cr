@@ -161,7 +161,8 @@ module Roguelike
     #
     # A species is never given a draw for something it would not be carrying.
     # A slime has no hands, so there is no armor draw in its list at all
-    # rather than an armor draw it almost never makes.
+    # rather than an armor draw it almost never makes. An ant carries
+    # nothing.
     DRAWS = {
       Species::Slime => [
         Draw.new(COINS, chance: 70, count: 1..12),
@@ -176,6 +177,13 @@ module Roguelike
       Species::Orc => [
         Draw.new(ARMOR, chance: 55),
         Draw.new(COINS, chance: 70, count: 8..45),
+      ],
+
+      Species::Ant => Array(Draw).new,
+
+      Species::Jelly => [
+        Draw.new(COINS, chance: 40, count: 1..10),
+        Draw.new(SWALLOWED, chance: 10),
       ],
     }
 

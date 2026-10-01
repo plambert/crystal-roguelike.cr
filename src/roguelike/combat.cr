@@ -82,6 +82,35 @@ module Roguelike
     # The least damage a landed swing does.
     LEAST = 1
 
+    # What an attacker adds to its swing when the target is flanked.
+    FLANKING = 2
+
+    # The square across *target* from *attacker*.
+    #
+    # It is *attacker*'s square reflected through *target*'s, so a diagonal
+    # neighbour's opposite is the other end of that diagonal.
+    def self.opposite(attacker : {Int32, Int32},
+                      target : {Int32, Int32}) : {Int32, Int32}
+      {2 * target[0] - attacker[0], 2 * target[1] - attacker[1]}
+    end
+
+    # Whether an attacker at *attacker* flanks the target at *target*.
+    #
+    # It does when the square across the target holds another creature that
+    # is fighting the same target. The block answers that for a square. The
+    # rule is the same whoever the target is, so the character and a
+    # monster are flanked alike.
+    def self.flanks?(attacker : {Int32, Int32}, target : {Int32, Int32},
+                     & : {Int32, Int32} -> Bool) : Bool
+      yield opposite(attacker, target)
+    end
+
+    # What *attacker* adds to a swing at *target* for flanking it.
+    def self.flanking(attacker : {Int32, Int32}, target : {Int32, Int32},
+                      & : {Int32, Int32} -> Bool) : Int32
+      flanks?(attacker, target) { |spot| yield spot } ? FLANKING : 0
+    end
+
     # Whether a face of *roll* plus *bonus* lands on armor class *against*.
     def self.lands?(roll : Int32, bonus : Int32, against : Int32) : Bool
       return true if roll >= CRITICAL

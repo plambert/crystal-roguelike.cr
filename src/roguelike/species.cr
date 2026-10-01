@@ -239,6 +239,10 @@ module Roguelike
   # shut door by walking into it. *flees* says it runs when badly hurt.
   # *wields* says it readies a weapon and armor, and picks up better ones it
   # steps on.
+  #
+  # *sharing* is how a band of them shares what it knows. *surrounds* says
+  # one beside its quarry moves round to face a bandmate across it. *splits*
+  # says one buds off a copy of itself now and then.
   record KindFacts,
     species : Species,
     mark : Char,
@@ -269,7 +273,10 @@ module Roguelike
     alone : Bool = false,
     mends : Bool = false,
     casts : Bool = false,
-    wields : Bool = false do
+    wields : Bool = false,
+    sharing : Sharing = Sharing::Inherited,
+    surrounds : Bool = false,
+    splits : Bool = false do
     # Hit points of an average one.
     def hit_points : Int32
       hit_dice.average.round.to_i
@@ -287,6 +294,8 @@ module Roguelike
     Slime
     Goblin
     Orc
+    Ant
+    Jelly
 
     # The kind a bare species stands for.
     #
@@ -297,6 +306,8 @@ module Roguelike
       in .slime?  then Kind::WhiteSlime
       in .goblin? then Kind::GoblinWarrior
       in .orc?    then Kind::Orc
+      in .ant?    then Kind::Ant
+      in .jelly?  then Kind::Jelly
       end
     end
 
@@ -411,6 +422,8 @@ module Roguelike
     GoblinShaman
     Orc
     OrcArcher
+    Ant
+    Jelly
 
     # What this kind is. Every method below reads one field of it.
     def facts : KindFacts
@@ -610,6 +623,21 @@ module Roguelike
       facts.casts
     end
 
+    # How a band of these shares what it knows.
+    def sharing : Sharing
+      facts.sharing
+    end
+
+    # Whether one beside its quarry moves to face a bandmate across it.
+    def surrounds? : Bool
+      facts.surrounds
+    end
+
+    # Whether one buds off a copy of itself. `Game#split` is where.
+    def splits? : Bool
+      facts.splits
+    end
+
     # Which kind a floor file's *mark* names: the default kind of the species
     # with that letter. `nil` for a character that names none.
     def self.from_mark?(mark : Char) : Kind?
@@ -711,6 +739,26 @@ module Roguelike
         ranged_weapon: ItemKind::Bow, quiver: Dice.new(3, 6),
         attributes: Attributes.new(strength: 12, dexterity: 14, constitution: 12,
           intelligence: 10, stealth: 9)),
+
+      Kind::Ant => KindFacts.new(Species::Ant, 'a', "giant ant", "giant ants",
+        "a dog-sized ant that hunts with its nestmates and comes at you from every side",
+        hit_dice: Dice.new(1, 4, 1), damage: Dice.new(1, 3), armor: 2,
+        notice: 7, darkvision: false, paths: true, experience: 3,
+        size: Size::Small, persistence: 12, speed: 130, verb: "bites",
+        sharing: Sharing::Hive, surrounds: true,
+        depths: 2..5,
+        attributes: Attributes.new(strength: 10, dexterity: 11, constitution: 8,
+          intelligence: 6, stealth: 14)),
+
+      Kind::Jelly => KindFacts.new(Species::Jelly, 'J', "violet jelly",
+        "violet jellies", "a quivering violet mass that buds off copies of itself",
+        hit_dice: Dice.new(3, 4), damage: Dice.new(1, 6), armor: 0,
+        notice: 4, darkvision: false, paths: false, experience: 6,
+        size: Size::Large, persistence: 4, speed: 60, verb: "stings",
+        alone: true, splits: true,
+        depths: 3..5,
+        attributes: Attributes.new(strength: 10, dexterity: 6, constitution: 14,
+          intelligence: 2, stealth: 4)),
     }
 
     # Every character a floor file may hold for a monster, and the kind it

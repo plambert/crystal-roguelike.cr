@@ -106,6 +106,18 @@ module Roguelike
     # next swing rolls. It has a default, so an older save loads.
     getter mends : Int32 = 0
 
+    # How many times a creature has split.
+    #
+    # A sixth stream, so a jelly budding does not shift what the next swing
+    # rolls. It is `nil` until the first split and is then written out, so
+    # a run with no split saves the bytes it saved before splitting existed.
+    @splits : Int32? = nil
+
+    # Whether the character has been told they are flanked in this run.
+    #
+    # `nil` until they have, for the same reason as `@splits`.
+    @flanked : Bool? = nil
+
     # What has just happened.
     getter log : MessageLog
 
@@ -1297,19 +1309,24 @@ module Roguelike
     # awarded.
     def attack(creature : Monster) : Blow
       fought_with creature
-      blow = Combat.swing exchange, @player.to_hit,
+      flanking = Combat.flanking(@player.at, creature.at) do |spot|
+        against? spot, creature
+      end
+      blow = Combat.swing exchange, @player.to_hit + flanking,
         creature.armor_class, @player.damage
 
       weapon = swung_with
+      behind = flanking > 0 ? " from behind" : ""
       if blow.hit?
         creature.hurt blow.damage
-        say "You hit the #{creature.label} for #{blow.damage}.",
+        say "You hit the #{creature.label}#{behind} for #{blow.damage}.",
           Event::Attack.new(true, target: creature.id, damage: blow.damage,
-            with: weapon)
+            with: weapon, flanking: flanking > 0)
         kill creature unless creature.alive?
       else
         say "You miss the #{creature.label}.",
-          Event::Attack.new(false, target: creature.id, with: weapon)
+          Event::Attack.new(false, target: creature.id, with: weapon,
+            flanking: flanking > 0)
       end
 
       jar
@@ -1627,7 +1644,9 @@ module Roguelike
         company: creature.fleeing? ? company(creature) : [] of {Int32, Int32},
         closable: creature.fleeing? ? closable(creature) : Descent::EMPTY,
         reach: reach,
-        clear: reach > 0 && !!quarry.try { |seen| clear_shot? creature, seen.at, reach })
+        clear: reach > 0 && !!quarry.try { |seen| clear_shot? creature, seen.at, reach },
+        surrounds: creature.kind.surrounds?,
+        bandmates: creature.kind.surrounds? ? beside_quarry(creature, quarry) : [] of {Int32, Int32})
     end
 
     # The light on every square of this floor this turn.
@@ -1684,6 +1703,23 @@ module Roguelike
     def clear_shot?(creature : Monster, target : {Int32, Int32}, reach : Int32) : Bool
       shot = Flight.toward floor, creature.at, target, reach
       shot.landing.reached? && shot.clear?
+    end
+
+    # Where the other members of *creature*'s band stand beside *quarry*.
+    private def beside_quarry(creature : Monster, quarry : Sighting?) : Array({Int32, Int32})
+      found = [] of {Int32, Int32}
+      return found unless quarry
+
+      Direction.values.each do |direction|
+        spot = direction.from quarry.at[0], quarry.at[1]
+        other = floor.monster spot[0], spot[1]
+        next unless other && other.band == creature.band
+        next if other.same? creature
+
+        found << spot
+      end
+
+      found
     end
 
     # The map *creature* walks down.
@@ -2078,20 +2114,70 @@ module Roguelike
     # *creature* swings at the character. Answers what the swing did.
     private def strike(creature : Monster) : Blow
       fought_with creature
-      blow = Combat.swing exchange, creature.to_hit,
+      flanking = Combat.flanking(creature.at, @player.at) do |spot|
+        besets? spot
+      end
+      outflanked if flanking > 0
+      blow = Combat.swing exchange, creature.to_hit + flanking,
         @player.armor_class, creature.damage
 
+      behind = flanking > 0 ? " from behind" : ""
       if blow.hit?
         @player.hurt blow.damage
-        say "The #{creature.label} #{creature.kind.verb} you for #{blow.damage}.",
-          Event::Attack.new(true, attacker: creature.id, damage: blow.damage)
+        say "The #{creature.label} #{creature.kind.verb} you#{behind} for #{blow.damage}.",
+          Event::Attack.new(true, attacker: creature.id, damage: blow.damage,
+            flanking: flanking > 0)
         character_died creature unless @player.alive?
       else
         say "The #{creature.label} misses you.",
-          Event::Attack.new(false, attacker: creature.id)
+          Event::Attack.new(false, attacker: creature.id, flanking: flanking > 0)
       end
 
       blow
+    end
+
+    # Whether a creature on *spot* is fighting the character.
+    #
+    # Every creature on the floor is hostile to the character, so an awake
+    # one is fighting them.
+    private def besets?(spot : {Int32, Int32}) : Bool
+      other = floor.monster spot[0], spot[1]
+      !other.nil? && other.alive? && awake?(other)
+    end
+
+    # Whether a creature on *spot* is fighting *target* alongside the
+    # character.
+    #
+    # One of another faction would be. Every creature is `Faction::Dungeon`
+    # for now, so none is, and the character flanks nothing on their own.
+    private def against?(spot : {Int32, Int32}, target : Monster) : Bool
+      other = floor.monster spot[0], spot[1]
+      return false unless other && other.alive? && awake?(other)
+
+      faction_of(other) != faction_of(target)
+    end
+
+    # The faction *creature*'s band belongs to.
+    private def faction_of(creature : Monster) : Faction
+      floor.band(creature.band).try(&.faction) || Faction::Dungeon
+    end
+
+    # How many times a creature has split in this run.
+    def splits : Int32
+      @splits || 0
+    end
+
+    # Whether the character has been told they are flanked in this run.
+    def flanked? : Bool
+      @flanked || false
+    end
+
+    # Tells the character they are flanked, the first time in a run.
+    private def outflanked : Nil
+      return if flanked?
+
+      @flanked = true
+      say "You are flanked!", Event::Flanked.new
     end
 
     # Ends the run. *killer* is the creature that did it.
@@ -2161,6 +2247,70 @@ module Roguelike
       noticed = creatures_notice seen
       creatures_look seen, noticed
       creatures_act
+      creatures_split unless over?
+    end
+
+    # How many turns a creature that splits waits between one split and the
+    # next.
+    SPLIT_EVERY = 40
+
+    # The most jellies one floor holds. A jelly does not split past it.
+    JELLIES = 6
+
+    # Lets every awake creature that splits count a turn, and split when its
+    # count comes round.
+    #
+    # Only a creature above half its hit points counts. The copy goes on a
+    # free square beside it, rolled on the `split` stream, with hit points
+    # rolled from its kind's dice. It joins the band of the one it came
+    # from. The count goes back to zero whether a copy was made or not.
+    private def creatures_split : Nil
+      held = [] of Monster
+      floor.each_monster do |_column, _row, creature|
+        held << creature if creature.kind.splits? && awake?(creature)
+      end
+      held.sort_by! { |creature| {creature.y, creature.x} }
+
+      held.each do |creature|
+        next unless creature.hit_points * 2 > creature.max_hit_points
+
+        creature.grow
+        next unless creature.bud >= SPLIT_EVERY
+
+        creature.budded
+        split creature
+      end
+    end
+
+    # *creature* buds off a copy of itself, when the floor has room for one.
+    private def split(creature : Monster) : Nil
+      count = 0
+      floor.each_monster do |_column, _row, other|
+        count += 1 if other.species == creature.species
+      end
+      return if count >= JELLIES
+
+      free = Direction.values.map(&.from(creature.x, creature.y)).select do |spot|
+        floor.passable?(spot[0], spot[1]) && !floor.monster?(spot[0], spot[1]) &&
+          !@player.at?(spot[0], spot[1])
+      end
+      return if free.empty?
+
+      root = (@root ||= Rng.new @world.seed)
+      stream = root.derive "split", splits
+      @splits = splits + 1
+
+      spot = free.sample stream
+      health = creature.kind.hit_dice.roll stream
+      copy = Monster.new creature.kind, spot[0], spot[1], creature.band,
+        hit_points: health, max_hit_points: health
+      return unless floor.place copy
+
+      copy.enroll next_id
+      return unless can_see_creature? creature.x, creature.y
+
+      say "The #{creature.label} splits in two.",
+        Event::Split.new(creature.id, copy.id)
     end
 
     # Gives every actor on the floor a tick's worth of energy.
