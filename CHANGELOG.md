@@ -313,11 +313,6 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
-* Piles of ammunition, potions and the like that become identical once the character learns a
-  blessing are put together. Two stacks of `+1` arrows, one with its blessing known and one
-  without, stayed under two letters for the rest of the run. They now merge on the turn the second
-  blessing is learned, under the letter of the stack that is wielded, worn or quivered, or else the
-  earlier letter. The log reads "You organize your pack more efficiently." once for that turn.
 * `replay upgrade` keeps the checkpoint spacing a file was recorded with when an action of several
   turns ran past a checkpoint. It took the shorter gap after that checkpoint as the spacing.
 * A build of the game as another shard's dependency records the game's own commit, which
@@ -333,6 +328,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   of the floor allow, in the first frame the new floor is drawn.
 * The message pane holds at `--More--` late in a long run. Once the log reached its 200 line limit,
   a turn that wrote more lines than the pane shows scrolled them past without holding.
+* Piles of ammunition, potions and the like that become identical once the character learns a
+  blessing are put together. Two stacks of `+1` arrows, one with its blessing known and one
+  without, stayed under two letters for the rest of the run. They now merge on the turn the second
+  blessing is learned, under the letter of the stack that is wielded, worn or quivered, or else the
+  earlier letter. The log reads "You organize your pack more efficiently." once for that turn.
 * A replay file recorded on a seed above `Int64::MAX` reads. `Rng` rolls a `UInt64`, so about half
   of all runs are on one. `crystal-roguelike replay verify`, `replay view` and `replay upgrade`
   each reported `line 1 is not JSON` for such a file and would not open it.
