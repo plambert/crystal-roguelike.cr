@@ -115,7 +115,7 @@ module Roguelike::Ui
       case game.outcome
       in .won?
         if game.player.inventory.entries.any?(&.[1].kind.amulet?)
-          "You took the amulet from the bottom of the dungeon."
+          "You took The Mighty Amulet of MacGuffin from the bottom of the dungeon."
         else
           "You climbed down and out of the dungeon with your life."
         end

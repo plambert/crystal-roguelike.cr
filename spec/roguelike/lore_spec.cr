@@ -191,6 +191,35 @@ Spectator.describe Roguelike::Lore do
       end
     end
 
+    describe "a proper name" do
+      let(amulet) do
+        Item.new Kind::Amulet, enchantment: 2,
+          condition: Condition::Damaged,
+          blessing: Roguelike::Blessing::Cursed, blessing_known: true
+      end
+
+      it "takes no article" do
+        expect(lore.name(Item.new(Kind::Amulet))).to eq "The Mighty Amulet of MacGuffin"
+      end
+
+      it "ignores blessing, condition and enchantment words" do
+        expect(lore.name(amulet)).to eq "The Mighty Amulet of MacGuffin"
+        expect(lore.name(amulet, identified: true)).to eq "The Mighty Amulet of MacGuffin"
+      end
+
+      it "keeps its name at a distance" do
+        name = lore.name amulet, regard: Roguelike::Regard::Shape
+
+        expect(name).to eq "The Mighty Amulet of MacGuffin"
+      end
+
+      it "is called the same in a list and in a column" do
+        expect(Roguelike::Ui::Naming.lead(lore, amulet)).to eq ""
+        expect(Roguelike::Ui::Naming.listed(lore, amulet)).to eq "The Mighty Amulet of MacGuffin"
+        expect(Roguelike::Ui::Naming.short(lore, amulet)).to eq "The Mighty Amulet of MacGuffin"
+      end
+    end
+
     describe "the article" do
       it "is a before a consonant" do
         expect(lore.name(Item.new(Kind::Dagger))).to start_with "a "

@@ -3209,6 +3209,8 @@ corner. A trial of the feature needs groups, which arrive with the swarms and sp
   it: 31 by 11, one room, the up staircase at the west end, the amulet at the east end, four lit
   sconces, no creatures. It rolls nothing.
 * Picking the amulet up ends the run as a win. The ending screen says the character took it.
+  The amulet is a proper name, "The Mighty Amulet of MacGuffin", marked by `ItemFacts#proper`, and
+  the namer gives it no article, count or condition words.
 * The proving ground has no depth. Its down staircase still ends the run as a win, so
   `--no-generate` and every spec written against the shipped floor keep working.
 * The first row of the sidebar reads `D2 Lv 1`. The rule under the map names the floor: `Floor 2`,

@@ -192,6 +192,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* The amulet is called The Mighty Amulet of MacGuffin. It takes no article, and no blessing,
+  condition or enchantment word, wherever it is named.
 * The character starts with a potion of minor healing, already known, in place of the potion of
   healing. The opening log line says so.
 * `--matchup` starts a fight against a kind with a sling or bow six squares apart, with four

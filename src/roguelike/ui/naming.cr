@@ -71,7 +71,7 @@ module Roguelike::Ui
     # is not "a leather armor".
     def self.lead(lore : Lore, item : Item) : String
       return item.count.to_s if item.count > 1
-      return "" if item.kind.uncountable?
+      return "" if item.kind.uncountable? || item.kind.proper?
 
       Lore.article lore.noun_for(item, blessing: false)
     end
@@ -102,6 +102,8 @@ module Roguelike::Ui
     # pack and every menu read as they always have.
     def self.short(lore : Lore, item : Item,
                    regard : Regard = Regard::Everything) : String
+      return item.kind.label if item.kind.proper?
+
       words = [] of String
       words << item.count.to_s if item.count > 1
 

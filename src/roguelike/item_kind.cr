@@ -151,7 +151,8 @@ module Roguelike
     swing : Int32 = Costs::TURN,
     effect : Effect = Effect::None,
     power : Dice = Dice::NONE,
-    uncountable : Bool = false do
+    uncountable : Bool = false,
+    proper : Bool = false do
     # How far a thing nobody made for throwing goes, before its weight is
     # taken off.
     ARM = 10
@@ -194,6 +195,14 @@ module Roguelike
     # Whether the name takes no article.
     def uncountable? : Bool
       uncountable
+    end
+
+    # Whether the label is a proper name.
+    #
+    # A proper name takes no article, no plural, and none of the blessing,
+    # condition or enchantment words.
+    def proper? : Bool
+      proper
     end
 
     # Whether one of these can be set alight.
@@ -406,6 +415,11 @@ module Roguelike
       facts.uncountable?
     end
 
+    # Whether the label is a proper name.
+    def proper? : Bool
+      facts.proper?
+    end
+
     # The key a JSON object uses for this kind.
     #
     # `Lore` holds a `Hash(ItemKind, String)`. A JSON object key has to be a
@@ -532,8 +546,9 @@ module Roguelike
       ItemKind::HasteScroll => ItemFacts.new("scroll of haste monster",
         "scrolls of haste monster", ItemClass::Scroll, weight: 5,
         effect: Effect::HasteOther, power: Dice.new(4, 6, 20)),
-      ItemKind::Amulet => ItemFacts.new("ancient amulet", "ancient amulets",
-        ItemClass::Amulet, weight: 5),
+      ItemKind::Amulet => ItemFacts.new("The Mighty Amulet of MacGuffin",
+        "The Mighty Amulet of MacGuffin", ItemClass::Amulet, weight: 5,
+        proper: true),
     }
   end
 end
