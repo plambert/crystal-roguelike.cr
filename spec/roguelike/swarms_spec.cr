@@ -237,9 +237,14 @@ Spectator.describe "ants, jellies and flanking" do
 
     it "does not split at half its hit points or below" do
       game, jelly = cell
-      jelly.hurt jelly.max_hit_points - jelly.max_hit_points // 2
+      half = jelly.max_hit_points // 2
 
-      (Game::SPLIT_EVERY * 2).times { game.wait }
+      # Creatures recover a hit point every ten turns, so the jelly is held
+      # at half throughout.
+      (Game::SPLIT_EVERY * 2).times do
+        jelly.hurt jelly.hit_points - half
+        game.wait
+      end
 
       expect(jellies(game).size).to eq 1
     end

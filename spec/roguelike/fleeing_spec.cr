@@ -214,8 +214,8 @@ Spectator.describe "hurt creatures running" do
       expect(slime.x).to be < 5
     end
 
-    it "is the only species that does not" do
-      Kind.each { |kind| expect(kind.flees?).to eq(!kind.species.slime?) }
+    it "is one of the species that do not, as only goblins and orcs run" do
+      Kind.each { |kind| expect(kind.flees?).to eq(kind.species.goblin? || kind.species.orc?) }
     end
   end
 
