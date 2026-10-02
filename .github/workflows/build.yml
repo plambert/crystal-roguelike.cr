@@ -127,6 +127,12 @@ jobs:
           mkdir -p build
           cp bin/crystal-roguelike-test build/
 
+          # Crystal names its OpenSSL symbols after the version pkg-config
+          # reports for libcrypto. openssl@3 is keg-only, so the script and
+          # this build both name its pkgconfig directory.
+          PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+          export PKG_CONFIG_PATH
+
           # Homebrew builds its archives for the macOS it runs on, and the
           # link warns about each object file in them that is newer than the
           # deployment target. The log is filtered the way the script

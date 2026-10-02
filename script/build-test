@@ -121,6 +121,24 @@ cc -O2 -c "$libs/iconv_shim.c" -o "$libs/iconv_shim.o"
 rm -f "$libs/libiconv.a"
 libtool -static -o "$libs/libiconv.a" "$libs/iconv_shim.o" "$iconv_prefix/lib/libiconv.a"
 
+# Crystal picks its OpenSSL binding names from the libcrypto version that
+# pkg-config reports at compile time. OpenSSL 3 dropped symbols such as
+# EVP_MD_size, so a missing or older answer builds a binary that references
+# names the archive does not have. Homebrew's openssl@3 is keg-only, so its
+# pkgconfig directory is not searched unless it is named here.
+PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+export PKG_CONFIG_PATH
+
+crypto_version=$(pkg-config --modversion libcrypto 2>/dev/null || true)
+echo "libcrypto $crypto_version"
+case "$crypto_version" in
+  3.*) ;;
+  *)
+    echo "pkg-config reports libcrypto '$crypto_version', not 3.x" >&2
+    exit 1
+    ;;
+esac
+
 newer='^ld: warning: object file \(.*\) was built for newer macOS version \([0-9.]+\) than being linked \([0-9.]+\)$'
 status="$libs/build.status"
 
