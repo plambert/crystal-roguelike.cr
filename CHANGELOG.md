@@ -8,10 +8,6 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
-### Added
-
-* Every release and nightly carries a test build tarball for each platform, beside the regular one.
-
 ## [0.2.0] - 2026-10-02
 
 Five floors under one another, floors of varied size and layout, creature kinds with factions,
@@ -19,6 +15,7 @@ monsters that shoot, flee, open doors and pick up gear, and a test build that re
 
 ### Added
 
+* Every release and nightly carries a test build tarball for each platform, beside the regular one.
 * `script/build-test` builds a test build for macOS that runs on a Mac without Nix or Homebrew. It
   builds GNU libiconv from source, so it needs no Homebrew libiconv.
 * The potion of minor healing puts back 1d4+1 hit points, half as many when cursed and twice as
