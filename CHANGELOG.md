@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* The GitHub release page for a version shows that version's changelog entry, followed by one
+  link to the commits since the previous release.
+
 ## [0.2.0] - 2026-10-02
 
 Five floors under one another, floors of varied size and layout, creature kinds with factions,

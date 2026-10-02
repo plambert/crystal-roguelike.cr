@@ -12,7 +12,8 @@
 # The version a binary reports comes from shard.yml, which the compiler reads
 # through the VERSION macro. The first job refuses a tag that says something
 # else, so a release named v1.2.3 cannot contain a binary that calls itself
-# 1.2.2.
+# 1.2.2. It also refuses a tag whose version has no entry in CHANGELOG.md,
+# because that entry becomes the body of the release.
 name: release
 
 on:
@@ -54,6 +55,10 @@ jobs:
               echo "::error file=shard.yml::tag $GITHUB_REF_NAME wants version $tagged, shard.yml says $version"
               exit 1
             fi
+            if ! grep -qF "## [$version]" CHANGELOG.md; then
+              echo "::error file=CHANGELOG.md::no entry for $version in CHANGELOG.md"
+              exit 1
+            fi
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -73,6 +78,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      # The whole history, so the previous release tag can be found.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v8
         with:
           path: dist
@@ -91,10 +101,50 @@ jobs:
           sha256sum --check SHA256SUMS
           ls -l
 
+      # The body is the version's entry in CHANGELOG.md followed by one link to
+      # the commits since the previous release. The workflow writes the whole
+      # body itself. GitHub's generated notes are appended to whatever body the
+      # release already has, so a second run for the same tag repeated the link.
+      - name: Write the release notes
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          awk -v version="$VERSION" '
+            /^## \[/ { inside = index($0, "## [" version "]") == 1; next }
+            inside { lines[n++] = $0 }
+            END {
+              while (n > 0 && lines[n - 1] == "") n--
+              start = 0
+              while (start < n && lines[start] == "") start++
+              for (i = start; i < n; i++) print lines[i]
+            }
+          ' CHANGELOG.md > notes.md
+
+          if [ ! -s notes.md ]; then
+            echo "::error file=CHANGELOG.md::the entry for $VERSION is empty"
+            exit 1
+          fi
+
+          previous=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname \
+                       | awk -v tag="$GITHUB_REF_NAME" 'seen { print; exit } $0 == tag { seen = 1 }')
+
+          {
+            echo
+            if [ -n "$previous" ]; then
+              echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/compare/$previous...$GITHUB_REF_NAME"
+            else
+              echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME"
+            fi
+          } >> notes.md
+
+          cat notes.md
+
       - uses: softprops/action-gh-release@v3
         with:
+          body_path: notes.md
           files: |
             dist/*.tar.gz
             dist/SHA256SUMS
           fail_on_unmatched_files: true
-          generate_release_notes: true
