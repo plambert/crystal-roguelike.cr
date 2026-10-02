@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-02
+
+Five floors under one another, floors of varied size and layout, creature kinds with factions,
+monsters that shoot, flee, open doors and pick up gear, and a test build that records every run.
+
 ### Added
 
 * `script/build-test` builds a test build for macOS that runs on a Mac without Nix or Homebrew. It
@@ -411,5 +416,6 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/plambert/crystal-roguelike.cr/releases/tag/v0.1.0

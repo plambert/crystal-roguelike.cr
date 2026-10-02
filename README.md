@@ -25,7 +25,7 @@ Each tagged release carries a tarball per platform, with `SHA256SUMS` beside
 them:
 
 ```bash
-version=0.1.0
+version=0.2.0
 platform=macos-aarch64   # or linux-x86_64, linux-aarch64
 base=https://github.com/plambert/crystal-roguelike.cr/releases/download/v$version
 
@@ -96,7 +96,7 @@ play can be reproduced exactly:
 
 ```bash
 shards build -Dtest_build
-./bin/crystal-roguelike --version   # crystal-roguelike 0.1.0 (test build)
+./bin/crystal-roguelike --version   # crystal-roguelike 0.2.0 (test build)
 ```
 
 The logs go to `$XDG_STATE_HOME/roguelike/test_logs/`, or
