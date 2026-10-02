@@ -5,7 +5,9 @@
 # binaries and stops there, so the build can be exercised without cutting a
 # tag.
 #
-# The build itself lives in `build.yml`, which the nightly calls as well.
+# The build itself lives in `build.yml`, which the nightly calls as well. It
+# makes a regular tarball and a test build tarball for each platform, and the
+# release attaches all of them.
 #
 # The version a binary reports comes from shard.yml, which the compiler reads
 # through the VERSION macro. The first job refuses a tag that says something
@@ -78,7 +80,8 @@ jobs:
           merge-multiple: true
 
       # The per-platform files are already in sha256sum's own format, so the
-      # concatenation is a file `sha256sum --check` reads.
+      # concatenation is a file `sha256sum --check` reads. It lists the test
+      # build tarballs beside the regular ones.
       - name: Gather the checksums
         run: |
           set -euo pipefail

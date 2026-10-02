@@ -10,10 +10,11 @@
 # the head of the branch and stops the run when they match. A build that fails
 # leaves the tag where it is, so the next night tries the same commit again.
 #
-# The tarballs are named without a version, so a link to a nightly download
-# keeps working from one night to the next. Which commit a binary came from is
-# in the release notes, and the binary itself prints it beside its version in
-# the debug console.
+# Each platform has a regular tarball and a test build tarball. The tarballs
+# are named without a version, so a link to a nightly download keeps working
+# from one night to the next. Which commit a binary came from is in the
+# release notes, and the binary itself prints it beside its version in the
+# debug console.
 #
 # GitHub stops running a scheduled workflow in a repository that has had no
 # activity for 60 days. A repository quiet for that long has nothing to build
@@ -124,7 +125,8 @@ jobs:
           merge-multiple: true
 
       # The per-platform files are already in sha256sum's own format, so the
-      # concatenation is a file `sha256sum --check` reads.
+      # concatenation is a file `sha256sum --check` reads. It lists the test
+      # build tarballs beside the regular ones.
       - name: Gather the checksums
         run: |
           set -euo pipefail
@@ -145,6 +147,9 @@ jobs:
             echo
             echo "This release is rebuilt whenever the default branch moves. The files"
             echo "keep the same names, so a download link goes on working."
+            echo
+            echo "Each platform has two tarballs. The \`-test-\` one is a test build, which"
+            echo "records a replay log of every run it plays."
             echo
           } > notes.md
 

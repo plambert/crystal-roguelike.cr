@@ -22,7 +22,10 @@ so use a release binary or build from source with a compiler you already have.
 ### A binary from the releases page
 
 Each tagged release carries a tarball per platform, with `SHA256SUMS` beside
-them:
+them. It also carries a test build tarball per platform, named
+`crystal-roguelike-$version-test-$platform.tar.gz`, which holds
+`crystal-roguelike-test`. A test build records a replay log of every run it
+plays; see [A test build](#a-test-build).
 
 ```bash
 version=0.2.0
@@ -41,8 +44,8 @@ binary, the licence and this file. Put the binary wherever you keep such
 things; it needs nothing beside it.
 
 The Linux binaries are statically linked against musl and run on any
-distribution. The macOS binary links the collector and pcre2 from their
-archives, so it needs nothing from Homebrew.
+distribution. The macOS binary links every library except libSystem from its
+archive, so it needs nothing from Homebrew.
 
 ### A nightly build
 
@@ -60,6 +63,10 @@ shasum -a 256 --check --ignore-missing SHA256SUMS
 
 tar xzf "crystal-roguelike-nightly-$platform.tar.gz"
 ```
+
+Each platform also has a test build, as
+`crystal-roguelike-nightly-test-$platform.tar.gz`. It records a replay log of
+every run it plays; see [A test build](#a-test-build).
 
 A nightly is built the same way a release is, from the same workflow. It
 reports the version in `shard.yml`, which is the version being worked towards

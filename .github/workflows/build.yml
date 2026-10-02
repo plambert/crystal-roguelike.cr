@@ -1,5 +1,7 @@
-# Builds a binary for every platform the game ships on and leaves each one in
-# an artifact.
+# Builds two binaries for every platform the game ships on and leaves them in
+# one artifact per platform. One is the game. The other is the test build, which
+# records a replay log of every run it plays and reports `(test build)` after
+# its version.
 #
 # Nothing triggers this on its own. `release.yml` and `nightly.yml` both call
 # it, so the two publish the same binaries built the same way, and the nightly
@@ -11,9 +13,10 @@
 #
 # `archive-stem` names the tarballs. The platform and the extension are added
 # to it: a stem of `crystal-roguelike-0.1.0` gives
-# `crystal-roguelike-0.1.0-linux-x86_64.tar.gz`. The nightly passes a stem
-# with no version in it, so its download links stay the same from night to
-# night.
+# `crystal-roguelike-0.1.0-linux-x86_64.tar.gz`, and the test build's tarball
+# is `crystal-roguelike-0.1.0-test-linux-x86_64.tar.gz`. The nightly passes a
+# stem with no version in it, so its download links stay the same from night
+# to night.
 name: build
 
 on:
@@ -52,9 +55,9 @@ jobs:
           - platform: linux-aarch64
             runner: ubuntu-24.04-arm
             builder: docker
-          # macOS cannot link libSystem statically. The two libraries that are
-          # not part of the OS are linked from their archives instead, which
-          # leaves a binary that needs nothing from Homebrew.
+          # macOS cannot link libSystem statically. Every other library is
+          # linked from its archive instead, which leaves binaries that need
+          # nothing from Homebrew.
           - platform: macos-aarch64
             runner: macos-15
             builder: native
@@ -81,10 +84,12 @@ jobs:
               mkdir -p build
               crystal build --release --no-debug --static \
                 -o build/crystal-roguelike src/main.cr
+              crystal build --release --no-debug --static -Dtest_build \
+                -o build/crystal-roguelike-test src/main.cr
 
               # --no-debug covers what the compiler emits. The musl and libgc
               # objects linked in bring their own, about a megabyte of it.
-              strip build/crystal-roguelike
+              strip build/crystal-roguelike build/crystal-roguelike-test
             '
 
       - uses: crystal-lang/install-crystal@v1
@@ -92,70 +97,126 @@ jobs:
         with:
           crystal: ${{ env.CRYSTAL_VERSION }}
 
-      - name: Build for macOS, linking the collector and pcre2 from their archives
+      - name: Build for macOS, linking every library from its archive
         if: matrix.builder == 'native'
+        env:
+          MACOSX_DEPLOYMENT_TARGET: '14.0'
         run: |
           set -euo pipefail
-          # Crystal itself pulls these in when Homebrew installs it. The
-          # action may install Crystal from a tarball instead, so ask for
-          # them by name, and only when they are not already here.
-          for formula in bdw-gc pcre2; do
-            brew list "$formula" > /dev/null 2>&1 || brew install "$formula"
+          # Crystal itself pulls the first two in when Homebrew installs it.
+          # The action may install Crystal from a tarball instead, so ask for
+          # all four by name, and only when they are not already here.
+          # `script/build-test` checks for them and never installs.
+          for formula in bdw-gc pcre2 openssl@3 zlib; do
+            brew list --formula "$formula" > /dev/null 2>&1 || brew install "$formula"
           done
-
-          # The linker takes the first directory that holds a match. A
-          # directory holding only the archives is searched first, so the
-          # dylibs beside them in Homebrew are never reached.
-          mkdir -p .static-libs
-          cp "$(brew --prefix bdw-gc)/lib/libgc.a" .static-libs/
-          cp "$(brew --prefix pcre2)/lib/libpcre2-8.a" .static-libs/
 
           shards install --production --frozen
 
-          # The linker writes the output file. It does not make the directory
-          # it goes in.
+          # The script puts the archives in .static-libs, builds libiconv
+          # from source in there, links the test build into
+          # bin/crystal-roguelike-test and fails when that binary links
+          # anything but libSystem. The regular build links against the same
+          # directory. The linker takes the first directory that holds a
+          # match, so the archives are found before the dylibs beside them
+          # in Homebrew.
+          script/build-test
+
+          # The linker writes the output file. It does not make the
+          # directory it goes in.
           mkdir -p build
+          cp bin/crystal-roguelike-test build/
+
+          # Homebrew builds its archives for the macOS it runs on, and the
+          # link warns about each object file in them that is newer than the
+          # deployment target. The log is filtered the way the script
+          # filters its own, and the build's exit status is kept.
+          log=$(mktemp)
+          newer='^ld: warning: object file \(.*\) was built for newer macOS version \([0-9.]+\) than being linked \([0-9.]+\)$'
+          code=0
           crystal build --release --no-debug \
             -o build/crystal-roguelike src/main.cr \
-            --link-flags "-L$PWD/.static-libs"
+            --link-flags "-L$PWD/.static-libs" > "$log" 2>&1 || code=$?
+          grep -v -E "$newer" "$log" || true
+          exit "$code"
 
-          otool -L build/crystal-roguelike
-
-      # Every runner is the architecture it built for, so the binary can be
-      # run here. It reports the version it was compiled with, which is the
-      # last place a mismatch could still appear.
-      - name: Run it and check what it says it is
+      # The Linux binaries must be static and the macOS binaries must link
+      # only libSystem. Anything else would need a library the player may not
+      # have.
+      - name: Check what the binaries link
         run: |
           set -euo pipefail
-          said=$(./build/crystal-roguelike --version)
-          want="crystal-roguelike $VERSION"
+          for bin in build/crystal-roguelike build/crystal-roguelike-test; do
+            if [ "$BUILDER" = native ]; then
+              otool -L "$bin"
+              stray=$(otool -L "$bin" | sed 1d | awk '{print $1}' \
+                | grep -v '^/usr/lib/libSystem.B.dylib$' || true)
+              if [ -n "$stray" ]; then
+                echo "::error::$bin links a library besides libSystem: $stray"
+                exit 1
+              fi
+            else
+              file "$bin"
+              # ldd says one of these two for a static binary, and lists
+              # libraries for a dynamic one.
+              seen=$(ldd "$bin" 2>&1 || true)
+              echo "$seen"
+              if ! printf %s "$seen" | grep -q -E 'not a dynamic executable|statically linked'; then
+                echo "::error::$bin is not statically linked"
+                exit 1
+              fi
+            fi
+          done
+        env:
+          BUILDER: ${{ matrix.builder }}
 
-          if [ "$said" != "$want" ]; then
-            echo "::error::the binary says '$said', the build is '$want'"
-            exit 1
-          fi
-
-          echo "$said"
-
-      - name: Pack it with the licence and the readme
+      # Every runner is the architecture it built for, so the binaries can be
+      # run here. Each reports the version it was compiled with, which is the
+      # last place a mismatch could still appear. The test build adds its
+      # edition after the version.
+      - name: Run them and check what they say they are
         run: |
           set -euo pipefail
-          name="$STEM-$PLATFORM"
+          check() {
+            said=$("$1" --version)
+            if [ "$said" != "$2" ]; then
+              echo "::error::$1 says '$said', the build is '$2'"
+              exit 1
+            fi
+            echo "$said"
+          }
 
-          mkdir -p "dist/$name"
-          cp build/crystal-roguelike "dist/$name/"
-          cp README.md LICENSE "dist/$name/"
+          check ./build/crystal-roguelike "crystal-roguelike $VERSION"
+          check ./build/crystal-roguelike-test "crystal-roguelike $VERSION (test build)"
 
-          tar --create --gzip --directory dist --file "dist/$name.tar.gz" "$name"
-          rm -rf "dist/$name"
+      # The regular tarball is `$STEM-$PLATFORM` and the test build's is
+      # `$STEM-test-$PLATFORM`. Each holds one binary, named for what it is.
+      - name: Pack them with the licence and the readme
+        run: |
+          set -euo pipefail
 
-          if command -v sha256sum > /dev/null; then
-            (cd dist && sha256sum "$name.tar.gz" > "$name.tar.gz.sha256")
-          else
-            (cd dist && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
-          fi
+          pack() {
+            name="$1"
+            binary="$2"
 
-          cat "dist/$name.tar.gz.sha256"
+            mkdir -p "dist/$name"
+            cp "build/$binary" "dist/$name/"
+            cp README.md LICENSE "dist/$name/"
+
+            tar --create --gzip --directory dist --file "dist/$name.tar.gz" "$name"
+            rm -rf "dist/$name"
+
+            if command -v sha256sum > /dev/null; then
+              (cd dist && sha256sum "$name.tar.gz" > "$name.tar.gz.sha256")
+            else
+              (cd dist && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
+            fi
+
+            cat "dist/$name.tar.gz.sha256"
+          }
+
+          pack "$STEM-$PLATFORM" crystal-roguelike
+          pack "$STEM-test-$PLATFORM" crystal-roguelike-test
 
       - uses: actions/upload-artifact@v7
         with:

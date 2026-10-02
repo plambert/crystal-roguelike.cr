@@ -8,6 +8,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* Every release and nightly carries a test build tarball for each platform, beside the regular one.
+
 ## [0.2.0] - 2026-10-02
 
 Five floors under one another, floors of varied size and layout, creature kinds with factions,
