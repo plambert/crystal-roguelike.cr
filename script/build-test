@@ -23,6 +23,11 @@
 # run, and the linker searches it before Homebrew's directories.
 #
 # `MACOSX_DEPLOYMENT_TARGET` is 14.0 for the libiconv build and the link.
+# Homebrew builds its archives for the macOS it runs on, so the link warns
+# once for each object file in them that was built for a newer macOS than
+# 14.0. There are about 1,100 of those lines, and they bury anything else the
+# build says. The script drops exactly those warnings from the build's
+# output. Every other line, and the build's exit status, comes through.
 #
 # Arguments after the script name go to `crystal build` after the fixed ones.
 #
@@ -116,8 +121,20 @@ cc -O2 -c "$libs/iconv_shim.c" -o "$libs/iconv_shim.o"
 rm -f "$libs/libiconv.a"
 libtool -static -o "$libs/libiconv.a" "$libs/iconv_shim.o" "$iconv_prefix/lib/libiconv.a"
 
-crystal build --release --no-debug -Dtest_build -o "$out" src/main.cr \
-  --link-flags "-L$libs" "$@"
+newer='^ld: warning: object file \(.*\) was built for newer macOS version \([0-9.]+\) than being linked \([0-9.]+\)$'
+status="$libs/build.status"
+
+exec 3>&1
+{
+  code=0
+  crystal build --release --no-debug -Dtest_build -o "$out" src/main.cr \
+    --link-flags "-L$libs" "$@" 2>&1 1>&3 3>&- || code=$?
+  echo "$code" >"$status"
+} | { grep -v -E "$newer" || true; } 1>&2
+exec 3>&-
+
+code=$(cat "$status")
+[ "$code" -eq 0 ] || exit "$code"
 
 otool -L "$out"
 "$out" --version
