@@ -106,6 +106,15 @@ file per run named for the time it started, the seed and the character.
 on with `--character` goes on in the same file. Check one with
 `crystal-roguelike replay verify FILE`.
 
+On macOS, `script/build-test` builds a test build that needs nothing from Nix
+or Homebrew, so the binary runs on another Mac. It writes
+`bin/crystal-roguelike-test` and fails if the binary links any dylib besides
+libSystem:
+
+```bash
+script/build-test
+```
+
 ## Usage
 
 TODO: Write usage instructions here

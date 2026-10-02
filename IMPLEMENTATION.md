@@ -2992,6 +2992,20 @@ file inside a directory. The names sort by time, and a second run in the same se
 
 `--replay-log` still wins when it is given.
 
+### Building one to hand over
+
+`script/build-test` builds `bin/crystal-roguelike-test` on macOS with `-Dtest_build`, so the binary
+runs on a Mac that has neither Nix nor Homebrew. It copies `libgc.a`, `libpcre2-8.a`, `libcrypto.a`
+and `libz.a` from the Homebrew formulas into `.static-libs/`, which the linker searches first.
+Crystal calls `iconv_open`, `iconv` and `iconv_close`, and GNU libiconv exports them as
+`libiconv_*`, so the script compiles a three-function C shim and folds it into
+`.static-libs/libiconv.a`.
+
+After the build it prints `otool -L` and the version. It exits 1 when the binary links anything but
+`/usr/lib/libSystem.B.dylib`. It stops with a message when a formula is missing and installs
+nothing. On Linux it stops, because the release workflow builds the static Linux binary in the
+Alpine image.
+
 ### One run across a save
 
 A run that is saved and carried on later with `--character` goes on in the file it began in.

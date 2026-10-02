@@ -1,0 +1,78 @@
+#!/bin/sh
+#
+# Builds the test build as `bin/crystal-roguelike-test`, linked so that it
+# runs on another Mac without Nix or Homebrew.
+#
+# macOS cannot link libSystem statically. Every other library is linked from
+# an archive, so the binary needs only `/usr/lib/libSystem.B.dylib`. The
+# script fails when `otool -L` lists anything else.
+#
+# This script covers macOS. A static Linux binary comes from the Alpine image
+# that the release workflow builds in, and the script stops on Linux.
+#
+# It needs these Homebrew formulas, which it checks for and never installs:
+# bdw-gc, pcre2, openssl@3, zlib and libiconv.
+#
+# `.static-libs/` is scratch. The script rewrites it on every run, and the
+# linker searches it before Homebrew's directories.
+#
+# Arguments after the script name go to `crystal build` after the fixed ones.
+#
+#     script/build-test [CRYSTAL BUILD ARGUMENT...]
+
+set -e
+
+if [ "$(uname -s)" != Darwin ]; then
+  echo "script/build-test covers macOS only" >&2
+  exit 1
+fi
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+out=bin/crystal-roguelike-test
+libs="$root/.static-libs"
+
+missing=
+for formula in bdw-gc pcre2 openssl@3 zlib libiconv; do
+  brew list --formula "$formula" >/dev/null 2>&1 || missing="$missing $formula"
+done
+if [ -n "$missing" ]; then
+  echo "missing Homebrew formulas:$missing" >&2
+  exit 1
+fi
+
+mkdir -p "$libs" bin
+cp "$(brew --prefix bdw-gc)/lib/libgc.a" "$libs/"
+cp "$(brew --prefix pcre2)/lib/libpcre2-8.a" "$libs/"
+cp "$(brew --prefix openssl@3)/lib/libcrypto.a" "$libs/"
+cp "$(brew --prefix zlib)/lib/libz.a" "$libs/"
+
+cat > "$libs/iconv_shim.c" <<'C'
+/* Crystal calls iconv by its plain names. GNU libiconv exports them with a
+   libiconv_ prefix. These three forward one to the other. */
+#include <stddef.h>
+typedef void *iconv_t;
+extern iconv_t libiconv_open(const char *, const char *);
+extern size_t libiconv(iconv_t, char **, size_t *, char **, size_t *);
+extern int libiconv_close(iconv_t);
+iconv_t iconv_open(const char *to, const char *from) { return libiconv_open(to, from); }
+size_t iconv(iconv_t cd, char **in, size_t *inleft, char **out, size_t *outleft) { return libiconv(cd, in, inleft, out, outleft); }
+int iconv_close(iconv_t cd) { return libiconv_close(cd); }
+C
+
+cc -O2 -c "$libs/iconv_shim.c" -o "$libs/iconv_shim.o"
+rm -f "$libs/libiconv.a"
+libtool -static -o "$libs/libiconv.a" "$libs/iconv_shim.o" "$(brew --prefix libiconv)/lib/libiconv.a"
+
+crystal build --release --no-debug -Dtest_build -o "$out" src/main.cr \
+  --link-flags "-L$libs" "$@"
+
+otool -L "$out"
+"$out" --version
+
+stray=$(otool -L "$out" | sed 1d | awk '{print $1}' | grep -v '^/usr/lib/libSystem.B.dylib$' || true)
+if [ -n "$stray" ]; then
+  echo "$out links a library besides libSystem: $stray" >&2
+  exit 1
+fi
