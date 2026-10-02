@@ -2996,15 +2996,25 @@ file inside a directory. The names sort by time, and a second run in the same se
 
 `script/build-test` builds `bin/crystal-roguelike-test` on macOS with `-Dtest_build`, so the binary
 runs on a Mac that has neither Nix nor Homebrew. It copies `libgc.a`, `libpcre2-8.a`, `libcrypto.a`
-and `libz.a` from the Homebrew formulas into `.static-libs/`, which the linker searches first.
+and `libz.a` from the Homebrew formulas `bdw-gc`, `pcre2`, `openssl@3` and `zlib` into
+`.static-libs/`, which the linker searches first.
+
+GNU libiconv does not come from Homebrew, because its dylib shadows the Nix one and breaks a plain
+`shards build`. The script downloads the 1.19 tarball into `.static-libs/src/` with `curl`, checks
+it against a SHA-256 pinned in the script, and builds a static copy into `.static-libs/libiconv/`.
+It skips each step whose result is already there, so a second run does not rebuild it. The build
+sets `MACOSX_DEPLOYMENT_TARGET=14.0`, for libiconv and for the final link. libiconv and the shim
+link without warnings. The Homebrew archives were built for the running macOS and still draw
+"built for newer macOS version" warnings.
+
 Crystal calls `iconv_open`, `iconv` and `iconv_close`, and GNU libiconv exports them as
-`libiconv_*`, so the script compiles a three-function C shim and folds it into
-`.static-libs/libiconv.a`.
+`libiconv_*`, so the script compiles a three-function C shim and folds it with the built
+`libiconv.a` into `.static-libs/libiconv.a`.
 
 After the build it prints `otool -L` and the version. It exits 1 when the binary links anything but
 `/usr/lib/libSystem.B.dylib`. It stops with a message when a formula is missing and installs
-nothing. On Linux it stops, because the release workflow builds the static Linux binary in the
-Alpine image.
+nothing. It needs network access on the first run only. On Linux it stops, because the release
+workflow builds the static Linux binary in the Alpine image.
 
 ### One run across a save
 

@@ -10,7 +10,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
-* `script/build-test` builds a test build for macOS that runs on a Mac without Nix or Homebrew.
+* `script/build-test` builds a test build for macOS that runs on a Mac without Nix or Homebrew. It
+  builds GNU libiconv from source, so it needs no Homebrew libiconv.
 * The potion of minor healing puts back 1d4+1 hit points, half as many when cursed and twice as
   many when blessed. It has a colour of its own until one is drunk. About a quarter of the healing
   potions on floor 1 are minor, and about three in a hundred from floor 2 down.

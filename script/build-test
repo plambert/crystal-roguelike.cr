@@ -10,11 +10,19 @@
 # This script covers macOS. A static Linux binary comes from the Alpine image
 # that the release workflow builds in, and the script stops on Linux.
 #
-# It needs these Homebrew formulas, which it checks for and never installs:
-# bdw-gc, pcre2, openssl@3, zlib and libiconv.
+# It needs Homebrew with these four formulas, which it checks for and never
+# installs: bdw-gc, pcre2, openssl@3 and zlib. It also needs curl, cc, make
+# and libtool, and network access on the first run.
 #
-# `.static-libs/` is scratch. The script rewrites it on every run, and the
-# linker searches it before Homebrew's directories.
+# GNU libiconv comes from source, because Homebrew's libiconv dylib shadows
+# the Nix one. The script downloads the tarball into `.static-libs/src/`,
+# checks its SHA-256 and builds a static copy in `.static-libs/libiconv/`.
+# A later run skips every step whose result is already there.
+#
+# `.static-libs/` is scratch. The script refreshes the archives in it on every
+# run, and the linker searches it before Homebrew's directories.
+#
+# `MACOSX_DEPLOYMENT_TARGET` is 14.0 for the libiconv build and the link.
 #
 # Arguments after the script name go to `crystal build` after the fixed ones.
 #
@@ -33,8 +41,17 @@ cd "$root"
 out=bin/crystal-roguelike-test
 libs="$root/.static-libs"
 
+iconv_version=1.19
+iconv_url="https://ftp.gnu.org/gnu/libiconv/libiconv-$iconv_version.tar.gz"
+# sha256 of the libiconv 1.19 tarball
+iconv_sha256=88dd96a8c0464eca144fc791ae60cd31cd8ee78321e67397e25fc095c4a19aa6
+iconv_prefix="$libs/libiconv"
+
+MACOSX_DEPLOYMENT_TARGET=14.0
+export MACOSX_DEPLOYMENT_TARGET
+
 missing=
-for formula in bdw-gc pcre2 openssl@3 zlib libiconv; do
+for formula in bdw-gc pcre2 openssl@3 zlib; do
   brew list --formula "$formula" >/dev/null 2>&1 || missing="$missing $formula"
 done
 if [ -n "$missing" ]; then
@@ -42,11 +59,45 @@ if [ -n "$missing" ]; then
   exit 1
 fi
 
-mkdir -p "$libs" bin
-cp "$(brew --prefix bdw-gc)/lib/libgc.a" "$libs/"
-cp "$(brew --prefix pcre2)/lib/libpcre2-8.a" "$libs/"
-cp "$(brew --prefix openssl@3)/lib/libcrypto.a" "$libs/"
-cp "$(brew --prefix zlib)/lib/libz.a" "$libs/"
+mkdir -p "$libs/src" bin
+
+if [ ! -f "$iconv_prefix/lib/libiconv.a" ]; then
+  tarball="$libs/src/libiconv-$iconv_version.tar.gz"
+  srcdir="$libs/src/libiconv-$iconv_version"
+
+  if [ ! -f "$tarball" ]; then
+    echo "downloading $iconv_url"
+    curl -fsSL "$iconv_url" -o "$tarball.part"
+    mv "$tarball.part" "$tarball"
+  fi
+
+  actual=$(shasum -a 256 "$tarball" | awk '{print $1}')
+  if [ "$actual" != "$iconv_sha256" ]; then
+    echo "$tarball has sha256 $actual, expected $iconv_sha256" >&2
+    rm -f "$tarball"
+    exit 1
+  fi
+
+  rm -rf "$srcdir"
+  tar -xzf "$tarball" -C "$libs/src"
+
+  echo "building libiconv $iconv_version"
+  log="$libs/src/libiconv-build.log"
+  if ! (
+    cd "$srcdir"
+    ./configure --enable-static --disable-shared --prefix="$iconv_prefix" CFLAGS="-O2"
+    make -j "$(sysctl -n hw.ncpu)"
+    make install
+  ) >"$log" 2>&1; then
+    cat "$log" >&2
+    exit 1
+  fi
+fi
+
+cp -f "$(brew --prefix bdw-gc)/lib/libgc.a" "$libs/"
+cp -f "$(brew --prefix pcre2)/lib/libpcre2-8.a" "$libs/"
+cp -f "$(brew --prefix openssl@3)/lib/libcrypto.a" "$libs/"
+cp -f "$(brew --prefix zlib)/lib/libz.a" "$libs/"
 
 cat > "$libs/iconv_shim.c" <<'C'
 /* Crystal calls iconv by its plain names. GNU libiconv exports them with a
@@ -63,7 +114,7 @@ C
 
 cc -O2 -c "$libs/iconv_shim.c" -o "$libs/iconv_shim.o"
 rm -f "$libs/libiconv.a"
-libtool -static -o "$libs/libiconv.a" "$libs/iconv_shim.o" "$(brew --prefix libiconv)/lib/libiconv.a"
+libtool -static -o "$libs/libiconv.a" "$libs/iconv_shim.o" "$iconv_prefix/lib/libiconv.a"
 
 crystal build --release --no-debug -Dtest_build -o "$out" src/main.cr \
   --link-flags "-L$libs" "$@"

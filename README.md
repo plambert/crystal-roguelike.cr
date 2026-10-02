@@ -109,7 +109,9 @@ on with `--character` goes on in the same file. Check one with
 On macOS, `script/build-test` builds a test build that needs nothing from Nix
 or Homebrew, so the binary runs on another Mac. It writes
 `bin/crystal-roguelike-test` and fails if the binary links any dylib besides
-libSystem:
+libSystem. The build needs the Homebrew formulas `bdw-gc`, `pcre2`,
+`openssl@3` and `zlib`, plus `curl`, `cc`, `make` and `libtool`. The first run
+downloads GNU libiconv and builds it into `.static-libs/`. Later runs reuse it:
 
 ```bash
 script/build-test
