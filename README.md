@@ -47,6 +47,23 @@ The Linux binaries are statically linked against musl and run on any
 distribution. The macOS binary links every library except libSystem from its
 archive, so it needs nothing from Homebrew.
 
+On Windows the release is a zip, `crystal-roguelike-$version-windows-x86_64.zip`,
+holding `crystal-roguelike.exe`, statically linked, so it needs nothing beside
+it. In PowerShell:
+
+```powershell
+$version = "0.2.2"
+$base = "https://github.com/plambert/crystal-roguelike.cr/releases/download/v$version"
+
+Invoke-WebRequest "$base/crystal-roguelike-$version-windows-x86_64.zip" -OutFile game.zip
+Invoke-WebRequest "$base/SHA256SUMS" -OutFile SHA256SUMS
+(Get-FileHash game.zip -Algorithm SHA256).Hash.ToLower()   # compare with SHA256SUMS
+Expand-Archive game.zip -DestinationPath .
+```
+
+Play it in Windows Terminal or WezTerm. Saves go in
+`%LOCALAPPDATA%\roguelike`, unless `XDG_STATE_HOME` names somewhere else.
+
 ### A nightly build
 
 The head of the default branch is built every night that something was
@@ -64,8 +81,10 @@ shasum -a 256 --check --ignore-missing SHA256SUMS
 tar xzf "crystal-roguelike-nightly-$platform.tar.gz"
 ```
 
+On Windows the nightly is `crystal-roguelike-nightly-windows-x86_64.zip`.
+
 Each platform also has a test build, as
-`crystal-roguelike-nightly-test-$platform.tar.gz`. It records a replay log of
+`crystal-roguelike-nightly-test-$platform.tar.gz`, or `.zip` on Windows. It records a replay log of
 every run it plays; see [A test build](#a-test-build).
 
 A nightly is built the same way a release is, from the same workflow. It
