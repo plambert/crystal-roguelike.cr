@@ -34,7 +34,10 @@ module Fixture
     # terminator. It is not content. Chomping more would throw away the blank
     # rows at the bottom of a screen. Those rows say a pane is the height it
     # claims.
-    stored = File.read path
+    #
+    # Line endings are a newline whatever the checkout did to them: Git for
+    # Windows turns them into carriage return and newline unless told not to.
+    stored = File.read(path).gsub("\r\n", '\n')
     stored.ends_with?('\n') ? stored[0...-1] : stored
   end
 end

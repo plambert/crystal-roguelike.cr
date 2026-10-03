@@ -1,3 +1,4 @@
+require "file_utils"
 require "./headless"
 
 # A `Roguelike::Ui::Play` over a buffer, wired the way `Session` wires it.
@@ -177,9 +178,17 @@ module Playing
   # Nothing a spec does is allowed to reach the person's own saved
   # characters, so `open` takes no store unless a spec names one, and this is
   # what a spec names.
+  #
+  # Every one goes when the specs are over.
   def self.store : Roguelike::Save::Store
-    Roguelike::Save::Store.under Path[File.tempname "roguelike-spec", nil]
+    root = Path[File.tempname "roguelike-spec", nil]
+    at_exit { @@stores.each { |made| FileUtils.rm_rf made.to_s } } if @@stores.empty?
+    @@stores << root
+
+    Roguelike::Save::Store.under root
   end
+
+  @@stores = [] of Path
 
   # A run on *game*, drawn in a window of *columns* by *rows*.
   #

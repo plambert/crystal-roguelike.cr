@@ -132,7 +132,7 @@ Spectator.describe Roguelike::Replay::Viewer do
   # The process is run and waited for, so the id is free by the time this
   # answers. A file under it is what a viewer that was killed leaves behind.
   def spent : Int64
-    found = Process.new "/usr/bin/true"
+    found = {% if flag?(:win32) %} Process.new("cmd.exe", ["/c", "exit"]) {% else %} Process.new("/usr/bin/true") {% end %}
     pid = found.pid
     found.wait
     pid

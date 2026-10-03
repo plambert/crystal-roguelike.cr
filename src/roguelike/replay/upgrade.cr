@@ -30,7 +30,10 @@ module Roguelike
         to = Path.new target
         read = Reading.read source, fingerprints: false
 
-        wanted = Path[::File.tempname "roguelike-upgrade", Naming::SUFFIX]
+        # Beside the target, not in the temporary directory: a rename cannot
+        # cross from one drive or filesystem to another, and on Windows the
+        # temporary directory is often on a different drive from the run.
+        wanted = Path[::File.tempname "roguelike-upgrade", Naming::SUFFIX, dir: (to.parent.to_s.presence || ".")]
         trouble = written read, wanted
 
         if trouble

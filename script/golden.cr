@@ -60,7 +60,11 @@ end
 # values being written afresh, so a file this build would refuse to check is
 # still one it reads the actions out of.
 read = File.exists?(GOLDEN) ? Roguelike::Replay::Reading.read(GOLDEN, fingerprints: false) : nil
-wanted = Path[File.tempname "golden", ".jsonl"]
+
+# Beside the golden file, since a rename cannot cross from one drive or
+# filesystem to another.
+Dir.mkdir_p GOLDEN.parent.to_s
+wanted = Path[File.tempname "golden", ".jsonl", dir: GOLDEN.parent.to_s]
 
 Roguelike::Replay::Log.pattern = wanted.to_s
 Roguelike::Replay::Log.every = Roguelike::Replay::Log::EVERY
@@ -69,7 +73,6 @@ Roguelike::Replay::Log.generate = read ? read.header.generate? : true
 read ? replayed(read) : sampled
 Roguelike::Replay::Log.ended nil
 
-Dir.mkdir_p GOLDEN.parent.to_s
 File.rename wanted, GOLDEN
 
 report = Roguelike::Replay::Verifier.check GOLDEN
