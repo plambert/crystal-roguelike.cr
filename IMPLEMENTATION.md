@@ -983,7 +983,7 @@ candidates are generated from the same declarations and do not read that yet, so
 own spellings out afterwards.
 
 The box opens with `version X build Y` on its first line. `Y` is the short commit the binary was
-built from, with a `+` after it when a tracked file differed from that commit. `script/build-id`
+built from, with a `+` after it when a tracked file differed from that commit. `script/build_id.cr`
 answers it and `src/crystal-roguelike.cr` runs that while the compiler expands its macros, beside
 the `shards version` call that fills `VERSION`. A build from a release tarball has no repository to
 ask and gets `unknown`. A shard that depends on this one holds it under its own `lib/`, where the
