@@ -47,6 +47,23 @@ The Linux binaries are statically linked against musl and run on any
 distribution. The macOS binary links every library except libSystem from its
 archive, so it needs nothing from Homebrew.
 
+On Windows the release is a zip, `crystal-roguelike-$version-windows-x86_64.zip`,
+holding `crystal-roguelike.exe`, statically linked, so it needs nothing beside
+it. In PowerShell:
+
+```powershell
+$version = "0.2.5"
+$base = "https://github.com/plambert/crystal-roguelike.cr/releases/download/v$version"
+
+Invoke-WebRequest "$base/crystal-roguelike-$version-windows-x86_64.zip" -OutFile game.zip
+Invoke-WebRequest "$base/SHA256SUMS" -OutFile SHA256SUMS
+(Get-FileHash game.zip -Algorithm SHA256).Hash.ToLower()   # compare with SHA256SUMS
+Expand-Archive game.zip -DestinationPath .
+```
+
+Play it in Windows Terminal or WezTerm. Saves go in
+`%LOCALAPPDATA%\roguelike`, unless `XDG_STATE_HOME` names somewhere else.
+
 ### From source
 
 Crystal 1.21 or newer, and git-lfs, which one of the dependencies uses for its
