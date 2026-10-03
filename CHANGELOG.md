@@ -8,6 +8,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-02
+
+A bare `crystal-roguelike` starts a game again, and the release page carries the changelog entry.
+
 ### Changed
 
 * The GitHub release page for a version shows that version's changelog entry, followed by one
@@ -427,6 +431,7 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/plambert/crystal-roguelike.cr/releases/tag/v0.1.0
