@@ -1,5 +1,5 @@
 name: crystal-roguelike
-version: 0.2.0
+version: 0.2.2
 
 authors:
   - Paul M. Lambert <plambert@plambert.net>
@@ -15,7 +15,7 @@ license: MIT
 dependencies:
   shell-auto_complete:
     github: plambert/shell-auto_complete.cr
-    version: ~> 2.0
+    version: ~> 2.6.2
   termbuf-widgets:
     github: plambert/termbuf-widgets.cr
   guard:

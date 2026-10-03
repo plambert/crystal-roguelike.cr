@@ -20,6 +20,37 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   as part of the path there, because the compiler runs a macro's command with no shell, and the
   build stopped. Windows gets the directory in double quotes; elsewhere nothing changes.
 
+## [0.2.2] - 2026-10-03
+
+Replay logs can be sent to the developer, and the game says when a newer release is out.
+
+### Added
+
+* `--autosubmit` sends each run's replay log to the developer when the game exits, with the save
+  it was written with, so a bug found in play can be reproduced. The first run with it on prints
+  what is sent and asks for a yes or no before anything is, and keeps the answer in the state
+  directory. `--no-autosubmit` turns it off for a run. A test build has it on by default, and every
+  other build has it off. Records that could not be sent wait in the state directory's `outbox` and
+  go out on the next run.
+* The `replay` commands read a gzipped log named `.gz`, which is how a sent record is kept.
+* The game says when a newer release is out, with the release's address, once before a run and
+  once after it. It asks GitHub at most once a day and gives up after three seconds without an
+  answer. `--no-update-check` asks nothing.
+
+## [0.2.1] - 2026-10-02
+
+A bare `crystal-roguelike` starts a game again, and the release page carries the changelog entry.
+
+### Changed
+
+* The GitHub release page for a version shows that version's changelog entry, followed by one
+  link to the commits since the previous release.
+
+### Fixed
+
+* `crystal-roguelike` with no arguments starts a game again. Since the `replay` subcommand arrived
+  it printed the help and stopped, and 0.2.0 shipped that way.
+
 ## [0.2.0] - 2026-10-02
 
 Five floors under one another, floors of varied size and layout, creature kinds with factions,
@@ -429,6 +460,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.1...v0.2.2
+[0.2.1]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/plambert/crystal-roguelike.cr/releases/tag/v0.1.0

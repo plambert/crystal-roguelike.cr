@@ -28,7 +28,7 @@ them. It also carries a test build tarball per platform, named
 plays; see [A test build](#a-test-build).
 
 ```bash
-version=0.2.0
+version=0.2.2
 platform=macos-aarch64   # or linux-x86_64, linux-aarch64
 base=https://github.com/plambert/crystal-roguelike.cr/releases/download/v$version
 
@@ -103,7 +103,7 @@ play can be reproduced exactly:
 
 ```bash
 shards build -Dtest_build
-./bin/crystal-roguelike --version   # crystal-roguelike 0.2.0 (test build)
+./bin/crystal-roguelike --version   # crystal-roguelike 0.2.2 (test build)
 ```
 
 The logs go to `$XDG_STATE_HOME/roguelike/test_logs/`, or
@@ -112,6 +112,14 @@ file per run named for the time it started, the seed and the character.
 `--replay-log` still names a file of your own. A character saved and carried
 on with `--character` goes on in the same file. Check one with
 `crystal-roguelike replay verify FILE`.
+
+A test build also offers to send each run's log to the developer. The first
+run prints what is sent and asks for a yes or no, and keeps the answer in
+`autosubmit` under the state directory. Nothing is sent without a yes.
+`--no-autosubmit` turns it off for a run, and `--autosubmit` asks again or
+turns it on in any other build. Logs are sent when the game exits, after each
+save and after each run that ended. One that could not be sent waits in the
+`outbox` directory and goes out next time.
 
 On macOS, `script/build-test` builds a test build that needs nothing from Nix
 or Homebrew, so the binary runs on another Mac. It writes

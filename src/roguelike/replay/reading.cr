@@ -1,3 +1,4 @@
+require "compress/gzip"
 require "json"
 require "../../roguelike"
 
@@ -62,11 +63,21 @@ module Roguelike
       def self.read(path : Path | String,
                     fingerprints : Bool = true) : Reading
         where = Path.new path
-        found = File.read_lines where
+        found = lines where
         found.pop if found.last?.try &.blank?
         raise Error.new "the file is empty" if found.empty?
 
         new where, *sorted(found, fingerprints)
+      end
+
+      # The lines of the file at *where*. A file named `.gz` is unpacked, so a
+      # log that arrived as an upload reads where it sits.
+      private def self.lines(where : Path) : Array(String)
+        return File.read_lines where unless where.extension == ".gz"
+
+        File.open where do |file|
+          Compress::Gzip::Reader.open(file, &.gets_to_end).lines
+        end
       end
 
       # The lines of *found*, each put where it belongs.

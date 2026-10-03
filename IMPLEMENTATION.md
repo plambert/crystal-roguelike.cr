@@ -4546,6 +4546,59 @@ Three runs fewer end in a death, and the median turn of death halves.
   fight or run from another creature.
 * `Sharing` is not read, and bands have no languages.
 
+## Replay submission
+
+A recorded run can be sent to the developer, with the save it was written with. `Submit` is the
+module. It is a feature of the base game, and the test build differs only in having it on by
+default.
+
+### What was built
+
+| Piece | What it does |
+| --- | --- |
+| `Submit.arrange` | Decides whether this process sends. Asks once through `Consent`, and only when stdin is a terminal |
+| `Submit::Consent` | The `autosubmit` file in the state directory, `yes` or `no` with a time. The text of the question |
+| `Submit::Parcel` | One send, as a directory `<log>-<seq>` holding `meta.json`, a gzipped copy of the log and, after a save, a gzipped copy of the save |
+| `Submit::Outbox` | The `outbox` directory the parcels wait in. `#flush` sends each one and removes it when it went |
+| `Submit::Client` | The upload protocol. Asks the upload URL for a presigned form for one file, then posts the file as that form |
+| `Submit::Meta` | Version, platform, outcome, turn, seed, character and log identity, sent beside each log |
+| `Submit.log_id` | 32 hex digits from the header's start time, seed and name, so a run carried on in another process keeps its identity |
+| `Submit.saved` | Called by `Save::Store#write`. Packs the log and the save as sequence number of the pause |
+| `Submit.closed` | Called by `Replay::Log#finish` when a footer was written. Packs the log as one past the last pause |
+| `--autosubmit`, `--no-autosubmit` | The switch. `--submit-url` is hidden and names another server for a run |
+
+### Decisions
+
+* **Parcels are packed during the run and sent after it.** `Cli#run` flushes the outbox once the
+  terminal is handed back, so a send never holds up a turn, and a line per parcel stays in the
+  scrollback. A process that dies leaves its parcels for the next one.
+* **Copies are taken when the parcel is packed.** What is sent is the run as it stood at the save or
+  the end, whatever the live file does afterwards.
+* **The sequence number is the pause number.** A save is `seq` of its pause, and the end of the run
+  is one past the last pause. Both are read from the file, so they rise across processes without
+  any state of their own.
+* **Agreeing turns recording on.** A build that would otherwise record nothing records to the test
+  logs directory once the person says yes, since there is nothing to send without a log.
+* **The question is asked before the terminal is taken over**, in plain text on stdout, so it stays
+  in the scrollback and reads the same with or without `--character`. Enter alone is no.
+* **The address is a constant.** `Submit::ENDPOINT` is empty until the upload stack exists. An empty
+  address sends nothing and says nothing, and parcels wait.
+
+## The update check
+
+`Update.notice` asks GitHub for the latest release and answers one line naming it and its address
+when it is newer than `VERSION`. `Cli#run` prints the line before the terminal is taken over and
+again after the run, where the person reads the outcome. `--no-update-check` skips it.
+
+* **Once a day.** The answer is kept in `latest-release` under the state directory with the time it
+  was fetched, and GitHub is asked again only when that is more than a day old. A failed fetch is
+  not kept, so the next run asks again.
+* **Three seconds.** Connect, read and write each wait three seconds and no more. A machine with no
+  network loses that once a day and nothing else.
+* **Newer means a greater `X.Y.Z`.** A build whose version is ahead of the latest release is a build
+  of unreleased work and hears nothing, which is what makes a release version the only kind that
+  is told. A version with a suffix is never newer than anything.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

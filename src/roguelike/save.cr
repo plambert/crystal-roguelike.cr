@@ -198,9 +198,11 @@ module Roguelike
         Dir.mkdir_p @directory
 
         temporary = Path["#{wanted}.writing"]
-        File.write temporary, Held.of(game).to_pretty_json
+        held = Held.of game
+        File.write temporary, held.to_pretty_json
         File.rename temporary, wanted
 
+        Submit.saved game, held.replay, wanted
         wanted
       end
 

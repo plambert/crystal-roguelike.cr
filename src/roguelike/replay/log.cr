@@ -190,7 +190,7 @@ module Roguelike
       @every : Int32
 
       # How many pauses the file holds.
-      @pauses : Int32 = 0
+      getter pauses : Int32 = 0
 
       # Whether an action has been written since the last pause.
       #
@@ -320,11 +320,16 @@ module Roguelike
       end
 
       # Writes *footer*, when there is one, and closes the file.
+      #
+      # A file closed with a footer is offered for sending. One closed
+      # without, which is a run paused at a save, was offered with the save.
       private def finish(footer : Footer?) : Nil
         write footer if footer
         @file.close
         @open = false
         @@open.delete self
+
+        Submit.closed @game, @path, @pauses if footer
       end
 
       # The header, which says how the run this records began.
