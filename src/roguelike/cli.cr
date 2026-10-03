@@ -48,6 +48,9 @@ module Roguelike
     flag autosubmit : Bool = TEST_BUILD, "--autosubmit",
       "Send each run's replay log to the developer when the game exits, after asking once. --no-autosubmit keeps it on this machine"
 
+    flag update_check : Bool = true, "--update-check",
+      "Say when a newer release is out, checking once a day. --no-update-check asks nothing"
+
     # For testing the upload against another server. The address a build
     # sends to is `Submit::ENDPOINT`.
     flag submit_url : String?, "--submit-url",
@@ -97,6 +100,9 @@ module Roguelike
       return matched if matchup
       return played if trial > 0
 
+      newer = update_check ? Update.notice : nil
+      puts newer if newer
+
       sending = Submit.arrange autosubmit, flag_given?(:autosubmit)
 
       Replay::Log.pattern = Replay::Log.pattern_for replay_log
@@ -123,6 +129,7 @@ module Roguelike
       in .playing? then "You left the dungeon where it was."
       end
       puts "seed #{game.world.seed}    turn #{game.turn}"
+      puts newer if newer
 
       Submit.flush(submit_url || Submit::ENDPOINT) if sending
     end

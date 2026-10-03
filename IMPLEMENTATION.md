@@ -4584,6 +4584,21 @@ default.
 * **The address is a constant.** `Submit::ENDPOINT` is empty until the upload stack exists. An empty
   address sends nothing and says nothing, and parcels wait.
 
+## The update check
+
+`Update.notice` asks GitHub for the latest release and answers one line naming it and its address
+when it is newer than `VERSION`. `Cli#run` prints the line before the terminal is taken over and
+again after the run, where the person reads the outcome. `--no-update-check` skips it.
+
+* **Once a day.** The answer is kept in `latest-release` under the state directory with the time it
+  was fetched, and GitHub is asked again only when that is more than a day old. A failed fetch is
+  not kept, so the next run asks again.
+* **Three seconds.** Connect, read and write each wait three seconds and no more. A machine with no
+  network loses that once a day and nothing else.
+* **Newer means a greater `X.Y.Z`.** A build whose version is ahead of the latest release is a build
+  of unreleased work and hears nothing, which is what makes a release version the only kind that
+  is told. A version with a suffix is never newer than anything.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

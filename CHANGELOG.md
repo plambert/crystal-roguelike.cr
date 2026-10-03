@@ -17,6 +17,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   other build has it off. Records that could not be sent wait in the state directory's `outbox` and
   go out on the next run.
 * The `replay` commands read a gzipped log named `.gz`, which is how a sent record is kept.
+* The game says when a newer release is out, with the release's address, once before a run and
+  once after it. It asks GitHub at most once a day and gives up after three seconds without an
+  answer. `--no-update-check` asks nothing.
 
 ## [0.2.1] - 2026-10-02
 
