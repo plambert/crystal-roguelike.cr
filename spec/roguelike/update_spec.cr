@@ -4,9 +4,10 @@ require "../spec_helper"
 Spectator.describe Roguelike::Update do
   alias Update = Roguelike::Update
 
-  # A directory nothing else writes to.
+  # A directory nothing else writes to. Under `Recording.directory`, which
+  # goes when the specs are over, as `submit_spec`'s do.
   def root : Path
-    made = Path[File.tempname "roguelike-update", nil]
+    made = Recording.directory / "update-#{Random.rand UInt32}"
     Dir.mkdir_p made
     made
   end
