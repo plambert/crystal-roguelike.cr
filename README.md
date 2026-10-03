@@ -28,7 +28,7 @@ them. It also carries a test build tarball per platform, named
 plays; see [A test build](#a-test-build).
 
 ```bash
-version=0.2.1
+version=0.2.2
 platform=macos-aarch64   # or linux-x86_64, linux-aarch64
 base=https://github.com/plambert/crystal-roguelike.cr/releases/download/v$version
 
@@ -103,7 +103,7 @@ play can be reproduced exactly:
 
 ```bash
 shards build -Dtest_build
-./bin/crystal-roguelike --version   # crystal-roguelike 0.2.1 (test build)
+./bin/crystal-roguelike --version   # crystal-roguelike 0.2.2 (test build)
 ```
 
 The logs go to `$XDG_STATE_HOME/roguelike/test_logs/`, or

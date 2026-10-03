@@ -8,6 +8,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-03
+
+Replay logs can be sent to the developer, and the game says when a newer release is out.
+
 ### Added
 
 * `--autosubmit` sends each run's replay log to the developer when the game exits, with the save
@@ -444,7 +448,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/plambert/crystal-roguelike.cr/releases/tag/v0.1.0
