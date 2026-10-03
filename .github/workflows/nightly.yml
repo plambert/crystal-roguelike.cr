@@ -131,8 +131,8 @@ jobs:
         run: |
           set -euo pipefail
           cd dist
-          cat ./*.tar.gz.sha256 > SHA256SUMS
-          rm -f ./*.tar.gz.sha256
+          cat ./*.sha256 > SHA256SUMS
+          rm -f ./*.sha256
           sha256sum --check SHA256SUMS
           ls -l
 
@@ -148,7 +148,7 @@ jobs:
             echo "This release is rebuilt whenever the default branch moves. The files"
             echo "keep the same names, so a download link goes on working."
             echo
-            echo "Each platform has two tarballs. The \`-test-\` one is a test build, which"
+            echo "Each platform has two archives. The \`-test-\` one is a test build, which"
             echo "records a replay log of every run it plays."
             echo
           } > notes.md
@@ -196,5 +196,6 @@ jobs:
           make_latest: 'false'
           files: |
             dist/*.tar.gz
+            dist/*.zip
             dist/SHA256SUMS
           fail_on_unmatched_files: true

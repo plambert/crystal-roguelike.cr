@@ -16,7 +16,7 @@
 # `crystal-roguelike-0.1.0-linux-x86_64.tar.gz`, and the test build's tarball
 # is `crystal-roguelike-0.1.0-test-linux-x86_64.tar.gz`. The nightly passes a
 # stem with no version in it, so its download links stay the same from night
-# to night.
+# to night. Windows gets a zip rather than a tarball, named the same way.
 name: build
 
 on:
@@ -40,6 +40,11 @@ env:
 jobs:
   build:
     runs-on: ${{ matrix.runner }}
+    # Bash on every runner, Windows included, where Git for Windows provides
+    # it. The steps are written once for all of them.
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -61,11 +66,18 @@ jobs:
           - platform: macos-aarch64
             runner: macos-15
             builder: native
+          # Windows links every library statically into the executable, so it
+          # runs with nothing installed and no DLL beside it.
+          - platform: windows-x86_64
+            runner: windows-2025
+            builder: windows
 
     env:
       VERSION: ${{ inputs.version }}
       STEM: ${{ inputs.archive-stem }}
       PLATFORM: ${{ matrix.platform }}
+      BUILDER: ${{ matrix.builder }}
+      EXE: ${{ matrix.builder == 'windows' && '.exe' || '' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -93,9 +105,20 @@ jobs:
             '
 
       - uses: crystal-lang/install-crystal@v1
-        if: matrix.builder == 'native'
+        if: matrix.builder == 'native' || matrix.builder == 'windows'
         with:
           crystal: ${{ env.CRYSTAL_VERSION }}
+
+      - name: Build for Windows, statically linked
+        if: matrix.builder == 'windows'
+        run: |
+          set -euo pipefail
+          shards install --production --frozen
+          mkdir -p build
+          crystal build --release --no-debug --static \
+            -o build/crystal-roguelike.exe src/main.cr
+          crystal build --release --no-debug --static -Dtest_build \
+            -o build/crystal-roguelike-test.exe src/main.cr
 
       - name: Build for macOS, linking every library from its archive
         if: matrix.builder == 'native'
@@ -152,8 +175,15 @@ jobs:
       - name: Check what the binaries link
         run: |
           set -euo pipefail
-          for bin in build/crystal-roguelike build/crystal-roguelike-test; do
-            if [ "$BUILDER" = native ]; then
+          for bin in "build/crystal-roguelike$EXE" "build/crystal-roguelike-test$EXE"; do
+            if [ "$BUILDER" = windows ]; then
+              # With nothing but Windows itself on the path, a binary that
+              # needed a DLL of Crystal's would fail to start.
+              if ! PATH="/c/Windows/System32:/c/Windows" "$bin" --version; then
+                echo "::error::$bin does not run without Crystal's DLLs"
+                exit 1
+              fi
+            elif [ "$BUILDER" = native ]; then
               otool -L "$bin"
               stray=$(otool -L "$bin" | sed 1d | awk '{print $1}' \
                 | grep -v '^/usr/lib/libSystem.B.dylib$' || true)
@@ -173,8 +203,6 @@ jobs:
               fi
             fi
           done
-        env:
-          BUILDER: ${{ matrix.builder }}
 
       # Every runner is the architecture it built for, so the binaries can be
       # run here. Each reports the version it was compiled with, which is the
@@ -192,11 +220,12 @@ jobs:
             echo "$said"
           }
 
-          check ./build/crystal-roguelike "crystal-roguelike $VERSION"
-          check ./build/crystal-roguelike-test "crystal-roguelike $VERSION (test build)"
+          check "./build/crystal-roguelike$EXE" "crystal-roguelike $VERSION"
+          check "./build/crystal-roguelike-test$EXE" "crystal-roguelike $VERSION (test build)"
 
       # The regular tarball is `$STEM-$PLATFORM` and the test build's is
       # `$STEM-test-$PLATFORM`. Each holds one binary, named for what it is.
+      # On Windows each is a zip.
       - name: Pack them with the licence and the readme
         run: |
           set -euo pipefail
@@ -209,20 +238,26 @@ jobs:
             cp "build/$binary" "dist/$name/"
             cp README.md LICENSE "dist/$name/"
 
-            tar --create --gzip --directory dist --file "dist/$name.tar.gz" "$name"
+            if [ "$BUILDER" = windows ]; then
+              archive="$name.zip"
+              (cd dist && 7z a -tzip -bso0 "$archive" "$name")
+            else
+              archive="$name.tar.gz"
+              tar --create --gzip --directory dist --file "dist/$archive" "$name"
+            fi
             rm -rf "dist/$name"
 
             if command -v sha256sum > /dev/null; then
-              (cd dist && sha256sum "$name.tar.gz" > "$name.tar.gz.sha256")
+              (cd dist && sha256sum "$archive" > "$archive.sha256")
             else
-              (cd dist && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
+              (cd dist && shasum -a 256 "$archive" > "$archive.sha256")
             fi
 
-            cat "dist/$name.tar.gz.sha256"
+            cat "dist/$archive.sha256"
           }
 
-          pack "$STEM-$PLATFORM" crystal-roguelike
-          pack "$STEM-test-$PLATFORM" crystal-roguelike-test
+          pack "$STEM-$PLATFORM" "crystal-roguelike$EXE"
+          pack "$STEM-test-$PLATFORM" "crystal-roguelike-test$EXE"
 
       - uses: actions/upload-artifact@v7
         with:
