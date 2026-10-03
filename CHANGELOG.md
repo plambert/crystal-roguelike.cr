@@ -8,8 +8,20 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* The game runs on Windows, in Windows Terminal and in WezTerm. Each release carries a
+  `windows-x86_64` zip holding a statically linked `crystal-roguelike.exe`, which needs no DLL
+  beside it, and a test build zip. The README says how to fetch and check it in PowerShell.
+
 ### Changed
 
+* On Windows, saves go in `%LOCALAPPDATA%\roguelike` when `XDG_STATE_HOME` is not set.
+  `XDG_STATE_HOME` is taken when it is any absolute path; it used to be taken only when it began
+  with a slash.
+* A character whose name Windows keeps for a device, such as `Con`, `Nul` or `Com1`, is saved
+  with an underscore after its name, on every platform, so a save copied between platforms keeps
+  its name.
 * `script/build_id.cr` answers the build stamp in place of the `script/build-id` shell script, and
   the compiler runs it with the `run` macro. It answers the same things in the same cases, and
   needs no shell, which a Windows build has none of for a macro's command.
@@ -19,6 +31,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `VERSION` is read on Windows too. The single quotes around the source directory reached `shards`
   as part of the path there, because the compiler runs a macro's command with no shell, and the
   build stopped. Windows gets the directory in double quotes; elsewhere nothing changes.
+* `replay upgrade` writes its temporary file beside the log it replaces. It wrote it in the
+  temporary directory and renamed it into place, but a rename cannot cross drives, and on
+  Windows the temporary directory is often on another drive.
 
 ## [0.2.5] - 2026-10-05
 
