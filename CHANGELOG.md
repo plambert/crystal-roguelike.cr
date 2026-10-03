@@ -13,6 +13,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The GitHub release page for a version shows that version's changelog entry, followed by one
   link to the commits since the previous release.
 
+### Fixed
+
+* `crystal-roguelike` with no arguments starts a game again. Since the `replay` subcommand arrived
+  it printed the help and stopped, and 0.2.0 shipped that way.
+
 ## [0.2.0] - 2026-10-02
 
 Five floors under one another, floors of varied size and layout, creature kinds with factions,

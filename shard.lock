@@ -6,7 +6,7 @@ shards:
 
   shell-auto_complete:
     git: https://github.com/plambert/shell-auto_complete.cr.git
-    version: 2.6.1
+    version: 2.6.2
 
   spectator:
     git: https://gitlab.com/arctic-fox/spectator.git

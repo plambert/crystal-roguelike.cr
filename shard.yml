@@ -15,7 +15,7 @@ license: MIT
 dependencies:
   shell-auto_complete:
     github: plambert/shell-auto_complete.cr
-    version: ~> 2.0
+    version: ~> 2.6.2
   termbuf-widgets:
     github: plambert/termbuf-widgets.cr
   guard:
