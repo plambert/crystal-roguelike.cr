@@ -8,6 +8,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* `--autosubmit` sends each run's replay log to the developer when the game exits, with the save
+  it was written with, so a bug found in play can be reproduced. The first run with it on prints
+  what is sent and asks for a yes or no before anything is, and keeps the answer in the state
+  directory. `--no-autosubmit` turns it off for a run. A test build has it on by default, and every
+  other build has it off. Records that could not be sent wait in the state directory's `outbox` and
+  go out on the next run.
+
 ## [0.2.1] - 2026-10-02
 
 A bare `crystal-roguelike` starts a game again, and the release page carries the changelog entry.

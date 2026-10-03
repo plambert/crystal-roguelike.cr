@@ -102,6 +102,7 @@ fi
 cp -f "$(brew --prefix bdw-gc)/lib/libgc.a" "$libs/"
 cp -f "$(brew --prefix pcre2)/lib/libpcre2-8.a" "$libs/"
 cp -f "$(brew --prefix openssl@3)/lib/libcrypto.a" "$libs/"
+cp -f "$(brew --prefix openssl@3)/lib/libssl.a" "$libs/"
 cp -f "$(brew --prefix zlib)/lib/libz.a" "$libs/"
 
 cat > "$libs/iconv_shim.c" <<'C'

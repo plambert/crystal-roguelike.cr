@@ -43,6 +43,17 @@ module Roguelike
     flag saves : Bool = false, "--saves",
       "List the saved characters and where they are kept, then stop"
 
+    # A test build has this on. Every other build has it off. The feature is
+    # the same in both; see `Submit`.
+    flag autosubmit : Bool = TEST_BUILD, "--autosubmit",
+      "Send each run's replay log to the developer when the game exits, after asking once. --no-autosubmit keeps it on this machine"
+
+    # For testing the upload against another server. The address a build
+    # sends to is `Submit::ENDPOINT`.
+    flag submit_url : String?, "--submit-url",
+      "Send replay logs to this URL instead of the built-in one",
+      hidden: true
+
     # A development tool. It is off unless this is passed, so a normal run has
     # neither the box nor the key that opens it.
     #
@@ -86,6 +97,8 @@ module Roguelike
       return matched if matchup
       return played if trial > 0
 
+      sending = Submit.arrange autosubmit, flag_given?(:autosubmit)
+
       Replay::Log.pattern = Replay::Log.pattern_for replay_log
       Replay::Log.every = replay_every
       Replay::Log.generate = generate
@@ -110,6 +123,8 @@ module Roguelike
       in .playing? then "You left the dungeon where it was."
       end
       puts "seed #{game.world.seed}    turn #{game.turn}"
+
+      Submit.flush(submit_url || Submit::ENDPOINT) if sending
     end
 
     # Prints the saved characters, the dead ones and the ones who came out,

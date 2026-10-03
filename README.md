@@ -113,6 +113,14 @@ file per run named for the time it started, the seed and the character.
 on with `--character` goes on in the same file. Check one with
 `crystal-roguelike replay verify FILE`.
 
+A test build also offers to send each run's log to the developer. The first
+run prints what is sent and asks for a yes or no, and keeps the answer in
+`autosubmit` under the state directory. Nothing is sent without a yes.
+`--no-autosubmit` turns it off for a run, and `--autosubmit` asks again or
+turns it on in any other build. Logs are sent when the game exits, after each
+save and after each run that ended. One that could not be sent waits in the
+`outbox` directory and goes out next time.
+
 On macOS, `script/build-test` builds a test build that needs nothing from Nix
 or Homebrew, so the binary runs on another Mac. It writes
 `bin/crystal-roguelike-test` and fails if the binary links any dylib besides
