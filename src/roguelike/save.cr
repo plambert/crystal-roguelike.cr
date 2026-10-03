@@ -96,7 +96,19 @@ module Roguelike
       kept = kept.gsub(/-+/, '-').strip '-'
       return "" if kept.empty? || kept == "." || kept == ".."
 
-      kept.byte_slice 0, Math.min(kept.bytesize, MOST_BYTES)
+      kept = kept.byte_slice 0, Math.min(kept.bytesize, MOST_BYTES)
+      reserved?(kept) ? "#{kept}_" : kept
+    end
+
+    # The names Windows keeps for devices, which no file can have, with or
+    # without an extension: a character called Con cannot be saved as
+    # `Con.json`. Kept out on every platform, so that a save copied from one
+    # to another keeps its name.
+    RESERVED = %w[CON PRN AUX NUL] + (1..9).flat_map { |n| ["COM#{n}", "LPT#{n}"] }
+
+    # Whether *slug*, up to its first dot, is one of `RESERVED`.
+    private def self.reserved?(slug : String) : Bool
+      RESERVED.includes? slug.split('.', 2).first.upcase
     end
 
     # The most bytes a file name takes, leaving room for the extension.
@@ -321,11 +333,22 @@ module Roguelike
     #
     # `$XDG_STATE_HOME` when it is set and absolute. A relative value is
     # ignored, which is what the specification asks for.
+    #
+    # Windows has no XDG directories. A program's own files go in
+    # `%LOCALAPPDATA%` there, the folder that is not copied between machines,
+    # and a person who set `XDG_STATE_HOME` anyway still gets it.
     def self.state_home : String
       held = ENV["XDG_STATE_HOME"]?
-      return held if held && held.starts_with? '/'
+      return held if held && Path.new(held).absolute?
 
-      Path.home.join(".local", "state").to_s
+      {% if flag?(:win32) %}
+        local = ENV["LOCALAPPDATA"]?
+        return local if local && Path.new(local).absolute?
+
+        Path.home.join("AppData", "Local").to_s
+      {% else %}
+        Path.home.join(".local", "state").to_s
+      {% end %}
     end
   end
 end

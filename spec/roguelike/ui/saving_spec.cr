@@ -138,14 +138,22 @@ Spectator.describe "when a run is written to the store" do
 
     # Losing the turn a person is playing because a disk is full is worse
     # than losing the save.
+    #
+    # The store is under a plain file, which no platform makes a directory
+    # under. `/proc/nowhere` was the place before, and on Windows that is
+    # `C:\proc\nowhere`, which the save was written into.
     it "says so in the log rather than stopping the run" do
-      store = Save::Store.under Path["/proc/nowhere/roguelike"]
+      blocker = File.tempfile "roguelike-not-a-directory"
+      blocker.close
+      store = Save::Store.under Path[blocker.path] / "roguelike"
       run = playing store
 
       run.play.keep
 
       expect(run.said).to contain "could not be saved"
       expect(run.finished?).to be_false
+    ensure
+      blocker.try &.delete
     end
   end
 
