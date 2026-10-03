@@ -16,6 +16,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   directory. `--no-autosubmit` turns it off for a run. A test build has it on by default, and every
   other build has it off. Records that could not be sent wait in the state directory's `outbox` and
   go out on the next run.
+* The `replay` commands read a gzipped log named `.gz`, which is how a sent record is kept.
 
 ## [0.2.1] - 2026-10-02
 
