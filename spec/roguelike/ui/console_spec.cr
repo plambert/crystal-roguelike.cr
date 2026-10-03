@@ -52,7 +52,7 @@ Spectator.describe "the debug console on the keyboard" do
         .to eq "version #{Roguelike::VERSION} build #{Roguelike::BUILD}"
     end
 
-    # `script/build-id` answers "unknown" where there is no repository. It
+    # `script/build_id.cr` answers "unknown" where there is no repository. It
     # answers something either way.
     it "always has a build in it" do
       expect(Roguelike::BUILD).not_to be_empty

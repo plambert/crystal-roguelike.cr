@@ -8,6 +8,18 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* `script/build_id.cr` answers the build stamp in place of the `script/build-id` shell script, and
+  the compiler runs it with the `run` macro. It answers the same things in the same cases, and
+  needs no shell, which a Windows build has none of for a macro's command.
+
+### Fixed
+
+* `VERSION` is read on Windows too. The single quotes around the source directory reached `shards`
+  as part of the path there, because the compiler runs a macro's command with no shell, and the
+  build stopped. Windows gets the directory in double quotes; elsewhere nothing changes.
+
 ## [0.2.5] - 2026-10-05
 
 The sidebar shows the whole turn and scrolls the equipment and the pack, and the help screen
