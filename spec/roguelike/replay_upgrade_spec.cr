@@ -179,8 +179,9 @@ Spectator.describe Roguelike::Replay::Upgrade do
 
     # A three-turn action ran past turn 30, so the checkpoint due then was
     # written on turn 32 and the gap after it is 8.
+    # The header names no spacing, so the gaps decide it.
     it "takes the commonest gap when an action ran past a checkpoint" do
-      header = File.read_lines(Recording.golden).first
+      header = File.read_lines(Recording.golden).first.sub(/,"every":\d+/, "")
       checks = {10, 20, 32, 40, 50}.map do |turn|
         %({"type":"check","turn":#{turn},"state":"sha256:#{"0" * 64}"})
       end
@@ -191,8 +192,9 @@ Spectator.describe Roguelike::Replay::Upgrade do
 
     # Two actions ran past a checkpoint, so the gaps are 10, 10, 12, 8, 10,
     # 12 and 8. Three sizes of gap come up twice each.
+    # The header names no spacing, so the gaps decide it.
     it "takes the spacing when the gaps tie" do
-      header = File.read_lines(Recording.golden).first
+      header = File.read_lines(Recording.golden).first.sub(/,"every":\d+/, "")
       checks = {10, 20, 32, 40, 50, 62, 70}.map do |turn|
         %({"type":"check","turn":#{turn},"state":"sha256:#{"0" * 64}"})
       end

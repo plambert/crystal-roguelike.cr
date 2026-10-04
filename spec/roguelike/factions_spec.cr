@@ -292,8 +292,8 @@ Spectator.describe "factions" do
   describe "one seed" do
     # One creature kills another in the first 400 turns from this seed.
     it "plays the same fights twice" do
-      first = Roguelike::Trial.one 5056_u64, 400
-      second = Roguelike::Trial.one 5056_u64, 400
+      first = Roguelike::Trial.one 5057_u64, 400
+      second = Roguelike::Trial.one 5057_u64, 400
 
       expect(first.felled).to eq 1
       expect(second).to eq first

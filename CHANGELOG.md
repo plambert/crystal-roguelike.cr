@@ -21,6 +21,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   found and which variables it read. Sixteen colours folded the greys onto black and white and made
   lit walls vanish. `--dump-terminal-info` prints one line of JSON about the terminal for a bug
   report.
+* Goblin scouts are rarer on the first floor and carry fewer stones for their slings.
 
 ## [0.2.2] - 2026-10-03
 

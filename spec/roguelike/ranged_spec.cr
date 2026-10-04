@@ -109,9 +109,9 @@ Spectator.describe "monsters that shoot" do
   end
 
   describe "the kinds" do
-    it "gives a goblin scout a sling and 2d4 stones" do
+    it "gives a goblin scout a sling and 1d4+1 stones" do
       expect(Creature::GoblinScout.ranged_weapon).to eq Kind::Sling
-      expect(Creature::GoblinScout.quiver.to_s).to eq "2d4"
+      expect(Creature::GoblinScout.quiver.to_s).to eq "1d4+1"
     end
 
     it "gives an orc archer a bow and 3d6 arrows" do
