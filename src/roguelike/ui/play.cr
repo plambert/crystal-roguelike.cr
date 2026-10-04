@@ -1496,8 +1496,7 @@ module Roguelike::Ui
       end
 
       if @aiming
-        stop_aiming
-        say "Never mind."
+        abort_aiming
         return
       end
 
@@ -1654,11 +1653,11 @@ module Roguelike::Ui
 
     # Fires the readied ranged weapon. `f` does this.
     #
-    # A second press looses the shot, so a person can press `f`, pick a
-    # monster with `Tab` and press `f` again without reaching for `Enter`.
+    # Pressed while a target is being picked, it puts the cursor away without
+    # a shot, the way `Escape` does. `Enter` looses.
     def fire : Nil
       if @aiming
-        loose
+        abort_aiming
         return
       end
 
@@ -1675,9 +1674,12 @@ module Roguelike::Ui
     #
     # Anything can be thrown. A rock and a dart go furthest, and anything
     # not made for throwing goes a square or two.
+    #
+    # Pressed while a target is being picked, it puts the cursor away without
+    # a throw. This holds for a picker that `f` opened as well.
     def throw : Nil
       if @aiming
-        loose
+        abort_aiming
         return
       end
 
@@ -1795,6 +1797,12 @@ module Roguelike::Ui
       @examiner.point_at wanted[0], wanted[1] if wanted
 
       say "Aim with the movement keys. Tab picks a monster, Enter looses, Escape stops."
+    end
+
+    # Puts the targeting cursor away without a shot and spends no turn.
+    private def abort_aiming : Nil
+      stop_aiming
+      say "Never mind."
     end
 
     # Takes the targeting cursor off and forgets what was being aimed.
@@ -2016,7 +2024,7 @@ module Roguelike::Ui
     # Asks which wand to zap, then zaps it. `z` does this.
     #
     # A wand that needs a square to aim at puts the targeting cursor up
-    # instead. A second press of `z` looses it, the way `f` does.
+    # instead. A second press of `z` looses it.
     def zap : Nil
       if @aiming
         loose

@@ -21,6 +21,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   found and which variables it read. Sixteen colours folded the greys onto black and white and made
   lit walls vanish. `--dump-terminal-info` prints one line of JSON about the terminal for a bug
   report.
+* Pressing `f` or `t` while a target is being picked closes the picker without a shot or a throw,
+  as `Escape` does. Before, a second `f` loosed the shot.
 
 ## [0.2.2] - 2026-10-03
 
