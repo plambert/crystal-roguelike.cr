@@ -140,6 +140,13 @@ Spectator.describe Roguelike::Kind do
 
       expect(found.keys).to eq [Kind::GoblinWarrior]
     end
+
+    it "makes goblin scouts rarer on floor 1 than on floor 2" do
+      first = Roguelike::Spawns.weights(1)[Kind::GoblinScout]
+      second = Roguelike::Spawns.weights(2)[Kind::GoblinScout]
+
+      expect(first).to be < second
+    end
   end
 
   describe "a save" do

@@ -125,7 +125,7 @@ Spectator.describe Roguelike::Trial::Matchup do
     it "says which kinds start at range" do
       text = Matchup.play(5).to_s
 
-      expect(text).to contain "goblin scout, sling and 2d4 stones"
+      expect(text).to contain "goblin scout, sling and 1d4+1 stones"
       expect(text).to contain "orc archer, bow and 3d6 arrows"
     end
   end

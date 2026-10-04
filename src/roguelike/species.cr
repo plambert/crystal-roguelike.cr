@@ -729,7 +729,7 @@ module Roguelike
         size: Size::Small, persistence: 8, speed: 110,
         weapon: ItemKind::Dagger, light: 40, alone: true, opens_doors: true,
         flees: true, wields: true,
-        ranged_weapon: ItemKind::Sling, quiver: Dice.new(2, 4),
+        ranged_weapon: ItemKind::Sling, quiver: Dice.new(1, 4, 1),
         depths: 1..2, faction: Faction::Goblin,
         attributes: Attributes.new(strength: 8, dexterity: 14, constitution: 9,
           intelligence: 8, stealth: 15)),

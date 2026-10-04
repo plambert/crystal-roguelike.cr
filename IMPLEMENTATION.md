@@ -1102,6 +1102,37 @@ started with rather than by what it found.
 | gold, mean | 19.9 | 21.1 |
 | killed by | goblin 103, orc 47, slime 5 | goblin 94, orc 53, slime 7 |
 
+### Balance of the first floor
+
+The first floor is where a careful new player should survive most of the time and a careless one
+should still die. Before this pass the trial bot died in 43 runs out of 100, and goblin scouts
+killed 64 of the 87 that died. Goblin scouts were a third of what floor 1 placed.
+
+Two changes, measured one at a time over two hundred runs of at most 1500 turns from seed 5000,
+with the matchup from the same seed. The matchup prints how often the character wins, so a scout
+row of 62 means the scout wins 38 fights out of 100.
+
+| | died | left floor 1 alive | killed by a scout | matchup, scout at D1 | at D2 |
+|---|---|---|---|---|---|
+| before | 43% | 64.0% | 64 | 55.4 | 85.1 |
+| scout carries 1d4+1 stones, not 2d4 | 42% | 64.5% | 65 | 62.2 | 87.6 |
+| and scout weight 15 on floor 1 | 30% | 77.0% | 41 | 62.2 | 87.6 |
+| and scout weight 10 on floor 1 | 24% | 83.0% | 27 | 62.2 | 87.6 |
+
+* **Stones.** Fewer stones move the matchup to its target and leave the bot where it was. A probe
+  of the baseline runs found that 40 of 64 scout deaths end in melee, with the bot missing the
+  scout again and again. The stones soften the opening, and the dagger finishes it.
+* **Weight.** The scout's weight on floor 1 went from 30 to 10, so a scout is one creature in
+  seven there rather than one in three. Floor 2 keeps 30. This is the change that moves the bot.
+* **Left alone.** Stones still hit for 1d4. That value belongs to the stone and the character
+  shoots the same stones, so it stays. A scout at speed 100 instead of 110 put the matchup at 63.6
+  and the bot at 42% dead, the same as the stones, and is not needed. A quiver of 1d4 stones put
+  the matchup at 69.2, past the target, and the bot at 39% dead. The starting potion and the
+  potion mix are untouched.
+
+The warrior, the orc and the archer rows do not move, since nothing they read changed. The scout's
+row at D2 moves from 85.1 to 87.6 because the quiver is the same on both of its floors.
+
 ## Feature checklist
 
 Everything asked for in the basic game, against the phase that delivers it.
@@ -3443,7 +3474,7 @@ answers the rows whose kind appears at a depth, and the generator picks from the
 | blue slime | 1..4 | 20 |
 | red slime | 2..5 | 20 |
 | green slime | 3..5 | 15 |
-| goblin scout | 1..2 | 30 |
+| goblin scout | 1..2 | 30, and 10 on floor 1 |
 | goblin warrior | 2..4 | 45 |
 | goblin shaman | 3..5 | 15 |
 | orc | 3..5 | 15 |
@@ -3451,6 +3482,8 @@ answers the rows whose kind appears at a depth, and the generator picks from the
 
 * Floor 1 holds white and blue slimes and goblin scouts. Orcs start on floor 3, and the archer
   joins them on floor 4, so the orc share grows with depth.
+* `Spawns::Row#first_floor` gives a kind a different weight on floor 1. The goblin scout is the
+  only row that sets it.
 * A new kind is a new row and a `KindFacts` entry. A spec holds every kind to exactly one row.
 * `Spawns::DENSITY` says, per depth, how often a room is inhabited and how many creatures it holds:
   40, 45, 50, 50 and 55 out of 100, with one or two creatures to floor 3 and one to three below.
@@ -4162,7 +4195,7 @@ ammunition runs out, then closes to melee.
 ### What was built
 
 * `KindFacts#ranged_weapon` and `KindFacts#quiver` name what a kind shoots with and how much
-  ammunition it carries. A scout has a sling and 2d4 stones. An archer has a bow and 3d6 arrows.
+  ammunition it carries. A scout has a sling and 1d4+1 stones. An archer has a bow and 3d6 arrows.
 * `Loot.for` rolls the ranged weapon and the ammunition after every other draw, on the creature's
   own `loot` stream. The weapon rolls its condition and plus the way any carried weapon does. The
   whole stack of ammunition is +1 as often as `Loot::FLETCHED` says for the depth: never on floors

@@ -13,7 +13,16 @@ module Roguelike
     #
     # *crowd* is how many a room holds when this kind is the first one
     # rolled. `nil` reads the floor's `Density#crowd`.
-    record Row, kind : Kind, weight : Int32, crowd : Range(Int32, Int32)? = nil
+    #
+    # *first_floor* is its weight on floor 1 in place of *weight*. `nil`
+    # keeps *weight* there too.
+    record Row, kind : Kind, weight : Int32, crowd : Range(Int32, Int32)? = nil,
+      first_floor : Int32? = nil do
+      # Its weight on the floor at *depth*.
+      def weight_at(depth : Int32) : Int32
+        depth == 1 ? @first_floor || @weight : @weight
+      end
+    end
 
     # Every creature the generator may put on a floor.
     #
@@ -21,13 +30,13 @@ module Roguelike
     # archer joins them from floor 4, so orcs grow commoner the deeper the
     # floor. Floor 1 holds white and blue slimes and goblin scouts. Ants come
     # in bands of three to five from floor 2. A jelly comes alone from floor
-    # 3.
+    # 3. Goblin scouts are rarer on floor 1 than on floor 2.
     TABLE = [
       Row.new(Kind::WhiteSlime, 40),
       Row.new(Kind::BlueSlime, 20),
       Row.new(Kind::RedSlime, 20),
       Row.new(Kind::GreenSlime, 15),
-      Row.new(Kind::GoblinScout, 30),
+      Row.new(Kind::GoblinScout, 30, first_floor: 10),
       Row.new(Kind::GoblinWarrior, 45),
       Row.new(Kind::GoblinShaman, 15),
       Row.new(Kind::Orc, 15),
@@ -66,7 +75,7 @@ module Roguelike
         next if species && kind.species != species
         next if !alone.nil? && kind.alone? != alone
 
-        found[kind] += row.weight
+        found[kind] += row.weight_at depth
       end
 
       found

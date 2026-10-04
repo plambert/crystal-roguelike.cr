@@ -24,6 +24,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * A second click on a square walks there the way `_` does. The way is worked out again at each
   step, and the walk says why it stopped.
+* Goblin scouts are rarer on the first floor and carry fewer stones for their slings.
 
 ## [0.2.3] - 2026-10-04
 
