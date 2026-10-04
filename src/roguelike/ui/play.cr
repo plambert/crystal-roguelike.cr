@@ -389,6 +389,7 @@ module Roguelike::Ui
       @map.flicker = @flicker
 
       @pager = Widgets::Pager.new
+      @pager.fresh_style = Palette::MESSAGE_NEW
       @screen.show_log @pager
 
       # Reading the line a hold was asked for is what the pointer on the map
@@ -2252,6 +2253,7 @@ module Roguelike::Ui
       show_route
       show_aim
       @pager.show @game.log.lines
+      @pager.fresh = @game.log.current
       if @shown_turn != @game.turn
         @shown_turn = @game.turn
         @pager.to_newest

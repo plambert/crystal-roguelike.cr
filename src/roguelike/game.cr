@@ -2371,6 +2371,10 @@ module Roguelike
       until @player.pace.ready? || over?
         tick
       end
+
+      # What the action wrote and what the world wrote in answer share one
+      # round of the log.
+      @log.next_round
     end
 
     # One tick of the world.
