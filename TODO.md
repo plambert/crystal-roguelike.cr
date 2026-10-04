@@ -20,6 +20,14 @@ comes into view, when the character is hurt, when they step on an item, or when 
 floor is left to see, and says which. A travel command to a chosen square goes with it, so clicking
 a square and typing a target reach the same place.
 
+### Paths look natural
+
+A route to a square in plain view runs along the straight line to it, and a route around something
+bends once at the obstacle rather than stepping diagonally away and back. Today every shortest path
+counts the same and the search picks among them by the order it happens to visit squares, which
+reads as a character weaving toward a target they can see. The cost of a diagonal step in the game
+stays what it is; only the choice among equal paths changes.
+
 ### Do not shoot missiles into walls
 
 When a ranged or thrown weapon is readied, the target offered first is one the missile can reach.
