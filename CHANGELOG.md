@@ -24,6 +24,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Aiming a shot or a throw offers only monsters the missile can reach. `Tab` skips one behind a wall,
   a shut door or another creature, and the cursor stays on the character, with a note that there is
   no clear shot, when none can be reached. The cursor can still be moved onto one by hand.
+* A route picked by clicking a square, or the way shown to a staircase, walks the straight line to
+  a square in sight when nothing stands on it. Otherwise it changes direction as few times as it
+  can, so it bends once at an obstacle and runs straight after, instead of zigzagging. Routes are
+  as long as before.
 
 ## [0.2.2] - 2026-10-03
 
