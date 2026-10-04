@@ -318,6 +318,40 @@ Spectator.describe "shooting and throwing" do
     end
   end
 
+  describe "Game#reachable?" do
+    it "is true for a square along an open line" do
+      expect(archer.reachable?(EAST)).to be_true
+    end
+
+    it "is true for a square holding a creature the line ends at" do
+      game = archer monsters: [goblin({4, 1})]
+
+      expect(game.reachable?({4, 1})).to be_true
+    end
+
+    it "is false for a square behind another creature" do
+      game = archer monsters: [goblin({4, 1}), goblin({8, 1})]
+
+      expect(game.reachable?({8, 1})).to be_false
+    end
+
+    it "is false for a square behind the pillar" do
+      game = armed [Item.new(Kind::Bow)], at: {1, 3}
+
+      expect(game.reachable?({4, 3})).to be_true
+      expect(game.reachable?({8, 3})).to be_false
+    end
+
+    it "is false for a square behind a shut door" do
+      floor = Playing.daylight Floor.parse("hall", ["#######", "#<.+..#", "#######"])
+      player = Player.new floor.id, 1, 1, hit_points: 500
+      game = Game.new World.new(SEED, {floor.id => floor}), player
+
+      expect(game.reachable?({5, 1})).to be_false
+      expect(game.reachable?({2, 1})).to be_true
+    end
+  end
+
   describe "how far a thing goes" do
     it "sends an arrow further than a rock" do
       expect(Kind::Bow.reach).to be > Kind::Rock.reach

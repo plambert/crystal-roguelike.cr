@@ -67,7 +67,7 @@ actually been run rather than reasoned about.
 | Monster loot | Independent draws per species, each with its own chance and table, on a stream named by where the creature stands |
 | A carried light | Rolled alight. A monster holding one lights itself, and it goes on burning where the monster fell |
 | Swinging back | A creature swings at a sighting no more than a turn old, so one stabbed in the dark hits back |
-| Aiming | `f` and `t` put the Phase 4 examine cursor on the map. `Tab` walks the monsters in sight, nearest first |
+| Aiming | `f` and `t` put the Phase 4 examine cursor on the map. `Tab` walks the monsters in sight, nearest first. A shot or throw offers only those `Game#reachable?` finds, using the same flight the shot flies |
 | A missile's line | Bresenham, the line sight and light already use. It stops at the first creature, the first wall, or its reach |
 | Where it lands | On the square it stopped on, hit or miss. A fired arrow is on the floor to be picked up again |
 | How far it goes | A bow, a sling, a dart and a rock say. Anything else goes ten squares less one per twenty of weight |

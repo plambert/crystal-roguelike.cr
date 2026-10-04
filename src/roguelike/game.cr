@@ -1426,6 +1426,18 @@ module Roguelike
       Flight.toward floor, @player.at, target, reach
     end
 
+    # Whether a missile let go from the character's square at *target* gets
+    # there, whatever its reach.
+    #
+    # A wall, a shut door or another creature in the line stops it first. The
+    # creature standing on *target* does not count as in the way.
+    def reachable?(target : {Int32, Int32}) : Bool
+      here = @player.at
+      span = Math.max (target[0] - here[0]).abs, (target[1] - here[1]).abs
+
+      flight(target, span).clear?
+    end
+
     # Fires the readied ranged weapon at *target*. Answers whether it went.
     #
     # One piece of ammunition leaves the quiver. It lands on the square the
