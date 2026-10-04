@@ -4599,6 +4599,24 @@ again after the run, where the person reads the outcome. `--no-update-check` ski
   of unreleased work and hears nothing, which is what makes a release version the only kind that
   is told. A version with a suffix is never newer than anything.
 
+## The colour requirement, and the terminal report
+
+The palette is greys. A terminal found to have sixteen colours folds them onto black, dark grey and
+white, and the two lit shades of a wall land on black, so the wall disappears as the flicker moves.
+Rather than draw that, `Session.open` and `Session.view` read `Terminal#capabilities` as soon as
+termbuf has probed, hand the terminal back without drawing when `Color256` is missing, and print
+`Ui::Screen.too_few_colors` to stderr. The message names the depth found and the variables
+detection read, since those are what a person can change.
+
+`--dump-terminal-info` is hidden. It prints one line of JSON with the build and
+`TermBuf::TerminalInfo.gather`, which is written in `TermBuf` under `termbuf_ext/` as an extraction
+candidate. The report carries which streams are terminals, the size, the variables detection reads
+that are set, the capabilities the environment alone suggests, the probed capabilities, the
+terminal's own name when it gave one, warnings, quirks, and the names of the processes above this
+one. The probe runs the way `Terminal.open` runs it, in raw mode on the alternate screen, and the
+terminal is handed back before the line is printed. The process chain comes from `ps`, which is
+compiled out on Windows.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

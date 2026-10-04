@@ -164,6 +164,29 @@ module Roguelike::Ui
       "in the terminal, please resize larger. This one is #{columns} by #{rows}."
     end
 
+    # What to tell a person whose terminal was found to have *capabilities*,
+    # or `nil` when it has the 256 colours the game is drawn in.
+    #
+    # The palette is greys. Sixteen colours fold them onto black and white,
+    # and the lit shades of a wall land on black, so the game refuses to draw
+    # rather than draw that. The message names the variables detection read,
+    # since those are what a person can change.
+    def self.too_few_colors(capabilities : TermBuf::Capabilities,
+                            env : Hash(String, String) = ENV.to_h) : String?
+      return if capabilities.includes? TermBuf::Capability::Color256
+
+      found = capabilities.includes?(TermBuf::Capability::Color16) ? "16 colours" : "no colour"
+      read = %w[TERM COLORTERM VTE_VERSION NO_COLOR].compact_map do |name|
+        env[name]?.try { |value| "#{name}=#{value}" }
+      end
+      read << "no TERM" unless env["TERM"]?
+
+      "This game requires 256 colours, and this terminal was found to have " \
+      "#{found} (#{read.join ", "}). A terminal that has them is usually " \
+      "told apart by TERM=xterm-256color or COLORTERM=truecolor. " \
+      "--dump-terminal-info prints everything the game found."
+    end
+
     # Answers the layout to a screen of *columns* by *rows*.
     #
     # The layout engine divides the space it is given. It never decides that a

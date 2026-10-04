@@ -8,6 +8,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* The game requires a terminal with 256 colours and refuses to start without them, saying what it
+  found and which variables it read. Sixteen colours folded the greys onto black and white and made
+  lit walls vanish. `--dump-terminal-info` prints one line of JSON about the terminal for a bug
+  report.
+
 ## [0.2.2] - 2026-10-03
 
 Replay logs can be sent to the developer, and the game says when a newer release is out.

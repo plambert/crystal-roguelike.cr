@@ -51,6 +51,13 @@ module Roguelike
     flag update_check : Bool = true, "--update-check",
       "Say when a newer release is out, checking once a day. --no-update-check asks nothing"
 
+    # For a bug report. It asks the terminal what it is, prints one line of
+    # JSON, and stops, so the answer can be pasted from a machine nobody
+    # else can sit at.
+    flag dump_terminal_info : Bool = false, "--dump-terminal-info",
+      "Print one line of JSON about this terminal and stop",
+      hidden: true
+
     # For testing the upload against another server. The address a build
     # sends to is `Submit::ENDPOINT`.
     flag submit_url : String?, "--submit-url",
@@ -96,13 +103,12 @@ module Roguelike
       "How many fights one --matchup cell holds", range: 1..1_000_000
 
     def run
+      return dumped if dump_terminal_info
       return listed if saves
       return matched if matchup
       return played if trial > 0
 
-      newer = update_check ? Update.notice : nil
-      puts newer if newer
-
+      newer = announced
       sending = Submit.arrange autosubmit, flag_given?(:autosubmit)
 
       Replay::Log.pattern = Replay::Log.pattern_for replay_log
@@ -132,6 +138,32 @@ module Roguelike
       puts newer if newer
 
       Submit.flush(submit_url || Submit::ENDPOINT) if sending
+    end
+
+    # Prints the line about a newer release, when there is one and the check
+    # is wanted, and answers it so the run can print it again at the end.
+    private def announced : String?
+      return unless update_check
+
+      newer = Update.notice
+      puts newer if newer
+      newer
+    end
+
+    # Prints what this build is and what the terminal was found to be, as one
+    # line of JSON. See `TermBuf::TerminalInfo`.
+    private def dumped : Nil
+      report = TermBuf::TerminalInfo.gather
+      puts({
+        game: {
+          version:  VERSION,
+          build:    BUILD,
+          edition:  EDITION,
+          platform: Submit::PLATFORM,
+          crystal:  Crystal::VERSION,
+        },
+        terminal: report,
+      }.to_json)
     end
 
     # Prints the saved characters, the dead ones and the ones who came out,

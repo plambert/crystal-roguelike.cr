@@ -5,6 +5,7 @@ require "./termbuf_ext/menu"
 require "./termbuf_ext/pager"
 require "./termbuf_ext/prompt"
 require "./termbuf_ext/ramp"
+require "./termbuf_ext/terminal_info"
 
 # Everything drawn on the screen.
 #

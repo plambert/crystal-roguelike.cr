@@ -42,8 +42,15 @@ module Roguelike
 
       ran = nil.as Session?
       previous = nil.as String?
+      refused = nil.as String?
 
       TermBuf::Terminal.open do |terminal|
+        # The colours are known only once the terminal has been asked, which
+        # `Terminal.open` does. A terminal without enough of them is handed
+        # back before anything is drawn on it, and told why afterwards.
+        refused = Ui::Screen.too_few_colors terminal.capabilities
+        next if refused
+
         # A signal stops the process without running `at_exit`, so the
         # replay log's footer is written here or not at all.
         terminal.signals.before_exit { Replay::Log.signalled }
@@ -65,6 +72,11 @@ module Roguelike
         end
       end
 
+      if refused
+        STDERR.puts refused
+        return
+      end
+
       ran
     end
 
@@ -83,12 +95,21 @@ module Roguelike
       end
 
       ran = nil.as Session?
+      refused = nil.as String?
 
       TermBuf::Terminal.open do |terminal|
+        refused = Ui::Screen.too_few_colors terminal.capabilities
+        next if refused
+
         played = new terminal, Rng.for(viewer.game.world.seed), flicker,
           viewer: viewer
         ran = played
         played.run
+      end
+
+      if refused
+        STDERR.puts refused
+        return
       end
 
       ran
