@@ -19,14 +19,6 @@ Today the hit, the damage and the message land first and the flight is drawn aft
 reads backwards. The animation plays, then the action resolves and the message is written, for the
 character's missiles and for monsters' alike.
 
-### Balance of the first floor
-
-Goblin scouts cause most early deaths. Their stones, their speed, how often they appear on floor
-1, and the starting potion are the levers. A pass over them with the matchup table and the trial
-bot would settle where the first floor should sit.
-
-## Unplanned
-
 ### An options screen, and a pickup filter
 
 Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
@@ -218,6 +210,12 @@ Escape.
 why when a creature appears, the character is hurt, they step onto something, or nothing is left to
 see. `_` picks a square to travel to. Both are recorded as actions, and knowledge is cut into
 chambers.
+
+### Balance of the first floor
+
+Goblin scouts are one creature in seven on the first floor instead of one in three, and carry
+1d4+1 stones. Over 200 bot runs deaths fell from 43% to 24% and leaving floor 1 alive rose from
+64% to 83%. Deeper floors are unchanged.
 
 ### The seed on the help screen
 
