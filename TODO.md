@@ -64,6 +64,22 @@ Fighting, breaking, shouting and some spells make noise that wakes and draws cre
 range, and a quiet player goes unnoticed for longer. Creatures calling out to each other has an
 effect only once this exists.
 
+### An action menu on an inventory letter
+
+Pressing an item's letter in the pack opens a fixed menu of what can be done with it, with entries
+that do not apply dimmed rather than missing, so the same key is in the same place every time.
+
+### A modern control configuration
+
+A second control scheme, called modern, beside the classic one, chosen in the options. Movement is
+on `wasd`, with `q` and `e` for north-west and north-east and `z` and `x` for south-west and
+south-east. One action key, `r`, opens a menu of everything that can be done, such as wield, wear
+and take off, read, drink and throw, each with its own memorable key. `f` guesses the action from
+what is around: it opens or closes the door the character faces and lights or puts out the torch
+beside them, and opens the action menu when more than one thing could be meant. In menus the
+selection moves with `wasd` rather than by single-letter choices. It is a different way to drive
+the same actions, and the help screen shows whichever scheme is in use.
+
 ### Band communication and languages
 
 Today every band shares what any member sees, at any range. Instead, only insects with a queen
@@ -108,11 +124,6 @@ Where the terminal draws images, the health and other bars move by a pixel rathe
 
 The trial bots shut doors and back away when hurt, but neither spikes a door or decides whether a
 fight is worth having, so what the trials measure is still narrow.
-
-### An action menu on an inventory letter
-
-Pressing an item's letter in the pack opens a fixed menu of what can be done with it, with entries
-that do not apply dimmed rather than missing, so the same key is in the same place every time.
 
 ### `replay dump`
 
