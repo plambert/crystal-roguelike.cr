@@ -24,11 +24,12 @@ After `t` or `f` opens the target picker, pressing the same key again closes it 
 the same as Escape. A player who reaches for the key out of habit is not left wondering how to back
 out.
 
-### Do not shoot missiles into walls
+### Missiles fly before they land
 
-When a ranged or thrown weapon is readied, the target offered first is one the missile can reach.
-A creature behind a wall, a door, or another creature is never auto-selected, because the shot
-would hit what is in the way. The player can still pick such a target by hand and take the result.
+A shot, a thrown item or a monster's stone is seen crossing the floor before its result appears.
+Today the hit, the damage and the message land first and the flight is drawn afterwards, which
+reads backwards. The animation plays, then the action resolves and the message is written, for the
+character's missiles and for monsters' alike.
 
 ### Paths look natural
 
@@ -217,6 +218,12 @@ The game says when a newer release is out and where to get it, asking GitHub at 
 
 The game requires 256 colours and refuses to draw without them, saying what it found.
 `--dump-terminal-info` prints one line of JSON about the terminal for a bug report.
+
+### Do not shoot missiles into walls
+
+Aiming a shot or a throw offers only monsters the missile can reach, and `Tab` skips the rest. The
+cursor stays on the character with a note when nothing can be reached, and can still be moved onto
+a covered monster by hand.
 
 ### The seed on the help screen
 
