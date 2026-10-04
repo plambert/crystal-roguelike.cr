@@ -470,25 +470,34 @@ module Roguelike::Ui
 
     # The bindings that belong to the game rather than to the application.
     def bindings : Widgets::Bindings
-      return viewing_bindings if @viewer
-
-      found = Keys.examining(self)
-        .merge(Keys.moving { |direction| step direction })
-        .merge(Keys.acting(self))
-        .merge(Keys.aiming(self))
-
-      @console ? found.merge(Keys.debugging(self)) : found
+      sections.reduce(Keys.examining(self)) { |found, section| found.merge section.bindings }
     end
 
-    # The keys a recorded run answers.
+    # The keys this run answers, in the groups the help screen shows, less
+    # the examine keys, which belong with the application's own.
     #
-    # The examine keys stay, so a person reads a square while the run stands
-    # still. Every key that would take a turn is gone, because the only
+    # A recorded run keeps moving, for the cursor, and gets the keys that
+    # drive it. Every key that would take a turn is gone, because the only
     # actions a recorded run performs are the ones in the file.
-    private def viewing_bindings : Widgets::Bindings
-      Keys.examining(self)
-        .merge(Keys.moving { |direction| view_move direction })
-        .merge(Keys.viewing(self))
+    def sections : Array(Keys::Section)
+      if @viewer
+        return [
+          Keys::Section.new("moving", Keys.moving { |direction| view_move direction }),
+          Keys::Section.new("playing the run", Keys.viewing(self)),
+        ]
+      end
+
+      found = [
+        Keys::Section.new("moving", Keys.moving { |direction| step direction }),
+        Keys::Section.new("time", Keys.timing(self)),
+        Keys::Section.new("doors and stairs", Keys.passing(self)),
+        Keys::Section.new("character", Keys.wearing(self)),
+        Keys::Section.new("items", Keys.handling(self)),
+        Keys::Section.new("aiming", Keys.aiming(self)),
+        Keys::Section.new("messages", Keys.reading(self)),
+      ]
+      found << Keys::Section.new("debug", Keys.debugging(self)) if @console
+      found
     end
 
     # Puts the title screen up. The owner calls this once, before the run.

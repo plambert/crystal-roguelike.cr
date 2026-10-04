@@ -10,8 +10,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
-* The help screen on `?` and `F1` shows the run's seed, and draws the eight movement keys around
-  the character with an arrow for each.
+* The help screen on `?` and `F1` shows the run's seed and draws the eight movement keys around
+  the character with an arrow for each. The keys are grouped by what they are for, the panel grows
+  to fit them up to three rows from the top and bottom of the screen, and a scrollbar appears when
+  there is more than fits.
 
 ### Changed
 

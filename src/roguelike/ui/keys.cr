@@ -29,15 +29,50 @@ module Roguelike::Ui
       "n" => Direction::SouthEast,
     }
 
-    # Binds the application's own keys on *app*. Puts the help overlay on `F1`
-    # and `?`. Answers the overlay so a caller can ask whether it is up.
+    # A group of keys with a name, which is how the help screen shows them.
+    record Section, title : String, bindings : Widgets::Bindings
+
+    # Binds the application's own keys on *app*, and every section of *play*,
+    # and puts the help screen on `F1` and `?`. Answers the help screen.
     #
-    # *on_quit* runs when the player asks to leave. Ending the run belongs to
-    # the caller. What ending means depends on what owns the loop.
-    def self.install(app : Widgets::App, seed : UInt64 = 0,
-                     &on_quit : -> Nil) : Widgets::HelpOverlay
-      app.keymap = app.keymap.merge application(&on_quit)
-      Widgets::HelpOverlay.install app, Help.new(seed)
+    # The application's own group is first: leaving, help, examining and
+    # taking back what is waiting. *on_quit* runs when the player asks to
+    # leave, and *on_mouse* when they turn the mouse on or off. Each is the
+    # caller's, because what either means depends on what owns the loop.
+    def self.install(app : Widgets::App, help : Help = Help.new, play : Play? = nil,
+                     on_mouse : Proc(Nil)? = nil, &on_quit : -> Nil) : Help
+      own = application(&on_quit).merge(helping(help, app))
+      own = own.merge Keys.examining(play) if play
+      sections = [Section.new("application", own)]
+      sections.concat play.sections if play
+      sections << Section.new("map", mousing(&on_mouse)) if on_mouse
+
+      help.sections = sections
+      sections.each { |section| app.keymap = app.keymap.merge section.bindings }
+      help
+    end
+
+    # The movement bindings in *bindings*, by the direction each moves, or
+    # nothing when none of them move. The help screen draws these as a
+    # diagram rather than as rows.
+    def self.directions(bindings : Widgets::Bindings) : Hash(Direction, String)
+      found = {} of Direction => String
+      bindings.bindings.each do |binding|
+        Direction.each do |direction|
+          found[direction] = binding.to_s if binding.description == "move #{direction.label}"
+        end
+      end
+      found
+    end
+
+    # `F1` and `?` put *help* up.
+    def self.helping(help : Help, app : Widgets::App) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        {"F1", "?"}.each do |key|
+          map.bind TermBuf::Key.parse(key), "show the keys that work here",
+            ->(_context : Widgets::Context) { help.open app; nil }
+        end
+      end
     end
 
     # What the application answers after every widget declines a key.
@@ -69,40 +104,56 @@ module Roguelike::Ui
       end
     end
 
-    # `o` opens a door. `c` closes one. `<` and `>` take a staircase.
-    #
-    # *play* answers each of these. A door needs a direction, and `Play` finds
-    # it or asks for it.
-    def self.acting(play : Play) : Widgets::Bindings
+    # `.` waits, `G` runs and `R` rests.
+    def self.timing(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("."), "wait a turn",
+          ->(_context : Widgets::Context) { play.wait; nil }
         map.bind TermBuf::Key.parse("G"), "run until something stops you",
           ->(_context : Widgets::Context) { play.start_running; nil }
         map.bind TermBuf::Key.parse("R"), "rest until you are healed",
           ->(_context : Widgets::Context) { play.rest; nil }
-        map.bind TermBuf::Key.parse("."), "wait a turn",
-          ->(_context : Widgets::Context) { play.wait; nil }
+      end
+    end
+
+    # `o` opens a door. `c` closes one. `<` and `>` take a staircase.
+    #
+    # *play* answers each of these. A door needs a direction, and `Play` finds
+    # it or asks for it.
+    def self.passing(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("o"), "open a door",
           ->(_context : Widgets::Context) { play.open_door; nil }
         map.bind TermBuf::Key.parse("c"), "close a door",
           ->(_context : Widgets::Context) { play.close_door; nil }
-        map.bind TermBuf::Key.parse(","), "pick up what is here",
-          ->(_context : Widgets::Context) { play.pick_up; nil }
-        map.bind TermBuf::Key.parse("d"), "drop something",
-          ->(_context : Widgets::Context) { play.drop; nil }
-        map.bind TermBuf::Key.parse(HistoryPane::TOGGLE), "read the messages again",
-          ->(_context : Widgets::Context) { play.toggle_history; nil }
-        map.bind TermBuf::Key.parse("i"), "look at what you are carrying",
-          ->(_context : Widgets::Context) { play.show_inventory; nil }
+        map.bind TermBuf::Key.parse(">"), "go down the staircase",
+          ->(_context : Widgets::Context) { play.descend; nil }
+        map.bind TermBuf::Key.parse("<"), "climb out of the dungeon",
+          ->(_context : Widgets::Context) { play.ascend; nil }
+      end
+    end
+
+    # What the character wields and wears.
+    def self.wearing(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("w"), "wield a weapon",
           ->(_context : Widgets::Context) { play.wield; nil }
         map.bind TermBuf::Key.parse("W"), "wear armor",
           ->(_context : Widgets::Context) { play.wear; nil }
         map.bind TermBuf::Key.parse("T"), "take something off",
           ->(_context : Widgets::Context) { play.take_off; nil }
-        map.bind TermBuf::Key.parse("f"), "fire the readied ranged weapon",
-          ->(_context : Widgets::Context) { play.fire; nil }
-        map.bind TermBuf::Key.parse("t"), "throw something",
-          ->(_context : Widgets::Context) { play.throw; nil }
+      end
+    end
+
+    # The pack, and what is done with the things in it.
+    def self.handling(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("i"), "look at what you are carrying",
+          ->(_context : Widgets::Context) { play.show_inventory; nil }
+        map.bind TermBuf::Key.parse(","), "pick up what is here",
+          ->(_context : Widgets::Context) { play.pick_up; nil }
+        map.bind TermBuf::Key.parse("d"), "drop something",
+          ->(_context : Widgets::Context) { play.drop; nil }
         map.bind TermBuf::Key.parse("q"), "drink a potion",
           ->(_context : Widgets::Context) { play.quaff; nil }
         map.bind TermBuf::Key.parse("r"), "read a scroll",
@@ -111,14 +162,19 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.zap; nil }
         map.bind TermBuf::Key.parse("a"), "light or put out a flame",
           ->(_context : Widgets::Context) { play.apply; nil }
-        map.bind TermBuf::Key.parse(">"), "go down the staircase",
-          ->(_context : Widgets::Context) { play.descend; nil }
-        map.bind TermBuf::Key.parse("<"), "climb out of the dungeon",
-          ->(_context : Widgets::Context) { play.ascend; nil }
       end
     end
 
-    # `Tab` aims at the next monster in sight. `Enter` looses the shot.
+    # The message history.
+    def self.reading(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse(HistoryPane::TOGGLE), "read the messages again",
+          ->(_context : Widgets::Context) { play.toggle_history; nil }
+      end
+    end
+
+    # `f` fires and `t` throws. `Tab` aims at the next monster in sight and
+    # `Enter` looses the shot.
     #
     # Neither does anything while nothing is being aimed. The movement keys
     # are already bound, and `Play` sends them to the targeting cursor the
@@ -129,6 +185,10 @@ module Roguelike::Ui
     # hands it to the focus stack otherwise.
     def self.aiming(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("f"), "fire the readied ranged weapon",
+          ->(_context : Widgets::Context) { play.fire; nil }
+        map.bind TermBuf::Key.parse("t"), "throw something",
+          ->(_context : Widgets::Context) { play.throw; nil }
         map.bind TermBuf::Key.parse("Tab"), "aim at the next monster",
           ->(context : Widgets::Context) do
             context.focus.next unless play.next_target
@@ -141,7 +201,7 @@ module Roguelike::Ui
 
     # The keys that drive a recorded run.
     #
-    # `Play#bindings` merges these instead of `Keys.acting` and `Keys.aiming`
+    # `Play#sections` offers these instead of the groups that take turns
     # while `replay view` is up. Nothing here takes a turn. Each key moves
     # the run through actions the file already holds.
     def self.viewing(play : Play) : Widgets::Bindings

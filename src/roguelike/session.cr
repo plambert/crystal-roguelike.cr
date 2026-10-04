@@ -140,7 +140,7 @@ module Roguelike
     getter cursor : TermBuf::Cursor
 
     # The list of keys that work here. `F1` and `?` show it.
-    getter help : Ui::Widgets::HelpOverlay
+    getter help : Ui::Help
 
     # Whether the terminal is reporting the mouse.
     #
@@ -178,10 +178,9 @@ module Roguelike
       @app.images = @terminal.images
       @app.on_event = ->(event : TermBuf::Event) { unclaimed event }
 
-      @help = Ui::Keys.install(@app, @play.game.world.seed) { @play.confirm_quit }
-      @app.keymap = @app.keymap
-        .merge(@play.bindings)
-        .merge(Ui::Keys.mousing { self.mousing = !mousing? })
+      @help = Ui::Help.new @play.game.world.seed
+      @help.screen_rows = size.rows
+      Ui::Keys.install(@app, @help, @play, -> { self.mousing = !mousing?; nil }) { @play.confirm_quit }
 
       self.mousing = true
 
@@ -306,6 +305,7 @@ module Roguelike
       @play.fit size.columns, size.rows
       @app.resize bounds
       @cursor.region.bounds = bounds
+      @help.screen_rows = size.rows
 
       # The square the pointer was over has moved.
       tell @play.pointer_away

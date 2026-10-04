@@ -5,7 +5,7 @@ Spectator.describe Roguelike::Ui::Keys do
   # counter that says whether the quit binding fired.
   record Wired,
     session : Headless::Session,
-    help : TermBuf::Widgets::HelpOverlay,
+    help : Roguelike::Ui::Help,
     quits : Array(Bool)
 
   def wired(columns : Int32 = 80, rows : Int32 = 24) : Wired
@@ -14,7 +14,7 @@ Spectator.describe Roguelike::Ui::Keys do
 
     session = Headless.open screen.root, columns, rows
     quits = [] of Bool
-    help = described_class.install(session.app) { quits << true }
+    help = described_class.install(session.app, Roguelike::Ui::Help.new) { quits << true }
 
     session.render
     Wired.new session, help, quits
