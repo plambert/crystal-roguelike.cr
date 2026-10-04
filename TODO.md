@@ -25,14 +25,6 @@ Goblin scouts cause most early deaths. Their stones, their speed, how often they
 1, and the starting potion are the levers. A pass over them with the matchup table and the trial
 bot would settle where the first floor should sit.
 
-### `X` for explore
-
-`X` walks the character toward the nearest square they have not seen, over ground they know, and
-sweeps a room before leaving it. The lower-case `x` stays the examine key. It stops when a creature
-comes into view, when the character is hurt, when they step on an item, or when nothing on the
-floor is left to see, and says which. A travel command to a chosen square goes with it, so clicking
-a square and typing a target reach the same place.
-
 ## Unplanned
 
 ### An options screen, and a pickup filter
@@ -219,6 +211,13 @@ happened stands apart from history.
 
 A second `f` or `t` while the target picker is up closes it with no shot and no turn, the same as
 Escape.
+
+### `X` for explore
+
+`X` walks toward the nearest unseen square and sweeps a room before leaving it, stopping and saying
+why when a creature appears, the character is hurt, they step onto something, or nothing is left to
+see. `_` picks a square to travel to. Both are recorded as actions, and knowledge is cut into
+chambers.
 
 ### The seed on the help screen
 
