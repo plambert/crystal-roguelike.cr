@@ -387,14 +387,59 @@ Spectator.describe "aiming" do
   end
 
   describe "f pressed a second time" do
-    it "looses the shot" do
+    it "stops aiming without a shot" do
       run = archer
       run.press "f"
       4.times { run.press "l" }
+      before = run.turn
       run.press "f"
 
       expect(run.play.aiming).to be_nil
-      expect(run.game.player.quivered.try &.count).to eq 11
+      expect(run.examiner.cursoring?).to be_false
+      expect(run.turn).to eq before
+      expect(run.game.player.quivered.try &.count).to eq 12
+    end
+  end
+
+  describe "t pressed while a throw is being aimed" do
+    it "stops aiming without a throw" do
+      run = hall [Item.new(Kind::Dart, count: 4)]
+      run.press "t", "a"
+      before = run.turn
+      run.press "t"
+
+      expect(run.play.aiming).to be_nil
+      expect(run.examiner.cursoring?).to be_false
+      expect(run.turn).to eq before
+      expect(run.game.player.inventory.count 'a').to eq 4
+    end
+  end
+
+  describe "the other targeting key" do
+    it "stops a throw that f was pressed in" do
+      run = hall [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12), Item.new(Kind::Dart, count: 4)]
+      run.press "w", "a"
+      run.press "w", "b"
+      run.press "f"
+      before = run.turn
+      run.press "t"
+
+      expect(run.play.aiming).to be_nil
+      expect(run.turn).to eq before
+      expect(run.game.player.quivered.try &.count).to eq 12
+    end
+
+    it "stops a shot that t was pressed in" do
+      run = hall [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12), Item.new(Kind::Dart, count: 4)]
+      run.press "w", "a"
+      run.press "w", "b"
+      run.press "t", "c"
+      expect(run.play.aiming).to eq Aiming::Throw
+      before = run.turn
+      run.press "f"
+
+      expect(run.play.aiming).to be_nil
+      expect(run.turn).to eq before
     end
   end
 

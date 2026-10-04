@@ -76,6 +76,12 @@ module Roguelike::Ui
     # has to see where the two stop agreeing.
     IMPACT = TermBuf::Color.rgb 0x6A, 0x2E, 0x2E
 
+    # What the messages of the current round are drawn in.
+    #
+    # Bright and bold against the pane, so what just happened stands apart
+    # from the history above it.
+    MESSAGE_NEW = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xE8, 0x60)).bold
+
     # What each class of item is drawn as.
     #
     # The glyphs are the roguelike conventions. A person who has played one

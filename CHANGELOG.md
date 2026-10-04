@@ -14,6 +14,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   the character with an arrow for each. The keys are grouped by what they are for, the panel grows
   to fit them up to three rows from the top and bottom of the screen, and a scrollbar appears when
   there is more than fits.
+* The message pane draws what happened this turn in bright bold yellow, and earlier messages in the
+  ordinary colour. A command and the world's answer to it count as one turn. Saves keep which
+  messages belong to which turn, and saves written before this read as all earlier.
 
 ### Changed
 
@@ -28,6 +31,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   a square in sight when nothing stands on it. Otherwise it changes direction as few times as it
   can, so it bends once at an obstacle and runs straight after, instead of zigzagging. Routes are
   as long as before.
+* Pressing `f` or `t` while a target is being picked closes the picker without a shot or a throw,
+  as `Escape` does. Before, a second `f` loosed the shot.
 
 ## [0.2.2] - 2026-10-03
 

@@ -46,6 +46,16 @@ module TermBuf::Widgets
     # What the marker is drawn in.
     property marker_style : Style = Style::DEFAULT.reverse
 
+    # What the newest `#fresh` source lines are drawn in. `nil` draws every
+    # line in the pane's own style.
+    property fresh_style : Style? = nil
+
+    # How many of the newest source lines are drawn in `#fresh_style`.
+    #
+    # An owner sets this each frame. It changes how lines are drawn and
+    # nothing about which lines show or hold.
+    property fresh : Int32 = 0
+
     # Cells across. An owner sets this with `#resize`.
     getter columns : Int32 = 0
 
@@ -319,16 +329,29 @@ module TermBuf::Widgets
       return if view.width <= 0 || view.height <= 0
 
       more = holding?
+      first = more ? @read : scroll_y
+      bright = @fresh_style
+      from = @lines.size - fresh_rows
+
       showing.each_with_index do |line, row|
         break if row >= view.height
 
-        view.write 0, row, line
+        if bright && first + row >= from
+          view.write 0, row, line, bright
+        else
+          view.write 0, row, line
+        end
       end
 
       return unless more
 
       spot = Math.min page, view.height - 1
       view.write 0, spot, @marker, @marker_style
+    end
+
+    # How many wrapped lines the newest `#fresh` source lines made.
+    private def fresh_rows : Int32
+      @rows_per_line.last(@fresh.clamp(0, @rows_per_line.size)).sum
     end
 
     # How many wrapped lines at the front of the shown source *source* no

@@ -72,8 +72,7 @@ module Roguelike
         game = generate ? Game.dug(rng) : Game.start(rng)
 
         game.player.name = player
-        game.log.lines.clear
-        log.each { |line| game.log.lines << line }
+        game.log.replace log
         game.look
         game
       end
