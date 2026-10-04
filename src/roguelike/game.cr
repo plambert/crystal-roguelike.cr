@@ -686,6 +686,17 @@ module Roguelike
       # Which way a walk in one direction goes. `nil` for a route.
       getter direction : Direction?
 
+      # Where a travel is going. `nil` for every other walk.
+      getter goal : {Int32, Int32}?
+
+      # Whether this walk explores.
+      getter? exploring : Bool = false
+
+      # Where the character has stood during an explore or a travel, with the
+      # `Knowledge#revision` of the time. Standing there again at the same
+      # revision would choose the same way again, so the walk stops.
+      getter stood = Set({ {Int32, Int32}, Int32 }).new
+
       # How far it has gone.
       property steps : Int32 = 0
 
@@ -701,7 +712,9 @@ module Roguelike
       def initialize(@seen : Vision,
                      @direction : Direction? = nil,
                      @route : Array({Int32, Int32})? = nil,
-                     @along : Bool = false)
+                     @along : Bool = false,
+                     @goal : {Int32, Int32}? = nil,
+                     @exploring : Bool = false)
       end
 
       # Whether this is a walk in one direction rather than along a route.
@@ -709,7 +722,13 @@ module Roguelike
       # A doorway and a junction stop the first and not the second. The
       # person who picked a square picked one on the far side of both.
       def straight? : Bool
-        @route.nil?
+        !@direction.nil?
+      end
+
+      # Whether the game works out each step as it goes. An explore and a
+      # travel do. Each of their steps is an action of its own.
+      def planned? : Bool
+        @exploring || !@goal.nil?
       end
 
       # Whether it has stopped.
@@ -739,6 +758,20 @@ module Roguelike
       walk
     end
 
+    # An explore, ready to be stepped. `X` does this.
+    #
+    # The character looks first. What they can see now is what the first
+    # step is planned over.
+    def exploring : Walk
+      Walk.new look, exploring: true
+    end
+
+    # A travel to *goal*, ready to be stepped. `_` and a click on the map do
+    # this.
+    def travelling(goal : {Int32, Int32}) : Walk
+      Walk.new look, goal: goal
+    end
+
     # Takes one step of *walk*. Answers whether it is still going.
     #
     # Everything one step needs to know about the step before it is on the
@@ -759,7 +792,7 @@ module Roguelike
       @forgiven = 0
 
       if blocked_ahead? direction, doors: walk.straight?
-        refuse_run direction if walk.steps.zero?
+        refuse_run direction if walk.steps.zero? || walk.planned?
         walk.halt = Halt::Blocked
         return false
       end
@@ -775,8 +808,11 @@ module Roguelike
       # already covered that. `as` is used rather than a fallback to nil, so
       # a refusal that did reach here raises. A fallback would read as "did
       # not move" and would put a wrong `Halt::Blocked` on the walk.
+      #
+      # An explore and a travel go through their own actions, so a replay
+      # holds what the person asked for and plans each step again.
       before = Watch.on self, walk.seen
-      taken = perform(Action::Move.new(direction)).step.as(Step)
+      taken = perform(stepping(walk, direction)).step.as(Step)
 
       # A route walked into a shut door opens it. Opening takes the turn and
       # leaves the character where they were, so the walk counts no step and
@@ -784,8 +820,9 @@ module Roguelike
       # is still asked about, because a creature can arrive while the door
       # swings.
       if taken.opened?
-        walk.seen = sight
+        walk.seen = glance walk
         walk.halt = stopped_by before, walk.seen, along: false, doors: false
+        explain walk, before
 
         return !walk.over?
       end
@@ -796,10 +833,12 @@ module Roguelike
       end
 
       walk.steps += 1
-      walk.seen = sight
+      walk.seen = glance walk
       walk.halt = stopped_by before, walk.seen,
         along: walk.along?, doors: walk.straight?
+      walk.halt = Halt::Pile if on_pile?(walk)
       walk.along = walk.straight? && corridor?(@player.at)
+      explain walk, before
 
       !walk.over?
     ensure
@@ -807,11 +846,22 @@ module Roguelike
       @forgiven = 0
     end
 
+    # What the character can see after a step of *walk*.
+    #
+    # An explore and a travel plan each step over what the step before
+    # showed, so they look and remember. A walk in one direction or along a
+    # route decides nothing, so it only sees.
+    private def glance(walk : Walk) : Vision
+      walk.planned? ? look : sight
+    end
+
     # Which way the next step of *walk* goes.
     #
     # `nil` when there is no step to take, and the walk is given the reason
     # before this answers.
     private def heading(walk : Walk) : Direction?
+      return planned_heading walk if walk.planned?
+
       route = walk.route
       unless route
         walk.halt = Halt::Spent if walk.steps >= FURTHEST
@@ -828,6 +878,176 @@ module Roguelike
       walk.halt = Halt::Blocked unless found
 
       found
+    end
+
+    # Which way the next step of an explore or a travel goes.
+    #
+    # The way is planned again before every step, from what the character
+    # knows now. `nil` when there is no step to take, and the walk is given
+    # the reason, and the character is told it, before this answers.
+    private def planned_heading(walk : Walk) : Direction?
+      stood = {@player.at, knowledge.revision}
+      if walk.stood.includes?(stood) || walk.steps >= floor.columns * floor.rows
+        walk.halt = Halt::Spent
+      else
+        walk.stood << stood
+        route = planned_route walk.goal
+
+        if route.size >= 2
+          found = Direction.between @player.at, route[1]
+          return found if found
+        end
+
+        walk.halt = unplanned walk
+      end
+
+      explain walk
+      nil
+    end
+
+    # Why an explore or a travel has no next step.
+    private def unplanned(walk : Walk) : Halt
+      goal = walk.goal
+      return Halt::Explored unless goal
+      return Halt::Arrived if goal == @player.at
+
+      Halt::Blocked
+    end
+
+    # The action one step of *walk* takes *direction*.
+    private def stepping(walk : Walk, direction : Direction) : Action
+      goal = walk.goal
+      return Action::Travel.new goal if goal
+      return Action::Explore.new if walk.exploring?
+
+      Action::Move.new direction
+    end
+
+    # Whether an explore has just stepped onto something lying on the floor.
+    #
+    # A walk that stopped for any other reason keeps it. A line about the
+    # pile is the line `Halt::Told` stops for, and the pile is the better
+    # name for why.
+    private def on_pile?(walk : Walk) : Bool
+      return false unless walk.exploring?
+
+      halt = walk.halt
+      return false unless halt.nil? || halt.told?
+
+      !here.empty?
+    end
+
+    # What the character is told when the explore or travel *walk* stops.
+    #
+    # A walk stopped by a line in the log already has its reason written,
+    # and a walk that ended the run has the ending screen. A step refused
+    # against a creature or a wall is named by the refusal. Every other stop
+    # writes one line here. `Halt::Blocked` reaches here only when no way is
+    # left. *before* is what the step began with, which names the creature
+    # that came into view.
+    private def explain(walk : Walk, before : Watch? = nil) : Nil
+      return unless walk.planned?
+
+      case walk.halt
+      when Halt::Explored
+        say "There is nothing left to see on this floor.", Event::Stopped.new(Halt::Explored)
+      when Halt::Arrived
+        say "You arrive.", Event::Stopped.new(Halt::Arrived)
+      when Halt::Blocked
+        line = walk.steps.zero? ? "You know no way there." : "You can get no nearer."
+        say line, Event::Stopped.new(Halt::Blocked)
+      when Halt::Spent
+        say "You stop. Walking on would show you nothing new.", Event::Stopped.new(Halt::Spent)
+      when Halt::Hurt
+        say "You stop. You have been hurt.", Event::Stopped.new(Halt::Hurt)
+      when Halt::Pile
+        say "You stop on what is lying here.", Event::Stopped.new(Halt::Pile)
+      when Halt::Creature
+        came_into_view before
+      end
+    end
+
+    # Names the creature whose coming into view stopped a walk.
+    private def came_into_view(before : Watch?) : Nil
+      seen = sight
+      arrived = monsters_in_sight(seen).find do |creature|
+        before.nil? || before.seen.none? &.same?(creature)
+      end
+
+      unless arrived && regard_of(arrived, seen).everything?
+        return say "You stop. Something comes into view.", Event::Stopped.new(Halt::Creature)
+      end
+
+      label = arrived.label
+      say "You stop. #{Lore.article(label).capitalize} #{label} comes into view.",
+        Event::Stopped.new(Halt::Creature, arrived.id)
+    end
+
+    # The way an explore or a travel takes from where the character stands.
+    #
+    # An explore when *goal* is `nil`, and a travel to *goal* otherwise. The
+    # character's own square first. Empty when there is no step to take.
+    #
+    # One step asks this twice, once to plan and once in `#perform`. The
+    # answer is kept for as long as nothing it was worked out from has moved.
+    private def planned_route(goal : {Int32, Int32}?) : Array({Int32, Int32})
+      known = knowledge
+      key = Plan.new floor.id, @turn, @player.at, known.object_id, known.revision, goal
+      held = @plan
+      return held[1] if held && held[0] == key
+
+      route = if goal.nil?
+                Explore.route known, @player.at, floor.columns, floor.rows
+              elsif goal == @player.at
+                Route::NOWHERE
+              else
+                Route.chosen known, sight, goal, Route.limit(floor)
+              end
+
+      @plan = {key, route}
+      route
+    end
+
+    # What a planned way was worked out from.
+    private record Plan,
+      floor : String,
+      turn : Int32,
+      at : {Int32, Int32},
+      knowledge : UInt64,
+      revision : Int32,
+      goal : {Int32, Int32}?
+
+    # The last way `#planned_route` worked out, and what from.
+    @[JSON::Field(ignore: true)]
+    @plan : {Plan, Array({Int32, Int32})}? = nil
+
+    # Walks toward the nearest square the character has not seen until
+    # something is worth stopping for. Answers how far it went and what
+    # stopped it.
+    #
+    # The character looks after every step, so each step is planned over
+    # what the last one showed. A room partly seen is swept before it is
+    # left. A creature coming into view, a wound, a pile underfoot and
+    # nothing left to see all stop it, and each says why.
+    def explore : Running
+      walk = exploring
+      while stride walk
+      end
+
+      walk.running
+    end
+
+    # Walks toward *goal* until something is worth stopping for. Answers how
+    # far it went and what stopped it.
+    #
+    # This is `#follow` with the way planned again before every step, so
+    # what the character sees on the way can shorten it.
+    def travel(goal : {Int32, Int32}) : Running
+      walk = travelling goal
+      while stride walk
+      end
+
+      walk.running
     end
 
     # Walks *direction* until something is worth stopping for. Answers how
@@ -5428,7 +5648,7 @@ module Roguelike
 
     # The rule for *action*.
     #
-    # There are four groups and one verb of its own. Each group calls a
+    # There are five groups and one verb of its own. Each group calls a
     # `case` that covers its own verbs and nothing else. Crystal folds a
     # union of every subclass back
     # into the parent. One `case` over the whole of `Action` cannot be
@@ -5450,6 +5670,8 @@ module Roguelike
         striking action
       when Action::Choose, Action::Aim
         answering action
+      when Action::Explore, Action::Travel
+        heading_off action
       else
         raise ArgumentError.new "#{action.class} has no rule"
       end
@@ -5637,6 +5859,37 @@ module Roguelike
       Verdict.done
     end
 
+    # One step of an explore or a travel.
+    #
+    # The way is planned from what the character knows, and the step is the
+    # first square of it. A shut door there is opened, as a step into it
+    # opens it. A creature there stops the step, as it stops a walk. With no
+    # step to take, the character is told why and no turn passes.
+    private def heading_off(action : Action::Explore | Action::Travel) : Verdict
+      goal = action.is_a?(Action::Travel) ? action.target : nil
+      route = planned_route goal
+      direction = route.size >= 2 ? Direction.between(@player.at, route[1]) : nil
+
+      unless direction
+        line, halt = if goal.nil?
+                       {"There is nothing left to see on this floor.", Halt::Explored}
+                     elsif goal == @player.at
+                       {"You are already there.", Halt::Arrived}
+                     else
+                       {"You know no way nearer there.", Halt::Blocked}
+                     end
+        say line, Event::Stopped.new(halt)
+        return Verdict.done Step::Blocked
+      end
+
+      if blocked_ahead? direction, doors: false
+        refuse_run direction
+        return Verdict.done Step::Blocked
+      end
+
+      Verdict.done step(direction)
+    end
+
     # Takes one thing off the square underfoot.
     #
     # An action with no id takes the only thing there. An action with no id
@@ -5801,7 +6054,8 @@ module Roguelike
     end
 
     # Stepping, waiting, the doors beside the character and the staircase
-    # under them.
+    # under them, and exploring while any square beside known ground is
+    # unseen.
     private def legal_moving(found : Array(Action), seen : Vision) : Nil
       Direction.values.each do |direction|
         wanted = direction.from @player.x, @player.y
@@ -5817,6 +6071,7 @@ module Roguelike
       doors(Terrain::OpenDoor).each { |direction| found << Action::Close.new direction }
       found << Action::Descend.new if standing_on.stairs_down?
       found << Action::Ascend.new if standing_on.stairs_up?
+      found << Action::Explore.new if knowledge.chambers(floor.columns, floor.rows).frontier?
     end
 
     # Whether a step *direction* would do anything.

@@ -36,6 +36,9 @@ module Roguelike::Ui
 
     # `r`, a scroll already read that wants a square.
     Read
+
+    # `_`, a square to walk to.
+    Travel
   end
 
   # Everything the game shows. Everything the keys do. No device anywhere.
@@ -490,6 +493,7 @@ module Roguelike::Ui
       found = [
         Keys::Section.new("moving", Keys.moving { |direction| step direction }),
         Keys::Section.new("time", Keys.timing(self)),
+        Keys::Section.new("getting about", Keys.exploring(self)),
         Keys::Section.new("doors and stairs", Keys.passing(self)),
         Keys::Section.new("character", Keys.wearing(self)),
         Keys::Section.new("items", Keys.handling(self)),
@@ -1352,6 +1356,54 @@ module Roguelike::Ui
       end
     end
 
+    # Walks toward the nearest square the character has not seen. `X` does
+    # this.
+    #
+    # The walk is drawn a step at a time and stops on what would stop any
+    # walk, and on a pile underfoot. `Game` says why it stopped.
+    def explore : Nil
+      return if @game.over? || @aiming
+      return interrupted if walking? || resting?
+
+      @pending = nil
+      start_walking @game.exploring
+    end
+
+    # Puts the cursor on the map to pick a square to walk to. `_` does this,
+    # and a second `_` takes it off again.
+    #
+    # The way there is lit up as the cursor moves. `Enter` walks it, the way
+    # a second click on a square does.
+    def travel : Nil
+      if @aiming.try &.travel?
+        stop_aiming
+        say "Never mind."
+        return
+      end
+      return if @game.over? || @aiming
+
+      @pending = nil
+      start_aiming Aiming::Travel, nil, 0
+      refresh
+    end
+
+    # Walks to *goal*, planning each step again as the character goes.
+    private def go_to(goal : {Int32, Int32}) : Nil
+      @pointing = nil
+
+      if goal == @game.player.at
+        say "You are already there."
+        return
+      end
+
+      unless @game.knowledge.crossable? goal
+        say "You know no way there."
+        return
+      end
+
+      start_walking @game.travelling(goal)
+    end
+
     # Waits for a direction to walk in. `G` does this.
     #
     # Every direction is an answer, so there is nothing to find and nothing
@@ -1657,7 +1709,7 @@ module Roguelike::Ui
     # A second press looses the shot, so a person can press `f`, pick a
     # monster with `Tab` and press `f` again without reaching for `Enter`.
     def fire : Nil
-      if @aiming
+      if shooting?
         loose
         return
       end
@@ -1676,7 +1728,7 @@ module Roguelike::Ui
     # Anything can be thrown. A rock and a dart go furthest, and anything
     # not made for throwing goes a square or two.
     def throw : Nil
-      if @aiming
+      if shooting?
         loose
         return
       end
@@ -1711,7 +1763,15 @@ module Roguelike::Ui
       true
     end
 
+    # Whether something is being aimed that a second press of its key
+    # looses. A square picked to walk to is not a shot.
+    private def shooting? : Bool
+      !@aiming.nil? && !@aiming.try(&.travel?)
+    end
+
     # Looses what is being aimed. `Enter` does this.
+    #
+    # A square picked with `_` is walked to instead.
     def loose : Nil
       command = @aiming
       target = @examiner.spot
@@ -1719,15 +1779,21 @@ module Roguelike::Ui
       scroll = @aimed
       return unless command && target
 
+      if command.travel?
+        stop_aiming
+        return go_to target
+      end
+
       @aimed = nil
       stop_aiming
       held = letter ? id_under(letter) : nil
 
       case command
-      in .fire?  then @game.perform Action::Fire.new(target)
-      in .throw? then @game.perform Action::Throw.new(held, target) if held
-      in .zap?   then @game.perform Action::Zap.new(held, target) if held
-      in .read?  then @game.perform Action::Aim.new(target) if scroll
+      in .fire?   then @game.perform Action::Fire.new(target)
+      in .throw?  then @game.perform Action::Throw.new(held, target) if held
+      in .zap?    then @game.perform Action::Zap.new(held, target) if held
+      in .read?   then @game.perform Action::Aim.new(target) if scroll
+      in .travel? then nil
       end
 
       draw_shot
@@ -1791,6 +1857,11 @@ module Roguelike::Ui
       @reach = reach
 
       @examiner.start @game.player.at
+      if command.travel?
+        say "Pick a square with the movement keys. Enter goes there, Escape stops."
+        return
+      end
+
       wanted = targets.first?
       @examiner.point_at wanted[0], wanted[1] if wanted
 
@@ -1830,12 +1901,15 @@ module Roguelike::Ui
     end
 
     # Draws the line the shot would take and says where it would stop.
+    #
+    # A square picked to walk to gets the way there instead.
     private def show_aim : Nil
       @map.clear_flight
       @examine.aiming = nil
 
       return unless @aiming
       return if @aiming.try &.read?
+      return show_travel if @aiming.try &.travel?
 
       target = @examiner.spot
       return unless target
@@ -1847,6 +1921,20 @@ module Roguelike::Ui
       @map.aim stop[0], stop[1], Palette::IMPACT unless stop == @game.player.at
 
       @examine.aiming = aimed shot
+    end
+
+    # Lights up the way to the square under the cursor, the way a first
+    # click on it does. No turn is taken.
+    private def show_travel : Nil
+      @map.clear_highlights
+      target = @examiner.spot
+      return unless target && target != @game.player.at
+      return unless @game.knowledge.crossable? target
+
+      @map.highlight target[0], target[1]
+      @game.route_to(target).each_with_index do |spot, index|
+        @map.highlight spot[0], spot[1] unless index.zero?
+      end
     end
 
     # What the readout says about *shot*.
@@ -2018,7 +2106,7 @@ module Roguelike::Ui
     # A wand that needs a square to aim at puts the targeting cursor up
     # instead. A second press of `z` looses it, the way `f` does.
     def zap : Nil
-      if @aiming
+      if shooting?
         loose
         return
       end
@@ -2503,14 +2591,15 @@ module Roguelike::Ui
       refresh
     end
 
-    # Walks the route the map is pointing along.
+    # Walks to where the map is pointing.
     #
     # The pointer comes off first. The walk takes turns, and a route drawn
-    # before them is stale by the time they are over.
+    # before them is stale by the time they are over. The walk plans each
+    # step again as it goes, so what it finds on the way can shorten it.
     private def walk(pointing : Pointing) : Nil
       @pointing = nil
 
-      start_walking @game.walking(pointing.route)
+      start_walking @game.travelling(pointing.goal)
     end
 
     # Records that the pointer is off the map. Also used when the mouse is

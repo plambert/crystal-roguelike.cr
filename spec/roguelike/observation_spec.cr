@@ -774,4 +774,33 @@ Spectator.describe Roguelike::Observation do
       expect(found.floor).to eq game.floor.id
     end
   end
+  describe "the chamber" do
+    it "names the chamber the character stands in, and whether it is seen" do
+      game = played ROOMS
+      game.look
+      found = Observation.of game
+
+      expect(found.chamber).to eq({2, 2})
+      expect(found.chamber_seen).to be_true
+    end
+
+    it "says a chamber with squares beside it unseen is not seen" do
+      wide = ["#" * 22, "#" + "." * 20 + "#", "#.<" + "." * 18 + "#", "#" + "." * 20 + "#", "#" * 22]
+      candle = Item.new Kind::Candle, lit: true
+      game = played wide, light: false, items: [candle]
+      game.look
+      found = Observation.of game
+
+      expect(found.chamber).not_to be_nil
+      expect(found.chamber_seen).to be_false
+    end
+
+    it "leaves both out in a corridor" do
+      game = played ["#######", "#<....#", "#######"]
+      game.look
+      text = Observation.of(game).to_json
+
+      expect(text.includes? "chamber").to be_false
+    end
+  end
 end

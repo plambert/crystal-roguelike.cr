@@ -35,13 +35,25 @@ module Roguelike
     # The run ended. The character was killed, or took a staircase.
     Over
 
-    # The walk went `Game::FURTHEST` squares without any of the others.
+    # The walk went `Game::FURTHEST` squares without any of the others. An
+    # explore or a travel answers it when it comes back to a square it has
+    # stood on with nothing learned since, because from there it would go
+    # round the same way for ever.
     Spent
 
     # The route ran out. The character is standing on the square they picked.
-    # Only `Game#follow` answers this. A walk in a direction has no end to
-    # reach.
+    # Only `Game#follow` and a travel answer this. A walk in a direction has
+    # no end to reach.
     Arrived
+
+    # Every square the character can reach has been seen. Only an explore
+    # answers this.
+    Explored
+
+    # The character stepped onto something lying on the floor. Only an
+    # explore answers this. A person who set it going picked no square and
+    # walked past nothing on purpose.
+    Pile
 
     # The character's hit points are at their maximum. Only a rest answers
     # this, and it is what a rest is for.

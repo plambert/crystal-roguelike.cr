@@ -134,6 +134,22 @@ module Roguelike
     # `Floor.spot`.
     @barred : Set(String)? = nil
 
+    # How many times what is known of the ground has changed.
+    #
+    # A square seen for the first time, a square whose terrain or top item
+    # changed, an opening and a door found barred each count. A square looked
+    # at again and found the same does not. `#chambers` is rebuilt only when
+    # this has moved.
+    #
+    # It is not in a save. Knowledge read back starts again from zero, and
+    # nothing compares the number across two objects.
+    @[JSON::Field(ignore: true)]
+    getter revision : Int32 = 0
+
+    # The chambers worked out at `#revision`, or `nil` before the first ask.
+    @[JSON::Field(ignore: true)]
+    @chambers : Chambers? = nil
+
     def initialize(@floor : String,
                    @memories : Hash(String, Memory) = {} of String => Memory,
                    @sightings : Hash(String, Sighting) = {} of String => Sighting,
@@ -148,7 +164,7 @@ module Roguelike
 
     # Records that the door at *x*, *y* would not open.
     def bar(x : Int32, y : Int32) : Nil
-      (@barred ||= Set(String).new) << Floor.spot(x, y)
+      changed if (@barred ||= Set(String).new).add?(Floor.spot x, y)
     end
 
     # Whether the door at *x*, *y* is known to be spiked against whoever
@@ -162,8 +178,27 @@ module Roguelike
       held = @barred
       return unless held
 
-      held.delete Floor.spot(x, y)
+      changed if held.delete Floor.spot(x, y)
       @barred = nil if held.empty?
+    end
+
+    # Counts one change to what is known of the ground.
+    private def changed : Nil
+      @revision += 1
+    end
+
+    # The chambers of a floor of *columns* by *rows*, as this knowledge
+    # stands.
+    #
+    # Worked out once per `#revision`. Walking over ground already known asks
+    # again and gets the same object back.
+    def chambers(columns : Int32, rows : Int32) : Chambers
+      held = @chambers
+      if held && held.revision == @revision && held.columns == columns && held.rows == rows
+        return held
+      end
+
+      @chambers = Chambers.of self, columns, rows
     end
 
     # The key `#sightings` holds the character under.
@@ -296,6 +331,7 @@ module Roguelike
       made_out = made_out.at_least held.regard if held && held.item == lying
 
       terrain = floor.terrain x, y
+      changed if held.nil? || held.terrain != terrain || held.item.try(&.id) != lying.try(&.id)
       @memories[Floor.spot x, y] = Memory.new terrain,
         fitting.try(&.copy), lying, turn, made_out, floor.spiked?(x, y)
       unbar x, y unless terrain.closed_door?
@@ -315,6 +351,7 @@ module Roguelike
 
       held = self[x, y]
       terrain = floor.terrain x, y
+      changed if held.nil? || held.terrain != terrain
       @memories[Floor.spot x, y] = Memory.new terrain,
         floor.fixture(x, y).try(&.copy), held.try(&.item), turn,
         held.try(&.regard) || Regard::Nothing, floor.spiked?(x, y)
@@ -327,6 +364,7 @@ module Roguelike
     # This is for a caller that has built one of its own: a scroll that says
     # where something is without saying how the square got that way.
     def remember(x : Int32, y : Int32, memory : Memory) : Nil
+      changed
       @memories[Floor.spot x, y] = memory
     end
 
@@ -338,7 +376,7 @@ module Roguelike
     # written here would claim the square is a stone floor, or an open door,
     # or a staircase, none of which the creature has looked at.
     def opening(x : Int32, y : Int32) : Nil
-      @openings << Floor.spot x, y
+      changed if @openings.add?(Floor.spot x, y)
     end
 
     # Records every square *vision* can see. This is the one way anything gets
@@ -376,6 +414,7 @@ module Roguelike
 
     # Forgets everything.
     def forget : Nil
+      changed
       @memories.clear
       @sightings.clear
       @openings.clear
