@@ -1,5 +1,7 @@
 # crystal-roguelike
 
+https://github.com/user-attachments/assets/f8c957c0-8ea0-4c23-a298-f8e046eff2f7
+
 TODO: Write a description here
 
 ## Installation
