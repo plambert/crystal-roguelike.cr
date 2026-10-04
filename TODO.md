@@ -12,13 +12,23 @@ The game builds and runs on Windows in a terminal that speaks the usual escape s
 under way. Anything that runs an external command is compiled out on Windows until a Windows way
 of doing it exists, so a Windows build has no process chain in `--dump-terminal-info` yet.
 
-### `X` for explore
+### Highlight the current turn's messages
 
-`X` walks the character toward the nearest square they have not seen, over ground they know, and
-sweeps a room before leaving it. The lower-case `x` stays the examine key. It stops when a creature
-comes into view, when the character is hurt, when they step on an item, or when nothing on the
-floor is left to see, and says which. A travel command to a chosen square goes with it, so clicking
-a square and typing a target reach the same place.
+Messages written this turn are drawn in a colour of their own, and messages from earlier turns in
+the usual one. A player reading the log sees at a glance what just happened and what is history,
+without counting lines or waiting for the pane to scroll.
+
+### The targeting key aborts targeting
+
+After `t` or `f` opens the target picker, pressing the same key again closes it without a shot,
+the same as Escape. A player who reaches for the key out of habit is not left wondering how to back
+out.
+
+### Do not shoot missiles into walls
+
+When a ranged or thrown weapon is readied, the target offered first is one the missile can reach.
+A creature behind a wall, a door, or another creature is never auto-selected, because the shot
+would hit what is in the way. The player can still pick such a target by hand and take the result.
 
 ### Paths look natural
 
@@ -28,49 +38,27 @@ counts the same and the search picks among them by the order it happens to visit
 reads as a character weaving toward a target they can see. The cost of a diagonal step in the game
 stays what it is; only the choice among equal paths changes.
 
-### Do not shoot missiles into walls
+### Balance of the first floor
 
-When a ranged or thrown weapon is readied, the target offered first is one the missile can reach.
-A creature behind a wall, a door, or another creature is never auto-selected, because the shot
-would hit what is in the way. The player can still pick such a target by hand and take the result.
+Goblin scouts cause most early deaths. Their stones, their speed, how often they appear on floor
+1, and the starting potion are the levers. A pass over them with the matchup table and the trial
+bot would settle where the first floor should sit.
 
-### The targeting key aborts targeting
+### `X` for explore
 
-After `t` or `f` opens the target picker, pressing the same key again closes it without a shot,
-the same as Escape. A player who reaches for the key out of habit is not left wondering how to back
-out.
-
-### Highlight the current turn's messages
-
-Messages written this turn are drawn in a colour of their own, and messages from earlier turns in
-the usual one. A player reading the log sees at a glance what just happened and what is history,
-without counting lines or waiting for the pane to scroll.
+`X` walks the character toward the nearest square they have not seen, over ground they know, and
+sweeps a room before leaving it. The lower-case `x` stays the examine key. It stops when a creature
+comes into view, when the character is hurt, when they step on an item, or when nothing on the
+floor is left to see, and says which. A travel command to a chosen square goes with it, so clicking
+a square and typing a target reach the same place.
 
 ## Unplanned
 
-### A tutorial for new players
+### An options screen, and a pickup filter
 
-A guided first run that introduces moving, fighting, picking things up, the pack, doors, stairs
-and saving, one at a time, with the game pausing to explain each when it first matters. It is
-reachable from the title screen and never shown unasked after the first time.
-
-### A what's new screen
-
-The changes a player would notice since the version they last ran, reachable from the title screen
-and printable with `--whats-new`. It draws on the changelog, so a release that adds a feature
-tells the player about it without them reading the release page.
-
-### Spells
-
-A mana pool that comes back over time, two starting spells to choose between at creation, and
-spellbooks found on the floor that each teach one more. The first two spells are a lock that holds
-a door shut for a while and a blinding that stops a creature seeing for a few turns.
-
-### Sound and noise
-
-Fighting, breaking, shouting and some spells make noise that wakes and draws creatures within a
-range, and a quiet player goes unnoticed for longer. Creatures calling out to each other has an
-effect only once this exists.
+Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
+of rules such as "gold only", "never a cursed item", or "anything better than what I have".
+Another is whether a bar's colour comes from the gradient or from fixed bands.
 
 ### An action menu on an inventory letter
 
@@ -88,12 +76,29 @@ beside them, and opens the action menu when more than one thing could be meant. 
 selection moves with `wasd` rather than by single-letter choices. It is a different way to drive
 the same actions, and the help screen shows whichever scheme is in use.
 
-### Right-click and drag on the map to pan
+### A what's new screen
 
-Holding the right mouse button on the map and dragging moves the view with the pointer, so a player
-can look at a part of the floor the character is not near without moving them. Letting go leaves
-the view where it was dragged, and the next action, or the camera key, brings it back to the
-character.
+The changes a player would notice since the version they last ran, reachable from the title screen
+and printable with `--whats-new`. It draws on the changelog, so a release that adds a feature
+tells the player about it without them reading the release page.
+
+### A tutorial for new players
+
+A guided first run that introduces moving, fighting, picking things up, the pack, doors, stairs
+and saving, one at a time, with the game pausing to explain each when it first matters. It is
+reachable from the title screen and never shown unasked after the first time.
+
+### Spells
+
+A mana pool that comes back over time, two starting spells to choose between at creation, and
+spellbooks found on the floor that each teach one more. The first two spells are a lock that holds
+a door shut for a while and a blinding that stops a creature seeing for a few turns.
+
+### Sound and noise
+
+Fighting, breaking, shouting and some spells make noise that wakes and draws creatures within a
+range, and a quiet player goes unnoticed for longer. Creatures calling out to each other has an
+effect only once this exists.
 
 ### Band communication and languages
 
@@ -102,29 +107,29 @@ share like that. Other creatures share with band members who speak a common lang
 within range or were seen recently, and call out to the rest. Languages are per creature, with
 properties such as silent, sight-based or sound-based, and a clever goblin might speak Orc.
 
+### Right-click and drag on the map to pan
+
+Holding the right mouse button on the map and dragging moves the view with the pointer, so a player
+can look at a part of the floor the character is not near without moving them. Letting go leaves
+the view where it was dragged, and the next action, or the camera key, brings it back to the
+character.
+
 ## Considered
-
-### Balance of the first floor
-
-Goblin scouts cause most early deaths. Their stones, their speed, how often they appear on floor
-1, and the starting potion are the levers. A pass over them with the matchup table and the trial
-bot would settle where the first floor should sit.
 
 ### The Seen list
 
 Hovering a row with the mouse lights that creature's square on the map, and the list is sorted by
 how far each creature is from the character.
 
-### An options screen, and a pickup filter
-
-Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
-of rules such as "gold only", "never a cursed item", or "anything better than what I have".
-Another is whether a bar's colour comes from the gradient or from fixed bands.
-
 ### The rest of the route on the map
 
 A drawn route fades after a few seconds without movement or another click, rather than waiting for
 a turn. Clicking a row of the Seen list draws a route to that creature.
+
+### `replay dump`
+
+A replay command that writes the messages of a run, so the messages of two builds over one run can
+be set side by side.
 
 ### A minimap
 
@@ -139,11 +144,6 @@ Where the terminal draws images, the health and other bars move by a pixel rathe
 
 The trial bots shut doors and back away when hurt, but neither spikes a door or decides whether a
 fight is worth having, so what the trials measure is still narrow.
-
-### `replay dump`
-
-A replay command that writes the messages of a run, so the messages of two builds over one run can
-be set side by side.
 
 ### Where the game is drifting
 
