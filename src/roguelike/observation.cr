@@ -550,11 +550,22 @@ module Roguelike
     # are alight is most of what decides what the character can see.
     getter fixtures : Array(Fitting)
 
+    # The anchor of the chamber the character stands in. `nil` in a
+    # corridor, in a doorway, and anywhere else no chamber holds, and the key
+    # is then left out. `Chambers` says what a chamber is.
+    getter chamber : {Int32, Int32}? = nil
+
+    # Whether every square of that chamber and every square beside it has
+    # been seen. `nil` where `#chamber` is.
+    getter chamber_seen : Bool? = nil
+
     def initialize(@turn : Int32, @floor : String, @player : Character,
                    @map : Grid, @visible : Grid, @inventory : Array(Seen),
                    @monsters : Array(Creature), @items : Array(Seen),
                    @remembered_items : Array(Seen),
-                   @fixtures : Array(Fitting), @depth : Int32? = nil)
+                   @fixtures : Array(Fitting), @depth : Int32? = nil,
+                   @chamber : {Int32, Int32}? = nil,
+                   @chamber_seen : Bool? = nil)
     end
 
     # What the character knows about *game* now.
@@ -582,6 +593,7 @@ module Roguelike
     def self.of(game : Game, seen : Vision) : Observation
       ground = game.floor
       known = game.player.knowledge?(ground.id) || Knowledge.new(ground.id)
+      standing = known.chambers(ground.columns, ground.rows).at game.player.at
 
       new turn: game.turn,
         floor: ground.id,
@@ -595,7 +607,9 @@ module Roguelike
         monsters: creatures(game, seen),
         items: litter(game, seen),
         remembered_items: recalled(game, known, seen),
-        fixtures: fittings(game, known, seen)
+        fixtures: fittings(game, known, seen),
+        chamber: standing.try(&.anchor),
+        chamber_seen: standing.try(&.seen?)
     end
 
     # The visible grid over *ground*, from *seen*.

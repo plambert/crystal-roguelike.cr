@@ -71,6 +71,7 @@ module Roguelike
       "split"          => Split,
       "status_end"     => StatusEnd,
       "status_start"   => StatusStart,
+      "stopped"        => Stopped,
       "teleported"     => Teleported,
       "uncursed"       => Uncursed,
       "used"           => Used,
@@ -872,6 +873,20 @@ module Roguelike
       getter name : String
 
       def initialize(@slot : Slot, @item : Int32, @name : String)
+      end
+    end
+
+    # An explore or a travel that stopped, and why.
+    #
+    # *creature* is the creature that came into view, when the character can
+    # name it.
+    class Stopped < Event
+      getter kind : String = "stopped"
+
+      getter halt : Halt
+      getter creature : Int32?
+
+      def initialize(@halt : Halt, @creature : Int32? = nil)
       end
     end
 

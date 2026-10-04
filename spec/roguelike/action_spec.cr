@@ -134,7 +134,9 @@ Spectator.describe Roguelike::Action do
      Action::Choose.new(1),
      Action::Choose.new,
      Action::Aim.new({6, 2}),
-     Action::Aim.new] of Action
+     Action::Aim.new,
+     Action::Explore.new,
+     Action::Travel.new({6, 2})] of Action
   end
 
   describe "serializing" do

@@ -209,6 +209,8 @@ none of it is fixed and a preset can rebind the lot.
 | `h` `j` `k` `l` | Move west, south, north, east |
 | `y` `u` `b` `n` | Move northwest, northeast, southwest, southeast |
 | `G` + direction | Walk that way until something stops the walk |
+| `X` | Explore. Walk toward what has not been seen until something stops the walk |
+| `_` | Travel. Put a cursor on the map, and `Enter` walks to the square under it |
 | `.` | Wait one turn |
 | `<` `>` | Up stairs, down stairs |
 | `,` | Pick up what is here |
@@ -4637,6 +4639,163 @@ terminal's own name when it gave one, warnings, quirks, and the names of the pro
 one. The probe runs the way `Terminal.open` runs it, in raw mode on the alternate screen, and the
 terminal is handed back before the line is printed. The process chain comes from `ps`, which is
 compiled out on Windows.
+
+## Exploring, and travelling to a square
+
+`X` walks the character toward what they have not seen. `_` puts a cursor on the map, and `Enter`
+walks to the square under it. Both are walks in the sense `G` is. Each step is a whole turn, and the
+walk stops when something is worth stopping for and says why.
+
+### Chambers
+
+`Knowledge#chambers` cuts what somebody knows of a floor into chambers and the passages between
+them. `Chambers` holds the cut.
+
+* A square is open when it and the eight squares around it are all known ground. Ground is walkable
+  and is not a door.
+* Open squares that touch, across all eight ways, flood into one chamber. A door and a corridor one
+  or two squares wide hold no open square, so they cut chambers apart.
+* The walkable squares beside a chamber's open squares join it. That takes in the ring of floor
+  along a room's walls. A square beside two chambers goes to the first in a fixed order.
+* The flood stops at the lines of a grid of 24 by 24 squares laid from the floor's corner. A room
+  larger than a cell, and a cave, is several chambers.
+* A chamber's id is its anchor, the first of its open squares in reading order.
+* A chamber holds its squares, its exits, the chambers it touches across a grid line, the items
+  remembered on it, and whether any square of it borders a square not yet seen.
+* Every other crossable square is in a `Passage`. A passage holds its squares, the chambers it
+  touches, its junctions and its dead ends.
+
+### Decisions about chambers
+
+* **Built from knowledge.** The cut reads `Knowledge` and never a `Floor`, so it answers what the
+  character believes. A band's knowledge cuts the same way.
+* **Cached on a revision.** `Knowledge#revision` counts changes to what is known of the ground. A
+  square seen for the first time counts, and so do a changed terrain, a changed top item, an
+  opening and a door found barred. A square looked at again and found the same counts nothing.
+  Walking over known ground asks for the cut every step and gets the same object back. Neither the
+  revision nor the cut is in a save or in the fingerprint.
+* **Flat arrays.** The cut copies the knowledge into arrays over the floor once and works on those
+  rather than on string keys.
+* **A seen chamber is fixed.** Every square beside a seen chamber is known. Nothing learned later
+  can change which of its squares are open, so its squares and its anchor hold. A chamber still
+  being found takes a new anchor when a square earlier in reading order turns out to be open. The
+  grid keeps that inside one cell, and the anchor depends on that chamber's own squares alone.
+* **Ids, not numbers.** Two chambers are never numbered in the order they were found. Learning one
+  part of a floor leaves the ids of every other part as they were.
+
+### Explore
+
+`Explore.route` plans the way. The goal is the nearest frontier square, which is a crossable square
+beside a square not yet seen. Nearest is in steps over known ground, flooded with `Descent` from the
+character, with shut doors counted as crossable. The character's own square is never the goal.
+
+A room partly seen keeps the character in it. `Explore.within` is the chamber the character stands
+in, or the first one beside them where they stand in a doorway or the neck of a cave.
+`Explore.room` adds every chamber joined to it across a grid line. While that room has a frontier
+square in reach, the goal is the nearest of those.
+
+Each step is an `Action::Explore`, written `{"t":"explore"}`. The rule plans the way again and
+takes its first step. A shut door there is opened, a creature there stops the step, and with
+nothing left to see the character is told so and no turn passes.
+
+`Game#exploring` builds the walk, `Game#stride` takes one step of it, and `Game#explore` steps it
+to the end. The character looks after every step of an explore or a travel, so each step is
+planned over what the last one showed.
+
+| Stop | What is written |
+| --- | --- |
+| A creature comes into view | `You stop. A goblin warrior comes into view.` |
+| The character is hurt | `You stop. You have been hurt.` |
+| A pile underfoot | `You stop on what is lying here.` |
+| Nothing left to see | `There is nothing left to see on this floor.` |
+| A square stood on twice with nothing learned | `You stop. Walking on would show you nothing new.` |
+| A line in the log | The line itself |
+| A creature in the way | The line `G` writes, such as `The goblin warrior is in the way.` |
+
+### Travel
+
+`Action::Travel` carries the square, written `{"t":"travel","target":[x,y]}`. Each step plans
+`Route.chosen` from where the character stands and takes its first square, so what the walk sees on
+the way can shorten it. A travel stops on what stops a route walk, and adds three lines of its own.
+
+| Stop | What is written |
+| --- | --- |
+| On the square | `You arrive.` |
+| No way at the first step | `You know no way there.` |
+| No step nearer later on | `You can get no nearer.` |
+
+`_` starts `Ui::Aiming::Travel`. The examine cursor goes on the character, the movement keys move
+it, and the way to the square under it is lit as it moves. `Enter` walks there. `Escape` or a second
+`_` puts the cursor away. `f`, `t` and `z` loose only their own shots, so pressing one while
+picking a square starts aiming that instead.
+
+A second click on a square walks it the same way. It used to walk the route worked out at the first
+click, as moves.
+
+### Decisions about the walks
+
+* **A step is an action, and the walk is not.** A `G` run records the moves it expands into. An
+  explore or a travel records one `explore` or `travel` per step, and a replay plans each one
+  again. The plan reads the knowledge, the position and the field of view, all of which a replay
+  rebuilds, so `replay verify` plays it the same way. A walk stopped by a key leaves the steps it
+  took and no more.
+* **Planned twice, worked out once.** The walk plans a step to know whether to take it, and
+  `#perform` plans it again. `Game#planned_route` keeps the last answer, keyed on the floor, the
+  turn, the position, the knowledge object and its revision.
+* **The stop lines are written by the walk.** They come from `Game#stride`, outside `#perform`, so
+  a replay does not write them. The log is not in the fingerprint, which is what lets a line be
+  written outside `#perform` at all.
+* **An explore stops on every pile.** A travel crosses a pile already on the map, the way a route
+  does. An explore picked no square, so whatever it steps onto is news.
+* **A cycle stops the walk.** The plan is a function of the run, so an explore that stands on a
+  square it stood on before, with the knowledge at the same revision, would go round the same way
+  for ever. The walk keeps those pairs and stops with `Halt::Spent`. Cutting rooms by the grid made
+  such cycles before `Explore.room` joined the pieces again. The guard is for the dark, where
+  walking learns nothing.
+* **Offered while there is anything to see.** `Game#legal` offers `Explore` while the cut has a
+  frontier square. A travel takes any square, so it is not on the list, the way a shot is offered
+  only at the creatures in sight.
+* **The format number stays.** `Replay::FORMAT` is still 3. A file holding neither verb reads as it
+  did. A build from before this cannot parse a file holding either one, and says so.
+
+### Measured
+
+A release build, on seed 4272's first floor, 170 by 85, with every creature taken off.
+
+| | Time |
+| --- | --- |
+| The cut of the whole floor, known | 4.5 ms |
+| One plan of an explore over it | 4.4 ms |
+| One step of an explore, the whole floor through | 5.1 ms |
+
+The whole floor took 2,672 steps for 5,651 walkable squares. Six seeds dug as each of the three
+layouts, eighteen floors, all explored to the end with nothing else to stop them.
+
+| Stop | Count |
+| --- | --- |
+| A pile underfoot | 1,172 |
+| A line in the log | 292 |
+| Nothing left to see | 18 |
+| A cycle | 0 |
+
+### Left undone
+
+* An explore picks nothing up. It stops on a pile each time it steps onto one, including a pile it
+  stopped on before.
+* A creature in the way stops the walk. Neither walk plans round it.
+* A travel to a square the character has not seen is refused from the keyboard, as a click on one
+  is.
+* Monster bands do not use chambers yet.
+
+### Files
+
+`src/roguelike/chambers.cr` holds `Chamber`, `Passage` and `Chambers`. `src/roguelike/explore.cr`
+holds `Explore`. `Knowledge` gained `#revision` and `#chambers`. `Action` gained `Explore` and
+`Travel`, `Halt` gained `Explored` and `Pile`, and `Event` gained `Stopped`. `Game` gained
+`#exploring`, `#travelling`, `#explore` and `#travel`. `Observation` gained `chamber` and
+`chamber_seen`. `Ui::Keys.exploring` is the new group on the help screen. The specs are
+`spec/roguelike/chambers_spec.cr`, `spec/roguelike/explore_spec.cr` and
+`spec/roguelike/ui/exploring_spec.cr`.
 
 ## Asked for, not yet built
 

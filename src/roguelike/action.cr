@@ -14,7 +14,7 @@ module Roguelike
   # to a replay line and read back from it. The names are the bot
   # protocol's verbs, where this game has that verb.
   #
-  # The game and the protocol differ in four ways. The game is what this type
+  # The game and the protocol differ in five ways. The game is what this type
   # follows.
   #
   # * The protocol's `remove` names an item. `Game#take_off` names a slot. One
@@ -27,6 +27,9 @@ module Roguelike
   #   square. `Aim` is the answer that carries one.
   # * `throw` takes a square and never a direction. The game aims at a
   #   square. The person picks that square with the targeting cursor.
+  # * `explore` and `travel` are one step each of a walk the game plans.
+  #   `X` and `_` repeat them until something stops the walk, and a replay
+  #   holds one line per step.
   #
   # An item is named by `Item#id`. An id names one item for as long as it is
   # in the run, it comes from the seed, and a save round-trips it. An
@@ -61,6 +64,8 @@ module Roguelike
       "ascend"  => Ascend,
       "choose"  => Choose,
       "aim"     => Aim,
+      "explore" => Explore,
+      "travel"  => Travel,
     }
 
     # How a direction is written in JSON.
@@ -351,6 +356,36 @@ module Roguelike
       getter item : Int32?
 
       def initialize(@item : Int32? = nil)
+      end
+    end
+
+    # One step toward the nearest square the character has not seen. `X`
+    # repeats this.
+    #
+    # `Explore.route` picks the way. A shut door on it is opened, which takes
+    # the step. A creature on it stops the step, and the character is told
+    # what is in the way. Where nothing is left to see, the character is told
+    # so and no turn passes.
+    class Explore < Action
+      getter t : String = "explore"
+
+      def initialize
+      end
+    end
+
+    # One step along the way to *target*. `_` and a click on the map repeat
+    # this.
+    #
+    # `Route.chosen` picks the way, so a square with no known way to it is
+    # walked toward as far as the character can get. A shut door on the way
+    # is opened. A creature on it stops the step. Standing on *target*
+    # already, or with no step that gets nearer, no turn passes.
+    class Travel < Action
+      getter t : String = "travel"
+
+      getter target : {Int32, Int32}
+
+      def initialize(@target : {Int32, Int32})
       end
     end
 

@@ -116,6 +116,18 @@ module Roguelike::Ui
       end
     end
 
+    # `X` explores and `_` picks a square to walk to.
+    #
+    # `x` is the examine key, so explore takes the capital.
+    def self.exploring(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("X"), "explore until something stops you",
+          ->(_context : Widgets::Context) { play.explore; nil }
+        map.bind TermBuf::Key.parse("_"), "pick a square and walk there",
+          ->(_context : Widgets::Context) { play.travel; nil }
+      end
+    end
+
     # `o` opens a door. `c` closes one. `<` and `>` take a staircase.
     #
     # *play* answers each of these. A door needs a direction, and `Play` finds
@@ -174,7 +186,7 @@ module Roguelike::Ui
     end
 
     # `f` fires and `t` throws. `Tab` aims at the next monster in sight and
-    # `Enter` looses the shot.
+    # `Enter` looses the shot, or walks to the square `_` picked.
     #
     # Neither does anything while nothing is being aimed. The movement keys
     # are already bound, and `Play` sends them to the targeting cursor the
@@ -194,7 +206,7 @@ module Roguelike::Ui
             context.focus.next unless play.next_target
             nil
           end
-        map.bind TermBuf::Key.parse("Enter"), "loose the shot",
+        map.bind TermBuf::Key.parse("Enter"), "loose the shot, or walk to the square",
           ->(_context : Widgets::Context) { play.loose; nil }
       end
     end

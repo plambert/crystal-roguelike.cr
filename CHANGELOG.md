@@ -8,6 +8,23 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* `X` explores. The character walks toward the nearest square they have not seen and sweeps a room
+  before leaving it, opening shut doors on the way. The walk stops when a creature comes into view,
+  when the character is hurt, when they step onto something, or when nothing on the floor is left
+  to see, and each stop says why. `x` is still the examine key.
+* `_` puts a cursor on the map to pick a square. `Enter` walks there and `Escape` or a second `_`
+  puts the cursor away. The way there is lit as the cursor moves.
+* Replay logs record an explore and a travel as `explore` and `travel` actions, one per step, and
+  `replay verify` plays them back. The bot protocol takes both, and an observation names the
+  chamber the character stands in and whether all of it has been seen.
+
+### Changed
+
+* A second click on a square walks there the way `_` does. The way is worked out again at each
+  step, and the walk says why it stopped.
+
 ## [0.2.3] - 2026-10-04
 
 The game needs 256 colours, the help screen groups every key, routes walk straight, aiming offers
