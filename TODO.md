@@ -80,6 +80,13 @@ beside them, and opens the action menu when more than one thing could be meant. 
 selection moves with `wasd` rather than by single-letter choices. It is a different way to drive
 the same actions, and the help screen shows whichever scheme is in use.
 
+### Right-click and drag on the map to pan
+
+Holding the right mouse button on the map and dragging moves the view with the pointer, so a player
+can look at a part of the floor the character is not near without moving them. Letting go leaves
+the view where it was dragged, and the next action, or the camera key, brings it back to the
+character.
+
 ### Band communication and languages
 
 Today every band shares what any member sees, at any range. Instead, only insects with a queen
