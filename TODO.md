@@ -31,14 +31,6 @@ Today the hit, the damage and the message land first and the flight is drawn aft
 reads backwards. The animation plays, then the action resolves and the message is written, for the
 character's missiles and for monsters' alike.
 
-### Paths look natural
-
-A route to a square in plain view runs along the straight line to it, and a route around something
-bends once at the obstacle rather than stepping diagonally away and back. Today every shortest path
-counts the same and the search picks among them by the order it happens to visit squares, which
-reads as a character weaving toward a target they can see. The cost of a diagonal step in the game
-stays what it is; only the choice among equal paths changes.
-
 ### Balance of the first floor
 
 Goblin scouts cause most early deaths. Their stones, their speed, how often they appear on floor
@@ -224,6 +216,11 @@ The game requires 256 colours and refuses to draw without them, saying what it f
 Aiming a shot or a throw offers only monsters the missile can reach, and `Tab` skips the rest. The
 cursor stays on the character with a note when nothing can be reached, and can still be moved onto
 a covered monster by hand.
+
+### Paths look natural
+
+A route to a square in view runs along the straight line to it, and a route around something bends
+once and runs straight after. Routes are the same length as before and no rule changed.
 
 ### The seed on the help screen
 
