@@ -34,8 +34,9 @@ module Roguelike
 
     # The route the character walks when they pick *goal*.
     #
-    # Three tries, in this order:
+    # Four tries, in this order:
     #
+    # * the straight line to it, when they can see it and walk it;
     # * over what they remember;
     # * over what they remember plus the squares a line of sight crossed,
     #   which is how a lit room on the far side of a dark one is reached;
@@ -76,6 +77,9 @@ module Roguelike
                               limit : Int32) : {Array({Int32, Int32}), Descent?}
       from = vision.origin
 
+      sighted = sighted knowledge, vision, goal
+      return {sighted, nil} if sighted
+
       found = over Descent.toward(knowledge, from, limit, doors: true), goal
       return {found, nil} unless found.empty?
 
@@ -91,24 +95,152 @@ module Roguelike
       over Descent.toward(knowledge, from, limit, doors: true), goal
     end
 
+    # The straight line to *goal*, when the character can see it and walk it.
+    # `nil` otherwise.
+    #
+    # A line steps once a square and never moves away from the goal on
+    # either axis, so it is as short as any route. Somebody walking at what
+    # they can see walks at it.
+    #
+    # A square along the line that is not remembered was crossed by the line
+    # of sight to the goal, so nothing solid stands in it. `.guessed` reads it
+    # the same way.
+    def self.sighted(knowledge : Knowledge, vision : Vision,
+                     goal : {Int32, Int32}) : Array({Int32, Int32})?
+      return unless vision.includes? goal
+      return unless knowledge.crossable? goal
+
+      line = Line.between vision.origin, goal
+      clear = line[1..-2].all? do |spot|
+        knowledge.crossable?(spot) || knowledge[spot].nil?
+      end
+
+      line if clear
+    end
+
     # The squares from where *descent* was flooded from to *goal*.
     #
-    # The flood counts steps out from the character, so walking downhill from
-    # the goal arrives at the character. The list is turned round before it is
-    # answered, because a route is walked from this end.
+    # A diagonal step costs what a straight one does, so many routes are
+    # usually the shortest. This one changes direction the fewest times, and
+    # a route round a wall bends once at the wall and runs straight after.
+    # Among routes that bend as often, it keeps nearest the straight line
+    # between the two ends. Any tie left goes to the direction `Direction`
+    # names first, so one click picks one route every time.
+    #
+    # The flood counts steps out from the character. Every square on a
+    # shortest route is one step further out than the square before it, so
+    # the search runs outward a step at a time over those squares alone.
     def self.over(descent : Descent,
                   goal : {Int32, Int32}) : Array({Int32, Int32})
       return NOWHERE unless descent.includes? goal[0], goal[1]
 
+      start = descent.goal
+      return [goal] if goal == start
+
+      layers = funnel descent, goal
+      legs = {} of {Int32, Int32} => Hash(Direction, Leg)
+
+      layers.each_with_index do |layer, away|
+        next if away.zero?
+
+        layer.each do |spot|
+          found = {} of Direction => Leg
+          off = drift start, goal, spot
+
+          descent.downhill(spot[0], spot[1]).each do |back|
+            before = back.from spot[0], spot[1]
+            heading = back.opposite
+
+            if before == start
+              keep found, heading, Leg.new(0, off, nil)
+              next
+            end
+
+            legs[before]?.try &.each do |came, leg|
+              turns = leg.turns + (came == heading ? 0 : 1)
+              keep found, heading, Leg.new(turns, leg.drift + off, came)
+            end
+          end
+
+          legs[spot] = found unless found.empty?
+        end
+      end
+
+      walk_back legs, start, goal
+    end
+
+    # How a route arrives on a square: how often it has changed direction,
+    # how far it has strayed from the straight line, and which way it was
+    # heading on the square before. *came* is `nil` on the first step.
+    private record Leg, turns : Int32, drift : Int32, came : Direction?
+
+    # Keeps *leg* as the way to arrive heading *heading*, unless an earlier
+    # one bends less or strays less.
+    private def self.keep(found : Hash(Direction, Leg), heading : Direction,
+                          leg : Leg) : Nil
+      held = found[heading]?
+      return if held && {held.turns, held.drift} <= {leg.turns, leg.drift}
+
+      found[heading] = leg
+    end
+
+    # How far *spot* lies from the line through *start* and *goal*, scaled by
+    # the length of that line. Only comparisons read it, so the scale does
+    # not matter.
+    private def self.drift(start : {Int32, Int32}, goal : {Int32, Int32},
+                           spot : {Int32, Int32}) : Int32
+      across = goal[0] - start[0]
+      down = goal[1] - start[1]
+      (across * (spot[1] - start[1]) - down * (spot[0] - start[0])).abs
+    end
+
+    # Every square on a shortest route from where *descent* was flooded from
+    # to *goal*, grouped by how many steps out each one is.
+    #
+    # It walks down from the goal along every way the flood goes down, so a
+    # square off to the side of every shortest route is left out.
+    private def self.funnel(descent : Descent,
+                            goal : {Int32, Int32}) : Array(Array({Int32, Int32}))
+      far = descent[goal] || 0
+      layers = Array.new(far + 1) { [] of {Int32, Int32} }
+      layers[far] << goal
+      held = Set{goal}
+
+      far.downto(1) do |away|
+        layers[away].each do |spot|
+          descent.downhill(spot[0], spot[1]).each do |back|
+            before = back.from spot[0], spot[1]
+            next unless held.add? before
+
+            layers[away - 1] << before
+          end
+        end
+      end
+
+      layers
+    end
+
+    # The route that *legs* hold from *start* to *goal*, *start* first.
+    private def self.walk_back(legs : Hash({Int32, Int32}, Hash(Direction, Leg)),
+                               start : {Int32, Int32},
+                               goal : {Int32, Int32}) : Array({Int32, Int32})
+      arrivals = legs[goal]?
+      return NOWHERE unless arrivals
+
+      heading, leg = arrivals.min_by { |_, found| {found.turns, found.drift} }
       found = [goal]
       at = goal
 
-      until at == descent.goal
-        direction = descent.toward at[0], at[1]
-        return NOWHERE unless direction
-
-        at = direction.from at[0], at[1]
+      loop do
+        at = heading.opposite.from at[0], at[1]
         found << at
+        break if at == start
+
+        came = leg.came
+        return NOWHERE unless came
+
+        leg = legs[at][came]
+        heading = came
       end
 
       found.reverse!

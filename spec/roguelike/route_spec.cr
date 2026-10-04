@@ -26,6 +26,27 @@ Spectator.describe Roguelike::Route do
     "###########",
   ]
 
+  # Open ground with no wall anywhere.
+  OPEN = [
+    "........",
+    "........",
+    "........",
+  ]
+
+  # Open ground with one wall block on the straight way from the top left
+  # corner to five across and two down.
+  BLOCKED = [
+    "........",
+    "........",
+    "...#....",
+  ]
+
+  # How many times *route* changes direction.
+  def bends(route : Array({Int32, Int32})) : Int32
+    headings = route.each_cons_pair.map { |here, there| Roguelike::Direction.between here, there }.to_a
+    headings.each_cons_pair.count { |one, other| one != other }
+  end
+
   # A floor, and knowledge of every square of it.
   def known(lines : Array(String) = SPLIT) : {Floor, Knowledge}
     floor = Floor.parse "test", lines
@@ -121,6 +142,64 @@ Spectator.describe Roguelike::Route do
       found = Route.over Descent.toward(knowledge, {1, 1}), {0, 0}
 
       expect(found).to be_empty
+    end
+  end
+
+  describe "the way a route goes" do
+    it "bends at most once on open ground" do
+      _floor, knowledge = known OPEN
+      found = Route.between knowledge, {0, 0}, {5, 2}
+
+      expect(found.size).to eq 6
+      expect(bends found).to be <= 1
+    end
+
+    it "bends once to go round a wall block" do
+      _floor, knowledge = known BLOCKED
+      found = Route.between knowledge, {0, 0}, {5, 2}
+
+      expect(found.size).to eq 6
+      expect(found).not_to contain({3, 2})
+      expect(bends found).to eq 1
+    end
+
+    # The straight line from the corner runs through the wall block, so the
+    # character walks the shortest way round it instead.
+    it "bends once when the line to a square in sight is blocked" do
+      floor, knowledge = known [
+        "........",
+        "..#.....",
+        "........",
+      ]
+      found = Route.chosen knowledge, looking(floor, {0, 0}), {5, 2}
+
+      expect(Roguelike::Line.between({0, 0}, {5, 2})).to contain({2, 1})
+      expect(found.size).to eq 6
+      expect(found).not_to contain({2, 1})
+      expect(bends found).to eq 1
+    end
+
+    it "walks the straight line to a square in sight" do
+      floor, knowledge = known OPEN
+      found = Route.chosen knowledge, looking(floor, {0, 0}), {5, 2}
+
+      expect(found).to eq Roguelike::Line.between({0, 0}, {5, 2})
+    end
+
+    # The line from here to there spreads its diagonals out, so it changes
+    # direction more than once. The search alone would not walk it.
+    it "walks a line that bends more than the search would" do
+      floor, knowledge = known OPEN
+      found = Route.chosen knowledge, looking(floor, {0, 0}), {5, 2}
+
+      expect(bends found).to be > 1
+    end
+
+    it "walks the line over ground only a line of sight crossed" do
+      _floor, knowledge, seen = lamplit
+      found = Route.chosen knowledge, seen, {9, 1}
+
+      expect(found).to eq Roguelike::Line.between({1, 1}, {9, 1})
     end
   end
 

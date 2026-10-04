@@ -1344,6 +1344,27 @@ A species that does not path had the same fault for a different reason: it stepp
 the difference, which is a pure diagonal until one axis lines up. `Pursuit.straight` walks the line
 instead.
 
+### The way the character walks
+
+A route the character walks has the same trouble from the other end. `Route.over` used to walk down
+the flood from the goal and take whichever neighbor came first. Many routes are the same length, so
+that one stepped diagonally, then straight, then diagonally again. It read as the character weaving
+round something that was not there.
+
+`Route.sighted` comes first. When the character can see the goal and the line to it is clear, the
+route is `Line.between` the two. A line is as short as any route, because it steps once a square
+and never backs away on either axis. A square along it that is not remembered counts as clear,
+because the line of sight to the goal crossed it, which is what `Route.guessed` says too.
+
+Otherwise `Route.over` searches the squares that lie on some shortest route, outward from the
+character a step at a time. It keeps the route that changes direction the fewest times, then the
+one that strays least from the straight line between the two ends, then whichever direction
+`Direction` names first. A route round a wall bends once at the wall and runs straight after.
+
+None of this touches a creature. `Descent#toward` and the bands that walk it are as they were, and
+so are the rules of the game: a diagonal step costs what a straight one does and a route is as long
+as it was.
+
 ### Putting a foot wrong
 
 `Species#clumsiness` is how often a creature steps somewhere other than the best square, as a
