@@ -12,18 +12,6 @@ The game builds and runs on Windows in a terminal that speaks the usual escape s
 under way. Anything that runs an external command is compiled out on Windows until a Windows way
 of doing it exists, so a Windows build has no process chain in `--dump-terminal-info` yet.
 
-### Highlight the current turn's messages
-
-Messages written this turn are drawn in a colour of their own, and messages from earlier turns in
-the usual one. A player reading the log sees at a glance what just happened and what is history,
-without counting lines or waiting for the pane to scroll.
-
-### The targeting key aborts targeting
-
-After `t` or `f` opens the target picker, pressing the same key again closes it without a shot,
-the same as Escape. A player who reaches for the key out of habit is not left wondering how to back
-out.
-
 ### Missiles fly before they land
 
 A shot, a thrown item or a monster's stone is seen crossing the floor before its result appears.
@@ -221,6 +209,16 @@ a covered monster by hand.
 
 A route to a square in view runs along the straight line to it, and a route around something bends
 once and runs straight after. Routes are the same length as before and no rule changed.
+
+### Highlight the current turn's messages
+
+Messages from the current round are drawn bright, and earlier ones in the usual colour, so what just
+happened stands apart from history.
+
+### The targeting key aborts targeting
+
+A second `f` or `t` while the target picker is up closes it with no shot and no turn, the same as
+Escape.
 
 ### The seed on the help screen
 
