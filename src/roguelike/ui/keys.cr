@@ -34,9 +34,10 @@ module Roguelike::Ui
     #
     # *on_quit* runs when the player asks to leave. Ending the run belongs to
     # the caller. What ending means depends on what owns the loop.
-    def self.install(app : Widgets::App, &on_quit : -> Nil) : Widgets::HelpOverlay
+    def self.install(app : Widgets::App, seed : UInt64 = 0,
+                     &on_quit : -> Nil) : Widgets::HelpOverlay
       app.keymap = app.keymap.merge application(&on_quit)
-      Widgets::HelpOverlay.install app
+      Widgets::HelpOverlay.install app, Help.new(seed)
     end
 
     # What the application answers after every widget declines a key.

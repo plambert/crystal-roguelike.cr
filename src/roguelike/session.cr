@@ -178,7 +178,7 @@ module Roguelike
       @app.images = @terminal.images
       @app.on_event = ->(event : TermBuf::Event) { unclaimed event }
 
-      @help = Ui::Keys.install(@app) { @play.confirm_quit }
+      @help = Ui::Keys.install(@app, @play.game.world.seed) { @play.confirm_quit }
       @app.keymap = @app.keymap
         .merge(@play.bindings)
         .merge(Ui::Keys.mousing { self.mousing = !mousing? })

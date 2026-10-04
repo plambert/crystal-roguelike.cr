@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* The help screen on `?` and `F1` shows the run's seed, and draws the eight movement keys around
+  the character with an arrow for each.
+
 ### Changed
 
 * The game requires a terminal with 256 colours and refuses to start without them, saying what it
