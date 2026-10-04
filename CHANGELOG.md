@@ -21,6 +21,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   found and which variables it read. Sixteen colours folded the greys onto black and white and made
   lit walls vanish. `--dump-terminal-info` prints one line of JSON about the terminal for a bug
   report.
+* Aiming a shot or a throw offers only monsters the missile can reach. `Tab` skips one behind a wall,
+  a shut door or another creature, and the cursor stays on the character, with a note that there is
+  no clear shot, when none can be reached. The cursor can still be moved onto one by hand.
 
 ## [0.2.2] - 2026-10-03
 

@@ -21,13 +21,25 @@ Spectator.describe "aiming" do
     "############",
   ]
 
+  # A wider hall with the same pillar. A monster at {9, 4} is in sight from
+  # the character's square and a missile aimed at it meets the pillar.
+  WIDE = [
+    "####################",
+    "#<.................#",
+    "#..................#",
+    "#....#.............#",
+    "#..................#",
+    "####################",
+  ]
+
   # Where the character stands.
   HERE = {1, 1}
 
   # A run with the character carrying *items* and *monsters* on the floor.
   def hall(items : Array(Item) = [] of Item,
-           monsters : Array(Monster) = [] of Monster) : Playing::Run
-    floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
+           monsters : Array(Monster) = [] of Monster,
+           rows : Array(String) = HALL) : Playing::Run
+    floor = Playing.daylight Roguelike::Floor.parse("hall", rows)
     monsters.each { |creature| floor.place creature }
 
     player = Roguelike::Player.new "hall", *HERE, hit_points: 500
@@ -47,8 +59,9 @@ Spectator.describe "aiming" do
   # Any *monsters* go on the floor after the turns readying costs. A creature
   # placed before them would have walked two squares by the time the first
   # shot goes.
-  def archer(monsters : Array(Monster) = [] of Monster) : Playing::Run
-    run = hall [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12)]
+  def archer(monsters : Array(Monster) = [] of Monster,
+             rows : Array(String) = HALL) : Playing::Run
+    run = hall [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12)], rows: rows
     run.press "w", "a"
     run.press "w", "b"
 
@@ -103,6 +116,58 @@ Spectator.describe "aiming" do
       run.press "f"
 
       expect(run.examiner.spot).to eq({4, 1})
+    end
+  end
+
+  describe "choosing a target" do
+    it "offers the nearer of two monsters in a line first, and Tab stays on it" do
+      run = archer [goblin({4, 1}), goblin({8, 1})]
+
+      run.press "f"
+      expect(run.examiner.spot).to eq({4, 1})
+
+      run.press "Tab"
+      expect(run.examiner.spot).to eq({4, 1})
+    end
+
+    it "skips a monster the pillar covers" do
+      run = archer [goblin({9, 4}), goblin({3, 1})], rows: WIDE
+
+      expect(run.game.monsters_in_sight.map(&.at)).to contain({9, 4})
+
+      run.press "f"
+      expect(run.examiner.spot).to eq({3, 1})
+
+      run.press "Tab"
+      expect(run.examiner.spot).to eq({3, 1})
+    end
+
+    it "can still be moved onto a covered monster by hand" do
+      run = archer [goblin({4, 1}), goblin({8, 1})]
+      run.press "f"
+      4.times { run.press "l" }
+
+      expect(run.examiner.spot).to eq({8, 1})
+      expect(run.examine.aim.text).to contain "in the way"
+    end
+
+    it "starts on the character and says so when no monster in sight can be hit" do
+      run = archer [goblin({9, 4})], rows: WIDE
+
+      expect(run.game.monsters_in_sight.map(&.at)).to contain({9, 4})
+
+      run.press "f"
+
+      expect(run.examiner.spot).to eq HERE
+      expect(run.said).to contain "no clear shot"
+    end
+
+    it "applies to a throw as well" do
+      run = hall [Item.new(Kind::Dagger)], [goblin({9, 4})], rows: WIDE
+      run.press "t", "a"
+
+      expect(run.examiner.spot).to eq HERE
+      expect(run.said).to contain "no clear shot"
     end
   end
 
@@ -264,16 +329,16 @@ Spectator.describe "aiming" do
     end
 
     it "moves to the next monster in sight" do
-      run = archer [goblin({4, 1}), goblin({8, 1})]
+      run = archer [goblin({4, 1}), goblin({4, 4})]
 
       run.press "f"
       run.press "Tab"
 
-      expect(run.examiner.spot).to eq({8, 1})
+      expect(run.examiner.spot).to eq({4, 4})
     end
 
     it "comes round to the first one again" do
-      run = archer [goblin({4, 1}), goblin({8, 1})]
+      run = archer [goblin({4, 1}), goblin({4, 4})]
 
       run.press "f"
       run.press "Tab", "Tab"

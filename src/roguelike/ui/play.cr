@@ -1794,7 +1794,12 @@ module Roguelike::Ui
       wanted = targets.first?
       @examiner.point_at wanted[0], wanted[1] if wanted
 
-      say "Aim with the movement keys. Tab picks a monster, Enter looses, Escape stops."
+      keys = "Aim with the movement keys. Tab picks a monster, Enter looses, Escape stops."
+      if wanted.nil? && shot_at_all?(command) && !@game.monsters_in_sight.empty?
+        say "There is no clear shot. #{keys}"
+      else
+        say keys
+      end
     end
 
     # Takes the targeting cursor off and forgets what was being aimed.
@@ -1814,14 +1819,29 @@ module Roguelike::Ui
       @map.clear_flight
     end
 
+    # Whether *command* sends a missile across the floor that a creature or a
+    # wall can stop.
+    private def shot_at_all?(command : Aiming) : Bool
+      command.fire? || command.throw?
+    end
+
     # Every monster in sight, nearest first.
     #
     # Ties go to the lower row and then to the lower column, so `Tab` walks
     # the same ring in the same order every time.
+    #
+    # Aiming a shot or a throw leaves out any monster the missile would not
+    # reach, because a wall or another creature is in the line. The cursor
+    # can still be moved onto one by hand.
     private def targets : Array({Int32, Int32})
       here = @game.player.at
+      aimed = @aiming
+      only_reachable = !!aimed && shot_at_all?(aimed)
 
-      @game.monsters_in_sight.map(&.at).sort_by! do |spot|
+      found = @game.monsters_in_sight.map(&.at)
+      found.select! { |spot| @game.reachable? spot } if only_reachable
+
+      found.sort_by! do |spot|
         across = spot[0] - here[0]
         down = spot[1] - here[1]
 

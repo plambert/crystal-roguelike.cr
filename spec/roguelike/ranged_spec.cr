@@ -229,6 +229,29 @@ Spectator.describe "monsters that shoot" do
     end
   end
 
+  describe "Game#clear_shot?" do
+    it "is true along an open line" do
+      shooter = archer({7, 2})
+      game = hall [shooter]
+
+      expect(game.clear_shot?(shooter, HERE, 6)).to be_true
+    end
+
+    it "is false with another creature in the line" do
+      shooter = archer({7, 2})
+      game = hall [shooter, archer({4, 2})]
+
+      expect(game.clear_shot?(shooter, HERE, 6)).to be_false
+    end
+
+    it "is false when the target is past the reach" do
+      shooter = archer({7, 2})
+      game = hall [shooter]
+
+      expect(game.clear_shot?(shooter, HERE, 3)).to be_false
+    end
+  end
+
   describe "an orc archer" do
     it "shoots from range and stops when it runs out of arrows" do
       creature = archer({7, 2}, arrows: 3)
