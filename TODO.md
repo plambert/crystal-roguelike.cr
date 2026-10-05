@@ -119,6 +119,12 @@ Where the terminal draws images, the health and other bars move by a pixel rathe
 The trial bots shut doors and back away when hurt, but neither spikes a door or decides whether a
 fight is worth having, so what the trials measure is still narrow.
 
+### Armor weight slows the character
+
+Heavier armor makes movement slower, and the heaviest armor slows attacks as well. A shield slows
+attacks somewhat too. The gain in armor class then costs something a player can feel, and leather
+armor is a choice rather than a stop on the way to chain mail.
+
 ### A progress bar for uploads
 
 A game that submits its replay sends it at exit, after the terminal is handed back, and says
