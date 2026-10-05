@@ -53,10 +53,14 @@ module Roguelike::Ui
 
     # The fewest rows the pane ever takes.
     #
-    # The level, the hit points and the experience, a blank row, and the
-    # armor class beside the gold and the turn. Nothing takes those away: a
-    # window with no room for them has no room for the game.
-    LEAST = 5
+    # The level, the hit points and the experience, a blank row, and the two
+    # rows of armor class, gold and turn. Nothing takes those away: a window
+    # with no room for them has no room for the game.
+    LEAST = 6
+
+    # Where the gold starts on the number rows. The armor class has the
+    # columns before it.
+    GOLD = 5
 
     # How many pack rows there are. A longer pack ends with a row saying how
     # much was left out.
@@ -76,7 +80,11 @@ module Roguelike::Ui
     # The bar for the creature the character is fighting.
     getter threat : Meter
 
-    # Armor class, gold and the turn.
+    # Armor class, gold and the turn, under their names.
+    #
+    # The turn sits against the right edge, so it is whole however many
+    # digits it has grown to.
+    getter number_names : Line
     getter numbers : Line
 
     # The five scores, under their names.
@@ -133,6 +141,7 @@ module Roguelike::Ui
       @magic = Meter.new "MP", levels: Palette::MAGIC
       @learning = Meter.new "XP", levels: Palette::LEARNING
       @threat = Meter.new THREAT_LABEL, levels: Palette::THREAT
+      @number_names = Line.new
       @numbers = Line.new
       @score_names = Line.new
       @scores = Line.new
@@ -148,7 +157,7 @@ module Roguelike::Ui
       @vitals = CharacterPane.block @who, @health, @magic, @learning
       @fight = CharacterPane.block @threat
       @fight.hidden = true
-      @tally = CharacterPane.block @numbers
+      @tally = CharacterPane.block @number_names, @numbers
       @scoring = CharacterPane.block @score_names, @scores
 
       @worn_rows = CharacterPane.block @slots.map &.as(Widgets::Widget)
@@ -290,13 +299,15 @@ module Roguelike::Ui
       learned player
       fought game
 
+      @number_names.clear
+      @number_names.put 0, "AC", Palette::FAINT
+      @number_names.put GOLD, "Gold", Palette::FAINT
+      @number_names.put_right "Turn", Palette::FAINT
+
       @numbers.clear
-      @numbers.put 0, "ac", Palette::FAINT
-      @numbers.put 3, player.armor_class.to_s, Palette::STRONG
-      @numbers.put 7, "au", Palette::FAINT
-      @numbers.put 10, player.gold.to_s, Palette::COIN
-      @numbers.put 16, "t", Palette::FAINT
-      @numbers.put 18, game.turn.to_s, Palette::PLAIN
+      @numbers.put 0, player.armor_class.to_s, Palette::STRONG
+      @numbers.put GOLD, player.gold.to_s, Palette::COIN
+      @numbers.put_right game.turn.to_s, Palette::PLAIN
 
       written_scores player
       written_slots game

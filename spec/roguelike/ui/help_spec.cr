@@ -95,6 +95,32 @@ Spectator.describe Roguelike::Ui::Help do
     expect(cramped.bar.hidden?).to be_false
   end
 
+  it "scrolls on the arrows, the page keys and Space, and stops at the ends" do
+    session, help = wired 1_u64, rows: 40
+    session.press "?"
+    session.render
+    list = help.list
+    last = help.rows.size - list.most
+    expect(last).to be > 0
+
+    session.press "Up"
+    expect(list.scroll_y).to eq(0)
+    session.press "Down"
+    expect(list.scroll_y).to eq(1)
+    session.press "Space"
+    expect(list.scroll_y).to eq(1 + list.half)
+    session.press "PageDown"
+    expect(list.scroll_y).to eq(Math.min(1 + list.half + list.page, last))
+    session.press "End"
+    expect(list.scroll_y).to eq(last)
+    session.press "Space"
+    expect(list.scroll_y).to eq(last)
+    session.render
+    expect(session.text).to contain("Close")
+    session.press "Home"
+    expect(list.scroll_y).to eq(0)
+  end
+
   it "draws the seed and the diagram on the screen" do
     session, _help = wired 99_u64
 

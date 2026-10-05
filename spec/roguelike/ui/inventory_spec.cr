@@ -189,7 +189,7 @@ Spectator.describe "picking up and dropping" do
 
       run.press ","
 
-      expect(run.play.character.numbers.text).to contain "au25"
+      expect(run.play.character.numbers.text).to contain "25"
     end
 
     it "leaves no letter for the gold" do

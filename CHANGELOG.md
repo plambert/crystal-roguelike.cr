@@ -8,6 +8,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* The sidebar writes the armor class, the gold and the turn on two rows, the names above the
+  numbers. The gold is labelled `Gold`, and the turn sits against the right edge so it is never cut
+  short.
+* The help screen scrolls on the arrow keys, the page keys, `Home` and `End`. `Space` scrolls it
+  half a window down and does nothing at the bottom.
+
 ### Removed
 
 * The nightly build and its `nightly` release. Tagged releases are the only published builds.

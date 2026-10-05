@@ -2,20 +2,20 @@
 #...#                                                  │ HP        12/12
 #.@.#                                                  │ XP        0/20
 #...#                                                  │
-#####                                                  │ ac 0   au 0     t 2
+#####                                                  │ AC   Gold         Turn
+                                                       │ 0    0               2
                                                        │
                                                        │ Here
                                                        │ ──────────────────────
                                                        │   staircase up
-                                                       │
-                              ╭─ Inventory ───────╮    │ Seen
-        ╭───────────────────╮ │ ⟪ a    a dagger ⟫ │    │ ──────────────────────
-        │ a dagger          │ │   b    9 arrows   │    │   nothing
-        │ unknown           │ ╰───────────────────╯    │
-        │ damage 1d4        │                          │ Look
-        │ swing quick (75)  │                          │ ──────────────────────
-        │ thrown 10 squares │                          │ Point at the map, or
-        │ weight 10         │                          │ press x.
+                              ╭─ Inventory ───────╮    │
+        ╭───────────────────╮ │ ⟪ a    a dagger ⟫ │    │ Seen
+        │ a dagger          │ │   b    9 arrows   │    │ ──────────────────────
+        │ unknown           │ ╰───────────────────╯    │   nothing
+        │ damage 1d4        │                          │
+        │ swing quick (75)  │                          │ Look
+        │ thrown 10 squares │                          │ ──────────────────────
+        │ weight 10         │                          │ Point at the map, or
         ╰───────────────────╯                          │
 ────────────────────────────────────────────────────────────────────────────────
  a - a dagger

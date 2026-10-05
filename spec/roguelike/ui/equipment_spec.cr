@@ -376,7 +376,7 @@ Spectator.describe "wielding, wearing and taking off" do
       run.press "W"
       run.press "a"
 
-      expect(run.play.character.numbers.text).to contain "ac4"
+      expect(run.play.character.numbers.text).to start_with "4"
     end
 
     it "shows the wielded weapon on the weapon row" do

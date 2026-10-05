@@ -250,7 +250,7 @@ Spectator.describe Roguelike::Ui::Play do
       run = Playing.open
       run.press "l"
 
-      expect(run.play.character.numbers.text).to contain "t1"
+      expect(run.play.character.numbers.text).to end_with "1"
     end
 
     it "holds whether the mouse is on" do

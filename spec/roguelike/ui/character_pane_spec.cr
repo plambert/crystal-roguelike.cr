@@ -55,15 +55,13 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       expect(row).to contain Roguelike::Ui::Line::ELLIPSIS
     end
 
-    it "writes the armor class, the gold and the turn" do
+    it "writes the armor class, the gold and the turn under their names" do
       run = playing
       run.game.player.take_gold 40
       run.play.refresh
 
-      written = run.play.character.numbers.text
-      expect(written).to contain "ac0"
-      expect(written).to contain "au40"
-      expect(written).to contain "t0"
+      expect(run.play.character.number_names.text).to eq "ACGoldTurn"
+      expect(run.play.character.numbers.text).to eq ["0", "40", "0"].join
     end
 
     it "writes the five scores under their names" do

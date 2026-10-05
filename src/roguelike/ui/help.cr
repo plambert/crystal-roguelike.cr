@@ -16,7 +16,8 @@ module Roguelike
     #
     # The dialog takes the height its rows need, up to `MARGIN` cells from the
     # top and the bottom of the screen. Past that it scrolls, and a scrollbar
-    # stands beside the rows while there is anything to scroll.
+    # stands beside the rows while there is anything to scroll. The arrows
+    # scroll it a row, the page keys a window, and `Space` half a window down.
     class Help < Widgets::Dialog
       # Cells left clear above and below the dialog when it is at its tallest.
       MARGIN = 3
@@ -37,6 +38,9 @@ module Roguelike
       SPACER = Row.new ""
 
       # The rows, drawn through a list that measures them.
+      #
+      # Nothing in the list is chosen, so the keys move the window rather
+      # than a selection. Each stops at the end it reaches.
       class List < Widgets::VirtualList(Help::Row)
         # How wide the keys column is, which the descriptions line up against.
         getter keys_width : Int32 = 0
@@ -50,6 +54,25 @@ module Roguelike
         def initialize(rows : Widgets::Rows(Help::Row), width : Widgets::Layout::Sizing,
                        height : Widgets::Layout::Sizing)
           super rows, width, height
+          @keymap = List.scrolling self
+        end
+
+        # The keys that move the window.
+        def self.scrolling(list : List) : Widgets::Bindings
+          Widgets::Bindings.build do |map|
+            map.bind TermBuf::Key.parse("Up"), "a row back", ->(_context : Widgets::Context) { list.scroll_by dy: -1 }
+            map.bind TermBuf::Key.parse("Down"), "a row on", ->(_context : Widgets::Context) { list.scroll_by dy: 1 }
+            map.bind TermBuf::Key.parse("PageUp"), "a window back", ->(_context : Widgets::Context) { list.scroll_by dy: -list.page }
+            map.bind TermBuf::Key.parse("PageDown"), "a window on", ->(_context : Widgets::Context) { list.scroll_by dy: list.page }
+            map.bind TermBuf::Key.parse("Space"), "half a window on", ->(_context : Widgets::Context) { list.scroll_by dy: list.half }
+            map.bind TermBuf::Key.parse("Home"), "the first row", ->(_context : Widgets::Context) { list.scroll_to_row 0 }
+            map.bind TermBuf::Key.parse("End"), "the last row", ->(_context : Widgets::Context) { list.scroll_to_row list.rows.size }
+          end
+        end
+
+        # How many rows `Space` moves, which is half a window and at least one.
+        def half : Int32
+          Math.max page // 2, 1
         end
 
         def intrinsic_width(policy : TermBuf::Unicode::WidthPolicy) : Widgets::Layout::Intrinsic
@@ -134,11 +157,10 @@ module Roguelike
           draw_row view, row
         end
         @list.rows = Widgets::Rows.of @rows
-        @list.select 0
         @list.scroll_to_row 0
       end
 
-      # The keyboard goes to the list, so that the arrows scroll it.
+      # The keyboard goes to the list, so that its keys scroll it.
       protected def initial_focus : Widgets::Widget?
         @list
       end

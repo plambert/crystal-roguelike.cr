@@ -2,12 +2,13 @@
   #########                                            │ HP        12/12
  #..$.|.....                                           │ XP        0/20
  #.........?                                           │
- #..........                                           │ ac 2   au 0     t 0
- #....@......                                          │
- #..........                                           │ Here
- #.)........                                           │ ──────────────────────
- #...|......                                           │   staircase up
-  ########+                                            │
+ #..........                                           │ AC   Gold         Turn
+ #....@......                                          │ 2    0               0
+ #..........                                           │
+ #.)........                                           │ Here
+ #...|......                                           │ ──────────────────────
+  ########+                                            │   staircase up
+                                                       │
                                                        │ Seen
                                                        │ ──────────────────────
                                                        │   29 gold pieces
@@ -16,7 +17,6 @@
                                                        │
                                                        │ Look
                                                        │ ──────────────────────
-                                                       │ staircase up
 ────────────────────────────────────────────────────────────────────────────────
  You are in a dungeon with a short sword, leather armor and a lit torch.
  You carry three spikes and a potion of minor healing. Press ? for the keys.
