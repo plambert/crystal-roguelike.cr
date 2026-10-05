@@ -12,6 +12,15 @@ The game builds and runs on Windows in a terminal that speaks the usual escape s
 under way. Anything that runs an external command is compiled out on Windows until a Windows way
 of doing it exists, so a Windows build has no process chain in `--dump-terminal-info` yet.
 
+### Explore picks up gold and stops for new items only
+
+`X` stops every time the character steps onto something, which on a floor with a few items means
+starting it again every few squares. Instead it picks up gold it walks over without stopping, and
+walks over other items without stopping. It stops when an item the character has not seen before
+comes into view, saying what it is, such as "A pink potion and a long sword come into sight".
+Items already seen, on the floor or in the pack, are ignored, so a floor already walked explores in
+one go.
+
 ### Missiles fly before they land
 
 A shot, a thrown item or a monster's stone is seen crossing the floor before its result appears.
@@ -109,6 +118,12 @@ Where the terminal draws images, the health and other bars move by a pixel rathe
 
 The trial bots shut doors and back away when hurt, but neither spikes a door or decides whether a
 fight is worth having, so what the trials measure is still narrow.
+
+### A progress bar for uploads
+
+A game that submits its replay sends it at exit, after the terminal is handed back, and says
+nothing while the upload runs. A bar on the console would show how much of each piece has gone, so
+a slow connection reads as progress rather than a hang.
 
 ### Where the game is drifting
 
