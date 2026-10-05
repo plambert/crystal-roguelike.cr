@@ -8,6 +8,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Removed
+
+* The nightly build and its `nightly` release. Tagged releases are the only published builds.
+
 ## [0.2.4] - 2026-10-04
 
 Uploads and the update check work on a Mac without Homebrew, `X` explores, `_` travels, and the

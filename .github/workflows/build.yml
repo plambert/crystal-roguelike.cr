@@ -3,9 +3,8 @@
 # records a replay log of every run it plays and reports `(test build)` after
 # its version.
 #
-# Nothing triggers this on its own. `release.yml` and `nightly.yml` both call
-# it, so the two publish the same binaries built the same way, and the nightly
-# run exercises the release build every night.
+# Nothing triggers this on its own. `release.yml` calls it, for a tag and for
+# a run started by hand.
 #
 # `version` is what the binary must report. The compiler reads it out of
 # shard.yml through the VERSION macro, and a step here runs the binary and
@@ -14,9 +13,7 @@
 # `archive-stem` names the tarballs. The platform and the extension are added
 # to it: a stem of `crystal-roguelike-0.1.0` gives
 # `crystal-roguelike-0.1.0-linux-x86_64.tar.gz`, and the test build's tarball
-# is `crystal-roguelike-0.1.0-test-linux-x86_64.tar.gz`. The nightly passes a
-# stem with no version in it, so its download links stay the same from night
-# to night.
+# is `crystal-roguelike-0.1.0-test-linux-x86_64.tar.gz`.
 name: build
 
 on:

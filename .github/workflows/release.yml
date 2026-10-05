@@ -5,9 +5,8 @@
 # binaries and stops there, so the build can be exercised without cutting a
 # tag.
 #
-# The build itself lives in `build.yml`, which the nightly calls as well. It
-# makes a regular tarball and a test build tarball for each platform, and the
-# release attaches all of them.
+# The build itself lives in `build.yml`. It makes a regular tarball and a test
+# build tarball for each platform, and the release attaches all of them.
 #
 # The version a binary reports comes from shard.yml, which the compiler reads
 # through the VERSION macro. The first job refuses a tag that says something
