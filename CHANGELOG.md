@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-10-05
+
+The sidebar shows the whole turn and scrolls the equipment and the pack, and the help screen
+scrolls by key.
+
 ### Changed
 
 * The sidebar writes the armor class, the gold and the turn on two rows, the names above the
@@ -527,7 +532,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.1...v0.2.2
