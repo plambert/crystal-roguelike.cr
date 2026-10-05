@@ -262,8 +262,10 @@ Spectator.describe Roguelike::Save do
       it "puts the most recently saved first" do
         kept = store
         kept.write named("Older")
-        sleep 1.millisecond
         kept.write named("Newer")
+        # Two writes can land in the same millisecond, so the times are set.
+        File.touch kept.path("Older"), Time.utc - 1.minute
+        File.touch kept.path("Newer"), Time.utc
 
         expect(kept.characters.first.name).to eq "Newer"
       end
