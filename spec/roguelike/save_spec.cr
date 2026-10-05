@@ -1,5 +1,15 @@
 require "../spec_helper"
 
+# An absolute state directory as the platform spells one, and where state
+# goes when nothing says.
+{% if flag?(:win32) %}
+  private SOMEWHERE          = "C:\\somewhere\\state"
+  private DEFAULT_STATE_HOME = ENV["LOCALAPPDATA"]? || Path.home.join("AppData", "Local").to_s
+{% else %}
+  private SOMEWHERE          = "/somewhere/state"
+  private DEFAULT_STATE_HOME = Path.home.join(".local", "state").to_s
+{% end %}
+
 Spectator.describe Roguelike::Save do
   alias Item = Roguelike::Item
   alias Kind = Roguelike::ItemKind
@@ -27,6 +37,13 @@ Spectator.describe Roguelike::Save do
   end
 
   describe ".slug" do
+    it "keeps a name Windows keeps for a device out, with or without a dot" do
+      expect(Save.slug "Con").to eq "Con_"
+      expect(Save.slug "nul.d").to eq "nul.d_"
+      expect(Save.slug "LPT1").to eq "LPT1_"
+      expect(Save.slug "Connor").to eq "Connor"
+    end
+
     it "keeps a plain name as it is" do
       expect(Save.slug "Sparky").to eq "Sparky"
     end
@@ -80,9 +97,9 @@ Spectator.describe Roguelike::Save do
 
   describe ".state_home" do
     it "uses XDG_STATE_HOME when it is set" do
-      ENV["XDG_STATE_HOME"] = "/somewhere/state"
+      ENV["XDG_STATE_HOME"] = SOMEWHERE
 
-      expect(Save.state_home).to eq "/somewhere/state"
+      expect(Save.state_home).to eq SOMEWHERE
     ensure
       ENV.delete "XDG_STATE_HOME"
     end
@@ -92,27 +109,27 @@ Spectator.describe Roguelike::Save do
     it "ignores a relative XDG_STATE_HOME" do
       ENV["XDG_STATE_HOME"] = "state"
 
-      expect(Save.state_home).to eq Path.home.join(".local", "state").to_s
+      expect(Save.state_home).to eq DEFAULT_STATE_HOME
     ensure
       ENV.delete "XDG_STATE_HOME"
     end
 
-    it "falls back to ~/.local/state" do
+    it "falls back to the platform's own place" do
       ENV.delete "XDG_STATE_HOME"
 
-      expect(Save.state_home).to eq Path.home.join(".local", "state").to_s
+      expect(Save.state_home).to eq DEFAULT_STATE_HOME
     end
   end
 
   describe Save::Store do
     describe ".default" do
       it "puts the three directories under the state directory" do
-        ENV["XDG_STATE_HOME"] = "/somewhere/state"
+        ENV["XDG_STATE_HOME"] = SOMEWHERE
 
         kept = Save::Store.default
-        expect(kept.directory.to_s).to eq "/somewhere/state/roguelike/saves"
-        expect(kept.deaths.to_s).to eq "/somewhere/state/roguelike/deaths"
-        expect(kept.wins.to_s).to eq "/somewhere/state/roguelike/wins"
+        expect(kept.directory).to eq Path[SOMEWHERE, "roguelike", "saves"]
+        expect(kept.deaths).to eq Path[SOMEWHERE, "roguelike", "deaths"]
+        expect(kept.wins).to eq Path[SOMEWHERE, "roguelike", "wins"]
       ensure
         ENV.delete "XDG_STATE_HOME"
       end

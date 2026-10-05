@@ -26,7 +26,8 @@ module SecondProcess
 
   private def self.build : Path
     source = ROOT / "spec" / "support" / "fingerprints.cr"
-    wanted = Path[File.tempname "roguelike-fingerprints", nil]
+    # Windows wants the extension, and the compiler writes a `.pdb` beside it.
+    wanted = Path[File.tempname "roguelike-fingerprints", {{ flag?(:win32) ? ".exe" : nil }}]
 
     said = IO::Memory.new
     status = Process.run "crystal",
@@ -34,7 +35,12 @@ module SecondProcess
       output: said, error: said, chdir: ROOT.to_s
     raise "building #{source} failed:\n#{said}" unless status.success?
 
-    at_exit { File.delete? wanted }
+    at_exit do
+      File.delete? wanted
+      {% if flag?(:win32) %}
+        File.delete? wanted.parent / "#{wanted.stem}.pdb"
+      {% end %}
+    end
     wanted
   end
 

@@ -1,0 +1,51 @@
+# Runs the specs on every platform the game is built for.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CRYSTAL_VERSION: '1.21.0'
+
+jobs:
+  specs:
+    runs-on: ${{ matrix.os }}
+    # Bash on every runner, Windows included, where Git for Windows provides
+    # it, so the steps are written once.
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: crystal-lang/install-crystal@v1
+        with:
+          crystal: ${{ env.CRYSTAL_VERSION }}
+
+      # Development libraries the standard library can link. The Crystal
+      # package recommends them rather than requiring them.
+      - name: Install libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y libpcre2-dev libssl-dev libxml2-dev libyaml-dev zlib1g-dev
+
+      - name: Install dependencies
+        run: shards install --frozen
+
+      - name: Check formatting
+        run: crystal tool format --check
+
+      # On Windows this includes a run played in a pseudoconsole, which
+      # builds the game first.
+      - name: Run specs
+        run: crystal spec --error-trace

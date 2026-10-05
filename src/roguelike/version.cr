@@ -12,23 +12,29 @@ require "../roguelike"
 # have always been.
 module Roguelike
   # The version in `shard.yml`. The compiler reads it at build time.
+  #
+  # Windows runs a macro's command with no shell, and its command line quotes
+  # only with double quotes. A Windows path cannot hold a double quote, so
+  # none needs escaping there.
   {% begin %}
-  {% command = "shards version '" + __DIR__.gsub(%r{'}, "'\\''") + "'" %}
+  {% if flag?(:win32) %}
+    {% command = "shards version \"" + __DIR__ + "\"" %}
+  {% else %}
+    {% command = "shards version '" + __DIR__.gsub(%r{'}, "'\\''") + "'" %}
+  {% end %}
   VERSION = {{ `#{command.id}`.strip.stringify }}
   {% end %}
 
   # The commit this binary was built from.
   #
-  # `script/build-id` answers it: the short hash, with a "+" after it when a
+  # `script/build_id.cr` answers it: the short hash, with a "+" after it when a
   # tracked file differed from that commit, and "unknown" when there was no
   # repository to ask. Built as another shard's dependency, it is the commit
   # `shards install` checked out. The debug console prints it beside `VERSION`, so a
   # screenshot of a failure says which build it came from.
-  {% begin %}
-  {% root = __DIR__.gsub(%r{'}, "'\\''") %}
-  {% command = "sh '" + root + "/../../script/build-id' '" + root + "'" %}
-  BUILD = {{ `#{command.id}`.strip.stringify }}
-  {% end %}
+  #
+  # The `run` macro compiles and runs it, which needs no shell on any platform.
+  BUILD = {{ run("../../script/build_id", __DIR__).stringify.strip }}
 
   # Whether this is a test build, compiled with `-Dtest_build`.
   #
