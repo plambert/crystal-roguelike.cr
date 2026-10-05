@@ -168,19 +168,51 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       pane.fit Pane::LEAST
 
       expect(pane.vitals.hidden?).to be_false
-      expect(pane.worn.hidden?).to be_true
+      expect(pane.lower.hidden?).to be_true
     end
 
-    it "shuts an open pack before it drops anything else" do
-      run = playing carrying: [Item.new(Kind::Bow)]
+    it "keeps an open pack and scrolls the equipment and the pack instead" do
+      run = playing rows: 32, carrying: [Item.new(Kind::Bow)]
       pane = run.play.character
       pane.toggle_pack
       run.play.refresh
+      room = Roguelike::Ui::Play.character_rows 32
 
-      pane.fit pane.height - 1
-
+      expect(pane.height).to be <= room
       expect(pane.scoring.hidden?).to be_false
-      expect(pane.worn.hidden?).to be_false
+      expect(pane.lower.hidden?).to be_false
+      expect(pane.pack[0].hidden?).to be_false
+      expect(pane.showing_vacant?).to be_false
+    end
+
+    it "scrolls under the wheel and goes back to the top when the pack is clicked" do
+      run = playing rows: 32, carrying: [Item.new(Kind::Bow)]
+      pane = run.play.character
+      pane.toggle_pack
+      run.play.refresh
+      run.render
+      heading = pane.worn_heading.rect
+
+      run.wheel heading.x, heading.y, up: false
+      expect(pane.lower.scroll_y).to be > 0
+      expect(run.text).to contain "bow"
+
+      run.play.open_pack
+      expect(pane.lower.scroll_y).to eq 0
+      expect(pane.showing_pack?).to be_false
+    end
+
+    it "stops scrolling at the end of the pack" do
+      run = playing rows: 32, carrying: [Item.new(Kind::Bow)]
+      pane = run.play.character
+      pane.toggle_pack
+      run.play.refresh
+      run.render
+      heading = pane.worn_heading.rect
+
+      5.times { run.wheel heading.x, heading.y, up: false }
+      expect(pane.lower.scroll_y).to eq pane.lower.max_scroll[1]
+      expect(run.text).to contain "bow"
     end
 
     it "gives everything back when the window grows again" do

@@ -10,9 +10,12 @@ module Roguelike::Ui
   # An empty equipment slot is drawn dimmed rather than left out, so a person
   # learns which row the weapon is on instead of reading the labels.
   #
-  # The pane is taller than a short terminal can give it. `#fit` decides what
-  # to show and what to leave out, from the bottom up, so the level and the
-  # hit points survive any window the game will run in at all.
+  # The pane is taller than a short terminal can give it. The blocks above
+  # the equipment stay put, and the equipment and the pack sit in a window
+  # that scrolls under the wheel when they are taller than what is left.
+  # `#fit` decides how tall that window is and what else to leave out, so
+  # the level and the hit points survive any window the game will run in at
+  # all.
   class CharacterPane
     # The heading over the equipment slots.
     WORN = "Worn/Wielded"
@@ -66,6 +69,20 @@ module Roguelike::Ui
     # much was left out.
     MOST_PACK = 10
 
+    # The fewest rows the scrolling window is worth showing in: a heading,
+    # its rule and one row under them.
+    LEAST_LOWER = 3
+
+    # The window the equipment and the pack scroll in.
+    #
+    # It never takes the keyboard. The wheel is what moves it, and a row the
+    # pointer is over says what it is about the same as anywhere else.
+    class Window < Widgets::Scrollable
+      def focusable? : Bool
+        false
+      end
+    end
+
     # The widget itself. A caller puts it in a tree.
     getter root : Widgets::Panel
 
@@ -109,6 +126,9 @@ module Roguelike::Ui
     getter worn : Widgets::Panel
     getter packed : Widgets::Panel
 
+    # The window the last two scroll in.
+    getter lower : Window
+
     # Whether the pack section is open.
     #
     # Shut to begin with. The pack is ten rows and the readouts under the
@@ -134,6 +154,9 @@ module Roguelike::Ui
     # `#fit` reads this for the same reason it reads `@filled`. It cannot
     # read the row: it is what decides whether the row is hidden.
     @fighting : Bool = false
+
+    # How many rows the window is, as `#fit` last set it.
+    @window_rows : Int32 = 0
 
     def initialize
       @who = Line.new
@@ -170,13 +193,19 @@ module Roguelike::Ui
         Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
         @pack_rows
 
+      @lower = Window.new(
+        width: Layout::Sizing.grow,
+        height: Layout::Sizing.fit,
+        gap: 1)
+      @lower.add @worn, @packed
+
       # A blank row between blocks. A hidden block takes no gap with it.
       @root = Widgets::Panel.new(
         direction: Layout::Direction::Column,
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fit,
         gap: 1)
-      @root.add @vitals, @fight, @tally, @scoring, @worn, @packed
+      @root.add @vitals, @fight, @tally, @scoring, @lower
       @pack_rows.hidden = true
     end
 
@@ -207,14 +236,28 @@ module Roguelike::Ui
 
     # How many rows the pane takes as it stands.
     def height : Int32
+      rows = standing
+      rows += 1 + @window_rows unless @lower.hidden?
+      rows
+    end
+
+    # How many rows the blocks above the window take, with the gaps between
+    # them.
+    private def standing : Int32
       rows = 0
-      {@vitals, @fight, @tally, @scoring, @worn, @packed}.each do |block|
+      {@vitals, @fight, @tally, @scoring}.each do |block|
         next if block.hidden?
 
         rows += CharacterPane.rows(block) + (rows.zero? ? 0 : 1)
       end
 
       rows
+    end
+
+    # How many rows the equipment and the pack come to, with the gap between
+    # them.
+    private def lower_content : Int32
+      CharacterPane.rows(@worn) + 1 + CharacterPane.rows(@packed)
     end
 
     # How many rows *block* takes, its hidden children left out.
@@ -229,41 +272,56 @@ module Roguelike::Ui
 
     # Decides what to show in *room* rows.
     #
-    # Things go in the order a person would give them up. An open pack shuts
-    # first, because it is a list they can open again. Empty slots go next,
-    # because a slot with nothing in it says nothing. The scores go next,
-    # because they change a few times in a run. The pack heading and then the
-    # equipment go after those.
+    # The equipment and the pack get whatever the blocks above them leave.
+    # When that is less than they need, the empty slots go first, because a
+    # slot with nothing in it says nothing, and then the window scrolls. An
+    # open pack is never shut here: the person opened it, and a list that
+    # scrolls is still a list.
     #
-    # The bar for the creature being fought goes last of all, after the
-    # equipment. A person in a fight reads how much is left in the thing
-    # hitting them more often than they read what is in their hands. It does
-    # go, though: the level and the character's own bars come before it, and
-    # a window with no room for those has no room for the game.
+    # When the window would be too short to read, the scores go, because
+    # they change a few times in a run. The bar for the creature being
+    # fought goes after them. A person in a fight reads how much is left in
+    # the thing hitting them more often than they read what is in their
+    # hands. It does go, though: the level and the character's own bars come
+    # before it, and a window with no room for those has no room for the
+    # game. The window itself goes last.
+    #
     # Run it after `#show`, which is what records how much there is to fit.
     def fit(room : Int32) : Nil
-      {@scoring, @worn, @packed}.each &.hidden=(false)
+      {@scoring, @lower}.each &.hidden=(false)
       @fight.hidden = !@fighting
       vacant true
       @pack_rows.hidden = !@showing_pack
-      return if height <= room
-
-      @pack_rows.hidden = true
-      return if height <= room
+      return if settle room, whole: true
 
       vacant false
-      return if height <= room
+      return if settle room
 
       @scoring.hidden = true
-      return if height <= room
-
-      @packed.hidden = true
-      return if height <= room
-
-      @worn.hidden = true
-      return if height <= room
+      return if settle room
 
       @fight.hidden = true
+      return if settle room
+
+      @lower.hidden = true
+    end
+
+    # Sizes the window to what *room* leaves after the blocks above it, and
+    # says whether that was enough to show it at all. With *whole*, only a
+    # window that holds all of the content is enough.
+    #
+    # A window with room for everything is as tall as its content and does
+    # not scroll. A shorter one scrolls, and keeps its place unless the
+    # content has shrunk out from under it.
+    private def settle(room : Int32, whole : Bool = false) : Bool
+      spare = room - standing - 1
+      content = lower_content
+      return false if spare < (whole ? content : Math.min(content, LEAST_LOWER))
+
+      @window_rows = Math.min spare, content
+      @lower.height = Layout::Sizing.fixed @window_rows
+      @lower.scroll_y = @lower.scroll_y.clamp 0, content - @window_rows
+      true
     end
 
     # Shows or hides the rows of the slots with nothing in them.
@@ -283,6 +341,7 @@ module Roguelike::Ui
     def toggle_pack : Nil
       @showing_pack = !@showing_pack
       @pack_rows.hidden = !@showing_pack
+      @lower.scroll_to_start
       head @pack_heading, PACK, @showing_pack
     end
 

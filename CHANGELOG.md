@@ -15,6 +15,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   short.
 * The help screen scrolls on the arrow keys, the page keys, `Home` and `End`. `Space` scrolls it
   half a window down and does nothing at the bottom.
+* The equipment and the pack in the sidebar scroll under the mouse wheel when the terminal is too
+  short for them, instead of being left out. Opening or shutting the pack scrolls back to the top.
+
+### Fixed
+
+* Clicking `Pack` on a short terminal turned the arrow but showed nothing, because the pack was the
+  first thing the sidebar gave up. An open pack now stays, and the sidebar scrolls to it.
 
 ### Removed
 
