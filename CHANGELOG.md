@@ -20,6 +20,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   `replay verify` plays them back. The bot protocol takes both, and an observation names the
   chamber the character stands in and whether all of it has been seen.
 
+### Fixed
+
+* On macOS the game trusts the certificates Apple ships in `/etc/ssl/cert.pem`, so sending replay
+  logs and checking for a newer release work on a Mac without Homebrew. `SSL_CERT_FILE` and
+  `SSL_CERT_DIR` still take precedence when set.
+
 ### Changed
 
 * A second click on a square walks there the way `_` does. The way is worked out again at each

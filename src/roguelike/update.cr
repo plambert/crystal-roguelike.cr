@@ -109,7 +109,7 @@ module Roguelike
         "User-Agent" => "crystal-roguelike/#{VERSION}",
       }
 
-      response = HTTP::Client.new uri do |http|
+      response = Tls.client uri do |http|
         http.connect_timeout = WAIT
         http.read_timeout = WAIT
         http.write_timeout = WAIT

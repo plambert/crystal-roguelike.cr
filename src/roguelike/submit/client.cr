@@ -90,9 +90,10 @@ module Roguelike
         raise Error.new "the upload failed: #{error.message}"
       end
 
-      # One connection to *uri*, with the timeouts set.
+      # One connection to *uri*, with the timeouts set. See `Tls` for the
+      # certificates it trusts.
       private def client(uri : URI, wait : Time::Span, & : HTTP::Client -> HTTP::Client::Response) : HTTP::Client::Response
-        HTTP::Client.new uri do |http|
+        Tls.client uri do |http|
           http.connect_timeout = CONNECT
           http.read_timeout = wait
           http.write_timeout = wait
