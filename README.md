@@ -28,7 +28,7 @@ them. It also carries a test build tarball per platform, named
 plays; see [A test build](#a-test-build).
 
 ```bash
-version=0.2.5
+version=0.3.0
 platform=macos-aarch64   # or linux-x86_64, linux-aarch64
 base=https://github.com/plambert/crystal-roguelike.cr/releases/download/v$version
 
@@ -52,7 +52,7 @@ holding `crystal-roguelike.exe`, statically linked, so it needs nothing beside
 it. In PowerShell:
 
 ```powershell
-$version = "0.2.5"
+$version = "0.3.0"
 $base = "https://github.com/plambert/crystal-roguelike.cr/releases/download/v$version"
 
 Invoke-WebRequest "$base/crystal-roguelike-$version-windows-x86_64.zip" -OutFile game.zip
@@ -93,7 +93,7 @@ play can be reproduced exactly:
 
 ```bash
 shards build -Dtest_build
-./bin/crystal-roguelike --version   # crystal-roguelike 0.2.5 (test build)
+./bin/crystal-roguelike --version   # crystal-roguelike 0.3.0 (test build)
 ```
 
 The logs go to `$XDG_STATE_HOME/roguelike/test_logs/`, or

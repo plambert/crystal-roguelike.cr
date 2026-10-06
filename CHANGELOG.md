@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-05
+
+The game runs on Windows, in Windows Terminal and in WezTerm, and each release carries a Windows
+build.
+
 ### Added
 
 * The game runs on Windows, in Windows Terminal and in WezTerm. Each release carries a
@@ -559,7 +564,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.2...v0.2.3
