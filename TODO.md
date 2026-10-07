@@ -42,6 +42,13 @@ back to leave the room by another exit. Once it has entered a passage it follows
 wherever it leads before it considers any other frontier, so a walk reads as a route rather than
 a dither.
 
+### Explore collects the quiver's ammunition
+
+Explore walks to ammunition that matches what is in the quiver, or what the quiver remembers when
+it is empty, the way it walks to gold: known and reachable piles come before unseen squares,
+nearest first, and the pickup on arrival goes into the quiver without stopping the walk. Other
+ammunition is left where it lies.
+
 ### Explore clears the small side first
 
 When explore has a choice of frontiers, it heads for the one with the least unexplored space
