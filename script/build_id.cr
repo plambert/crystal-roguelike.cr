@@ -62,16 +62,28 @@ module BuildId
   # The commit `shards install` checked out, from the `lib/.shards.info` of
   # the shard that depends on this one.
   def self.from_shards_info(root : String) : String?
-    name = File.read_lines(File.join(root, "shard.yml"))
-      .find(&.starts_with?("name:"))
-      .try(&.lchop("name:").strip)
+    name = shard_name root
     return if name.nil? || name.empty?
 
     info = File.join(root, "..", ".shards.info")
     return unless File.file? info
 
+    commit_in File.read_lines(info), name
+  rescue File::Error | IO::Error
+    nil
+  end
+
+  # The `name:` of the shard.yml under *root*.
+  private def self.shard_name(root : String) : String?
+    File.read_lines(File.join(root, "shard.yml"))
+      .find(&.starts_with?("name:"))
+      .try(&.lchop("name:").strip)
+  end
+
+  # The short commit under *name*'s entry in the *lines* of a `.shards.info`.
+  private def self.commit_in(lines : Array(String), name : String) : String?
     found = false
-    File.each_line info do |line|
+    lines.each do |line|
       if line == "  #{name}:"
         found = true
       elsif found && line.starts_with?("  ") && !line.starts_with?("   ")
@@ -81,8 +93,6 @@ module BuildId
         return hash[0, 7] unless hash.empty?
       end
     end
-    nil
-  rescue File::Error | IO::Error
     nil
   end
 

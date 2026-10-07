@@ -104,7 +104,7 @@ module Roguelike
     # without an extension: a character called Con cannot be saved as
     # `Con.json`. Kept out on every platform, so that a save copied from one
     # to another keeps its name.
-    RESERVED = %w[CON PRN AUX NUL] + (1..9).flat_map { |n| ["COM#{n}", "LPT#{n}"] }
+    RESERVED = %w[CON PRN AUX NUL] + (1..9).flat_map { |number| ["COM#{number}", "LPT#{number}"] }
 
     # Whether *slug*, up to its first dot, is one of `RESERVED`.
     private def self.reserved?(slug : String) : Bool
