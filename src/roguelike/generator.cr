@@ -899,6 +899,10 @@ module Roguelike
     # Nothing here reads the floor above or below. Where a staircase lands
     # is rolled on this floor's own stream, over this floor's own rooms, so
     # the staircases of two floors do not line up.
+    #
+    # The down staircase goes in a zone `#distant` from the up one. The first
+    # draw picks both zones, and the down zone is drawn again from the
+    # distant ones only when that pick is too near.
     private def stairs : Nil
       places = zones
       return if places.size < 2
@@ -906,15 +910,56 @@ module Roguelike
       stream = @rng.derive "stairs"
       up, down = places.sample(2, stream)
 
-      put stream, up, Terrain::StairsUp
-      put stream, down, Terrain::StairsDown
+      arrival = put stream, up, Terrain::StairsUp
       @arrival = up
+
+      far = distant places, up, arrival
+      down = far.sample stream unless far.empty? || far.includes?(down)
+      put stream, down, Terrain::StairsDown
     end
 
-    # Puts *terrain* on a square of *room* nothing else is on.
-    private def put(stream : Rng, room : Area, terrain : Terrain) : Nil
+    # Every zone of *places* other than *from* that is at least half as many
+    # steps from *start* as the farthest one is.
+    #
+    # A zone's steps are those to its nearest square, walking over the dug
+    # floor and through its doors. The farthest zone always passes, and on a
+    # floor of two or three zones it is often the only one. Empty only when
+    # no other zone can be walked to.
+    private def distant(places : Array(Area), from : Area,
+                        start : {Int32, Int32}) : Array(Area)
+      flood = Descent.toward surveyed, start, @floor.columns * @floor.rows, doors: true
+
+      reached = places.compact_map do |zone|
+        next if zone == from
+
+        nearest = nil
+        zone.each do |column, row|
+          steps = flood[column, row]
+          nearest = steps if steps && (nearest.nil? || steps < nearest)
+        end
+        nearest.try { |steps| {zone, steps} }
+      end
+      return [] of Area if reached.empty?
+
+      most = reached.max_of &.[1]
+      reached.select { |pair| pair[1] * 2 >= most }.map &.[0]
+    end
+
+    # Knowledge of every open square of the floor as it is dug so far.
+    private def surveyed : Knowledge
+      known = Knowledge.new @floor.id
+      @floor.each do |column, row, tile|
+        known.touch @floor, column, row unless tile.terrain.rock?
+      end
+      known
+    end
+
+    # Puts *terrain* on a square of *room* nothing else is on, and answers
+    # the square.
+    private def put(stream : Rng, room : Area, terrain : Terrain) : {Int32, Int32}
       spot = plain(room).sample stream
       @floor.set spot[0], spot[1], terrain
+      spot
     end
 
     # Every square of *room* that is still bare ground.

@@ -165,12 +165,33 @@ Spectator.describe Roguelike::Trial do
       expect(bot.game.floor.terrain(*door)).to eq Roguelike::Terrain::OpenDoor
     end
 
+    # Floor 1 of seed 5002 is 176 rows tall and floor 2 is 82. The character
+    # walks off a doorway below row 82 onto a down staircase, so the doorway
+    # it left lies outside the floor below.
     it "shuts nothing from the floor above after taking a staircase" do
-      # Seed 5050 walks off a doorway and down a staircase. The doorway it
-      # left lies outside the floor below.
-      played = Trial.one 5050_u64, 50, doors: true
+      bot = Trial::Bot.new 5002_u64, true
+      game = bot.game
+      below = game.dig 2
+      ground = game.floor
+      expect(ground.rows).to be > below.rows + 2
 
-      expect(played.deepest).to eq 2
+      door = {ground.columns // 2, below.rows + 1}
+      step = {door[0] + 1, door[1]}
+      Roguelike::Direction.values.each do |direction|
+        near = direction.from door[0], door[1]
+        ground.set near[0], near[1], Roguelike::Terrain::Granite
+      end
+      ground.set step[0], step[1], Roguelike::Terrain::StoneFloor
+      ground.set door[0], door[1], Roguelike::Terrain::OpenDoor
+      game.player.move_to door
+
+      5.times { bot.turn unless game.player.at == step }
+      expect(game.player.at).to eq step
+
+      ground.set step[0], step[1], Roguelike::Terrain::StairsDown
+      3.times { bot.turn }
+
+      expect(game.depth).to eq 2
     end
 
     it "plays a whole set of runs" do
