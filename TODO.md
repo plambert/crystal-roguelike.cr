@@ -1,7 +1,7 @@
 # To do
 
-What has been asked for and where it stands. An item moves from Considered to Unplanned when it is
-decided, from Unplanned to Planned when it is next up, and to Completed when it has shipped. Each
+What has been asked for and where it stands. An item moves from Considered to Planned when it is
+next up, to Unplanned when it is decided against, and to Completed when it has shipped. Each
 item says what a player would notice, not how it is built.
 
 ## Planned
@@ -68,12 +68,6 @@ a creature, so a stop for a monster still leaves the player to decide.
 The words "blessed" and "cursed" in a message are underlined, white and red, where the terminal
 draws coloured underlines, and plain underlined where it does not, so the one word that decides
 whether to use an item stands out from the rest of the line.
-
-### Explore names everything that came into sight at once
-
-When several things come into sight on one step, the stop message lists all of them, including
-every item of a pile and of several piles, rather than the first one found. Check what the current
-message leaves out when a pile comes into view.
 
 ### Explore does not stop for torches
 
@@ -202,6 +196,11 @@ a slow connection reads as progress rather than a hang.
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
 stealth. Whether that is wanted should be looked at again once creatures do more than walk at the
 character and swing.
+
+## Unplanned
+
+Nothing is here yet. This section records items we decided not to follow up on, so the decision
+is not made twice.
 
 ## Completed
 
