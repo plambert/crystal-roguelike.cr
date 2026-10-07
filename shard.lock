@@ -18,7 +18,7 @@ shards:
 
   termbuf-input:
     git: https://github.com/plambert/termbuf-input.cr.git
-    version: 0.7.0
+    version: 0.7.1
 
   termbuf-widgets:
     git: https://github.com/plambert/termbuf-widgets.cr.git
