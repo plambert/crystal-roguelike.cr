@@ -1010,7 +1010,8 @@ module Roguelike
     #
     # The square the character stands on counts. An item found underfoot in
     # the dark is seen there for the first time. Gold is left out, because a
-    # walk picks it up on the way.
+    # walk picks it up on the way. Torches are left out, because they lie on
+    # every floor and stopping for each would stop the walk again and again.
     private def unsighted(seen : Vision) : Array(Spotted)
       here = @player.at
       found = [] of Spotted
@@ -1019,13 +1020,18 @@ module Roguelike
         next unless seen.includes? column, row
 
         pile.each do |item|
-          next if item.kind.gold? || @sighted.includes?(item.id)
+          next if unremarkable?(item) || @sighted.includes?(item.id)
 
           found << Spotted.new({column, row}, item)
         end
       end
 
       found.sort_by! { |one| {Route.apart(here, one.spot), one.spot[1], one.spot[0]} }
+    end
+
+    # Whether *item* coming into sight goes by without stopping a walk.
+    private def unremarkable?(item : Item) : Bool
+      item.kind.gold? || item.kind.torch?
     end
 
     # What the character is told when the explore or travel *walk* stops.

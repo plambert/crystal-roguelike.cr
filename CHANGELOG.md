@@ -37,6 +37,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   next square left to see, so a pile at the side of a room is no longer walked past. Gold that is
   gone when the character gets there, or that lies where they cannot reach, is passed over. `_`
   does not turn aside for gold.
+* `X` and `_` do not stop when a torch comes into sight, and leave torches out of the items they
+  name when they stop for something else.
 
 ### Fixed
 
