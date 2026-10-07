@@ -419,6 +419,25 @@ Spectator.describe "exploring and travelling" do
       expect(game.knowledge.seen?(*BEND_END)).to be_true
     end
 
+    it "goes on when the arrows it takes make the pack restack" do
+      game = played SIDE_ROOM
+      archer game
+      blessed = Roguelike::Blessing::Blessed
+      game.player.inventory.add Item.new(Roguelike::ItemKind::Stone, count: 2, blessing: blessed,
+        blessing_known: true)
+      game.player.inventory.add Item.new(Roguelike::ItemKind::Stone, blessing: blessed)
+      game.player.inventory['d'].try &.reveal_blessing
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
+      game.enroll
+
+      went = game.explore
+
+      expect(game.log.lines.join("\n")).to contain "You organize your pack more efficiently."
+      expect(game.player.inventory.count 'c').to eq 3
+      expect(went.halt).to eq Halt::Explored
+      expect(game.knowledge.seen?(*BEND_END)).to be_true
+    end
+
     it "walks to the kind an empty quiver remembers" do
       game = played SIDE_ROOM
       game.player.quiver_memory = Roguelike::Equipment::Remembered.new(Roguelike::ItemKind::Stone)

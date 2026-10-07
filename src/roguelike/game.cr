@@ -1342,9 +1342,9 @@ module Roguelike
     # anything.
     #
     # The log is compared by how many lines it has ever held and by its last
-    # line rather than by its whole contents. `MessageLog#add` drops a line
-    # identical to the one before it, so two of those in a row leave the log
-    # as it was and leave the screen as it was.
+    # line rather than by its whole contents. `MessageLog#add` folds a line
+    # identical to the one before it into a count on that line. The last
+    # line is compared without the count, so a repeat does not stop a walk.
     #
     # `MessageLog#written` is the count rather than `#size`. A full log drops
     # its oldest line for every new one, so its size stops growing after two
@@ -1355,7 +1355,7 @@ module Roguelike
       last : String?,
       seen : Array(Monster) do
       def self.on(game : Game, seen : Vision) : Watch
-        new game.player.hit_points, game.log.written, game.log.last?,
+        new game.player.hit_points, game.log.written, game.log.said?,
           game.monsters_in_sight(seen)
       end
     end
@@ -1412,7 +1412,7 @@ module Roguelike
       fresh = @log.written - before.written
       return false if fresh > 0 && fresh == excused
 
-      fresh != 0 || @log.last? != before.last
+      fresh != 0 || @log.said? != before.last
     end
 
     # Whether any creature in sight now was out of sight before.
@@ -5928,13 +5928,17 @@ module Roguelike
     # up here, because `#perform` calls this whenever what the character
     # knows about the pack has changed. The line is written once however many
     # piles joined.
+    #
+    # An explore and a travel go on past the line. `#told?` overlooks it.
     private def restack : Nil
       merged = @player.inventory.restack @player.equipment
       return if merged.empty?
 
       clear_bearers
+      wrote = @log.written
       say "You organize your pack more efficiently.",
         Event::Restacked.new(merged.map(&.kept), merged.map(&.gone))
+      @overlooked += @log.written - wrote
     end
 
     # The rule for *action*.
