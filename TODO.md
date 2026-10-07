@@ -16,6 +16,15 @@ their own stream, so an existing seed keeps its rooms, monsters and items and on
 move, and only on floors that fail the rule today. The replay golden fixture is re-recorded if its
 floor changes.
 
+### One key wields and wears, and swaps armor by itself
+
+`w` and `W` become one key that wields a weapon or wears armor by what the chosen item is. When
+the item's slot is already full, the game takes the old piece off and then puts the new one on,
+as two actions over the turns they take. A creature moving into view or damage taken interrupts
+the swap after the first action, leaving the character with the old piece off and the new one
+still in the pack. The message pane then ends the turn with a line such as "You are interrupted,
+and have not put on the chain mail yet!", written last so it is the one the player reads.
+
 ### Explore does not stop for torches
 
 A torch coming into sight stops an explore the way any new item does, and torches are common
