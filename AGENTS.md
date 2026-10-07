@@ -5,8 +5,9 @@ lives under `src/roguelike/termbuf_ext/` so that extracting it to that shard is 
 
 `IMPLEMENTATION.md` is the design record: the phases as built, the decisions behind them, and the
 list of what has been asked for and not yet built. `TODO.md` is the working list, in four sections:
-Planned, Unplanned, Considered and Completed. When a Planned item is finished, move it to Completed
-and rewrite it as a short past-tense paragraph like the others there.
+Planned, Unplanned, Considered and Completed. Read it for what an item means, but do not edit it;
+it has its own keeper. When a Planned item is finished, say so in your report and leave the move
+to Completed to them.
 
 ## Finishing a piece of work
 
