@@ -636,6 +636,55 @@ Spectator.describe "exploring and travelling" do
       expect(game.player.at).to eq FAR
     end
 
+    it "keeps the next square after the item on the first is picked up" do
+      game = stopped
+      game.visit
+      game.perform Action::PickUp.new
+
+      went = game.visit
+
+      expect(game.player.inventory.items.map(&.[1].kind)).to contain Roguelike::ItemKind::LongSword
+      expect(went.try &.halt).to eq Halt::Arrived
+      expect(game.player.at).to eq FAR
+    end
+
+    it "adds an item that comes into sight on the way" do
+      game = played MEETING
+      game.floor.drop 9, 1, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 10, 1, Item.new(Roguelike::ItemKind::Mace)
+      game.enroll
+      game.explore
+      expect(game.sightings).to eq [{9, 1}]
+
+      stop = game.visit
+      expect(stop.try &.halt).to eq Halt::Item
+      expect(game.sightings).to eq [{9, 1}, {10, 1}]
+
+      game.visit
+      expect(game.player.at).to eq({9, 1})
+      game.perform Action::PickUp.new
+      went = game.visit
+
+      expect(went.try &.halt).to eq Halt::Arrived
+      expect(game.player.at).to eq({10, 1})
+    end
+
+    it "forgets what explore saw once a run starts" do
+      game = stopped
+
+      game.run Roguelike::Direction::West
+
+      expect(game.sightings).to be_empty
+    end
+
+    it "keeps what explore saw through a single step" do
+      game = stopped
+
+      game.step Roguelike::Direction::West
+
+      expect(game.sightings.size).to eq 2
+    end
+
     it "passes over a square seen empty since" do
       game = stopped
       sword = game.floor.items(22, 1).first

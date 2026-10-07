@@ -100,6 +100,20 @@ Spectator.describe "exploring and travelling from the keyboard" do
       expect(run.at).to eq({23, 1})
     end
 
+    it "walks on to the next item after picking up the first" do
+      run = sighted({ {23, 1} => Roguelike::ItemKind::Dagger, {22, 1} => Roguelike::ItemKind::Mace },
+        MEETING)
+
+      run.press "v", ",", "v"
+
+      expect(run.game.player.inventory.items.map(&.[1].kind)).to contain Roguelike::ItemKind::Mace
+      expect(run.at).to eq({23, 1})
+
+      run.press "v"
+
+      expect(run.said).to eq "There is nothing more to walk to."
+    end
+
     it "says so once every square has been walked to" do
       run = sighted({ {14, 5} => Roguelike::ItemKind::Dagger })
       run.press "v"
