@@ -25,16 +25,6 @@ the swap after the first action, leaving the character with the old piece off an
 still in the pack. The message pane then ends the turn with a line such as "You are interrupted,
 and have not put on the chain mail yet!", written last so it is the one the player reads.
 
-### Sorting the pack
-
-A key re-letters the pack in a chosen order, and the order is kept in the save so later pickups
-slot in where they belong. Three orders. By type, then alphabetically by name within the type. By
-value, once items have values. By rarity, which for now is the highest enchantment first, with a
-blessed item counting one higher and a cursed one lower; later it can be worked out at compile
-time from the loot tables as the median floor an item first appears on, adjusted the same way for
-enchantment and blessing. Readied items keep their slots, only their letters change, and the
-message pane says the pack was sorted.
-
 ### Explore does not stop for torches
 
 A torch coming into sight stops an explore the way any new item does, and torches are common
@@ -51,6 +41,9 @@ Another is whether a bar's colour comes from the gradient or from fixed bands.
 
 Pressing an item's letter in the pack opens a fixed menu of what can be done with it, with entries
 that do not apply dimmed rather than missing, so the same key is in the same place every time.
+The inventory list itself gets a filter along its top, "all", "weapons", "armor", "potions",
+"scrolls" and so on, which the left and right arrows move between, so a long pack can be read one
+class at a time.
 
 ### A modern control configuration
 
@@ -102,6 +95,16 @@ the view where it was dragged, and the next action, or the camera key, brings it
 character.
 
 ## Considered
+
+### Sorting the pack
+
+A key re-letters the pack in a chosen order, and the order is kept in the save so later pickups slot
+in where they belong. Four orders. Alphabetically by name. By type, then alphabetically within the
+type. By value, once items have values. By rarity, which for now is the highest enchantment first,
+with a blessed item counting one higher and a cursed one lower; later it can be worked out at
+compile time from the loot tables as the median floor an item first appears on, adjusted the same
+way for enchantment and blessing. Readied items keep their slots, only their letters change, and the
+message pane says the pack was sorted.
 
 ### The Seen list
 
