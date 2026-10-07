@@ -16,15 +16,18 @@ module Roguelike
     Spent
   end
 
-  # Something that has just crossed the floor, and what it was.
+  # Something crossing the floor, and what it is.
   #
-  # `Game` records the last one. `Ui::Play` draws it crossing the squares a
-  # frame at a time. The shot is worked out and applied before this is set,
-  # so the drawing is a replay and no rule waits on it.
+  # `Game` announces one through `Game#on_flight` as the missile leaves the
+  # hand, before it lands. `Ui::Play` draws it crossing the squares a frame
+  # at a time and shows what it did once it has got there. No rule waits on
+  # the drawing.
   #
-  # *item* is what crossed the floor, for whatever draws it. A bolt from a
-  # wand has none. Nothing lands on the floor and there is nothing to name.
-  record Missile, flight : Flight, item : Item? = nil
+  # *item* is what is crossing the floor, for whatever draws it. A bolt from
+  # a wand has none. Nothing lands on the floor and there is nothing to name.
+  #
+  # *shooter* is the creature that let it go, or `nil` for the character.
+  record Missile, flight : Flight, item : Item? = nil, shooter : Int32? = nil
 
   # Where a thing thrown or fired goes, and where it stops.
   #

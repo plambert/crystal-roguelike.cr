@@ -2478,33 +2478,35 @@ shot were a line in the log and an arrow already lying where it stopped.
 fifteen milliseconds against the forty-five a walked step takes. An arrow crosses ground faster than
 a person walks it. A shot drawn at walking pace is too slow to read as a shot.
 
-### A replay rather than a rule
+### Announced before it lands, drawn over the floor it left
 
-The shot is worked out and applied before anything is drawn. `Game#loose` and `Game#bolt` each
-record what crossed the floor in `Game#in_flight`, as a `Missile`. A `Missile` holds the `Flight`
-the shot took and the item that took it. A bolt has no item, because nothing lands on the floor
-afterwards.
+The shot is still worked out and applied inside `Game#perform`, with no rule waiting on the screen.
+What changed is when the screen hears about it. `Game#loose`, `Game#bolt` and the monster's
+`Game#shoot` each call `Game#announce` with a `Missile` before the missile lands and before
+anything is said about it. A `Missile` holds the `Flight`, the item crossing the floor and the
+shooter's id, or `nil` for the character. `#announce` adds it to `Game#flights`, which `#perform`
+empties first, and calls `Game#on_flight`. Neither is written out, and a run with no hook set plays
+the same, so the replay verifier and the bot are untouched.
 
-The picture is therefore a replay. The arrow is already lying where it stopped by the time the first
-frame is drawn, and whatever it killed is already gone. That is visible for the tenth of a second
-the shot is in the air. It is the cost of keeping every rule in `Game`. A shot drawn first and
-applied afterwards would have to hold the keyboard for the length of the animation. A movement key
-pressed part way through would otherwise move the character, and the shot would then resolve from a
-square it was never aimed from.
+`Ui::Play#announced` is the hook. It is called while the floor still looks the way it did as the
+missile left the hand, so it takes the picture then: `MapPane#snapshot` of every square in sight,
+the sight itself, the character's square and how many lines the log had taken. Those go in a
+`Frame`. When the command is over, `Play#refresh` finds the frames and plays them instead of
+redrawing: `MapPane#freeze` draws the snapshot in place of what is on the floor now, the missile
+is put on top with `MapPane#mark`, and one frame of the clock moves it a square. The sidebar and
+the message pane are left as they were, with the pane deferred the way a walk defers it. The next
+missile, when a turn had more than one, is drawn over the picture taken as it left, which already
+shows where the one before it ended up, and the pane shows the lines said up to then. When the last
+has landed the map thaws and the screen is drawn from the run, so the arrow lying on the floor, the
+hit points, the fight bar, the death screen and the messages all arrive together, after the flight.
 
-`Play` holds the missile with `MapPane#mark`, which is what the character is drawn with. A mark is
-something standing on a square rather than something written into the floor, and every refresh
-clears the marks, so the frame that ends the shot leaves nothing behind.
+### A key during a flight
 
-### Not drawing the shot before last
-
-Every command that might send something across the floor — `#fire`, `#throw`, `#zap` and
-`#aim_reading` — clears `@in_flight` before it does anything else. A command that sent nothing then
-gives `nil` rather than the shot before it. Reading a scroll at a square is the case that needs it.
-That command takes a target and sends nothing across the floor.
-
-The animation also gives up when the turn moves on. A key pressed while a missile is in the air
-takes a turn of its own, and the floor the shot crossed is gone by then.
+The keyboard is not held. A key pressed while a missile is in the air takes a turn of its own, as it
+always did, and the `#refresh` it ends with takes the flight off and draws the run as it stands.
+That is also why `#refresh` is the one place that starts a flight: every command ends with it, and a
+flight from an earlier command can never outlive the next one. A recorded run is drawn one action at
+a time and `#announced` ignores its shots.
 
 ## Tooltips on the Here and Seen rows
 
@@ -4289,8 +4291,9 @@ levels branch set. Fewer stones, or a scout that stops backing away once hurt, w
 * The ranged weapon rolls last on the creature's `loot` stream rather than on a derived stream.
   `Rng#derive` reads nothing from its parent, so a derived stream would give every creature rolled
   from one generator the same quiver. The `loot` stream version is 4.
-* A monster's shot does not set `Game#in_flight`. The screen draws the character's own shot from
-  it, and the creatures act inside the same command.
+* A monster's shot goes through `Game#announce` like the character's, so the screen draws it
+  crossing the floor before the hit shows. See "Announced before it lands" under the shooting
+  phase.
 * `Game#cast_bolt` stays as it was. A shaman carries no ranged weapon, and the character's bolt is
   a wand's path rather than a shot's, so filling it here would be new code rather than this code.
 

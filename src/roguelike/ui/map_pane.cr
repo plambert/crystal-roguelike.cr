@@ -95,6 +95,15 @@ module Roguelike::Ui
     # holds nothing about the creatures on it.
     getter marks : Hash({Int32, Int32}, Look) = {} of {Int32, Int32} => Look
 
+    # What the squares in sight looked like at one moment, drawn in place of
+    # what is on them now. `nil` draws the floor as it is.
+    #
+    # A missile is drawn crossing the floor after the run has moved on. The
+    # arrow is already lying where it stopped and whatever it killed is
+    # already gone, and this is the picture it is drawn over instead. A mark
+    # still draws over it, and a square it has nothing for draws live.
+    getter frozen : Hash({Int32, Int32}, Look)? = nil
+
     # Squares offered as an answer to a question.
     #
     # Each keeps its own glyph and its own color. Only the background
@@ -210,6 +219,14 @@ module Roguelike::Ui
       mark = @marks[{x, y}]?
       return mark if mark
 
+      held = @frozen.try &.[]?({x, y})
+      return held if held
+
+      standing x, y, tile
+    end
+
+    # What is on *x*, *y* now, with nothing drawn over it.
+    private def standing(x : Int32, y : Int32, tile : Tile) : Look
       creature = floor.monster x, y
       return Palette[creature] if creature
 
@@ -275,6 +292,28 @@ module Roguelike::Ui
       @marks.clear
     end
 
+    # How every square of *seen* looks now, with nothing drawn over it.
+    #
+    # `#freeze` takes one of these to draw later, once the floor has moved
+    # on.
+    def snapshot(seen : Vision) : Hash({Int32, Int32}, Look)
+      found = {} of {Int32, Int32} => Look
+      seen.each do |spot|
+        found[spot] = standing spot[0], spot[1], floor.tile(spot[0], spot[1])
+      end
+      found
+    end
+
+    # Draws *looks* in place of what is on those squares now, until `#thaw`.
+    def freeze(looks : Hash({Int32, Int32}, Look)) : Nil
+      @frozen = looks
+    end
+
+    # Draws the floor as it is again.
+    def thaw : Nil
+      @frozen = nil
+    end
+
     # Offers *x*, *y* as an answer to a question.
     def highlight(x : Int32, y : Int32) : Nil
       @highlights << {x, y}
@@ -319,6 +358,7 @@ module Roguelike::Ui
       clear_marks
       clear_highlights
       clear_flight
+      thaw
       @sight = nil
       @knowledge = nil
       floor

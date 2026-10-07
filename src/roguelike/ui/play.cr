@@ -166,19 +166,47 @@ module Roguelike::Ui
     # shot.
     SHOT = 15.milliseconds
 
-    # The shot being drawn, how far along its path it has got, and the turn
-    # it was let go on.
+    # One missile and the floor as it was when the missile left the hand.
     #
-    # The picture is worth drawing only while the turn is the one the shot
-    # was let go on. A key pressed part way through takes a turn of its own.
-    # The floor the shot crossed is gone by then.
-    private record Flying,
+    # `Game` announces a missile before it lands, and `#announced` takes
+    # this then. *frozen* is how the squares in *sight* looked, *player* is
+    # where the character stood, and *written* is how many lines the log had
+    # taken. The flight is drawn over that picture, and what the missile did
+    # shows once it has got there.
+    private record Frame,
       missile : Roguelike::Missile,
-      index : Int32,
-      turn : Int32
+      sight : Vision,
+      frozen : Hash({Int32, Int32}, Look),
+      player : {Int32, Int32},
+      written : Int32
 
-    # The shot being drawn, or `nil` when nothing is in the air.
+    # The missiles the last command sent and the screen has not drawn yet.
+    #
+    # `#refresh` takes them. A command that sent nothing leaves this empty
+    # and the screen is drawn at once.
+    @frames : Array(Frame) = [] of Frame
+
+    # The missiles being drawn, which one is in the air, and how far along
+    # its path it has got.
+    private record Flying,
+      frames : Array(Frame),
+      frame : Int32,
+      index : Int32
+
+    # The missiles being drawn, or `nil` when nothing is in the air.
     @flying : Flying? = nil
+
+    # The timer for the next square of the flight. `nil` when nothing is in
+    # the air.
+    @flight_timer : UInt64? = nil
+
+    # Whether a flight has the message pane holding nothing for now.
+    #
+    # The lines a command wrote pile up unread while its missiles cross the
+    # floor, and the pane holds for them once the last has landed. A walk
+    # defers the pane the same way, and one that already had it deferred
+    # keeps it.
+    @flight_deferred : Bool = false
 
     # How long the character rests on a square while a walk is drawn.
     #
@@ -386,6 +414,7 @@ module Roguelike::Ui
       @examiner = Examiner.new @map, @examine
       @examiner.lore = @game.lore
       @examiner.game = @game
+      @game.on_flight = ->announced(Roguelike::Missile)
       @pointer = Pointer.new
 
       @flicker = Flicker.new @game.world.seed
@@ -673,6 +702,7 @@ module Roguelike::Ui
       @map.floor = game.floor
       @examiner.lore = game.lore
       @examiner.game = game
+      game.on_flight = ->announced(Roguelike::Missile)
       @console.try &.game = game
 
       @pending = nil
@@ -1799,55 +1829,128 @@ module Roguelike::Ui
       in .travel? then nil
       end
 
-      draw_shot
+      refresh
     end
 
-    # Draws whatever the command sent across the floor, and then the screen
-    # it left behind.
+    # Takes the picture of the floor as *missile* leaves the hand.
     #
-    # The shot is worked out and applied before this runs. The drawing is
-    # therefore a replay. The arrow is already lying where it stopped, and
-    # whatever it killed is already gone. The whole thing is over inside a
-    # tenth of a second, and that is the cost of keeping every rule in
-    # `Game`.
+    # `Game` calls this before the missile lands. The screen is drawn from
+    # the run, and by the time the command is over the arrow is lying where
+    # it stopped and whatever it killed is gone. The flight is drawn over
+    # the picture taken here instead, and the result shows once the missile
+    # has got there. Every rule stays in `Game`, and `Game` waits on nothing.
     #
-    # An application with no clock cannot arm a timer. The shot then lands at
-    # once and the screen goes straight to the result.
-    private def draw_shot : Nil
-      missile = @game.in_flight
-      return refresh if missile.nil? || missile.flight.path.empty?
+    # A recorded run is drawn one action at a time and its shots are not
+    # drawn crossing the floor.
+    private def announced(missile : Roguelike::Missile) : Nil
+      return if @viewer
+      return if missile.flight.path.empty?
+      return unless @map.floor.same? @game.floor
 
-      refresh
-      @flying = Flying.new missile, 0, @game.turn
+      seen = @game.sight
+      @frames << Frame.new missile, seen, @map.snapshot(seen),
+        @game.player.at, @game.log.written
+    end
+
+    # Starts drawing *frames*, one missile after another.
+    #
+    # The message pane is deferred until the last has landed, so the lines
+    # the command wrote hold for reading then, the way a walk's do.
+    private def take_off(frames : Array(Frame)) : Nil
+      @flight_deferred ||= !@pager.deferred?
+      @pager.deferred = true
+
+      @flying = Flying.new frames, 0, 0
+      picture frames[0]
       fly
     end
 
     # Draws the missile on the next square of its path and arms the frame
     # after it.
+    #
+    # The next missile follows once this one has landed, over the picture
+    # taken as it left the hand, which is where the one before it ended up.
+    # The screen is drawn from the run once the last has landed.
+    #
+    # An application with no clock cannot arm a timer. The whole flight then
+    # happens inside this call and the screen goes straight to the result.
     private def fly : Nil
+      @flight_timer = nil
+
       loop do
         found = @flying
         return unless found
 
-        path = found.missile.flight.path
-        if found.index >= path.size || found.turn != @game.turn
-          @flying = nil
-          refresh
-          return
+        frame = found.frames[found.frame]
+        path = frame.missile.flight.path
+
+        if found.index >= path.size
+          following = found.frame + 1
+          return refresh if following >= found.frames.size
+
+          @flying = Flying.new found.frames, following, 0
+          picture found.frames[following]
+          next
         end
 
-        # The map is redrawn from the game on every refresh, so the missile
-        # is put back on top of it rather than written into the floor.
+        # The map is redrawn from the picture on every frame, so the missile
+        # is put on top of it rather than written into the floor.
         spot = path[found.index]
         @map.clear_marks
-        @map.mark @game.player.x, @game.player.y, Palette::PLAYER
-        @map.mark spot[0], spot[1], Palette.flying(found.missile.item)
+        @map.mark frame.player[0], frame.player[1], Palette::PLAYER
+        @map.mark spot[0], spot[1], Palette.flying(frame.missile.item)
 
-        @flying = Flying.new found.missile, found.index + 1, found.turn
+        @flying = Flying.new found.frames, found.frame, found.index + 1
 
         app = @app
-        return if app && app.after(SHOT) { fly }
+        if app
+          @flight_timer = app.after(SHOT) { fly }
+          return if @flight_timer
+        end
       end
+    end
+
+    # Puts the floor as *frame* saw it on the screen, and the lines said up
+    # to then.
+    #
+    # The sidebar is left as it was. It is written from the run, and the run
+    # has moved on.
+    private def picture(frame : Frame) : Nil
+      @map.sight = frame.sight
+      @map.freeze frame.frozen
+      @map.clear_marks
+      @map.mark frame.player[0], frame.player[1], Palette::PLAYER
+
+      lines = @game.log.lines
+      behind = @game.log.written - frame.written
+      @pager.show lines.first (lines.size - behind).clamp(0, lines.size)
+      @pager.fresh = Math.max @game.log.current - behind, 0
+    end
+
+    # Takes whatever is in the air off the screen.
+    #
+    # A key pressed part way through a flight takes a turn of its own, and
+    # the screen it asks for is drawn from the run rather than from the
+    # picture the flight was drawn over.
+    private def stop_flying : Nil
+      timer = @flight_timer
+      @flight_timer = nil
+      @app.try &.cancel(timer) if timer
+
+      return unless @flying
+
+      @flying = nil
+      @map.thaw
+    end
+
+    # Lets the message pane hold again once a flight is over.
+    #
+    # A walk, a rest or a recorded run that wants it deferred keeps it so.
+    private def land : Nil
+      return unless @flight_deferred
+
+      @flight_deferred = false
+      @pager.deferred = false unless @walk || @rest || @viewer
     end
 
     # Starts *command* aiming at the nearest monster in sight.
@@ -2331,7 +2434,25 @@ module Roguelike::Ui
     #
     # Everything shown comes from `Game`. This method is the one place the two
     # are put in step. It runs after anything that changes the game.
+    #
+    # A command that sent missiles across the floor is drawn in flight first,
+    # and the screen is drawn from the run once the last has landed. A
+    # flight still in the air from before is taken off, because the key
+    # pressed part way through it has taken a turn of its own.
     def refresh : Nil
+      stop_flying
+
+      pending = @frames
+      unless pending.empty?
+        @frames = [] of Frame
+        return take_off pending
+      end
+
+      redraw
+    end
+
+    # Draws the screen from the run as it stands.
+    private def redraw : Nil
       arrive_on_floor unless @map.floor.same? @game.floor
       @screen.rule.label = Play.floor_name(@game.floor)
       @map.clear_marks
@@ -2362,6 +2483,7 @@ module Roguelike::Ui
       show_aim
       @pager.show @game.log.lines
       @pager.fresh = @game.log.current
+      land
       if @shown_turn != @game.turn
         @shown_turn = @game.turn
         @pager.to_newest

@@ -8,6 +8,17 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* A shot, a thrown item and a bolt from a wand are seen crossing the floor before the hit, the
+  damage and the message appear. The map, the hit point bars, the fight bar and the message log
+  all show the result once the missile has landed, and the death screen waits for it as well. The
+  animation itself is as it was, and a key pressed while a missile is in the air still takes its
+  turn at once.
+* A creature's arrow or stone is seen crossing the floor from the creature to the character before
+  its hit or miss is reported. It was not drawn at all. When more than one creature shoots in a
+  turn, the shots fly one after the other and each is reported once it has landed.
+
 ## [0.3.0] - 2026-10-05
 
 The game runs on Windows, in Windows Terminal and in WezTerm, and each release carries a Windows
