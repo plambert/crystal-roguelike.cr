@@ -22,3 +22,5 @@
 /dist/
 /.static-libs/
 /plans/
+/.claude/settings.local.json
+/.claude/worktrees/
