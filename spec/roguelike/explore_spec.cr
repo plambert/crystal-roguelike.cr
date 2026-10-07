@@ -114,6 +114,14 @@ Spectator.describe "exploring and travelling" do
     end
   end
 
+  # Gives *game*'s character a wielded bow and two arrows in the quiver.
+  def archer(game : Game) : Nil
+    game.player.inventory.add Item.new(Roguelike::ItemKind::Bow)
+    game.player.inventory.add Item.new(Roguelike::ItemKind::Arrow, count: 2)
+    game.wield 'a'
+    game.wield 'b'
+  end
+
   describe "explore" do
     it "sweeps a room before it leaves it" do
       game = played DARK_ROOM, at: INSIDE, dark: true
@@ -370,7 +378,7 @@ Spectator.describe "exploring and travelling" do
       expect(went.halt).to eq Halt::Explored
       expect(went.steps).to be > 0
       expect(game.player.gold).to eq 0
-      expect(Explore.gold game.knowledge).to be_empty
+      expect(Explore.wanted game.knowledge).to be_empty
       expect(game.log.last?).to eq "There is nothing left to see on this floor."
     end
 
@@ -391,6 +399,57 @@ Spectator.describe "exploring and travelling" do
     it "is offered while gold it can reach is remembered" do
       game = played SIDE_ROOM
       game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Gold, count: 2)
+      knowing_all game
+      game.look
+
+      expect(game.legal.map &.class).to contain Action::Explore
+    end
+
+    it "walks to arrows that match the quiver and puts them in it" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.quivered.try &.count).to eq 7
+      expect(game.floor.items(*ASIDE)).to be_empty
+      expect(game.knowledge.seen?(*BEND_END)).to be_true
+    end
+
+    it "walks to the kind an empty quiver remembers" do
+      game = played SIDE_ROOM
+      game.player.quiver_memory = Roguelike::Equipment::Remembered.new(Roguelike::ItemKind::Stone)
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Stone, count: 3)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.quivered.try &.count).to eq 3
+      expect(game.player.quiver_memory).to be_nil
+      expect(game.floor.items(*ASIDE)).to be_empty
+    end
+
+    it "leaves ammunition the quiver would not take" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5, enchantment: 1)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.quivered.try &.count).to eq 2
+      expect(game.floor.items(*ASIDE).size).to eq 1
+    end
+
+    it "is offered while ammunition the quiver takes is remembered" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
       knowing_all game
       game.look
 
@@ -480,6 +539,20 @@ Spectator.describe "exploring and travelling" do
       expect(went.halt).to eq Halt::Arrived
       expect(went.steps).to eq 19
       expect(game.player.gold).to eq 0
+      expect(game.floor.items(*ASIDE).size).to eq 1
+    end
+
+    it "does not turn aside for the quiver's arrows" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
+      game.enroll
+
+      went = game.travel({20, 2})
+
+      expect(went.halt).to eq Halt::Arrived
+      expect(went.steps).to eq 19
+      expect(game.player.quivered.try &.count).to eq 2
       expect(game.floor.items(*ASIDE).size).to eq 1
     end
 

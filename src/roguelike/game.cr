@@ -1121,7 +1121,7 @@ module Roguelike
       return held[1] if held && held[0] == key
 
       route = if goal.nil?
-                Explore.route known, @player.at, floor.columns, floor.rows
+                Explore.route known, @player.at, floor.columns, floor.rows, quiver_takes
               elsif goal == @player.at
                 Route::NOWHERE
               else
@@ -1150,8 +1150,9 @@ module Roguelike
     # stopped it.
     #
     # The character looks after every step, so each step is planned over
-    # what the last one showed. Gold they know of and can reach is walked to
-    # first, and goes into the purse without stopping the walk. A room partly
+    # what the last one showed. Gold and the quiver's ammunition they know of
+    # and can reach are walked to first, and are taken without stopping the
+    # walk. A room partly
     # seen is swept before it is left. A creature coming into view, an item
     # not seen before coming into sight, a wound and nothing left to see all
     # stop it, and each says why.
@@ -3992,9 +3993,13 @@ module Roguelike
     #
     # An empty quiver that remembers what it held takes that kind, and the
     # first of it goes into the quiver.
+    #
+    # An explore and a travel go on past the lines. `#told?` overlooks them.
     private def take_ammunition : Nil
       readied = @player.quivered || @player.quiver_memory.try &.sample
       return unless readied
+
+      wrote = @log.written
 
       here.select { |item| readied.looks_like? item }.each do |item|
         next unless floor.take @player.x, @player.y, item
@@ -4013,6 +4018,8 @@ module Roguelike
           Event::PickedUp.new(taken_id(letter, item), name item)
         refill letter
       end
+
+      @overlooked += @log.written - wrote
     end
 
     # Puts what is under *letter* in an empty quiver that remembers its
@@ -6300,7 +6307,14 @@ module Roguelike
       known = knowledge
       return true if known.chambers(floor.columns, floor.rows).frontier?
 
-      Explore.gold? known, @player.at, floor.columns, floor.rows
+      Explore.wanted? known, @player.at, floor.columns, floor.rows, quiver_takes
+    end
+
+    # Which items `#take_ammunition` would put in the quiver. `nil` when the
+    # quiver is empty and remembers nothing.
+    private def quiver_takes : Proc(Item, Bool)?
+      @player.quivered.try { |held| return ->(item : Item) { held.looks_like? item } }
+      @player.quiver_memory.try { |memory| ->(item : Item) { memory.matches? item } }
     end
 
     # Whether a step *direction* would do anything.

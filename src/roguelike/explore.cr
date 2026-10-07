@@ -14,26 +14,31 @@ module Roguelike
   # says which chamber they stand in, and `.room` takes in the chambers the
   # grid cut the same room into.
   #
-  # Gold comes first. While the character remembers gold lying somewhere
-  # they can reach, the goal is the nearest pile, and the step onto it picks
-  # it up. Gold remembered where it no longer lies is forgotten when the
-  # square is seen again, and the walk goes on to the next goal.
+  # Gold comes first, and so does ammunition the quiver takes. While the
+  # character remembers either lying somewhere they can reach, the goal is
+  # the nearest pile of the two, and the step onto it picks it up. A pile
+  # remembered where it no longer lies is forgotten when the square is seen
+  # again, and the walk goes on to the next goal.
   #
   # Like `Route`, nothing here reads a `Floor`. A route that ends on the
   # character's own square is never answered. The ground under them is known
   # already, and a walk that stood still to look at it would never end.
   module Explore
     # The route to the square explore heads for, the character's own square
-    # first. Empty when no gold and no square left to see can be reached.
+    # first. Empty when no pile worth taking and no square left to see can be
+    # reached.
     #
     # *columns* and *rows* are the floor's size. The size of a floor is not a
-    # secret, and the edge of it is not a square to go and look at.
+    # secret, and the edge of it is not a square to go and look at. *takes*
+    # says which items the quiver picks up, and is `nil` when it picks up
+    # none.
     def self.route(knowledge : Knowledge, from : {Int32, Int32},
-                   columns : Int32, rows : Int32) : Array({Int32, Int32})
+                   columns : Int32, rows : Int32,
+                   takes : Proc(Item, Bool)? = nil) : Array({Int32, Int32})
       found = knowledge.chambers columns, rows
       descent = flood knowledge, from, columns, rows
 
-      goal = nearest descent, Explore.gold(knowledge)
+      goal = nearest descent, Explore.wanted(knowledge, takes)
       goal ||= sweeping found, descent, from
       goal ||= nearest descent, found.frontier
       return Route::NOWHERE unless goal
@@ -55,11 +60,12 @@ module Roguelike
       nearest descent, edge
     end
 
-    # Whether gold *knowledge* remembers lies anywhere the character at
-    # *from* can reach, other than under them.
-    def self.gold?(knowledge : Knowledge, from : {Int32, Int32},
-                   columns : Int32, rows : Int32) : Bool
-      piles = Explore.gold knowledge
+    # Whether a pile worth taking that *knowledge* remembers lies anywhere
+    # the character at *from* can reach, other than under them.
+    def self.wanted?(knowledge : Knowledge, from : {Int32, Int32},
+                     columns : Int32, rows : Int32,
+                     takes : Proc(Item, Bool)? = nil) : Bool
+      piles = Explore.wanted knowledge, takes
       return false if piles.empty?
 
       !nearest(flood(knowledge, from, columns, rows), piles).nil?
@@ -71,11 +77,16 @@ module Roguelike
       Descent.toward knowledge, from, Math.max(columns * rows, Route::LIMIT), doors: true
     end
 
-    # Every square *knowledge* remembers gold lying on, in reading order.
-    def self.gold(knowledge : Knowledge) : Array({Int32, Int32})
+    # Every square *knowledge* remembers gold or an item *takes* accepts
+    # lying on, in reading order.
+    def self.wanted(knowledge : Knowledge,
+                    takes : Proc(Item, Bool)? = nil) : Array({Int32, Int32})
       found = [] of {Int32, Int32}
       knowledge.each do |column, row, memory|
-        found << {column, row} if memory.item.try &.kind.gold?
+        item = memory.item
+        next unless item
+
+        found << {column, row} if item.kind.gold? || takes.try &.call(item)
       end
 
       found.sort_by! { |spot| {spot[1], spot[0]} }
