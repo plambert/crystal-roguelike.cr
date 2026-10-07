@@ -6,6 +6,12 @@ item says what a player would notice, not how it is built.
 
 ## Planned
 
+### Explore walks to gold it sees
+
+Explore picks gold up only when its route happens to cross the square it lies on, so a pile seen
+from the side of a room is walked past. When gold is in sight and reachable, explore goes to it
+before the next unseen square, then carries on. Travel is unchanged.
+
 ### The quiver remembers its ammunition
 
 Firing or throwing the last stone empties the quiver, and the next stone walked over is just an
