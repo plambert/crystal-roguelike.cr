@@ -870,7 +870,8 @@ module Roguelike
       Walk.new look, goal: goal, visiting: true
     end
 
-    # The squares items lay on when an explore last stopped for them.
+    # The squares items lay on when an explore last stopped for them, with
+    # those that came into sight on a visit since.
     def sightings : Array({Int32, Int32})
       @sightings || [] of {Int32, Int32}
     end
@@ -909,6 +910,10 @@ module Roguelike
         walk.halt = Halt::Blocked
         return false
       end
+
+      # A run or a route is a movement command, so it forgets `#sightings`.
+      # An explore, a travel and a visit look after it in `#heading_off`.
+      @sightings = nil if walk.steps.zero? && !walk.planned?
 
       # The step goes through `#perform` rather than straight to `#step`. A
       # walk is a series of steps. A macro is logged as the primitive actions
@@ -1337,9 +1342,9 @@ module Roguelike
     # anything.
     #
     # The log is compared by how many lines it has ever held and by its last
-    # line rather than by its whole contents. `MessageLog#add` drops a line
-    # identical to the one before it, so two of those in a row leave the log
-    # as it was and leave the screen as it was.
+    # line rather than by its whole contents. `MessageLog#add` folds a line
+    # identical to the one before it into a count on that line. The last
+    # line is compared without the count, so a repeat does not stop a walk.
     #
     # `MessageLog#written` is the count rather than `#size`. A full log drops
     # its oldest line for every new one, so its size stops growing after two
@@ -1350,7 +1355,7 @@ module Roguelike
       last : String?,
       seen : Array(Monster) do
       def self.on(game : Game, seen : Vision) : Watch
-        new game.player.hit_points, game.log.written, game.log.last?,
+        new game.player.hit_points, game.log.written, game.log.said?,
           game.monsters_in_sight(seen)
       end
     end
@@ -1407,7 +1412,7 @@ module Roguelike
       fresh = @log.written - before.written
       return false if fresh > 0 && fresh == excused
 
-      fresh != 0 || @log.last? != before.last
+      fresh != 0 || @log.said? != before.last
     end
 
     # Whether any creature in sight now was out of sight before.
@@ -5923,13 +5928,17 @@ module Roguelike
     # up here, because `#perform` calls this whenever what the character
     # knows about the pack has changed. The line is written once however many
     # piles joined.
+    #
+    # An explore and a travel go on past the line. `#told?` overlooks it.
     private def restack : Nil
       merged = @player.inventory.restack @player.equipment
       return if merged.empty?
 
       clear_bearers
+      wrote = @log.written
       say "You organize your pack more efficiently.",
         Event::Restacked.new(merged.map(&.kept), merged.map(&.gone))
+      @overlooked += @log.written - wrote
     end
 
     # The rule for *action*.
@@ -6153,7 +6162,8 @@ module Roguelike
     #
     # An explore and a travel forget `#sightings`, and the step of an explore
     # fills it again with what came into sight. A visit keeps it, less the
-    # squares the character now remembers empty.
+    # squares the character now remembers empty, and adds what its step
+    # brought into sight.
     private def heading_off(action : Action::Explore | Action::Travel | Action::Visit) : Verdict
       goal = action.is_a?(Action::Explore) ? nil : action.target
       if action.is_a?(Action::Visit)
@@ -6183,17 +6193,19 @@ module Roguelike
       end
 
       taken = step direction
-      sighted_now if action.is_a?(Action::Explore)
+      sighted_now unless action.is_a?(Action::Travel)
       Verdict.done taken
     end
 
-    # Sets `#sightings` to the squares of the items the step just taken
-    # brought into sight, when it brought any. The square underfoot is left
-    # out, because there is nowhere to walk to.
+    # Adds to `#sightings` the squares of the items the step just taken
+    # brought into sight. The square underfoot is left out, because there is
+    # nowhere to walk to.
     private def sighted_now : Nil
       here = @player.at
       found = @spotted.map(&.spot).uniq!.reject! here
-      @sightings = found unless found.empty?
+      return if found.empty?
+
+      @sightings = (sightings + found).uniq!
     end
 
     # Takes *spot* off `#sightings`.

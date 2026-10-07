@@ -20,5 +20,5 @@
 ────────────────────────────────────────────────────────────────────────────────
  You are in a dungeon with a short sword, leather armor and a lit torch.
  You carry three spikes and a potion of minor healing. Press ? for the keys.
- The granite blocks your way.
+ The granite blocks your way. (x 3)
 

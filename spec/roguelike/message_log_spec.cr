@@ -25,6 +25,44 @@ Spectator.describe Roguelike::MessageLog do
       expect(log.size).to eq 1
     end
 
+    it "counts a repeat on the line it repeats" do
+      log.add "You organize your pack more efficiently."
+      expect(log.last?).to eq "You organize your pack more efficiently."
+
+      log.add "You organize your pack more efficiently."
+      expect(log.last?).to eq "You organize your pack more efficiently. (x 2)"
+
+      3.times { log.add "You organize your pack more efficiently." }
+      expect(log.lines).to eq ["You organize your pack more efficiently. (x 5)"]
+      expect(log.said?).to eq "You organize your pack more efficiently."
+    end
+
+    it "counts only the lines it added in #written" do
+      log.add "blocked"
+      log.add "blocked"
+      log.add "moved"
+
+      expect(log.written).to eq 2
+    end
+
+    it "moves a repeat into the round being written" do
+      log.add "blocked"
+      log.next_round
+      log.next_round
+      log.add "blocked"
+
+      expect(log.round_of 0).to eq 2
+    end
+
+    it "starts a new count after another line" do
+      log.add "blocked"
+      log.add "blocked"
+      log.add "moved"
+      log.add "blocked"
+
+      expect(log.lines).to eq ["blocked (x 2)", "moved", "blocked"]
+    end
+
     it "adds a repeat that is not the last message" do
       log.add "blocked"
       log.add "moved"

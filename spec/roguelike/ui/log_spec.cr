@@ -30,7 +30,7 @@ Spectator.describe "the message log" do
       run = Playing.open
       20.times { run.press "h" }
 
-      expect(run.said).to eq "The granite blocks your way."
+      expect(Roguelike::MessageLog.said run.said).to eq "The granite blocks your way."
     end
 
     # A sconce stands on the floor rather than in the wall, so the character
@@ -41,7 +41,7 @@ Spectator.describe "the message log" do
 
       expect(run.at).to eq({6, 2})
       expect(run.game.floor.fixture(6, 2)).not_to be_nil
-      expect(run.said).to eq "The granite blocks your way."
+      expect(Roguelike::MessageLog.said run.said).to eq "The granite blocks your way."
     end
 
     it "says nothing new for a wall bumped twice" do

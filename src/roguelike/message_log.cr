@@ -92,11 +92,26 @@ module Roguelike
       end
     end
 
+    # The count a repeated message carries, as in "You hit the wall. (x 3)".
+    REPEATS = / \(x (\d+)\)\z/
+
+    # *line* without the count a repeat put on it.
+    def self.said(line : String) : String
+      line.sub REPEATS, ""
+    end
+
+    # How many times *line* has been said in a row. One when it has no count.
+    def self.times(line : String) : Int32
+      line.match(REPEATS).try(&.[1].to_i) || 1
+    end
+
     # Adds *line*. Drops the oldest message when the log is full.
     #
     # A message identical to the last one is not added twice. A wall bumped
     # ten times reads better as one line than as ten. The line already there
-    # moves into the round being written, because it has just happened again.
+    # gets a count, "(x 10)", and moves into the round being written, because
+    # it has just happened again. `#written` does not count a repeat, since
+    # no line was added.
     def add(line : String) : Nil
       return if line.empty?
 
@@ -109,7 +124,9 @@ module Roguelike
         @rounds = @rounds.last @lines.size
       end
 
-      if @lines.last? == line
+      last = @lines.last?
+      if last && MessageLog.said(last) == line
+        @lines[-1] = "#{line} (x #{MessageLog.times(last) + 1})"
         @rounds[-1] = @round
         return
       end
@@ -136,6 +153,11 @@ module Roguelike
     # The most recent message. `nil` when nothing has happened yet.
     def last? : String?
       @lines.last?
+    end
+
+    # The most recent message without the count a repeat put on it.
+    def said? : String?
+      @lines.last?.try { |line| MessageLog.said line }
     end
 
     # Takes every message out.

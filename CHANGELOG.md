@@ -8,6 +8,19 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* A message said again right after itself shows a count instead of being dropped, as in
+  "You organize your pack more efficiently. (x 5)".
+
+### Fixed
+
+* "You organize your pack more efficiently." no longer stops `X`, `_` or `v` when gold or
+  ammunition picked up on the way makes the pack restack.
+* `v` now adds an item that comes into sight on the way to the list, so after picking up what it
+  walked to, the next `v` goes to that item instead of saying there is nothing more to walk to.
+  Running in a direction now clears the list, as `X` and `_` do.
+
 ## [0.4.0] - 2026-10-07
 
 Exploring gathers gold and matching ammunition and stops only for items not seen before, `v` walks
