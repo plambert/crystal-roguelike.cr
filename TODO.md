@@ -21,13 +21,6 @@ comes into view, saying what it is, such as "A pink potion and a long sword come
 Items already seen, on the floor or in the pack, are ignored, so a floor already walked explores in
 one go.
 
-### Missiles fly before they land
-
-A shot, a thrown item or a monster's stone is seen crossing the floor before its result appears.
-Today the hit, the damage and the message land first and the flight is drawn afterwards, which
-reads backwards. The animation plays, then the action resolves and the message is written, for the
-character's missiles and for monsters' alike.
-
 ### An options screen, and a pickup filter
 
 Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
@@ -241,3 +234,10 @@ Goblin scouts are one creature in seven on the first floor instead of one in thr
 ### The seed on the help screen
 
 `?` shows the run's seed and a diagram of the eight movement keys with arrows.
+
+### Missiles fly before they land
+
+A shot, a thrown item, a bolt from a wand and a creature's arrow or stone are seen crossing the
+floor before the hit, the damage and the message appear. The map, the bars and the log show the
+result once the missile has landed, and the death screen waits for it. A creature's shot was not
+drawn before.

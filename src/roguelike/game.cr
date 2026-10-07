@@ -208,16 +208,24 @@ module Roguelike
     # with nothing made out.
     getter fought_regard : Regard = Regard::Nothing
 
-    # The last thing to cross the floor, for whatever draws one.
+    # Everything the last command sent across the floor, in the order it
+    # flew.
     #
-    # Every command that might send something across the floor clears this
-    # first. A command that sent nothing then gives `nil` rather than the
-    # shot before it. `Ui::Play` reads it once the command is over.
+    # `#perform` empties it first. Each missile goes in, and `#on_flight` is
+    # called with it, before it lands, so whatever draws the flight can take
+    # the picture of the floor the missile left. No rule reads this.
     #
     # It is not written out. A save holds where a run is rather than what
     # the screen last showed.
     @[JSON::Field(ignore: true)]
-    getter in_flight : Missile? = nil
+    getter flights : Array(Missile) = [] of Missile
+
+    # What to call with each missile as it leaves the hand, before it lands.
+    #
+    # `Ui::Play` sets this. Nothing about the run depends on it, and a run
+    # with none set plays the same.
+    @[JSON::Field(ignore: true)]
+    property on_flight : Proc(Missile, Nil)? = nil
 
     # The run's root generator, built from the world's seed.
     #
@@ -1663,7 +1671,6 @@ module Roguelike
     # One piece of ammunition leaves the quiver. It lands on the square the
     # shot stopped on, hit or miss.
     def fire(target : {Int32, Int32}) : Bool
-      @in_flight = nil
       fault = firing_fault
       if fault
         say fault[0], Event::Refused.new(fault[1])
@@ -1683,10 +1690,9 @@ module Roguelike
       one = draw_one letter
       return false unless one
 
-      say "You shoot #{name one}.",
-        Event::Loosed.new(one.id, name(one), target, thrown: false)
       loose one, target, ranged_weapon.kind.reach, bonus, damage,
-        Costs.loose(ranged_weapon)
+        Costs.loose(ranged_weapon), "You shoot #{name one}.",
+        Event::Loosed.new(one.id, name(one), target, thrown: false)
       true
     end
 
@@ -1694,7 +1700,6 @@ module Roguelike
     #
     # One of a stack goes. A person carrying twenty darts throws one dart.
     def throw(letter : Char, target : {Int32, Int32}) : Bool
-      @in_flight = nil
       item = @player.inventory[letter]
       return false unless item
 
@@ -1719,9 +1724,9 @@ module Roguelike
       one = draw_one letter
       return false unless one
 
-      say "You throw #{name one}.",
+      loose one, target, reach, bonus, damage, Costs.loose(item),
+        "You throw #{name one}.",
         Event::Loosed.new(one.id, name(one), target, thrown: true)
-      loose one, target, reach, bonus, damage, Costs.loose(item)
       true
     end
 
@@ -1737,12 +1742,16 @@ module Roguelike
 
     # Sends *missile* at *target* and puts it on the floor where it stops.
     #
+    # *line* and *event* say that it went, once the flight is announced.
+    #
     # A creature in the way is swung at, whether or not it was the square
     # aimed at. A missile stops at the first thing standing in the line.
     private def loose(missile : Item, target : {Int32, Int32}, reach : Int32,
-                      bonus : Int32, damage : Dice, cost : Int32) : Nil
+                      bonus : Int32, damage : Dice, cost : Int32,
+                      line : String, event : Event) : Nil
       shot = flight target, reach
-      @in_flight = Missile.new shot, missile
+      announce Missile.new shot, missile
+      say line, event
       spot = shot.at
       struck = floor.monster spot[0], spot[1]
 
@@ -1750,6 +1759,16 @@ module Roguelike
 
       floor.drop spot[0], spot[1], missile
       spend cost
+    end
+
+    # Puts *missile* on `#flights` and tells `#on_flight` about it.
+    #
+    # This runs before the missile lands and before anything is said about
+    # it, so a drawing of the flight starts from the floor as the missile
+    # left it.
+    private def announce(missile : Missile) : Nil
+      @flights << missile
+      @on_flight.try &.call(missile)
     end
 
     # Something called *noun* meets *creature*. Answers what it did.
@@ -2206,13 +2225,15 @@ module Roguelike
       one = creature.draw_shot next_id
       return Costs::TURN unless one
 
+      shot = Flight.toward floor, creature.at, target, weapon.kind.reach
+      announce Missile.new shot, one, creature.id
+
       seen = regard_of creature
       shooter = seen.everything? ? creature.id : nil
       way = Pursuit.straight(@player.at, creature.at).try(&.label) || "close by"
       say "#{shooter_name creature, seen} shoots #{name one} at you from the #{way}.",
         Event::Shot.new(name(one), way, shooter)
 
-      shot = Flight.toward floor, creature.at, target, weapon.kind.reach
       spot = shot.at
       noun = one.kind.label
 
@@ -3691,7 +3712,6 @@ module Roguelike
       @forgiven = 0
       @fought = nil
       @fought_at = nil
-      @in_flight = nil
 
       spot = landing(ground, ground.find(terrain) || Game.entrance(ground))
       @player.floor = ground.id
@@ -4065,7 +4085,6 @@ module Roguelike
 
     # Does what *scroll* was aimed at. Spends no turn.
     def aim_reading(scroll : Item, target : {Int32, Int32}?) : Bool
-      @in_flight = nil
       return false unless scroll.kind.effect.aims_after?
 
       work scroll.kind.effect, scroll, target: target
@@ -4081,7 +4100,6 @@ module Roguelike
     # spent one says so and still costs the turn: a person cannot know a wand
     # is empty until they try it.
     def zap(letter : Char, target : {Int32, Int32}? = nil) : Bool
-      @in_flight = nil
       item = @player.inventory[letter]
       return false unless item
 
@@ -5298,7 +5316,7 @@ module Roguelike
       end
 
       shot = flight target, item.kind.reach
-      @in_flight = Missile.new shot
+      announce Missile.new shot
       spot = shot.at
       struck = floor.monster spot[0], spot[1]
 
@@ -5636,6 +5654,7 @@ module Roguelike
     # and `#legal` offers a bot nothing else.
     def perform(action : Action) : Verdict
       @events.clear
+      @flights.clear
       return Verdict.refused if over?
 
       recording

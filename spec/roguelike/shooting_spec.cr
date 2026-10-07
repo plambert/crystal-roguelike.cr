@@ -380,4 +380,56 @@ Spectator.describe "shooting and throwing" do
       expect(again.player.quivered.try &.count).to eq 11
     end
   end
+
+  describe "Game#on_flight" do
+    it "is called before the arrow lands and before anything is said" do
+      game = archer
+      lying = nil.as(Bool?)
+      said = nil.as(Int32?)
+      game.on_flight = ->(missile : Roguelike::Missile) do
+        lying = game.floor.items(*missile.flight.at).any? &.kind.arrow?
+        said = game.log.size
+        nil
+      end
+      before = game.log.size
+
+      game.fire EAST
+
+      expect(lying).to be_false
+      expect(said).to eq before
+      expect(game.floor.items(*EAST).map &.kind).to contain Kind::Arrow
+    end
+
+    it "is called before the goblin is hurt" do
+      target = goblin({5, 1}, hit_points: 200)
+      game = archer monsters: [target]
+      hurt = nil.as(Int32?)
+      game.on_flight = ->(_missile : Roguelike::Missile) do
+        hurt = target.hit_points
+        nil
+      end
+
+      game.fire target.at
+
+      expect(hurt).to eq 200
+      expect(game.flights.size).to eq 1
+      expect(game.flights[0].shooter).to be_nil
+      expect(game.flights[0].item.try &.kind).to eq Kind::Arrow
+    end
+
+    it "names the character as the shooter by leaving the shooter out" do
+      game = archer
+      game.fire EAST
+
+      expect(game.flights.map &.shooter).to eq [nil]
+    end
+
+    it "lists nothing for a command that sent nothing" do
+      game = archer
+      game.fire EAST
+      game.perform Roguelike::Action::Wait.new
+
+      expect(game.flights).to be_empty
+    end
+  end
 end
