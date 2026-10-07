@@ -66,6 +66,33 @@ Spectator.describe "exploring and travelling" do
     "##############",
   ]
 
+  # A lit room with a corridor out of its east side that bends south out of
+  # sight. The way from the staircase to the bend keeps to the middle row.
+  SIDE_ROOM = [
+    "########################",
+    "#.....##################",
+    "#<...................###",
+    "#.....##############.###",
+    "####################.###",
+    "####################...#",
+    "########################",
+  ]
+
+  # A square of `SIDE_ROOM` off the way to the bend.
+  ASIDE = {4, 3}
+
+  # The end of the corridor in `SIDE_ROOM`.
+  BEND_END = {22, 5}
+
+  # A lit room with a sealed pocket in its east end.
+  POCKET = [
+    "##########",
+    "#.....#..#",
+    "#<....#..#",
+    "#.....#..#",
+    "##########",
+  ]
+
   # A game on *lines*, the character on the up staircase or at *at*. The
   # floor is lit unless *dark*. A dark floor gives the character a lit
   # candle.
@@ -282,6 +309,71 @@ Spectator.describe "exploring and travelling" do
       expect(went.steps).to be > 0
     end
 
+    it "walks to gold in sight off its way and takes it" do
+      game = played SIDE_ROOM
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Gold, count: 7)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.gold).to eq 7
+      expect(game.floor.items(*ASIDE)).to be_empty
+      expect(game.knowledge.seen?(*BEND_END)).to be_true
+    end
+
+    it "takes the nearer of two piles first" do
+      game = played SIDE_ROOM
+      game.floor.drop 5, 1, Item.new(Roguelike::ItemKind::Gold, count: 9)
+      game.floor.drop 3, 3, Item.new(Roguelike::ItemKind::Gold, count: 3)
+      game.enroll
+
+      game.explore
+      taken = game.log.lines.select &.starts_with?("You pick up")
+
+      expect(taken).to eq ["You pick up 3 gold pieces.", "You pick up 9 gold pieces."]
+      expect(game.player.gold).to eq 12
+    end
+
+    it "goes on when gold it remembers is gone" do
+      game = played SIDE_ROOM
+      coins = Item.new Roguelike::ItemKind::Gold, count: 5
+      game.floor.drop *BEND_END, coins
+      knowing_all game
+      game.floor.take *BEND_END, coins
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(went.steps).to be > 0
+      expect(game.player.gold).to eq 0
+      expect(Explore.gold game.knowledge).to be_empty
+      expect(game.log.last?).to eq "There is nothing left to see on this floor."
+    end
+
+    it "leaves gold it cannot reach" do
+      game = played POCKET
+      game.floor.drop 8, 2, Item.new(Roguelike::ItemKind::Gold, count: 4)
+      knowing_all game
+      game.look
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(went.steps).to eq 0
+      expect(game.turn).to eq 0
+      expect(game.legal.map &.class).not_to contain Action::Explore
+    end
+
+    it "is offered while gold it can reach is remembered" do
+      game = played SIDE_ROOM
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Gold, count: 2)
+      knowing_all game
+      game.look
+
+      expect(game.legal.map &.class).to contain Action::Explore
+    end
+
     it "sees the whole of a dug floor" do
       rng = Roguelike::Rng.new SEED
       game = Game.start rng, Roguelike::Generator.floor(rng, Roguelike::World.id(1), 1, 64, 32)
@@ -353,6 +445,19 @@ Spectator.describe "exploring and travelling" do
 
       expect(game.turn).to eq 0
       expect(game.log.last?).to eq "You are already there."
+    end
+
+    it "does not turn aside for gold" do
+      game = played SIDE_ROOM
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Gold, count: 7)
+      game.enroll
+
+      went = game.travel({20, 2})
+
+      expect(went.halt).to eq Halt::Arrived
+      expect(went.steps).to eq 19
+      expect(game.player.gold).to eq 0
+      expect(game.floor.items(*ASIDE).size).to eq 1
     end
 
     it "says when it knows no way there" do
