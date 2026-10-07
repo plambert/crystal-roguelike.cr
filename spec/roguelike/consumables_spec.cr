@@ -433,6 +433,19 @@ Spectator.describe "drinking, reading and zapping" do
       expect(game.log.lines).to contain "It is an uncursed potion of healing."
     end
 
+    it "is not offered another scroll of its own kind to name" do
+      game = carrying [Item.new(Kind::IdentifyScroll),
+                       Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Blessed, blessing_known: true),
+                       Item.new(Kind::HealingPotion)]
+      game.enroll
+      scroll = game.carried('a').try(&.id) || 0
+      potion = game.carried('c').try(&.id) || 0
+
+      choices = game.legal.select(Roguelike::Action::Read).select { |read| read.item == scroll }.map(&.choice)
+
+      expect(choices).to eq [potion]
+    end
+
     it "says whether the item is cursed" do
       cursed = Item.new Kind::HealingPotion, blessing: Roguelike::Blessing::Cursed
       game = carrying [Item.new(Kind::IdentifyScroll), cursed]

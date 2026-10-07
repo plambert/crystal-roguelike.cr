@@ -6410,13 +6410,15 @@ module Roguelike
     #
     # A scroll of identify names a kind the character has not made out. A
     # scroll of repair mends what is damaged. The scroll itself is not on the
-    # list, because it is about to be used up.
+    # list, because it is about to be used up, and neither is another scroll
+    # of its kind, because reading it names that kind anyway.
     private def reading_choices(letter : Char) : Array(Int32)
       repair = effect_of(letter).repair?
+      reading = @player.inventory[letter].try &.kind
 
       @player.inventory.entries.compact_map do |held, item|
         next if held == letter
-        wanted = repair ? item.mendable? && item.condition.damaged? : !@lore.known?(item.kind)
+        wanted = repair ? item.mendable? && item.condition.damaged? : !@lore.known?(item.kind) && item.kind != reading
         next unless wanted
 
         item.id

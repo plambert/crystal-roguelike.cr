@@ -2193,9 +2193,13 @@ module Roguelike::Ui
     #
     # Only what the character has not found out is offered. A person who
     # spent the scroll on something already named would have learned nothing.
+    # Another scroll of the same kind is left out too, since reading this one
+    # names that kind.
     private def identify_with(letter : Char) : Nil
+      reading = @game.player.inventory[letter].try &.kind
+
       ask_which letter, "Identify what?" do |item|
-        !@game.lore.known? item.kind
+        !@game.lore.known?(item.kind) && item.kind != reading
       end
     end
 

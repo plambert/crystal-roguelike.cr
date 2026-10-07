@@ -38,6 +38,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   gone when the character gets there, or that lies where they cannot reach, is passed over. `_`
   does not turn aside for gold.
 
+### Fixed
+
+* Reading a scroll of identify no longer offers another scroll of the same kind as the thing to
+  name. Reading it names that kind anyway.
+
 ## [0.3.0] - 2026-10-05
 
 The game runs on Windows, in Windows Terminal and in WezTerm, and each release carries a Windows

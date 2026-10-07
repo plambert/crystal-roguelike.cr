@@ -92,6 +92,17 @@ Spectator.describe "quaffing, reading and zapping" do
       expect(offered run).to eq ['b']
     end
 
+    it "does not offer another scroll of identify to the one being read" do
+      run = carrying [Item.new(Kind::IdentifyScroll),
+                      Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Blessed, blessing_known: true),
+                      Item.new(Kind::HealingPotion)]
+
+      run.press "r", "a"
+
+      expect(run.menu.showing?).to be_true
+      expect(offered run).to eq ['c']
+    end
+
     it "names the item that was chosen" do
       run = carrying [Item.new(Kind::IdentifyScroll), Item.new(Kind::HealingPotion)]
 
