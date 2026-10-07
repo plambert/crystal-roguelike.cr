@@ -50,10 +50,10 @@ module Roguelike
     # answers this.
     Explored
 
-    # The character stepped onto something lying on the floor. Only an
-    # explore answers this. A person who set it going picked no square and
-    # walked past nothing on purpose.
-    Pile
+    # An item the character had not seen before came into sight. Only an
+    # explore or a travel answers this. The person who set it going had not
+    # seen the item when they did, so it is theirs to decide about.
+    Item
 
     # The character's hit points are at their maximum. Only a rest answers
     # this, and it is what a rest is for.

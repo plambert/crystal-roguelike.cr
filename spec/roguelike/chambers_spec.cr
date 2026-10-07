@@ -237,9 +237,11 @@ Spectator.describe Roguelike::Chambers do
       ground = game.floor
       settled = {} of {Int32, Int32} => Array({Int32, Int32})
 
-      # Each walk stops on a pile or a line in the log, so several are taken.
+      # Each walk stops when an item comes into sight or a line is written,
+      # and a cave strewn with items stops one every few steps, so many are
+      # taken.
       game.look
-      40.times do
+      200.times do
         walk = game.exploring
         loop do
           game.knowledge.chambers(ground.columns, ground.rows).chambers.each do |chamber|

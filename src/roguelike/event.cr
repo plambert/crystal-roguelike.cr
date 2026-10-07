@@ -879,14 +879,16 @@ module Roguelike
     # An explore or a travel that stopped, and why.
     #
     # *creature* is the creature that came into view, when the character can
-    # name it.
+    # name it. *things* are the items that came into sight, nearest first.
     class Stopped < Event
       getter kind : String = "stopped"
 
       getter halt : Halt
       getter creature : Int32?
+      getter things : Array(Thing)?
 
-      def initialize(@halt : Halt, @creature : Int32? = nil)
+      def initialize(@halt : Halt, @creature : Int32? = nil,
+                     @things : Array(Thing)? = nil)
       end
     end
 

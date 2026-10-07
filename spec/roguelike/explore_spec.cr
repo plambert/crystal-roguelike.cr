@@ -132,15 +132,98 @@ Spectator.describe "exploring and travelling" do
       expect(game.log.last?).to eq "You stop. A goblin warrior comes into view."
     end
 
-    it "stops on something lying on the floor, and says so" do
+    it "walks over something lying in sight without stopping" do
       game = played MEETING
       game.floor.drop 8, 2, Item.new(Roguelike::ItemKind::Dagger)
+      game.enroll
 
       went = game.explore
 
-      expect(went.halt).to eq Halt::Pile
-      expect(game.player.at).to eq({8, 2})
-      expect(game.log.last?).to eq "You stop on what is lying here."
+      expect(went.halt).not_to eq Halt::Item
+      expect(went.halt).not_to eq Halt::Told
+      expect(game.player.at).not_to eq({8, 2})
+      expect(game.floor.items(8, 2).size).to eq 1
+    end
+
+    it "picks up gold on the way without stopping" do
+      game = played MEETING
+      game.floor.drop 8, 2, Item.new(Roguelike::ItemKind::Gold, count: 7)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).not_to eq Halt::Item
+      expect(went.halt).not_to eq Halt::Told
+      expect(game.player.gold).to eq 7
+      expect(game.player.at).not_to eq({8, 2})
+      expect(game.log.lines).to contain "You pick up 7 gold pieces."
+    end
+
+    it "stops when an item not seen before comes into sight, and says so" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Item
+      expect(game.sight.includes?(*FAR)).to be_true
+      expect(game.log.last?).to eq "A dagger comes into sight."
+    end
+
+    it "names two items that come into sight together, nearest first" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::LongSword)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Item
+      expect(game.log.last?).to eq "A long sword and a dagger come into sight."
+    end
+
+    it "does not stop again for an item it has stopped for" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.enroll
+      game.explore
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.floor.items(*FAR).size).to eq 1
+    end
+
+    it "stops for the same item while a replay log is being written" do
+      where = (Recording.directory / "sighted-#{Random.rand UInt32}.jsonl").to_s
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.enroll
+      game.player.name = Recording::PLAYER
+
+      went = Recording.recording where do
+        game.explore
+        game
+      end
+
+      expect(went.log.last?).to eq "A dagger comes into sight."
+      expect(Verifier.check(where).ok?).to be_true
+    end
+
+    it "keeps what it has seen through a save" do
+      game = played MEETING
+      dagger = Item.new Roguelike::ItemKind::Dagger
+      game.floor.drop *FAR, dagger
+      game.enroll
+      game.explore
+
+      again = Game.from_json game.to_json
+      went = again.explore
+
+      expect(again.sighted).to eq game.sighted
+      expect(again.sighted).to contain dagger.id
+      expect(went.halt).not_to eq Halt::Item
     end
 
     it "says there is nothing left to see where every square is known" do
@@ -227,6 +310,17 @@ Spectator.describe "exploring and travelling" do
       expect(went.halt).to eq Halt::Arrived
       expect(game.player.at).to eq({12, 2})
       expect(game.floor.terrain(5, 2).open_door?).to be_true
+    end
+
+    it "stops when an item not seen before comes into sight" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.enroll
+
+      went = game.travel({8, 1})
+
+      expect(went.halt).to eq Halt::Item
+      expect(game.log.last?).to eq "A dagger comes into sight."
     end
 
     it "takes one step for one action" do

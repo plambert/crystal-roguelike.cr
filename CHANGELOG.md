@@ -24,6 +24,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A creature's arrow or stone is seen crossing the floor from the creature to the character before
   its hit or miss is reported. It was not drawn at all. When more than one creature shoots in a
   turn, the shots fly one after the other and each is reported once it has landed.
+* `X` and `_` pick up gold they walk over without stopping, and walk over other items without
+  stopping. They stop when an item the character has not seen before comes into sight, and say
+  what it is: "A pink potion and a long sword come into sight." An item seen before, lying on the
+  floor or carried in the pack, does not stop them, so a floor already walked explores in one go.
+  What the character has seen is kept in the save.
 
 ## [0.3.0] - 2026-10-05
 
