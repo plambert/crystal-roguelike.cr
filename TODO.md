@@ -25,6 +25,16 @@ the swap after the first action, leaving the character with the old piece off an
 still in the pack. The message pane then ends the turn with a line such as "You are interrupted,
 and have not put on the chain mail yet!", written last so it is the one the player reads.
 
+### Enchantments are learned over time, and only partly at first
+
+An item's enchantment is hidden when it is picked up and comes out in steps as the character uses
+it, the way blessings are learned by handling today. Each step says what is known so far. "You
+realize that your dagger (z) is at least +1!" shows the item as "+1? dagger"; later "at least +2"
+shows "+2? dagger"; and "You realize that your dagger is exactly +2." drops the mark. What is known
+can also be relative, such as "You realize that your dagger (z) is better than your +1 dagger
+(c)!", which lifts the lower bound. A scroll of identify learns it outright. How the steps are
+timed, and what a negative enchantment reveals as, is to be settled when this is built.
+
 ### Explore does not stop for torches
 
 A torch coming into sight stops an explore the way any new item does, and torches are common
