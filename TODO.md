@@ -6,6 +6,22 @@ item says what a player would notice, not how it is built.
 
 ## Planned
 
+### Stairs down land far from the arrival
+
+The two staircases are drawn from any two different rooms, so they are often neighbours and a
+floor is over in a few steps. Instead the down staircase is drawn from the rooms at least half the
+floor's longest walking distance from the up staircase, measured by route rather than straight
+line, falling back to the farthest room on a floor too small for that. The staircases draw from
+their own stream, so an existing seed keeps its rooms, monsters and items and only the stairs
+move, and only on floors that fail the rule today. The replay golden fixture is re-recorded if its
+floor changes.
+
+### Explore does not stop for torches
+
+A torch coming into sight stops an explore the way any new item does, and torches are common
+enough that the walk stops for them again and again. Torches join gold in the list of items that
+do not stop the walk.
+
 ### An options screen, and a pickup filter
 
 Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
