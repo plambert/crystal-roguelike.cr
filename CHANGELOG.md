@@ -29,6 +29,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   what it is: "A pink potion and a long sword come into sight." An item seen before, lying on the
   floor or carried in the pack, does not stop them, and neither does gold, so a floor already
   walked explores in one go. What the character has seen is kept in the save.
+* `X` walks to gold the character can see or remembers, nearest first, before it goes on to the
+  next square left to see, so a pile at the side of a room is no longer walked past. Gold that is
+  gone when the character gets there, or that lies where they cannot reach, is passed over. `_`
+  does not turn aside for gold.
 
 ## [0.3.0] - 2026-10-05
 

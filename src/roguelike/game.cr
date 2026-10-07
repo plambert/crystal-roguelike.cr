@@ -1144,10 +1144,11 @@ module Roguelike
     # stopped it.
     #
     # The character looks after every step, so each step is planned over
-    # what the last one showed. A room partly seen is swept before it is
-    # left. A creature coming into view, an item not seen before coming into
-    # sight, a wound and nothing left to see all stop it, and each says why.
-    # Gold underfoot goes into the purse on the way past.
+    # what the last one showed. Gold they know of and can reach is walked to
+    # first, and goes into the purse without stopping the walk. A room partly
+    # seen is swept before it is left. A creature coming into view, an item
+    # not seen before coming into sight, a wound and nothing left to see all
+    # stop it, and each says why.
     def explore : Running
       walk = exploring
       while stride walk
@@ -6232,7 +6233,7 @@ module Roguelike
 
     # Stepping, waiting, the doors beside the character and the staircase
     # under them, and exploring while any square beside known ground is
-    # unseen.
+    # unseen or gold is remembered where they can reach it.
     private def legal_moving(found : Array(Action), seen : Vision) : Nil
       Direction.values.each do |direction|
         wanted = direction.from @player.x, @player.y
@@ -6248,7 +6249,15 @@ module Roguelike
       doors(Terrain::OpenDoor).each { |direction| found << Action::Close.new direction }
       found << Action::Descend.new if standing_on.stairs_down?
       found << Action::Ascend.new if standing_on.stairs_up?
-      found << Action::Explore.new if knowledge.chambers(floor.columns, floor.rows).frontier?
+      found << Action::Explore.new if explorable?
+    end
+
+    # Whether an explore has anywhere to go.
+    private def explorable? : Bool
+      known = knowledge
+      return true if known.chambers(floor.columns, floor.rows).frontier?
+
+      Explore.gold? known, @player.at, floor.columns, floor.rows
     end
 
     # Whether a step *direction* would do anything.
