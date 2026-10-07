@@ -20,7 +20,7 @@ module Roguelike
   # module digests that output rather than walking a run a second way. A
   # field added to a save is therefore in the fingerprint from the day it is
   # added. A field left out of a save is in neither. `UNCOUNTED` names the
-  # one field a save holds and this leaves out.
+  # fields a save holds and this leaves out.
   module Fingerprint
     # What the digest is called in the value itself.
     #
@@ -42,9 +42,14 @@ module Roguelike
     # last lines. It also stays out of this, so a line written outside
     # `Game#perform` no longer parts a run from its own replay.
     #
+    # `sightings` holds the squares `v` walks to next. It decides only which
+    # square the next `Action::Visit` names, and the action carries that
+    # square, so a replay plays the same without it. Leaving it out also
+    # keeps replays recorded before it existed in agreement.
+    #
     # Only the top level is read. A field of this name deeper in the document
     # is hashed the way every other field is.
-    UNCOUNTED = ["log"]
+    UNCOUNTED = ["log", "sightings"]
 
     # The fingerprint of *subject*.
     #

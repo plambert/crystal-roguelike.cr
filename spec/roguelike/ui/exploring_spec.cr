@@ -16,6 +16,17 @@ Spectator.describe "exploring and travelling from the keyboard" do
     "#################",
   ]
 
+  # A short corridor running north into a long one running east. Nothing of
+  # the east corridor is in sight from the staircase.
+  MEETING = [
+    "#########################",
+    "#.......................#",
+    "########.################",
+    "########.################",
+    "########<################",
+    "#########################",
+  ]
+
   # A run on *lines* with the character on the up staircase.
   def walking(lines : Array(String) = ROOMS) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("rooms", lines)
@@ -56,6 +67,64 @@ Spectator.describe "exploring and travelling from the keyboard" do
     end
   end
 
+  describe "v" do
+    # A run on *lines* stopped by `X` when *items* came into sight.
+    def sighted(items : Hash({Int32, Int32}, Roguelike::ItemKind),
+                lines : Array(String) = ROOMS) : Playing::Run
+      run = walking lines
+      items.each { |spot, kind| run.game.floor.drop *spot, Roguelike::Item.new(kind) }
+      run.game.enroll
+      run.press "X"
+      run
+    end
+
+    it "walks to the item an explore stopped for" do
+      run = sighted({ {14, 5} => Roguelike::ItemKind::Dagger })
+      expect(run.said).to eq "A dagger comes into sight."
+
+      run.press "v"
+
+      expect(run.at).to eq({14, 5})
+    end
+
+    it "walks to two items on two presses, nearest first" do
+      run = sighted({ {23, 1} => Roguelike::ItemKind::Dagger, {22, 1} => Roguelike::ItemKind::Mace },
+        MEETING)
+      expect(run.said).to eq "A mace and a dagger come into sight."
+
+      run.press "v"
+      first = run.at
+      run.press "v"
+
+      expect(first).to eq({22, 1})
+      expect(run.at).to eq({23, 1})
+    end
+
+    it "says so once every square has been walked to" do
+      run = sighted({ {14, 5} => Roguelike::ItemKind::Dagger })
+      run.press "v"
+      turn = run.turn
+
+      run.press "v"
+
+      expect(run.said).to eq "There is nothing more to walk to."
+      expect(run.turn).to eq turn
+    end
+
+    it "says so when explore did not stop for an item" do
+      run = walking
+
+      run.press "X", "v"
+
+      expect(run.said).to eq "There is nothing more to walk to."
+    end
+
+    it "is listed with X and _ on the help screen" do
+      section = walking.play.sections.find! { |found| found.title == "getting about" }
+
+      expect(section.bindings.bindings.map &.to_s).to contain "v"
+    end
+  end
   describe "_" do
     it "puts the cursor on the map and asks for a square" do
       run = walking

@@ -281,6 +281,18 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @spotted : Array(Spotted) = [] of Spotted
 
+    # The squares items lay on when an explore last stopped for them. `v`
+    # walks to the nearest, and to the next on the next press.
+    #
+    # A step of an explore starts it again, from what that step brought into
+    # sight. A step of a travel empties it. Arriving on a square takes it
+    # off, and so does seeing it empty. Walking by hand leaves the rest, so
+    # a person can step aside and carry on. A new floor empties it.
+    #
+    # It is `nil` rather than empty, so a save holds it only while it holds
+    # something. `Fingerprint::UNCOUNTED` names it.
+    @sightings : Array({Int32, Int32})? = nil
+
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
                    @log : MessageLog = MessageLog.new,
@@ -765,6 +777,9 @@ module Roguelike
       # Whether this walk explores.
       getter? exploring : Bool = false
 
+      # Whether this walk goes to a square an explore saw an item on.
+      getter? visiting : Bool = false
+
       # Where the character has stood during an explore or a travel, with the
       # `Knowledge#revision` of the time. Standing there again at the same
       # revision would choose the same way again, so the walk stops.
@@ -787,7 +802,8 @@ module Roguelike
                      @route : Array({Int32, Int32})? = nil,
                      @along : Bool = false,
                      @goal : {Int32, Int32}? = nil,
-                     @exploring : Bool = false)
+                     @exploring : Bool = false,
+                     @visiting : Bool = false)
       end
 
       # Whether this is a walk in one direction rather than along a route.
@@ -843,6 +859,31 @@ module Roguelike
     # this.
     def travelling(goal : {Int32, Int32}) : Walk
       Walk.new look, goal: goal
+    end
+
+    # A walk to the nearest square in `#sightings`, ready to be stepped. `v`
+    # does this. `nil` when no square is left to walk to.
+    def visiting : Walk?
+      goal = next_sighting
+      return unless goal
+
+      Walk.new look, goal: goal, visiting: true
+    end
+
+    # The squares items lay on when an explore last stopped for them.
+    def sightings : Array({Int32, Int32})
+      @sightings || [] of {Int32, Int32}
+    end
+
+    # The square `#visiting` walks to. The nearest in `#sightings` that the
+    # character does not stand on and does not remember empty, ties going to
+    # the first in reading order.
+    def next_sighting : {Int32, Int32}?
+      here = @player.at
+      known = knowledge
+      left = sightings.select { |spot| spot != here && known[spot].try &.item }
+
+      left.min_by? { |spot| {Route.apart(here, spot), spot[1], spot[0]} }
     end
 
     # Takes one step of *walk*. Answers whether it is still going.
@@ -982,6 +1023,7 @@ module Roguelike
     # The action one step of *walk* takes *direction*.
     private def stepping(walk : Walk, direction : Direction) : Action
       goal = walk.goal
+      return Action::Visit.new goal if goal && walk.visiting?
       return Action::Travel.new goal if goal
       return Action::Explore.new if walk.exploring?
 
@@ -1010,7 +1052,8 @@ module Roguelike
     #
     # The square the character stands on counts. An item found underfoot in
     # the dark is seen there for the first time. Gold is left out, because a
-    # walk picks it up on the way.
+    # walk picks it up on the way. Torches are left out, because they lie on
+    # every floor and stopping for each would stop the walk again and again.
     private def unsighted(seen : Vision) : Array(Spotted)
       here = @player.at
       found = [] of Spotted
@@ -1019,13 +1062,18 @@ module Roguelike
         next unless seen.includes? column, row
 
         pile.each do |item|
-          next if item.kind.gold? || @sighted.includes?(item.id)
+          next if unremarkable?(item) || @sighted.includes?(item.id)
 
           found << Spotted.new({column, row}, item)
         end
       end
 
       found.sort_by! { |one| {Route.apart(here, one.spot), one.spot[1], one.spot[0]} }
+    end
+
+    # Whether *item* coming into sight goes by without stopping a walk.
+    private def unremarkable?(item : Item) : Bool
+      item.kind.gold? || item.kind.torch?
     end
 
     # What the character is told when the explore or travel *walk* stops.
@@ -1115,7 +1163,7 @@ module Roguelike
       return held[1] if held && held[0] == key
 
       route = if goal.nil?
-                Explore.route known, @player.at, floor.columns, floor.rows
+                Explore.route known, @player.at, floor.columns, floor.rows, quiver_takes
               elsif goal == @player.at
                 Route::NOWHERE
               else
@@ -1144,8 +1192,9 @@ module Roguelike
     # stopped it.
     #
     # The character looks after every step, so each step is planned over
-    # what the last one showed. Gold they know of and can reach is walked to
-    # first, and goes into the purse without stopping the walk. A room partly
+    # what the last one showed. Gold and the quiver's ammunition they know of
+    # and can reach are walked to first, and are taken without stopping the
+    # walk. A room partly
     # seen is swept before it is left. A creature coming into view, an item
     # not seen before coming into sight, a wound and nothing left to see all
     # stop it, and each says why.
@@ -1164,6 +1213,19 @@ module Roguelike
     # what the character sees on the way can shorten it.
     def travel(goal : {Int32, Int32}) : Running
       walk = travelling goal
+      while stride walk
+      end
+
+      walk.running
+    end
+
+    # Walks to the nearest square in `#sightings` until something is worth
+    # stopping for. Answers how far it went and what stopped it, or `nil`
+    # when no square is left to walk to.
+    def visit : Running?
+      walk = visiting
+      return unless walk
+
       while stride walk
       end
 
@@ -1426,6 +1488,7 @@ module Roguelike
       take_coins
       take_ammunition
       announce_pile
+      visited @player.at
     end
 
     # Says what is lying on the square, and records whether a walk has to stop
@@ -3862,6 +3925,7 @@ module Roguelike
       spot = landing(ground, ground.find(terrain) || Game.entrance(ground))
       @player.floor = ground.id
       @player.move_to spot
+      @sightings = nil
       clear_bearers
 
       deep = Game.depth_of ground
@@ -3986,9 +4050,13 @@ module Roguelike
     #
     # An empty quiver that remembers what it held takes that kind, and the
     # first of it goes into the quiver.
+    #
+    # An explore and a travel go on past the lines. `#told?` overlooks them.
     private def take_ammunition : Nil
       readied = @player.quivered || @player.quiver_memory.try &.sample
       return unless readied
+
+      wrote = @log.written
 
       here.select { |item| readied.looks_like? item }.each do |item|
         next unless floor.take @player.x, @player.y, item
@@ -4007,6 +4075,8 @@ module Roguelike
           Event::PickedUp.new(taken_id(letter, item), name item)
         refill letter
       end
+
+      @overlooked += @log.written - wrote
     end
 
     # Puts what is under *letter* in an empty quiver that remembers its
@@ -5886,7 +5956,7 @@ module Roguelike
         striking action
       when Action::Choose, Action::Aim
         answering action
-      when Action::Explore, Action::Travel
+      when Action::Explore, Action::Travel, Action::Visit
         heading_off action
       else
         raise ArgumentError.new "#{action.class} has no rule"
@@ -6074,14 +6144,24 @@ module Roguelike
       Verdict.done
     end
 
-    # One step of an explore or a travel.
+    # One step of an explore, a travel or a visit.
     #
     # The way is planned from what the character knows, and the step is the
     # first square of it. A shut door there is opened, as a step into it
     # opens it. A creature there stops the step, as it stops a walk. With no
     # step to take, the character is told why and no turn passes.
-    private def heading_off(action : Action::Explore | Action::Travel) : Verdict
-      goal = action.is_a?(Action::Travel) ? action.target : nil
+    #
+    # An explore and a travel forget `#sightings`, and the step of an explore
+    # fills it again with what came into sight. A visit keeps it, less the
+    # squares the character now remembers empty.
+    private def heading_off(action : Action::Explore | Action::Travel | Action::Visit) : Verdict
+      goal = action.is_a?(Action::Explore) ? nil : action.target
+      if action.is_a?(Action::Visit)
+        forget_emptied
+      else
+        @sightings = nil
+      end
+
       route = planned_route goal
       direction = route.size >= 2 ? Direction.between(@player.at, route[1]) : nil
 
@@ -6102,7 +6182,37 @@ module Roguelike
         return Verdict.done Step::Blocked
       end
 
-      Verdict.done step(direction)
+      taken = step direction
+      sighted_now if action.is_a?(Action::Explore)
+      Verdict.done taken
+    end
+
+    # Sets `#sightings` to the squares of the items the step just taken
+    # brought into sight, when it brought any. The square underfoot is left
+    # out, because there is nowhere to walk to.
+    private def sighted_now : Nil
+      here = @player.at
+      found = @spotted.map(&.spot).uniq!.reject! here
+      @sightings = found unless found.empty?
+    end
+
+    # Takes *spot* off `#sightings`.
+    private def visited(spot : {Int32, Int32}) : Nil
+      found = @sightings
+      return unless found
+
+      found.delete spot
+      @sightings = nil if found.empty?
+    end
+
+    # Takes off `#sightings` every square the character remembers empty.
+    private def forget_emptied : Nil
+      found = @sightings
+      return unless found
+
+      known = knowledge
+      found.select! { |spot| known[spot].try &.item }
+      @sightings = nil if found.empty?
     end
 
     # Takes one thing off the square underfoot.
@@ -6294,7 +6404,14 @@ module Roguelike
       known = knowledge
       return true if known.chambers(floor.columns, floor.rows).frontier?
 
-      Explore.gold? known, @player.at, floor.columns, floor.rows
+      Explore.wanted? known, @player.at, floor.columns, floor.rows, quiver_takes
+    end
+
+    # Which items `#take_ammunition` would put in the quiver. `nil` when the
+    # quiver is empty and remembers nothing.
+    private def quiver_takes : Proc(Item, Bool)?
+      @player.quivered.try { |held| return ->(item : Item) { held.looks_like? item } }
+      @player.quiver_memory.try { |memory| ->(item : Item) { memory.matches? item } }
     end
 
     # Whether a step *direction* would do anything.

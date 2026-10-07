@@ -1400,6 +1400,19 @@ module Roguelike::Ui
       start_walking @game.exploring
     end
 
+    # Walks to the nearest square an item lay on when an explore last stopped
+    # for it. `v` does this, and the next `v` walks to the next such square.
+    def visit : Nil
+      return if @game.over? || @aiming
+      return interrupted if walking? || resting?
+
+      @pending = nil
+      walk = @game.visiting
+      return say "There is nothing more to walk to." unless walk
+
+      start_walking walk
+    end
+
     # Puts the cursor on the map to pick a square to walk to. `_` does this,
     # and a second `_` takes it off again.
     #

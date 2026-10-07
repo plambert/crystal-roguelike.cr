@@ -15,6 +15,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   Walking over that ammunition, or picking it up with `,`, puts it back in the quiver, and the
   equipment panel shows the empty quiver dimmed as "no stones" or "no arrows". Wielding another
   kind of ammunition, or taking the quiver off with `T`, forgets it.
+* `v` walks to the items `X` last stopped for, the nearest first, and the next `v` walks to the
+  next one, the way `_` walks to a square. It stops for what would stop `_`. Stepping aside by
+  hand does not lose the list, and the next `X` or `_` replaces it. It never walks to a creature,
+  and it says "There is nothing more to walk to." once the list is used up. The list is kept in
+  the save.
 
 ### Changed
 
@@ -39,6 +44,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   next square left to see, so a pile at the side of a room is no longer walked past. Gold that is
   gone when the character gets there, or that lies where they cannot reach, is passed over. `_`
   does not turn aside for gold.
+* `X` walks to arrows or stones that match what is in the quiver, or what an empty quiver remembers,
+  the way it walks to gold, nearest first, and puts them in the quiver without stopping. Other
+  ammunition is left where it lies, and `_` does not turn aside for any of it.
+* `X` and `_` do not stop when a torch comes into sight, and leave torches out of the items they
+  name when they stop for something else.
 
 ### Fixed
 

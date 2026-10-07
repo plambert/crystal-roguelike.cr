@@ -116,7 +116,8 @@ module Roguelike::Ui
       end
     end
 
-    # `X` explores and `_` picks a square to walk to.
+    # `X` explores and `_` picks a square to walk to. `v` walks to what the
+    # last explore stopped for.
     #
     # `x` is the examine key, so explore takes the capital.
     def self.exploring(play : Play) : Widgets::Bindings
@@ -125,6 +126,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.explore; nil }
         map.bind TermBuf::Key.parse("_"), "pick a square and walk there",
           ->(_context : Widgets::Context) { play.travel; nil }
+        map.bind TermBuf::Key.parse("v"), "walk to what explore stopped for",
+          ->(_context : Widgets::Context) { play.visit; nil }
       end
     end
 

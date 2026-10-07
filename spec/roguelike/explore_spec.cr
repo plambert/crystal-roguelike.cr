@@ -114,6 +114,14 @@ Spectator.describe "exploring and travelling" do
     end
   end
 
+  # Gives *game*'s character a wielded bow and two arrows in the quiver.
+  def archer(game : Game) : Nil
+    game.player.inventory.add Item.new(Roguelike::ItemKind::Bow)
+    game.player.inventory.add Item.new(Roguelike::ItemKind::Arrow, count: 2)
+    game.wield 'a'
+    game.wield 'b'
+  end
+
   describe "explore" do
     it "sweeps a room before it leaves it" do
       game = played DARK_ROOM, at: INSIDE, dark: true
@@ -207,6 +215,29 @@ Spectator.describe "exploring and travelling" do
 
       expect(went.halt).not_to eq Halt::Item
       expect(game.log.lines).not_to contain "12 gold pieces come into sight."
+    end
+
+    it "does not stop for a torch coming into sight" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Torch)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).not_to eq Halt::Item
+      expect(game.log.lines).not_to contain "A torch comes into sight."
+    end
+
+    it "leaves a torch out of the items it names" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::Torch)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Item
+      expect(game.log.last?).to eq "A dagger comes into sight."
     end
 
     it "names two items that come into sight together, nearest first" do
@@ -347,7 +378,7 @@ Spectator.describe "exploring and travelling" do
       expect(went.halt).to eq Halt::Explored
       expect(went.steps).to be > 0
       expect(game.player.gold).to eq 0
-      expect(Explore.gold game.knowledge).to be_empty
+      expect(Explore.wanted game.knowledge).to be_empty
       expect(game.log.last?).to eq "There is nothing left to see on this floor."
     end
 
@@ -368,6 +399,57 @@ Spectator.describe "exploring and travelling" do
     it "is offered while gold it can reach is remembered" do
       game = played SIDE_ROOM
       game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Gold, count: 2)
+      knowing_all game
+      game.look
+
+      expect(game.legal.map &.class).to contain Action::Explore
+    end
+
+    it "walks to arrows that match the quiver and puts them in it" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.quivered.try &.count).to eq 7
+      expect(game.floor.items(*ASIDE)).to be_empty
+      expect(game.knowledge.seen?(*BEND_END)).to be_true
+    end
+
+    it "walks to the kind an empty quiver remembers" do
+      game = played SIDE_ROOM
+      game.player.quiver_memory = Roguelike::Equipment::Remembered.new(Roguelike::ItemKind::Stone)
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Stone, count: 3)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.quivered.try &.count).to eq 3
+      expect(game.player.quiver_memory).to be_nil
+      expect(game.floor.items(*ASIDE)).to be_empty
+    end
+
+    it "leaves ammunition the quiver would not take" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5, enchantment: 1)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.quivered.try &.count).to eq 2
+      expect(game.floor.items(*ASIDE).size).to eq 1
+    end
+
+    it "is offered while ammunition the quiver takes is remembered" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
       knowing_all game
       game.look
 
@@ -460,6 +542,20 @@ Spectator.describe "exploring and travelling" do
       expect(game.floor.items(*ASIDE).size).to eq 1
     end
 
+    it "does not turn aside for the quiver's arrows" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
+      game.enroll
+
+      went = game.travel({20, 2})
+
+      expect(went.halt).to eq Halt::Arrived
+      expect(went.steps).to eq 19
+      expect(game.player.quivered.try &.count).to eq 2
+      expect(game.floor.items(*ASIDE).size).to eq 1
+    end
+
     it "says when it knows no way there" do
       game = played ["#######", "#<#...#", "#######"]
       knowing_all game
@@ -480,6 +576,130 @@ Spectator.describe "exploring and travelling" do
       expect(Action::Travel.new(goal).to_json).to eq %({"t":"travel","target":[8,1]})
       expect(Action::Explore.new.to_json).to eq %({"t":"explore"})
       expect(game.travel(goal).steps).to eq 7
+    end
+  end
+
+  describe "visit" do
+    # A game on `MEETING` with a long sword and a dagger at the far end of
+    # the east corridor, stopped by an explore that saw them.
+    def stopped : Game
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::LongSword)
+      game.enroll
+      game.explore
+      game
+    end
+
+    it "walks to the square an explore stopped for" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.enroll
+      game.explore
+
+      went = game.visit
+
+      expect(went.try &.halt).to eq Halt::Arrived
+      expect(game.player.at).to eq FAR
+    end
+
+    it "walks to each square in turn, nearest first" do
+      game = stopped
+
+      game.visit
+      first = game.player.at
+      game.visit
+
+      expect(first).to eq({22, 1})
+      expect(game.player.at).to eq FAR
+      expect(game.visit).to be_nil
+      expect(game.sightings).to be_empty
+    end
+
+    it "has nothing to walk to after a stop for a creature" do
+      game = played MEETING
+      game.floor.place Monster.new(Species::Goblin, *FAR, "band-one")
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Creature
+      expect(game.visit).to be_nil
+    end
+
+    it "carries on after a step aside by hand" do
+      game = stopped
+      game.visit
+      game.step Roguelike::Direction::West
+
+      went = game.visit
+
+      expect(went.try &.halt).to eq Halt::Arrived
+      expect(game.player.at).to eq FAR
+    end
+
+    it "passes over a square seen empty since" do
+      game = stopped
+      sword = game.floor.items(22, 1).first
+      game.floor.take 22, 1, sword
+      game.look
+
+      game.visit
+
+      expect(game.player.at).to eq FAR
+      expect(game.visit).to be_nil
+    end
+
+    it "drops a square whose items are gone when it gets there" do
+      game = stopped
+      game.visit
+      game.floor.take *FAR, game.floor.items(*FAR).first
+
+      game.visit
+
+      expect(game.player.at).to eq FAR
+      expect(game.visit).to be_nil
+      expect(game.sightings).to be_empty
+    end
+
+    it "forgets what explore saw once a travel starts" do
+      game = stopped
+
+      game.travel({8, 1})
+
+      expect(game.sightings).to be_empty
+      expect(game.visit).to be_nil
+    end
+
+    it "keeps the squares through a save" do
+      game = stopped
+
+      again = Game.from_json game.to_json
+
+      expect(again.sightings).to eq game.sightings
+      expect(again.sightings.size).to eq 2
+    end
+
+    it "writes one action a step, which a replay plays again" do
+      where = (Recording.directory / "visit-#{Random.rand UInt32}.jsonl").to_s
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::LongSword)
+      game.enroll
+      game.player.name = Recording::PLAYER
+
+      Recording.recording where do
+        game.explore
+        game.visit
+        game.visit
+        game
+      end
+
+      acts = Recording.read(where).records.compact_map &.as?(Roguelike::Replay::Act)
+      visits = acts.compact_map &.action.as?(Action::Visit)
+
+      expect(visits).not_to be_empty
+      expect(visits.last.target).to eq FAR
+      expect(Action::Visit.new(FAR).to_json).to eq %({"t":"visit","target":[23,1]})
+      expect(Verifier.check(where).ok?).to be_true
     end
   end
 
