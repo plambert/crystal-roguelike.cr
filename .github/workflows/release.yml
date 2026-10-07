@@ -11,8 +11,9 @@
 # The version a binary reports comes from shard.yml, which the compiler reads
 # through the VERSION macro. The first job refuses a tag that says something
 # else, so a release named v1.2.3 cannot contain a binary that calls itself
-# 1.2.2. It also refuses a tag whose version has no entry in CHANGELOG.md,
-# because that entry becomes the body of the release.
+# 1.2.2. It also refuses a tag whose version has no entry in CHANGELOG.md or
+# in NEWS.md. The NEWS.md entry becomes the body of the release and the
+# Discord post.
 name: release
 
 on:
@@ -58,6 +59,10 @@ jobs:
               echo "::error file=CHANGELOG.md::no entry for $version in CHANGELOG.md"
               exit 1
             fi
+            if ! grep -qF "## [$version]" NEWS.md; then
+              echo "::error file=NEWS.md::no entry for $version in NEWS.md"
+              exit 1
+            fi
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
@@ -100,10 +105,11 @@ jobs:
           sha256sum --check SHA256SUMS
           ls -l
 
-      # The body is the version's entry in CHANGELOG.md followed by one link to
-      # the commits since the previous release. The workflow writes the whole
-      # body itself. GitHub's generated notes are appended to whatever body the
-      # release already has, so a second run for the same tag repeated the link.
+      # The body is the version's entry in NEWS.md followed by a link to
+      # CHANGELOG.md at this tag and one to the commits since the previous
+      # release. The workflow writes the whole body itself. GitHub's generated
+      # notes are appended to whatever body the release already has, so a
+      # second run for the same tag repeated the link.
       - name: Write the release notes
         env:
           VERSION: ${{ needs.version.outputs.version }}
@@ -119,10 +125,10 @@ jobs:
               while (start < n && lines[start] == "") start++
               for (i = start; i < n; i++) print lines[i]
             }
-          ' CHANGELOG.md > notes.md
+          ' NEWS.md > notes.md
 
           if [ ! -s notes.md ]; then
-            echo "::error file=CHANGELOG.md::the entry for $VERSION is empty"
+            echo "::error file=NEWS.md::the entry for $VERSION is empty"
             exit 1
           fi
 
@@ -131,6 +137,7 @@ jobs:
 
           {
             echo
+            echo "**Changelog**: https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/CHANGELOG.md"
             if [ -n "$previous" ]; then
               echo "**Full Changelog**: https://github.com/$GITHUB_REPOSITORY/compare/$previous...$GITHUB_REF_NAME"
             else
@@ -153,7 +160,7 @@ jobs:
       # The embed carries the same notes.md the release got, with each wrapped
       # paragraph joined onto one line, because Discord shows every line break.
       # Discord allows 4096 characters in a description and 6000 in the whole
-      # embed, so a long entry is cut at a line break and the compare link goes
+      # embed, so a long entry is cut at a line break and the two links go
       # back on after the cut. A fork has no DISCORD_WEBHOOK secret and skips
       # the step, and a Discord failure never fails the release.
       - name: Announce the release on Discord
@@ -174,7 +181,7 @@ jobs:
           awk '
             function flush() { if (held != "") print held; held = "" }
             /^[[:space:]]*$/ { flush(); print; next }
-            /^[[:space:]]*([*-] |#)/ { flush(); held = $0; next }
+            /^[[:space:]]*([*-] |#|\*\*)/ { flush(); held = $0; next }
             { sub(/^[[:space:]]+/, ""); held = (held == "" ? $0 : held " " $0) }
             END { flush() }
           ' notes.md > announcement.md
@@ -188,8 +195,9 @@ jobs:
               def rstrip: sub("\\s+$"; "");
 
               ($notes | rstrip | split("\n") | map(select(startswith("## [") | not))) as $lines
-              | (if ($lines | length) > 0 and ($lines[-1] | startswith("**Full Changelog**"))
-                 then {body: ($lines[:-1] | join("\n") | rstrip), link: ("\n\n" + $lines[-1])}
+              | ([$lines | to_entries[] | select(.value | startswith("**Changelog**") or startswith("**Full Changelog**")) | .key] | first) as $at
+              | (if $at
+                 then {body: ($lines[:$at] | join("\n") | rstrip), link: ("\n\n" + ($lines[$at:] | join("\n")))}
                  else {body: ($lines | join("\n") | rstrip), link: ""}
                  end) as $parts
               | "\n\nThe rest is on the release page." as $tail

@@ -12,6 +12,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * Each release is announced in Discord with its changelog and a link to the release page.
 
+### Changed
+
+* The release page and the Discord announcement show the version's entry from `NEWS.md`, written
+  for players, with a link to the changelog.
+
 ## [0.3.0] - 2026-10-05
 
 The game runs on Windows, in Windows Terminal and in WezTerm, and each release carries a Windows

@@ -25,7 +25,8 @@ Each tagged release carries a tarball per platform, with `SHA256SUMS` beside
 them. It also carries a test build tarball per platform, named
 `crystal-roguelike-$version-test-$platform.tar.gz`, which holds
 `crystal-roguelike-test`. A test build records a replay log of every run it
-plays; see [A test build](#a-test-build).
+plays; see [A test build](#a-test-build). What changed in each release is in
+[NEWS.md](NEWS.md), with the full record in [CHANGELOG.md](CHANGELOG.md).
 
 ```bash
 version=0.3.0
