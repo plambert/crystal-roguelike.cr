@@ -123,6 +123,14 @@ downloads GNU libiconv and builds it into `.static-libs/`. Later runs reuse it:
 script/build-test
 ```
 
+For a quick test build to run on this machine, `--local` skips the static
+archives, Homebrew and `--release`, and builds in a fraction of the time on any
+platform:
+
+```bash
+script/build-test --local
+```
+
 ## Usage
 
 TODO: Write usage instructions here

@@ -32,18 +32,42 @@
 # Arguments after the script name go to `crystal build` after the fixed ones.
 #
 #     script/build-test [CRYSTAL BUILD ARGUMENT...]
+#
+# `--local` builds the same test build for this machine only: no static
+# archives, no Homebrew, no `--release`, so it links against whatever the
+# compiler finds and takes a fraction of the time. It runs on any platform.
+#
+#     script/build-test --local [CRYSTAL BUILD ARGUMENT...]
+#
+# Each step says what it is doing, with the time, and the compiler reports
+# its own stages, so a release build that takes minutes is never silent.
 
 set -e
+
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+cd "$root"
+
+out=bin/crystal-roguelike-test
+
+say() {
+  printf '%s %s\n' "$(date +%H:%M:%S)" "$*" >&2
+}
+
+if [ "${1:-}" = --local ]; then
+  shift
+  mkdir -p bin
+  say "compiling $out for this machine, without --release"
+  crystal build --progress -Dtest_build -o "$out" src/main.cr "$@"
+  say "done"
+  "$out" --version
+  exit 0
+fi
 
 if [ "$(uname -s)" != Darwin ]; then
   echo "script/build-test covers macOS only" >&2
   exit 1
 fi
 
-root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
-cd "$root"
-
-out=bin/crystal-roguelike-test
 libs="$root/.static-libs"
 
 iconv_version=1.19
@@ -55,6 +79,7 @@ iconv_prefix="$libs/libiconv"
 MACOSX_DEPLOYMENT_TARGET=14.0
 export MACOSX_DEPLOYMENT_TARGET
 
+say "checking Homebrew formulas"
 missing=
 for formula in bdw-gc pcre2 openssl@3 zlib; do
   brew list --formula "$formula" >/dev/null 2>&1 || missing="$missing $formula"
@@ -71,7 +96,7 @@ if [ ! -f "$iconv_prefix/lib/libiconv.a" ]; then
   srcdir="$libs/src/libiconv-$iconv_version"
 
   if [ ! -f "$tarball" ]; then
-    echo "downloading $iconv_url"
+    say "downloading $iconv_url"
     curl -fsSL "$iconv_url" -o "$tarball.part"
     mv "$tarball.part" "$tarball"
   fi
@@ -86,7 +111,7 @@ if [ ! -f "$iconv_prefix/lib/libiconv.a" ]; then
   rm -rf "$srcdir"
   tar -xzf "$tarball" -C "$libs/src"
 
-  echo "building libiconv $iconv_version"
+  say "building libiconv $iconv_version, log in $libs/src/libiconv-build.log"
   log="$libs/src/libiconv-build.log"
   if ! (
     cd "$srcdir"
@@ -99,6 +124,7 @@ if [ ! -f "$iconv_prefix/lib/libiconv.a" ]; then
   fi
 fi
 
+say "copying the static archives into $libs"
 cp -f "$(brew --prefix bdw-gc)/lib/libgc.a" "$libs/"
 cp -f "$(brew --prefix pcre2)/lib/libpcre2-8.a" "$libs/"
 cp -f "$(brew --prefix openssl@3)/lib/libcrypto.a" "$libs/"
@@ -118,6 +144,7 @@ size_t iconv(iconv_t cd, char **in, size_t *inleft, char **out, size_t *outleft)
 int iconv_close(iconv_t cd) { return libiconv_close(cd); }
 C
 
+say "building the iconv shim"
 cc -O2 -c "$libs/iconv_shim.c" -o "$libs/iconv_shim.o"
 rm -f "$libs/libiconv.a"
 libtool -static -o "$libs/libiconv.a" "$libs/iconv_shim.o" "$iconv_prefix/lib/libiconv.a"
@@ -131,7 +158,7 @@ PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PK
 export PKG_CONFIG_PATH
 
 crypto_version=$(pkg-config --modversion libcrypto 2>/dev/null || true)
-echo "libcrypto $crypto_version"
+say "libcrypto $crypto_version"
 case "$crypto_version" in
   3.*) ;;
   *)
@@ -143,10 +170,11 @@ esac
 newer='^ld: warning: object file \(.*\) was built for newer macOS version \([0-9.]+\) than being linked \([0-9.]+\)$'
 status="$libs/build.status"
 
+say "compiling $out with --release, which takes a few minutes"
 exec 3>&1
 {
   code=0
-  crystal build --release --no-debug -Dtest_build -o "$out" src/main.cr \
+  crystal build --release --no-debug --progress -Dtest_build -o "$out" src/main.cr \
     --link-flags "-L$libs" "$@" 2>&1 1>&3 3>&- || code=$?
   echo "$code" >"$status"
 } | { grep -v -E "$newer" || true; } 1>&2
@@ -155,6 +183,7 @@ exec 3>&-
 code=$(cat "$status")
 [ "$code" -eq 0 ] || exit "$code"
 
+say "checking what $out links"
 otool -L "$out"
 "$out" --version
 
