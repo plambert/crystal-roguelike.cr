@@ -69,6 +69,13 @@ module Roguelike
     # Gold pieces. Counted rather than carried, so they take no letter.
     getter gold : Int32
 
+    # What the quiver held when its last piece left. `nil` while the quiver
+    # holds something, and when nothing is remembered.
+    #
+    # It has a default, so a save written before this field existed loads
+    # with an empty quiver that remembers nothing.
+    property quiver_memory : Equipment::Remembered? = nil
+
     # What the character remembers of each floor they have walked on, by
     # floor id.
     #

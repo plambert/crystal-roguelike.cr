@@ -116,6 +116,44 @@ module Roguelike
       @slots == other.slots
     end
 
+    # The kind of ammunition an emptied quiver keeps room for.
+    #
+    # It holds what `Item#looks_like?` compares, so a stack matches when it
+    # would have gone under the quiver's letter. The count, the id and the
+    # handling are left out, because no item is held here.
+    struct Remembered
+      include JSON::Serializable
+
+      getter kind : ItemKind
+      getter enchantment : Int32
+      getter condition : Condition
+      getter blessing : Blessing
+      getter? blessing_known : Bool
+
+      def initialize(@kind : ItemKind, @enchantment : Int32 = 0,
+                     @condition : Condition = Condition::Plain,
+                     @blessing : Blessing = Blessing::Uncursed,
+                     @blessing_known : Bool = false)
+      end
+
+      # What *item* looks like.
+      def self.of(item : Item) : Remembered
+        new item.kind, item.enchantment, item.condition, item.blessing,
+          item.blessing_known?
+      end
+
+      # Whether *item* would have gone under the quiver's letter.
+      def matches?(item : Item) : Bool
+        sample.looks_like? item
+      end
+
+      # One of what is remembered.
+      def sample : Item
+        Item.new @kind, @enchantment, @condition,
+          blessing: @blessing, blessing_known: @blessing_known
+      end
+    end
+
     # One slot in a save file.
     #
     # A JSON object key has to be a string and a letter is a `Char`, so the
