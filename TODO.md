@@ -49,6 +49,23 @@ it is empty, the way it walks to gold: known and reachable piles come before uns
 nearest first, and the pickup on arrival goes into the quiver without stopping the walk. Other
 ammunition is left where it lies.
 
+### The quiver refills itself from the pack
+
+When the last of the quiver's ammunition is fired or thrown, the game puts equivalent ammunition
+from the pack in its place, best first. After the last blessed +3 arrow, uncursed +3 arrows come
+next if they are carried, then +2, then +1, and so on down. Ammunition known to be cursed is never
+chosen. It ranks by what the character knows of each stack, and the message pane says what the
+quiver now holds. With nothing equivalent in the pack the quiver stays empty and keeps its memory.
+
+### Ammunition and other items can be damaged, and then destroyed
+
+An item can be damaged, and a damaged item has a small chance of being destroyed each time it is
+used. A normal item becomes damaged only through a specific effect, such as an acid attack, and no
+such effect is in the game yet, so for now only ammunition meets damage. An arrow, quarrel or dart
+has a chance of being damaged after it is used, and a damaged one has a small chance of being
+destroyed on the next use. Stones and rocks are never damaged. The item's name shows that it is
+damaged.
+
 ### Explore clears the small side first
 
 When explore has a choice of frontiers, it heads for the one with the least unexplored space
