@@ -140,7 +140,8 @@ jobs:
 
           cat notes.md
 
-      - uses: softprops/action-gh-release@v3
+      - id: publish
+        uses: softprops/action-gh-release@v3
         with:
           body_path: notes.md
           files: |
@@ -148,3 +149,76 @@ jobs:
             dist/*.zip
             dist/SHA256SUMS
           fail_on_unmatched_files: true
+
+      # The embed carries the same notes.md the release got, with each wrapped
+      # paragraph joined onto one line, because Discord shows every line break.
+      # Discord allows 4096 characters in a description and 6000 in the whole
+      # embed, so a long entry is cut at a line break and the compare link goes
+      # back on after the cut. A fork has no DISCORD_WEBHOOK secret and skips
+      # the step, and a Discord failure never fails the release.
+      - name: Announce the release on Discord
+        if: success()
+        continue-on-error: true
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          VERSION: ${{ needs.version.outputs.version }}
+          RELEASE_URL: ${{ steps.publish.outputs.url }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$DISCORD_WEBHOOK" ]; then
+            echo "::notice::DISCORD_WEBHOOK is not set, so the release is not announced"
+            exit 0
+          fi
+
+          awk '
+            function flush() { if (held != "") print held; held = "" }
+            /^[[:space:]]*$/ { flush(); print; next }
+            /^[[:space:]]*([*-] |#)/ { flush(); held = $0; next }
+            { sub(/^[[:space:]]+/, ""); held = (held == "" ? $0 : held " " $0) }
+            END { flush() }
+          ' notes.md > announcement.md
+
+          jq -n \
+            --rawfile notes announcement.md \
+            --arg title "crystal-roguelike $VERSION" \
+            --arg url "$RELEASE_URL" \
+            --arg footer "$GITHUB_REPOSITORY $GITHUB_REF_NAME" \
+            '
+              def rstrip: sub("\\s+$"; "");
+
+              ($notes | rstrip | split("\n") | map(select(startswith("## [") | not))) as $lines
+              | (if ($lines | length) > 0 and ($lines[-1] | startswith("**Full Changelog**"))
+                 then {body: ($lines[:-1] | join("\n") | rstrip), link: ("\n\n" + $lines[-1])}
+                 else {body: ($lines | join("\n") | rstrip), link: ""}
+                 end) as $parts
+              | "\n\nThe rest is on the release page." as $tail
+              | ([4096, 6000 - ($title | length) - ($footer | length)] | min) as $limit
+              | ($limit - ($parts.link | length)) as $room
+              | ($parts.body
+                 | if length <= $room then .
+                   else .[:($room - ($tail | length))]
+                        | (if rindex("\n") then .[:rindex("\n")] else . end)
+                        | rstrip + $tail
+                   end) as $body
+              | {
+                  username: "RoguelikeReleaseBot",
+                  embeds: [{
+                    title: $title,
+                    url: $url,
+                    description: ($body + $parts.link),
+                    color: 7109257,
+                    footer: {text: $footer}
+                  }]
+                }
+            ' > discord.json
+
+          status=$(curl -sS -o discord-response.txt -w '%{http_code}' \
+                     -H 'Content-Type: application/json' \
+                     --data @discord.json "$DISCORD_WEBHOOK")
+          echo "Discord answered HTTP $status"
+
+          case "$status" in
+            2??) ;;
+            *) cat discord-response.txt; echo; exit 1 ;;
+          esac

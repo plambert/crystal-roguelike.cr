@@ -8,6 +8,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* Each release is announced in Discord with its changelog and a link to the release page.
+
 ## [0.3.0] - 2026-10-05
 
 The game runs on Windows, in Windows Terminal and in WezTerm, and each release carries a Windows
