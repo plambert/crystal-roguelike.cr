@@ -35,6 +35,19 @@ can also be relative, such as "You realize that your dagger (z) is better than y
 (c)!", which lifts the lower bound. A scroll of identify learns it outright. How the steps are
 timed, and what a negative enchantment reveals as, is to be settled when this is built.
 
+### Explore commits to a passage once it enters one
+
+Explore will open a door, step into the corridor behind it, see nothing new in reach, and turn
+back to leave the room by another exit. Once it has entered a passage it follows that passage to
+wherever it leads before it considers any other frontier, so a walk reads as a route rather than
+a dither.
+
+### A key to walk to what explore just saw
+
+When explore stops because an item came into sight, one key walks the character to that square,
+the way `_` would with the square already chosen. It works only for things lying about, never for
+a creature, so a stop for a monster still leaves the player to decide.
+
 ### Explore does not stop for torches
 
 A torch coming into sight stops an explore the way any new item does, and torches are common
