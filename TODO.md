@@ -63,6 +63,18 @@ When explore stops because an item came into sight, one key walks the character 
 the way `_` would with the square already chosen. It works only for things lying about, never for
 a creature, so a stop for a monster still leaves the player to decide.
 
+### Blessed and cursed are underlined in the message pane
+
+The words "blessed" and "cursed" in a message are underlined, white and red, where the terminal
+draws coloured underlines, and plain underlined where it does not, so the one word that decides
+whether to use an item stands out from the rest of the line.
+
+### Explore names everything that came into sight at once
+
+When several things come into sight on one step, the stop message lists all of them, including
+every item of a pile and of several piles, rather than the first one found. Check what the current
+message leaves out when a pile comes into view.
+
 ### Explore does not stop for torches
 
 A torch coming into sight stops an explore the way any new item does, and torches are common
