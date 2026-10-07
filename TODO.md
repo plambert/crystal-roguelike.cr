@@ -75,6 +75,13 @@ A torch coming into sight stops an explore the way any new item does, and torche
 enough that the walk stops for them again and again. Torches join gold in the list of items that
 do not stop the walk.
 
+### Explore ignores items seen from far away
+
+In a cavern the character sees a long way across open floor, and explore stops for items that
+lie at the far edge of sight. Such an item is not treated as seen at all until the character is
+close enough to make out what it is, so the walk carries on past it and stops only once the
+item's details can be read.
+
 ### An options screen, and a pickup filter
 
 Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
