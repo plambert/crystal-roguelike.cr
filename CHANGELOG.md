@@ -18,6 +18,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* The message log keeps 5000 messages instead of 200, so Ctrl+P scrolls back through most of a
+  run.
 * The release page and the Discord announcement show the version's entry from `NEWS.md`, written
   for players, with a link to the changelog.
 * A shot, a thrown item and a bolt from a wand are seen crossing the floor before the hit, the
@@ -42,6 +44,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * Reading a scroll of identify no longer offers another scroll of the same kind as the thing to
   name. Reading it names that kind anyway.
+* An action that writes more messages at once than the log keeps, such as a blessed scroll of item
+  detection on a littered floor, now holds at `--More--` through all of them instead of showing
+  only the last page.
 * Finding out what an item was by using it names the blessing with the kind when it is known, so
   the line reads "It was a cursed scroll of remove curse."
 

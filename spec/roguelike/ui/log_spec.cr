@@ -3,6 +3,22 @@ require "../../spec_helper"
 Spectator.describe "the message log" do
   alias Direction = Roguelike::Direction
 
+  describe "a flood of messages" do
+    it "holds at --More-- when one action writes more than the log keeps" do
+      run = Playing.open
+      run.pager.catch_up
+      (Roguelike::MessageLog::LIMIT + 20).times do |number|
+        run.game.log.add "You feel thing number #{number}."
+      end
+
+      run.play.refresh
+      run.render
+
+      expect(run.pager.holding?).to be_true
+      expect(run.pager.unread).to eq run.pager.lines.size
+    end
+  end
+
   describe "what the game says" do
     it "greets the person at the start" do
       run = Playing.open

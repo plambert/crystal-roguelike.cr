@@ -182,6 +182,24 @@ Spectator.describe TermBuf::Widgets::Pager do
 
       expect(run.pager.holding?).to be_false
     end
+
+    it "holds everything when told more arrived than the source keeps" do
+      run = full
+      flood = (1..200).map { |number| "Found thing number #{number}." }
+
+      run.pager.show flood, arrived: 400
+
+      expect(run.pager.unread).to eq 200
+      expect(run.pager.holding?).to be_true
+    end
+
+    it "counts the dropped lines from the arrival count" do
+      run = full
+      run.pager.show messages(206)[6..], arrived: 6
+
+      expect(run.pager.unread).to eq 6
+      expect(run.pager.holding?).to be_true
+    end
   end
 
   describe "a line longer than the pane" do

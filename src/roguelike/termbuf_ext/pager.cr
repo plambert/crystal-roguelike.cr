@@ -137,11 +137,14 @@ module TermBuf::Widgets
     # A source may drop its oldest lines as it gains new ones. A capped log
     # does this, and its size then stays the same however much is added. The
     # read mark moves back by what was dropped, so the new lines still count
-    # as unread.
-    def show(source : Array(String)) : Nil
+    # as unread. An owner that knows how many lines *arrived* since the last
+    # call says so, and the dropped count comes from that. Otherwise the
+    # shown lines are looked for in the new source, which fails when more
+    # arrived than the source keeps, since nothing shown is left in it.
+    def show(source : Array(String), arrived : Int32? = nil) : Nil
       return if @source == source
 
-      @read -= dropped source
+      @read -= arrived ? dropped(source, arrived) : dropped(source)
       @source = source.dup
       @back = 0
       rewrap
@@ -357,6 +360,15 @@ module TermBuf::Widgets
     # How many wrapped lines at the front of the shown source *source* no
     # longer holds.
     #
+    # How many wrapped lines went when *arrived* lines were added to the
+    # shown source and it settled at *source*'s size. More arriving than the
+    # source holds drops everything that was shown, and every line left is
+    # unread.
+    private def dropped(source : Array(String), arrived : Int32) : Int32
+      gone = (@source.size + arrived - source.size).clamp 0, @source.size
+      @rows_per_line.first(gone).sum
+    end
+
     # The shown source is looked for at the front of *source*, with one more
     # of its oldest lines left off each try. A source that shares nothing with
     # the shown one is new text rather than a continuation, and drops nothing.

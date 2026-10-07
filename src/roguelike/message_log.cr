@@ -15,7 +15,10 @@ module Roguelike
     include JSON::Serializable
 
     # How many messages are kept. Older ones are dropped.
-    LIMIT = 200
+    #
+    # Enough to scroll back through most of a run. A save holds the log, and
+    # this many short lines is a few hundred kilobytes at most.
+    LIMIT = 5000
 
     # The messages, oldest first.
     getter lines : Array(String)

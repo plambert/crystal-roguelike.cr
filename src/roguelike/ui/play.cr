@@ -715,11 +715,11 @@ module Roguelike::Ui
       @ended = false
       @retired = false
 
-      refresh
-
       # The log came back with the run. The person read those lines in the
       # session that wrote them, so the pane does not hold a page at a time
       # through the whole history before it shows where they are now.
+      @shown_written = game.log.written
+      refresh
       @pager.catch_up
 
       look_at_player
@@ -1921,9 +1921,8 @@ module Roguelike::Ui
       @map.clear_marks
       @map.mark frame.player[0], frame.player[1], Palette::PLAYER
 
-      lines = @game.log.lines
       behind = @game.log.written - frame.written
-      @pager.show lines.first (lines.size - behind).clamp(0, lines.size)
+      show_log @game.log.lines.size - behind, frame.written
       @pager.fresh = Math.max @game.log.current - behind, 0
     end
 
@@ -2485,7 +2484,7 @@ module Roguelike::Ui
       offer_directions
       show_route
       show_aim
-      @pager.show @game.log.lines
+      show_log @game.log.lines.size, @game.log.written
       @pager.fresh = @game.log.current
       land
       if @shown_turn != @game.turn
@@ -2846,6 +2845,22 @@ module Roguelike::Ui
     # Whether the log is holding a page that has not been read.
     def holding? : Bool
       @pager.holding?
+    end
+
+    # How many lines the log had written when the pager last saw it.
+    #
+    # The pager is told how many lines arrived rather than left to match the
+    # new log against the old. A capped log that gains more lines in one
+    # action than it keeps shares nothing with what was shown, and matching
+    # would take the whole flood as already read.
+    @shown_written : Int32 = 0
+
+    # Shows the first *count* lines of the log on the pager, which were all
+    # written by the time the log had written *written* lines.
+    private def show_log(count : Int32, written : Int32) : Nil
+      lines = @game.log.lines
+      @pager.show lines.first(count.clamp(0, lines.size)), arrived: written - @shown_written
+      @shown_written = written
     end
 
     # Runs *command* on the door *direction*.
