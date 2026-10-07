@@ -439,17 +439,21 @@ module Roguelike::Ui
     #
     # Every row is written whether or not it is shown. `#fit` decides what is
     # shown, and it runs after this.
+    #
+    # An empty quiver that remembers its kind says "no stones". `#fit` counts
+    # that row as filled, so it stays when the empty rows go.
     private def written_slots(game : Game) : Nil
       Slot.listed.each_with_index do |slot, index|
         row = @slots[index]
         item = game.player.in_slot slot
-        @filled[index] = !item.nil?
+        memory = game.player.quiver_memory if slot.quiver?
+        @filled[index] = !item.nil? || !memory.nil?
 
         row.clear
         row.put 0, slot.short, Palette::FAINT
 
         unless item
-          row.put NAME, NOTHING, Palette::VACANT
+          row.put NAME, memory ? "no #{memory.kind.plural}" : NOTHING, Palette::VACANT
           next
         end
 

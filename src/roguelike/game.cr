@@ -1858,10 +1858,16 @@ module Roguelike
     # Takes one of what is under *letter* out of the inventory.
     #
     # A letter left holding nothing comes out of whatever slot held it. The
-    # last arrow empties the quiver.
+    # last arrow empties the quiver, and the quiver remembers what it held.
     private def draw_one(letter : Char) : Item?
+      quivered = @player.equipment[Slot::Quiver] == letter
       one = @player.inventory.take letter, 1, next_id
       @player.equipment.clean @player.inventory
+
+      if one && quivered && @player.equipment[Slot::Quiver].nil?
+        @player.quiver_memory = Equipment::Remembered.of one
+      end
+
       one
     end
 
@@ -3914,6 +3920,7 @@ module Roguelike
 
       say "#{letter} - #{name item}",
         Event::PickedUp.new(taken_id(letter, item), name item)
+      refill letter
       claim item
       spend_turn
       true
@@ -3975,8 +3982,11 @@ module Roguelike
     # arrow beside a plain one looks different and is left where it lies,
     # because taking it would move the quiver's letter to a stack the
     # character never asked for.
+    #
+    # An empty quiver that remembers what it held takes that kind, and the
+    # first of it goes into the quiver.
     private def take_ammunition : Nil
-      readied = @player.quivered
+      readied = @player.quivered || @player.quiver_memory.try &.sample
       return unless readied
 
       here.select { |item| readied.looks_like? item }.each do |item|
@@ -3994,7 +4004,26 @@ module Roguelike
 
         say "You pick up #{name item}.",
           Event::PickedUp.new(taken_id(letter, item), name item)
+        refill letter
       end
+    end
+
+    # Puts what is under *letter* in an empty quiver that remembers its
+    # kind. Nothing happens otherwise.
+    #
+    # It takes no turn. The pickup that brought it in was the turn.
+    private def refill(letter : Char) : Nil
+      memory = @player.quiver_memory
+      return unless memory
+      return if @player.equipment[Slot::Quiver]
+
+      item = @player.inventory[letter]
+      return unless item && memory.matches? item
+
+      @player.quiver_memory = nil
+      @player.equipment.put Slot::Quiver, letter
+      say Slot::Quiver.readied(name item),
+        Event::Readied.new(Slot::Quiver, item.id, name(item))
     end
 
     # *total* gold pieces, written so one of them is one piece.
@@ -5534,6 +5563,7 @@ module Roguelike
     # character finds out, and `#take_off` will refuse to let it go again.
     private def ready(slot : Slot, letter : Char, item : Item, line : String) : Bool
       @player.equipment.put slot, letter
+      @player.quiver_memory = nil if slot.quiver?
       say line, Event::Readied.new(slot, item.id, name(item))
 
       if item.sticks? && item.reveal_blessing
@@ -5561,6 +5591,7 @@ module Roguelike
       end
 
       @player.equipment.clear slot
+      @player.quiver_memory = nil if slot.quiver?
       say slot.released(name item),
         Event::Removed.new(slot, item.id, name(item))
       spend Costs.donning(slot)

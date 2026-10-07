@@ -11,6 +11,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 ### Added
 
 * Each release is announced in Discord with its changelog and a link to the release page.
+* The quiver remembers the ammunition it held after the last arrow or stone is fired or thrown.
+  Walking over that ammunition, or picking it up with `,`, puts it back in the quiver, and the
+  equipment panel shows the empty quiver dimmed as "no stones" or "no arrows". Wielding another
+  kind of ammunition, or taking the quiver off with `T`, forgets it.
 
 ### Changed
 

@@ -160,6 +160,32 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     end
   end
 
+  describe "an empty quiver that remembers its kind" do
+    it "says what it is out of" do
+      run = playing
+      run.game.player.quiver_memory = Roguelike::Equipment::Remembered.new(Kind::Stone)
+      run.play.refresh
+
+      expect(slot_row(run, Slot::Quiver).text).to eq "qvrno stones"
+    end
+
+    it "is dimmed the way an empty slot is" do
+      run = playing
+      run.game.player.quiver_memory = Roguelike::Equipment::Remembered.new(Kind::Arrow)
+      run.play.refresh
+      named = slot_row(run, Slot::Quiver).spans.find! &.text.==("no arrows")
+
+      expect(named.style).to eq Roguelike::Ui::Palette::VACANT
+    end
+
+    it "says nothing when the pointer is over it" do
+      run = playing
+      run.game.player.quiver_memory = Roguelike::Equipment::Remembered.new(Kind::Arrow)
+
+      expect(Roguelike::Ui::Detail.about run.game, Slot::Quiver).to be_nil
+    end
+  end
+
   describe "#fit" do
     # The level and the bars are what a person reads every turn. Everything
     # else gives way before they do.
@@ -223,6 +249,18 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       expect(pane.scoring.hidden?).to be_false
       expect(pane.worn.hidden?).to be_false
       expect(pane.packed.hidden?).to be_false
+    end
+
+    it "keeps a quiver that remembers its kind when the empty rows go" do
+      run = playing rows: 32, carrying: [Item.new(Kind::Bow)]
+      run.game.player.quiver_memory = Roguelike::Equipment::Remembered.new(Kind::Stone)
+      pane = run.play.character
+      pane.toggle_pack
+      run.play.refresh
+
+      expect(pane.showing_vacant?).to be_false
+      expect(slot_row(run, Slot::Melee).hidden?).to be_true
+      expect(slot_row(run, Slot::Quiver).hidden?).to be_false
     end
 
     it "never takes more rows than it was given" do
