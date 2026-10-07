@@ -15,6 +15,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   Walking over that ammunition, or picking it up with `,`, puts it back in the quiver, and the
   equipment panel shows the empty quiver dimmed as "no stones" or "no arrows". Wielding another
   kind of ammunition, or taking the quiver off with `T`, forgets it.
+* `v` walks to the items `X` last stopped for, the nearest first, and the next `v` walks to the
+  next one, the way `_` walks to a square. It stops for what would stop `_`. Stepping aside by
+  hand does not lose the list, and the next `X` or `_` replaces it. It never walks to a creature,
+  and it says "There is nothing more to walk to." once the list is used up. The list is kept in
+  the save.
 
 ### Changed
 

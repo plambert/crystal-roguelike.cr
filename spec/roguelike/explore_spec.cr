@@ -579,6 +579,130 @@ Spectator.describe "exploring and travelling" do
     end
   end
 
+  describe "visit" do
+    # A game on `MEETING` with a long sword and a dagger at the far end of
+    # the east corridor, stopped by an explore that saw them.
+    def stopped : Game
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::LongSword)
+      game.enroll
+      game.explore
+      game
+    end
+
+    it "walks to the square an explore stopped for" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.enroll
+      game.explore
+
+      went = game.visit
+
+      expect(went.try &.halt).to eq Halt::Arrived
+      expect(game.player.at).to eq FAR
+    end
+
+    it "walks to each square in turn, nearest first" do
+      game = stopped
+
+      game.visit
+      first = game.player.at
+      game.visit
+
+      expect(first).to eq({22, 1})
+      expect(game.player.at).to eq FAR
+      expect(game.visit).to be_nil
+      expect(game.sightings).to be_empty
+    end
+
+    it "has nothing to walk to after a stop for a creature" do
+      game = played MEETING
+      game.floor.place Monster.new(Species::Goblin, *FAR, "band-one")
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Creature
+      expect(game.visit).to be_nil
+    end
+
+    it "carries on after a step aside by hand" do
+      game = stopped
+      game.visit
+      game.step Roguelike::Direction::West
+
+      went = game.visit
+
+      expect(went.try &.halt).to eq Halt::Arrived
+      expect(game.player.at).to eq FAR
+    end
+
+    it "passes over a square seen empty since" do
+      game = stopped
+      sword = game.floor.items(22, 1).first
+      game.floor.take 22, 1, sword
+      game.look
+
+      game.visit
+
+      expect(game.player.at).to eq FAR
+      expect(game.visit).to be_nil
+    end
+
+    it "drops a square whose items are gone when it gets there" do
+      game = stopped
+      game.visit
+      game.floor.take *FAR, game.floor.items(*FAR).first
+
+      game.visit
+
+      expect(game.player.at).to eq FAR
+      expect(game.visit).to be_nil
+      expect(game.sightings).to be_empty
+    end
+
+    it "forgets what explore saw once a travel starts" do
+      game = stopped
+
+      game.travel({8, 1})
+
+      expect(game.sightings).to be_empty
+      expect(game.visit).to be_nil
+    end
+
+    it "keeps the squares through a save" do
+      game = stopped
+
+      again = Game.from_json game.to_json
+
+      expect(again.sightings).to eq game.sightings
+      expect(again.sightings.size).to eq 2
+    end
+
+    it "writes one action a step, which a replay plays again" do
+      where = (Recording.directory / "visit-#{Random.rand UInt32}.jsonl").to_s
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::LongSword)
+      game.enroll
+      game.player.name = Recording::PLAYER
+
+      Recording.recording where do
+        game.explore
+        game.visit
+        game.visit
+        game
+      end
+
+      acts = Recording.read(where).records.compact_map &.as?(Roguelike::Replay::Act)
+      visits = acts.compact_map &.action.as?(Action::Visit)
+
+      expect(visits).not_to be_empty
+      expect(visits.last.target).to eq FAR
+      expect(Action::Visit.new(FAR).to_json).to eq %({"t":"visit","target":[23,1]})
+      expect(Verifier.check(where).ok?).to be_true
+    end
+  end
+
   describe "a recorded run" do
     it "holds explore and travel actions, and verifies" do
       where = (Recording.directory / "explore-#{Random.rand UInt32}.jsonl").to_s

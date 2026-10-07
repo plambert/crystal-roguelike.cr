@@ -14,7 +14,7 @@ module Roguelike
   # to a replay line and read back from it. The names are the bot
   # protocol's verbs, where this game has that verb.
   #
-  # The game and the protocol differ in five ways. The game is what this type
+  # The game and the protocol differ in six ways. The game is what this type
   # follows.
   #
   # * The protocol's `remove` names an item. `Game#take_off` names a slot. One
@@ -30,6 +30,8 @@ module Roguelike
   # * `explore` and `travel` are one step each of a walk the game plans.
   #   `X` and `_` repeat them until something stops the walk, and a replay
   #   holds one line per step.
+  # * The protocol has no `visit`. It is a `travel` to a square the last
+  #   explore stop saw an item on, and `v` repeats it.
   #
   # An item is named by `Item#id`. An id names one item for as long as it is
   # in the run, it comes from the seed, and a save round-trips it. An
@@ -66,6 +68,7 @@ module Roguelike
       "aim"     => Aim,
       "explore" => Explore,
       "travel"  => Travel,
+      "visit"   => Visit,
     }
 
     # How a direction is written in JSON.
@@ -382,6 +385,20 @@ module Roguelike
     # already, or with no step that gets nearer, no turn passes.
     class Travel < Action
       getter t : String = "travel"
+
+      getter target : {Int32, Int32}
+
+      def initialize(@target : {Int32, Int32})
+      end
+    end
+
+    # One step along the way to *target*, a square an item lay on when an
+    # explore last stopped for it. `v` repeats this.
+    #
+    # It walks the way `Travel` does. `Travel` and `Explore` forget the
+    # squares that explore stop saw, and this keeps them.
+    class Visit < Action
+      getter t : String = "visit"
 
       getter target : {Int32, Int32}
 
