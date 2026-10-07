@@ -42,6 +42,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * Reading a scroll of identify no longer offers another scroll of the same kind as the thing to
   name. Reading it names that kind anyway.
+* Finding out what an item was by using it names the blessing with the kind when it is known, so
+  the line reads "It was a cursed scroll of remove curse."
 
 ## [0.3.0] - 2026-10-05
 

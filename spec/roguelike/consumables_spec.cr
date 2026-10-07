@@ -215,6 +215,15 @@ Spectator.describe "drinking, reading and zapping" do
       expect(game.log.lines).to contain "It was a potion of healing."
     end
 
+    it "names the blessing with the kind when the character knows it" do
+      cursed = Item.new Kind::RemoveCurseScroll, blessing: Roguelike::Blessing::Cursed, blessing_known: true
+      game = carrying [cursed]
+
+      game.read 'a'
+
+      expect(game.log.lines).to contain "It was a cursed scroll of remove curse."
+    end
+
     it "calls it by its look before anybody drinks one" do
       game = carrying [Item.new(Kind::HealingPotion)]
       look = game.lore.appearance Kind::HealingPotion

@@ -4211,7 +4211,7 @@ module Roguelike
       used.reveal_blessing unless used.blessing.uncursed?
       say "You read #{name used}.",
         Event::Used.new(used.id, name(used), :read)
-      found_out used.kind
+      found_out used
       mark_for used
       spend_turn
       used
@@ -4251,7 +4251,7 @@ module Roguelike
       used.reveal_blessing unless used.blessing.uncursed?
       say "You read #{name used}.",
         Event::Used.new(used.id, name(used), :read)
-      found_out used.kind
+      found_out used
       spend_turn
       used
     end
@@ -4306,7 +4306,7 @@ module Roguelike
       say "You zap #{name item}.",
         Event::Used.new(item.id, name(item), :zap)
       work item.kind.effect, item, target: target
-      found_out item.kind
+      found_out item
       grasp letter, item
       cool item
       spend_turn
@@ -4499,7 +4499,7 @@ module Roguelike
       used.reveal_blessing unless used.blessing.uncursed?
 
       yield used
-      found_out used.kind
+      found_out used
       work used.kind.effect, used, choice: choice
       spend_turn
       true
@@ -5381,15 +5381,21 @@ module Roguelike
       settle letter, item
     end
 
-    # Records that the character has found out what *kind* is, and says so.
+    # Records that the character has found out what *used* is, and says so.
     #
     # Every effect in this phase is one somebody watching would understand,
     # so using an item names its kind. A potion that did nothing visible
     # would not, and this is where that exception goes when there is one.
-    private def found_out(kind : ItemKind) : Nil
+    #
+    # The line names one of the kind, with the blessing when the character
+    # knows it, so a cursed scroll is "a cursed scroll of remove curse" and
+    # not a scroll of remove curse that was somehow cursed a line earlier.
+    private def found_out(used : Item) : Nil
+      kind = used.kind
       return unless @lore.learn kind
 
-      say "It was #{name Item.new(kind)}.",
+      one = Item.new kind, blessing: used.blessing, blessing_known: used.blessing_known?
+      say "It was #{name one}.",
         Event::Identified.new(name(Item.new(kind)), @lore.appearance(kind))
     end
 
