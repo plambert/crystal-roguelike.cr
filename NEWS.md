@@ -14,7 +14,7 @@ The game runs on Windows, in WezTerm and Windows Terminal.
 
 The sidebar shows the whole turn count and fits a short terminal, and the help screen scrolls.
 
-* The turn count in the sidebar is never cut short, and the gold is labelled.
+* The turn count in the sidebar is never cut short, and the gold is labeled.
 * The help screen scrolls on the arrow keys, the page keys, Home, End and Space.
 * On a short terminal the equipment and the pack scroll under the mouse wheel instead of vanishing.
 * Clicking Pack on a short terminal opens the pack. Before, it turned the arrow and showed nothing.
@@ -41,17 +41,17 @@ and the first floor is kinder.
 
 ## [0.2.3] - 2026-10-04
 
-The game needs 256 colours, aiming offers only clear shots, routes walk straighter, and this
+The game needs 256 colors, aiming offers only clear shots, routes walk straighter, and this
 turn's messages stand out.
 
 ### New
 
 * The help screen shows the run's seed and draws the eight movement keys around your character.
-* This turn's messages are bright yellow in the message pane. Earlier turns stay the plain colour.
+* This turn's messages are bright yellow in the message pane. Earlier turns stay the plain color.
 
 ### Changed
 
-* The game needs a 256-colour terminal. It says what it found when it refuses to start.
+* The game needs a 256-color terminal. It says what it found when it refuses to start.
 * Aiming offers only monsters your shot can reach. Tab skips one behind a wall or another creature.
 * A walked route goes straight when it can and bends once at an obstacle instead of zigzagging.
 * Pressing `f` or `t` a second time while aiming cancels the shot, the same as Escape.
