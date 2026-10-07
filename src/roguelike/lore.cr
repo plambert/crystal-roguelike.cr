@@ -226,5 +226,22 @@ module Roguelike
 
       "an"
     end
+
+    # *words* joined with commas and a last "and".
+    def self.listing(words : Array(String)) : String
+      return words.join if words.size < 2
+
+      "#{words[...-1].join ", "} and #{words.last}"
+    end
+
+    # *text* with its first letter in upper case and the rest as it was.
+    #
+    # `String#capitalize` lowers the rest, and an unread scroll's title is
+    # written in capitals.
+    def self.sentence(text : String) : String
+      return text if text.empty?
+
+      text[0].upcase + text[1..]
+    end
   end
 end

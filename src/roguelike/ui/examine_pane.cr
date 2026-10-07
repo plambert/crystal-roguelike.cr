@@ -244,17 +244,10 @@ module Roguelike::Ui
       held.try { |item| clauses << "holds #{named.call item}" }
       creature.in_slot(Roguelike::Slot::Quiver).try { |item| clauses << "has #{named.call item} to shoot" }
       worn = creature.worn
-      clauses << "wears #{ExaminePane.listing worn.map(&named)}" unless worn.empty?
+      clauses << "wears #{Lore.listing worn.map(&named)}" unless worn.empty?
       return if clauses.empty?
 
-      "It #{ExaminePane.listing clauses}."
-    end
-
-    # *words* joined with commas and a last "and".
-    def self.listing(words : Array(String)) : String
-      return words.join if words.size < 2
-
-      "#{words[...-1].join ", "} and #{words.last}"
+      "It #{Lore.listing clauses}."
     end
 
     # Puts the pane back to the state before anything was looked at.

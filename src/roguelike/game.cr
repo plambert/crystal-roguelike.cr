@@ -147,6 +147,19 @@ module Roguelike
     # found out.
     getter lore : Lore
 
+    # The ids of every item the character has seen, lying about or in the
+    # pack.
+    #
+    # `#look` adds what is in view and what is carried. An explore or a
+    # travel stops when an item outside this comes into sight, and goes on
+    # past one already in it. An item seen on one floor and found again on
+    # another is the same item, so the set is the run's rather than one
+    # floor's.
+    #
+    # It has a default, so a save written before this field existed loads.
+    # `#after_initialize` then fills it from the map.
+    getter sighted : Set(Int32) = Set(Int32).new
+
     # What killed the character. `nil` while they are alive.
     #
     # The label rather than the creature. The end screen names what killed
@@ -229,9 +242,10 @@ module Roguelike
     # remember.
     #
     # `#announce_pile` sets it from the character's own map, one step at a
-    # time. A walk stops on it. Somebody who set a walk going across a square
-    # with a dagger drawn on it is not surprised by the dagger, and the map
-    # is where that is written down.
+    # time. A walk in one direction or along a route stops on it. Somebody
+    # who set a walk going across a square with a dagger drawn on it is not
+    # surprised by the dagger, and the map is where that is written down. An
+    # explore and a travel stop when an item comes into sight instead.
     @[JSON::Field(ignore: true)]
     @discovery : Bool = false
 
@@ -242,6 +256,22 @@ module Roguelike
     # whether the walk heard anything worth stopping for.
     @[JSON::Field(ignore: true)]
     @forgiven : Int32 = 0
+
+    # How many lines the step just taken wrote that an explore or a travel
+    # need not stop for, over and above `@forgiven`.
+    #
+    # Coins taken off the floor write one, and so does a pile the character
+    # did not remember. Both are about items underfoot, and a planned walk
+    # has already stopped for an item when it came into sight.
+    @[JSON::Field(ignore: true)]
+    @overlooked : Int32 = 0
+
+    # Items that came into sight on the step just taken, nearest first.
+    #
+    # `#spot_items` works it out at the end of the step. An explore and a
+    # travel stop on it and name what is in it.
+    @[JSON::Field(ignore: true)]
+    @spotted : Array(Spotted) = [] of Spotted
 
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
@@ -263,6 +293,20 @@ module Roguelike
       spot = @fought_at
       @fought = spot ? floor.monster(spot[0], spot[1]) : nil
       enroll
+      recall_sighted if @sighted.empty?
+    end
+
+    # Fills `#sighted` from the map, for a save written before it existed.
+    #
+    # The map holds the top item of every pile the character has seen, and
+    # an item on the map is one they have seen.
+    private def recall_sighted : Nil
+      @player.memory.each_value do |known|
+        known.each do |_, _, memory|
+          item = memory.item
+          @sighted << item.id if item && !item.id.zero?
+        end
+      end
     end
 
     # What *item* is called, as this character would call it.
@@ -610,8 +654,7 @@ module Roguelike
     # A step into any other impassable square moves nothing. It counts no
     # turn.
     def step(direction : Direction) : Step
-      @discovery = false
-      @forgiven = 0
+      clear_step
       wanted = direction.from @player.x, @player.y
 
       blocking_creature = floor.monster wanted[0], wanted[1]
@@ -621,7 +664,10 @@ module Roguelike
       end
 
       if shut_door? wanted
-        return open_by_hand(wanted, forgive: true) ? Step::Opened : Step::Blocked
+        return Step::Blocked unless open_by_hand wanted, forgive: true
+
+        spot_items
+        return Step::Opened
       end
 
       unless floor.passable? wanted[0], wanted[1]
@@ -632,7 +678,27 @@ module Roguelike
       @player.move_to wanted
       arrived
       spend_turn
+      spot_items
       Step::Moved
+    end
+
+    # Forgets what the step before said. A step and a wait start here, and a
+    # walk reads what is left when the step is over.
+    private def clear_step : Nil
+      @discovery = false
+      @forgiven = 0
+      @overlooked = 0
+      @spotted = NOTHING_SPOTTED
+    end
+
+    # Records which items in sight the character has not seen before.
+    #
+    # It runs at the end of a step, before anything looks. `#look` is what
+    # puts an item into `#sighted`, and a replay log looks as soon as the
+    # action is performed, so a walk that asked afterwards would find
+    # nothing new whenever a log was being written.
+    private def spot_items : Nil
+      @spotted = unsighted sight
     end
 
     # Passes the turn. `.` does this.
@@ -653,8 +719,7 @@ module Roguelike
       # A step clears these before it moves. A walk and a rest read them to
       # decide whether the turn said anything, so a wait leaves them the way
       # a step does.
-      @discovery = false
-      @forgiven = 0
+      clear_step
 
       record Event::Waited.new
       spend_turn
@@ -788,8 +853,7 @@ module Roguelike
       direction = heading walk
       return false unless direction
 
-      @discovery = false
-      @forgiven = 0
+      clear_step
 
       if blocked_ahead? direction, doors: walk.straight?
         refuse_run direction if walk.steps.zero? || walk.planned?
@@ -820,9 +884,7 @@ module Roguelike
       # is still asked about, because a creature can arrive while the door
       # swings.
       if taken.opened?
-        walk.seen = glance walk
-        walk.halt = stopped_by before, walk.seen, along: false, doors: false
-        explain walk, before
+        settle walk, before, along: false, doors: false
 
         return !walk.over?
       end
@@ -833,17 +895,12 @@ module Roguelike
       end
 
       walk.steps += 1
-      walk.seen = glance walk
-      walk.halt = stopped_by before, walk.seen,
-        along: walk.along?, doors: walk.straight?
-      walk.halt = Halt::Pile if on_pile?(walk)
+      settle walk, before, along: walk.along?, doors: walk.straight?
       walk.along = walk.straight? && corridor?(@player.at)
-      explain walk, before
 
       !walk.over?
     ensure
-      @discovery = false
-      @forgiven = 0
+      clear_step
     end
 
     # What the character can see after a step of *walk*.
@@ -923,18 +980,41 @@ module Roguelike
       Action::Move.new direction
     end
 
-    # Whether an explore has just stepped onto something lying on the floor.
+    # Looks after a step of *walk*, and settles whether it goes on.
     #
-    # A walk that stopped for any other reason keeps it. A line about the
-    # pile is the line `Halt::Told` stops for, and the pile is the better
-    # name for why.
-    private def on_pile?(walk : Walk) : Bool
-      return false unless walk.exploring?
+    # Only an explore or a travel stops for an item coming into sight.
+    private def settle(walk : Walk, before : Watch, along : Bool, doors : Bool) : Nil
+      spotted = walk.planned? ? @spotted : NOTHING_SPOTTED
+      walk.seen = glance walk
+      walk.halt = stopped_by before, walk.seen, along: along, doors: doors,
+        planned: walk.planned?, spotted: !spotted.empty?
+      explain walk, before, spotted
+    end
 
-      halt = walk.halt
-      return false unless halt.nil? || halt.told?
+    # An item lying in sight, and where.
+    private record Spotted, spot : {Int32, Int32}, item : Item
 
-      !here.empty?
+    # No items, for a step nothing came into sight on.
+    NOTHING_SPOTTED = [] of Spotted
+
+    # Every item lying in *seen* that the character has not seen before,
+    # nearest first, each with the square it lies on.
+    #
+    # The square the character stands on counts. An item found underfoot in
+    # the dark is seen there for the first time.
+    private def unsighted(seen : Vision) : Array(Spotted)
+      here = @player.at
+      found = [] of Spotted
+
+      floor.each_pile do |column, row, pile|
+        next unless seen.includes? column, row
+
+        pile.each do |item|
+          found << Spotted.new({column, row}, item) unless @sighted.includes? item.id
+        end
+      end
+
+      found.sort_by! { |one| {Route.apart(here, one.spot), one.spot[1], one.spot[0]} }
     end
 
     # What the character is told when the explore or travel *walk* stops.
@@ -944,8 +1024,9 @@ module Roguelike
     # against a creature or a wall is named by the refusal. Every other stop
     # writes one line here. `Halt::Blocked` reaches here only when no way is
     # left. *before* is what the step began with, which names the creature
-    # that came into view.
-    private def explain(walk : Walk, before : Watch? = nil) : Nil
+    # that came into view. *spotted* is what came into sight.
+    private def explain(walk : Walk, before : Watch? = nil,
+                        spotted : Array(Spotted) = NOTHING_SPOTTED) : Nil
       return unless walk.planned?
 
       case walk.halt
@@ -960,11 +1041,37 @@ module Roguelike
         say "You stop. Walking on would show you nothing new.", Event::Stopped.new(Halt::Spent)
       when Halt::Hurt
         say "You stop. You have been hurt.", Event::Stopped.new(Halt::Hurt)
-      when Halt::Pile
-        say "You stop on what is lying here.", Event::Stopped.new(Halt::Pile)
+      when Halt::Item
+        came_into_sight spotted, walk.seen
       when Halt::Creature
         came_into_view before
       end
+    end
+
+    # Names the items whose coming into sight stopped a walk.
+    #
+    # Each is named as well as the character has made it out from where they
+    # stand, the way the sidebar names it.
+    private def came_into_sight(spotted : Array(Spotted), seen : Vision) : Nil
+      things = spotted.map do |one|
+        regard = regard_of_item one.spot[0], one.spot[1], seen
+        Event::Thing.new one.item.id, name(one.item, regard)
+      end
+      verb = several?(spotted) ? "come" : "comes"
+
+      say "#{Lore.sentence Lore.listing(things.map &.name)} #{verb} into sight.",
+        Event::Stopped.new(Halt::Item, things: things)
+    end
+
+    # Whether *spotted* takes the plural verb.
+    #
+    # Several items do, and so does a stack of several. So do boots and
+    # gloves, which are one item named by a plural noun.
+    private def several?(spotted : Array(Spotted)) : Bool
+      return true if spotted.sum(&.item.count) > 1
+
+      kind = spotted.first.item.kind
+      kind.uncountable? && kind.label.ends_with? 's'
     end
 
     # Names the creature whose coming into view stopped a walk.
@@ -1027,8 +1134,9 @@ module Roguelike
     #
     # The character looks after every step, so each step is planned over
     # what the last one showed. A room partly seen is swept before it is
-    # left. A creature coming into view, a wound, a pile underfoot and
-    # nothing left to see all stop it, and each says why.
+    # left. A creature coming into view, an item not seen before coming into
+    # sight, a wound and nothing left to see all stop it, and each says why.
+    # Gold underfoot goes into the purse on the way past.
     def explore : Running
       walk = exploring
       while stride walk
@@ -1185,12 +1293,18 @@ module Roguelike
     # Losing hit points stops a walk. Gaining one does not: a character
     # regenerating on the way down a corridor would otherwise stop every
     # twenty steps for good news.
+    #
+    # *planned* says whether the walk is an explore or a travel. Those stop
+    # for an item when it comes into sight, which *spotted* says one has,
+    # and not when they step onto one.
     private def stopped_by(before : Watch, seen : Vision, along : Bool,
-                           doors : Bool = true) : Halt?
+                           doors : Bool = true, planned : Bool = false,
+                           spotted : Bool = false) : Halt?
       return Halt::Over if @outcome.over?
       return Halt::Hurt if @player.hit_points < before.health
       return Halt::Creature if arrived_in_sight? before.seen, seen
-      return Halt::Told if told? before
+      return Halt::Item if spotted
+      return Halt::Told if told? before, planned
       return Halt::Doorway if doors && standing_on.door?
       return Halt::Branch if along && ways(@player.at).size > CORRIDOR
 
@@ -1208,11 +1322,16 @@ module Roguelike
     # Lines about a pile the character already had on their map do not count.
     # `#announce_pile` counts those into `@forgiven`, and a step whose only
     # new lines are those reads as a step that said nothing.
-    private def told?(before : Watch) : Bool
-      return true if @discovery
+    #
+    # A *planned* walk stops for an item when it comes into sight, so a pile
+    # underfoot and the coins taken off it do not count for one, whether or
+    # not the pile was on the map. `@overlooked` holds those lines.
+    private def told?(before : Watch, planned : Bool = false) : Bool
+      return true if @discovery && !planned
 
+      excused = planned ? @forgiven + @overlooked : @forgiven
       fresh = @log.written - before.written
-      return false if fresh > 0 && fresh == @forgiven
+      return false if fresh > 0 && fresh == excused
 
       fresh != 0 || @log.last? != before.last
     end
@@ -1307,6 +1426,8 @@ module Roguelike
     # A pile the character already remembered is still named. The walk treats
     # it differently. `#told?` subtracts these lines, so a walk crosses a
     # square whose dagger is on the map and stops on one whose dagger is not.
+    # An explore and a travel cross both, and stopped when the dagger came
+    # into sight.
     private def announce_pile : Nil
       pile = here
       return if pile.empty?
@@ -1329,6 +1450,7 @@ module Roguelike
         @forgiven = @log.written - before
       else
         @discovery = true
+        @overlooked += @log.written - before
       end
     end
 
@@ -1748,6 +1870,8 @@ module Roguelike
 
       hit struck, missile.kind.label, bonus, damage if struck
 
+      # The character has had it in their hands, wherever it lands.
+      @sighted << missile.id
       floor.drop spot[0], spot[1], missile
       spend cost
     end
@@ -3470,7 +3594,20 @@ module Roguelike
     def look : Vision
       seen = sight
       @player.knowledge.learn floor, seen, @turn
+      notice seen
       seen
+    end
+
+    # Puts every item lying in *seen* and every item in the pack into
+    # `#sighted`.
+    private def notice(seen : Vision) : Nil
+      floor.each_pile do |column, row, pile|
+        next unless seen.includes? column, row
+
+        pile.each { |item| @sighted << item.id }
+      end
+
+      @player.inventory.each { |_, item| @sighted << item.id }
     end
 
     # What the character remembers of the floor they are on.
@@ -3687,8 +3824,7 @@ module Roguelike
     # staircase they arrive on moves nobody; the character steps off to the
     # nearest square that is free.
     private def go(ground : Floor, terrain : Terrain, line : String) : Nil
-      @discovery = false
-      @forgiven = 0
+      clear_step
       @fought = nil
       @fought_at = nil
       @in_flight = nil
@@ -3776,6 +3912,8 @@ module Roguelike
     #
     # Gold is counted rather than carried, so there is no pack to fill and no
     # way for this to refuse.
+    #
+    # An explore and a travel go on past the line. `#told?` overlooks it.
     private def take_coins : Nil
       taken = 0
 
@@ -3788,7 +3926,9 @@ module Roguelike
 
       return unless taken > 0
 
+      wrote = @log.written
       say "You pick up #{Game.coins taken}.", Event::Gold.new(:taken, taken)
+      @overlooked += @log.written - wrote
     end
 
     # The id of what is under *letter* now that *item* has gone in.
@@ -5774,8 +5914,7 @@ module Roguelike
       # A step clears these before it swings. A walk reads them to decide
       # whether the last step said anything, so a swing leaves them the way
       # a step does.
-      @discovery = false
-      @forgiven = 0
+      clear_step
 
       attack creature
       Verdict.done Step::Struck
