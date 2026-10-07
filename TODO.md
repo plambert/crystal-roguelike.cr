@@ -6,6 +6,14 @@ item says what a player would notice, not how it is built.
 
 ## Planned
 
+### The quiver remembers its ammunition
+
+Firing or throwing the last stone empties the quiver, and the next stone walked over is just an
+item on the floor. Instead the quiver keeps the kind it held until another kind of ammunition is
+wielded on purpose. Walking over that kind picks it up into the quiver, the way a matching stack
+is picked up today. The equipment panel shows the empty slot dimmed, as "no stones", so it reads
+as out of ammunition rather than as nothing readied.
+
 ### An options screen, and a pickup filter
 
 Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
