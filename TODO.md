@@ -6,12 +6,6 @@ item says what a player would notice, not how it is built.
 
 ## Planned
 
-### Windows support
-
-The game builds and runs on Windows in a terminal that speaks the usual escape sequences. Work is
-under way. Anything that runs an external command is compiled out on Windows until a Windows way
-of doing it exists, so a Windows build has no process chain in `--dump-terminal-info` yet.
-
 ### An options screen, and a pickup filter
 
 Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
@@ -122,6 +116,13 @@ stealth. Whether that is wanted should be looked at again once creatures do more
 character and swing.
 
 ## Completed
+
+### Windows support
+
+The game builds and runs on Windows, in WezTerm and Windows Terminal, and every release carries a
+Windows zip. Saves and state live where Windows keeps them, and the specs run on Windows in CI.
+Anything that runs an external command is compiled out on Windows, so a Windows build has no
+process chain in `--dump-terminal-info`.
 
 ### Explore picks up gold and stops for new items only
 

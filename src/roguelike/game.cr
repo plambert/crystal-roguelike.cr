@@ -1009,7 +1009,8 @@ module Roguelike
     # nearest first, each with the square it lies on.
     #
     # The square the character stands on counts. An item found underfoot in
-    # the dark is seen there for the first time.
+    # the dark is seen there for the first time. Gold is left out, because a
+    # walk picks it up on the way.
     private def unsighted(seen : Vision) : Array(Spotted)
       here = @player.at
       found = [] of Spotted
@@ -1018,7 +1019,9 @@ module Roguelike
         next unless seen.includes? column, row
 
         pile.each do |item|
-          found << Spotted.new({column, row}, item) unless @sighted.includes? item.id
+          next if item.kind.gold? || @sighted.includes?(item.id)
+
+          found << Spotted.new({column, row}, item)
         end
       end
 

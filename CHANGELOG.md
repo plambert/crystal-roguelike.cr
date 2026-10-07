@@ -27,8 +27,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `X` and `_` pick up gold they walk over without stopping, and walk over other items without
   stopping. They stop when an item the character has not seen before comes into sight, and say
   what it is: "A pink potion and a long sword come into sight." An item seen before, lying on the
-  floor or carried in the pack, does not stop them, so a floor already walked explores in one go.
-  What the character has seen is kept in the save.
+  floor or carried in the pack, does not stop them, and neither does gold, so a floor already
+  walked explores in one go. What the character has seen is kept in the save.
 
 ## [0.3.0] - 2026-10-05
 

@@ -171,6 +171,17 @@ Spectator.describe "exploring and travelling" do
       expect(game.log.last?).to eq "A dagger comes into sight."
     end
 
+    it "does not stop for gold coming into sight" do
+      game = played MEETING
+      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Gold, count: 12)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).not_to eq Halt::Item
+      expect(game.log.lines).not_to contain "12 gold pieces come into sight."
+    end
+
     it "names two items that come into sight together, nearest first" do
       game = played MEETING
       game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
