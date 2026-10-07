@@ -542,6 +542,124 @@ Spectator.describe Roguelike::Generator do
     end
   end
 
+  describe "the down staircase" do
+    # How many steps each square of *floor* is from *from*, walking over
+    # every square that is not rock.
+    def walk(floor : Floor, from : {Int32, Int32}) : Hash({Int32, Int32}, Int32)
+      steps = {from => 0}
+      queue = Deque{from}
+
+      while spot = queue.shift?
+        Direction.values.each do |direction|
+          near = direction.from spot[0], spot[1]
+          next unless floor.contains? near[0], near[1]
+          next if floor.terrain(near[0], near[1]).rock?
+          next if steps.has_key? near
+
+          steps[near] = steps[spot] + 1
+          queue << near
+        end
+      end
+
+      steps
+    end
+
+    # How many steps the nearest square of each zone *generator* dug, other
+    # than the arrival, is from the up staircase.
+    def apart(generator : Generator) : Hash(Area, Int32)
+      floor = generator.floor
+      found = {} of Area => Int32
+      up = floor.find Terrain::StairsUp
+      return found unless up
+
+      steps = walk floor, up
+
+      generator.zones.each do |zone|
+        next if zone == generator.arrival
+
+        nearest = nil
+        zone.each do |column, row|
+          step = steps[{column, row}]?
+          nearest = step if step && (nearest.nil? || step < nearest)
+        end
+        found[zone] = nearest if nearest
+      end
+
+      found
+    end
+
+    # The zone of *generator* the down staircase is in.
+    def departure(generator : Generator) : Area?
+      down = generator.floor.find(Terrain::StairsDown)
+      return unless down
+
+      generator.zones.find &.holds?(down[0], down[1])
+    end
+
+    # Fifty of the floors every floor example reads, and ten of each layout
+    # at one size.
+    SAMPLED = DUG.first(50) + Layout.values.flat_map do |layout|
+      (0...10).map do |index|
+        Generator.dug Rng.new(FIRST + index), Roguelike::World.id(3), 3, 120, 50, layout
+      end
+    end
+
+    it "lies at least half the farthest zone's walk from the up staircase" do
+      found = SAMPLED.compact_map do |generator|
+        zone = departure generator
+        next "a floor has its down staircase outside every zone" unless zone
+
+        steps = apart generator
+        walked = steps[zone]?
+        next "#{generator.floor.id} cannot walk to its down staircase" unless walked
+
+        most = steps.values.max
+        next if walked * 2 >= most
+
+        "#{generator.floor.id} on #{generator.layout} is #{walked} of #{most} steps away"
+      end
+
+      expect(found).to be_empty
+    end
+
+    it "is in a different zone from the up staircase" do
+      split = SAMPLED.count do |generator|
+        zone = departure generator
+        zone && zone != generator.arrival
+      end
+
+      expect(split).to eq SAMPLED.size
+    end
+
+    # Seed 23 on a tree of 30 by 12 has four rooms, and only the farthest
+    # is half its walk from the arrival. Seed 1 on 24 by 10 has two.
+    it "goes in the farthest zone on a floor too small for more" do
+      [{23_u64, 30, 12, 4}, {1_u64, 24, 10, 2}].each do |seed, columns, rows, zones|
+        generator = Generator.new Rng.new(seed), "dungeon", columns, rows, layout: Layout::Tree
+        generator.dig
+        steps = apart generator
+
+        expect(generator.zones.size).to eq zones
+        expect(departure generator).to eq steps.max_by(&.[1])[0]
+      end
+    end
+
+    # Only the down staircase is drawn again. These up staircases are where
+    # the seeds put them when both were drawn from any two zones, and the
+    # down staircases of the first two have moved since.
+    it "leaves the up staircase where the seed put it" do
+      {
+        {1_u64, 2} => {103, 67},
+        {2_u64, 1} => {94, 59},
+        {1_u64, 1} => {42, 39},
+      }.each do |(seed, depth), arrival|
+        floor = Generator.floor Rng.new(seed), Roguelike::World.id(depth), depth
+
+        expect(floor.find Terrain::StairsUp).to eq arrival
+      end
+    end
+  end
+
   describe "what lives on a floor of any size" do
     # Creatures per thousand open squares, over a few floors of *columns* by
     # *rows*.

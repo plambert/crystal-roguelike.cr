@@ -32,6 +32,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   all show the result once the missile has landed, and the death screen waits for it as well. The
   animation itself is as it was, and a key pressed while a missile is in the air still takes its
   turn at once.
+* The down staircase is placed far from the arrival, in a room at least half the floor's longest
+  walk from the up staircase, so a floor is no longer over in a few steps. An existing seed keeps
+  its layout and its up staircase. Where its down staircase moves, the creatures, sconces and loot
+  may sit on different squares.
 * A creature's arrow or stone is seen crossing the floor from the creature to the character before
   its hit or miss is reported. It was not drawn at all. When more than one creature shoots in a
   turn, the shots fly one after the other and each is reported once it has landed.
