@@ -42,6 +42,14 @@ back to leave the room by another exit. Once it has entered a passage it follows
 wherever it leads before it considers any other frontier, so a walk reads as a route rather than
 a dither.
 
+### Explore clears the small side first
+
+When explore has a choice of frontiers, it heads for the one with the least unexplored space
+behind it, so dead ends and small pockets are cleared while the character is beside them instead
+of being walked back to across the whole floor at the end. The size of what lies behind a
+frontier is estimated from the unknown squares reachable through it, and distance still breaks
+ties.
+
 ### A key to walk to what explore just saw
 
 When explore stops because an item came into sight, one key walks the character to that square,
