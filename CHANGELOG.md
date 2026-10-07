@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-07
+
+Exploring gathers gold and matching ammunition and stops only for items not seen before, `v` walks
+to what it stopped for, the down staircase is placed far from the up staircase, and missiles are
+seen in flight.
+
 ### Added
 
 * Each release is announced in Discord with its changelog and a link to the release page.
@@ -620,7 +626,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.3...v0.2.4

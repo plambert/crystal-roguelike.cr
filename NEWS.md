@@ -3,6 +3,26 @@
 What changed in each release, for the people playing it. The full record, including build and
 packaging changes, is in [CHANGELOG.md](CHANGELOG.md).
 
+## [0.4.0] - 2026-10-07
+
+Exploring gathers gold and ammunition on the way and stops only for things you have not seen, and
+the down staircase is a long walk from the up staircase.
+
+### New
+
+* `v` walks you to the items exploring last stopped for, the nearest first.
+* An empty quiver remembers what it held, so walking over your spent arrows or stones refills it.
+
+### Changed
+
+* Exploring picks up gold and quiver ammunition without stopping, and stops only for new items.
+* The down staircase sits far from the up staircase, so a floor is no longer over in a few steps.
+* You see every arrow, stone and bolt cross the floor, yours and the monsters', before the hit.
+
+### Fixed
+
+* A flood of messages holds at More until you have read them all, and the log keeps far more.
+
 ## [0.3.0] - 2026-10-05
 
 The game runs on Windows, in WezTerm and Windows Terminal.
