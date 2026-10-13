@@ -292,9 +292,9 @@ module Roguelike
       # What it does in one turn of the world. `nil` wherever `#damage` is.
       #
       # `#damage_average` over how many turns a swing takes, which is
-      # `Item#damage_per_turn`. Every weapon swings in one turn, so the two
-      # numbers are equal today. They part once a weapon carries its own
-      # swing cost.
+      # `Item#damage_per_turn`. A dagger swings in less than a turn, so its
+      # rate is above its mean. A long sword swings in more, so its rate is
+      # below.
       #
       # A bot choosing which weapon to fight with wants this one. One
       # choosing which to throw wants `#damage_average`, because a throw is

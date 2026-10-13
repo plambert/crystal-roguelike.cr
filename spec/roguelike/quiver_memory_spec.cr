@@ -82,6 +82,120 @@ Spectator.describe "the quiver remembering its ammunition" do
     end
   end
 
+  # A game that has just shot the last arrow in the quiver, carrying
+  # *pack* beside the bow.
+  def shot_out(pack : Array(Item)) : Game
+    game = armed [Item.new(Kind::Bow), Item.new(Kind::Arrow, enchantment: 3,
+      blessing: Roguelike::Blessing::Blessed, blessing_known: true)] + pack
+    game.wield 'a'
+    game.wield 'b'
+    game.fire EAST
+    game
+  end
+
+  describe "refilling from the pack" do
+    alias Blessing = Roguelike::Blessing
+
+    it "readies the best stack the character knows of" do
+      game = shot_out [
+        Item.new(Kind::Arrow, count: 9),
+        Item.new(Kind::Arrow, enchantment: 2, count: 2),
+        Item.new(Kind::Arrow, enchantment: 3, count: 4),
+        Item.new(Kind::Stone, enchantment: 5, count: 6),
+      ]
+      quivered = game.player.quivered
+
+      expect(quivered.try &.enchantment).to eq 3
+      expect(quivered.try &.count).to eq 4
+      expect(game.player.quiver_memory).to be_nil
+      expect(game.log.lines.last).to eq "You ready 4 +3 arrows (e)."
+    end
+
+    it "puts a known blessing above a plain stack of the same plus" do
+      game = shot_out [
+        Item.new(Kind::Arrow, enchantment: 1, count: 9),
+        Item.new(Kind::Arrow, enchantment: 1, count: 2,
+          blessing: Blessing::Blessed, blessing_known: true),
+      ]
+
+      expect(game.player.equipment[Roguelike::Slot::Quiver]).to eq 'd'
+    end
+
+    it "ranks a blessing nobody knows about as plain" do
+      game = shot_out [
+        Item.new(Kind::Arrow, count: 2, blessing: Blessing::Blessed),
+        Item.new(Kind::Arrow, count: 5, blessing_known: true),
+      ]
+
+      expect(game.player.equipment[Roguelike::Slot::Quiver]).to eq 'd'
+    end
+
+    it "takes the larger of two equal stacks" do
+      game = shot_out [
+        Item.new(Kind::Arrow, enchantment: 1, count: 3),
+        Item.new(Kind::Arrow, enchantment: 1, count: 8,
+          condition: Roguelike::Condition::Damaged),
+      ]
+
+      expect(game.player.equipment[Roguelike::Slot::Quiver]).to eq 'd'
+    end
+
+    it "never chooses ammunition known to be cursed" do
+      game = shot_out [
+        Item.new(Kind::Arrow, enchantment: 2, count: 9,
+          blessing: Blessing::Cursed, blessing_known: true),
+        Item.new(Kind::Arrow, count: 1),
+      ]
+
+      expect(game.player.equipment[Roguelike::Slot::Quiver]).to eq 'd'
+    end
+
+    it "does not skip a curse nobody knows about" do
+      game = shot_out [
+        Item.new(Kind::Arrow, enchantment: 2, count: 9, blessing: Blessing::Cursed),
+      ]
+
+      expect(game.player.equipment[Roguelike::Slot::Quiver]).to eq 'c'
+    end
+
+    it "keeps the memory when nothing in the pack will do" do
+      game = shot_out [
+        Item.new(Kind::Stone, count: 6),
+        Item.new(Kind::Arrow, count: 9, blessing: Blessing::Cursed, blessing_known: true),
+      ]
+
+      expect(game.player.quivered).to be_nil
+      expect(game.player.quiver_memory.try &.kind).to eq Kind::Arrow
+      expect(game.player.quiver_memory.try &.enchantment).to eq 3
+      expect(game.log.lines.none? &.starts_with?("You ready")).to be_true
+    end
+
+    it "refills after the last throw from the quiver" do
+      game = armed [Item.new(Kind::Stone), Item.new(Kind::Stone, enchantment: 1, count: 5)]
+      game.wield 'a'
+      game.throw 'a', EAST
+
+      expect(game.player.quivered.try &.count).to eq 5
+      expect(game.log.lines.last).to eq "You ready 5 +1 stones (b)."
+    end
+
+    it "refills nothing when a stack outside the quiver runs out" do
+      game = armed [Item.new(Kind::Stone), Item.new(Kind::Stone, enchantment: 1, count: 5)]
+      game.throw 'a', EAST
+
+      expect(game.player.quivered).to be_nil
+    end
+
+    it "takes no extra turn and draws nothing more" do
+      plain = shot_out [] of Item
+      refilled = shot_out [Item.new(Kind::Arrow, count: 9)]
+
+      expect(refilled.turn).to eq plain.turn
+      expect(refilled.player.pace.energy).to eq plain.player.pace.energy
+      expect(refilled.blows).to eq plain.blows
+    end
+  end
+
   describe "walking over ammunition" do
     it "puts the remembered kind back in the quiver" do
       game = emptied [Item.new(Kind::Arrow, count: 4)]

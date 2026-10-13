@@ -13,6 +13,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The words "blessed" and "cursed" in the message pane are underlined, white for blessed and red
   for cursed. A terminal that cannot color an underline draws a plain one. "Uncursed" is not
   marked.
+* When the last of the quiver's ammunition is fired or thrown, the best stack of the same kind in
+  the pack goes into the quiver, as in "You ready 12 +1 arrows (c).". It ranks by the known
+  enchantment, then a known blessing, then the larger stack. Ammunition known to be cursed is never
+  chosen. With nothing of that kind in the pack, the quiver stays empty and remembers what it held.
+
+### Fixed
+
+* The observation's `damage_per_turn` now divides by the weapon's swing cost, so a dagger does more
+  in a turn than one blow and a long sword or spear does less.
 
 ## [0.4.1] - 2026-10-12
 

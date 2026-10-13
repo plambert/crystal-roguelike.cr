@@ -146,18 +146,27 @@ Spectator.describe Roguelike::Item do
 
   describe "#damage_per_turn" do
     it "is the mean of the dice while a swing takes one turn" do
-      item = described_class.new Kind::LongSword
+      item = described_class.new Kind::ShortSword
 
+      expect(item.swing_turns).to eq 1.0
       expect(item.damage_per_turn).to eq item.damage.average
-      expect(Roguelike::Item::SWING_TURNS).to eq 1.0
+    end
+
+    it "divides the mean by the turns a swing takes" do
+      dagger = described_class.new Kind::Dagger
+      spear = described_class.new Kind::Spear
+
+      expect(dagger.swing_turns).to eq 0.75
+      expect(dagger.damage_per_turn).to be_close 2.5 / 0.75, 1e-9
+      expect(spear.swing_turns).to eq 1.25
+      expect(spear.damage_per_turn).to be_close 4.5 / 1.25, 1e-9
     end
 
     it "carries the plus and the condition the way the dice do" do
       item = described_class.new Kind::LongSword, 2, Condition::Masterwork
+      plain = described_class.new Kind::LongSword
 
-      expect(item.damage_per_turn).to eq item.damage.average
-      expect(item.damage_per_turn)
-        .to eq described_class.new(Kind::LongSword).damage_per_turn + 3
+      expect(item.damage_per_turn).to be_close plain.damage_per_turn + 3 / 1.2, 1e-9
     end
 
     it "ranks a heavier weapon above a lighter one" do
