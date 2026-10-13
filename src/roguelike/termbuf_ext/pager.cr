@@ -56,6 +56,18 @@ module TermBuf::Widgets
     # nothing about which lines show or hold.
     property fresh : Int32 = 0
 
+    # A run of characters in one wrapped line drawn in a style of its own.
+    #
+    # *start* and *size* count characters. The style is laid over the line's
+    # own, so an underline keeps the line's color.
+    record Accent, start : Int32, size : Int32, style : Style
+
+    # What finds the accents in a wrapped line. `nil` draws none.
+    #
+    # It sees each line after wrapping, so an accent never spans two rows. It
+    # changes how lines are drawn and nothing about which lines show or hold.
+    property accents : Proc(String, Array(Accent))? = nil
+
     # Cells across. An owner sets this with `#resize`.
     getter columns : Int32 = 0
 
@@ -339,17 +351,30 @@ module TermBuf::Widgets
       showing.each_with_index do |line, row|
         break if row >= view.height
 
-        if bright && first + row >= from
-          view.write 0, row, line, bright
-        else
-          view.write 0, row, line
-        end
+        base = bright if bright && first + row >= from
+        view.write 0, row, line, base || Style::DEFAULT
+        accent view, row, line, base || Style::DEFAULT
       end
 
       return unless more
 
       spot = Math.min page, view.height - 1
       view.write 0, spot, @marker, @marker_style
+    end
+
+    # Draws the accents `#accents` finds in *line* over the line already
+    # written on *row* in *base*.
+    private def accent(view : View, row : Int32, line : String, base : Style) : Nil
+      finder = @accents
+      return unless finder
+
+      finder.call(line).each do |mark|
+        text = line[mark.start, mark.size]?
+        next unless text
+
+        column = Unicode.string_width line[0, mark.start]
+        view.write column, row, text, base.merge(mark.style)
+      end
     end
 
     # How many wrapped lines the newest `#fresh` source lines made.

@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* The words "blessed" and "cursed" in the message pane are underlined, white for blessed and red
+  for cursed. A terminal that cannot color an underline draws a plain one. "Uncursed" is not
+  marked.
+
 ## [0.4.1] - 2026-10-12
 
 Repeated messages show a count, and the pack restacking no longer stops `X`, `_` or `v`, which
