@@ -422,6 +422,7 @@ module Roguelike::Ui
 
       @pager = Widgets::Pager.new
       @pager.fresh_style = Palette::MESSAGE_NEW
+      @pager.accents = ->BlessingWords.accents(String)
       @screen.show_log @pager
 
       # Reading the line a hold was asked for is what the pointer on the map

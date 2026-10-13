@@ -356,4 +356,60 @@ Spectator.describe TermBuf::Widgets::Pager do
       expect(run.pager.showing.first).to eq "Message number 4."
     end
   end
+
+  describe "accents" do
+    # The style the buffer drew the cell at *column* on *row* in.
+    def style_at(run : Paged, column : Int32, row : Int32) : TermBuf::Style
+      run.session.render
+      found = run.session.buffer.hit column, row
+      raise "nothing is drawn at #{column}, #{row}" unless found
+
+      run.session.buffer.styles[found.cell.style]
+    end
+
+    # Accents every "hat" in a line.
+    def hats(run : Paged) : TermBuf::Style
+      mark = TermBuf::Style::DEFAULT.underlined
+      run.pager.accents = ->(line : String) do
+        found = [] of Widgets::Pager::Accent
+        line.scan(/hat/) { |match| found << Widgets::Pager::Accent.new(match.begin, 3, mark) }
+        found
+      end
+      mark
+    end
+
+    it "draws the accented characters in the accent's style and leaves the rest" do
+      run = paged
+      mark = hats run
+      run.pager.show ["A red hat."]
+
+      expect(run.session.row 0).to eq "A red hat."
+      expect(style_at run, 6, 0).to eq mark
+      expect(style_at run, 8, 0).to eq mark
+      expect(style_at run, 5, 0).to eq TermBuf::Style::DEFAULT
+      expect(style_at run, 9, 0).to eq TermBuf::Style::DEFAULT
+    end
+
+    it "lays the accent over the fresh style" do
+      run = paged
+      mark = hats run
+      bright = TermBuf::Style::DEFAULT.bold
+      run.pager.fresh_style = bright
+      run.pager.fresh = 1
+      run.pager.show ["A red hat."]
+
+      expect(style_at run, 6, 0).to eq bright.merge(mark)
+      expect(style_at run, 0, 0).to eq bright
+    end
+
+    it "finds accents on each wrapped line and keeps the row count" do
+      run = paged columns: 12
+      mark = hats run
+      run.pager.show ["A very tall hat sits here."]
+
+      expect(run.pager.lines).to eq ["A very tall", "hat sits", "here."]
+      expect(style_at run, 0, 1).to eq mark
+      expect(style_at run, 3, 1).to eq TermBuf::Style::DEFAULT
+    end
+  end
 end
