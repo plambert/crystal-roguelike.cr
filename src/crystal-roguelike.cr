@@ -4,6 +4,7 @@
 # a terminal, and every file under `src/roguelike/ui/` requires this file
 # rather than the model alone.
 require "./roguelike"
+require "./roguelike/isolated_wait"
 require "./roguelike/ui"
 require "./roguelike/session"
 require "./roguelike/cli"

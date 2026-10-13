@@ -29,6 +29,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * The game builds with Crystal 1.22, whose compiler checks the type of an HTTP form overload
   that nothing in the game calls.
+* A game built with Crystal 1.22.0 no longer dies on its first keypress. That compiler's
+  isolated fiber wakes without an event, and the game restates the one method at fault for that
+  version only.
 * The observation's `damage_per_turn` now divides by the weapon's swing cost, so a dagger does more
   in a turn than one blow and a long sword or spear does less.
 
