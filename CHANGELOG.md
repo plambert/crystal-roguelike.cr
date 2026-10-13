@@ -27,6 +27,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* The game builds with Crystal 1.22, whose compiler checks the type of an HTTP form overload
+  that nothing in the game calls.
 * The observation's `damage_per_turn` now divides by the weapon's swing cost, so a dagger does more
   in a turn than one blow and a long sword or spear does less.
 
