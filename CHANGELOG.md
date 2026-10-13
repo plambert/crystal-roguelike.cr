@@ -8,6 +8,18 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* When the last of the quiver's ammunition is fired or thrown, the best stack of the same kind in
+  the pack goes into the quiver, as in "You ready 12 +1 arrows (c).". It ranks by the known
+  enchantment, then a known blessing, then the larger stack. Ammunition known to be cursed is never
+  chosen. With nothing of that kind in the pack, the quiver stays empty and remembers what it held.
+
+### Fixed
+
+* The observation's `damage_per_turn` now divides by the weapon's swing cost, so a dagger does more
+  in a turn than one blow and a long sword or spear does less.
+
 ## [0.4.1] - 2026-10-12
 
 Repeated messages show a count, and the pack restacking no longer stops `X`, `_` or `v`, which

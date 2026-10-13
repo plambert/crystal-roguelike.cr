@@ -224,14 +224,21 @@ Spectator.describe Roguelike::Observation do
       expect(found.damage_average).to eq 3.5
     end
 
-    # Every weapon swings in one turn, so the rate and the mean are equal.
-    # They part once a weapon carries its own swing cost.
+    # A short sword swings in one turn, so the rate and the mean are equal.
     it "gives what it does in a turn beside what one blow does" do
       game = played ROOMS, items: [Item.new(Kind::ShortSword)]
       found = Observation.of(game).inventory.first
 
       expect(found.damage_per_turn).to eq 3.5
       expect(found.damage_per_turn).to eq found.damage_average
+    end
+
+    it "divides by the turns a swing takes" do
+      game = played ROOMS, items: [Item.new(Kind::Dagger)]
+      found = Observation.of(game).inventory.first
+
+      expect(found.damage_average).to eq 2.5
+      expect(found.damage_per_turn).to be_close 2.5 / 0.75, 1e-9
     end
 
     it "gives no rate where it gives no damage" do

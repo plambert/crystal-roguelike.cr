@@ -1887,6 +1887,7 @@ module Roguelike
       loose one, target, ranged_weapon.kind.reach, bonus, damage,
         Costs.loose(ranged_weapon), "You shoot #{name one}.",
         Event::Loosed.new(one.id, name(one), target, thrown: false)
+      restock
       true
     end
 
@@ -1921,6 +1922,7 @@ module Roguelike
       loose one, target, reach, bonus, damage, Costs.loose(item),
         "You throw #{name one}.",
         Event::Loosed.new(one.id, name(one), target, thrown: true)
+      restock if slot.try &.quiver?
       true
     end
 
@@ -1938,6 +1940,56 @@ module Roguelike
       end
 
       one
+    end
+
+    # Fills an empty quiver from the pack with the kind it remembers.
+    #
+    # `#best_ammunition` picks the stack. With none, the quiver stays empty
+    # and keeps its memory. It takes no turn and rolls nothing.
+    private def restock : Nil
+      memory = @player.quiver_memory
+      return unless memory
+      return if @player.equipment[Slot::Quiver]
+
+      letter = best_ammunition memory.kind
+      return unless letter
+
+      item = @player.inventory[letter]
+      return unless item
+
+      @player.quiver_memory = nil
+      @player.equipment.put Slot::Quiver, letter
+      called = name_under letter
+      say "You ready #{called} (#{letter}).",
+        Event::Readied.new(Slot::Quiver, item.id, called)
+    end
+
+    # The letter of the best stack of *kind* in the pack, or `nil`.
+    #
+    # A stack ranks by what the character knows of it. The enchantment
+    # comes first, then a known blessing, then the larger count. An
+    # enchantment on a kind not yet known, and a blessing not yet known,
+    # rank as plain. A stack known to be cursed is never chosen. Equal
+    # stacks go to the earlier letter.
+    private def best_ammunition(kind : ItemKind) : Char?
+      known = @lore.known? kind
+      best = nil
+      best_rank = nil
+
+      @player.inventory.each do |letter, item|
+        next unless item.kind == kind
+        next if @player.equipment.slot_of letter
+        next if item.blessing_known? && item.blessing.cursed?
+
+        blessed = item.blessing_known? && item.blessing.blessed? ? 1 : 0
+        rank = {known ? item.enchantment : 0, blessed, @player.inventory.count(letter)}
+        next if best_rank && (rank <=> best_rank) <= 0
+
+        best = letter
+        best_rank = rank
+      end
+
+      best
     end
 
     # Sends *missile* at *target* and puts it on the floor where it stops.
