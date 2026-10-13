@@ -48,6 +48,10 @@ Spectator.describe "exploring and travelling" do
   # corridor from the junction.
   FAR = {23, 1}
 
+  # Where an item lies in `MEETING`, near enough to the junction to be read
+  # from where the east corridor first comes into sight.
+  LYING = {15, 1}
+
   # One lit room, every square of it in sight from the staircase.
   HALL = [
     "##########",
@@ -92,6 +96,24 @@ Spectator.describe "exploring and travelling" do
     "#.....#..#",
     "##########",
   ]
+
+  # A wide lit cavern with a corridor out of its floor that bends east out
+  # of sight. A pillar south-east of the staircase hides the square behind
+  # it.
+  # Every other square of the cavern is in sight from the staircase.
+  CAVERN = [
+    "################################",
+    "#..............................#",
+    "#<.............................#",
+    "#...#..........................#",
+    "######.#########################",
+    "######.#########################",
+    "######.....#####################",
+    "################################",
+  ]
+
+  # The far edge of `CAVERN`, too far from the staircase to read an item on.
+  EDGE = {30, 1}
 
   # A game on *lines*, the character on the up staircase or at *at*. The
   # floor is lit unless *dark*. A dark floor gives the character a lit
@@ -196,19 +218,55 @@ Spectator.describe "exploring and travelling" do
 
     it "stops when an item not seen before comes into sight, and says so" do
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
       game.enroll
 
       went = game.explore
 
       expect(went.halt).to eq Halt::Item
-      expect(game.sight.includes?(*FAR)).to be_true
+      expect(game.sight.includes?(*LYING)).to be_true
+      expect(game.log.last?).to eq "A dagger comes into sight."
+    end
+
+    it "does not sight an item too far off to read" do
+      game = played CAVERN
+      dagger = Item.new Roguelike::ItemKind::Dagger
+      game.floor.drop *EDGE, dagger
+      game.enroll
+
+      game.look
+
+      expect(game.sight.includes?(*EDGE)).to be_true
+      expect(game.sighted).not_to contain dagger.id
+    end
+
+    it "walks on past an item at the far edge of a lit cavern" do
+      game = played CAVERN
+      game.floor.drop *EDGE, Item.new(Roguelike::ItemKind::Dagger)
+      game.enroll
+
+      game.explore
+
+      expect(game.knowledge.seen?(10, 6)).to be_true
+    end
+
+    it "stops for that item once near enough to read it, and names it" do
+      game = played CAVERN
+      dagger = Item.new Roguelike::ItemKind::Dagger
+      game.floor.drop *EDGE, dagger
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Item
+      expect(Roguelike::Route.apart(game.player.at, EDGE)).to eq Roguelike::Regards::READING
+      expect(game.sighted).to contain dagger.id
       expect(game.log.last?).to eq "A dagger comes into sight."
     end
 
     it "does not stop for gold coming into sight" do
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Gold, count: 12)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Gold, count: 12)
       game.enroll
 
       went = game.explore
@@ -219,7 +277,7 @@ Spectator.describe "exploring and travelling" do
 
     it "does not stop for a torch coming into sight" do
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Torch)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Torch)
       game.enroll
 
       went = game.explore
@@ -230,8 +288,8 @@ Spectator.describe "exploring and travelling" do
 
     it "leaves a torch out of the items it names" do
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
-      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::Torch)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 14, 1, Item.new(Roguelike::ItemKind::Torch)
       game.enroll
 
       went = game.explore
@@ -242,8 +300,8 @@ Spectator.describe "exploring and travelling" do
 
     it "names two items that come into sight together, nearest first" do
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
-      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::LongSword)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 14, 1, Item.new(Roguelike::ItemKind::LongSword)
       game.enroll
 
       went = game.explore
@@ -254,20 +312,20 @@ Spectator.describe "exploring and travelling" do
 
     it "does not stop again for an item it has stopped for" do
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
       game.enroll
       game.explore
 
       went = game.explore
 
       expect(went.halt).to eq Halt::Explored
-      expect(game.floor.items(*FAR).size).to eq 1
+      expect(game.floor.items(*LYING).size).to eq 1
     end
 
     it "stops for the same item while a replay log is being written" do
       where = (Recording.directory / "sighted-#{Random.rand UInt32}.jsonl").to_s
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
       game.enroll
       game.player.name = Recording::PLAYER
 
@@ -283,7 +341,7 @@ Spectator.describe "exploring and travelling" do
     it "keeps what it has seen through a save" do
       game = played MEETING
       dagger = Item.new Roguelike::ItemKind::Dagger
-      game.floor.drop *FAR, dagger
+      game.floor.drop *LYING, dagger
       game.enroll
       game.explore
 
@@ -518,7 +576,7 @@ Spectator.describe "exploring and travelling" do
 
     it "stops when an item not seen before comes into sight" do
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
       game.enroll
 
       went = game.travel({8, 1})
@@ -599,12 +657,12 @@ Spectator.describe "exploring and travelling" do
   end
 
   describe "visit" do
-    # A game on `MEETING` with a long sword and a dagger at the far end of
-    # the east corridor, stopped by an explore that saw them.
+    # A game on `MEETING` with a long sword and a dagger down the east
+    # corridor, stopped by an explore that saw them.
     def stopped : Game
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
-      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::LongSword)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 14, 1, Item.new(Roguelike::ItemKind::LongSword)
       game.enroll
       game.explore
       game
@@ -612,14 +670,14 @@ Spectator.describe "exploring and travelling" do
 
     it "walks to the square an explore stopped for" do
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
       game.enroll
       game.explore
 
       went = game.visit
 
       expect(went.try &.halt).to eq Halt::Arrived
-      expect(game.player.at).to eq FAR
+      expect(game.player.at).to eq LYING
     end
 
     it "walks to each square in turn, nearest first" do
@@ -629,10 +687,24 @@ Spectator.describe "exploring and travelling" do
       first = game.player.at
       game.visit
 
-      expect(first).to eq({22, 1})
-      expect(game.player.at).to eq FAR
+      expect(first).to eq({14, 1})
+      expect(game.player.at).to eq LYING
       expect(game.visit).to be_nil
       expect(game.sightings).to be_empty
+    end
+
+    it "leaves out an item too far off to read" do
+      game = played CAVERN
+      game.floor.drop *EDGE, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 5, 3, Item.new(Roguelike::ItemKind::Mace)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Item
+      expect(game.log.last?).to eq "A mace comes into sight."
+      expect(game.sight.includes?(*EDGE)).to be_true
+      expect(game.sightings).to eq [{5, 3}]
     end
 
     it "has nothing to walk to after a stop for a creature" do
@@ -652,7 +724,7 @@ Spectator.describe "exploring and travelling" do
       went = game.visit
 
       expect(went.try &.halt).to eq Halt::Arrived
-      expect(game.player.at).to eq FAR
+      expect(game.player.at).to eq LYING
     end
 
     it "keeps the next square after the item on the first is picked up" do
@@ -664,7 +736,7 @@ Spectator.describe "exploring and travelling" do
 
       expect(game.player.inventory.items.map(&.[1].kind)).to contain Roguelike::ItemKind::LongSword
       expect(went.try &.halt).to eq Halt::Arrived
-      expect(game.player.at).to eq FAR
+      expect(game.player.at).to eq LYING
     end
 
     it "adds an item that comes into sight on the way" do
@@ -706,24 +778,24 @@ Spectator.describe "exploring and travelling" do
 
     it "passes over a square seen empty since" do
       game = stopped
-      sword = game.floor.items(22, 1).first
-      game.floor.take 22, 1, sword
+      sword = game.floor.items(14, 1).first
+      game.floor.take 14, 1, sword
       game.look
 
       game.visit
 
-      expect(game.player.at).to eq FAR
+      expect(game.player.at).to eq LYING
       expect(game.visit).to be_nil
     end
 
     it "drops a square whose items are gone when it gets there" do
       game = stopped
       game.visit
-      game.floor.take *FAR, game.floor.items(*FAR).first
+      game.floor.take *LYING, game.floor.items(*LYING).first
 
       game.visit
 
-      expect(game.player.at).to eq FAR
+      expect(game.player.at).to eq LYING
       expect(game.visit).to be_nil
       expect(game.sightings).to be_empty
     end
@@ -749,8 +821,8 @@ Spectator.describe "exploring and travelling" do
     it "writes one action a step, which a replay plays again" do
       where = (Recording.directory / "visit-#{Random.rand UInt32}.jsonl").to_s
       game = played MEETING
-      game.floor.drop *FAR, Item.new(Roguelike::ItemKind::Dagger)
-      game.floor.drop 22, 1, Item.new(Roguelike::ItemKind::LongSword)
+      game.floor.drop *LYING, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop 14, 1, Item.new(Roguelike::ItemKind::LongSword)
       game.enroll
       game.player.name = Recording::PLAYER
 
@@ -765,8 +837,8 @@ Spectator.describe "exploring and travelling" do
       visits = acts.compact_map &.action.as?(Action::Visit)
 
       expect(visits).not_to be_empty
-      expect(visits.last.target).to eq FAR
-      expect(Action::Visit.new(FAR).to_json).to eq %({"t":"visit","target":[23,1]})
+      expect(visits.last.target).to eq LYING
+      expect(Action::Visit.new(LYING).to_json).to eq %({"t":"visit","target":[15,1]})
       expect(Verifier.check(where).ok?).to be_true
     end
   end

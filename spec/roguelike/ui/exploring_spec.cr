@@ -88,7 +88,7 @@ Spectator.describe "exploring and travelling from the keyboard" do
     end
 
     it "walks to two items on two presses, nearest first" do
-      run = sighted({ {23, 1} => Roguelike::ItemKind::Dagger, {22, 1} => Roguelike::ItemKind::Mace },
+      run = sighted({ {15, 1} => Roguelike::ItemKind::Dagger, {14, 1} => Roguelike::ItemKind::Mace },
         MEETING)
       expect(run.said).to eq "A mace and a dagger come into sight."
 
@@ -96,18 +96,18 @@ Spectator.describe "exploring and travelling from the keyboard" do
       first = run.at
       run.press "v"
 
-      expect(first).to eq({22, 1})
-      expect(run.at).to eq({23, 1})
+      expect(first).to eq({14, 1})
+      expect(run.at).to eq({15, 1})
     end
 
     it "walks on to the next item after picking up the first" do
-      run = sighted({ {23, 1} => Roguelike::ItemKind::Dagger, {22, 1} => Roguelike::ItemKind::Mace },
+      run = sighted({ {15, 1} => Roguelike::ItemKind::Dagger, {14, 1} => Roguelike::ItemKind::Mace },
         MEETING)
 
       run.press "v", ",", "v"
 
       expect(run.game.player.inventory.items.map(&.[1].kind)).to contain Roguelike::ItemKind::Mace
-      expect(run.at).to eq({23, 1})
+      expect(run.at).to eq({15, 1})
 
       run.press "v"
 

@@ -8,6 +8,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* `X`, `_` and `v` no longer stop for an item seen from too far off to read. The walk goes on, and
+  stops when the character comes within eight squares and can make out what the item is.
+* Once nothing is left to see on a floor, `X` walks toward an item seen from too far off to read,
+  and stops when it can read it.
+
 ## [0.4.1] - 2026-10-12
 
 Repeated messages show a count, and the pack restacking no longer stops `X`, `_` or `v`, which

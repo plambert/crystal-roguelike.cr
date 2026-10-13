@@ -150,7 +150,7 @@ module Roguelike
     # The ids of every item the character has seen, lying about or in the
     # pack.
     #
-    # `#look` adds what is in view and what is carried. An explore or a
+    # `#look` adds what is in view near enough to read, and what is carried. An explore or a
     # travel stops when an item outside this comes into sight, and goes on
     # past one already in it. An item seen on one floor and found again on
     # another is the same item, so the set is the run's rather than one
@@ -1055,7 +1055,9 @@ module Roguelike
     # Every item lying in *seen* that the character has not seen before,
     # nearest first, each with the square it lies on.
     #
-    # The square the character stands on counts. An item found underfoot in
+    # An item too far off to read is left out until the character comes
+    # near enough to read it. `#readable?` is the rule. The square the
+    # character stands on counts. An item found underfoot in
     # the dark is seen there for the first time. Gold is left out, because a
     # walk picks it up on the way. Torches are left out, because they lie on
     # every floor and stopping for each would stop the walk again and again.
@@ -1064,7 +1066,7 @@ module Roguelike
       found = [] of Spotted
 
       floor.each_pile do |column, row, pile|
-        next unless seen.includes? column, row
+        next unless seen.includes?(column, row) && readable?({column, row})
 
         pile.each do |item|
           next if unremarkable?(item) || @sighted.includes?(item.id)
@@ -1074,6 +1076,12 @@ module Roguelike
       end
 
       found.sort_by! { |one| {Route.apart(here, one.spot), one.spot[1], one.spot[0]} }
+    end
+
+    # Whether the character stands near enough to *spot* to read an item
+    # lying there. An item further off is seen without being sighted.
+    private def readable?(spot : {Int32, Int32}) : Bool
+      Regards.of_item(@player.at, spot).everything?
     end
 
     # Whether *item* coming into sight goes by without stopping a walk.
@@ -3697,11 +3705,11 @@ module Roguelike
       seen
     end
 
-    # Puts every item lying in *seen* and every item in the pack into
-    # `#sighted`.
+    # Puts every item lying in *seen* near enough to read and every item in
+    # the pack into `#sighted`.
     private def notice(seen : Vision) : Nil
       floor.each_pile do |column, row, pile|
-        next unless seen.includes? column, row
+        next unless seen.includes?(column, row) && readable?({column, row})
 
         pile.each { |item| @sighted << item.id }
       end
