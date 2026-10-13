@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-12
+
+Repeated messages show a count, and the pack restacking no longer stops `X`, `_` or `v`, which
+now also walks to items seen on the way.
+
 ### Changed
 
 * A message said again right after itself shows a count instead of being dropped, as in
@@ -639,7 +644,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.4...v0.2.5

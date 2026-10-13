@@ -3,6 +3,14 @@
 What changed in each release, for the people playing it. The full record, including build and
 packaging changes, is in [CHANGELOG.md](CHANGELOG.md).
 
+## [0.4.1] - 2026-10-12
+
+Walking with `X`, `_` and `v` stops less often, and repeated messages no longer fill the log.
+
+* A message said several times in a row shows once, with a count such as "(x 5)".
+* Gold or ammunition picked up on the way no longer stops your walk to say the pack was reorganized.
+* `v` remembers new items you see on the way, so the next `v` goes to them.
+
 ## [0.4.0] - 2026-10-07
 
 Exploring gathers gold and ammunition on the way and stops only for things you have not seen, and
