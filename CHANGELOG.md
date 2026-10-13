@@ -18,6 +18,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   enchantment, then a known blessing, then the larger stack. Ammunition known to be cursed is never
   chosen. With nothing of that kind in the pack, the quiver stays empty and remembers what it held.
 
+### Changed
+
+* `X`, `_` and `v` no longer stop for an item seen from too far off to read. The walk goes on, and
+  stops when the character comes within eight squares and can make out what the item is.
+* Once nothing is left to see on a floor, `X` walks toward an item seen from too far off to read,
+  and stops when it can read it.
+
 ### Fixed
 
 * The observation's `damage_per_turn` now divides by the weapon's swing cost, so a dagger does more

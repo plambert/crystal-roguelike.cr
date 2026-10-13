@@ -20,13 +20,17 @@ module Roguelike
   # remembered where it no longer lies is forgotten when the square is seen
   # again, and the walk goes on to the next goal.
   #
+  # An item seen from too far off to read comes last. Once nothing is left
+  # to see, the goal is the nearest of those, and the walk stops when the
+  # character comes near enough to read it.
+  #
   # Like `Route`, nothing here reads a `Floor`. A route that ends on the
   # character's own square is never answered. The ground under them is known
   # already, and a walk that stood still to look at it would never end.
   module Explore
     # The route to the square explore heads for, the character's own square
-    # first. Empty when no pile worth taking and no square left to see can be
-    # reached.
+    # first. Empty when no pile worth taking, no square left to see and no
+    # item left to read can be reached.
     #
     # *columns* and *rows* are the floor's size. The size of a floor is not a
     # secret, and the edge of it is not a square to go and look at. *takes*
@@ -41,6 +45,7 @@ module Roguelike
       goal = nearest descent, Explore.wanted(knowledge, takes)
       goal ||= sweeping found, descent, from
       goal ||= nearest descent, found.frontier
+      goal ||= nearest descent, Explore.unread(knowledge)
       return Route::NOWHERE unless goal
 
       Route.over descent, goal
@@ -60,12 +65,13 @@ module Roguelike
       nearest descent, edge
     end
 
-    # Whether a pile worth taking that *knowledge* remembers lies anywhere
-    # the character at *from* can reach, other than under them.
+    # Whether a pile worth taking or an item left to read that *knowledge*
+    # remembers lies anywhere the character at *from* can reach, other than
+    # under them.
     def self.wanted?(knowledge : Knowledge, from : {Int32, Int32},
                      columns : Int32, rows : Int32,
                      takes : Proc(Item, Bool)? = nil) : Bool
-      piles = Explore.wanted knowledge, takes
+      piles = Explore.wanted(knowledge, takes) + Explore.unread(knowledge)
       return false if piles.empty?
 
       !nearest(flood(knowledge, from, columns, rows), piles).nil?
@@ -87,6 +93,22 @@ module Roguelike
         next unless item
 
         found << {column, row} if item.kind.gold? || takes.try &.call(item)
+      end
+
+      found.sort_by! { |spot| {spot[1], spot[0]} }
+    end
+
+    # Every square *knowledge* remembers an item on that was seen from too
+    # far off to read, in reading order. Gold and torches are left out,
+    # because neither stops a walk.
+    def self.unread(knowledge : Knowledge) : Array({Int32, Int32})
+      found = [] of {Int32, Int32}
+      knowledge.each do |column, row, memory|
+        item = memory.item
+        next unless item && memory.regard < Regard::Everything
+        next if item.kind.gold? || item.kind.torch?
+
+        found << {column, row}
       end
 
       found.sort_by! { |spot| {spot[1], spot[0]} }
