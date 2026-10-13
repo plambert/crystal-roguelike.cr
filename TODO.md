@@ -6,16 +6,6 @@ item says what a player would notice, not how it is built.
 
 ## Planned
 
-### Stairs down land far from the arrival
-
-The two staircases are drawn from any two different rooms, so they are often neighbours and a
-floor is over in a few steps. Instead the down staircase is drawn from the rooms at least half the
-floor's longest walking distance from the up staircase, measured by route rather than straight
-line, falling back to the farthest room on a floor too small for that. The staircases draw from
-their own stream, so an existing seed keeps its rooms, monsters and items and only the stairs
-move, and only on floors that fail the rule today. The replay golden fixture is re-recorded if its
-floor changes.
-
 ### One key wields and wears, and swaps armor by itself
 
 `w` and `W` become one key that wields a weapon or wears armor by what the chosen item is. When
@@ -42,13 +32,6 @@ back to leave the room by another exit. Once it has entered a passage it follows
 wherever it leads before it considers any other frontier, so a walk reads as a route rather than
 a dither.
 
-### Explore collects the quiver's ammunition
-
-Explore walks to ammunition that matches what is in the quiver, or what the quiver remembers when
-it is empty, the way it walks to gold: known and reachable piles come before unseen squares,
-nearest first, and the pickup on arrival goes into the quiver without stopping the walk. Other
-ammunition is left where it lies.
-
 ### The quiver refills itself from the pack
 
 When the last of the quiver's ammunition is fired or thrown, the game puts equivalent ammunition
@@ -74,23 +57,11 @@ of being walked back to across the whole floor at the end. The size of what lies
 frontier is estimated from the unknown squares reachable through it, and distance still breaks
 ties.
 
-### A key to walk to what explore just saw
-
-When explore stops because an item came into sight, one key walks the character to that square,
-the way `_` would with the square already chosen. It works only for things lying about, never for
-a creature, so a stop for a monster still leaves the player to decide.
-
 ### Blessed and cursed are underlined in the message pane
 
 The words "blessed" and "cursed" in a message are underlined, white and red, where the terminal
-draws coloured underlines, and plain underlined where it does not, so the one word that decides
+draws colored underlines, and plain underlined where it does not, so the one word that decides
 whether to use an item stands out from the rest of the line.
-
-### Explore does not stop for torches
-
-A torch coming into sight stops an explore the way any new item does, and torches are common
-enough that the walk stops for them again and again. Torches join gold in the list of items that
-do not stop the walk.
 
 ### Explore ignores items seen from far away
 
@@ -227,6 +198,32 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### A key to walk to what explore just saw
+
+`v` walks to the items `X` last stopped for, nearest first, and the next `v` walks to the next
+one. It never walks to a creature, and it says "There is nothing more to walk to." when the list is
+used up. An item that comes into sight on the way joins the list, and running in a direction
+clears it. The list is kept in the save.
+
+### Explore does not stop for torches
+
+`X` and `_` no longer stop when a torch comes into sight, and they leave torches out of the items
+they name when they stop for something else.
+
+### Explore collects the quiver's ammunition
+
+`X` walks to arrows or stones that match what is in the quiver, or what an empty quiver
+remembers, the way it walks to gold. Known piles come before unseen squares, nearest first, and
+the pickup on arrival goes into the quiver without stopping the walk. Other ammunition is left
+where it lies, and `_` does not turn aside for any of it.
+
+### Stairs down land far from the arrival
+
+The down staircase is placed in a room at least half the floor's longest walk from the up
+staircase, so a floor is no longer over in a few steps. A floor too small for that uses the
+farthest room. An existing seed keeps its layout and its up staircase, but creatures, sconces and
+loot may sit on different squares where the down staircase moved.
 
 ### Explore walks to gold it sees
 
