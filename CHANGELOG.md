@@ -24,6 +24,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   stops when the character comes within eight squares and can make out what the item is.
 * Once nothing is left to see on a floor, `X` walks toward an item seen from too far off to read,
   and stops when it can read it.
+* `w` wields a weapon or wears armor, by what you choose. `W` does the same and is no longer listed
+  on the help screen.
+* Choosing a weapon or armor for a slot that is already full takes the old piece off first, then
+  puts the new one on, each over the turns it takes. A creature coming into view or a blow landing
+  between the two stops the swap. The old piece is then off and the new one is still in the pack,
+  and the last line says so, as in "You are interrupted, and have not put on the chain mail yet!".
+* A cursed piece that will not come off stops a swap before it starts, and no turn passes.
 
 ### Fixed
 

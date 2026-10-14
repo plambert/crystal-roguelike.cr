@@ -20,6 +20,11 @@ Spectator.describe "wielding, wearing and taking off" do
     Playing.open game
   end
 
+  # The groups the help screen shows for a run.
+  def run_sections : Array(Roguelike::Ui::Keys::Section)
+    carrying.play.sections
+  end
+
   # The letter of the row whose text holds *text*.
   def row_for(run : Playing::Run, text : String) : Char
     found = run.menu.entries.find &.text.includes?(text)
@@ -34,7 +39,7 @@ Spectator.describe "wielding, wearing and taking off" do
 
       run.press "w"
 
-      expect(run.said).to contain "nothing to wield"
+      expect(run.said).to contain "nothing to wield or wear"
       expect(run.menu.showing?).to be_false
     end
 
@@ -119,14 +124,25 @@ Spectator.describe "wielding, wearing and taking off" do
       expect(run.game.player.quivered.try &.kind).to eq Kind::Stone
     end
 
-    it "offers nothing that is worn or drunk" do
+    it "offers weapons and armor and nothing that is drunk" do
       run = carrying [Item.new(Kind::LongSword), Item.new(Kind::ChainMail),
                       Item.new(Kind::HealingPotion)]
 
       run.press "w"
 
-      expect(run.menu.entries.size).to eq 1
-      expect(run.menu.entries.first.text).to contain "long sword"
+      expect(run.menu.entries.size).to eq 2
+      expect(run.menu.entries.any? &.text.includes?("long sword")).to be_true
+      expect(run.menu.entries.any? &.text.includes?("chain mail")).to be_true
+    end
+
+    it "puts armor on" do
+      run = carrying [Item.new Kind::ChainMail]
+
+      run.press "w"
+      run.press "a"
+
+      expect(run.game.player.armor_class).to eq 4
+      expect(run.said).to contain "now wearing"
     end
 
     it "swaps what is in the hand" do
@@ -152,12 +168,20 @@ Spectator.describe "wielding, wearing and taking off" do
   end
 
   describe "W" do
-    it "says so when the character has nothing to wear" do
+    it "does what w does" do
       run = carrying [Item.new Kind::LongSword]
 
       run.press "W"
+      run.press "a"
 
-      expect(run.said).to contain "nothing to wear"
+      expect(run.game.player.wielded.try &.kind).to eq Kind::LongSword
+    end
+
+    it "is left off the help screen" do
+      shown = run_sections.flat_map(&.bindings.bindings).map &.to_s
+
+      expect(shown).to contain "w"
+      expect(shown).not_to contain "W"
     end
 
     it "puts armor on" do
@@ -183,30 +207,33 @@ Spectator.describe "wielding, wearing and taking off" do
       expect(run.game.player.armor_class).to eq 9
     end
 
-    # A person takes one thing off before they put another on. Saying so is
-    # clearer than doing it for them.
-    it "refuses a second piece in one slot" do
+    it "takes the old piece off and puts the new one on" do
       run = carrying [Item.new(Kind::ChainMail), Item.new(Kind::LeatherArmor)]
 
-      run.press "W"
-      run.press row_for(run, "chain mail").to_s
-      run.press "W"
-      run.press row_for(run, "leather armor").to_s
-
-      expect(run.said).to contain "already wearing"
-      expect(run.game.player.armor_class).to eq 4
-    end
-
-    it "takes no turn when it refuses" do
-      run = carrying [Item.new(Kind::ChainMail), Item.new(Kind::LeatherArmor)]
-
-      run.press "W"
+      run.press "w"
       run.press row_for(run, "chain mail").to_s
       turn = run.turn
-
-      run.press "W"
+      run.press "w"
       run.press row_for(run, "leather armor").to_s
 
+      expect(run.log.last(2)).to eq ["You are no longer wearing chain mail.",
+                                     "You are now wearing leather armor."]
+      expect(run.game.player.worn.map &.[1].kind).to eq [Kind::LeatherArmor]
+      expect(run.turn).to be > turn
+    end
+
+    it "refuses a swap when the piece worn is cursed" do
+      run = carrying [Item.new(Kind::ChainMail, blessing: Roguelike::Blessing::Cursed),
+                      Item.new(Kind::LeatherArmor)]
+
+      run.press "w"
+      run.press row_for(run, "chain mail").to_s
+      turn = run.turn
+      run.press "w"
+      run.press row_for(run, "leather armor").to_s
+
+      expect(run.said).to contain "cannot let go"
+      expect(run.game.player.worn.map &.[1].kind).to eq [Kind::ChainMail]
       expect(run.turn).to eq turn
     end
   end

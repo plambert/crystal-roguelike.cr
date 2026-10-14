@@ -216,7 +216,7 @@ none of it is fixed and a preset can rebind the lot.
 | `,` | Pick up what is here |
 | `d` | Drop something |
 | `i` | Inventory |
-| `w` `W` `T` | Wield a weapon, wear armor, take a weapon or armor off |
+| `w` `T` | Wield a weapon or wear armor, swapping out what is there; take a weapon or armor off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
 | `f` `t` | Fire the ranged weapon, throw something |
 | `a` | Apply. Light or put out a torch, a candle, or a wall sconce |

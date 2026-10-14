@@ -224,7 +224,7 @@ module Roguelike
       end
     end
 
-    # Putting a piece of armor on. `W` does this.
+    # Putting a piece of armor on. `w` does this.
     class Wear < Action
       getter t : String = "wear"
 
