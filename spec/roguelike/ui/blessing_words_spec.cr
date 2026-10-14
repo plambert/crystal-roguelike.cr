@@ -58,4 +58,32 @@ Spectator.describe Roguelike::Ui::BlessingWords do
       expect(run.game.log.lines.last).to eq "You feel that the ring is cursed."
     end
   end
+
+  describe "the box of messages" do
+    it "underlines the word as the message pane does" do
+      run = Playing.open
+      run.game.log.add "You feel that the ring is cursed."
+      run.game.log.add "The water is blessed."
+      run.play.refresh
+      run.press "Ctrl+P"
+
+      expect(run.play.history.showing?).to be_true
+
+      # The box is drawn over the message pane, so only rows inside it count.
+      box = run.play.history.rect
+      underlined = ->(text : String, word : String, offset : Int32) do
+        row = (box.y...box.y + box.height).find! { |index| run.rows[index].includes? text }
+        column = run.rows[row].index!(text) + text.index!(word)
+        found = run.buffer.hit column + offset, row
+        raise "nothing is drawn at #{column + offset}, #{row}" unless found
+        run.buffer.styles[found.cell.style].underline
+      end
+
+      expect(underlined.call("ring is cursed.", "cursed", 0)).to eq TermBuf::Underline::Single
+      expect(underlined.call("ring is cursed.", "cursed", 5)).to eq TermBuf::Underline::Single
+      expect(underlined.call("ring is cursed.", "cursed", 6)).to eq TermBuf::Underline::None
+      expect(underlined.call("water is blessed.", "blessed", 0)).to eq TermBuf::Underline::Single
+      expect(underlined.call("water is blessed.", "water", 0)).to eq TermBuf::Underline::None
+    end
+  end
 end

@@ -43,6 +43,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   in a turn than one blow and a long sword or spear does less.
 * The line that says what lies on your square, such as "You see a scroll of identify here.", is
   said again each time you arrive. It no longer carries a count that reads as a quantity.
+* The Ctrl+P message history underlines "blessed" and "cursed" the same way the message pane does.
 
 ## [0.4.1] - 2026-10-12
 

@@ -353,7 +353,7 @@ module TermBuf::Widgets
 
         base = bright if bright && first + row >= from
         view.write 0, row, line, base || Style::DEFAULT
-        accent view, row, line, base || Style::DEFAULT
+        Pager.accent view, row, line, base || Style::DEFAULT, @accents
       end
 
       return unless more
@@ -362,10 +362,13 @@ module TermBuf::Widgets
       view.write 0, spot, @marker, @marker_style
     end
 
-    # Draws the accents `#accents` finds in *line* over the line already
-    # written on *row* in *base*.
-    private def accent(view : View, row : Int32, line : String, base : Style) : Nil
-      finder = @accents
+    # Draws the accents *finder* finds in *line* over the line already
+    # written on *row* in *base*. A `nil` finder draws none.
+    #
+    # Any widget that draws wrapped lines can use this to draw the same
+    # accents a pager draws.
+    def self.accent(view : View, row : Int32, line : String, base : Style,
+                    finder : Proc(String, Array(Accent))?) : Nil
       return unless finder
 
       finder.call(line).each do |mark|

@@ -465,6 +465,7 @@ module Roguelike::Ui
       @menu = Widgets::Menu.new
       @menu.pointer_style = Palette::POINTER_MARK
       @history = HistoryPane.new
+      @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
       @tooltip = Tooltip.new
       watch_the_sidebar
