@@ -304,6 +304,31 @@ module Roguelike::Ui
     # The timer for the next frame of a pan. `nil` when nothing is panning.
     @pan_timer : UInt64? = nil
 
+    # How long the square of a creature pointed at in the Seen list stays lit,
+    # and then dark.
+    BLINK = 500.milliseconds
+
+    # The square lit for the Seen row under the pointer. `nil` when the
+    # pointer is on no creature's row.
+    @spotted : {Int32, Int32}? = nil
+
+    # The timer for the next blink of that square. `nil` when nothing blinks.
+    @blink_timer : UInt64? = nil
+
+    # A right button held down on the map: the cell it went down on and the
+    # camera at that moment.
+    private record Drag, from : {Int32, Int32}, camera : {Int32, Int32}
+
+    # The drag under way. `nil` when the right button is up.
+    @drag : Drag? = nil
+
+    # Where the camera was before the first drag moved it, and the turn it was
+    # dragged on. `nil` when the camera has not been dragged.
+    #
+    # The next turn, or `Escape`, puts the camera back here.
+    @home : {Int32, Int32}? = nil
+    @home_turn : Int32 = 0
+
     # The last teleport the camera panned for. A turn is refreshed many times,
     # and the pan is for the first.
     @panned : Event::Teleported? = nil
@@ -440,6 +465,7 @@ module Roguelike::Ui
       @menu = Widgets::Menu.new
       @menu.pointer_style = Palette::POINTER_MARK
       @history = HistoryPane.new
+      @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
       @tooltip = Tooltip.new
       watch_the_sidebar
@@ -464,6 +490,7 @@ module Roguelike::Ui
     # pointer found.
     private def watch_the_sidebar : Nil
       @nearby.on_point = ->(row : Line, lines : Array(String)?) { detail row, lines }
+      @nearby.on_press = ->(spot : {Int32, Int32}) { pressed_seen spot }
 
       Slot.listed.each do |slot|
         row = @character.slot_row slot
@@ -484,6 +511,16 @@ module Roguelike::Ui
       return unless found
 
       Detail.about @game, found[1]
+    end
+
+    # Answers a click on the Seen row of the creature on *spot*, the way a
+    # click on *spot* itself is answered.
+    #
+    # The box beside the row comes down. The refresh that follows builds the
+    # rows again, and the box would hang beside a row that is gone.
+    private def pressed_seen(spot : {Int32, Int32}) : Nil
+      @tooltip.hide
+      walk_toward spot
     end
 
     # Records what the pointer is over. `nil` for a row about nothing.
@@ -1619,6 +1656,11 @@ module Roguelike::Ui
         return
       end
 
+      if @home && !@examiner.cursoring?
+        come_home
+        return
+      end
+
       @examiner.stop
     end
 
@@ -2469,6 +2511,7 @@ module Roguelike::Ui
     # Draws the screen from the run as it stands.
     private def redraw : Nil
       arrive_on_floor unless @map.floor.same? @game.floor
+      come_home if @home && @home_turn != @game.turn
       @screen.rule.label = Play.floor_name(@game.floor)
       @map.clear_marks
       @map.clear_highlights
@@ -2487,6 +2530,7 @@ module Roguelike::Ui
       @character.fit Play.character_rows @rows
       @nearby.budget = Play.nearby_budget @rows, @character.height
       @nearby.show @game, seen
+      spotlight @nearby.spot
       restate_examine
 
       # The pane reads the floor for what is lying about and the knowledge for
@@ -2516,6 +2560,8 @@ module Roguelike::Ui
     # nowhere to pan from. The camera goes straight there, before the new
     # floor is first drawn.
     private def arrive_on_floor : Nil
+      @drag = nil
+      @home = nil
       @map.floor = @game.floor
       @map.center_on @game.player.x, @game.player.y
     end
@@ -2669,6 +2715,85 @@ module Roguelike::Ui
       end
     end
 
+    # Answers a mouse report the widgets did not claim.
+    #
+    # The right button held down on the map drags the view. Every other
+    # report goes to `#pointed`.
+    #
+    # Answers the sequence the terminal needs, as `#pointed` does.
+    def reported(report : TermBuf::Events::Mouse) : String?
+      x = report.x
+      y = report.y
+      return pointed(x, y, Play.click?(report)) unless dragging? report
+
+      if report.action.press?
+        @drag = Drag.new({x, y}, @map.camera) if @map.cell_at_screen(x, y)
+      elsif report.action.release?
+        @drag = nil
+      else
+        drag_to x, y
+      end
+
+      pointed x, y
+    end
+
+    # Whether *report* is a button going down on the map rather than the
+    # pointer moving.
+    #
+    # A wheel notch arrives as a press too, and it says nothing about where
+    # the person wants to look. The right button drags the view instead.
+    def self.click?(report : TermBuf::Events::Mouse) : Bool
+      report.action.press? && !report.button.wheel? && !report.button.right?
+    end
+
+    # Whether *report* starts, moves or ends a drag of the view.
+    #
+    # A drag starts with the right button going down and moves with the
+    # pointer while it is held. Any release ends it, because some terminals
+    # do not say which button came up. A modal box owns the screen, so no
+    # drag starts while one is up.
+    private def dragging?(report : TermBuf::Events::Mouse) : Bool
+      return !@drag.nil? if report.action.release?
+      return false unless report.button.right?
+      return !@drag.nil? if report.action.motion?
+
+      !modal? && !@menu.showing?
+    end
+
+    # Moves the camera so that the square the drag started on sits under
+    # *x*, *y*.
+    #
+    # The grid stops the camera at the edges of the floor.
+    private def drag_to(x : Int32, y : Int32) : Nil
+      found = @drag
+      return unless found
+
+      wanted = {found.camera[0] + found.from[0] - x, found.camera[1] + found.from[1] - y}
+      before = @map.camera
+      @map.camera = wanted
+      return if @map.camera == before
+
+      unless @home
+        @home = before
+        @home_turn = @game.turn
+      end
+    end
+
+    # Puts the camera back where it was before the view was dragged, then
+    # brings the character into view.
+    #
+    # The character may have moved since, so the camera follows them from
+    # where it was rather than staying where it was.
+    private def come_home : Nil
+      found = @home
+      return unless found
+
+      @home = nil
+      @drag = nil
+      @map.camera = found
+      @map.follow @game.player.x, @game.player.y
+    end
+
     # Records that the pointer is at *x*, *y* of the buffer. *click* says the
     # person pressed a button rather than moved the pointer.
     #
@@ -2687,6 +2812,7 @@ module Roguelike::Ui
       if @menu.showing?
         @detailed = nil
         @nearby.unmark
+        spotlight nil
         return @pointer.away
       end
 
@@ -2694,6 +2820,7 @@ module Roguelike::Ui
       # has a box of its own to keep up.
       if modal?
         @nearby.unmark
+        spotlight nil
         return pointer_away
       end
 
@@ -2703,6 +2830,7 @@ module Roguelike::Ui
       found = @detailed
       @detailed = nil
       @nearby.keep found ? found[0] : nil
+      spotlight @nearby.spot
       app = @app
 
       if found && app
@@ -2725,7 +2853,44 @@ module Roguelike::Ui
       @pointer.over x, y
     end
 
-    # Answers a click on a square of the map.
+    # Lights *spot* on the map, and blinks it, for the Seen row under the
+    # pointer. `nil` puts the light out.
+    #
+    # The square blinks on `BLINK` while the flames move. Under `--no-flicker`
+    # nothing moves on a clock, and it stays lit.
+    private def spotlight(spot : {Int32, Int32}?) : Nil
+      return if spot == @spotted
+
+      stop_blinking
+      @spotted = spot
+      @map.spotlight = spot
+      arm_blink if spot
+    end
+
+    # Arms the next blink, when there is a clock and the flames move.
+    private def arm_blink : Nil
+      app = @app
+      return unless app && @flicker.burning?
+
+      @blink_timer = app.after(BLINK) { blink }
+    end
+
+    # Turns the lit square off if it is on, and on if it is off.
+    private def blink : Nil
+      @blink_timer = nil
+      @map.spotlight = @map.spotlight ? nil : @spotted
+      arm_blink
+    end
+
+    # Cancels the next blink.
+    private def stop_blinking : Nil
+      timer = @blink_timer
+      @blink_timer = nil
+      @app.try &.cancel(timer) if timer
+    end
+
+    # Answers a click on a square of the map, or on the Seen row of the
+    # creature standing there.
     #
     # The first click draws the way there. A second click on the same square
     # walks it. A click on any other square draws the way to that one

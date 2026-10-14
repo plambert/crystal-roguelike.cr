@@ -50,6 +50,10 @@ module Roguelike::Ui
     # changed has not been laid out at the new size yet.
     getter room : Int32 = 0
 
+    # What finds the accents in a wrapped line, as the message pane has them.
+    # `nil` draws none.
+    property accents : Proc(String, Array(Widgets::Pager::Accent))? = nil
+
     def initialize(z : Int32 = Z::DIALOG)
       @list = Widgets::VirtualList(String).new Widgets::Rows.of(@lines)
 
@@ -59,6 +63,7 @@ module Roguelike::Ui
       @list.keymap = nil
       @list.on_draw = ->(view : View, _index : Int32, line : String, _chosen : Bool, _lit : Bool) do
         view.write 0, 0, line
+        Widgets::Pager.accent view, 0, line, Style::DEFAULT, @accents
         nil
       end
 

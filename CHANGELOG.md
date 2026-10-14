@@ -17,6 +17,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   the pack goes into the quiver, as in "You ready 12 +1 arrows (c).". It ranks by the known
   enchantment, then a known blessing, then the larger stack. Ammunition known to be cursed is never
   chosen. With nothing of that kind in the pack, the quiver stays empty and remembers what it held.
+* Pointing at a creature in the Seen list lights its square on the map, blinking about twice a
+  second. With `--no-flicker` the square stays lit without blinking.
+* Clicking a creature in the Seen list draws the way to it, and a second click walks it, the same
+  as clicking the creature's square on the map.
+* Holding the right mouse button on the map and dragging moves the view, so you can look at another
+  part of the floor without moving. The view stays where you leave it until your next turn or
+  `Escape` brings it back to the character. A right click no longer draws a route.
 
 ### Changed
 
@@ -43,6 +50,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   in a turn than one blow and a long sword or spear does less.
 * The line that says what lies on your square, such as "You see a scroll of identify here.", is
   said again each time you arrive. It no longer carries a count that reads as a quantity.
+* The Ctrl+P message history underlines "blessed" and "cursed" the same way the message pane does.
 
 ## [0.4.1] - 2026-10-12
 

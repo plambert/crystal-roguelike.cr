@@ -87,6 +87,13 @@ module Roguelike::Ui
     # the glyph under it stays readable.
     property cursor : {Int32, Int32}? = nil
 
+    # The square lit for the creature pointed at in the Seen list. `nil`
+    # lights nothing.
+    #
+    # The glyph stays and the whole cell takes `Palette::SPOTLIT`, so the
+    # square stands out from routes, aimed lines and the cursor.
+    property spotlight : {Int32, Int32}? = nil
+
     # What is standing on a square. It draws over the terrain. It is not
     # written into the floor.
     #
@@ -129,6 +136,7 @@ module Roguelike::Ui
 
         aimed = @flight[{x, y}]?
         style = style.bg aimed if aimed
+        style = Palette::SPOTLIT if @spotlight == {x, y}
 
         here = @cursor
         style = style.reverse if here && here[0] == x && here[1] == y

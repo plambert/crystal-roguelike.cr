@@ -66,6 +66,13 @@ module Roguelike::Ui
     # changes. A person choosing a direction has to see which door is which.
     OFFERED = TermBuf::Color.rgb 0x3A, 0x4E, 0x2A
 
+    # What the square of a creature pointed at in the Seen list is drawn in.
+    #
+    # Dark on bright amber. The map always draws on `GROUND`, so the pair
+    # stands out whatever the terminal's own colors are.
+    SPOTLIT = Style::DEFAULT.fg(TermBuf::Color.rgb(0x0C, 0x0E, 0x12))
+      .bg(TermBuf::Color.rgb(0xF0, 0xC8, 0x40)).bold
+
     # What a square a shot would cross is drawn on.
     FLIGHT = TermBuf::Color.rgb 0x2E, 0x36, 0x52
 
