@@ -152,7 +152,8 @@ module Roguelike
     effect : Effect = Effect::None,
     power : Dice = Dice::NONE,
     uncountable : Bool = false,
-    proper : Bool = false do
+    proper : Bool = false,
+    brittle : Bool = false do
     # How far a thing nobody made for throwing goes, before its weight is
     # taken off.
     ARM = 10
@@ -208,6 +209,11 @@ module Roguelike
     # Whether one of these can be set alight.
     def light? : Bool
       light > 0
+    end
+
+    # Whether one of these wears out from being fired or thrown.
+    def brittle? : Bool
+      brittle
     end
   end
 
@@ -398,6 +404,13 @@ module Roguelike
       facts.enchantable?
     end
 
+    # Whether one of these wears out from being fired or thrown.
+    #
+    # An arrow and a dart do. A stone and a rock do not.
+    def brittle? : Bool
+      facts.brittle?
+    end
+
     # Whether several are held as one entry with a count.
     def stacks? : Bool
       facts.stacks?
@@ -463,12 +476,13 @@ module Roguelike
       ItemKind::Stone => ItemFacts.new("stone", "stones", ItemClass::Ammunition,
         damage: Dice.new(1, 4), ranged_weapon: ItemKind::Sling, weight: 5),
       ItemKind::Arrow => ItemFacts.new("arrow", "arrows", ItemClass::Ammunition,
-        damage: Dice.new(1, 6), ranged_weapon: ItemKind::Bow, weight: 2),
+        damage: Dice.new(1, 6), ranged_weapon: ItemKind::Bow, weight: 2,
+        brittle: true),
 
       ItemKind::Rock => ItemFacts.new("rock", "rocks", ItemClass::Thrown,
         damage: Dice.new(1, 3), weight: 10, range: 10),
       ItemKind::Dart => ItemFacts.new("dart", "darts", ItemClass::Thrown,
-        damage: Dice.new(1, 4), weight: 2, range: 14),
+        damage: Dice.new(1, 4), weight: 2, range: 14, brittle: true),
 
       ItemKind::Cap => ItemFacts.new("cap", "caps", ItemClass::Armor,
         armor: 1, slot: ArmorSlot::Head, weight: 10),

@@ -336,9 +336,12 @@ Spectator.describe "the message log" do
         run.press "Enter"
       end
 
-      # The last view keeps older lines above the newest for context.
+      # The last view keeps older lines above the newest for context. Those
+      # are the longest run at its top that the pages already end with.
       rest = run.pager.showing
-      pages.concat rest[(rest.index(pages.last) || -1) + 1..]
+      sizes = 0..Math.min(rest.size, pages.size)
+      seen = sizes.select { |size| rest.first(size) == pages.last(size) }.max
+      pages.concat rest[seen..]
 
       # Every line of the volley shows, in order, with none skipped between
       # one page and the next.

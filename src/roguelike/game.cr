@@ -118,6 +118,13 @@ module Roguelike
     # `nil` until they have, for the same reason as `@splits`.
     @flanked : Bool? = nil
 
+    # How many missiles have been asked whether they wear out.
+    #
+    # The `wear` stream, so a broken arrow does not shift what the next swing
+    # rolls. It is `nil` until the first such missile lands, for the same
+    # reason as `@splits`.
+    @wears : Int32? = nil
+
     # How many swings one creature has aimed at another.
     #
     # The `brawl` stream, so a fight between two creatures does not shift
@@ -1975,7 +1982,8 @@ module Roguelike
     # The letter of the best stack of *kind* in the pack, or `nil`.
     #
     # A stack ranks by what the character knows of it. The enchantment
-    # comes first, then a known blessing, then the larger count. An
+    # comes first, then a known blessing, then the condition, then the
+    # larger count. A damaged stack ranks below a plain one. An
     # enchantment on a kind not yet known, and a blessing not yet known,
     # rank as plain. A stack known to be cursed is never chosen. Equal
     # stacks go to the earlier letter.
@@ -1990,7 +1998,8 @@ module Roguelike
         next if item.blessing_known? && item.blessing.cursed?
 
         blessed = item.blessing_known? && item.blessing.blessed? ? 1 : 0
-        rank = {known ? item.enchantment : 0, blessed, @player.inventory.count(letter)}
+        rank = {known ? item.enchantment : 0, blessed, item.condition.modifier,
+                @player.inventory.count(letter)}
         next if best_rank && (rank <=> best_rank) <= 0
 
         best = letter
@@ -2017,10 +2026,45 @@ module Roguelike
 
       hit struck, missile.kind.label, bonus, damage if struck
 
-      # The character has had it in their hands, wherever it lands.
-      @sighted << missile.id
-      floor.drop spot[0], spot[1], missile
+      if wear missile
+        # The character has had it in their hands, wherever it lands.
+        @sighted << missile.id
+        floor.drop spot[0], spot[1], missile
+      end
       spend cost
+    end
+
+    # The chance, in percent, that a sound arrow or dart is damaged when it
+    # lands.
+    WEAR = 10
+
+    # The chance, in percent, that a damaged arrow or dart breaks when it
+    # lands.
+    SNAP = 5
+
+    # Rolls whether *missile* wears out as it lands. Answers whether it is
+    # still there to drop.
+    #
+    # A sound one may become damaged, and nothing is said. A damaged one may
+    # break, and the character is told. A kind that is not brittle rolls
+    # nothing, so a stone draws no number from the stream.
+    private def wear(missile : Item) : Bool
+      return true unless missile.kind.brittle?
+
+      root = (@root ||= Rng.new @world.seed)
+      stream = root.derive "wear", wears
+      @wears = wears + 1
+      roll = stream.rand 100
+
+      unless missile.condition.damaged?
+        missile.crack if roll < WEAR
+        return true
+      end
+      return true unless roll < SNAP
+
+      say "The #{@lore.noun_for missile} breaks.",
+        Event::Destroyed.new(missile.id, name(missile))
+      false
     end
 
     # Puts *missile* on `#flights` and tells `#on_flight` about it.
@@ -2515,7 +2559,7 @@ module Roguelike
         say "The #{noun} misses you.", Event::Attack.new(false, attacker: shooter, with: noun)
       end
 
-      floor.drop spot[0], spot[1], one
+      floor.drop spot[0], spot[1], one if wear one
       Costs.loose weapon
     end
 
@@ -2766,6 +2810,11 @@ module Roguelike
     # How many times a creature has split in this run.
     def splits : Int32
       @splits || 0
+    end
+
+    # How many missiles have been asked whether they wear out in this run.
+    def wears : Int32
+      @wears || 0
     end
 
     # Whether the character has been told they are flanked in this run.

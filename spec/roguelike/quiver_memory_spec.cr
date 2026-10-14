@@ -132,9 +132,9 @@ Spectator.describe "the quiver remembering its ammunition" do
 
     it "takes the larger of two equal stacks" do
       game = shot_out [
-        Item.new(Kind::Arrow, enchantment: 1, count: 3),
+        Item.new(Kind::Arrow, enchantment: 1, count: 3, blessing_known: true),
         Item.new(Kind::Arrow, enchantment: 1, count: 8,
-          condition: Roguelike::Condition::Damaged),
+          blessing: Blessing::Blessed),
       ]
 
       expect(game.player.equipment[Roguelike::Slot::Quiver]).to eq 'd'
