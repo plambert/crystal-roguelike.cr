@@ -14,8 +14,8 @@ module Roguelike::Ui
   #
   # Pointing at a row raises a tooltip about what is on it: the creature, the
   # item, the fixture or the terrain the row names. The pane writes the lines
-  # and `Play` puts the box up. A creature's row also knows the square the
-  # creature stands on, which `Play` lights on the map.
+  # and `Play` puts the box up. A row of "Seen" also knows the square the
+  # creature stands on or the item lies on, which `Play` lights on the map.
   #
   # `ExaminePane` is the other half of the sidebar. That pane describes one
   # square somebody pointed at. This pane writes both its sections without
@@ -61,8 +61,8 @@ module Roguelike::Ui
     # hands over `nil` and takes any box that was up back down.
     property on_point : Proc(Line, Array(String)?, Nil)? = nil
 
-    # What runs when a button goes down on a creature's row, with the square
-    # the creature stands on.
+    # What runs when a button goes down on a row of "Seen", with the square
+    # the creature stands on or the item lies on.
     #
     # `Play` answers it the way it answers a click on that square of the map.
     property on_press : Proc({Int32, Int32}, Nil)? = nil
@@ -171,21 +171,28 @@ module Roguelike::Ui
       @spots.clear
 
       creatures(game, sight).each do |creature|
-        line = creature_row game, sight, creature
-        spot = creature.at
-        @spots[line] = spot
-        line.on_press = -> { @on_press.try &.call(spot); nil }
-        rows << line
+        rows << place(creature_row(game, sight, creature), creature.at)
       end
 
       litter(game, sight).each do |lying|
         item = lying.item
         regard = game.regard_of_item lying.spot[0], lying.spot[1], sight
-        rows << row(game.name(item, regard), Palette[item].style,
-          Detail.about(game, item, regard))
+        line = row game.name(item, regard), Palette[item].style,
+          Detail.about(game, item, regard)
+        rows << place(line, lying.spot)
       end
 
       fill @seen, rows, Math.max(@budget - @here.children.size, LEAST_SEEN)
+    end
+
+    # Ties *line* to *spot*, the square it is about.
+    #
+    # `#spot` answers it while the row is marked, and a button going down on
+    # the row hands it to `on_press`.
+    private def place(line : Line, spot : {Int32, Int32}) : Line
+      @spots[line] = spot
+      line.on_press = -> { @on_press.try &.call(spot); nil }
+      line
     end
 
     # One row for *creature*.
@@ -345,8 +352,8 @@ module Roguelike::Ui
       @marked = nil
     end
 
-    # The square of the creature on the marked row. `nil` when no row is
-    # marked or the marked row is not about a creature.
+    # The square the marked row is about. `nil` when no row is marked or
+    # the marked row is about nothing on the map.
     def spot : {Int32, Int32}?
       found = @marked
       @spots[found]? if found
@@ -355,7 +362,7 @@ module Roguelike::Ui
     # The last row this pane was given as the row under the pointer.
     @marked : Line? = nil
 
-    # The square each creature row of "Seen" is about, by the row.
+    # The square each row of "Seen" is about, by the row.
     @spots = Hash(Line, {Int32, Int32}).new.compare_by_identity
   end
 end

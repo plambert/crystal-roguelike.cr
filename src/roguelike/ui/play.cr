@@ -513,8 +513,8 @@ module Roguelike::Ui
       Detail.about @game, found[1]
     end
 
-    # Answers a click on the Seen row of the creature on *spot*, the way a
-    # click on *spot* itself is answered.
+    # Answers a click on the Seen row about *spot*, the way a click on
+    # *spot* itself is answered.
     #
     # The box beside the row comes down. The refresh that follows builds the
     # rows again, and the box would hang beside a row that is gone.
@@ -2889,8 +2889,8 @@ module Roguelike::Ui
       @app.try &.cancel(timer) if timer
     end
 
-    # Answers a click on a square of the map, or on the Seen row of the
-    # creature standing there.
+    # Answers a click on a square of the map, or on the Seen row of what is
+    # there.
     #
     # The first click draws the way there. A second click on the same square
     # walks it. A click on any other square draws the way to that one

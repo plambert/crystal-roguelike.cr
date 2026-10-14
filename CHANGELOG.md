@@ -25,10 +25,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   masterwork one that is damaged is damaged from then on. Stones and rocks never wear out. Arrows
   that creatures shoot wear out the same way. A damaged one of the quiver's own arrows is still
   picked up on the way, by a walk and by `X`, and goes under its own letter.
-* Pointing at a creature in the Seen list lights its square on the map, blinking about twice a
-  second. With `--no-flicker` the square stays lit without blinking.
-* Clicking a creature in the Seen list draws the way to it, and a second click walks it, the same
-  as clicking the creature's square on the map.
+* Pointing at a creature or an item in the Seen list lights its square on the map, blinking about
+  twice a second. With `--no-flicker` the square stays lit without blinking.
+* Clicking a creature or an item in the Seen list draws the way to it, and a second click walks
+  it, the same as clicking its square on the map.
 * Holding the right mouse button on the map and dragging moves the view, so you can look at another
   part of the floor without moving. The view stays where you leave it until your next turn or
   `Escape` brings it back to the character. A right click no longer draws a route.

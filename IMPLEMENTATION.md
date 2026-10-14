@@ -4842,8 +4842,7 @@ they were raised, not in the order they should be done.
 
 ### The Seen list
 
-Hovering a row with the mouse should light the creature's square on the map. The list should be
-sorted by how far each creature is from the character.
+The list should be sorted by how far each creature is from the character.
 
 ### An options screen, and a pickup filter
 
@@ -4857,9 +4856,9 @@ Another preference: whether a bar's color comes from the gradient or from the fi
 
 ### The rest of the route on the map
 
-A route is drawn and walked by clicking. Two pieces of what was asked for are not built. The route
+A route is drawn and walked by clicking. One piece of what was asked for is not built. The route
 should fade after a few seconds with no movement and no other click, rather than waiting for a turn
-to pass. Clicking a row of the Seen list should draw a route to that creature.
+to pass.
 
 ### A minimap
 

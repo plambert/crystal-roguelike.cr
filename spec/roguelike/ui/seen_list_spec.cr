@@ -100,17 +100,50 @@ Spectator.describe "the Seen list" do
       expect(run.armed).to be_empty
     end
 
-    it "lights nothing for a row about an item" do
+    it "lights nothing for the row saying nothing is in sight" do
       run = room
       run.game.floor.monsters.clear
-      run.game.floor.drop GOBLIN[0], GOBLIN[1], Roguelike::Item.new(Roguelike::ItemKind::Dagger)
       run.play.refresh
       run.render
 
       hover_row run
 
       expect(run.map.spotlight).to be_nil
-      expect(first_seen(run).marks).not_to be_nil
+    end
+  end
+
+  # A run on `ROOM` with a dagger lying where the goblin stood and no goblin.
+  def littered : Playing::Run
+    run = room
+    run.game.floor.monsters.clear
+    run.game.floor.drop GOBLIN[0], GOBLIN[1], Roguelike::Item.new(Roguelike::ItemKind::Dagger)
+    run.play.refresh
+    run.render
+    run
+  end
+
+  describe "hovering an item's row" do
+    it "lights the item's square on the map" do
+      run = littered
+
+      hover_row run
+
+      expect(run.map.spotlight).to eq GOBLIN
+      expect(goblin_style(run)).to eq Palette::SPOTLIT
+    end
+  end
+
+  describe "clicking an item's row" do
+    it "draws the way to the item, and walks it on a second click" do
+      run = littered
+      row = first_seen run
+
+      run.click row.rect.x + 1, row.rect.y
+      expect(run.turn).to eq 0
+      expect(run.map.highlighted? GOBLIN[0], GOBLIN[1]).to be_true
+
+      run.click row.rect.x + 1, row.rect.y
+      expect(run.at).to eq GOBLIN
     end
   end
 
