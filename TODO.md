@@ -32,14 +32,6 @@ back to leave the room by another exit. Once it has entered a passage it follows
 wherever it leads before it considers any other frontier, so a walk reads as a route rather than
 a dither.
 
-### The quiver refills itself from the pack
-
-When the last of the quiver's ammunition is fired or thrown, the game puts equivalent ammunition
-from the pack in its place, best first. After the last blessed +3 arrow, uncursed +3 arrows come
-next if they are carried, then +2, then +1, and so on down. Ammunition known to be cursed is never
-chosen. It ranks by what the character knows of each stack, and the message pane says what the
-quiver now holds. With nothing equivalent in the pack the quiver stays empty and keeps its memory.
-
 ### Ammunition and other items can be damaged, and then destroyed
 
 An item can be damaged, and a damaged item has a small chance of being destroyed each time it is
@@ -56,19 +48,6 @@ behind it, so dead ends and small pockets are cleared while the character is bes
 of being walked back to across the whole floor at the end. The size of what lies behind a
 frontier is estimated from the unknown squares reachable through it, and distance still breaks
 ties.
-
-### Blessed and cursed are underlined in the message pane
-
-The words "blessed" and "cursed" in a message are underlined, white and red, where the terminal
-draws colored underlines, and plain underlined where it does not, so the one word that decides
-whether to use an item stands out from the rest of the line.
-
-### Explore ignores items seen from far away
-
-In a cavern the character sees a long way across open floor, and explore stops for items that
-lie at the far edge of sight. Such an item is not treated as seen at all until the character is
-close enough to make out what it is, so the walk carries on past it and stops only once the
-item's details can be read.
 
 ### An options screen, and a pickup filter
 
@@ -198,6 +177,24 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### Explore ignores items seen from far away
+
+`X`, `_` and `v` no longer stop for an item seen from too far off to read. The walk goes on, and
+it stops when the character comes within eight squares and can make out what the item is. Once
+nothing is left to see on a floor, `X` walks toward such an item and stops when it can read it.
+
+### Blessed and cursed are underlined in the message pane
+
+The words "blessed" and "cursed" in the message pane are underlined, white for blessed and red for
+cursed. A terminal that cannot color an underline draws a plain one. "Uncursed" is not marked.
+
+### The quiver refills itself from the pack
+
+When the last of the quiver's ammunition is fired or thrown, the best stack of the same kind in
+the pack goes into the quiver, and the message pane says so. It ranks by the known enchantment,
+then a known blessing, then the larger stack. Ammunition known to be cursed is never chosen. With
+nothing of that kind in the pack, the quiver stays empty and remembers what it held.
 
 ### A key to walk to what explore just saw
 
