@@ -19,6 +19,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   chosen. With nothing of that kind in the pack, the quiver stays empty and remembers what it held.
 * Pointing at a creature in the Seen list lights its square on the map, blinking about twice a
   second. With `--no-flicker` the square stays lit without blinking.
+* Clicking a creature in the Seen list draws the way to it, and a second click walks it, the same
+  as clicking the creature's square on the map.
 
 ### Changed
 

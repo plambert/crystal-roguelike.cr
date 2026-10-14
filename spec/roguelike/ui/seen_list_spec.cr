@@ -113,4 +113,51 @@ Spectator.describe "the Seen list" do
       expect(first_seen(run).marks).not_to be_nil
     end
   end
+
+  describe "clicking a creature's row" do
+    # Clicks the first Seen row.
+    def click_row(run : Playing::Run) : Nil
+      row = first_seen run
+      run.click row.rect.x + 1, row.rect.y
+    end
+
+    it "draws the way to the creature and takes no turn" do
+      run = room
+
+      click_row run
+
+      expect(run.turn).to eq 0
+      expect(run.at).to eq({5, 3})
+      expect(run.map.highlighted? GOBLIN[0], GOBLIN[1]).to be_true
+      expect(run.map.highlighted? 7, 3).to be_true
+      expect(run.play.tooltip.showing?).to be_false
+    end
+
+    it "draws the same way a click on the creature's square draws" do
+      by_row = room
+      click_row by_row
+
+      on_map = room
+      spot = on_map.map.screen_of(GOBLIN[0], GOBLIN[1]) || raise "the goblin is off the map"
+      on_map.click spot[0], spot[1]
+
+      expect(by_row.map.highlights).to eq on_map.map.highlights
+    end
+
+    it "walks the way on a second click, as two clicks on the square do" do
+      by_row = room
+      click_row by_row
+      click_row by_row
+
+      on_map = room
+      spot = on_map.map.screen_of(GOBLIN[0], GOBLIN[1]) || raise "the goblin is off the map"
+      on_map.click spot[0], spot[1]
+      on_map.click spot[0], spot[1]
+
+      expect(by_row.turn).to be > 0
+      expect(by_row.at).not_to eq GOBLIN
+      expect(by_row.at).to eq on_map.at
+      expect(by_row.log).to eq on_map.log
+    end
+  end
 end

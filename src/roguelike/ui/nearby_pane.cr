@@ -61,6 +61,12 @@ module Roguelike::Ui
     # hands over `nil` and takes any box that was up back down.
     property on_point : Proc(Line, Array(String)?, Nil)? = nil
 
+    # What runs when a button goes down on a creature's row, with the square
+    # the creature stands on.
+    #
+    # `Play` answers it the way it answers a click on that square of the map.
+    property on_press : Proc({Int32, Int32}, Nil)? = nil
+
     # How many rows the two sections may take between them.
     #
     # The owner works this out from the height of the screen and sets it on
@@ -166,7 +172,9 @@ module Roguelike::Ui
 
       creatures(game, sight).each do |creature|
         line = creature_row game, sight, creature
-        @spots[line] = creature.at
+        spot = creature.at
+        @spots[line] = spot
+        line.on_press = -> { @on_press.try &.call(spot); nil }
         rows << line
       end
 
