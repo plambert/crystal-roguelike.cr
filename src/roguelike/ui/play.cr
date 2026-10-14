@@ -304,6 +304,17 @@ module Roguelike::Ui
     # The timer for the next frame of a pan. `nil` when nothing is panning.
     @pan_timer : UInt64? = nil
 
+    # How long the square of a creature pointed at in the Seen list stays lit,
+    # and then dark.
+    BLINK = 500.milliseconds
+
+    # The square lit for the Seen row under the pointer. `nil` when the
+    # pointer is on no creature's row.
+    @spotted : {Int32, Int32}? = nil
+
+    # The timer for the next blink of that square. `nil` when nothing blinks.
+    @blink_timer : UInt64? = nil
+
     # The last teleport the camera panned for. A turn is refreshed many times,
     # and the pan is for the first.
     @panned : Event::Teleported? = nil
@@ -2489,6 +2500,7 @@ module Roguelike::Ui
       @character.fit Play.character_rows @rows
       @nearby.budget = Play.nearby_budget @rows, @character.height
       @nearby.show @game, seen
+      spotlight @nearby.spot
       restate_examine
 
       # The pane reads the floor for what is lying about and the knowledge for
@@ -2689,6 +2701,7 @@ module Roguelike::Ui
       if @menu.showing?
         @detailed = nil
         @nearby.unmark
+        spotlight nil
         return @pointer.away
       end
 
@@ -2696,6 +2709,7 @@ module Roguelike::Ui
       # has a box of its own to keep up.
       if modal?
         @nearby.unmark
+        spotlight nil
         return pointer_away
       end
 
@@ -2705,6 +2719,7 @@ module Roguelike::Ui
       found = @detailed
       @detailed = nil
       @nearby.keep found ? found[0] : nil
+      spotlight @nearby.spot
       app = @app
 
       if found && app
@@ -2725,6 +2740,42 @@ module Roguelike::Ui
       walk_toward @examiner.spot if click
 
       @pointer.over x, y
+    end
+
+    # Lights *spot* on the map, and blinks it, for the Seen row under the
+    # pointer. `nil` puts the light out.
+    #
+    # The square blinks on `BLINK` while the flames move. Under `--no-flicker`
+    # nothing moves on a clock, and it stays lit.
+    private def spotlight(spot : {Int32, Int32}?) : Nil
+      return if spot == @spotted
+
+      stop_blinking
+      @spotted = spot
+      @map.spotlight = spot
+      arm_blink if spot
+    end
+
+    # Arms the next blink, when there is a clock and the flames move.
+    private def arm_blink : Nil
+      app = @app
+      return unless app && @flicker.burning?
+
+      @blink_timer = app.after(BLINK) { blink }
+    end
+
+    # Turns the lit square off if it is on, and on if it is off.
+    private def blink : Nil
+      @blink_timer = nil
+      @map.spotlight = @map.spotlight ? nil : @spotted
+      arm_blink
+    end
+
+    # Cancels the next blink.
+    private def stop_blinking : Nil
+      timer = @blink_timer
+      @blink_timer = nil
+      @app.try &.cancel(timer) if timer
     end
 
     # Answers a click on a square of the map.

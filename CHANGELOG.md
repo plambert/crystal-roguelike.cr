@@ -17,6 +17,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   the pack goes into the quiver, as in "You ready 12 +1 arrows (c).". It ranks by the known
   enchantment, then a known blessing, then the larger stack. Ammunition known to be cursed is never
   chosen. With nothing of that kind in the pack, the quiver stays empty and remembers what it held.
+* Pointing at a creature in the Seen list lights its square on the map, blinking about twice a
+  second. With `--no-flicker` the square stays lit without blinking.
 
 ### Changed
 
