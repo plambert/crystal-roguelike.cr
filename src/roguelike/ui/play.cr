@@ -504,7 +504,14 @@ module Roguelike::Ui
 
     # The bindings that belong to the game rather than to the application.
     def bindings : Widgets::Bindings
-      sections.reduce(Keys.examining(self)) { |found, section| found.merge section.bindings }
+      found = sections.reduce(Keys.examining(self)) { |held, section| held.merge section.bindings }
+      found.merge unlisted
+    end
+
+    # The keys this run answers that the help screen leaves out. A recorded
+    # run has none.
+    def unlisted : Widgets::Bindings
+      @viewer ? Widgets::Bindings.new : Keys.unlisted(self)
     end
 
     # The keys this run answers, in the groups the help screen shows, less
@@ -2277,24 +2284,15 @@ module Roguelike::Ui
 
     # ------------------------------------------------------------ equipment
 
-    # Asks which carried item to ready, then readies it.
+    # Asks which carried item to wield or wear, then wields or wears it.
     #
-    # Only what can be held is offered. `Game#wield` picks the slot from what
-    # the item is, so one key readies a sword, a bow and a quiver of arrows.
+    # Weapons and armor are both offered. `Game#don` decides by what the item
+    # is, and takes off what is in its slot first.
     def wield : Nil
-      offer "Wield what?", "You have nothing to wield.",
-        ->(item : Item) { Slot.for(item).try(&.weapon?) || false } do |letter|
+      offer "Wield or wear what?", "You have nothing to wield or wear.",
+        ->(item : Item) { !Slot.for(item).nil? } do |letter|
         id = id_under letter
-        @game.perform Action::Wield.new(id) if id
-      end
-    end
-
-    # Asks which carried piece of armor to put on, then puts it on.
-    def wear : Nil
-      offer "Wear what?", "You have nothing to wear.",
-        ->(item : Item) { Slot.for(item).try(&.armor?) || false } do |letter|
-        id = id_under letter
-        @game.perform Action::Wear.new(id) if id
+        @game.don id if id
       end
     end
 

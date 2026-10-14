@@ -5669,8 +5669,7 @@ module Roguelike
 
     # Puts on what is under *letter*. Answers whether it went on.
     #
-    # A slot already filled refuses. A person takes one thing off before they
-    # put another on, and saying so is clearer than doing it for them.
+    # A slot already filled refuses. `#don` takes the old piece off first.
     def wear(letter : Char) : Bool
       item = @player.inventory[letter]
       return false unless item
@@ -5738,6 +5737,70 @@ module Roguelike
         Event::Removed.new(slot, item.id, name(item))
       spend Costs.donning(slot)
       true
+    end
+
+    # Wields or wears the item *id* by what it is. Answers whether it went on.
+    #
+    # `w` reaches this. A weapon is wielded and a piece of armor is worn. A
+    # slot that already holds something is emptied first, so a swap is two
+    # actions. Each goes through `#perform`, so a replay holds a `Remove` and
+    # then a `Wield` or a `Wear`, and plays them back as they were played.
+    #
+    # The world acts between the two. A creature coming into view, or a blow
+    # landing, stops the swap after the first. The old piece is then off and
+    # the new one is still in the pack, and the last line says so.
+    def don(id : Int32) : Bool
+      item = letter_of(id).try { |letter| @player.inventory[letter] }
+      return false unless item
+
+      slot = Slot.for item
+      return put_on(id, slot) unless slot && swap?(item, slot)
+
+      watched = Watch.on self, sight
+      perform Action::Remove.new(slot)
+      return false if over? || @player.in_slot(slot)
+
+      halt = interrupted watched
+      return put_on(id, slot) unless halt
+
+      verb = slot.armor? ? "put on" : "wielded"
+      say "You are interrupted, and have not #{verb} #{the item} yet!",
+        Event::Interrupted.new(halt, item.id, name(item))
+      false
+    end
+
+    # Wields or wears the item *id* through `#perform`, and answers whether
+    # it is in *slot* afterwards. A slot of `nil` wields, and the rule then
+    # says the item cannot be wielded.
+    private def put_on(id : Int32, slot : Slot?) : Bool
+      perform(slot.try(&.armor?) ? Action::Wear.new(id) : Action::Wield.new(id))
+      letter = letter_of id
+      !slot.nil? && !letter.nil? && @player.equipment.slot_of(letter) == slot
+    end
+
+    # Whether putting *item* in *slot* takes something else off first.
+    #
+    # Armor made for somebody else's size never does. `#wear` says why it
+    # will not go on, and a swap leaves the old piece where it is.
+    private def swap?(item : Item, slot : Slot) : Bool
+      held = @player.in_slot slot
+      return false if held.nil? || held.same?(item)
+
+      slot.weapon? || item.fits?(Player::SIZE)
+    end
+
+    # What stopped a swap after its first action. `nil` when nothing did.
+    private def interrupted(before : Watch) : Halt?
+      return Halt::Hurt if @player.hit_points < before.health
+      return Halt::Creature if arrived_in_sight? before.seen, sight
+
+      nil
+    end
+
+    # *item* named with "the" in front.
+    private def the(item : Item) : String
+      noun = @lore.noun_for item
+      item.kind.proper? ? noun : "the #{noun}"
     end
 
     # Every filled slot, in the order `Slot` names them.

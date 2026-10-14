@@ -49,6 +49,7 @@ module Roguelike::Ui
 
       help.sections = sections
       sections.each { |section| app.keymap = app.keymap.merge section.bindings }
+      app.keymap = app.keymap.merge play.unlisted if play
       help
     end
 
@@ -151,12 +152,20 @@ module Roguelike::Ui
     # What the character wields and wears.
     def self.wearing(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
-        map.bind TermBuf::Key.parse("w"), "wield a weapon",
+        map.bind TermBuf::Key.parse("w"), "wield a weapon or wear armor",
           ->(_context : Widgets::Context) { play.wield; nil }
-        map.bind TermBuf::Key.parse("W"), "wear armor",
-          ->(_context : Widgets::Context) { play.wear; nil }
         map.bind TermBuf::Key.parse("T"), "take something off",
           ->(_context : Widgets::Context) { play.take_off; nil }
+      end
+    end
+
+    # Keys that do what a listed key does and are left off the help screen.
+    #
+    # `W` once wore armor. It now does what `w` does.
+    def self.unlisted(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("W"), "wield a weapon or wear armor",
+          ->(_context : Widgets::Context) { play.wield; nil }
       end
     end
 

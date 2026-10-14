@@ -47,6 +47,7 @@ module Roguelike
       "ground"         => Ground,
       "healed"         => Healed,
       "identified"     => Identified,
+      "interrupted"    => Interrupted,
       "kindled"        => Kindled,
       "level_up"       => LevelUp,
       "lights_out"     => LightsOut,
@@ -873,6 +874,19 @@ module Roguelike
       getter name : String
 
       def initialize(@slot : Slot, @item : Int32, @name : String)
+      end
+    end
+
+    # A swap that stopped after the old piece came off and before the new
+    # one went on. *item* is the new piece, which is still in the pack.
+    class Interrupted < Event
+      getter kind : String = "interrupted"
+
+      getter halt : Halt
+      getter item : Int32
+      getter name : String
+
+      def initialize(@halt : Halt, @item : Int32, @name : String)
       end
     end
 
