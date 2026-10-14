@@ -2034,13 +2034,27 @@ module Roguelike
       spend cost
     end
 
-    # The chance, in percent, that a sound arrow or dart is damaged when it
-    # lands.
-    WEAR = 10
+    # What the wear chances are out of. A quarter of a percent each, so
+    # two halvings of `SNAP` still come out whole.
+    WEAR_OUT_OF = 400
 
-    # The chance, in percent, that a damaged arrow or dart breaks when it
-    # lands.
-    SNAP = 5
+    # The chance that a sound arrow or dart is damaged when it lands. One
+    # in ten.
+    WEAR = 40
+
+    # The chance that a damaged arrow or dart breaks when it lands. One in
+    # twenty.
+    SNAP = 20
+
+    # *chance* out of `WEAR_OUT_OF` for *missile*.
+    #
+    # A masterwork one has half the chance, and a blessed one half again.
+    # The blessing counts whether or not the character knows of it.
+    def self.wear_chance(chance : Int32, missile : Item) : Int32
+      chance //= 2 if missile.condition.masterwork?
+      chance //= 2 if missile.blessed?
+      chance
+    end
 
     # Rolls whether *missile* wears out as it lands. Answers whether it is
     # still there to drop.
@@ -2054,13 +2068,13 @@ module Roguelike
       root = (@root ||= Rng.new @world.seed)
       stream = root.derive "wear", wears
       @wears = wears + 1
-      roll = stream.rand 100
+      roll = stream.rand WEAR_OUT_OF
 
       unless missile.condition.damaged?
-        missile.crack if roll < WEAR
+        missile.crack if roll < Game.wear_chance(WEAR, missile)
         return true
       end
-      return true unless roll < SNAP
+      return true unless roll < Game.wear_chance(SNAP, missile)
 
       say "The #{@lore.noun_for missile} breaks.",
         Event::Destroyed.new(missile.id, name(missile))

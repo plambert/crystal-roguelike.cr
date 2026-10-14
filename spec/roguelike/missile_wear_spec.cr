@@ -1,6 +1,7 @@
 require "../spec_helper"
 
 Spectator.describe "missiles wearing out" do
+  alias Blessing = Roguelike::Blessing
   alias Condition = Roguelike::Condition
   alias Floor = Roguelike::Floor
   alias Game = Roguelike::Game
@@ -62,6 +63,60 @@ Spectator.describe "missiles wearing out" do
 
       expect(landed(game).values.sum).to eq SHOTS
       expect(game.log.lines.none? &.ends_with?("breaks.")).to be_true
+    end
+  end
+
+  describe "a masterwork arrow" do
+    it "comes down damaged half as often" do
+      plain = fired Kind::Bow, Item.new(Kind::Arrow, count: SHOTS)
+      fine = fired Kind::Bow, Item.new(Kind::Arrow, condition: Condition::Masterwork, count: SHOTS)
+
+      expect(landed(fine)[Condition::Damaged]).to be < landed(plain)[Condition::Damaged]
+      expect(landed(fine)[Condition::Damaged]).to be > 0
+    end
+
+    it "is plainly damaged once it wears" do
+      game = fired Kind::Bow, Item.new(Kind::Arrow, condition: Condition::Masterwork, count: SHOTS)
+
+      expect(landed(game).keys.sort!).to eq [Condition::Damaged, Condition::Masterwork]
+    end
+  end
+
+  describe "a blessed arrow" do
+    it "comes down damaged half as often, known or not" do
+      plain = fired Kind::Bow, Item.new(Kind::Arrow, count: SHOTS)
+      holy = fired Kind::Bow, Item.new(Kind::Arrow, blessing: Blessing::Blessed, count: SHOTS)
+
+      expect(landed(holy)[Condition::Damaged]).to be < landed(plain)[Condition::Damaged]
+    end
+
+    it "breaks half as often" do
+      plain = fired Kind::Bow, Item.new(Kind::Arrow, condition: Condition::Damaged, count: SHOTS)
+      holy = fired Kind::Bow, Item.new(Kind::Arrow, condition: Condition::Damaged,
+        blessing: Blessing::Blessed, count: SHOTS)
+
+      expect(landed(holy)[Condition::Damaged]).to be > landed(plain)[Condition::Damaged]
+    end
+  end
+
+  describe "Game.wear_chance" do
+    it "halves for masterwork and halves again for blessed" do
+      plain = Item.new Kind::Arrow
+      fine = Item.new Kind::Arrow, condition: Condition::Masterwork
+      holy = Item.new Kind::Arrow, blessing: Blessing::Blessed
+      both = Item.new Kind::Arrow, condition: Condition::Masterwork, blessing: Blessing::Blessed
+
+      expect(Game.wear_chance(Game::WEAR, plain)).to eq 40
+      expect(Game.wear_chance(Game::WEAR, fine)).to eq 20
+      expect(Game.wear_chance(Game::WEAR, holy)).to eq 20
+      expect(Game.wear_chance(Game::WEAR, both)).to eq 10
+      expect(Game.wear_chance(Game::SNAP, both)).to eq 5
+    end
+
+    it "does not drop for a curse" do
+      cursed = Item.new Kind::Arrow, blessing: Blessing::Cursed
+
+      expect(Game.wear_chance(Game::WEAR, cursed)).to eq Game::WEAR
     end
   end
 

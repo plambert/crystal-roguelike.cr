@@ -20,10 +20,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   and remembers what it held.
 * Arrows and darts wear out. Each one that lands has a 1 in 10 chance to become damaged, and a
   damaged one has a 1 in 20 chance to break, as in "The damaged arrow breaks.". Damaged arrows and
-  darts are named as damaged, hit a little less hard, and do not stack with sound ones. Stones and
-  rocks never wear out. Arrows that creatures shoot wear out the same way. A damaged one of the
-  quiver's own arrows is still picked up on the way, by a walk and by `X`, and goes under its own
-  letter.
+  darts are named as damaged, hit a little less hard, and do not stack with sound ones. A masterwork
+  one has half the chance, and a blessed one half again, of being damaged or of breaking. A
+  masterwork one that is damaged is damaged from then on. Stones and rocks never wear out. Arrows
+  that creatures shoot wear out the same way. A damaged one of the quiver's own arrows is still
+  picked up on the way, by a walk and by `X`, and goes under its own letter.
 * Pointing at a creature in the Seen list lights its square on the map, blinking about twice a
   second. With `--no-flicker` the square stays lit without blinking.
 * Clicking a creature in the Seen list draws the way to it, and a second click walks it, the same
