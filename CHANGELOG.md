@@ -63,6 +63,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The line that says what lies on your square, such as "You see a scroll of identify here.", is
   said again each time you arrive. It no longer carries a count that reads as a quantity.
 * The Ctrl+P message history underlines "blessed" and "cursed" the same way the message pane does.
+* A tooltip left up beside a sidebar row while a turn passes no longer jumps to the top left corner
+  of the screen. It comes down with the redraw, and the next movement of the pointer puts it back.
 
 ## [0.4.1] - 2026-10-12
 

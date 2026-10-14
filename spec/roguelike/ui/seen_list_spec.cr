@@ -133,6 +133,29 @@ Spectator.describe "the Seen list" do
     end
   end
 
+  describe "a redraw under the pointer" do
+    it "takes the box down rather than leaving it hanging off a row that is gone" do
+      run = room
+      hover_row run
+      expect(run.play.tooltip.showing?).to be_true
+
+      run.press "l"
+
+      expect(run.play.tooltip.showing?).to be_false
+    end
+
+    it "puts the box back up when the pointer moves on the new row" do
+      run = room
+      hover_row run
+      run.press "l"
+
+      hover_row run
+
+      expect(run.play.tooltip.showing?).to be_true
+      expect(run.play.tooltip.hanging?).to be_true
+    end
+  end
+
   describe "clicking an item's row" do
     it "draws the way to the item, and walks it on a second click" do
       run = littered

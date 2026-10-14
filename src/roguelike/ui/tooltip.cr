@@ -152,6 +152,19 @@ module Roguelike::Ui
       Math.max Math.min(WIDTH, Math.max(left, right)), LEAST_WIDTH
     end
 
+    # Whether what it hangs off is still on the screen.
+    #
+    # The sidebar builds its rows again on every redraw, and a box left up
+    # across one hangs off a row that is gone. The layout would put it
+    # against the screen instead, in the top left corner.
+    def hanging? : Bool
+      app = @shown_on
+      target = @target
+      return false unless app && target
+
+      !target.hidden? && app.tree.holds?(target)
+    end
+
     # Takes it down.
     def hide : Nil
       return unless open?
