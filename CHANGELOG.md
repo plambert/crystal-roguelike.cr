@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-14
+
+The Seen list lights and walks to what you point at, the right mouse button pans the map, arrows and
+darts wear out and the quiver refills from the pack, `w` swaps weapons and armor, `X` follows a
+corridor to its end, and the game idles while its window is in the background.
+
 ### Added
 
 * The words "blessed" and "cursed" in the message pane are underlined, white for blessed and red
@@ -705,7 +711,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.2.5...v0.3.0

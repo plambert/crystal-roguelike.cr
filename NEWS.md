@@ -3,6 +3,18 @@
 What changed in each release, for the people playing it. The full record, including build and
 packaging changes, is in [CHANGELOG.md](CHANGELOG.md).
 
+## [0.4.2] - 2026-10-14
+
+The Seen list answers the mouse, arrows and darts wear out, and exploring follows a corridor to its
+end.
+
+* Pointing at a creature or item in the Seen list lights its square, and clicking walks you there.
+* Dragging with the right mouse button moves the view so you can look around without moving.
+* `w` wields and wears, and swapping armor takes the old piece off and puts the new one on.
+* Arrows and darts can be damaged or break, and an empty quiver refills itself from your pack.
+* The game uses far less of the processor while its window is in the background.
+* The pause every 25 turns is much shorter, and a tooltip no longer jumps to the screen's corner.
+
 ## [0.4.1] - 2026-10-12
 
 Walking with `X`, `_` and `v` stops less often, and repeated messages no longer fill the log.
