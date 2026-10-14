@@ -2,13 +2,18 @@ require "json"
 require "../roguelike"
 
 module Roguelike
-  # A JSON converter that writes a `Hash` or a `Set` in a fixed order.
+  # A JSON converter that writes a `Hash` or a `Set` in a fixed order for a
+  # streamed fingerprint.
   #
   # A `Hash` and a `Set` write their entries in the order they were filled.
-  # This writes a hash's entries in order by the name each key is written
-  # under, and a set's elements in their own order. What is written then
-  # depends on what the collection holds and not on how it was filled.
-  # `Fingerprint` hashes these bytes as they are written, and relies on this.
+  # While `Fingerprint.streaming?` is set, this writes a hash's entries in
+  # order by the name each key is written under, and a set's elements in
+  # their own order. What is written then depends on what the collection
+  # holds and not on how it was filled.
+  #
+  # Every other write, a save included, is the one `T` makes itself. A set
+  # is a JSON array, and the canonical fingerprint keeps an array's order.
+  # Sorting it there would change values that earlier builds recorded.
   #
   # *T* is the type of the field. A field takes it with one annotation.
   # Name every type in it in full. The annotation is also expanded outside
@@ -26,6 +31,8 @@ module Roguelike
     end
 
     def self.to_json(value : Hash, json : JSON::Builder) : Nil
+      return value.to_json(json) unless Roguelike::Fingerprint.streaming?
+
       entries = value.map { |key, item| {key.to_json_object_key, item} }
 
       # No two keys of one hash are written under the same name, so no two
@@ -40,6 +47,8 @@ module Roguelike
     end
 
     def self.to_json(value : Set, json : JSON::Builder) : Nil
+      return value.to_json(json) unless Roguelike::Fingerprint.streaming?
+
       json.array do
         value.to_a.unstable_sort!.each &.to_json(json)
       end

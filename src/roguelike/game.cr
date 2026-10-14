@@ -136,7 +136,7 @@ module Roguelike
     getter felled : Int32 = 0
 
     # What has just happened.
-    @[JSON::Field(ignore_serialize: @counted)]
+    @[JSON::Field(ignore_serialize: Roguelike::Fingerprint.streaming?)]
     getter log : MessageLog
 
     # What has just happened, as values.
@@ -300,13 +300,8 @@ module Roguelike
     #
     # It is `nil` rather than empty, so a save holds it only while it holds
     # something. `Fingerprint::UNCOUNTED` names it.
-    @[JSON::Field(ignore_serialize: @counted)]
+    @[JSON::Field(ignore_serialize: Roguelike::Fingerprint.streaming?)]
     @sightings : Array({Int32, Int32})? = nil
-
-    # Whether `#to_json` leaves out the fields `Fingerprint::UNCOUNTED`
-    # names. Only `#counted` sets it.
-    @[JSON::Field(ignore: true)]
-    @counted = false
 
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
@@ -418,7 +413,7 @@ module Roguelike
     def fingerprint(scheme : Fingerprint::Scheme = Fingerprint::Scheme::Streamed) : String
       case scheme
       in .canonical? then Fingerprint.of self
-      in .streamed?  then counted { Fingerprint.streamed self }
+      in .streamed?  then Fingerprint.streamed self
       end
     end
 
@@ -434,17 +429,6 @@ module Roguelike
     # Whether this run is the one the fingerprint *recorded* was taken of.
     def agrees?(recorded : String) : Bool
       fingerprint(like: recorded) == recorded
-    end
-
-    # Runs the block with `#to_json` leaving out `Fingerprint::UNCOUNTED`.
-    #
-    # The save still holds those fields. Only what is written inside the
-    # block leaves them out.
-    def counted(&)
-      @counted = true
-      yield
-    ensure
-      @counted = false
     end
 
     # A new run on *rng*, played on *ground*.

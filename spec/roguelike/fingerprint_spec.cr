@@ -114,7 +114,55 @@ Spectator.describe Roguelike::Fingerprint do
     end
   end
 
+  # A set is a JSON array, and the canonical form keeps an array in the
+  # order it was written. Earlier builds recorded canonical values over sets
+  # in the order they were filled, so this build has to write them that way.
+  describe "a set under the canonical scheme" do
+    it "is written in the order it was filled" do
+      game = Game.dug Rng.new(SEED)
+      game.sighted << 900_002 << 900_001
+
+      expect(game.to_json).to contain "900002,900001"
+      expect(game.fingerprint(Scheme::Canonical))
+        .to eq described_class.digest(described_class.canonical(game.to_json))
+    end
+
+    it "gives a different value when filled in another order" do
+      kinds = [Roguelike::ItemKind::HealingPotion, Roguelike::ItemKind::HastePotion]
+
+      one = Roguelike::Lore.new
+      other = Roguelike::Lore.new
+      kinds.each { |kind| one.known << kind }
+      kinds.reverse.each { |kind| other.known << kind }
+
+      expect(described_class.of one)
+        .to eq described_class.digest(described_class.canonical(one.to_json))
+      expect(described_class.of other)
+        .to eq described_class.digest(described_class.canonical(other.to_json))
+      expect(described_class.of one).not_to eq described_class.of(other)
+    end
+  end
+
   describe "the streamed value" do
+    it "does not depend on the order a set of the run was filled" do
+      one = Game.dug Rng.new(SEED)
+      other = Game.dug Rng.new(SEED)
+      one.sighted << 900_002 << 900_001
+      other.sighted << 900_001 << 900_002
+
+      expect(one.fingerprint).to eq other.fingerprint
+      expect(one.fingerprint(Scheme::Canonical)).not_to eq other.fingerprint(Scheme::Canonical)
+    end
+
+    it "leaves a save in the order it was filled" do
+      game = Game.dug Rng.new(SEED)
+      game.sighted << 900_002 << 900_001
+
+      game.fingerprint
+
+      expect(game.to_json).to contain "900002,900001"
+    end
+
     it "says which scheme made it" do
       expect(Game.dug(Rng.new(SEED)).fingerprint)
         .to match /\Asha256s:[0-9a-f]{64}\z/
@@ -124,7 +172,7 @@ Spectator.describe Roguelike::Fingerprint do
       game = Game.dug Rng.new(SEED)
       10.times { game.wait }
       game.look
-      written = game.counted { game.to_json }
+      written = described_class.streaming { game.to_json }
 
       expect(written).not_to contain %("log":)
       expect(game.fingerprint)

@@ -2984,8 +2984,8 @@ Even with that work, reading the JSON back and sorting it cost more than writing
 falls between a key press and the screen that answers it, so the screen stalled every 25 turns.
 
 The sort was there so the value depends on the state and not on the order a hash was filled. The
-streamed scheme gets the same property at the source. Every hash and set that reaches a save is
-written in a sorted order, and the bytes `to_json` writes go straight into the digest.
+streamed scheme gets the same property at the source. While it writes, every hash and set in the run
+is written in a sorted order, and the bytes `to_json` writes go straight into the digest.
 
 | Scheme | Name in a value | How it is made |
 | --- | --- | --- |
@@ -2993,18 +2993,23 @@ written in a sorted order, and the bytes `to_json` writes go straight into the d
 | Streamed | `sha256s:` | `to_json` with `log` and `sightings` left out, digested as written |
 
 * **Sorted hashes and sets.** `Sorted(T)` is a JSON converter. A field takes it with one annotation,
-  `@[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Floor)))]`. A hash is written
-  in order by the name of each key and a set in the order of its elements. Reading is unchanged, so
-  every save written before still loads. The annotation names its types in full, because it is also
-  expanded outside the class it sits in.
+  `@[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Floor)))]`. While
+  `Fingerprint.streaming?` is set, a hash is written in order by the name of each key and a set in
+  the order of its elements. The annotation names its types in full, because it is also expanded
+  outside the class it sits in.
+* **Saves are unchanged.** Every other write, a save included, is the one the hash or set makes
+  itself. A set is a JSON array, and the canonical scheme keeps an array in the order it was
+  written. Sorting sets in every write moved canonical values that earlier builds recorded over
+  `Game#sighted` and `Knowledge#openings`. A recorded run then failed at its first checkpoint. A
+  save keeps the order it always had, so a loaded run also fills its hashes the way it did before.
 * **The fields it covers.** `World#floors`. On `Floor::Stored`, `litter`, `glow`, `fixtures`,
   `monsters`, `bands` and `spikes`. `Game#sighted`. `Player#memory`, `Band#memory` and
   `Monster#memory`. `Monster#gear`. On `Knowledge`, `memories`, `sightings`, `openings` and
   `barred`. On `Lore`, `appearances` and `known`. `Inventory` and `Equipment` already write a list
   in a fixed order.
-* **The fields it leaves out.** `Game` writes `log` and `sightings` only when `@counted` is unset.
-  `Game#counted` sets it for the length of a block, and the streamed scheme digests inside one. The
-  save still holds both.
+* **The fields it leaves out.** `Game` writes `log` and `sightings` only when
+  `Fingerprint.streaming?` is unset. `Fingerprint.streaming` sets that thread-local flag for the
+  length of a block, and the streamed scheme digests inside one. The save still holds both.
 * **The scheme a value names.** Every comparison of a recorded value with a rebuilt run goes through
   `Game#fingerprint(like:)` or `Game#agrees?`, which take the scheme from the value. That covers the
   header, every checkpoint, pause, resume and footer, in `replay verify`, `replay view` and `replay
@@ -3014,11 +3019,6 @@ written in a sorted order, and the bytes `to_json` writes go straight into the d
   `Replay::Log.scheme` can be set to the canonical scheme, and `script/record-golden` does that for
   one fixture alone.
 
-The order a hash is filled in after a load is now the sorted order, where it used to be the order
-the save was written in. Nothing in the rules depends on it. The creatures act in order of their
-square, and a quarry is chosen with every tie broken by key. `Replay::Bookmarks` reloads a run from
-JSON this build wrote, so a run and its replay see the same order after a resume either way.
-
 #### Measured
 
 The save of a run at turn 12,881, with four floors and 4.4 MB of JSON. Each number is the median
@@ -3026,18 +3026,22 @@ of seven calls.
 
 | Stage | Debug before | Debug after | Release before | Release after |
 | --- | --- | --- | --- | --- |
-| `Game#to_json` | 216 ms | 238 ms | 26 ms | 32 ms |
-| Canonical scheme | 564 ms | 580 ms | 77 ms | 80 ms |
-| Streamed scheme | | 226 ms | | 32 ms |
+| `Game#to_json` | 216 ms | 213 ms | 26 ms | 26 ms |
+| Canonical scheme | 564 ms | 569 ms | 77 ms | 78 ms |
+| Streamed scheme | | 229 ms | | 32 ms |
 
-Sorting the hashes costs about 6 ms of the write in a release build. The checkpoint costs what the
-write costs, and that is 40% of the canonical scheme.
+A save costs what it did. Sorting adds about 5 ms to the streamed write in a release build, and the
+checkpoint is then 40% of the canonical scheme.
 
 #### Checked
 
 * `spec/fixtures/replay/golden-sha256.jsonl` is the golden replay as an earlier build recorded it,
   with canonical values. It verifies. This build's canonical values for that run are the same bytes.
 * `golden.jsonl` was recorded again with streamed values, and verifies.
+* A test build's log of a long run, with sets filled out of order, reaches the same turn under
+  `replay verify --force` as the build before this change, with the same value found there.
+* Specs pin the canonical value over a set filled out of order to the digest of the canonical text
+  of the plain `to_json`.
 * The streamed specs mirror the canonical ones. They cover the same value at every turn of a list
   of moves and of a bot's run, in one process and in two, and a different value after one more turn
   and for another seed. They also cover two hashes and two sets filled in different orders, and a

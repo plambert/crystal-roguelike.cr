@@ -29,9 +29,14 @@ module Roguelike
   #   that back, and digests it with the fields of every object in order by
   #   name.
   # - `sha256s` is the streamed scheme. `#streamed` digests the bytes
-  #   `to_json` writes as they are written, with nothing read back. `Sorted`
-  #   writes every hash and set in a run in order, so the bytes depend on
-  #   the state and not on the order a hash was filled.
+  #   `to_json` writes as they are written, with nothing read back. While
+  #   it writes, `Sorted` puts every hash and set in a run in order, so the
+  #   bytes depend on the state and not on the order a hash was filled.
+  #
+  # A save is written the way it always was. A set is a JSON array, and the
+  # canonical scheme keeps an array in the order it was written. A set
+  # sorted in every write would move canonical values that earlier builds
+  # recorded.
   #
   # The streamed scheme exists because the canonical one is slow. A late run
   # is megabytes of JSON, and reading it back and sorting it took longer
@@ -96,7 +101,7 @@ module Roguelike
     # Under the canonical scheme only the top level is read. A field of this
     # name deeper in the document is hashed the way every other field is.
     # Under the streamed scheme `Game` leaves these two out of what it
-    # writes, through `Game#counted`.
+    # writes while `.streaming?` is set.
     UNCOUNTED = ["log", "sightings"]
 
     # The fingerprint of *subject* under the canonical scheme.
@@ -117,18 +122,43 @@ module Roguelike
     # The fingerprint of *subject* under the streamed scheme.
     #
     # The bytes `to_json` writes go into the digest as they are written.
-    # Nothing is read back and nothing is sorted here. `Sorted` already put
-    # every hash and set in order. A field this leaves out is one *subject*
-    # does not write, and `Game#fingerprint` has `Game` leave out
+    # Nothing is read back. The writing happens inside `.streaming`, so
+    # `Sorted` puts every hash and set in order and `Game` leaves out
     # `UNCOUNTED`.
     def self.streamed(subject : JSON::Serializable) : String
       sha = Digest::SHA256.new
       sink = Sink.new sha
 
-      subject.to_json sink
+      streaming { subject.to_json sink }
       sink.flush
 
       "#{Scheme::Streamed.label}:#{sha.hexfinal}"
+    end
+
+    # Whether what is being written now is for a streamed fingerprint.
+    #
+    # The flag belongs to one thread. A digest never waits on anything, so
+    # the fiber that set it is the one that writes, from start to end.
+    @[ThreadLocal]
+    @@streaming = false
+
+    # :ditto:
+    def self.streaming? : Bool
+      @@streaming
+    end
+
+    # Runs the block with `.streaming?` set.
+    #
+    # `to_json` inside it writes what the streamed scheme digests. A spec
+    # uses it to read those bytes.
+    def self.streaming(&)
+      was = @@streaming
+      begin
+        @@streaming = true
+        yield
+      ensure
+        @@streaming = was
+      end
     end
 
     # The fingerprint of the JSON *text* under *scheme*.
