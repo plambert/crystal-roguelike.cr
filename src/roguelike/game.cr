@@ -372,8 +372,10 @@ module Roguelike
     # drops a line identical to the one before it, because a wall bumped ten
     # times reads better as one line. Two bumps are still two things that
     # happened, so both events are kept.
-    def say(line : String, event : Event) : Nil
-      @log.add line
+    #
+    # With *anew* the line is always added as a new line. See `MessageLog#add`.
+    def say(line : String, event : Event, *, anew : Bool = false) : Nil
+      @log.add line, anew: anew
       event.text = line
       record event
     end
@@ -1400,11 +1402,9 @@ module Roguelike
 
     # Whether the step wrote anything worth stopping for.
     #
-    # An item the character did not remember counts whatever the log did with
-    # the line about it. `MessageLog#add` drops a line identical to the one
-    # before it, and the second dagger of a hall writes the same sentence as
-    # the first. The log is then the same length, and the item under the
-    # character is still one they had not seen.
+    # An item the character did not remember always counts. `@discovery`
+    # records it, so the answer does not hang on how many lines the step
+    # wrote.
     #
     # Lines about a pile the character already had on their map do not count.
     # `#announce_pile` counts those into `@forgiven`, and a step whose only
@@ -1495,7 +1495,7 @@ module Roguelike
       ground = standing_on
       if ground.stairs?
         say "There is #{ground.description} here.",
-          Event::Ground.new(@player.at, ground.label)
+          Event::Ground.new(@player.at, ground.label), anew: true
       end
 
       take_coins
@@ -1529,9 +1529,9 @@ module Roguelike
         pile.map { |item| Event::Thing.new item.id, name(item) }
 
       if pile.size == 1
-        say "You see #{name pile.first} here.", found
+        say "You see #{name pile.first} here.", found, anew: true
       else
-        say "There are #{pile.size} things here.", found
+        say "There are #{pile.size} things here.", found, anew: true
       end
 
       if known

@@ -71,6 +71,31 @@ Spectator.describe Roguelike::MessageLog do
       expect(log.lines).to eq ["blocked", "moved", "blocked"]
     end
 
+    # A count beside an item name reads as a quantity.
+    it "adds a line said anew every time, with no count" do
+      2.times { log.add "You see a scroll of identify here.", anew: true }
+
+      expect(log.lines).to eq ["You see a scroll of identify here.",
+                               "You see a scroll of identify here."]
+      expect(log.written).to eq 2
+    end
+
+    it "still counts an ordinary line said twice" do
+      2.times { log.add "The granite blocks your way." }
+
+      expect(log.lines).to eq ["The granite blocks your way. (x 2)"]
+    end
+
+    it "does not merge two ordinary lines with a line said anew between them" do
+      log.add "The granite blocks your way."
+      log.add "You see a scroll of identify here.", anew: true
+      log.add "The granite blocks your way."
+
+      expect(log.lines).to eq ["The granite blocks your way.",
+                               "You see a scroll of identify here.",
+                               "The granite blocks your way."]
+    end
+
     it "ignores an empty message" do
       log.add ""
 

@@ -34,6 +34,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   version only.
 * The observation's `damage_per_turn` now divides by the weapon's swing cost, so a dagger does more
   in a turn than one blow and a long sword or spear does less.
+* The line that says what lies on your square, such as "You see a scroll of identify here.", is
+  said again each time you arrive. It no longer carries a count that reads as a quantity.
 
 ## [0.4.1] - 2026-10-12
 

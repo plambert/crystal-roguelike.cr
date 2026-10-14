@@ -112,7 +112,10 @@ module Roguelike
     # gets a count, "(x 10)", and moves into the round being written, because
     # it has just happened again. `#written` does not count a repeat, since
     # no line was added.
-    def add(line : String) : Nil
+    #
+    # With *anew* the line is always added and never gets a count. A line
+    # that names an item reads a count as a quantity.
+    def add(line : String, *, anew : Bool = false) : Nil
       return if line.empty?
 
       # Lines set straight onto `#lines`, or loaded from a save with no
@@ -125,7 +128,7 @@ module Roguelike
       end
 
       last = @lines.last?
-      if last && MessageLog.said(last) == line
+      if last && !anew && MessageLog.said(last) == line
         @lines[-1] = "#{line} (x #{MessageLog.times(last) + 1})"
         @rounds[-1] = @round
         return
