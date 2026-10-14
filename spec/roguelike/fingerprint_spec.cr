@@ -59,6 +59,7 @@ end
 Spectator.describe Roguelike::Fingerprint do
   alias Game = Roguelike::Game
   alias Rng = Roguelike::Rng
+  alias Scheme = Roguelike::Fingerprint::Scheme
 
   # A seed with a floor worth walking about on.
   SEED = 4271_u64
@@ -85,16 +86,16 @@ Spectator.describe Roguelike::Fingerprint do
     "\u{1f600}",
   ] + (0x00..0x1f).map { |byte| "before#{byte.unsafe_chr}after" }
 
-  describe "the value" do
-    it "says which algorithm made it" do
-      expect(Game.dug(Rng.new(SEED)).fingerprint)
+  describe "the canonical value" do
+    it "says which scheme made it" do
+      expect(Game.dug(Rng.new(SEED)).fingerprint(Scheme::Canonical))
         .to match /\Asha256:[0-9a-f]{64}\z/
     end
 
     it "is the digest of the canonical form" do
       game = Game.dug Rng.new(SEED)
 
-      expect(game.fingerprint)
+      expect(game.fingerprint(Scheme::Canonical))
         .to eq described_class.digest(described_class.canonical(game))
     end
 
@@ -108,8 +109,98 @@ Spectator.describe Roguelike::Fingerprint do
       game.look
 
       expect(game.player.memory).not_to be_empty
-      expect(game.fingerprint)
+      expect(game.fingerprint(Scheme::Canonical))
         .to eq described_class.digest(described_class.canonical(game))
+    end
+  end
+
+  describe "the streamed value" do
+    it "says which scheme made it" do
+      expect(Game.dug(Rng.new(SEED)).fingerprint)
+        .to match /\Asha256s:[0-9a-f]{64}\z/
+    end
+
+    it "is the digest of the run written without the fields it leaves out" do
+      game = Game.dug Rng.new(SEED)
+      10.times { game.wait }
+      game.look
+      written = game.counted { game.to_json }
+
+      expect(written).not_to contain %("log":)
+      expect(game.fingerprint)
+        .to eq described_class.digest(written, Scheme::Streamed)
+    end
+
+    it "differs from the canonical value of the same run" do
+      game = Game.dug Rng.new(SEED)
+
+      expect(game.fingerprint).not_to eq game.fingerprint(Scheme::Canonical)
+    end
+
+    it "answers the same string for two hashes filled in different orders" do
+      kinds = [Roguelike::ItemKind::HealingPotion, Roguelike::ItemKind::HastePotion]
+      looks = ["bubbling", "cloudy"]
+
+      one = Roguelike::Lore.new
+      other = Roguelike::Lore.new
+      kinds.each_with_index { |kind, index| one.appearances[kind] = looks[index] }
+      kinds.reverse.each_with_index { |kind, index| other.appearances[kind] = looks[1 - index] }
+
+      expect(one.appearances.to_a).not_to eq other.appearances.to_a
+      expect(described_class.streamed one).to eq described_class.streamed(other)
+    end
+
+    it "answers the same string for two sets filled in different orders" do
+      kinds = [Roguelike::ItemKind::HealingPotion, Roguelike::ItemKind::HastePotion]
+
+      one = Roguelike::Lore.new
+      other = Roguelike::Lore.new
+      kinds.each { |kind| one.known << kind }
+      kinds.reverse.each { |kind| other.known << kind }
+
+      expect(one.known.to_a).not_to eq other.known.to_a
+      expect(described_class.streamed one).to eq described_class.streamed(other)
+    end
+
+    it "is the same after a run is saved and loaded" do
+      bot = Roguelike::Trial::Bot.new SEED
+      Scripted::TURNS.times { bot.turn unless bot.game.over? }
+      game = bot.game
+      loaded = Game.from_json game.to_json
+
+      expect(game.floor.bands).not_to be_empty
+      expect(loaded.fingerprint).to eq game.fingerprint
+      expect(loaded.fingerprint(Scheme::Canonical)).to eq game.fingerprint(Scheme::Canonical)
+    end
+  end
+
+  describe "a recorded value" do
+    it "names the scheme that made it" do
+      expect(Scheme.of "sha256:#{"0" * 64}").to eq Scheme::Canonical
+      expect(Scheme.of "sha256s:#{"0" * 64}").to eq Scheme::Streamed
+    end
+
+    it "is matched by a run under the scheme it names" do
+      game = Game.dug Rng.new(SEED)
+
+      canonical = game.fingerprint Scheme::Canonical
+      streamed = game.fingerprint
+
+      expect(game.fingerprint(like: canonical)).to eq canonical
+      expect(game.fingerprint(like: streamed)).to eq streamed
+      expect(game.agrees? canonical).to be_true
+      expect(game.agrees? streamed).to be_true
+    end
+
+    it "is not matched by a run in another state" do
+      game = Game.dug Rng.new(SEED)
+      canonical = game.fingerprint Scheme::Canonical
+      streamed = game.fingerprint
+
+      game.wait
+
+      expect(game.agrees? canonical).to be_false
+      expect(game.agrees? streamed).to be_false
     end
   end
 
@@ -171,11 +262,21 @@ Spectator.describe Roguelike::Fingerprint do
   end
 
   describe "a run played twice in one process" do
-    it "answers the same fingerprint at every turn of a list of moves" do
+    it "answers the same canonical fingerprint at every turn of a list of moves" do
+      expect(Scripted.walked SEED, scheme: Scheme::Canonical)
+        .to eq Scripted.walked(SEED, scheme: Scheme::Canonical)
+    end
+
+    it "answers the same canonical fingerprint at every turn of a bot's run" do
+      expect(Scripted.played SEED, scheme: Scheme::Canonical)
+        .to eq Scripted.played(SEED, scheme: Scheme::Canonical)
+    end
+
+    it "answers the same streamed fingerprint at every turn of a list of moves" do
       expect(Scripted.walked SEED).to eq Scripted.walked(SEED)
     end
 
-    it "answers the same fingerprint at every turn of a bot's run" do
+    it "answers the same streamed fingerprint at every turn of a bot's run" do
       expect(Scripted.played SEED).to eq Scripted.played(SEED)
     end
 
@@ -188,24 +289,48 @@ Spectator.describe Roguelike::Fingerprint do
   end
 
   describe "a run played in another process" do
-    it "answers the same fingerprint at every turn of a list of moves" do
-      expect(SecondProcess.fingerprints "walk", SEED.to_s, Scripted::MOVES)
+    it "answers the same canonical fingerprint at every turn of a list of moves" do
+      expect(SecondProcess.fingerprints "walk", SEED.to_s, Scripted::MOVES, "sha256")
+        .to eq Scripted.walked(SEED, scheme: Scheme::Canonical)
+    end
+
+    it "answers the same canonical fingerprint at every turn of a bot's run" do
+      expect(SecondProcess.fingerprints "play", SEED.to_s, Scripted::TURNS.to_s, "sha256")
+        .to eq Scripted.played(SEED, scheme: Scheme::Canonical)
+    end
+
+    it "answers the same streamed fingerprint at every turn of a list of moves" do
+      expect(SecondProcess.fingerprints "walk", SEED.to_s, Scripted::MOVES, "sha256s")
         .to eq Scripted.walked(SEED)
     end
 
-    it "answers the same fingerprint at every turn of a bot's run" do
-      expect(SecondProcess.fingerprints "play", SEED.to_s, Scripted::TURNS.to_s)
+    it "answers the same streamed fingerprint at every turn of a bot's run" do
+      expect(SecondProcess.fingerprints "play", SEED.to_s, Scripted::TURNS.to_s, "sha256s")
         .to eq Scripted.played(SEED)
     end
   end
 
   describe "a state that differs" do
-    it "answers a different fingerprint for a different seed" do
+    it "answers a different canonical fingerprint for a different seed" do
+      expect(Game.dug(Rng.new(SEED)).fingerprint(Scheme::Canonical))
+        .not_to eq Game.dug(Rng.new(SEED + 1)).fingerprint(Scheme::Canonical)
+    end
+
+    it "answers a different canonical fingerprint after one more turn" do
+      game = Game.dug Rng.new(SEED)
+      before = game.fingerprint Scheme::Canonical
+
+      game.wait
+
+      expect(game.fingerprint(Scheme::Canonical)).not_to eq before
+    end
+
+    it "answers a different streamed fingerprint for a different seed" do
       expect(Game.dug(Rng.new(SEED)).fingerprint)
         .not_to eq Game.dug(Rng.new(SEED + 1)).fingerprint
     end
 
-    it "answers a different fingerprint after one more turn" do
+    it "answers a different streamed fingerprint after one more turn" do
       game = Game.dug Rng.new(SEED)
       before = game.fingerprint
 
@@ -231,11 +356,22 @@ Spectator.describe Roguelike::Fingerprint do
     it "leaves the fingerprint as it was" do
       game = Game.dug Rng.new(SEED)
       before = game.fingerprint
+      canonical = game.fingerprint Scheme::Canonical
 
       game.log.add "You cannot go that way."
 
       expect(game.log.lines.last).to eq "You cannot go that way."
       expect(game.fingerprint).to eq before
+      expect(game.fingerprint(Scheme::Canonical)).to eq canonical
+    end
+
+    it "is in the save after a fingerprint is taken" do
+      game = Game.dug Rng.new(SEED)
+      game.log.add "You cannot go that way."
+
+      game.fingerprint
+
+      expect(game.to_json).to contain %("log":)
     end
 
     it "is still in the save" do

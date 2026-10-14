@@ -139,6 +139,7 @@ module Roguelike
     # What the band knows, by floor id.
     #
     # Floors persist, so a band that has walked two of them remembers both.
+    @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Knowledge)))]
     getter memory : Hash(String, Knowledge)
 
     # What it knows about the creatures it is hostile to.

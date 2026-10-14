@@ -31,9 +31,11 @@ module Roguelike
       XOXAXA GNIK SISI TEMOV FOOBIE BLETCH]
 
     # What each disguised kind looks like this run.
+    @[JSON::Field(converter: Roguelike::Sorted(Hash(Roguelike::ItemKind, String)))]
     getter appearances : Hash(ItemKind, String)
 
     # Which kinds the character has found out.
+    @[JSON::Field(converter: Roguelike::Sorted(Set(Roguelike::ItemKind)))]
     getter known : Set(ItemKind)
 
     def initialize(@appearances : Hash(ItemKind, String) = {} of ItemKind => String,

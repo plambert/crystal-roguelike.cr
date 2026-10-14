@@ -106,12 +106,14 @@ module Roguelike
 
     # What each square looked like when it was last seen. The key is
     # `Floor.spot`, the same key `Floor#litter` uses.
+    @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Memory)))]
     getter memories : Hash(String, Memory)
 
     # Where each creature was last seen, by who.
     #
     # `PLAYER` is the key for the character. `.creature` is the key for a
     # monster.
+    @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Sighting)))]
     getter sightings : Hash(String, Sighting)
 
     # Squares known to be open, with nothing else known about them.
@@ -122,6 +124,7 @@ module Roguelike
     # because it has not been seen.
     #
     # The key is `Floor.spot`, the same key `#memories` uses.
+    @[JSON::Field(converter: Roguelike::Sorted(Set(String)))]
     getter openings : Set(String)
 
     # Shut doors found to be spiked against whoever holds this knowledge.
@@ -132,6 +135,7 @@ module Roguelike
     # `nil` rather than empty when there are none, so knowledge that holds
     # none writes what it wrote before spikes existed. The key is
     # `Floor.spot`.
+    @[JSON::Field(converter: Roguelike::Sorted(Set(String)))]
     @barred : Set(String)? = nil
 
     # How many times what is known of the ground has changed.

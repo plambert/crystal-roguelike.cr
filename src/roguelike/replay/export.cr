@@ -132,8 +132,7 @@ module Roguelike
         read = Reading.read source
         game = Verifier.rebuild read.header
 
-        found = game.fingerprint
-        if found != read.header.state
+        unless game.agrees? read.header.state
           return Report.new from, 0, 0,
             "the run does not start where it was recorded from. " \
             "Check it with replay verify."
@@ -169,7 +168,7 @@ module Roguelike
 
             seen = game.look
           in Check, Pause
-            unless game.fingerprint == line.state
+            unless game.agrees?(line.state)
               return Report.new from, game.turn, pairs,
                 "turn #{line.turn}: the run differs from what was recorded. " \
                 "Check it with replay verify."
@@ -185,7 +184,7 @@ module Roguelike
 
             game = bookmarks.resumed line, game
             seen = game.look
-            unless game.fingerprint == line.state
+            unless game.agrees?(line.state)
               return Report.new from, game.turn, pairs,
                 "turn #{line.turn}: the loaded run differs from what was " \
                 "recorded. Check it with replay verify."

@@ -20,10 +20,14 @@ module Scripted
   # kilobytes, so this is one run rather than a trial.
   TURNS = 50
 
+  # The scheme a scripted run is fingerprinted with when none is named.
+  SCHEME = Roguelike::Fingerprint::Scheme::Streamed
+
   # The fingerprint before the first of *moves* and after each of them.
-  def self.walked(seed : UInt64, moves : String = MOVES) : Array(String)
+  def self.walked(seed : UInt64, moves : String = MOVES,
+                  scheme : Roguelike::Fingerprint::Scheme = SCHEME) : Array(String)
     game = Roguelike::Game.dug Roguelike::Rng.new(seed)
-    found = [game.fingerprint]
+    found = [game.fingerprint(scheme)]
 
     moves.each_char do |move|
       if move == '.'
@@ -32,7 +36,7 @@ module Scripted
         game.step Roguelike::Direction.new(move - '0')
       end
 
-      found << game.fingerprint
+      found << game.fingerprint(scheme)
     end
 
     found
@@ -43,15 +47,16 @@ module Scripted
   # The bot fights, drinks, picks things up and takes stairs, so this walks
   # far more of the state than a list of steps does. It plays by a rule and
   # draws from the seed, so it plays the same way every time.
-  def self.played(seed : UInt64, turns : Int32 = TURNS) : Array(String)
+  def self.played(seed : UInt64, turns : Int32 = TURNS,
+                  scheme : Roguelike::Fingerprint::Scheme = SCHEME) : Array(String)
     bot = Roguelike::Trial::Bot.new seed
-    found = [bot.game.fingerprint]
+    found = [bot.game.fingerprint(scheme)]
 
     turns.times do
       break if bot.game.over?
 
       bot.turn
-      found << bot.game.fingerprint
+      found << bot.game.fingerprint(scheme)
     end
 
     found

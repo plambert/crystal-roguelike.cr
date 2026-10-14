@@ -136,6 +136,7 @@ module Roguelike
     getter felled : Int32 = 0
 
     # What has just happened.
+    @[JSON::Field(ignore_serialize: @counted)]
     getter log : MessageLog
 
     # What has just happened, as values.
@@ -165,6 +166,7 @@ module Roguelike
     #
     # It has a default, so a save written before this field existed loads.
     # `#after_initialize` then fills it from the map.
+    @[JSON::Field(converter: Roguelike::Sorted(Set(Int32)))]
     getter sighted : Set(Int32) = Set(Int32).new
 
     # What killed the character. `nil` while they are alive.
@@ -298,7 +300,13 @@ module Roguelike
     #
     # It is `nil` rather than empty, so a save holds it only while it holds
     # something. `Fingerprint::UNCOUNTED` names it.
+    @[JSON::Field(ignore_serialize: @counted)]
     @sightings : Array({Int32, Int32})? = nil
+
+    # Whether `#to_json` leaves out the fields `Fingerprint::UNCOUNTED`
+    # names. Only `#counted` sets it.
+    @[JSON::Field(ignore: true)]
+    @counted = false
 
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
@@ -402,13 +410,41 @@ module Roguelike
       @outcome.over?
     end
 
-    # What this run is, as one string. See `Fingerprint`.
+    # What this run is, as one string, under *scheme*. See `Fingerprint`.
     #
     # The same state gives the same string in every process. A replay is
     # checked by comparing this turn by turn. Two runs that differ show the
     # turn they first differed on.
-    def fingerprint : String
-      Fingerprint.of self
+    def fingerprint(scheme : Fingerprint::Scheme = Fingerprint::Scheme::Streamed) : String
+      case scheme
+      in .canonical? then Fingerprint.of self
+      in .streamed?  then counted { Fingerprint.streamed self }
+      end
+    end
+
+    # What this run is, under the scheme *recorded* names.
+    #
+    # Every comparison with a value read from a file goes through this. A
+    # file recorded by an earlier build holds canonical values, and this
+    # build still checks them.
+    def fingerprint(*, like recorded : String) : String
+      fingerprint Fingerprint::Scheme.of(recorded)
+    end
+
+    # Whether this run is the one the fingerprint *recorded* was taken of.
+    def agrees?(recorded : String) : Bool
+      fingerprint(like: recorded) == recorded
+    end
+
+    # Runs the block with `#to_json` leaving out `Fingerprint::UNCOUNTED`.
+    #
+    # The save still holds those fields. Only what is written inside the
+    # block leaves them out.
+    def counted(&)
+      @counted = true
+      yield
+    ensure
+      @counted = false
     end
 
     # A new run on *rng*, played on *ground*.

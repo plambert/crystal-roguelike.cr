@@ -62,6 +62,7 @@ module Roguelike
     #
     # Nothing reads this yet. It is here because adding a field to a
     # serialized type later means migrating save files.
+    @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Knowledge)))]
     getter memory : Hash(String, Knowledge)
 
     # What it is carrying loose, apart from what it has readied.
@@ -75,6 +76,7 @@ module Roguelike
     # `nil` rather than empty while it holds nothing, so a creature with no
     # gear writes what it wrote before gear existed. A save from then loads
     # with everything in `#carrying` and nothing readied.
+    @[JSON::Field(converter: Roguelike::Sorted(Hash(Roguelike::Slot, Roguelike::Item)))]
     @gear : Hash(Slot, Item)? = nil
 
     # How many turns this creature cannot see for.

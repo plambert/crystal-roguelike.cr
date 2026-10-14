@@ -84,7 +84,7 @@ module Roguelike
       private def started : Nil
         moved = Streams.apart @reading.header.streams
         note "the build's draw sequences differ here: #{moved.join ", "}" unless moved.empty?
-        note "the run does not start where the file says it does" unless @game.fingerprint == @reading.header.state
+        note "the run does not start where the file says it does" unless @game.agrees?(@reading.header.state)
       end
 
       # How many actions the file holds.
@@ -167,7 +167,7 @@ module Roguelike
             @game = @bookmarks.resumed check, @game
           end
 
-          note "turn #{check.turn}: the run differs from the file" unless @game.fingerprint == check.state
+          note "turn #{check.turn}: the run differs from the file" unless @game.agrees?(check.state)
           @bookmarks.paused check, @game if check.is_a?(Pause)
         end
       end

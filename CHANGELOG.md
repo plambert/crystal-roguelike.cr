@@ -35,6 +35,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* A run that records a replay pauses every 25 turns to write a checkpoint, and that pause is now
+  much shorter, so a long run no longer stalls on a key press. Replays recorded by earlier builds
+  still verify.
 * `X`, `_` and `v` no longer stop for an item seen from too far off to read. The walk goes on, and
   stops when the character comes within eight squares and can make out what the item is.
 * Once nothing is left to see on a floor, `X` walks toward an item seen from too far off to read,

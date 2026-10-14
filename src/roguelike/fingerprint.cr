@@ -21,14 +21,60 @@ module Roguelike
   # field added to a save is therefore in the fingerprint from the day it is
   # added. A field left out of a save is in neither. `UNCOUNTED` names the
   # fields a save holds and this leaves out.
+  #
+  # There are two schemes, and a value names the one that made it before
+  # its colon. `Scheme` lists them.
+  #
+  # - `sha256` is the canonical scheme. `#of` writes the run as JSON, reads
+  #   that back, and digests it with the fields of every object in order by
+  #   name.
+  # - `sha256s` is the streamed scheme. `#streamed` digests the bytes
+  #   `to_json` writes as they are written, with nothing read back. `Sorted`
+  #   writes every hash and set in a run in order, so the bytes depend on
+  #   the state and not on the order a hash was filled.
+  #
+  # The streamed scheme exists because the canonical one is slow. A late run
+  # is megabytes of JSON, and reading it back and sorting it took longer
+  # than writing it. A replay takes a fingerprint every twenty-five turns,
+  # between a key press and the screen that answers it, so the screen
+  # stalled.
+  #
+  # This build records the streamed scheme. A recorded value is checked
+  # with the scheme it names, through `Game#fingerprint(like:)`, so a file
+  # recorded by an earlier build still verifies with this one.
   module Fingerprint
-    # What the digest is called in the value itself.
+    # The ways a fingerprint is made.
     #
-    # A fingerprint is `sha256:1b7c…`. The name of the algorithm is in the
-    # value. A person holding a replay line then knows which algorithm to
-    # check it with, and does not have to guess from the length. A later
-    # change of algorithm is also visible in the old values.
-    ALGORITHM = "sha256"
+    # The name of each is in the value, as in `sha256s:1b7c…`. A person
+    # holding a replay line then knows how to check it, and does not have to
+    # guess from the length. A change of scheme is also visible in the old
+    # values.
+    enum Scheme
+      # The JSON read back and digested with every object's fields in order
+      # by name. Earlier builds recorded this one.
+      Canonical
+
+      # The JSON digested as it is written.
+      Streamed
+
+      # What the scheme is called in a value.
+      def label : String
+        case self
+        in .canonical? then "sha256"
+        in .streamed?  then "sha256s"
+        end
+      end
+
+      # The scheme *value* names.
+      #
+      # A name this build does not know answers `Streamed`. The value then
+      # fails to match, which is the right answer for a value this build
+      # cannot make.
+      def self.of(value : String) : Scheme
+        name = value.partition(':')[0]
+        values.find(&.label.==(name)) || Streamed
+      end
+    end
 
     # The fields of a run that are left out of the value.
     #
@@ -47,11 +93,13 @@ module Roguelike
     # square, so a replay plays the same without it. Leaving it out also
     # keeps replays recorded before it existed in agreement.
     #
-    # Only the top level is read. A field of this name deeper in the document
-    # is hashed the way every other field is.
+    # Under the canonical scheme only the top level is read. A field of this
+    # name deeper in the document is hashed the way every other field is.
+    # Under the streamed scheme `Game` leaves these two out of what it
+    # writes, through `Game#counted`.
     UNCOUNTED = ["log", "sightings"]
 
-    # The fingerprint of *subject*.
+    # The fingerprint of *subject* under the canonical scheme.
     #
     # The canonical form goes into the digest as it is made. A late turn of a
     # long run is a megabyte and a half of JSON, and `#canonical` would hold
@@ -63,10 +111,31 @@ module Roguelike
       Writer.new.write JSON::PullParser.new(subject.to_json), sink, top: true
       sink.flush
 
-      "#{ALGORITHM}:#{sha.hexfinal}"
+      "#{Scheme::Canonical.label}:#{sha.hexfinal}"
     end
 
-    # The fingerprint of the canonical JSON *text*.
+    # The fingerprint of *subject* under the streamed scheme.
+    #
+    # The bytes `to_json` writes go into the digest as they are written.
+    # Nothing is read back and nothing is sorted here. `Sorted` already put
+    # every hash and set in order. A field this leaves out is one *subject*
+    # does not write, and `Game#fingerprint` has `Game` leave out
+    # `UNCOUNTED`.
+    def self.streamed(subject : JSON::Serializable) : String
+      sha = Digest::SHA256.new
+      sink = Sink.new sha
+
+      subject.to_json sink
+      sink.flush
+
+      "#{Scheme::Streamed.label}:#{sha.hexfinal}"
+    end
+
+    # The fingerprint of the JSON *text* under *scheme*.
+    #
+    # The text is digested as it is. Under the canonical scheme it has to be
+    # the canonical form already.
+    #
     #
     # The whole digest is kept. That is 256 bits and 64 hex characters. A
     # shorter value would save about thirty bytes on a line a replay writes
@@ -74,8 +143,8 @@ module Roguelike
     # wants when a replay does desync, which is a check by hand. `#canonical`
     # written to a file and run through `shasum -a 256` gives exactly this
     # value. A shortened value has to be explained first.
-    def self.digest(text : String) : String
-      "#{ALGORITHM}:#{Digest::SHA256.hexdigest text}"
+    def self.digest(text : String, scheme : Scheme = Scheme::Canonical) : String
+      "#{scheme.label}:#{Digest::SHA256.hexdigest text}"
     end
 
     # *subject* written as canonical JSON.
@@ -284,8 +353,8 @@ module Roguelike
 
     # An `IO` that hashes what is written to it.
     #
-    # `Digest::SHA256` takes bytes rather than an `IO`, and `Writer` writes a
-    # brace and a comma at a time. The bytes gather here and go over a block
+    # `Digest::SHA256` takes bytes rather than an `IO`, and `Writer` and
+    # `JSON::Builder` write a brace and a comma at a time. The bytes gather here and go over a block
     # at a time. `#flush` hands over what is left.
     private class Sink < IO
       # How many bytes gather before they are hashed.
@@ -306,6 +375,14 @@ module Roguelike
         flush if @size + slice.size > BLOCK
         slice.copy_to @held.to_unsafe + @size, slice.size
         @size += slice.size
+      end
+
+      # `JSON::Builder` writes a brace or a comma a byte at a time, and
+      # `IO#write_byte` would make a slice of each one.
+      def write_byte(byte : UInt8) : Nil
+        flush if @size == BLOCK
+        @held.to_unsafe[@size] = byte
+        @size += 1
       end
 
       def read(slice : Bytes) : NoReturn

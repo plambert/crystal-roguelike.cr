@@ -2918,9 +2918,10 @@ the key in turn.
 
 ## What a fingerprint costs
 
-`Game#fingerprint` writes the run out as JSON, puts the fields of every object in order by name,
+The canonical scheme writes the run out as JSON, puts the fields of every object in order by name,
 and hashes the result. A late turn of a long run is a megabyte and a half of JSON, and the whole of
-it goes through on every checkpoint.
+it goes through on every checkpoint. The first three parts below make that scheme cheaper. The last
+part replaces it with a second scheme, which `Game#fingerprint` takes now.
 
 ### Where the time went
 
@@ -2975,6 +2976,72 @@ anything the process brought with it.
 `Fingerprint.of` and `Fingerprint.canonical` now send the same bytes to different places, so they
 could drift apart. Two specs compare them, one on a fresh floor and one on a run part way through
 whose character has looked around.
+
+### Two schemes
+
+Even with that work, reading the JSON back and sorting it cost more than writing it. A late run of
+4.4 MB took 26 ms to write and 51 ms more to read back and sort, in a release build. A checkpoint
+falls between a key press and the screen that answers it, so the screen stalled every 25 turns.
+
+The sort was there so the value depends on the state and not on the order a hash was filled. The
+streamed scheme gets the same property at the source. Every hash and set that reaches a save is
+written in a sorted order, and the bytes `to_json` writes go straight into the digest.
+
+| Scheme | Name in a value | How it is made |
+| --- | --- | --- |
+| Canonical | `sha256:` | `to_json`, read back, every object's fields sorted by name, digested |
+| Streamed | `sha256s:` | `to_json` with `log` and `sightings` left out, digested as written |
+
+* **Sorted hashes and sets.** `Sorted(T)` is a JSON converter. A field takes it with one annotation,
+  `@[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Floor)))]`. A hash is written
+  in order by the name of each key and a set in the order of its elements. Reading is unchanged, so
+  every save written before still loads. The annotation names its types in full, because it is also
+  expanded outside the class it sits in.
+* **The fields it covers.** `World#floors`. On `Floor::Stored`, `litter`, `glow`, `fixtures`,
+  `monsters`, `bands` and `spikes`. `Game#sighted`. `Player#memory`, `Band#memory` and
+  `Monster#memory`. `Monster#gear`. On `Knowledge`, `memories`, `sightings`, `openings` and
+  `barred`. On `Lore`, `appearances` and `known`. `Inventory` and `Equipment` already write a list
+  in a fixed order.
+* **The fields it leaves out.** `Game` writes `log` and `sightings` only when `@counted` is unset.
+  `Game#counted` sets it for the length of a block, and the streamed scheme digests inside one. The
+  save still holds both.
+* **The scheme a value names.** Every comparison of a recorded value with a rebuilt run goes through
+  `Game#fingerprint(like:)` or `Game#agrees?`, which take the scheme from the value. That covers the
+  header, every checkpoint, pause, resume and footer, in `replay verify`, `replay view` and `replay
+  export`. A file recorded by an earlier build holds canonical values and still verifies.
+* **What this build writes.** A replay log writes streamed values. A log carried on from a save an
+  earlier build wrote holds both schemes, and each value is checked with its own.
+  `Replay::Log.scheme` can be set to the canonical scheme, and `script/record-golden` does that for
+  one fixture alone.
+
+The order a hash is filled in after a load is now the sorted order, where it used to be the order
+the save was written in. Nothing in the rules depends on it. The creatures act in order of their
+square, and a quarry is chosen with every tie broken by key. `Replay::Bookmarks` reloads a run from
+JSON this build wrote, so a run and its replay see the same order after a resume either way.
+
+#### Measured
+
+The save of a run at turn 12,881, with four floors and 4.4 MB of JSON. Each number is the median
+of seven calls.
+
+| Stage | Debug before | Debug after | Release before | Release after |
+| --- | --- | --- | --- | --- |
+| `Game#to_json` | 216 ms | 238 ms | 26 ms | 32 ms |
+| Canonical scheme | 564 ms | 580 ms | 77 ms | 80 ms |
+| Streamed scheme | | 226 ms | | 32 ms |
+
+Sorting the hashes costs about 6 ms of the write in a release build. The checkpoint costs what the
+write costs, and that is 40% of the canonical scheme.
+
+#### Checked
+
+* `spec/fixtures/replay/golden-sha256.jsonl` is the golden replay as an earlier build recorded it,
+  with canonical values. It verifies. This build's canonical values for that run are the same bytes.
+* `golden.jsonl` was recorded again with streamed values, and verifies.
+* The streamed specs mirror the canonical ones. They cover the same value at every turn of a list
+  of moves and of a bot's run, in one process and in two, and a different value after one more turn
+  and for another seed. They also cover two hashes and two sets filled in different orders, and a
+  bot's run saved and loaded again.
 
 ## Writing out what a run saw
 
@@ -3128,6 +3195,9 @@ run the seed does not rebuild, so the file verifies from its own start and not f
 `Replay::FORMAT` is 3, and `Replay::READS` is 2 to 3. A format 2 reader would pass over the new
 lines and play a file that goes back to a save wrongly, so the number went up. A format 2 file has
 neither line and reads as it always did. The golden replay is format 2 and verifies unchanged.
+
+The streamed fingerprint scheme left the format at 3. The lines have the same shape, and a value
+says which scheme made it. See "Two schemes" under "What a fingerprint costs".
 
 `replay verify`, `replay view`, `replay export` and `replay upgrade` all read pauses and resumes.
 The viewer files them under the action they follow, so a step backwards across a load works the way

@@ -83,6 +83,18 @@ module Recording
     GOLDEN
   end
 
+  # Where the replay with canonical fingerprints is.
+  CANONICAL = Path[__DIR__].parent / "fixtures" / "replay" / "golden-sha256.jsonl"
+
+  # The same run as `.golden`, as an earlier build recorded it.
+  #
+  # Its fingerprints are of the canonical scheme. It is never recorded
+  # again. Checking it says that this build still verifies a file an earlier
+  # build wrote.
+  def self.canonical : Path
+    CANONICAL
+  end
+
   # Writes *lines* to a file of its own under `.directory`, and answers it.
   def self.file(lines : Array(String), name : String = "edited") : Path
     where = directory / "#{name}-#{Random.rand UInt32}.jsonl"

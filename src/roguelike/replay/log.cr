@@ -93,6 +93,13 @@ module Roguelike
       # Whether the floor was dug from the seed. `--no-generate` clears it.
       class_property? generate : Bool = true
 
+      # The scheme the fingerprints in a log are taken with.
+      #
+      # A game always records the streamed scheme. `script/record-golden`
+      # sets the canonical one to record the fixture that stands for a file
+      # from an earlier build.
+      class_property scheme : Fingerprint::Scheme = Fingerprint::Scheme::Streamed
+
       # The logs of runs that have not ended.
       @@open = [] of Log
 
@@ -236,7 +243,7 @@ module Roguelike
         @file = File.new @path, "a"
 
         @game.look
-        write Resume.new pause, @game.turn, @game.fingerprint,
+        write Resume.new pause, @game.turn, @game.fingerprint(Log.scheme),
           Log.resumed_at || Time.utc, "#{VERSION}+g#{BUILD}"
         @@open << self
       end
@@ -269,7 +276,7 @@ module Roguelike
         @game.look
 
         if @game.turn >= @due
-          write Check.new @game.turn, @game.fingerprint
+          write Check.new @game.turn, @game.fingerprint(Log.scheme)
           while @due <= @game.turn
             @due += @every
           end
@@ -284,7 +291,7 @@ module Roguelike
         return unless open?
 
         @pauses += 1
-        write Pause.new @pauses, @game.turn, @game.fingerprint,
+        write Pause.new @pauses, @game.turn, @game.fingerprint(Log.scheme),
           Log.paused_at || Time.utc
         @acted = false
         Mark.new @path.to_s, @pauses
@@ -297,7 +304,7 @@ module Roguelike
       private def over : Nil
         finish Footer.new @game.turn, Replay.word_for(@game.outcome),
           @game.outcome.to_s.downcase, Log.ended_at || Time.utc,
-          @game.fingerprint
+          @game.fingerprint(Log.scheme)
       end
 
       # Writes the footer of a run the process went out from under.
@@ -334,7 +341,7 @@ module Roguelike
 
       # The header, which says how the run this records began.
       private def header(carried : Carried?) : Header
-        state = @game.fingerprint
+        state = @game.fingerprint(Log.scheme)
 
         Header.new game_version: "#{VERSION}+g#{BUILD}",
           crystal_version: Crystal::VERSION,
@@ -359,7 +366,7 @@ module Roguelike
       # from a save, and that run's whole state goes in the header instead.
       private def rebuilt?(state : String) : Bool
         Verifier.rebuild(@game.world.seed, Log.generate?, @game.player.name,
-          @game.log.lines).fingerprint == state
+          @game.log.lines).fingerprint(Log.scheme) == state
       rescue
         false
       end

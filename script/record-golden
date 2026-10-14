@@ -1,10 +1,11 @@
 #!/bin/sh
 #
-# Records the replay under `spec/fixtures/replay` again.
+# Records the replays under `spec/fixtures/replay` again.
 #
 # Run it after any change that moves `Game#fingerprint`, which is a change to
-# the generator, to a rule, or to anything the character is told. The actions
-# stay as they are and the fingerprints are written afresh.
+# the generator or to a rule. The actions stay as they are and the
+# fingerprints are written afresh. `golden.jsonl` gets the streamed scheme
+# and `golden-sha256.jsonl` the canonical one.
 #
 #     script/record-golden
 
@@ -13,4 +14,5 @@ set -e
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$root"
 
-exec crystal run --no-debug script/golden.cr -- "$root/spec/fixtures/replay/golden.jsonl"
+crystal run --no-debug script/golden.cr -- "$root/spec/fixtures/replay/golden.jsonl" sha256s
+crystal run --no-debug script/golden.cr -- "$root/spec/fixtures/replay/golden-sha256.jsonl" sha256

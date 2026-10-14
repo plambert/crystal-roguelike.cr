@@ -11,6 +11,7 @@
 # and the binary it builds links no terminal library.
 require "./roguelike/version"
 require "./roguelike/rng"
+require "./roguelike/sorted"
 require "./roguelike/direction"
 require "./roguelike/line"
 require "./roguelike/pace"

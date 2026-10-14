@@ -81,6 +81,7 @@ module Roguelike
     #
     # Floors persist, so a character coming back to one remembers the shape of
     # it. A monster band will hold the same type.
+    @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Knowledge)))]
     getter memory : Hash(String, Knowledge)
 
     def initialize(@floor : String, @x : Int32, @y : Int32,

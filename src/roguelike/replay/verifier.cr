@@ -124,7 +124,7 @@ module Roguelike
         end
 
         game = Verifier.rebuild @reading.header
-        return failed started(game) unless game.fingerprint == @reading.header.state
+        return failed started(game) unless game.agrees?(@reading.header.state)
 
         walked game
       end
@@ -162,7 +162,7 @@ module Roguelike
 
       # Compares one checkpoint. Answers what went wrong, or `nil`.
       private def checked(game : Game, check : Check) : String?
-        found = game.fingerprint
+        found = game.fingerprint like: check.state
         unless found == check.state
           return "turn #{check.turn}: the run differs#{window}\n" \
                  "  recorded #{check.state}\n" \
@@ -204,7 +204,7 @@ module Roguelike
       # Compares the run with a fingerprint the file holds at *turn*.
       private def compared(game : Game, turn : Int32, state : String,
                            what : String) : String?
-        found = game.fingerprint
+        found = game.fingerprint like: state
         return if found == state && game.turn == turn
 
         "turn #{turn}: #{what} differs#{window}\n" \
@@ -230,10 +230,11 @@ module Roguelike
                         "says turn #{footer.turn}#{window}"
         end
 
-        unless state == game.fingerprint
+        found = game.fingerprint like: state
+        unless state == found
           return failed "turn #{footer.turn}: the run ends differently#{window}\n" \
                         "  recorded #{state}\n" \
-                        "  found    #{game.fingerprint}"
+                        "  found    #{found}"
         end
 
         ending = game.outcome.to_s.downcase
@@ -251,7 +252,7 @@ module Roguelike
         "file has none, so it was recorded by a build that digs a different " \
         "floor from that seed\n" \
         "  recorded #{@reading.header.state}\n" \
-        "  found    #{game.fingerprint}"
+        "  found    #{game.fingerprint like: @reading.header.state}"
       end
 
       # Which turns a difference is somewhere inside.

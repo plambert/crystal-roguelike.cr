@@ -41,6 +41,7 @@ module Roguelike
     getter seed : UInt64
 
     # Every floor there is, by the id it keeps.
+    @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Floor)))]
     getter floors : Hash(String, Floor)
 
     def initialize(@seed : UInt64, @floors : Hash(String, Floor) = {} of String => Floor)

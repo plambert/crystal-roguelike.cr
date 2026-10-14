@@ -7,10 +7,17 @@
 #
 # A file that is not there is recorded from scratch instead, from the seed
 # and the length below, with the actions drawn from `Game#legal`.
+#
+# It takes the path of the file and the name of the fingerprint scheme to
+# record, `sha256s` when none is named.
 require "../src/crystal-roguelike"
 
 # Where the replay lives.
 GOLDEN = Path[ARGV[0]? || "spec/fixtures/replay/golden.jsonl"]
+
+# The scheme its fingerprints are taken with.
+SCHEME = Roguelike::Fingerprint::Scheme.values.find(&.label.==(ARGV[1]?)) ||
+         Roguelike::Fingerprint::Scheme::Streamed
 
 # The seed a replay recorded from scratch is played on.
 SEED = 4272_u64
@@ -68,12 +75,16 @@ wanted = Path[File.tempname "golden", ".jsonl", dir: GOLDEN.parent.to_s]
 
 Roguelike::Replay::Log.pattern = wanted.to_s
 Roguelike::Replay::Log.every = Roguelike::Replay::Log::EVERY
+Roguelike::Replay::Log.scheme = SCHEME
 Roguelike::Replay::Log.generate = read ? read.header.generate? : true
 
 read ? replayed(read) : sampled
 Roguelike::Replay::Log.ended nil
 
 File.rename wanted, GOLDEN
+
+# The check below plays the run again, and would record it to a new file.
+Roguelike::Replay::Log.pattern = nil
 
 report = Roguelike::Replay::Verifier.check GOLDEN
 abort report.to_s unless report.ok?

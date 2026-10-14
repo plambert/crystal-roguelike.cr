@@ -598,15 +598,21 @@ module Roguelike
 
       getter id : String
       getter map : Array(String)
+      @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Array(Roguelike::Item))))]
       getter litter : Hash(String, Array(Item))
+      @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Int32)))]
       getter glow : Hash(String, Int32)
       getter ambient : Int32
+      @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Fixture)))]
       getter fixtures : Hash(String, Fixture)
+      @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Monster)))]
       getter monsters : Hash(String, Monster)
+      @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Band)))]
       getter bands : Hash(String, Band)
 
       # Left out when no door is spiked, so a floor without one writes what
       # it wrote before spikes existed.
+      @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::DoorSpike)))]
       getter spikes : Hash(String, DoorSpike)? = nil
 
       def initialize(@id : String, @map : Array(String),

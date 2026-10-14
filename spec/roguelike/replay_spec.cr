@@ -314,8 +314,8 @@ Spectator.describe Roguelike::Replay do
 
       lines = File.read_lines where
       last = lines.rindex! &.includes?(%("type":"check"))
-      lines[last] = lines[last].sub(/"state":"sha256:[0-9a-f]+"/,
-        %("state":"sha256:#{"0" * 64}"))
+      lines[last] = lines[last].sub(/"state":"sha256s:[0-9a-f]+"/,
+        %("state":"sha256s:#{"0" * 64}"))
 
       report = Verifier.check Recording.file(lines, "bent")
       trouble = report.trouble
@@ -449,6 +449,37 @@ Spectator.describe Roguelike::Replay do
   describe "the replay that ships with the specs" do
     it "verifies" do
       expect(Verifier.check(Recording.golden).trouble).to be_nil
+    end
+
+    it "holds fingerprints of the streamed scheme" do
+      expect(Recording.read(Recording.golden).header.state).to start_with "sha256s:"
+    end
+  end
+
+  # A file recorded by an earlier build holds canonical fingerprints. This
+  # build checks each value with the scheme it names.
+  describe "a replay recorded with canonical fingerprints" do
+    it "holds fingerprints of the canonical scheme" do
+      read = Recording.read Recording.canonical
+      checks = read.records.compact_map &.as?(Roguelike::Replay::Check)
+
+      expect(read.header.state).to start_with "sha256:"
+      expect(checks).not_to be_empty
+      checks.each { |check| expect(check.state).to start_with "sha256:" }
+    end
+
+    it "verifies" do
+      expect(Verifier.check(Recording.canonical).trouble).to be_nil
+    end
+
+    it "still finds a checkpoint that differs" do
+      lines = File.read_lines Recording.canonical
+      last = lines.rindex! &.includes?(%("type":"check"))
+      lines[last] = lines[last].sub(/"state":"sha256:[0-9a-f]+"/,
+        %("state":"sha256:#{"0" * 64}"))
+
+      expect(Verifier.check(Recording.file(lines, "canonical")).trouble.to_s)
+        .to contain "the run differs"
     end
   end
 
