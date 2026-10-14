@@ -124,6 +124,30 @@ module Roguelike::Ui
     # person aiming has to see where the line runs and where it ends.
     getter flight : Hash({Int32, Int32}, TermBuf::Color) = {} of {Int32, Int32} => TermBuf::Color
 
+    # How many drawings of the window an idle pane keeps.
+    #
+    # The flames go round these in order. Eight shifts of `Flicker::HOLD`
+    # ticks each last a little over two seconds, which is long enough that
+    # the loop does not show.
+    FRAMES = 8
+
+    # Whether nobody is looking at the window.
+    #
+    # An idle pane works out each of `FRAMES` shifts of the flames once. After
+    # that it draws the ones it kept, in turn, and works out no square at all.
+    # This holds only while the flames are burning.
+    getter? idle : Bool = false
+
+    # How many squares the pane has worked out how to draw. A kept drawing
+    # adds nothing to it.
+    getter worked : Int64 = 0
+
+    # The drawings an idle pane keeps, by which of `FRAMES` each one is.
+    @frames = {} of Int32 => Frame
+
+    # The drawing this frame records into. `nil` when it records nothing.
+    @recording : Frame? = nil
+
     def initialize(floor : Floor)
       @cells = FloorCells.new floor
       @grid = Widgets::CellGrid.new @cells
@@ -142,7 +166,159 @@ module Roguelike::Ui
         style = style.reverse if here && here[0] == x && here[1] == y
 
         view.write_char 0, 0, look.glyph, style
+        @worked += 1
+        @recording.try &.put(x, y, look.glyph, style)
         nil
+      end
+      @grid.on_frame = ->(view : TermBuf::View) { replayed view }
+    end
+
+    # Sets whether nobody is looking at the window. Drops every drawing the
+    # pane keeps.
+    def idle=(idle : Bool) : Bool
+      forget_frames
+      @idle = idle
+    end
+
+    # How many drawings the pane keeps.
+    def kept : Int32
+      @frames.size
+    end
+
+    # Drops every drawing an idle pane keeps. The next frame works out every
+    # square again.
+    #
+    # Anything at all that happens while the pane is idle calls this, apart
+    # from the flames moving on. A kept drawing is right only while nothing
+    # else has changed.
+    def forget_frames : Nil
+      @frames.clear
+      @recording = nil
+    end
+
+    # Draws a kept drawing on *view*, and answers true. Answers false when
+    # the squares have to be worked out instead.
+    #
+    # An idle pane with no drawing for this shift of the flames records one
+    # as the squares are worked out.
+    private def replayed(view : TermBuf::View) : Bool
+      @recording = nil
+      slot = frame_slot
+      return false unless slot
+
+      shape = Frame::Shape.new camera, view.width, view.height
+      held = @frames[slot]?
+
+      if held && held.shape == shape
+        held.draw view
+        return true
+      end
+
+      made = Frame.new shape
+      @frames[slot] = made
+      @recording = made
+      false
+    end
+
+    # Which of `FRAMES` this frame is. `nil` when the pane keeps none.
+    private def frame_slot : Int32?
+      return unless @idle
+
+      found = @flicker
+      return unless found && found.burning?
+
+      found.phase % FRAMES
+    end
+
+    # One drawing of the window, kept so that an idle pane can draw it again.
+    private class Frame
+      # Where the camera stood and how big the window was.
+      record Shape, camera : {Int32, Int32}, width : Int32, height : Int32
+
+      # One write. *single* is a glyph that goes out alone.
+      private record Run, column : Int32, row : Int32, text : String,
+        style : TermBuf::Style, single : Bool
+
+      getter shape : Shape
+
+      @cells : Array({Char, TermBuf::Style}?)
+      @runs : Array(Run)? = nil
+
+      def initialize(@shape : Shape)
+        @cells = Array({Char, TermBuf::Style}?).new @shape.width * @shape.height, nil
+      end
+
+      # Records that the field's *x*, *y* drew *glyph* in *style*.
+      def put(x : Int32, y : Int32, glyph : Char, style : TermBuf::Style) : Nil
+        column = x - @shape.camera[0]
+        row = y - @shape.camera[1]
+        return unless 0 <= column < @shape.width && 0 <= row < @shape.height
+
+        @cells[row * @shape.width + column] = {glyph, style}
+        @runs = nil
+      end
+
+      # Draws what was recorded on *view*.
+      #
+      # ASCII glyphs side by side in one style go out as one write. Any other
+      # glyph goes out alone, through a view one cell wide, the way the grid
+      # draws it.
+      def draw(view : TermBuf::View) : Nil
+        runs.each do |run|
+          if run.single
+            view.view(TermBuf::Rect.new(run.column, run.row, 1, 1))
+              .write_char 0, 0, run.text[0], run.style
+          else
+            view.write run.column, run.row, run.text, run.style
+          end
+        end
+      end
+
+      private def runs : Array(Run)
+        @runs ||= gathered
+      end
+
+      private def gathered : Array(Run)
+        found = [] of Run
+
+        @shape.height.times do |row|
+          column = 0
+          while column < @shape.width
+            column = gather found, row, column
+          end
+        end
+
+        found
+      end
+
+      # Adds the run that starts at *column* of *row* to *found*. Answers the
+      # column after it.
+      private def gather(found : Array(Run), row : Int32, column : Int32) : Int32
+        base = row * @shape.width
+        cell = @cells[base + column]
+        return column + 1 unless cell
+
+        glyph, style = cell
+        unless glyph.ascii?
+          found << Run.new(column, row, glyph.to_s, style, true)
+          return column + 1
+        end
+
+        stop = column + 1
+        text = String.build do |io|
+          io << glyph
+
+          while stop < @shape.width
+            after = @cells[base + stop]
+            break unless after && after[0].ascii? && after[1] == style
+
+            io << after[0]
+            stop += 1
+          end
+        end
+
+        found << Run.new(column, row, text, style, false)
+        stop
       end
     end
 

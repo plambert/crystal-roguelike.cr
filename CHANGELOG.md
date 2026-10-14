@@ -45,6 +45,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   between the two stops the swap. The old piece is then off and the new one is still in the pack,
   and the last line says so, as in "You are interrupted, and have not put on the chain mail yet!".
 * A cursed piece that will not come off stops a swap before it starts, and no turn passes.
+* The game uses much less of the processor while its window does not have the focus. The flames
+  on the map keep moving. This needs a terminal that reports focus, and most do.
 
 ### Fixed
 

@@ -60,6 +60,11 @@ module Roguelike::Ui
     def initialize(@seed : UInt64, @tick : Int32 = 0, @burning : Bool = true)
     end
 
+    # Which shift the flames are on. Each one lasts `HOLD` ticks.
+    def phase : Int32
+      @tick // HOLD
+    end
+
     # How far the flames standing at *sources* have moved a square between
     # them this tick.
     #
@@ -77,7 +82,7 @@ module Roguelike::Ui
     def step_at(x : Int32, y : Int32) : Int32
       return 0 unless @burning
 
-      roll = roll_for @tick // HOLD, x, y
+      roll = roll_for phase, x, y
       drawn = (roll % SCALE).to_i
       return 0 if drawn < STILL
 

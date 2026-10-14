@@ -254,15 +254,20 @@ module Playing
       .merge(play.bindings)
       .merge(Roguelike::Ui::Keys.application { play.confirm_quit })
     session.app.on_event = ->(event : TermBuf::Event) do
-      report = event.as? TermBuf::Events::Mouse
-
-      if report
-        sequence = play.reported report
+      case event
+      when TermBuf::Events::Mouse
+        sequence = play.reported event
         told << sequence if sequence
+      when TermBuf::Events::Focus
+        play.map.idle = !event.focused
       end
 
       nil
     end
+
+    # Nothing here ticks the flames on a timer, so every event may change
+    # what the map shows.
+    session.app.on_deliver = ->(_event : TermBuf::Event) { play.map.forget_frames }
 
     # One layout runs before the camera is pointed. `Session` does the
     # same.

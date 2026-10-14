@@ -19,13 +19,13 @@ module Headless
     getter buffer : TermBuf::Buffer
 
     # The application under test.
-    getter app : TermBuf::Widgets::App
+    getter app : TermBuf::Widgets::ObservedApp
 
     # Where an event goes to reach it.
     getter events : Channel(TermBuf::Event)
 
     def initialize(@buffer : TermBuf::Buffer,
-                   @app : TermBuf::Widgets::App,
+                   @app : TermBuf::Widgets::ObservedApp,
                    @events : Channel(TermBuf::Event))
     end
 
@@ -133,7 +133,7 @@ module Headless
     buffer = TermBuf::Buffer.new columns, rows
     events = Channel(TermBuf::Event).new 64
 
-    app = TermBuf::Widgets::App.new TermBuf::BufferSurface.new(buffer), root,
+    app = TermBuf::Widgets::ObservedApp.new TermBuf::BufferSurface.new(buffer), root,
       TermBuf::Rect.full(columns, rows), events
 
     Session.new buffer, app, events

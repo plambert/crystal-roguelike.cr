@@ -48,6 +48,13 @@ module TermBuf::Widgets
     # carry itself.
     property on_draw : Proc(View, Int32, Int32, T, Nil)? = nil
 
+    # What draws the whole window at once. `nil` walks the cells.
+    #
+    # The grid calls this after it fills the background. It passes the view
+    # the cells would be drawn in. When it answers true the grid walks no
+    # cells this frame. When it answers false the grid walks them as usual.
+    property on_frame : Proc(View, Bool)? = nil
+
     # Whether the keyboard can land here.
     #
     # This is false by default. A game binds its own movement keys. Its map
@@ -368,6 +375,9 @@ module TermBuf::Widgets
 
       ground = @background
       view.clear ground if ground
+
+      whole = @on_frame
+      return if whole && whole.call(view)
 
       hook = @on_draw
       left = @camera_x
