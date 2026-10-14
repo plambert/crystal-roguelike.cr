@@ -329,9 +329,14 @@ module Roguelike
     # A kind that does not stack keeps a letter to itself. `Equipment` names
     # a slot's contents by letter, and two swords under one letter would
     # leave no way to say which is wielded.
-    def looks_like?(other : Item) : Bool
+    #
+    # With *any_condition*, a damaged one matches a sound one. The quiver
+    # takes its own arrows back off the floor whatever the flight did to
+    # them.
+    def looks_like?(other : Item, *, any_condition : Bool = false) : Bool
       @kind.stacks? && @kind == other.kind &&
-        @enchantment == other.enchantment && @condition == other.condition &&
+        @enchantment == other.enchantment &&
+        (any_condition || @condition == other.condition) &&
         @lit == other.lit? && size == other.size &&
         @blessing_known == other.blessing_known? &&
         (!@blessing_known || @blessing == other.blessing)

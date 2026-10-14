@@ -4160,7 +4160,9 @@ module Roguelike
     # Only what would sit under the quiver's own letter is taken. A `+1`
     # arrow beside a plain one looks different and is left where it lies,
     # because taking it would move the quiver's letter to a stack the
-    # character never asked for.
+    # character never asked for. A damaged one of the quiver's own arrows
+    # is taken too, because it was a sound one when it was shot. It goes
+    # under a letter of its own and the quiver keeps what it holds.
     #
     # An empty quiver that remembers what it held takes that kind, and the
     # first of it goes into the quiver.
@@ -4172,13 +4174,12 @@ module Roguelike
 
       wrote = @log.written
 
-      here.select { |item| readied.looks_like? item }.each do |item|
+      here.select { |item| readied.looks_like? item, any_condition: true }.each do |item|
         next unless floor.take @player.x, @player.y, item
 
-        # The quiver's own letter holds anything that looks like what is in
-        # it, so there is always somewhere for this to go. The pack being
-        # full is checked anyway, because a thing taken off the floor with
-        # nowhere to put it would be gone.
+        # The quiver's own letter holds what is in it, but a damaged one
+        # needs a letter of its own, and a full pack has none. A thing taken
+        # off the floor with nowhere to put it would be gone.
         letter = @player.inventory.add item
         unless letter
           floor.drop @player.x, @player.y, item
@@ -6594,7 +6595,9 @@ module Roguelike
     # Which items `#take_ammunition` would put in the quiver. `nil` when the
     # quiver is empty and remembers nothing.
     private def quiver_takes : Proc(Item, Bool)?
-      @player.quivered.try { |held| return ->(item : Item) { held.looks_like? item } }
+      @player.quivered.try do |held|
+        return ->(item : Item) { held.looks_like? item, any_condition: true }
+      end
       @player.quiver_memory.try { |memory| ->(item : Item) { memory.matches? item } }
     end
 

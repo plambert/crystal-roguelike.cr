@@ -574,6 +574,22 @@ Spectator.describe "exploring and travelling" do
       expect(game.floor.items(*ASIDE).size).to eq 1
     end
 
+    it "takes a damaged one of the quiver's arrows on the way" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow,
+        condition: Roguelike::Condition::Damaged)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.quivered.try &.count).to eq 2
+      expect(game.player.inventory['c'].try &.condition).to eq Roguelike::Condition::Damaged
+      expect(game.floor.items(*ASIDE)).to be_empty
+      expect(game.knowledge.seen?(*BEND_END)).to be_true
+    end
+
     it "is offered while ammunition the quiver takes is remembered" do
       game = played SIDE_ROOM
       archer game

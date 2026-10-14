@@ -1,6 +1,7 @@
 require "../spec_helper"
 
 Spectator.describe "the quiver remembering its ammunition" do
+  alias Condition = Roguelike::Condition
   alias Floor = Roguelike::Floor
   alias Game = Roguelike::Game
   alias Item = Roguelike::Item
@@ -234,6 +235,31 @@ Spectator.describe "the quiver remembering its ammunition" do
 
       expect(game.player.quivered).to be_nil
       expect(game.here.size).to eq 1
+    end
+
+    it "takes a damaged one of the remembered kind" do
+      game = emptied [Item.new(Kind::Arrow, count: 2, condition: Condition::Damaged)]
+
+      game.step Roguelike::Direction::South
+
+      expect(game.player.quivered.try &.condition).to eq Condition::Damaged
+      expect(game.player.quiver_memory).to be_nil
+      expect(game.here).to be_empty
+    end
+
+    it "takes a damaged one of what the quiver holds under its own letter" do
+      game = armed [Item.new(Kind::Bow), Item.new(Kind::Arrow, enchantment: 2, count: 3)]
+      game.wield 'a'
+      game.wield 'b'
+      game.floor.drop 1, 2, Item.new(Kind::Arrow, enchantment: 2, condition: Condition::Damaged)
+
+      game.step Roguelike::Direction::South
+
+      expect(game.here).to be_empty
+      expect(game.player.quivered.try &.count).to eq 3
+      expect(game.player.quivered.try &.condition).to eq Condition::Plain
+      expect(game.player.inventory['c'].try &.condition).to eq Condition::Damaged
+      expect(game.log.lines.last).to eq "You pick up a damaged +2 arrow."
     end
   end
 

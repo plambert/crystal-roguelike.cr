@@ -1699,7 +1699,9 @@ the whole reason for it.
 
 Only what would sit under the quiver's own letter is taken, which `Item#looks_like?` decides. A `+1`
 arrow beside a plain one reads differently in the pack, and taking it would move the quiver's letter
-to a stack the character never asked for. A character with an empty quiver picks up nothing.
+to a stack the character never asked for. A damaged one of the quiver's own arrows is the exception,
+because it was a sound one when it was shot. It is taken, goes under a letter of its own, and the
+quiver keeps what it holds. A character with an empty quiver picks up nothing.
 
 ## Reading the messages again
 

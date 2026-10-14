@@ -119,8 +119,9 @@ module Roguelike
     # The kind of ammunition an emptied quiver keeps room for.
     #
     # It holds what `Item#looks_like?` compares, so a stack matches when it
-    # would have gone under the quiver's letter. The count, the id and the
-    # handling are left out, because no item is held here.
+    # would have gone under the quiver's letter, or would have but for wear.
+    # The count, the id and the handling are left out, because no item is
+    # held here.
     struct Remembered
       include JSON::Serializable
 
@@ -142,9 +143,10 @@ module Roguelike
           item.blessing_known?
       end
 
-      # Whether *item* would have gone under the quiver's letter.
+      # Whether *item* would have gone under the quiver's letter, wear
+      # aside.
       def matches?(item : Item) : Bool
-        sample.looks_like? item
+        sample.looks_like? item, any_condition: true
       end
 
       # One of what is remembered.

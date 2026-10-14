@@ -117,6 +117,15 @@ Spectator.describe "missiles wearing out" do
       expect(sound.looks_like?(damaged)).to be_false
     end
 
+    it "look alike when wear is left out" do
+      sound = Item.new Kind::Arrow, enchantment: 2
+      damaged = Item.new Kind::Arrow, enchantment: 2, condition: Condition::Damaged
+      other = Item.new Kind::Arrow, enchantment: 1, condition: Condition::Damaged
+
+      expect(sound.looks_like?(damaged, any_condition: true)).to be_true
+      expect(sound.looks_like?(other, any_condition: true)).to be_false
+    end
+
     it "take two letters in the pack" do
       game = armed [Item.new(Kind::Arrow, count: 3),
                     Item.new(Kind::Arrow, condition: Condition::Damaged, count: 2)]
