@@ -24,6 +24,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   stops when the character comes within eight squares and can make out what the item is.
 * Once nothing is left to see on a floor, `X` walks toward an item seen from too far off to read,
   and stops when it can read it.
+* The game uses much less of the processor while its window does not have the focus. The flames
+  on the map keep moving. This needs a terminal that reports focus, and most do.
 
 ### Fixed
 

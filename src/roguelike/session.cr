@@ -134,7 +134,7 @@ module Roguelike
     getter play : Ui::Play
 
     # The widget tree, its focus and its router.
-    getter app : Ui::Widgets::App
+    getter app : Ui::Widgets::ObservedApp
 
     # The terminal's own cursor.
     getter cursor : TermBuf::Cursor
@@ -148,6 +148,17 @@ module Roguelike
     # `M` turns it off. A terminal reporting the mouse no longer lets the
     # person select text with it.
     getter? mousing : Bool = false
+
+    # Whether the terminal's window has the focus.
+    #
+    # A terminal that reports focus says when this changes. One that does not
+    # leaves it true. The map pane is idle while it is false, so the flames
+    # go on moving at a small part of the cost.
+    getter? focused : Bool = true
+
+    # The timer the next tick of the flames is armed under. `nil` when none
+    # is armed.
+    @wavering : UInt64? = nil
 
     def initialize(@terminal : TermBuf::Terminal, @rng : Rng,
                    flicker : Bool = true, generate : Bool = true,
@@ -167,7 +178,7 @@ module Roguelike
       @play.previous_name = previous
       @play.fit size.columns, size.rows
 
-      @app = Ui::Widgets::App.new @terminal, @play.root, bounds,
+      @app = Ui::Widgets::ObservedApp.new @terminal, @play.root, bounds,
         @terminal.events, @terminal.policy
       @cursor = @terminal.cursor bounds
       @play.app = @app
@@ -177,12 +188,17 @@ module Roguelike
       @app.copy = ->(text : String) { @terminal.clipboard.copy text }
       @app.images = @terminal.images
       @app.on_event = ->(event : TermBuf::Event) { unclaimed event }
+      @app.on_deliver = ->(event : TermBuf::Event) { noticed event }
 
       @help = Ui::Help.new @play.game.world.seed
       @help.screen_rows = size.rows
       Ui::Keys.install(@app, @help, @play, -> { self.mousing = !mousing?; nil }) { @play.confirm_quit }
 
       self.mousing = true
+
+      # The window reports when it gains and loses the focus. `Terminal#close`
+      # turns the reports off again.
+      @terminal.enable TermBuf::Tty::FOCUS_EVENTS
 
       # One layout runs before the camera is pointed. An unmeasured window
       # has no middle to put anything in.
@@ -210,10 +226,28 @@ module Roguelike
     # lit square draws at and no more, so the paint that follows sends the
     # squares whose color moved and nothing else.
     private def waver : Nil
-      @app.after(Ui::Flicker::PERIOD) do
+      @wavering = @app.after(Ui::Flicker::PERIOD) do
         @play.waver
         waver
       end
+    end
+
+    # Sees *event* before the widget tree does.
+    #
+    # Anything but a tick of the flames may change what the map shows. The
+    # map pane drops the drawings it keeps while it is idle.
+    private def noticed(event : TermBuf::Event) : Nil
+      return if event.is_a?(TermBuf::Events::Timer) && event.nonce == @wavering
+
+      @play.map.forget_frames
+    end
+
+    # Records whether the window has the focus. The map pane is idle while
+    # it does not.
+    def focused=(focused : Bool) : Bool
+      @focused = focused
+      @play.map.idle = !focused
+      focused
     end
 
     # The run.
@@ -277,15 +311,17 @@ module Roguelike
 
     # An event no widget wanted.
     #
-    # Two kinds get this far. A mouse report gets here because the map pane
+    # Three kinds get this far. A mouse report gets here because the map pane
     # draws squares and holds nothing about what is on them. A resize gets
     # here because the tree has to be laid out again. `Screen#fit` then decides
     # what is still worth showing, before anything draws against the new
-    # rectangles.
+    # rectangles. A focus report gets here because no widget cares whether
+    # the window has the focus.
     private def unclaimed(event : TermBuf::Event) : Nil
       case event
       when TermBuf::Events::Mouse  then tell @play.pointed(event.x, event.y, Session.click?(event))
       when TermBuf::Events::Resize then resized event
+      when TermBuf::Events::Focus  then self.focused = event.focused
       end
     end
 
