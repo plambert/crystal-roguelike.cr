@@ -115,6 +115,57 @@ Spectator.describe "exploring and travelling" do
   # The far edge of `CAVERN`, too far from the staircase to read an item on.
   EDGE = {30, 1}
 
+  # A lit room with a shut door in each end. The east door, beside the
+  # staircase, opens on a corridor that turns south at once and then runs
+  # east out of sight. The west door opens on a corridor that bends north.
+  # From the turn the west door is nearer than the end of the long run.
+  TWO_DOORS = [
+    "######################",
+    "#.##....##############",
+    "#..+...<+.############",
+    "####....#.############",
+    "#########..........###",
+    "##################.###",
+    "##################...#",
+    "######################",
+  ]
+
+  # The end of the east corridor in `TWO_DOORS`.
+  EAST_END = {20, 6}
+
+  # `TWO_DOORS` with the east corridor forking at the end of its long run.
+  # One branch goes north and one goes south.
+  FORKED = [
+    "######################",
+    "#.##....##########...#",
+    "#..+...<+.########.###",
+    "####....#.########.###",
+    "#########..........###",
+    "##################.###",
+    "##################...#",
+    "######################",
+  ]
+
+  # The ends of the two branches in `FORKED`.
+  NORTH_END = {20, 1}
+  SOUTH_END = {20, 6}
+
+  # Every square explore on *game* takes the character to, until nothing is
+  # left to see. A walk that stops for anything else is started again.
+  def path(game : Game) : Array({Int32, Int32})
+    stood = [game.player.at]
+    10.times do
+      walk = game.exploring
+      while game.stride walk
+        stood << game.player.at
+      end
+      stood << game.player.at
+      break if walk.halt.try &.explored?
+    end
+
+    stood
+  end
+
   # A game on *lines*, the character on the up staircase or at *at*. The
   # floor is lit unless *dark*. A dark floor gives the character a lit
   # candle.
@@ -531,6 +582,49 @@ Spectator.describe "exploring and travelling" do
       game.look
 
       expect(game.legal.map &.class).to contain Action::Explore
+    end
+
+    it "follows a corridor to its end before it goes back for another door" do
+      game = played TWO_DOORS
+
+      stood = path game
+      west = stood.index! { |spot| spot[0] < 4 }
+      south = stood.index! { |spot| spot[1] == 6 }
+
+      expect(stood).to contain({9, 3})
+      expect(south).to be < west
+      expect(game.knowledge.seen?(*EAST_END)).to be_true
+      expect(game.knowledge.seen?(1, 1)).to be_true
+    end
+
+    it "follows both branches of a fork before it goes back for another door" do
+      game = played FORKED
+
+      stood = path game
+      west = stood.index! { |spot| spot[0] < 4 }
+      north = stood.index! { |spot| spot[0] >= 18 && spot[1] == 1 }
+      south = stood.index! { |spot| spot[1] == 6 }
+
+      expect(north).to be < west
+      expect(south).to be < west
+      expect(game.knowledge.seen?(*NORTH_END)).to be_true
+      expect(game.knowledge.seen?(*SOUTH_END)).to be_true
+      expect(game.knowledge.seen?(1, 1)).to be_true
+    end
+
+    it "leaves a corridor that holds nothing left to see" do
+      game = played TWO_DOORS, at: {12, 4}
+      ground = game.floor
+      (8..21).each do |column|
+        ground.rows.times { |row| game.player.knowledge.see ground, column, row }
+      end
+
+      stood = path game
+
+      expect(stood.first).to eq({12, 4})
+      expect(stood.size).to be > 2
+      expect(game.knowledge.seen?(1, 1)).to be_true
+      expect(game.knowledge.chambers(ground.columns, ground.rows).frontier?).to be_false
     end
 
     it "sees the whole of a dug floor" do

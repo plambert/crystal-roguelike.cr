@@ -14,6 +14,12 @@ module Roguelike
   # says which chamber they stand in, and `.room` takes in the chambers the
   # grid cut the same room into.
   #
+  # A passage holds the character once they are in it. While they stand on
+  # a square no chamber holds, such as a door or a corridor, and that
+  # passage has a square left to see, the goal is the nearest such square.
+  # The way there keeps to the passage. A passage with nothing left to see
+  # lets them go, and so does reaching a room.
+  #
   # Gold comes first, and so does ammunition the quiver takes. While the
   # character remembers either lying somewhere they can reach, the goal is
   # the nearest pile of the two, and the step onto it picks it up. A pile
@@ -44,11 +50,30 @@ module Roguelike
 
       goal = nearest descent, Explore.wanted(knowledge, takes)
       goal ||= sweeping found, descent, from
+      unless goal
+        along = passage knowledge, found, from, columns, rows
+        ahead = along.try { |inside| nearest inside, found.frontier }
+        return Route.over(along, ahead) if along && ahead
+      end
       goal ||= nearest descent, found.frontier
       goal ||= nearest descent, Explore.unread(knowledge)
       return Route::NOWHERE unless goal
 
       Route.over descent, goal
+    end
+
+    # How many steps every square of the passage the character at *from*
+    # stands in is from *from*, counted without entering a chamber. `nil`
+    # when a chamber holds *from*.
+    private def self.passage(knowledge : Knowledge, chambers : Chambers,
+                             from : {Int32, Int32}, columns : Int32,
+                             rows : Int32) : Descent?
+      return if chambers.at from
+
+      rooms = Set({Int32, Int32}).new
+      chambers.chambers.each { |chamber| rooms.concat chamber.squares }
+      Descent.toward knowledge, from, Math.max(columns * rows, Route::LIMIT),
+        doors: true, avoid: rooms
     end
 
     # The nearest square left to see in the room the character at *from*

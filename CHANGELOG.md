@@ -24,6 +24,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   stops when the character comes within eight squares and can make out what the item is.
 * Once nothing is left to see on a floor, `X` walks toward an item seen from too far off to read,
   and stops when it can read it.
+* Once `X` steps into a corridor, it follows that corridor to its end before it goes back for
+  another exit. It no longer opens a door, looks into the corridor, and turns around.
 
 ### Fixed
 
