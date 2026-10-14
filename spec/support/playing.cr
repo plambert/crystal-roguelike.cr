@@ -104,6 +104,24 @@ module Playing
       @session.render
     end
 
+    # A report of *button* doing *action* at *x*, *y* of the buffer.
+    def mouse(button : TermBuf::Input::Mouse::Button,
+              action : TermBuf::Input::Mouse::Action,
+              x : Int32, y : Int32) : Nil
+      @session.send TermBuf::Events::Mouse.new(
+        button, x, y, TermBuf::Modifiers::None, action)
+      @session.render
+    end
+
+    # The right button going down at *from*, the pointer moving with it held
+    # to *to*, and the button coming up there.
+    def right_drag(from : {Int32, Int32}, to : {Int32, Int32}) : Nil
+      right = TermBuf::Input::Mouse::Button::Right
+      mouse right, TermBuf::Input::Mouse::Action::Press, *from
+      mouse right, TermBuf::Input::Mouse::Action::Motion, *to
+      mouse right, TermBuf::Input::Mouse::Action::Release, *to
+    end
+
     # A wheel notch at *x*, *y* of the buffer. *up* rolls it back.
     def wheel(x : Int32, y : Int32, up : Bool = true) : Nil
       button = up ? TermBuf::Input::Mouse::Button::WheelUp : TermBuf::Input::Mouse::Button::WheelDown
@@ -239,8 +257,7 @@ module Playing
       report = event.as? TermBuf::Events::Mouse
 
       if report
-        sequence = play.pointed report.x, report.y,
-          Roguelike::Session.click?(report)
+        sequence = play.reported report
         told << sequence if sequence
       end
 

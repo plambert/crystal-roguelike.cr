@@ -21,6 +21,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   second. With `--no-flicker` the square stays lit without blinking.
 * Clicking a creature in the Seen list draws the way to it, and a second click walks it, the same
   as clicking the creature's square on the map.
+* Holding the right mouse button on the map and dragging moves the view, so you can look at another
+  part of the floor without moving. The view stays where you leave it until your next turn or
+  `Escape` brings it back to the character. A right click no longer draws a route.
 
 ### Changed
 
