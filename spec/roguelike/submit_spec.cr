@@ -229,6 +229,38 @@ Spectator.describe Roguelike::Submit do
       end
     end
 
+    it "adds the final save to the parcel for the end of the run" do
+      where = root
+      logs = where / "logs"
+      Dir.mkdir_p logs
+      store = Save::Store.under where / "store"
+
+      sending where do |outbox|
+        Recording.recording logs.to_s do
+          game = Roguelike::Game.dug Roguelike::Rng.new(Recording::SEED)
+          game.player.name = "leaver"
+          2.times { game.perform Roguelike::Action::Wait.new }
+          store.write game
+          expect(outbox.parcels.map(&.seq)).to eq([1])
+
+          # Climbing out from the first floor ends the run, and the footer
+          # packs the log on its own.
+          game.perform Roguelike::Action::Ascend.new
+          expect(game.over?).to be_true
+          expect(outbox.parcels.map(&.seq)).to eq([1, 2])
+          expect(outbox.parcels.last.pieces.map(&.kind)).to eq(["replay", "meta"])
+
+          # The save written after joins that parcel rather than making one.
+          store.write game
+          expect(outbox.parcels.map(&.seq)).to eq([1, 2])
+          expect(outbox.parcels.last.pieces.map(&.kind)).to eq(["replay", "save", "meta"])
+          expect(outbox.parcels.last.meta.outcome).to eq("left")
+
+          game
+        end
+      end
+    end
+
     it "packs nothing when nothing is recording" do
       where = root
       store = Save::Store.under where / "store"

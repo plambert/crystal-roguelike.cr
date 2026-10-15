@@ -6238,6 +6238,13 @@ module Roguelike
       @recorder.try &.pause
     end
 
+    # What the parcel for the end of this run is called, once the log has
+    # written its footer. `nil` for a run still going, and for one nothing
+    # records.
+    def ending : Replay::Mark?
+      @recorder.try &.ending
+    end
+
     # Opens the log for this run, once, on the first action.
     #
     # The first action is the earliest point a run is worth recording from.

@@ -300,6 +300,21 @@ module Roguelike
       # Whether this log is still being written to.
       getter? open : Bool = true
 
+      # Whether the footer has been written.
+      @footer : Bool = false
+
+      # What the parcel for the end of this run is called. `nil` while the
+      # log is open, and for one closed without a footer.
+      #
+      # The save written once the run is over has no pause to name, because
+      # the footer closed the file first. It goes in the parcel the footer
+      # packed, one past the last pause.
+      def ending : Mark?
+        return unless @footer
+
+        Mark.new @path.to_s, @pauses + 1
+      end
+
       # Writes the footer of a run the game ended, and closes the file.
       private def over : Nil
         finish Footer.new @game.turn, Replay.word_for(@game.outcome),
@@ -332,6 +347,7 @@ module Roguelike
       # without, which is a run paused at a save, was offered with the save.
       private def finish(footer : Footer?) : Nil
         write footer if footer
+        @footer = !footer.nil?
         @file.close
         @open = false
         @@open.delete self

@@ -193,6 +193,9 @@ module Roguelike
       # The file is written beside itself and renamed over the old one, so a
       # crash partway through leaves the last good save where it was rather
       # than half of a new one.
+      #
+      # The save of a run that is over joins the parcel its footer packed, so
+      # the end of a run is sent with the state it ended in.
       def write(game : Game) : Path
         wanted = path game.player.name
         Dir.mkdir_p @directory
@@ -202,7 +205,7 @@ module Roguelike
         File.write temporary, held.to_pretty_json
         File.rename temporary, wanted
 
-        Submit.saved game, held.replay, wanted
+        Submit.saved game, held.replay || game.ending, wanted
         wanted
       end
 

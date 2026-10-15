@@ -46,6 +46,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A replay recorded with an earlier version stops verifying at its first automatic pickup.
 * Leaving a saved run prints the character's name, level, hit points and floor under the seed
   line, so the scrollback says who was saved and where.
+* The replay sent when a run ends now carries the final save with it, so the state the run ended
+  in is on the server beside the log.
 
 ### Fixed
 

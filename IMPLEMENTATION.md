@@ -4796,7 +4796,7 @@ default.
 | `Submit::Progress` | The progress line for each piece on standard error. `Counter` wraps the request body and counts reads, `Reporter` draws, `.line` renders |
 | `Submit::Meta` | Version, platform, outcome, turn, seed, character and log identity, sent beside each log |
 | `Submit.log_id` | 32 hex digits from the header's start time, seed and name, so a run carried on in another process keeps its identity |
-| `Submit.saved` | Called by `Save::Store#write`. Packs the log and the save as sequence number of the pause |
+| `Submit.saved` | Called by `Save::Store#write`. Packs the log and the save as sequence number of the pause. The save of a run that is over goes into the parcel `Submit.closed` packed |
 | `Submit.closed` | Called by `Replay::Log#finish` when a footer was written. Packs the log as one past the last pause |
 | `--autosubmit`, `--no-autosubmit` | The switch. `--submit-url` is hidden and names another server for a run |
 
@@ -4809,7 +4809,9 @@ default.
   the end, whatever the live file does afterwards.
 * **The sequence number is the pause number.** A save is `seq` of its pause, and the end of the run
   is one past the last pause. Both are read from the file, so they rise across processes without
-  any state of their own.
+  any state of their own. The save written once the run is over has no pause, because the footer
+  closed the log first. `Replay::Log#ending` names the footer's parcel and the save is packed into
+  it, so the last parcel of a finished run holds the log and the state it ended in.
 * **Agreeing turns recording on.** A build that would otherwise record nothing records to the test
   logs directory once the person says yes, since there is nothing to send without a log.
 * **The question is asked before the terminal is taken over**, in plain text on stdout, so it stays

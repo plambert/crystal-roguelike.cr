@@ -77,9 +77,10 @@ module Roguelike
 
     # Puts a save and the log it paused in the outbox.
     #
-    # *mark* is what the save names: the log file and its pause number,
+    # *mark* is what the save names, the log file and its pause number,
     # which is the parcel's sequence number. A save of a run nothing records
-    # has none, and nothing is sent for it.
+    # has none, and nothing is sent for it. The save of a run that is over
+    # names the parcel the footer packed, and the save is added to it.
     def self.saved(game : Game, mark : Replay::Mark?, save : Path) : Nil
       outbox = @@outbox
       return unless outbox && mark
