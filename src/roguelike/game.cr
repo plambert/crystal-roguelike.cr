@@ -2328,6 +2328,7 @@ module Roguelike
         quarry: quarry.try(&.at),
         stale: quarry.try(&.age(@turn)) || 0,
         descent: descent,
+        doors: creature.kind.opens_doors?,
         blocked: standing_on_squares(creature),
         stumble: stumbles?(creature),
         fleeing: creature.fleeing?,

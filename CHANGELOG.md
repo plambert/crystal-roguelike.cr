@@ -44,6 +44,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   unknown ones. The enchantment and whether it is masterwork or damaged must match. Nothing known
   to be cursed counts, on the floor or in your pack.
 * A replay recorded with an earlier version stops verifying at its first automatic pickup.
+* A creature that flees runs for a door or a corridor it can reach before you do, rather than the
+  far corner of the room. A door into ground its band has not seen counts as the best way out.
+  Where you are nearer the door, it still runs for the far side of the room.
+* A replay recorded with an earlier version stops verifying at the first turn a creature flees.
 * Leaving a saved run prints the character's name, level, hit points and floor under the seed
   line, so the scrollback says who was saved and where.
 * The replay sent when a run ends now carries the final save with it, so the state the run ended

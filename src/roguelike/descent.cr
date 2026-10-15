@@ -59,6 +59,11 @@ module Roguelike
       edge = [goal]
       away = 0
 
+      # Asking *knowledge* about a square builds a string, and a wall is
+      # asked about once from each floor square beside it. Each refusal is
+      # kept so it is asked about once.
+      refused = Set({Int32, Int32}).new
+
       while !edge.empty? && away < limit
         away += 1
         wave = [] of {Int32, Int32}
@@ -67,9 +72,14 @@ module Roguelike
           Direction.values.each do |direction|
             wanted = direction.from spot[0], spot[1]
             next if steps.has_key? wanted
+            next if refused.includes? wanted
             next if avoid.includes? wanted
             next if keep && !keep.includes?(wanted)
-            next unless crossable? knowledge, wanted, doors
+
+            unless crossable? knowledge, wanted, doors
+              refused << wanted
+              next
+            end
 
             steps[wanted] = away
             wave << wanted

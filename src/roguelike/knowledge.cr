@@ -252,6 +252,12 @@ module Roguelike
       @memories.has_key? Floor.spot(x, y)
     end
 
+    # Whether anything at all is known of *spot*: it has been seen, or
+    # somebody was seen across it.
+    def known?(spot : {Int32, Int32}) : Bool
+      seen?(spot[0], spot[1]) || @openings.includes?(Floor.spot spot[0], spot[1])
+    end
+
     # Whether what is known of *x*, *y* could be walked on.
     #
     # A square never seen and never crossed answers false. A band does not
