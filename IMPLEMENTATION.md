@@ -2235,6 +2235,10 @@ The first click on a square lights the way there. A second click on the same squ
 click anywhere else lights the way to that square instead, so changing your mind costs one click
 rather than two. A square the character knows nothing about is read out and no more.
 
+A route drawn by a click also arms a timer through `App#after`, `Play::ROUTE_FADE` long. Another
+click cancels it and arms a new one, and a walk cancels it. When it fires and the route is still
+the one it was armed for, the route comes off. A route that `>` put up is not on a timer.
+
 `>` and `<` away from a staircase do the same thing without a click. The staircase the character
 remembers is lit up, and the way there with it when they know one. A staircase they have seen but
 cannot yet reach is still marked: `Route.known` stops at the second try rather than settling for
@@ -4949,12 +4953,6 @@ can add rules like "never pick up a cursed item", "pick up anything better than 
 say is its own design question.
 
 Another preference: whether a bar's color comes from the gradient or from the fixed bands.
-
-### The rest of the route on the map
-
-A route is drawn and walked by clicking. One piece of what was asked for is not built. The route
-should fade after a few seconds with no movement and no other click, rather than waiting for a turn
-to pass.
 
 ### A minimap
 

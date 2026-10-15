@@ -15,6 +15,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   same notes and stops. The game keeps the version you last ran in the state directory, and
   `--no-save` leaves it alone.
 
+### Changed
+
+* A route drawn by clicking the map or the Seen list fades after four seconds with no move and no
+  other click. A second click on the same square within that time still walks it.
+
 ## [0.4.2] - 2026-10-14
 
 The Seen list lights and walks to what you point at, the right mouse button pans the map, arrows and

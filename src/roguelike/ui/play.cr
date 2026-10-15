@@ -318,6 +318,13 @@ module Roguelike::Ui
     # The timer for the next blink of that square. `nil` when nothing blinks.
     @blink_timer : UInt64? = nil
 
+    # How long a route drawn by a click stays lit with nothing else happening.
+    # A turn or another click comes first.
+    ROUTE_FADE = 4.seconds
+
+    # The timer that takes the drawn route off. `nil` when none is armed.
+    @fade_timer : UInt64? = nil
+
     # A right button held down on the map: the cell it went down on and the
     # camera at that moment.
     private record Drag, from : {Int32, Int32}, camera : {Int32, Int32}
@@ -1622,6 +1629,7 @@ module Roguelike::Ui
       return unless @pointing
 
       @pointing = nil
+      stop_fading
       refresh
     end
 
@@ -2945,7 +2953,33 @@ module Roguelike::Ui
       end
 
       aim_at goal, route
+      arm_fade
       refresh
+    end
+
+    # Arms the timer that takes the route just drawn off the map, and
+    # cancels the one for the route before it.
+    private def arm_fade : Nil
+      stop_fading
+      app = @app
+      return unless app
+
+      drawn = @pointing
+      @fade_timer = app.after(ROUTE_FADE) { fade drawn }
+    end
+
+    # Takes the route off the map if it is still the one the timer was armed
+    # for.
+    private def fade(drawn : Pointing?) : Nil
+      @fade_timer = nil
+      stop_pointing if drawn && @pointing == drawn
+    end
+
+    # Cancels the timer that fades the route.
+    private def stop_fading : Nil
+      timer = @fade_timer
+      @fade_timer = nil
+      @app.try &.cancel(timer) if timer
     end
 
     # Walks to where the map is pointing.
@@ -2955,6 +2989,7 @@ module Roguelike::Ui
     # step again as it goes, so what it finds on the way can shorten it.
     private def walk(pointing : Pointing) : Nil
       @pointing = nil
+      stop_fading
 
       start_walking @game.travelling(pointing.goal)
     end
