@@ -70,10 +70,6 @@ compile time from the loot tables as the median floor an item first appears on, 
 way for enchantment and blessing. Readied items keep their slots, only their letters change, and the
 message pane says the pack was sorted.
 
-### The Seen list
-
-The list is sorted by how far each creature is from the character.
-
 ### A minimap
 
 A corner of the screen shows the whole floor at four by two squares per cell, or as an image where
@@ -139,6 +135,11 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### The Seen list is sorted by distance
+
+The Seen list shows the nearest creature or item first. Two that are equally far apart are ordered
+by row and then by column, so the list reads the same way every turn.
 
 ### `replay dump`
 
