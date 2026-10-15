@@ -4857,7 +4857,79 @@ character, with shut doors counted as crossable. The character's own square is n
 A room partly seen keeps the character in it. `Explore.within` is the chamber the character stands
 in, or the first one beside them where they stand in a doorway or the neck of a cave.
 `Explore.room` adds every chamber joined to it across a grid line. While that room has a frontier
-square in reach, the goal is the nearest of those.
+square in reach, the goal is chosen from those. The way there keeps to the room's squares.
+
+A passage holds the character the same way. On a square no chamber holds, while the passage has a
+frontier square, the goal is chosen from those, and the way there keeps to the passage.
+
+### The small side first
+
+Of the frontier squares a rule chooses from, explore takes the one with the least unseen space
+behind it. A dead end or a pocket beside the character is seen while they stand by it. It is not
+left to walk back to across the floor at the end. Distance breaks a tie, and reading order breaks a
+tie of both.
+
+* `Chambers#behind` estimates the unseen space behind a frontier square. It counts the unseen
+  squares joined to the square, or to the squares beside it, across the four sides of a square.
+  Joined means without crossing a square already seen.
+* The count stops at `Chambers::BEHIND`, 16 squares. Every larger region counts the same.
+* Only a square within `Explore::REACH`, 4 steps, is ranked by its estimate. A square farther off
+  counts as large, so distance alone orders it.
+* The rule orders the candidates of each rule that picks a frontier square. These are the room
+  being swept, the passage being followed, and the whole floor. Piles worth taking still come
+  first, and the item too far off to read still comes last.
+
+### Decisions about the small side
+
+* **Unseen rock counts.** Nobody knows yet which unseen squares are rock. A pocket is small only
+  when seen squares close it in all the way round. Space with no seen edge between it and the rest
+  of the floor reaches the cap.
+* **One flood a cut.** One pass over the floor numbers the bodies of unseen squares and their sizes.
+  Each frontier square adds up the bodies it is in or beside. The pass runs when the cut is made, so
+  its cost does not grow with the length of the frontier. The cut is cached on the knowledge's
+  revision, and the estimate is cached with it.
+* **Four sides, not eight.** Two seen squares that touch only at a corner still close a pocket.
+* **A small cap and a short reach.** The estimate tells a pocket beside the character from open
+  ground, and does no more. With no reach and a cap of 64, explore crossed rooms to see one square
+  and came back, and a full explore of a cave took up to 43 percent more steps. The measurements
+  are below.
+* **The sweep keeps to the room.** The way to a square of the room being swept floods over the
+  room's squares alone. A way that left the room through a doorway put the character on a passage
+  square. There the passage rule turned them back to the doorway, and the walk went round until
+  the cycle guard stopped it. Release 0.4.2 stopped this way on one dug floor in eighteen with 103
+  frontier squares left.
+* **Stateless.** The estimate reads the knowledge alone, and the order reads the estimate and the
+  distance. A replay plans each step again and gets the same goal.
+
+### Measured, the small side
+
+A release build. Six seeds, 4272 and 1 to 5, each dug as the three layouts, eighteen floors, all
+explored to the end with every creature taken off.
+
+| Build | Steps | Floors finished |
+| --- | --- | --- |
+| Release 0.4.2 | 53,794 | 17 |
+| The sweep kept to the room | 55,114 | 18 |
+| That and the small side first | 55,204 | 18 |
+
+The floor 0.4.2 left unfinished took 2,131 steps once it could finish. Without that floor the three
+builds take 53,116, 52,989 and 53,073 steps. The rule changes how long a whole floor takes by less
+than one step in five hundred. A cave changes most, from 71 fewer steps to 52 more.
+
+Larger settings cost more steps.
+
+| Cap | Reach | Steps |
+| --- | --- | --- |
+| 16 | 3 | 55,141 |
+| 16 | 4 | 55,204 |
+| 16 | 6 | 55,620 |
+| 16 | 12 | 55,937 |
+| 64 | 12 | 56,253 |
+| 64 | 24 | 57,989 |
+| 64 | Unbounded | 62,198 |
+
+On seed 4272's three floors one step took 5.3 to 5.9 ms before and 5.9 to 6.0 ms after, over
+two runs each. The cut of the whole known floor took 3.9 to 5.1 ms before and 4.2 to 4.8 ms after.
 
 Each step is an `Action::Explore`, written `{"t":"explore"}`. The rule plans the way again and
 takes its first step. A shut door there is opened, a creature there stops the step, and with

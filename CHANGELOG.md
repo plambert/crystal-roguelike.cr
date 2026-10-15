@@ -26,6 +26,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * A route drawn by clicking the map or the Seen list fades after four seconds with no move and no
   other click. A second click on the same square within that time still walks it.
+* `X` looks into a dead end or a small pocket beside you before it walks on into open ground, so
+  it does not leave the pocket to walk back to at the end of the floor. A pocket counts as small
+  when everything around it has been seen.
+
+### Fixed
+
+* `X` no longer stops in a doorway or the neck of a cave with "You stop. Walking on would show you
+  nothing new." while the room beside it still has ground left to see.
 
 ## [0.4.2] - 2026-10-14
 
