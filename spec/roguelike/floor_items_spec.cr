@@ -273,13 +273,13 @@ Spectator.describe "items on the floor" do
       expect(game.floor.items?(3, 2)).to be_false
     end
 
-    it "costs no turn of its own" do
+    it "costs a turn of its own" do
       game = shooting Item.new(Kind::Arrow, count: 5),
         [Item.new(Kind::Arrow, count: 3)]
 
       game.step Direction::East
 
-      expect(game.turn).to eq 1
+      expect(game.turn).to eq 2
     end
 
     it "says what was taken" do
@@ -320,6 +320,125 @@ Spectator.describe "items on the floor" do
       game.step Direction::East
 
       expect(game.here.size).to eq 1
+    end
+  end
+
+  describe "stacks underfoot" do
+    alias Blessing = Roguelike::Blessing
+    alias Condition = Roguelike::Condition
+    alias Direction = Roguelike::Direction
+
+    # A game with *held* in the pack and *lying* on the square to the east.
+    def carrying(held : Array(Item), lying : Array(Item)) : Roguelike::Game
+      game = bare
+      held.each { |item| game.player.inventory.add(item) || raise "no room" }
+      lying.each { |item| game.floor.drop 3, 2, item }
+      game
+    end
+
+    def arrows(count : Int32, blessing : Blessing? = nil, *,
+               enchantment : Int32 = 0,
+               condition : Condition = Condition::Plain) : Item
+      Item.new Kind::Arrow, enchantment, condition, count: count,
+        blessing: blessing || Blessing::Uncursed, blessing_known: !blessing.nil?
+    end
+
+    # Some of the blessed arrows in the pack might be among the unknown ones.
+    it "takes unknown arrows when the pack holds blessed ones" do
+      game = carrying [arrows(8, Blessing::Blessed)], [arrows(3)]
+
+      game.step Direction::East
+
+      expect(game.here).to be_empty
+      expect(game.log.lines).to contain "You pick up 3 arrows."
+    end
+
+    it "takes blessed arrows when the pack holds unknown ones" do
+      game = carrying [arrows(8)], [arrows(3, Blessing::Blessed)]
+
+      game.step Direction::East
+
+      expect(game.here).to be_empty
+    end
+
+    it "takes nothing on the strength of a cursed stack" do
+      game = carrying [arrows(2, Blessing::Cursed)], [arrows(2)]
+
+      game.step Direction::East
+
+      expect(game.here.size).to eq 1
+    end
+
+    it "leaves cursed arrows where they lie" do
+      game = carrying [arrows(8)], [arrows(2, Blessing::Cursed)]
+
+      game.step Direction::East
+
+      expect(game.here.size).to eq 1
+    end
+
+    it "takes unknown arrows beside a cursed stack when plain ones are held too" do
+      game = carrying [arrows(2, Blessing::Cursed), arrows(2, Blessing::Uncursed)],
+        [arrows(2), arrows(2, Blessing::Cursed)]
+
+      game.step Direction::East
+
+      expect(game.here.size).to eq 1
+      expect(game.here.first.cursed?).to be_true
+    end
+
+    it "leaves arrows with a different enchantment" do
+      game = carrying [arrows(8, enchantment: 1)], [arrows(3)]
+
+      game.step Direction::East
+
+      expect(game.here.size).to eq 1
+    end
+
+    it "leaves arrows in a different condition" do
+      game = carrying [arrows(8)], [arrows(3, condition: Condition::Masterwork)]
+
+      game.step Direction::East
+
+      expect(game.here.size).to eq 1
+    end
+
+    it "leaves a kind that does not stack" do
+      game = carrying [Item.new(Kind::LongSword)], [Item.new(Kind::LongSword)]
+
+      game.step Direction::East
+
+      expect(game.here.size).to eq 1
+    end
+
+    it "spends a turn on each thing it takes" do
+      game = carrying [arrows(8), Item.new(Kind::HealingPotion)],
+        [arrows(3, Blessing::Blessed), Item.new(Kind::HealingPotion)]
+
+      game.step Direction::East
+
+      expect(game.here).to be_empty
+      expect(game.turn).to eq 3
+    end
+
+    it "takes nothing while something attacks" do
+      game = carrying [arrows(8)], [arrows(3)]
+      creature = Roguelike::Monster.new Roguelike::Species::Goblin, 3, 1, "band-beside"
+      game.floor.place creature
+      band = game.floor.band(creature.band) || raise "the floor has lost the band"
+      knowledge = band.knowledge game.floor.id
+      game.floor.each { |column, row, _tile| knowledge.see game.floor, column, row }
+      knowledge.saw Roguelike::Knowledge::PLAYER, 3, 2, game.turn
+      band.awareness = Roguelike::Awareness::Hunting
+
+      game.step Direction::East
+
+      attacked = game.events.any? do |event|
+        event.is_a?(Roguelike::Event::Attack) && event.attacker == creature.id
+      end
+      expect(attacked).to be_true
+      expect(game.here.size).to eq 1
+      expect(game.turn).to eq 1
     end
   end
 

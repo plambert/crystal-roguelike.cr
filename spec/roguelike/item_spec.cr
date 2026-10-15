@@ -296,6 +296,58 @@ Spectator.describe Roguelike::Item do
     end
   end
 
+  describe "#might_be?" do
+    alias Blessing = Roguelike::Blessing
+
+    def arrows(blessing : Blessing? = nil, enchantment : Int32 = 0,
+               condition : Condition = Condition::Plain) : Roguelike::Item
+      described_class.new Kind::Arrow, enchantment, condition, count: 3,
+        blessing: blessing || Blessing::Uncursed, blessing_known: !blessing.nil?
+    end
+
+    it "matches an unknown blessing to a known one either way round" do
+      expect(arrows.might_be?(arrows Blessing::Blessed)).to be_true
+      expect(arrows(Blessing::Blessed).might_be?(arrows)).to be_true
+      expect(arrows.might_be?(arrows)).to be_true
+    end
+
+    it "matches two known blessings only when they are the same" do
+      expect(arrows(Blessing::Blessed).might_be?(arrows Blessing::Blessed)).to be_true
+      expect(arrows(Blessing::Blessed).might_be?(arrows Blessing::Uncursed)).to be_false
+    end
+
+    it "matches nothing to a known curse on either side" do
+      expect(arrows(Blessing::Cursed).might_be?(arrows)).to be_false
+      expect(arrows.might_be?(arrows Blessing::Cursed)).to be_false
+      expect(arrows(Blessing::Cursed).might_be?(arrows Blessing::Cursed)).to be_false
+    end
+
+    it "matches a hidden curse, because nobody knows of it" do
+      hidden = described_class.new Kind::Arrow, count: 3, blessing: Blessing::Cursed
+
+      expect(arrows.might_be?(hidden)).to be_true
+    end
+
+    it "reads the enchantment and the condition" do
+      expect(arrows.might_be?(arrows enchantment: 1)).to be_false
+      expect(arrows.might_be?(arrows condition: Condition::Masterwork)).to be_false
+      expect(arrows.might_be?(arrows condition: Condition::Damaged)).to be_false
+    end
+
+    it "matches nothing of another kind" do
+      stones = described_class.new Kind::Stone, count: 3
+
+      expect(arrows.might_be?(stones)).to be_false
+    end
+
+    it "keeps a kind that does not stack to itself" do
+      one = described_class.new Kind::LongSword
+      two = described_class.new Kind::LongSword
+
+      expect(one.might_be?(two)).to be_false
+    end
+  end
+
   describe "#merge" do
     it "adds the counts" do
       one = described_class.new Kind::Arrow, count: 5

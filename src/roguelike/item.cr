@@ -342,6 +342,30 @@ module Roguelike
         (!@blessing_known || @blessing == other.blessing)
     end
 
+    # Whether *other* could be the same thing as this, as far as the
+    # character can tell.
+    #
+    # Kind, enchantment, condition, light and size have to match. A blessing
+    # nobody knows could be any of them, so it matches whatever the other
+    # one is. Two known blessings have to be the same.
+    #
+    # A known curse on either side matches nothing. Nobody wants more of a
+    # cursed thing, and a cursed stack says nothing about what else is
+    # cursed. A kind that does not stack matches nothing either.
+    def might_be?(other : Item) : Bool
+      return false unless @kind.stacks? && @kind == other.kind
+      return false if known_cursed? || other.known_cursed?
+
+      @enchantment == other.enchantment && @condition == other.condition &&
+        @lit == other.lit? && size == other.size &&
+        (!@blessing_known || !other.blessing_known? || @blessing == other.blessing)
+    end
+
+    # Whether the character knows this is cursed.
+    def known_cursed? : Bool
+      @blessing_known && cursed?
+    end
+
     # This item and *other* held as one, with the larger handling of the two.
     #
     # The caller has already decided they stack.

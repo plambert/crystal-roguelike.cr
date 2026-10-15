@@ -26,9 +26,9 @@ module Roguelike
   # The way there keeps to the passage. A passage with nothing left to see
   # lets them go, and so does reaching a room.
   #
-  # Gold comes first, and so does ammunition the quiver takes. While the
-  # character remembers either lying somewhere they can reach, the goal is
-  # the nearest pile of the two, and the step onto it picks it up. A pile
+  # Gold comes first, and so does whatever automatic pickup takes. While
+  # the character remembers either lying somewhere they can reach, the goal
+  # is the nearest pile of the two, and the step onto it picks it up. A pile
   # remembered where it no longer lies is forgotten when the square is seen
   # again, and the walk goes on to the next goal.
   #
@@ -46,7 +46,7 @@ module Roguelike
     #
     # *columns* and *rows* are the floor's size. The size of a floor is not a
     # secret, and the edge of it is not a square to go and look at. *takes*
-    # says which items the quiver picks up, and is `nil` when it picks up
+    # says which items automatic pickup takes, and is `nil` when it takes
     # none.
     def self.route(knowledge : Knowledge, from : {Int32, Int32},
                    columns : Int32, rows : Int32,

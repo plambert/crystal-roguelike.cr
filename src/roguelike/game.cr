@@ -283,6 +283,14 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @overlooked : Int32 = 0
 
+    # How many times something has attacked the character, hit or miss.
+    #
+    # A step reads it before it moves and again before each thing it picks
+    # up. When it has moved, something is fighting the character, and the
+    # rest of the pile stays on the floor.
+    @[JSON::Field(ignore: true)]
+    @assailed : Int32 = 0
+
     # Items that came into sight on the step just taken, nearest first.
     #
     # `#spot_items` works it out at the end of the step. An explore and a
@@ -704,6 +712,7 @@ module Roguelike
     # turn.
     def step(direction : Direction) : Step
       clear_step
+      calm = @assailed
       wanted = direction.from @player.x, @player.y
 
       blocking_creature = floor.monster wanted[0], wanted[1]
@@ -727,6 +736,7 @@ module Roguelike
       @player.move_to wanted
       arrived
       spend_turn
+      landed calm
       spot_items
       Step::Moved
     end
@@ -1205,7 +1215,7 @@ module Roguelike
       return held[1] if held && held[0] == key
 
       route = if goal.nil?
-                Explore.route known, @player.at, floor.columns, floor.rows, quiver_takes
+                Explore.route known, @player.at, floor.columns, floor.rows, auto_takes
               elsif goal == @player.at
                 Route::NOWHERE
               else
@@ -1517,7 +1527,10 @@ module Roguelike
         Event::Blocked.new(direction, terrain: stopped.label)
     end
 
-    # Says what the character has walked onto, when it is worth saying.
+    # Says what the character has walked onto, when it is worth saying, and
+    # takes the gold.
+    #
+    # It comes before the turn the move took. `#landed` comes after it.
     private def arrived : Nil
       ground = standing_on
       if ground.stairs?
@@ -1526,7 +1539,17 @@ module Roguelike
       end
 
       take_coins
-      take_ammunition
+    end
+
+    # Takes what automatic pickup takes, then says what is left.
+    #
+    # It runs after the turn the move took. *calm* is `@assailed` from the
+    # start of the action, so an attack in that turn leaves everything on
+    # the floor.
+    private def landed(calm : Int32) : Nil
+      take_underfoot calm
+      return if over?
+
       announce_pile
       visited @player.at
     end
@@ -1534,9 +1557,10 @@ module Roguelike
     # Says what is lying on the square, and records whether a walk has to stop
     # for it.
     #
-    # The character's map is read before the line is written. Nothing between
-    # the step and this point changes what they remember, so the map here is
-    # the map they arrived with.
+    # The character's map is read before the line is written. Only `#look`
+    # writes the map, and nothing between the step and this point calls it.
+    # The turns spent moving and picking up leave the map as they arrived
+    # with it.
     #
     # A pile the character already remembered is still named. The walk treats
     # it differently. `#told?` subtracts these lines, so a walk crosses a
@@ -2581,15 +2605,18 @@ module Roguelike
         fought_with creature
         blow = Combat.swing exchange, bonus, @player.armor_class, damage
         if blow.hit?
+          @assailed += 1
           @player.hurt blow.damage
           say "The #{noun} hits you for #{blow.damage}.",
             Event::Attack.new(true, attacker: shooter, damage: blow.damage, with: noun)
           character_died creature unless @player.alive?
         else
+          @assailed += 1
           say "The #{noun} misses you.", Event::Attack.new(false, attacker: shooter, with: noun)
           spot = stray creature.at, spot
         end
       else
+        @assailed += 1
         say "The #{noun} misses you.", Event::Attack.new(false, attacker: shooter, with: noun)
       end
 
@@ -2798,6 +2825,7 @@ module Roguelike
     # *creature* swings at the character. Answers what the swing did.
     private def strike(creature : Monster) : Blow
       fought_with creature
+      @assailed += 1
       flanking = Combat.flanking(creature.at, @player.at) do |spot|
         besets? spot
       end
@@ -4067,6 +4095,7 @@ module Roguelike
     # nearest square that is free.
     private def go(ground : Floor, terrain : Terrain, line : String) : Nil
       clear_step
+      calm = @assailed
       @fought = nil
       @fought_at = nil
 
@@ -4080,6 +4109,7 @@ module Roguelike
       say line, Event::Climbed.new(ground.id, deep, spot)
       arrived
       spend_turn
+      landed calm
     end
 
     # *spot*, or the nearest square to it on *ground* a character can stand
@@ -4183,49 +4213,42 @@ module Roguelike
       (@player.inventory[letter] || item).id
     end
 
-    # Takes any ammunition the readied quiver would hold, without a turn of
-    # its own.
+    # Takes what automatic pickup takes off the square, one entry a turn.
     #
-    # The step onto the square is the turn, the same as it is for gold. What
-    # a character is shooting is what they walk over picking up, and an
-    # arrow fired at something and then walked past is the whole reason for
-    # it.
+    # `#auto_takes` says what that is. Each entry is a pickup like any other,
+    # and the world acts after it. The entries are chosen before the first
+    # is taken, so what one pickup brings into the pack does not widen what
+    # the next one takes.
     #
-    # Only what would sit under the quiver's own letter is taken. A `+1`
-    # arrow beside a plain one looks different and is left where it lies,
-    # because taking it would move the quiver's letter to a stack the
-    # character never asked for. A damaged one of the quiver's own arrows
-    # is taken too, because it was a sound one when it was shot. It goes
-    # under a letter of its own and the quiver keeps what it holds.
+    # It stops when the run is over and when something has attacked the
+    # character since *calm* was read. The attack is the news, and the rest
+    # of the pile waits.
     #
-    # An empty quiver that remembers what it held takes that kind, and the
-    # first of it goes into the quiver.
+    # A full pack leaves an entry where it lies. A thing taken off the floor
+    # with nowhere to put it would be gone.
     #
     # An explore and a travel go on past the lines. `#told?` overlooks them.
-    private def take_ammunition : Nil
-      readied = @player.quivered || @player.quiver_memory.try &.sample
-      return unless readied
+    private def take_underfoot(calm : Int32) : Nil
+      takes = auto_takes
+      return unless takes
 
-      wrote = @log.written
-
-      here.select { |item| readied.looks_like? item, any_condition: true }.each do |item|
+      here.select { |item| takes.call item }.each do |item|
+        break if over? || @assailed != calm
         next unless floor.take @player.x, @player.y, item
 
-        # The quiver's own letter holds what is in it, but a damaged one
-        # needs a letter of its own, and a full pack has none. A thing taken
-        # off the floor with nowhere to put it would be gone.
         letter = @player.inventory.add item
         unless letter
           floor.drop @player.x, @player.y, item
           next
         end
 
+        wrote = @log.written
         say "You pick up #{name item}.",
           Event::PickedUp.new(taken_id(letter, item), name item)
         refill letter
+        @overlooked += @log.written - wrote
+        spend_turn
       end
-
-      @overlooked += @log.written - wrote
     end
 
     # Puts what is under *letter* in an empty quiver that remembers its
@@ -5338,11 +5361,16 @@ module Roguelike
     end
 
     # Puts the character on *spot* and looks around.
+    #
+    # Nothing is picked up. The landing happens partway through another
+    # action, and a pickup is a turn of its own.
     private def arrive_at(spot : {Int32, Int32}) : Nil
       @player.move_to spot
       say "The floor lurches, and you are somewhere else.",
         Event::Teleported.new(spot)
       arrived
+      announce_pile
+      visited @player.at
     end
 
     # Writes *item* down at *column*, *row* without claiming anything else
@@ -6623,11 +6651,37 @@ module Roguelike
       known = knowledge
       return true if known.chambers(floor.columns, floor.rows).frontier?
 
-      Explore.wanted? known, @player.at, floor.columns, floor.rows, quiver_takes
+      Explore.wanted? known, @player.at, floor.columns, floor.rows, auto_takes
     end
 
-    # Which items `#take_ammunition` would put in the quiver. `nil` when the
-    # quiver is empty and remembers nothing.
+    # Which items automatic pickup takes off the floor. `nil` when it takes
+    # none.
+    #
+    # Two rules, and either one is enough. The quiver takes its own
+    # ammunition back, damaged or not. Any stacking item is taken when it
+    # `Item#might_be?` something already in the pack. Unknown arrows join
+    # the hunt for which of the carried arrows are blessed, and blessed ones
+    # are taken when the carried ones might be blessed too. A known curse on
+    # either side is no reason to take anything.
+    #
+    # Gold is taken apart from this, by `#take_coins`.
+    private def auto_takes : Proc(Item, Bool)?
+      quiver = quiver_takes
+      held = [] of Item
+      @player.inventory.each_item do |_, item|
+        held << item if item.kind.stacks? && !item.known_cursed?
+      end
+      return quiver if held.empty?
+
+      ->(item : Item) { quiver.try(&.call(item)) || held.any?(&.might_be?(item)) }
+    end
+
+    # Which items the quiver takes back off the floor. `nil` when the quiver
+    # is empty and remembers nothing.
+    #
+    # A damaged one of the quiver's own arrows counts. It was a sound one
+    # when it was shot. A `+1` arrow beside plain ones does not, because it
+    # would sit under a letter of its own.
     private def quiver_takes : Proc(Item, Bool)?
       @player.quivered.try do |held|
         return ->(item : Item) { held.looks_like? item, any_condition: true }

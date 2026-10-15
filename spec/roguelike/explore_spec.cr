@@ -621,6 +621,19 @@ Spectator.describe "exploring and travelling" do
       expect(game.knowledge.seen?(*BEND_END)).to be_true
     end
 
+    it "walks to a potion that might join one in the pack and takes it" do
+      game = played SIDE_ROOM
+      game.player.inventory.add Item.new(Roguelike::ItemKind::HealingPotion)
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::HealingPotion)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.inventory.count 'a').to eq 2
+      expect(game.floor.items(*ASIDE)).to be_empty
+    end
+
     it "is offered while ammunition the quiver takes is remembered" do
       game = played SIDE_ROOM
       archer game

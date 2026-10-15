@@ -37,6 +37,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `X` looks into a dead end or a small pocket beside you before it walks on into open ground, so
   it does not leave the pocket to walk back to at the end of the floor. A pocket counts as small
   when everything around it has been seen.
+* Automatic pickup takes a turn for each item, the same as `,`. It stops when something attacks
+  you, and the rest stays on the floor.
+* Automatic pickup also takes a stack that would join one you carry, or that might be the same as
+  one. Unknown arrows are taken when you carry blessed ones, and blessed arrows when you carry
+  unknown ones. The enchantment and whether it is masterwork or damaged must match. Nothing known
+  to be cursed counts, on the floor or in your pack.
+* A replay recorded with an earlier version stops verifying at its first automatic pickup.
 
 ### Fixed
 

@@ -209,13 +209,13 @@ Spectator.describe "the quiver remembering its ammunition" do
       expect(game.log.lines.any? &.includes?("in your quiver")).to be_true
     end
 
-    it "costs no turn of its own" do
+    it "costs a turn of its own" do
       game = emptied [Item.new(Kind::Arrow, count: 4)]
       before = game.turn
 
       game.step Roguelike::Direction::South
 
-      expect(game.turn).to eq before + 1
+      expect(game.turn).to eq before + 2
     end
 
     it "leaves another kind where it lies" do

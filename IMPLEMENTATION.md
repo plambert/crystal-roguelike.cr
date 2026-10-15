@@ -1703,7 +1703,25 @@ Only what would sit under the quiver's own letter is taken, which `Item#looks_li
 arrow beside a plain one reads differently in the pack, and taking it would move the quiver's letter
 to a stack the character never asked for. A damaged one of the quiver's own arrows is the exception,
 because it was a sound one when it was shot. It is taken, goes under a letter of its own, and the
-quiver keeps what it holds. A character with an empty quiver picks up nothing.
+quiver keeps what it holds.
+
+A stack that might be the same as one in the pack is taken too. `Item#might_be?` decides. Kind,
+enchantment, condition, light and size must match. An unknown blessing matches any blessing, and
+two known blessings must be equal. So unknown arrows are taken beside known blessed ones, and known
+blessed arrows beside unknown ones, because some of the unknown ones might be blessed. A known
+curse on either side matches nothing. A kind that does not stack is never taken this way.
+`Game#auto_takes` joins the two rules, and an explore walks to what either one would take.
+
+Each item taken is one turn, the same as `,`. `Game#step` spends the turn for the move, then takes
+one entry a turn, then names what is left. The entries are chosen when the step arrives, so what
+one pickup brings into the pack does not widen what the next takes. `@assailed` counts attacks on
+the character, hit or miss. The step reads it before it moves, and a pickup is skipped once it has
+changed. An attack during the move leaves the whole pile, and an attack during a pickup leaves the
+rest. The stop writes no line of its own. The attack line is the news, and it already stops a
+walk. A teleport landing takes nothing, because it happens partway through another action.
+
+A replay recorded before this rule stops verifying at its first automatic pickup, because the
+step now takes more than one turn there.
 
 ## Reading the messages again
 
