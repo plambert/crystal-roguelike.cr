@@ -98,6 +98,10 @@ module TermBuf::Widgets
     # How many rows a menu leaves clear above and below itself.
     property row_margin : Int32 = 3
 
+    # The most cells the row of page names may widen the rows to. A row of
+    # names wider than this slides.
+    property tabs_width : Int32 = Int32::MAX
+
     # How narrow a menu may be, whatever the screen is.
     MINIMUM_WIDTH = 20
 
@@ -187,7 +191,9 @@ module TermBuf::Widgets
     #
     # The page that is showing is drawn in brackets and in bold. An arrow at
     # each end says that the left and right keys turn the page. A row too
-    # narrow for every name slides along to keep the page showing in view.
+    # narrow for every name slides along to keep the page showing in the
+    # middle, and a name cut by either end is drawn as far as it fits. Where
+    # there is room, the names beside the page showing say there are more.
     #
     # A press on a name turns to that page.
     class Tabs < Widget
@@ -240,12 +246,18 @@ module TermBuf::Widgets
         1
       end
 
-      # How far the names are slid left so the one showing fits.
+      # How far the names are slid left so the one showing is in the
+      # middle. The row stops at either end, and the name showing is always
+      # whole when it fits at all.
       private def shift(room : Int32) : Int32
         found = labels[@current]?
         return 0 unless found
 
-        Math.max found[0] + found[1].size - room, 0
+        at, label = found
+        total = wanted - 2 * ENDS
+        middle = at + label.size // 2 - room // 2
+        middle = middle.clamp at + label.size - room, at
+        middle.clamp 0, Math.max(total - room, 0)
       end
 
       def draw(view : View) : Nil
@@ -255,9 +267,11 @@ module TermBuf::Widgets
         moved = shift room
         labels.each_with_index do |(at, label), index|
           column = at - moved
-          next if column < 0 || column + label.size > room
+          first = Math.max -column, 0
+          last = Math.min label.size, room - column
+          next if first >= last
 
-          view.write ENDS + column, 0, label,
+          view.write ENDS + column + first, 0, label[first...last],
             index == @current ? @current_style : Style::DEFAULT
         end
 
@@ -517,13 +531,14 @@ module TermBuf::Widgets
     # The title is measured too. It is drawn in the top edge of the border,
     # and a box narrower than its own title has the title cut instead.
     #
-    # The row of page names is not measured. A row wider than the box slides
-    # to keep the page showing in view.
+    # The row of page names is measured up to `#tabs_width`. A row wider than
+    # that slides to keep the page showing in view.
     private def fit_into(screen : Rect, policy : Unicode::WidthPolicy) : Nil
       rows = measured
       widest_row = rows.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
       widest_row += TAIL if rows.any? &.tail
       widest_row += MIRROR
+      widest_row = Math.max widest_row, Math.min(@tabs.wanted, @tabs_width) unless @tabs.hidden?
 
       @list.widest = Math.max widest_row, Menu.cells(title, policy) + TITLE_SLACK
 

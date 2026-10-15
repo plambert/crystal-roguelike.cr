@@ -2058,9 +2058,11 @@ did before, and that block performs the same action. A recorded run holds the sa
 sideways scroll those keys do in other menus. The names are drawn in a row along the top of the
 box, the page showing in brackets and bold, with an arrow at each end. A click on a name turns to
 it, and a click on an arrow turns one page that way. The box is sized for the widest row and the
-longest page, so it keeps its size as the pages turn. The row of names does not widen the box, so
-the box beside it keeps its width, and a row of names wider than the box slides to keep the page
-showing in view.
+longest page, so it keeps its size as the pages turn. The row of names widens the box only as far
+as leaves the detail box beside it the width its widest lines need, and `Play#tabs_room` holds the
+arithmetic. A row of names wider than the box slides to keep the page showing in the middle, and
+a name cut by either end is drawn as far as it fits. At 80 columns that shows the pages beside
+the one showing. At 40 columns a long name fills the row, and only the arrows say there is more.
 
 An open overlay pushes its bindings onto the focus stack when it goes up. Turning a page replaces
 that copy as well as the menu's own, or the letters of the page before would still answer.

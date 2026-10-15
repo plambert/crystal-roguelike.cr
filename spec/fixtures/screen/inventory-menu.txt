@@ -8,16 +8,16 @@
                                                        │ Here
                                                        │ ──────────────────────
                                                        │   staircase up
-                              ╭─ Inventory ───────╮    │
-                              │ ← [all]         → │    │ Seen
-        ╭───────────────────╮ │ ⟪ a    a dagger ⟫ │    │ ──────────────────────
-        │ a dagger          │ │   b    9 arrows   │    │   nothing
-        │ unknown           │ ╰───────────────────╯    │
-        │ damage 1d4        │                          │ Look
-        │ swing quick (75)  │                          │ ──────────────────────
-        │ thrown 10 squares │                          │ Point at the map, or
-        │ weight 10         │                          │
-────────╰───────────────────╯───────────────────────────────────────────────────
+                      ╭─ Inventory ──────────────────────╮
+                      │ ← [all]  weapons   armor   amu → │een
+╭───────────────────╮ │ ⟪ a    a dagger                ⟫ │─────────────────────
+│ a dagger          │ │   b    9 arrows                  │ nothing
+│ unknown           │ ╰──────────────────────────────────╯
+│ damage 1d4        │                                  │ Look
+│ swing quick (75)  │                                  │ ──────────────────────
+│ thrown 10 squares │                                  │ Point at the map, or
+│ weight 10         │                                  │
+╰───────────────────╯───────────────────────────────────────────────────────────
  a - a dagger
  b - 9 arrows
 

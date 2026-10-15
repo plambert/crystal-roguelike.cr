@@ -921,7 +921,33 @@ module Roguelike::Ui
                page : Int32, about : Hash(Char, Listing)? = nil,
                &chosen : Char? -> Nil) : Nil
       ready_the_menu about, chosen
+      @menu.tabs_width = tabs_room about
       @menu.show application, title, pages, page
+    end
+
+    # How wide the row of page names may make the rows of a menu, so the
+    # detail box beside it keeps the width its widest lines need.
+    #
+    # The menu is centered and the detail box hangs one cell to its left. A
+    # detail box *d* cells wide fits when the menu leaves d + 1 cells on that
+    # side, so the menu is at most screen - 2 * (d + 1) wide. Its border and
+    # padding take `Widgets::Menu#gutter` cells on each side, which leaves
+    # the rows screen - 2 * (d + 1) - 2 * gutter. At 80 columns a detail box
+    # 21 wide leaves the rows 80 - 44 - 4 = 32.
+    #
+    # The detail box is its widest line plus a border and a padding cell on
+    # each side, four cells in all. A menu with no detail box has no cap.
+    private def tabs_room(about : Hash(Char, Listing)?) : Int32
+      return Int32::MAX if about.nil? || about.empty?
+
+      policy = application.tree.policy
+      widest = about.values.max_of do |found|
+        lines = Detail.about(@game, found.item, slot: found.slot)
+        lines.max_of? { |line| Widgets::Menu.cells(line, policy) } || 0
+      end
+      detail = (widest + 4).clamp Tooltip::LEAST_WIDTH, Tooltip::WIDTH
+
+      application.tree.screen.width - 2 * (detail + 1) - 2 * @menu.gutter
     end
 
     # Puts carried *found* up under *title*, with a page for each class of
