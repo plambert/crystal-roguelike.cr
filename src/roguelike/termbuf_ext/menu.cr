@@ -38,6 +38,11 @@ module TermBuf::Widgets
   #
   # A letter picks its row. The arrows and the page keys move a highlight and
   # `Enter` picks the highlighted row. `Escape` answers nothing.
+  #
+  # A menu can hold its rows in pages, each with a name. The names are drawn
+  # in a row along the top, and the left and right keys turn the page. Each
+  # row keeps its own key on every page it is on. Such a menu has no sideways
+  # scroll, because the left and right keys are taken.
   class Menu < Overlay
     # One row.
     #
@@ -169,6 +174,122 @@ module TermBuf::Widgets
     # The list the rows are drawn through.
     getter list : Content
 
+    # The pages, each a name and its rows. Empty for a menu of one list.
+    getter pages : Array({String, Array(Entry)}) = [] of {String, Array(Entry)}
+
+    # Which page is showing.
+    getter page : Int32 = 0
+
+    # The row of page names along the top.
+    getter tabs : Tabs
+
+    # The names of the pages along the top of a menu.
+    #
+    # The page that is showing is drawn in brackets and in bold. An arrow at
+    # each end says that the left and right keys turn the page. A row too
+    # narrow for every name slides along to keep the page showing in view.
+    #
+    # A press on a name turns to that page.
+    class Tabs < Widget
+      # The names, in order.
+      property names : Array(String) = [] of String
+
+      # Which name is showing.
+      property current : Int32 = 0
+
+      # What the name showing is drawn in.
+      property current_style : Style = Style::DEFAULT.bold
+
+      # What runs when a name is pressed, with the index of the name.
+      property on_pick : Proc(Int32, Nil)? = nil
+
+      # The cells the arrow and the space after it take at each end.
+      ENDS = 2
+
+      def initialize
+        @width = Layout::Sizing.grow
+        @height = Layout::Sizing.fixed 1
+      end
+
+      # Each name as it is drawn, with the column it starts at. The columns
+      # count from the cell after the left arrow.
+      def labels : Array({Int32, String})
+        column = 0
+
+        @names.map_with_index do |name, index|
+          label = index == @current ? "[#{name}]" : " #{name} "
+          at = column
+          column += label.size + 1
+          {at, label}
+        end
+      end
+
+      # How many cells every name takes, with the arrows.
+      def wanted : Int32
+        found = labels.last?
+        return 0 unless found
+
+        found[0] + found[1].size + 2 * ENDS
+      end
+
+      def intrinsic_width(policy : Unicode::WidthPolicy) : Layout::Intrinsic
+        Layout::Intrinsic.new 1, Math.max(wanted, 1)
+      end
+
+      def height_for_width(width : Int32, policy : Unicode::WidthPolicy) : Int32
+        1
+      end
+
+      # How far the names are slid left so the one showing fits.
+      private def shift(room : Int32) : Int32
+        found = labels[@current]?
+        return 0 unless found
+
+        Math.max found[0] + found[1].size - room, 0
+      end
+
+      def draw(view : View) : Nil
+        room = view.width - 2 * ENDS
+        return if room <= 0
+
+        moved = shift room
+        labels.each_with_index do |(at, label), index|
+          column = at - moved
+          next if column < 0 || column + label.size > room
+
+          view.write ENDS + column, 0, label,
+            index == @current ? @current_style : Style::DEFAULT
+        end
+
+        view.write 0, 0, "\u2190", Style::DEFAULT
+        view.write view.width - 1, 0, "\u2192", Style::DEFAULT
+      end
+
+      # Turns to the name a button goes down on. A press on an arrow turns
+      # one page that way.
+      def handle(event : Event, context : Context) : Nil
+        return unless event.is_a? Events::Mouse
+        return unless Content.clicked? event
+
+        picked = pick event.x - content.x
+        return unless picked
+
+        context.consume
+        @on_pick.try &.call picked
+      end
+
+      # The name at column *x* of the row, or `nil` for a gap.
+      private def pick(x : Int32) : Int32?
+        return if @names.empty?
+        return (@current - 1) % @names.size if x < ENDS
+        return (@current + 1) % @names.size if x >= content.width - ENDS
+
+        room = content.width - 2 * ENDS
+        column = x - ENDS + shift(room)
+        labels.index { |(at, label)| column >= at && column < at + label.size }
+      end
+    end
+
     # The list inside a menu.
     #
     # `VirtualList` holds no widget per row, so it cannot be asked how wide
@@ -254,6 +375,7 @@ module TermBuf::Widgets
       @list = Content.new Rows.of([] of Entry),
         width: Layout::Sizing.fit(min: 1),
         height: Layout::Sizing.fit(min: 1)
+      @tabs = Tabs.new
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
 
@@ -277,6 +399,10 @@ module TermBuf::Widgets
       # already put the highlight on it.
       @list.on_click = -> { pick_highlighted; nil }
 
+      @tabs.hidden = true
+      @tabs.on_pick = ->(index : Int32) { turn_to index; nil }
+
+      add @tabs
       add @list
     end
 
@@ -289,7 +415,61 @@ module TermBuf::Widgets
     #
     # A menu already up is replaced. The scope it pushed is kept.
     def show(app : App, title : String?, entries : Enumerable(Entry)) : Nil
-      @entries = entries.to_a
+      @pages = [] of {String, Array(Entry)}
+      @page = 0
+      @tabs.hidden = true
+      put_up app, title, entries.to_a
+    end
+
+    # Puts *pages* up on *app* under *title*, showing the one at *page*.
+    #
+    # The box is sized for the widest row and the longest page of them all,
+    # so it stays the same size as the pages turn.
+    def show(app : App, title : String?, pages : Array({String, Array(Entry)}),
+             page : Int32) : Nil
+      return show(app, title, [] of Entry) if pages.empty?
+
+      @pages = pages
+      @page = page.clamp 0, pages.size - 1
+      @tabs.names = pages.map &.[0]
+      @tabs.current = @page
+      @tabs.hidden = false
+      put_up app, title, pages[@page][1]
+    end
+
+    # The name of the page showing, or `nil` for a menu without pages.
+    def page_name : String?
+      @pages[@page]?.try &.[0]
+    end
+
+    # Turns to the page at *index*. Past either end goes round to the other.
+    def turn_to(index : Int32) : Nil
+      return if @pages.empty?
+
+      @page = index % @pages.size
+      @tabs.current = @page
+      @entries = @pages[@page][1]
+      @offset = 0
+      @list.rows = Rows.of @entries
+      @list.select 0
+      rebind if open?
+      highlighted
+    end
+
+    # Puts the bindings for the rows showing in place of the old ones.
+    #
+    # An open menu pushed its bindings onto the focus stack when it went up.
+    # That copy is replaced too, or the letters of the page before would
+    # still answer.
+    private def rebind : Nil
+      bindings = choices
+      self.keymap = bindings
+      @scope.try &.keymap = bindings
+    end
+
+    # Puts *entries* up as the rows showing.
+    private def put_up(app : App, title : String?, entries : Array(Entry)) : Nil
+      @entries = entries
       @offset = 0
       @list.rows = Rows.of @entries
       @list.select 0
@@ -300,6 +480,16 @@ module TermBuf::Widgets
 
       open app
       highlighted
+    end
+
+    # Every row the box has to have room for, on every page.
+    private def measured : Array(Entry)
+      @pages.empty? ? @entries : @pages.flat_map(&.[1])
+    end
+
+    # How many rows the longest page has.
+    private def longest : Int32
+      @pages.empty? ? @entries.size : @pages.max_of(&.[1].size)
     end
 
     # Tells `#on_highlight` which row the highlight is on now.
@@ -327,9 +517,11 @@ module TermBuf::Widgets
     # The title is measured too. It is drawn in the top edge of the border,
     # and a box narrower than its own title has the title cut instead.
     private def fit_into(screen : Rect, policy : Unicode::WidthPolicy) : Nil
-      widest_row = @entries.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
-      widest_row += TAIL if @entries.any? &.tail
+      rows = measured
+      widest_row = rows.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
+      widest_row += TAIL if rows.any? &.tail
       widest_row += MIRROR
+      widest_row = Math.max widest_row, @tabs.wanted unless @tabs.hidden?
 
       @list.widest = Math.max widest_row, Menu.cells(title, policy) + TITLE_SLACK
 
@@ -340,7 +532,7 @@ module TermBuf::Widgets
       self.height = Layout::Sizing.fit min: MINIMUM_HEIGHT, max: tallest
 
       @list.height = Layout::Sizing.fit min: 1,
-        max: Math.max(Math.min(@entries.size, @max_rows), 1)
+        max: Math.max(Math.min(longest, @max_rows), 1)
 
       @room = Math.min @list.widest, Math.max(widest - inset.horizontal, 0)
     end
@@ -421,10 +613,17 @@ module TermBuf::Widgets
         ->(_context : Context) { finish nil; nil }
       map.bind Key.named(Key::Name::Enter), "pick the highlighted row",
         ->(_context : Context) { pick_highlighted; nil }
-      map.bind Key.named(Key::Name::Left), "the rows sideways, back",
-        ->(_context : Context) { scroll_by -1; nil }
-      map.bind Key.named(Key::Name::Right), "the rows sideways, on",
-        ->(_context : Context) { scroll_by 1; nil }
+      if @pages.empty?
+        map.bind Key.named(Key::Name::Left), "the rows sideways, back",
+          ->(_context : Context) { scroll_by -1; nil }
+        map.bind Key.named(Key::Name::Right), "the rows sideways, on",
+          ->(_context : Context) { scroll_by 1; nil }
+      else
+        map.bind Key.named(Key::Name::Left), "the page before",
+          ->(_context : Context) { turn_to @page - 1; nil }
+        map.bind Key.named(Key::Name::Right), "the page after",
+          ->(_context : Context) { turn_to @page + 1; nil }
+      end
 
       map
     end

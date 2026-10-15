@@ -8,6 +8,17 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* Pressing an item's letter in the inventory lists what you can do with it: wield or wear, take
+  off, drink, read, zap, apply, throw and drop. The list is always in that order with the same
+  keys as on the map, and what does not apply to the item is dimmed. `Escape` goes back to the
+  inventory.
+* Clicking an item in the sidebar's pack lists what you can do with it, the same way.
+* The inventory shows one class of item at a time, such as weapons, armor, potions or scrolls.
+  The left and right arrows move between them, and the first one shows everything. Each item keeps
+  its letter. A click on a class name shows that class.
+
 ## [0.4.2] - 2026-10-14
 
 The Seen list lights and walks to what you point at, the right mouse button pans the map, arrows and
