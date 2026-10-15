@@ -8,6 +8,17 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* `X` looks into a dead end or a small pocket beside you before it walks on into open ground, so
+  it does not leave the pocket to walk back to at the end of the floor. A pocket counts as small
+  when everything around it has been seen.
+
+### Fixed
+
+* `X` no longer stops in a doorway or the neck of a cave with "You stop. Walking on would show you
+  nothing new." while the room beside it still has ground left to see.
+
 ## [0.4.2] - 2026-10-14
 
 The Seen list lights and walks to what you point at, the right mouse button pans the map, arrows and

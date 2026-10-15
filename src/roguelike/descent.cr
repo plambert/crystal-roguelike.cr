@@ -47,9 +47,14 @@ module Roguelike
     # *avoid* names squares the flood treats as solid. A creature whose way is
     # held by another creature floods with that square in it, and so finds the
     # way round.
+    #
+    # *keep*, when given, names the only squares the flood may enter besides
+    # the goal. A walk that must stay in one room floods with that room's
+    # squares.
     def self.toward(knowledge : Knowledge, goal : {Int32, Int32},
                     limit : Int32 = LIMIT, doors : Bool = false,
-                    avoid : Set({Int32, Int32}) = EMPTY) : Descent
+                    avoid : Set({Int32, Int32}) = EMPTY,
+                    keep : Set({Int32, Int32})? = nil) : Descent
       steps = {goal => 0}
       edge = [goal]
       away = 0
@@ -63,6 +68,7 @@ module Roguelike
             wanted = direction.from spot[0], spot[1]
             next if steps.has_key? wanted
             next if avoid.includes? wanted
+            next if keep && !keep.includes?(wanted)
             next unless crossable? knowledge, wanted, doors
 
             steps[wanted] = away

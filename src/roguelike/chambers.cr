@@ -116,9 +116,20 @@ module Roguelike
     # Whether each square is walkable and borders a square not yet seen.
     @edge : Array(Bool)
 
+    # How many unseen squares lie behind each frontier square, up to
+    # `BEHIND`. Zero off the frontier.
+    @behind : Array(Int32)
+
+    # The most unseen squares `#behind` counts.
+    #
+    # A pocket smaller than this is told apart from a larger one. Every
+    # larger region counts the same, so distance chooses between them.
+    BEHIND = 16
+
     def initialize(@columns : Int32, @rows : Int32, @revision : Int32,
                    @chambers : Array(Chamber), @passages : Array(Passage),
-                   @owner : Array(Int32), @edge : Array(Bool))
+                   @owner : Array(Int32), @edge : Array(Bool),
+                   @behind : Array(Int32))
     end
 
     # The chamber *x*, *y* belongs to. `nil` for a corridor, a door, a wall
@@ -160,6 +171,24 @@ module Roguelike
         found << {index % @columns, index // @columns} if edge
       end
       found
+    end
+
+    # How many unseen squares lie behind the frontier square *x*, *y*, up to
+    # `BEHIND`. Zero for a square off the frontier.
+    #
+    # The unseen squares behind it are the unseen squares beside it, and
+    # every unseen square joined to those across the four sides of a square
+    # without crossing a square already seen. Unseen
+    # rock counts, because nobody knows yet that it is rock. A pocket the
+    # character has seen all the way round is small. Space with no seen
+    # edge between it and the rest of the floor is large.
+    def behind(x : Int32, y : Int32) : Int32
+      inside?(x, y) ? @behind[y * @columns + x] : 0
+    end
+
+    # :ditto:
+    def behind(spot : {Int32, Int32}) : Int32
+      behind spot[0], spot[1]
     end
 
     private def inside?(x : Int32, y : Int32) : Bool
@@ -221,7 +250,7 @@ module Roguelike
 
         chambers = @anchors.map_with_index { |anchor, number| chamber anchor, number, members[number], edge }
         Chambers.new @columns, @rows, @knowledge.revision, chambers, passages,
-          @owner, edge
+          @owner, edge, hidden(edge)
       end
 
       private def index(x : Int32, y : Int32) : Int32?
@@ -336,6 +365,50 @@ module Roguelike
           bordering = false
           around(square) { |next_to| bordering = true unless @known[next_to] }
           bordering
+        end
+      end
+
+      # How many unseen squares lie behind each square of *edge*, up to
+      # `BEHIND`.
+      #
+      # One flood over the whole floor numbers the bodies of unseen squares
+      # joined across the four sides of a square. A frontier square takes the
+      # sizes of the bodies it is in or beside. The flood runs once for the
+      # cut, so the cost does not grow with the length of the frontier.
+      private def hidden(edge : Array(Bool)) : Array(Int32)
+        body = Array(Int32).new @size, -1
+        sizes = [] of Int32
+
+        @size.times do |start|
+          next if @known[start] || body[start] >= 0
+
+          number = sizes.size
+          body[start] = number
+          queue = Deque{start}
+          count = 0
+
+          while at = queue.shift?
+            count += 1
+            x, y = spot at
+            SIDES.each do |offset|
+              found = index(x + offset[0], y + offset[1])
+              next if found.nil? || @known[found] || body[found] >= 0
+
+              body[found] = number
+              queue << found
+            end
+          end
+
+          sizes << count
+        end
+
+        Array.new(@size) do |square|
+          next 0 unless edge[square]
+
+          bodies = [] of Int32
+          bodies << body[square] unless @known[square]
+          around(square) { |next_to| bodies << body[next_to] unless @known[next_to] }
+          Math.min bodies.uniq!.sum { |number| sizes[number] }, BEHIND
         end
       end
 

@@ -3,20 +3,26 @@ require "../roguelike"
 module Roguelike
   # Where the character walks to see what they have not seen.
   #
-  # The goal is the nearest square of `Chambers#frontier`, which is walkable
-  # ground beside a square not yet seen. Standing on one shows what is
-  # beside it. Nearest means fewest steps over what the character knows, shut
+  # The goal is a square of `Chambers#frontier`, which is walkable ground
+  # beside a square not yet seen. Standing on one shows what is beside it.
+  #
+  # The small side comes first. The goal is the frontier square with the
+  # least unseen space behind it, by `Chambers#behind`. Only a square within
+  # `REACH` steps is ranked that way, and every other square counts as
+  # large. A pocket beside the character is seen while they stand by it, and
+  # is not left to walk back to at the end. Between equal estimates the goal
+  # is the nearest. Nearest means fewest steps over what the character knows, shut
   # doors counted as crossable because a walk opens them.
   #
   # A room that is only partly seen keeps the character in it. While the
-  # room they stand in has a frontier they can reach, the goal is the nearest
-  # square of that frontier, so a room is swept before it is left. `.within`
+  # room they stand in has a frontier they can reach, the goal is chosen from
+  # that frontier alone, so a room is swept before it is left. `.within`
   # says which chamber they stand in, and `.room` takes in the chambers the
   # grid cut the same room into.
   #
   # A passage holds the character once they are in it. While they stand on
   # a square no chamber holds, such as a door or a corridor, and that
-  # passage has a square left to see, the goal is the nearest such square.
+  # passage has a square left to see, the goal is chosen from those squares.
   # The way there keeps to the passage. A passage with nothing left to see
   # lets them go, and so does reaching a room.
   #
@@ -49,13 +55,14 @@ module Roguelike
       descent = flood knowledge, from, columns, rows
 
       goal = nearest descent, Explore.wanted(knowledge, takes)
-      goal ||= sweeping found, descent, from
       unless goal
+        room = sweeping knowledge, found, from, columns, rows
+        return room if room
         along = passage knowledge, found, from, columns, rows
-        ahead = along.try { |inside| nearest inside, found.frontier }
+        ahead = along.try { |inside| smallest found, inside, found.frontier }
         return Route.over(along, ahead) if along && ahead
       end
-      goal ||= nearest descent, found.frontier
+      goal ||= smallest found, descent, found.frontier
       goal ||= nearest descent, Explore.unread(knowledge)
       return Route::NOWHERE unless goal
 
@@ -76,18 +83,28 @@ module Roguelike
         doors: true, avoid: rooms
     end
 
-    # The nearest square left to see in the room the character at *from*
-    # stands in. `nil` when that room has none they can reach.
-    private def self.sweeping(chambers : Chambers, descent : Descent,
-                              from : {Int32, Int32}) : {Int32, Int32}?
+    # The route to the square left to see that explore picks in the room the
+    # character at *from* is sweeping. `nil` when that room has none they can reach.
+    #
+    # The route keeps to the room. A route that left it through a doorway
+    # would put the character in a passage, where the passage rule could
+    # turn them back toward the room, and the walk would go round.
+    private def self.sweeping(knowledge : Knowledge, chambers : Chambers,
+                              from : {Int32, Int32}, columns : Int32,
+                              rows : Int32) : Array({Int32, Int32})?
       here = Explore.within chambers, from
       return unless here
 
       room = Explore.room chambers, here
       return unless room.any? &.frontier?
 
+      squares = Set({Int32, Int32}).new
+      room.each { |chamber| squares.concat chamber.squares }
+      inside = Descent.toward knowledge, from, Math.max(columns * rows, Route::LIMIT),
+        doors: true, keep: squares
       edge = room.flat_map &.squares.select { |spot| chambers.frontier? spot[0], spot[1] }
-      nearest descent, edge
+      goal = smallest chambers, inside, edge
+      Route.over inside, goal if goal
     end
 
     # Whether a pile worth taking or an item left to read that *knowledge*
@@ -179,6 +196,36 @@ module Roguelike
       end
 
       found
+    end
+
+    # How many steps off a pocket can be and still come before a nearer
+    # square. A pocket farther off counts as large, so explore does not
+    # walk across a room for one square while open ground lies beside it.
+    REACH = 4
+
+    # Which of *spots* has the least unseen space behind it, by
+    # `Chambers#behind`. Only a square within `REACH` steps on *descent* is
+    # told apart this way, and every other square counts as large. The
+    # fewest steps breaks a tie, and reading order breaks a tie of both.
+    # `nil` when *descent* reaches none of them past its own goal.
+    def self.smallest(chambers : Chambers, descent : Descent,
+                      spots : Array({Int32, Int32})) : {Int32, Int32}?
+      best = nil.as({Int32, Int32}?)
+      least = {0, 0}
+
+      spots.each do |spot|
+        away = descent[spot]
+        next if away.nil? || away.zero?
+
+        behind = away <= REACH ? chambers.behind(spot) : Chambers::BEHIND
+        score = {behind, away}
+        next if best && (score <=> least) >= 0
+
+        best = spot
+        least = score
+      end
+
+      best
     end
 
     # Which of *spots* is fewest steps away on *descent*. Ties go to the

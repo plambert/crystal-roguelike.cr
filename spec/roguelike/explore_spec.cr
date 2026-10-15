@@ -150,6 +150,20 @@ Spectator.describe "exploring and travelling" do
   NORTH_END = {20, 1}
   SOUTH_END = {20, 6}
 
+  # A long corridor with a dead end at each end. The specs below hide parts
+  # of it to make pockets and open regions.
+  DEAD_ENDS = [
+    "########################################",
+    "########################################",
+    "##....................................##",
+    "########################################",
+    "########################################",
+  ]
+
+  # Where the character stands in `DEAD_ENDS`, four steps from the square
+  # beside the west dead end.
+  MIDDLE = {8, 2}
+
   # Every square explore on *game* takes the character to, until nothing is
   # left to see. A walk that stops for anything else is started again.
   def path(game : Game) : Array({Int32, Int32})
@@ -185,6 +199,23 @@ Spectator.describe "exploring and travelling" do
     ground.rows.times do |row|
       ground.columns.times { |column| game.player.knowledge.see ground, column, row }
     end
+  end
+
+  # Every square of *game*'s floor written into what the character knows,
+  # except those *hidden* holds for.
+  def knowing_but(game : Game, &hidden : {Int32, Int32} -> Bool) : Nil
+    ground = game.floor
+    ground.rows.times do |row|
+      ground.columns.times do |column|
+        game.player.knowledge.see ground, column, row unless hidden.call({column, row})
+      end
+    end
+  end
+
+  # The square explore on *game* heads for.
+  def heading(game : Game) : {Int32, Int32}?
+    ground = game.floor
+    Explore.route(game.knowledge, game.player.at, ground.columns, ground.rows).last?
   end
 
   # Gives *game*'s character a wielded bow and two arrows in the quiver.
@@ -641,6 +672,74 @@ Spectator.describe "exploring and travelling" do
       expect(stood.size).to be > 2
       expect(game.knowledge.seen?(1, 1)).to be_true
       expect(game.knowledge.chambers(ground.columns, ground.rows).frontier?).to be_false
+    end
+
+    it "clears a dead end beside it before a large region whose edge is nearer" do
+      game = played DEAD_ENDS, at: MIDDLE
+      knowing_but(game) { |spot| spot[0] >= 10 || (spot[1] == 2 && {2, 3}.includes?(spot[0])) }
+      ground = game.floor
+      chambers = game.knowledge.chambers ground.columns, ground.rows
+
+      expect(chambers.behind 4, 2).to eq 2
+      expect(chambers.behind 9, 2).to eq Roguelike::Chambers::BEHIND
+      expect(heading game).to eq({4, 2})
+    end
+
+    it "sees the dead end before it walks into the large region" do
+      game = played DEAD_ENDS, at: MIDDLE, dark: true
+      knowing_but(game) { |spot| spot[0] >= 10 || (spot[1] == 2 && {2, 3}.includes?(spot[0])) }
+
+      stood = path game
+      west = stood.index! { |spot| spot[0] <= 6 }
+      east = stood.index! { |spot| spot[0] >= 10 }
+
+      expect(west).to be < east
+      expect(game.knowledge.seen?(2, 2)).to be_true
+      expect(game.knowledge.seen?(37, 2)).to be_true
+    end
+
+    it "clears the smaller of two pockets first, though it is farther" do
+      game = played DEAD_ENDS, at: MIDDLE
+      knowing_but(game) { |spot| spot[1] == 2 && ({2, 3}.includes?(spot[0]) || (11..14).includes?(spot[0])) }
+      ground = game.floor
+      chambers = game.knowledge.chambers ground.columns, ground.rows
+
+      expect(chambers.behind 4, 2).to eq 2
+      expect(chambers.behind 10, 2).to eq 4
+      expect(heading game).to eq({4, 2})
+    end
+
+    it "takes the nearer of two pockets the same size" do
+      west = played DEAD_ENDS, at: {6, 2}
+      east = played DEAD_ENDS, at: MIDDLE
+      hidden = ->(spot : {Int32, Int32}) { spot[1] == 2 && {2, 3, 11, 12}.includes?(spot[0]) }
+      knowing_but(west) { |spot| hidden.call spot }
+      knowing_but(east) { |spot| hidden.call spot }
+
+      expect(heading west).to eq({4, 2})
+      expect(heading east).to eq({10, 2})
+    end
+
+    it "takes the nearer of two squares with a large region behind each" do
+      game = played DEAD_ENDS, at: MIDDLE
+      knowing_but(game) { |spot| spot[0] <= 3 || spot[0] >= 16 || spot[1] == 0 }
+      ground = game.floor
+      chambers = game.knowledge.chambers ground.columns, ground.rows
+
+      expect(chambers.behind 4, 2).to eq Roguelike::Chambers::BEHIND
+      expect(chambers.behind 15, 2).to eq Roguelike::Chambers::BEHIND
+      expect(heading game).to eq({4, 2})
+    end
+
+    it "counts a pocket more than four steps off as large" do
+      game = played DEAD_ENDS, at: {9, 2}
+      knowing_but(game) { |spot| spot[0] >= 11 || (spot[1] == 2 && {2, 3}.includes?(spot[0])) }
+      ground = game.floor
+      chambers = game.knowledge.chambers ground.columns, ground.rows
+
+      expect(Explore::REACH).to eq 4
+      expect(chambers.behind 4, 2).to eq 2
+      expect(heading game).to eq({10, 2})
     end
 
     it "sees the whole of a dug floor" do
