@@ -6,15 +6,6 @@ item says what a player would notice, not how it is built.
 
 ## Planned
 
-### One key wields and wears, and swaps armor by itself
-
-`w` and `W` become one key that wields a weapon or wears armor by what the chosen item is. When
-the item's slot is already full, the game takes the old piece off and then puts the new one on,
-as two actions over the turns they take. A creature moving into view or damage taken interrupts
-the swap after the first action, leaving the character with the old piece off and the new one
-still in the pack. The message pane then ends the turn with a line such as "You are interrupted,
-and have not put on the chain mail yet!", written last so it is the one the player reads.
-
 ### Enchantments are learned over time, and only partly at first
 
 An item's enchantment is hidden when it is picked up and comes out in steps as the character uses
@@ -25,43 +16,11 @@ can also be relative, such as "You realize that your dagger (z) is better than y
 (c)!", which lifts the lower bound. A scroll of identify learns it outright. How the steps are
 timed, and what a negative enchantment reveals as, is to be settled when this is built.
 
-### Explore commits to a passage once it enters one
-
-Explore will open a door, step into the corridor behind it, see nothing new in reach, and turn
-back to leave the room by another exit. Once it has entered a passage it follows that passage to
-wherever it leads before it considers any other frontier, so a walk reads as a route rather than
-a dither.
-
-### Ammunition and other items can be damaged, and then destroyed
-
-An item can be damaged, and a damaged item has a small chance of being destroyed each time it is
-used. A normal item becomes damaged only through a specific effect, such as an acid attack, and no
-such effect is in the game yet, so for now only ammunition meets damage. An arrow, quarrel or dart
-has a chance of being damaged after it is used, and a damaged one has a small chance of being
-destroyed on the next use. Stones and rocks are never damaged. The item's name shows that it is
-damaged.
-
-### Explore clears the small side first
-
-When explore has a choice of frontiers, it heads for the one with the least unexplored space
-behind it, so dead ends and small pockets are cleared while the character is beside them instead
-of being walked back to across the whole floor at the end. The size of what lies behind a
-frontier is estimated from the unknown squares reachable through it, and distance still breaks
-ties.
-
 ### An options screen, and a pickup filter
 
 Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
 of rules such as "gold only", "never a cursed item", or "anything better than what I have".
 Another is whether a bar's colour comes from the gradient or from fixed bands.
-
-### An action menu on an inventory letter
-
-Pressing an item's letter in the pack opens a fixed menu of what can be done with it, with entries
-that do not apply dimmed rather than missing, so the same key is in the same place every time.
-The inventory list itself gets a filter along its top, "all", "weapons", "armor", "potions",
-"scrolls" and so on, which the left and right arrows move between, so a long pack can be read one
-class at a time.
 
 ### A modern control configuration
 
@@ -73,12 +32,6 @@ what is around: it opens or closes the door the character faces and lights or pu
 beside them, and opens the action menu when more than one thing could be meant. In menus the
 selection moves with `wasd` rather than by single-letter choices. It is a different way to drive
 the same actions, and the help screen shows whichever scheme is in use.
-
-### A what's new screen
-
-The changes a player would notice since the version they last ran, reachable from the title screen
-and printable with `--whats-new`. It draws on the changelog, so a release that adds a feature
-tells the player about it without them reading the release page.
 
 ### A tutorial for new players
 
@@ -105,13 +58,6 @@ share like that. Other creatures share with band members who speak a common lang
 within range or were seen recently, and call out to the rest. Languages are per creature, with
 properties such as silent, sight-based or sound-based, and a clever goblin might speak Orc.
 
-### Right-click and drag on the map to pan
-
-Holding the right mouse button on the map and dragging moves the view with the pointer, so a player
-can look at a part of the floor the character is not near without moving them. Letting go leaves
-the view where it was dragged, and the next action, or the camera key, brings it back to the
-character.
-
 ## Considered
 
 ### Sorting the pack
@@ -126,18 +72,7 @@ message pane says the pack was sorted.
 
 ### The Seen list
 
-Hovering a row with the mouse lights that creature's square on the map, and the list is sorted by
-how far each creature is from the character.
-
-### The rest of the route on the map
-
-A drawn route fades after a few seconds without movement or another click, rather than waiting for
-a turn. Clicking a row of the Seen list draws a route to that creature.
-
-### `replay dump`
-
-A replay command that writes the messages of a run, so the messages of two builds over one run can
-be set side by side.
+The list is sorted by how far each creature is from the character.
 
 ### A minimap
 
@@ -159,12 +94,6 @@ Heavier armor makes movement slower, and the heaviest armor slows attacks as wel
 attacks somewhat too. The gain in armor class then costs something a player can feel, and leather
 armor is a choice rather than a stop on the way to chain mail.
 
-### A progress bar for uploads
-
-A game that submits its replay sends it at exit, after the terminal is handed back, and says
-nothing while the upload runs. A bar on the console would show how much of each piece has gone, so
-a slow connection reads as progress rather than a hang.
-
 ### Where the game is drifting
 
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
@@ -177,6 +106,78 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### `replay dump`
+
+`replay dump` writes the messages of a recorded run, one per line with the turn it came on.
+Dumping one replay with two builds and comparing the files shows a change of wording that
+`replay verify` cannot see. It stops with a report where the run differs from the recording.
+`--output` names a file, and standard output is the default.
+
+### A progress line for uploads
+
+A replay upload shows a line on standard error for each file it sends, with the file's name, the
+bytes sent of the total, and a bar. On a terminal the line redraws in place. When standard error is
+a file or a pipe, each file gets one line.
+
+### A what's new screen
+
+The title screen has a "what's new" entry that shows the release notes for the versions newer than
+the one last run, or the newest release when there is nothing newer. `--whats-new` prints the same
+notes and stops. The game keeps the last version run in the state directory, and `--no-save` leaves
+it alone.
+
+### An action menu on an inventory letter
+
+Pressing an item's letter in the inventory lists what can be done with it: wield or wear, take off,
+drink, read, zap, apply, throw and drop. The list is always in that order with the same keys as on
+the map, and entries that do not apply are dimmed. Clicking an item in the sidebar's pack opens the
+same list. The inventory shows one class of item at a time, such as weapons, armor, potions or
+scrolls, and the left and right arrows move between classes. The first class shows everything, and
+each item keeps its letter.
+
+### Routes fade, and the Seen list points and walks
+
+A route drawn by clicking the map or the Seen list fades after four seconds with no move and no
+other click, and a second click on the same square within that time still walks it. Pointing at a
+creature or an item in the Seen list lights its square on the map, blinking about twice a second,
+or steady with `--no-flicker`. Clicking a row draws the way to it, and a second click walks it.
+
+### Explore clears the small side first
+
+`X` looks into a dead end or a small pocket beside it before it walks on into open ground, so the
+pocket is not left to walk back to at the end of the floor. A pocket counts as small when
+everything around it has been seen. `X` also no longer stops in a doorway or the neck of a cave
+while the room beside it still has ground left to see.
+
+### Explore commits to a passage once it enters one
+
+Once `X` steps into a corridor, it follows that corridor to its end before it goes back for another
+exit. It no longer opens a door, looks into the corridor, and turns around.
+
+### One key wields and wears, and swaps armor by itself
+
+`w` wields a weapon or wears armor, by what is chosen, and `W` does the same and is no longer on the
+help screen. When the slot is already full, the old piece comes off first and the new one goes on
+after it, each over the turns it takes. A creature coming into view or a blow landing between the
+two stops the swap, leaving the old piece off and the new one in the pack, and the last line says
+so, as in "You are interrupted, and have not put on the chain mail yet!". A cursed piece that will
+not come off stops the swap before it starts, and no turn passes.
+
+### Arrows and darts wear out
+
+Each arrow or dart that lands has a 1 in 10 chance to become damaged, and a damaged one has a 1 in
+20 chance to break. Damaged ammunition is named as damaged, hits a little less hard, and does not
+stack with sound ammunition. Masterwork ammunition has half the chance of damage or breaking, and
+blessed ammunition half again. Stones and rocks never wear out, and arrows that creatures shoot
+wear out the same way. A damaged arrow of the quiver's own kind is still picked up on the way and
+goes under its own letter. Other items cannot be damaged yet, since nothing in the game does it.
+
+### Right-click and drag pans the map
+
+Holding the right mouse button on the map and dragging moves the view, so the player can look at
+another part of the floor without moving. The view stays where it was left until the next turn or
+`Escape` brings it back to the character. A right click no longer draws a route.
 
 ### Explore ignores items seen from far away
 
