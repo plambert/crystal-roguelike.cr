@@ -27,17 +27,18 @@ Spectator.describe "the menu on an inventory letter" do
     "############",
   ]
 
-  # A run with the character carrying *items*, on a screen *rows* tall.
+  # A run with the character carrying *items*, on a screen *columns* wide
+  # and *rows* tall.
   #
   # The sidebar shuts the pack on a short screen. A spec that clicks a pack
   # row needs a tall one.
-  def carrying(items : Array(Item), rows : Int32 = 24) : Playing::Run
+  def carrying(items : Array(Item), rows : Int32 = 24, columns : Int32 = 80) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
     player = Roguelike::Player.new "hall", 1, 1, hit_points: 1
     items.each { |item| player.inventory.add item }
 
     Playing.open Handled.new(Roguelike::World.new(Playing::SEED, {"hall" => floor}), player),
-      80, rows
+      columns, rows
   end
 
   # The actions *run* has taken, written out so two runs can be compared.
@@ -186,31 +187,63 @@ Spectator.describe "the menu on an inventory letter" do
   end
 
   describe "the class of item along the top" do
-    it "has a page for each class carried, after the first" do
+    it "has a page for every class, after the first" do
       run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
 
       run.press "i"
 
-      expect(run.menu.pages.map &.[0]).to eq ["all", "weapons", "potions"]
+      expect(run.menu.pages.map &.[0]).to eq ["all"] + Play::PACK_CLASSES.to_a
       expect(run.menu.page_name).to eq "all"
       expect(run.menu.tabs.hidden?).to be_false
+    end
+
+    it "has every page with an empty pack" do
+      run = carrying [] of Item
+
+      run.press "i"
+
+      expect(run.menu.showing?).to be_true
+      expect(run.menu.pages.size).to eq 9
+      expect(run.menu.tabs.hidden?).to be_false
+    end
+
+    it "shows one dimmed row on an empty page" do
+      run = carrying [Item.new(Kind::Dagger)]
+
+      run.press "i"
+      run.press "Right", "Right"
+
+      expect(run.menu.page_name).to eq "armor"
+      expect(offered run).to eq [{' ', false}]
+      expect(run.text).to contain "[armor]"
+      expect(run.text).to contain "nothing"
+    end
+
+    it "does nothing for Enter on an empty page" do
+      run = carrying [Item.new(Kind::Dagger)]
+
+      run.press "i"
+      run.press "Right", "Right"
+      run.press "Enter"
+
+      expect(run.menu.title).to eq "Inventory"
+      expect(run.menu.page_name).to eq "armor"
     end
 
     it "turns with the right and left arrows, and keeps the letters" do
       run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
 
       run.press "i"
-      run.press "Right"
-      run.press "Right"
+      run.press "Right", "Right", "Right", "Right"
 
       expect(run.menu.page_name).to eq "potions"
       expect(run.menu.entries.map &.key).to eq ['b']
 
+      run.press "Left", "Left", "Left", "Left", "Left"
+      expect(run.menu.page_name).to eq "treasure"
+
       run.press "Right"
       expect(run.menu.page_name).to eq "all"
-
-      run.press "Left"
-      expect(run.menu.page_name).to eq "potions"
     end
 
     it "shows the class name along the top of the box" do
@@ -236,7 +269,7 @@ Spectator.describe "the menu on an inventory letter" do
       run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
 
       run.press "i"
-      run.press "Right", "Right"
+      run.press "Right", "Right", "Right", "Right"
       run.press "b"
       run.press "Escape"
 
@@ -252,7 +285,118 @@ Spectator.describe "the menu on an inventory letter" do
       at = tabs.labels[2][0]
       run.click tabs.content.x + TermBuf::Widgets::Menu::Tabs::ENDS + at + 1, tabs.content.y
 
+      expect(run.menu.page_name).to eq "armor"
+    end
+  end
+
+  describe "pages in another list of carried items" do
+    it "has a page only for each class in the list" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+
+      run.press "d"
+
+      expect(run.menu.title).to eq "Drop what?"
+      expect(run.menu.pages.map &.[0]).to eq ["all", "weapons", "potions"]
+      expect(run.menu.page_name).to eq "all"
+      expect(run.text).to contain "[all]"
+    end
+
+    it "has no pages when the list is one class" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::Arrow, count: 9)]
+
+      run.press "d"
+
+      expect(run.menu.pages).to be_empty
+      expect(run.menu.tabs.hidden?).to be_true
+      expect(run.text).not_to contain "[all]"
+    end
+
+    it "builds the pages from what the list offers" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::LeatherArmor),
+                      Item.new(Kind::HealingPotion)]
+
+      run.press "w"
+
+      expect(run.menu.pages.map &.[0]).to eq ["all", "weapons", "armor"]
+    end
+
+    it "answers only the letters on the page showing" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+
+      run.press "d"
+      run.press "Right"
+      run.press "b"
+
+      expect(run.menu.title).to eq "Drop what?"
+      expect(run.game.player.inventory.size).to eq 2
+      expect(taken run).to be_empty
+    end
+
+    it "drops from a page as the letter does from the first" do
+      by_page = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+      by_page.press "d"
+      by_page.press "Right", "Right"
+      by_page.press "b"
+
+      by_letter = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+      id = by_letter.game.player.inventory['b'].as(Item).id
+      by_letter.press "d"
+      by_letter.press "b"
+
+      expect(by_page.game.here.size).to eq 1
+      expect(taken by_page).to eq taken(by_letter)
+      expect(taken by_page).to eq [Roguelike::Action::Drop.new(id).to_json]
+    end
+
+    it "opens on the page it was left on" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+
+      run.press "d"
+      run.press "Right", "Right"
+      run.press "Escape"
+      run.press "d"
+
       expect(run.menu.page_name).to eq "potions"
+    end
+
+    it "keeps the page of each list apart" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+
+      run.press "d"
+      run.press "Right"
+      run.press "Escape"
+      run.press "i"
+
+      expect(run.menu.page_name).to eq "all"
+    end
+
+    it "opens on the first page when the page it was left on is gone" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion),
+                      Item.new(Kind::IdentifyScroll)]
+
+      run.press "d"
+      run.press "Right", "Right"
+      run.press "b"
+      run.press "d"
+
+      expect(run.menu.pages.map &.[0]).to eq ["all", "weapons", "scrolls"]
+      expect(run.menu.page_name).to eq "all"
+    end
+
+    it "fits a screen 40 columns wide" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::LeatherArmor),
+                      Item.new(Kind::HealingPotion), Item.new(Kind::IdentifyScroll)],
+        columns: 40
+
+      run.press "d"
+
+      expect(run.menu.tabs.hidden?).to be_false
+      expect(run.menu.rect.width).to be <= 40
+      expect(run.menu.tabs.wanted).to be > run.menu.tabs.content.width
+
+      run.press "Left"
+      expect(run.menu.page_name).to eq "scrolls"
+      expect(run.text).to contain "[scrolls]"
     end
   end
 

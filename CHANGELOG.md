@@ -40,6 +40,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Every list of carried items has the class pages the inventory has: drop, wield or wear, take
+  off, drink, read, zap, throw, and the lists a scroll asks from. Only classes in that list get a
+  page, and a list of one class has none. Each list opens on the page you left it on.
+* The inventory always shows every class, and opens even when you carry nothing. A class you
+  carry none of shows "nothing".
 * `c` on a shut door asks "Spike the door?" when you carry a spike, and drives one in on yes.
   `c` still closes open doors. The apply menu still offers spikes as well.
 * Driving a spike takes half a turn.
