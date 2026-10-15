@@ -113,6 +113,20 @@ better. Each kind of wall takes a different amount of damage to destroy, so soft
 few blows and the hardest stone takes a long time. Now and then a dig runs into a gold ore vein,
 which is rare. A vein yields gold ore, an item of its own that is not gold and does not stack.
 
+### Hunger, food and corpses
+
+The character gets hungry as turns pass and must eat to avoid starving. Food is found on the floor
+as rations and other things to eat. A creature the character kills leaves a corpse, and a corpse
+can be eaten too. How fast hunger builds, what each food restores, how long a corpse lasts, and
+whether some corpses are bad to eat are to be settled when this is built.
+
+### Thirst, fountains and waterskins
+
+The character gets thirsty as turns pass and must drink. Fountains on some floors give water to
+drink on the spot. A waterskin holds water to carry away and drink later, and a fountain refills it.
+How fast thirst builds, how much a waterskin holds, and whether fountain water is always safe are to
+be settled when this is built.
+
 ### Where the game is drifting
 
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
