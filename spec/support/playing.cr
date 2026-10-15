@@ -29,6 +29,11 @@ module Playing
                    @told : Array(String))
     end
 
+    # Whether the what's new screen is up.
+    def news_page_open? : Bool
+      @play.news_page.open?
+    end
+
     delegate game, screen, map, examine, examiner, nearby, pointer, prompt, pager, menu,
       console, placard, entry, store, viewer, to: @play
 
@@ -226,6 +231,7 @@ module Playing
                 title : Bool = false,
                 clock : Bool = false,
                 store : Roguelike::Save::Store? = nil,
+                news : Array(Roguelike::WhatsNew::Section) = [] of Roguelike::WhatsNew::Section,
                 viewer : Roguelike::Replay::Viewer? = nil) : Run
     # A spec that builds its own run with `Game.new` has not numbered what is
     # in it. `Game.start`, `Game.dug` and a save read back all call `#enroll`,
@@ -243,6 +249,7 @@ module Playing
     play.view found if found
 
     play.store = store
+    play.news = news
     play.fit columns, rows
 
     session = Headless.open play.root, columns, rows

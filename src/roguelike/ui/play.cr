@@ -82,6 +82,9 @@ module Roguelike::Ui
     # The list of things to choose from, when there is one.
     getter menu : Widgets::Menu
 
+    # The release notes, drawn over the title screen.
+    getter news_page : NewsPage
+
     # The one-key question, when there is one.
     getter prompt : Widgets::Prompt
 
@@ -392,6 +395,10 @@ module Roguelike::Ui
     # offers a different one.
     @suggested : Int32 = 0
 
+    # The release notes the title screen offers, newest first. The title menu
+    # has no row for them while this is empty.
+    property news : Array(WhatsNew::Section) = [] of WhatsNew::Section
+
     # The name the question is offering. `Enter` on an empty line takes it.
     @offered : String = ""
 
@@ -464,6 +471,7 @@ module Roguelike::Ui
       @entry = Widgets::Entry.new
       @menu = Widgets::Menu.new
       @menu.pointer_style = Palette::POINTER_MARK
+      @news_page = NewsPage.new
       @history = HistoryPane.new
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
@@ -616,7 +624,7 @@ module Roguelike::Ui
     private def title_rows(held : Array(Save::Held)) : Array(Widgets::Menu::Entry)
       rows = [Widgets::Menu::Entry.new Placards::NEW_KEY, Placards::NEW_ROW]
       keys = Widgets::Menu::LETTERS.reject do |key|
-        key == Placards::NEW_KEY || key == Placards::QUIT_KEY
+        {Placards::NEW_KEY, Placards::QUIT_KEY, Placards::WHATS_NEW_KEY}.includes? key
       end
 
       held.each_with_index do |found, index|
@@ -627,13 +635,29 @@ module Roguelike::Ui
         rows << Widgets::Menu::Entry.new key, Placards.saved_row(found)
       end
 
+      unless @news.empty?
+        rows << Widgets::Menu::Entry.new Placards::WHATS_NEW_KEY, Placards::WHATS_NEW_ROW
+      end
+
       rows << Widgets::Menu::Entry.new Placards::QUIT_KEY, Placards::QUIT_ROW
       rows
+    end
+
+    # Opens the release notes over the title screen. Closing them puts the
+    # title menu back.
+    private def show_news : Nil
+      @news_page.news = @news
+      @news_page.on_close = -> do
+        show_title
+        nil
+      end
+      @news_page.open application
     end
 
     # What the row picked at the title screen does.
     private def chose_at_title(key : Char?) : Nil
       return @finished = true if key.nil? || key == Placards::QUIT_KEY
+      return show_news if key == Placards::WHATS_NEW_KEY
 
       name = @carrying[key]?
       return ask_the_name unless name
@@ -2954,6 +2978,7 @@ module Roguelike::Ui
       @columns = columns
       @rows = rows
       @screen.fit columns, rows
+      @news_page.screen_rows = rows
       @pager.resize Screen.log_width(columns), @screen.log_rows
 
       @placard.fit_into Rect.new(0, 0, columns, rows)

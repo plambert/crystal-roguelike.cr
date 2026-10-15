@@ -8,6 +8,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* A "what's new" entry on the title screen shows the release notes for the versions newer than the
+  one you last ran, or for the newest release when there is nothing newer. `--whats-new` prints the
+  same notes and stops. The game keeps the version you last ran in the state directory, and
+  `--no-save` leaves it alone.
+
 ## [0.4.2] - 2026-10-14
 
 The Seen list lights and walks to what you point at, the right mouse button pans the map, arrows and
