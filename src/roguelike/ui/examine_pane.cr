@@ -204,11 +204,11 @@ module Roguelike::Ui
       @what.style = Style::DEFAULT.faint
       @detail.text = REMEMBERED
 
-      item = memory.item
-      return unless item
+      pile = memory.pile
+      return if pile.empty?
 
       @litter.hidden = false
-      @litter.text = lore ? "Here: #{lore.name(item, regard: regard)}" : "Here: something"
+      @litter.text = lore ? listed(pile, lore, regard) : "Here: something"
     end
 
     # What a remembered square's terrain is called.

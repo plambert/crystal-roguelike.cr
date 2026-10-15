@@ -67,6 +67,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Looking at a remembered square lists everything you saw lying there, where it named only the top
+  item before.
+* A scroll of item or treasure detection no longer makes you forget a spike you saw in a door.
 * The messages of one move are the only ones drawn in the bright color. The line about what you
   stepped onto no longer stays bright through the next move, and a move that picks things up keeps
   all of its lines together.

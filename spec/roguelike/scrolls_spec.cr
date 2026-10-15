@@ -158,6 +158,23 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
       expect(game.knowledge[4, 5].try &.pile.map(&.kind)).to eq [Kind::Arrow, Kind::LongSword]
     end
 
+    it "keeps a spike the character remembers in a door" do
+      game = bare
+
+      # The door is walled in, so nothing the character sees after reading
+      # writes the square again. Only the scroll touches it.
+      [{4, 5}, {6, 5}, {5, 4}, {5, 6}].each { |column, row| game.floor.set column, row, Roguelike::Terrain::Granite }
+      game.floor.set 5, 5, Roguelike::Terrain::ClosedDoor
+      game.floor.drop 5, 5, Item.new(Kind::Arrow, count: 5)
+      game.look
+      game.knowledge.remember 5, 5, Roguelike::Memory.new(Roguelike::Terrain::ClosedDoor, spiked: true)
+
+      game.read reading(game, Kind::DetectionScroll)
+
+      expect(game.knowledge[5, 5].try &.spiked?).to be_true
+      expect(game.knowledge[5, 5].try &.item.try &.kind).to eq Kind::Arrow
+    end
+
     it "names what it found, nearest first" do
       game = bare
       game.floor.drop 5, 5, Item.new(Kind::Mace)

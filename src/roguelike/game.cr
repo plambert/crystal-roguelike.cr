@@ -5604,12 +5604,13 @@ module Roguelike
     # The terrain goes in because a `Memory` holds one, and something lying
     # on a square says the square can be walked on whatever else it is. What
     # is already remembered wins, so a scroll never rewrites a square the
-    # character has looked at.
+    # character has looked at, and a spike they remember in a door stays.
     private def detect(column : Int32, row : Int32, items : Array(Item)) : Nil
       held = @player.knowledge[column, row]
       @player.knowledge.remember column, row,
         Memory.new(held.try(&.terrain) || floor.terrain(column, row),
           held.try(&.fixture), items.last.copy, held.try(&.turn) || @turn,
+          spiked: held.try(&.spiked?) || false,
           under: items[0, items.size - 1].map(&.copy))
     end
 

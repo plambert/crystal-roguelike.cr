@@ -122,6 +122,21 @@ Spectator.describe Roguelike::Ui::ExaminePane do
       expect(pane.what.text).to eq Roguelike::Ui::ExaminePane::SPIKED
     end
 
+    it "lists every item of a remembered pile" do
+      floor = Roguelike::Floor.parse "pile", "#####\n#...#\n#####"
+      arrows = Roguelike::Item.new Roguelike::ItemKind::Arrow, count: 3
+      sword = Roguelike::Item.new Roguelike::ItemKind::LongSword
+      memory = Roguelike::Memory.new Terrain::StoneFloor, item: sword, under: [arrows]
+      knowledge = Roguelike::Knowledge.new floor.id
+      knowledge.remember 2, 1, memory
+      lore = Roguelike::Lore.new
+
+      pane.show floor, 2, 1, lore, Roguelike::Vision.blind(1, 1), knowledge
+
+      expect(pane.litter.hidden?).to be_false
+      expect(pane.litter.text).to eq "Here: #{lore.name arrows}, #{lore.name sword}"
+    end
+
     it "shows the coordinates it had been hiding" do
       pane.show floor, 2, 1
 
