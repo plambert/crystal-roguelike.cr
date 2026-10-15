@@ -32,7 +32,8 @@ module Roguelike
     # to enter the alternate screen and leave it again.
     def self.open(seed : UInt64?, flicker : Bool = true,
                   generate : Bool = true, console : Bool = false,
-                  store : Save::Store? = nil, character : String? = nil) : Session?
+                  store : Save::Store? = nil, character : String? = nil,
+                  news : Array(WhatsNew::Section) = [] of WhatsNew::Section) : Session?
       size = TermBuf::SizeDetector.detect
 
       unless Ui::Screen.fits? size.columns, size.rows
@@ -57,7 +58,7 @@ module Roguelike
 
         loop do
           played = new terminal, Rng.for(seed), flicker, generate, console,
-            store, character, previous
+            store, character, previous, news: news
           ran = played
           played.run
 
@@ -164,7 +165,8 @@ module Roguelike
                    flicker : Bool = true, generate : Bool = true,
                    console : Bool = false, store : Save::Store? = nil,
                    character : String? = nil, previous : String? = nil,
-                   viewer : Replay::Viewer? = nil)
+                   viewer : Replay::Viewer? = nil,
+                   news : Array(WhatsNew::Section) = [] of WhatsNew::Section)
       size = @terminal.size
       bounds = TermBuf::Rect.full size.columns, size.rows
 
@@ -176,6 +178,7 @@ module Roguelike
 
       @play.store = store
       @play.previous_name = previous
+      @play.news = news
       @play.fit size.columns, size.rows
 
       @app = Ui::Widgets::ObservedApp.new @terminal, @play.root, bounds,

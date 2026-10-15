@@ -2235,6 +2235,10 @@ The first click on a square lights the way there. A second click on the same squ
 click anywhere else lights the way to that square instead, so changing your mind costs one click
 rather than two. A square the character knows nothing about is read out and no more.
 
+A route drawn by a click also arms a timer through `App#after`, `Play::ROUTE_FADE` long. Another
+click cancels it and arms a new one, and a walk cancels it. When it fires and the route is still
+the one it was armed for, the route comes off. A route that `>` put up is not on a timer.
+
 `>` and `<` away from a staircase do the same thing without a click. The staircase the character
 remembers is lit up, and the way there with it when they know one. A staircase they have seen but
 cannot yet reach is still marked: `Route.known` stops at the second try rather than settling for
@@ -4761,6 +4765,28 @@ again after the run, where the person reads the outcome. `--no-update-check` ski
   of unreleased work and hears nothing, which is what makes a release version the only kind that
   is told. A version with a suffix is never newer than anything.
 
+## The what's new screen
+
+The title screen offers the release notes, and `--whats-new` prints them. Both read `NEWS.md`,
+which `WhatsNew::NEWS` embeds when the game is compiled, so a binary carries the notes for every
+release up to its own.
+
+`WhatsNew.sections` splits the file at its `## [X.Y.Z]` lines, newest first. It joins wrapped
+lines, drops backticks and keeps bullets and `###` headings as blocks. `WhatsNew.lines` wraps the
+blocks to a width, and `WhatsNew.text` joins them for the command line.
+
+* **Last run.** `LastRun` keeps the version in `last-version` under the state directory, beside
+  `latest-release` and `autosubmit`. The file holds the version and the time it was written, and is
+  written only when the version changes.
+* **What is shown.** `WhatsNew.since` gives every section newer than the last run. When there is
+  none, or no file, it gives the newest section alone.
+* **When it is recorded.** `WhatsNew.arrive` reads the last run, then writes the current version.
+  The run, or `--whats-new`, is shown what was newer than the version before it. `--no-save` reads
+  the file and does not write it. `replay view` never calls it.
+* **The screen.** `Ui::NewsPage` is `Ui::Help` with the notes for rows, so it scrolls the same
+  way. The title menu gets a row on `W` only when `Play#news` has sections. Closing the page puts
+  the title menu back.
+
 ## The colour requirement, and the terminal report
 
 The palette is greys. A terminal found to have sixteen colours folds them onto black, dark grey and
@@ -4954,12 +4980,6 @@ can add rules like "never pick up a cursed item", "pick up anything better than 
 say is its own design question.
 
 Another preference: whether a bar's color comes from the gradient or from the fixed bands.
-
-### The rest of the route on the map
-
-A route is drawn and walked by clicking. One piece of what was asked for is not built. The route
-should fade after a few seconds with no movement and no other click, rather than waiting for a turn
-to pass.
 
 ### A minimap
 

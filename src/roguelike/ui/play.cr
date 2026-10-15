@@ -82,6 +82,9 @@ module Roguelike::Ui
     # The list of things to choose from, when there is one.
     getter menu : Widgets::Menu
 
+    # The release notes, drawn over the title screen.
+    getter news_page : NewsPage
+
     # The one-key question, when there is one.
     getter prompt : Widgets::Prompt
 
@@ -315,6 +318,13 @@ module Roguelike::Ui
     # The timer for the next blink of that square. `nil` when nothing blinks.
     @blink_timer : UInt64? = nil
 
+    # How long a route drawn by a click stays lit with nothing else happening.
+    # A turn or another click comes first.
+    ROUTE_FADE = 4.seconds
+
+    # The timer that takes the drawn route off. `nil` when none is armed.
+    @fade_timer : UInt64? = nil
+
     # A right button held down on the map: the cell it went down on and the
     # camera at that moment.
     private record Drag, from : {Int32, Int32}, camera : {Int32, Int32}
@@ -392,6 +402,10 @@ module Roguelike::Ui
     # offers a different one.
     @suggested : Int32 = 0
 
+    # The release notes the title screen offers, newest first. The title menu
+    # has no row for them while this is empty.
+    property news : Array(WhatsNew::Section) = [] of WhatsNew::Section
+
     # The name the question is offering. `Enter` on an empty line takes it.
     @offered : String = ""
 
@@ -464,6 +478,7 @@ module Roguelike::Ui
       @entry = Widgets::Entry.new
       @menu = Widgets::Menu.new
       @menu.pointer_style = Palette::POINTER_MARK
+      @news_page = NewsPage.new
       @history = HistoryPane.new
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
@@ -616,7 +631,7 @@ module Roguelike::Ui
     private def title_rows(held : Array(Save::Held)) : Array(Widgets::Menu::Entry)
       rows = [Widgets::Menu::Entry.new Placards::NEW_KEY, Placards::NEW_ROW]
       keys = Widgets::Menu::LETTERS.reject do |key|
-        key == Placards::NEW_KEY || key == Placards::QUIT_KEY
+        {Placards::NEW_KEY, Placards::QUIT_KEY, Placards::WHATS_NEW_KEY}.includes? key
       end
 
       held.each_with_index do |found, index|
@@ -627,13 +642,29 @@ module Roguelike::Ui
         rows << Widgets::Menu::Entry.new key, Placards.saved_row(found)
       end
 
+      unless @news.empty?
+        rows << Widgets::Menu::Entry.new Placards::WHATS_NEW_KEY, Placards::WHATS_NEW_ROW
+      end
+
       rows << Widgets::Menu::Entry.new Placards::QUIT_KEY, Placards::QUIT_ROW
       rows
+    end
+
+    # Opens the release notes over the title screen. Closing them puts the
+    # title menu back.
+    private def show_news : Nil
+      @news_page.news = @news
+      @news_page.on_close = -> do
+        show_title
+        nil
+      end
+      @news_page.open application
     end
 
     # What the row picked at the title screen does.
     private def chose_at_title(key : Char?) : Nil
       return @finished = true if key.nil? || key == Placards::QUIT_KEY
+      return show_news if key == Placards::WHATS_NEW_KEY
 
       name = @carrying[key]?
       return ask_the_name unless name
@@ -1598,6 +1629,7 @@ module Roguelike::Ui
       return unless @pointing
 
       @pointing = nil
+      stop_fading
       refresh
     end
 
@@ -2921,7 +2953,33 @@ module Roguelike::Ui
       end
 
       aim_at goal, route
+      arm_fade
       refresh
+    end
+
+    # Arms the timer that takes the route just drawn off the map, and
+    # cancels the one for the route before it.
+    private def arm_fade : Nil
+      stop_fading
+      app = @app
+      return unless app
+
+      drawn = @pointing
+      @fade_timer = app.after(ROUTE_FADE) { fade drawn }
+    end
+
+    # Takes the route off the map if it is still the one the timer was armed
+    # for.
+    private def fade(drawn : Pointing?) : Nil
+      @fade_timer = nil
+      stop_pointing if drawn && @pointing == drawn
+    end
+
+    # Cancels the timer that fades the route.
+    private def stop_fading : Nil
+      timer = @fade_timer
+      @fade_timer = nil
+      @app.try &.cancel(timer) if timer
     end
 
     # Walks to where the map is pointing.
@@ -2931,6 +2989,7 @@ module Roguelike::Ui
     # step again as it goes, so what it finds on the way can shorten it.
     private def walk(pointing : Pointing) : Nil
       @pointing = nil
+      stop_fading
 
       start_walking @game.travelling(pointing.goal)
     end
@@ -2954,6 +3013,7 @@ module Roguelike::Ui
       @columns = columns
       @rows = rows
       @screen.fit columns, rows
+      @news_page.screen_rows = rows
       @pager.resize Screen.log_width(columns), @screen.log_rows
 
       @placard.fit_into Rect.new(0, 0, columns, rows)

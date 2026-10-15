@@ -11,6 +11,13 @@ Spectator.describe Roguelike::Cli do
     end
   end
 
+  describe "--whats-new" do
+    it "is off unless it is passed" do
+      expect(described_class.parse(%w[]).whats_new).to be_false
+      expect(described_class.parse(%w[--whats-new]).whats_new).to be_true
+    end
+  end
+
   # A development tool. It works, and it is in neither the help nor the
   # completions: whoever plays the game has no use for it.
   describe "--debug-console" do

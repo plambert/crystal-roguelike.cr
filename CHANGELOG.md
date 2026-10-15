@@ -17,6 +17,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   Dumping one replay with two builds and comparing the files shows a change of wording that
   `replay verify` cannot see. It stops with a report where the run differs from the recording.
   `--output` names a file, and standard output is the default.
+* A "what's new" entry on the title screen shows the release notes for the versions newer than the
+  one you last ran, or for the newest release when there is nothing newer. `--whats-new` prints the
+  same notes and stops. The game keeps the version you last ran in the state directory, and
+  `--no-save` leaves it alone.
+
+### Changed
+
+* A route drawn by clicking the map or the Seen list fades after four seconds with no move and no
+  other click. A second click on the same square within that time still walks it.
 
 ## [0.4.2] - 2026-10-14
 

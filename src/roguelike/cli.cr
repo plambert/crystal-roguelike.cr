@@ -48,6 +48,9 @@ module Roguelike
     flag autosubmit : Bool = TEST_BUILD, "--autosubmit",
       "Send each run's replay log to the developer when the game exits, after asking once. --no-autosubmit keeps it on this machine"
 
+    flag whats_new : Bool = false, "--whats-new",
+      "Print what changed since the version you last ran, then stop"
+
     flag update_check : Bool = true, "--update-check",
       "Say when a newer release is out, checking once a day. --no-update-check asks nothing"
 
@@ -105,9 +108,11 @@ module Roguelike
     def run
       return dumped if dump_terminal_info
       return listed if saves
+      return told_the_news if whats_new
       return matched if matchup
       return played if trial > 0
 
+      news = arrive
       newer = announced
       sending = Submit.arrange autosubmit, flag_given?(:autosubmit)
 
@@ -117,7 +122,7 @@ module Roguelike
 
       session = Session.open seed, flicker: flicker, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
-        character: character
+        character: character, news: news
 
       exit 1 unless session
 
@@ -138,6 +143,18 @@ module Roguelike
       puts newer if newer
 
       Submit.flush(submit_url || Submit::ENDPOINT) if sending
+    end
+
+    # The release notes to offer on the title screen. Notes the person has
+    # not seen come first. `--no-save` leaves the last-run file alone.
+    private def arrive : Array(WhatsNew::Section)
+      WhatsNew.arrive WhatsNew::LastRun.new(Submit.root), record: save
+    end
+
+    # Prints the same notes the title screen offers, and notes this version
+    # as run.
+    private def told_the_news : Nil
+      print WhatsNew.text arrive
     end
 
     # Prints the line about a newer release, when there is one and the check

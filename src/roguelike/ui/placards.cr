@@ -28,6 +28,14 @@ module Roguelike::Ui
     # What that row says.
     QUIT_ROW = "quit"
 
+    # The key the row that shows what is new takes.
+    #
+    # Upper case, so no saved character is handed it.
+    WHATS_NEW_KEY = 'W'
+
+    # What that row says.
+    WHATS_NEW_ROW = "what's new"
+
     # What the name question asks.
     #
     # The empty line holds a name the game rolled, dimmed. `Enter` takes it,
