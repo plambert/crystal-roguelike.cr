@@ -94,6 +94,18 @@ Heavier armor makes movement slower, and the heaviest armor slows attacks as wel
 attacks somewhat too. The gain in armor class then costs something a player can feel, and leather
 armor is a choice rather than a stop on the way to chain mail.
 
+### A safety map for fleeing creatures
+
+A way for fleeing creatures to choose where to run, in case the escape-first rule needs tuning or
+costs too much. Take the band's distance map from the character, negate it, scale it by about 1.2,
+and relax it once so that no square is more than one above its best neighbor. A fleeing creature
+then rolls downhill on that map. The relaxation carries the value of a long corridor back through
+its door. A door nearer the character than a corner still pulls the creature toward it, because
+what lies past the door is farther away than the corner. This takes two passes over the floor per
+fleeing band per turn, with no second flood per creature, and the darkness and band tie-breakers
+still settle equal squares. The cost is a tuning constant with no exact meaning, and decisions that
+are harder to explain in a spec. Brogue's monster flight works this way.
+
 ### Where the game is drifting
 
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
