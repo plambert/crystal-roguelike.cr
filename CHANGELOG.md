@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* A replay upload shows a progress line on standard error for each file it sends, with the file's
+  name, the bytes sent of the total, and a bar. On a terminal the line redraws in place. When
+  standard error is a file or a pipe, each file gets one line.
+
 ## [0.4.2] - 2026-10-14
 
 The Seen list lights and walks to what you point at, the right mouse button pans the map, arrows and

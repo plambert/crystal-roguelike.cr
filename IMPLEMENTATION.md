@@ -4696,6 +4696,7 @@ default.
 | `Submit::Parcel` | One send, as a directory `<log>-<seq>` holding `meta.json`, a gzipped copy of the log and, after a save, a gzipped copy of the save |
 | `Submit::Outbox` | The `outbox` directory the parcels wait in. `#flush` sends each one and removes it when it went |
 | `Submit::Client` | The upload protocol. Asks the upload URL for a presigned form for one file, then posts the file as that form |
+| `Submit::Progress` | The progress line for each piece on standard error. `Counter` wraps the request body and counts reads, `Reporter` draws, `.line` renders |
 | `Submit::Meta` | Version, platform, outcome, turn, seed, character and log identity, sent beside each log |
 | `Submit.log_id` | 32 hex digits from the header's start time, seed and name, so a run carried on in another process keeps its identity |
 | `Submit.saved` | Called by `Save::Store#write`. Packs the log and the save as sequence number of the pause |
@@ -4716,6 +4717,13 @@ default.
   logs directory once the person says yes, since there is nothing to send without a log.
 * **The question is asked before the terminal is taken over**, in plain text on stdout, so it stays
   in the scrollback and reads the same with or without `--character`. Enter alone is no.
+* **The body is streamed so it can be counted.** `Client#upload` builds the form in memory, names
+  its `Content-Length`, and posts it through a `Progress::Counter`. The bytes on the wire are the
+  same as for a string body. The total on the line is the form's size, a little over the file's.
+* **A terminal gets a bar, anything else gets a line.** On a terminal the line is redrawn with a
+  carriage return as the percentage moves. Otherwise each piece writes one line when it is done. A
+  write that fails turns the line off and the upload goes on. There is no `--quiet` flag, and under
+  `--no-autosubmit` nothing is sent, so nothing shows.
 * **The address is a constant.** `Submit::ENDPOINT` is empty until the upload stack exists. An empty
   address sends nothing and says nothing, and parcels wait.
 

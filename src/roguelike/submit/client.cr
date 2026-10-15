@@ -23,8 +23,12 @@ module Roguelike
       # The upload URL.
       getter url : URI
 
-      def initialize(url : String)
+      # Where the progress of each piece is shown, or `nil` for nowhere.
+      getter progress : Progress::Reporter?
+
+      def initialize(url : String, progress : IO? = nil)
         @url = URI.parse url
+        @progress = progress ? Progress::Reporter.new(progress) : nil
       end
 
       # What the first request asks for.
@@ -66,7 +70,8 @@ module Roguelike
         raise Error.new "asking for an upload failed: #{error.message}"
       end
 
-      # Posts *piece* as the form *ticket* gives.
+      # Posts *piece* as the form *ticket* gives. The progress line counts the
+      # bytes of the form as they are read for the socket.
       def upload(ticket : Ticket, piece : Parcel::Piece) : Nil
         target = URI.parse ticket.url
         body = IO::Memory.new
@@ -80,8 +85,19 @@ module Roguelike
           end
         end
 
+        # The length is named here so the body can go out as a stream, with
+        # the same bytes the string would have been.
+        headers["Content-Length"] = body.bytesize.to_s
+        body.rewind
+
         response = client(target, UPLOAD) do |http|
-          http.post target.request_target, headers, body.to_s
+          if reporter = @progress
+            reporter.piece(piece.kind, body, body.bytesize.to_i64) do |counted|
+              http.post target.request_target, headers, counted
+            end
+          else
+            http.post target.request_target, headers, body
+          end
         end
         return if response.status.success?
 

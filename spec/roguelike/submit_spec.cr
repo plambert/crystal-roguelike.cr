@@ -279,6 +279,30 @@ Spectator.describe Roguelike::Submit do
       end
     end
 
+    it "sends the same bytes with a progress line on" do
+      where = root
+      server = FakeUploadServer.new
+      begin
+        log = where / "run.jsonl"
+        File.write log, "{\"type\":\"header\"}\n"
+        meta = Submit::Meta.new "0.2.1", "linux-x86_64", "died", 40, 9_u64, "ex", "ef" * 16
+        outbox = Submit::Outbox.new where / "outbox"
+        parcel = outbox.pack meta, 2, log, nil
+        replay_bytes = File.read(parcel.directory / "replay.jsonl.gz").to_slice
+
+        output = IO::Memory.new
+        shown = IO::Memory.new
+        outbox.flush Submit::Client.new(server.url, shown), output
+
+        expect(outbox.parcels).to be_empty
+        expect(server.uploads["0.2.1/#{"ef" * 16}/002-replay"]).to eq(replay_bytes)
+        expect(String.new server.uploads["0.2.1/#{"ef" * 16}/002-meta"]).to eq(meta.to_json)
+        expect(shown.to_s).to match(/\Areplay +\d+ B of \d+ B\nmeta +\d+ B of \d+ B\n\z/)
+      ensure
+        server.close
+      end
+    end
+
     it "keeps a parcel the server refuses and says so" do
       where = root
       server = FakeUploadServer.new

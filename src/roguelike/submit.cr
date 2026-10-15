@@ -4,6 +4,7 @@ require "./submit/endpoint"
 require "./submit/meta"
 require "./submit/parcel"
 require "./submit/outbox"
+require "./submit/progress"
 require "./submit/client"
 require "./submit/consent"
 
@@ -105,16 +106,17 @@ module Roguelike
     end
 
     # Sends every parcel in the outbox to *url*, and says how it went on
-    # *output*, one line per parcel.
+    # *output*, one line per parcel. Each piece shows its progress on
+    # *progress*.
     #
     # An empty *url* means this binary has nowhere to send to. The parcels
     # stay where they are and nothing is said.
-    def self.flush(url : String = ENDPOINT, output : IO = STDOUT) : Nil
+    def self.flush(url : String = ENDPOINT, output : IO = STDOUT, progress : IO? = STDERR) : Nil
       outbox = @@outbox
       return unless outbox
       return if url.empty?
 
-      outbox.flush Client.new(url), output
+      outbox.flush Client.new(url, progress), output
     end
 
     # The identity of the log at *path* for the server.
