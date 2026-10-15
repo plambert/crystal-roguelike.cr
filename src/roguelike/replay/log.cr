@@ -287,13 +287,16 @@ module Roguelike
 
       # Writes a pause, as a save of the run is about to be written. Answers
       # what the save names, or `nil` for a log that is closed.
-      def pause : Mark?
+      #
+      # A pause whose save is not *sent* leaves the log marked as acted, so
+      # the actions before it still go out with the footer.
+      def pause(sent : Bool = true) : Mark?
         return unless open?
 
         @pauses += 1
         write Pause.new @pauses, @game.turn, @game.fingerprint(Log.scheme),
           Log.paused_at || Time.utc
-        @acted = false
+        @acted = false if sent
         Mark.new @path.to_s, @pauses
       end
 
@@ -331,6 +334,9 @@ module Roguelike
       # A log with nothing written since its last pause gets no footer. The
       # save holds the run, and a later process carries it on here. An error
       # still gets one, because the crash is worth knowing about.
+      #
+      # A log whose last pause was not sent counts as acted, so it gets a
+      # footer and a parcel.
       #
       # *cause* is `signal` for a process stopped by one.
       def ended(error : Exception?, cause : String? = nil) : Nil

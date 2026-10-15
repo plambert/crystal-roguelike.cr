@@ -54,8 +54,9 @@ module Roguelike
       # What *game* is written out as, now.
       #
       # A run being recorded gets a pause in its log, and the save names it.
-      def self.of(game : Game) : Held
-        mark = game.pause
+      # *sent* says whether the save goes in the outbox.
+      def self.of(game : Game, sent : Bool = true) : Held
+        mark = game.pause sent
         new game.player.name, VERSION, Time.utc, game.turn,
           game.player.level, game.outcome, game, mark
       end
@@ -196,16 +197,19 @@ module Roguelike
       #
       # The save of a run that is over joins the parcel its footer packed, so
       # the end of a run is sent with the state it ended in.
-      def write(game : Game) : Path
+      #
+      # *send* false writes the file and packs no parcel. The pause still goes
+      # in the log, because the save names it and a load carries on from it.
+      def write(game : Game, send : Bool = true) : Path
         wanted = path game.player.name
         Dir.mkdir_p @directory
 
         temporary = Path["#{wanted}.writing"]
-        held = Held.of game
+        held = Held.of game, send
         File.write temporary, held.to_pretty_json
         File.rename temporary, wanted
 
-        Submit.saved game, held.replay || game.ending, wanted
+        Submit.saved game, held.replay || game.ending, wanted if send
         wanted
       end
 

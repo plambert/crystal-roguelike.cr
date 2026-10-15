@@ -6468,8 +6468,10 @@ module Roguelike
 
     # Writes a pause to this run's log, as a save of it is written. Answers
     # what the save names, or `nil` when nothing records the run.
-    def pause : Replay::Mark?
-      @recorder.try &.pause
+    #
+    # *sent* says whether the save goes in the outbox.
+    def pause(sent : Bool = true) : Replay::Mark?
+      @recorder.try &.pause(sent)
     end
 
     # What the parcel for the end of this run is called, once the log has

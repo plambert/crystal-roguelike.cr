@@ -383,6 +383,15 @@ module Roguelike::Ui
     # leave two endings on disk for one death.
     @retired : Bool = false
 
+    # How many turns pass between saves the game writes on its own.
+    #
+    # The clock counts game turns, so a run and its replay save at the same
+    # points. Any save sets the clock back, a staircase as well as this one.
+    AUTOSAVE_EVERY = 500
+
+    # The turn the run was last written on, or loaded on.
+    @kept_turn : Int32 = 0
+
     # How many times the name question has been asked this run.
     #
     # It names the stream the offered name is rolled from, so every question
@@ -429,6 +438,7 @@ module Roguelike::Ui
     @rows : Int32 = 0
 
     def initialize(@game : Game, console : Bool = false)
+      @kept_turn = @game.turn
       @screen = Screen.new
       @map = MapPane.new @game.floor
       @screen.show @map.grid
@@ -798,6 +808,7 @@ module Roguelike::Ui
       @listed.clear
       @ended = false
       @retired = false
+      @kept_turn = game.turn
 
       # The log came back with the run. The person read those lines in the
       # session that wrote them, so the pane does not hold a page at a time
@@ -822,14 +833,18 @@ module Roguelike::Ui
     # A store that will not take the file says so in the log and the run goes
     # on. Losing the turn a person is playing because a disk is full is worse
     # than losing the save.
-    def keep : Nil
+    #
+    # *send* false keeps the save on this machine. `#keep_now_and_then` passes
+    # it, so only the saves a person chose go in the outbox.
+    def keep(send : Bool = true) : Nil
+      @kept_turn = @game.turn
       store = @store
       return unless store
       return if @game.player.name.empty?
 
       return if @retired
 
-      store.write @game
+      store.write @game, send: send
       return unless @game.over?
 
       store.retire @game.player.name, @game.outcome
@@ -2803,6 +2818,7 @@ module Roguelike::Ui
     # flight still in the air from before is taken off, because the key
     # pressed part way through it has taken a turn of its own.
     def refresh : Nil
+      keep_now_and_then
       stop_flying
 
       pending = @frames
@@ -2812,6 +2828,18 @@ module Roguelike::Ui
       end
 
       redraw
+    end
+
+    # Writes the run once `AUTOSAVE_EVERY` turns have passed since the last
+    # save. It says nothing, so a walk or a rest goes on through it.
+    #
+    # A recorded run being watched is not written. A run that is over is
+    # written by `#show_ending`, which retires it as well.
+    private def keep_now_and_then : Nil
+      return if @viewer || @game.over?
+      return if @game.turn - @kept_turn < AUTOSAVE_EVERY
+
+      keep send: false
     end
 
     # Draws the screen from the run as it stands.
