@@ -70,6 +70,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   all of its lines together.
 * `X` no longer stops in a doorway or the neck of a cave with "You stop. Walking on would show you
   nothing new." while the room beside it still has ground left to see.
+* A second creature now finds a way round the first to reach you instead of waiting behind it.
+  When you stand in a doorway and the corridor outside runs past it, or you stand just inside a
+  room, the creature in front steps along to another square beside you and lets the next one in.
+  A creature that cannot reach any free square beside you waits where it is, instead of stepping
+  back and forth. A slime steps to a free square beside you when another creature is in its way.
+  A replay recorded with an earlier version stops verifying at the first turn a creature does this.
 
 ## [0.4.2] - 2026-10-14
 

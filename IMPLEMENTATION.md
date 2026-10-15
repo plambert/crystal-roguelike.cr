@@ -3547,6 +3547,10 @@ It steps sideways, and after two turns of being held it walks round the blocker.
 | `Monster#avoiding`, `#detour` | The squares the creature treats as solid, and how many turns it keeps doing so |
 | `Descent.toward avoid:` | A flood that treats the given squares as solid |
 | `Game#route` | Gives a creature the band's map, or a map built with its blockers left out |
+| `Pursuit.sidestep` | Within `Pursuit::CLOSE` steps of the quarry, a hemmed creature takes the first step of the shortest walk over free squares to a free square beside the quarry. It waits when there is none |
+| `Pursuit.make_room` | A creature beside its quarry steps to another free square beside it when a bandmate two steps off has no free square beside the quarry |
+| `Pursuit.slip` | A creature that does not path, two steps off, takes a free square beside the quarry when a creature stands on its straight step |
+| `Snapshot#nearby` | Bandmates beside a creature that is beside its quarry. `Game` fills it only for such a creature |
 
 ### Decisions
 
@@ -3563,6 +3567,19 @@ It steps sideways, and after two turns of being held it walks round the blocker.
 * **Blockers are read from the band's map.** A neighbor counts as a blocker when it is nearer the
   goal than the creature is. The character is excluded.
 * **No new rolls.** Nothing here rolls, so no stream was added. Two runs on one seed stay identical.
+* **The creature in front makes room.** A doorway with a corridor running past it, or a character
+  just inside a room, leaves the second creature no way to a free square except through the
+  first. The first gives up one swing to step along, and then two creatures swing every turn.
+  Only a bandmate counts, and only one with no free square of its own, so the step happens once.
+  A creature that surrounds and already faces a bandmate across the quarry keeps its square.
+* **Near the quarry, a hemmed creature walks to a square it can reach.** The equal-distance step
+  stepped back and forth when every square beside the quarry was taken. `Pursuit.sidestep`
+  searches free squares within one step further out than the creature, and waits when none leads
+  to a free square beside the quarry. Further than `Pursuit::CLOSE` steps off the old sideways
+  step stays. Ties go to reading order, so a replay verifies.
+* **A creature near the quarry sees the crowd.** `Snapshot#blocked` holds the squares beside a
+  creature that something stands on. Within `Pursuit::CLOSE` steps of the quarry it also holds
+  every creature within one step further out, so the search does not walk through them.
 * **Saves.** `hemmed`, `avoiding` and `detour` have defaults, so an older save loads with every
   creature free.
 * **The golden replay was recorded again.** Creatures walk differently, so its fingerprints moved.

@@ -90,6 +90,10 @@ module Roguelike
     # is necessarily what is on the floor now.
     #
     # `blocked` and `closable` are the only fields here that are not belief.
+    # `blocked` names the squares beside the creature that something else
+    # stands on, the character's among them. For a creature within `CLOSE`
+    # steps of its quarry it also names every creature within one step
+    # further than that from the quarry.
     # `closable` names the squares beside the creature holding an open door
     # that nothing stands in, and is empty for a creature that cannot shut one.
     #
@@ -112,6 +116,10 @@ module Roguelike
     #
     # `foes` is where the band saw every other hostile within the last
     # `FRESH` turns, the character first.
+    #
+    # `nearby` is where the other members of its band stand beside the
+    # creature. `Game` fills it only for a creature beside its quarry, which
+    # is the only one that reads it.
     record Snapshot,
       at : {Int32, Int32},
       knowledge : Knowledge,
@@ -129,7 +137,8 @@ module Roguelike
       clear : Bool = false,
       surrounds : Bool = false,
       bandmates : Array({Int32, Int32}) = [] of {Int32, Int32},
-      foes : Array({Int32, Int32}) = [] of {Int32, Int32}
+      foes : Array({Int32, Int32}) = [] of {Int32, Int32},
+      nearby : Array({Int32, Int32}) = [] of {Int32, Int32}
 
     # How many turns old a sighting may be and still be worth swinging at.
     #
@@ -185,7 +194,8 @@ module Roguelike
     #
     # One that can shoot keeps its distance or shoots. One that surrounds
     # moves round to face a bandmate across the quarry. Any other swings
-    # when the quarry is beside it.
+    # when the quarry is beside it, unless it steps aside to let a bandmate
+    # in. See `#make_room`.
     private def self.engage(snapshot : Snapshot, quarry : {Int32, Int32}) : Action?
       beside = beside snapshot.at, quarry
       if snapshot.reach > 0
@@ -195,8 +205,10 @@ module Roguelike
 
       round = encircle snapshot, quarry
       return Action.step(round) if round
+      return unless beside
 
-      Action.strike(beside) if beside
+      aside = make_room snapshot, quarry
+      aside ? Action.step(aside) : Action.strike(beside)
     end
 
     # What a running creature does.
@@ -522,11 +534,12 @@ module Roguelike
       best if away[best.from(*at)] < here
     end
 
-    # How many steps each square within `REACH` of *quarry* is from the
+    # How many steps each square within *within* of *quarry* is from the
     # nearest of *targets*, walking only on free squares. The creature's own
     # square counts as free.
     private def self.distances(snapshot : Snapshot, quarry : {Int32, Int32},
-                               targets : Array({Int32, Int32})) : Hash({Int32, Int32}, Int32)
+                               targets : Array({Int32, Int32}),
+                               within : Int32 = REACH) : Hash({Int32, Int32}, Int32)
       away = {} of {Int32, Int32} => Int32
       queue = Deque({Int32, Int32}).new
       targets.each do |spot|
@@ -538,7 +551,7 @@ module Roguelike
         Direction.values.each do |direction|
           next_spot = direction.from(*spot)
           next if away.has_key? next_spot
-          next if apart(next_spot, quarry) > REACH
+          next if apart(next_spot, quarry) > within
           next unless next_spot == snapshot.at || free?(snapshot, quarry, next_spot)
 
           away[next_spot] = away[spot] + 1
@@ -557,6 +570,57 @@ module Roguelike
       return false if snapshot.blocked.includes? spot
 
       snapshot.knowledge.walkable? spot[0], spot[1]
+    end
+
+    # The step a creature beside its quarry takes to let a bandmate in, or
+    # `nil` to stay and swing.
+    #
+    # A bandmate beside it is shut out when it stands two steps from the
+    # quarry and every square beside both it and the quarry is taken. The
+    # creature then steps to a free square beside both itself and the
+    # quarry, and the bandmate steps onto the square it left. That costs
+    # one swing and gains a second creature swinging every turn after.
+    #
+    # Ties go to the square first in reading order, north to south and west
+    # to east. A creature that surrounds and already faces a bandmate across
+    # the quarry stays where it is.
+    private def self.make_room(snapshot : Snapshot, quarry : {Int32, Int32}) : Direction?
+      at = snapshot.at
+      return unless snapshot.nearby.any? { |mate| shut_out? snapshot, quarry, mate }
+      return if snapshot.bandmates.includes? Combat.opposite(at, quarry)
+
+      spot = between(at, quarry).find { |found| free? snapshot, quarry, found }
+      beside at, spot if spot
+    end
+
+    # Whether the bandmate on *mate* is two steps from *quarry* with every
+    # square beside both of them taken. The creature deciding stands on one
+    # of those squares.
+    private def self.shut_out?(snapshot : Snapshot, quarry : {Int32, Int32},
+                               mate : {Int32, Int32}) : Bool
+      return false unless apart(mate, quarry) == 2
+
+      between(mate, quarry).none? do |spot|
+        spot != snapshot.at && free?(snapshot, quarry, spot)
+      end
+    end
+
+    # The squares beside both *at* and *quarry*, in reading order.
+    private def self.between(at : {Int32, Int32},
+                             quarry : {Int32, Int32}) : Array({Int32, Int32})
+      around(at).select { |spot| touches? spot, quarry }
+    end
+
+    # The eight squares around *at*, in reading order.
+    private def self.around(at : {Int32, Int32}) : Array({Int32, Int32})
+      found = [] of {Int32, Int32}
+      {-1, 0, 1}.each do |down|
+        {-1, 0, 1}.each do |across|
+          found << {at[0] + across, at[1] + down} unless across.zero? && down.zero?
+        end
+      end
+
+      found
     end
 
     # Whether *spot* is one of the eight squares around *quarry*.
@@ -580,9 +644,12 @@ module Roguelike
     # A species that paths descends the band's map. One that does not walks
     # straight at the quarry.
     #
-    # A creature whose every nearer square is taken steps to a square as far
-    # from the quarry as it is now, which takes it toward another side of
-    # what it is chasing. It waits when there is none.
+    # A creature whose every nearer square is taken goes round. Within
+    # `CLOSE` steps of the quarry it walks the shortest way over free
+    # squares to a free square beside the quarry, and waits when there is
+    # none. See `#sidestep`. Further off it steps to a square as far from
+    # the quarry as it is now, which takes it toward another side of what it
+    # is chasing, and waits when there is none.
     #
     # A creature that paths but is not on its own map walks straight at the
     # quarry as well. A creature that can see the character is on its map,
@@ -605,12 +672,44 @@ module Roguelike
           descent.downhill(snapshot.at[0], snapshot.at[1], snapshot.blocked),
           snapshot.at, descent.goal)
         return downhill if downhill
-        return around descent, snapshot if hemmed
+        return squeeze descent, snapshot if hemmed
       end
 
       return if snapshot.stumble
 
       blunder snapshot
+    end
+
+    # How many steps from its quarry a hemmed creature looks for a free
+    # square beside the quarry to walk round to.
+    CLOSE = 3
+
+    # The step a hemmed creature takes, or `nil` to wait.
+    private def self.squeeze(descent : Descent, snapshot : Snapshot) : Direction?
+      here = descent[snapshot.at]
+      return around descent, snapshot unless here && here <= CLOSE
+
+      sidestep descent, snapshot, here
+    end
+
+    # The first step of the shortest walk over free squares to a free square
+    # beside the goal, or `nil` when no such walk stays within one step
+    # further out than the creature is.
+    #
+    # Every square beside the creature that is free is as far from the goal
+    # as it is or one step further, because the nearer ones are taken. Ties
+    # go to the square first in reading order, so a replay plays out the
+    # same way.
+    private def self.sidestep(descent : Descent, snapshot : Snapshot, here : Int32) : Direction?
+      goal = descent.goal
+      targets = Direction.values.map(&.from(*goal)).select { |spot| free? snapshot, goal, spot }
+      return if targets.empty?
+
+      away = distances snapshot, goal, targets, here + 1
+      at = snapshot.at
+      best = around(at).select { |spot| away.has_key?(spot) && free?(snapshot, goal, spot) }
+        .min_by? { |spot| away[spot] }
+      beside at, best if best
     end
 
     # The step to a square as far from the goal as the creature is, or `nil`
@@ -649,10 +748,22 @@ module Roguelike
       return unless direction
 
       wanted = direction.from snapshot.at[0], snapshot.at[1]
-      return if snapshot.blocked.includes? wanted
       return unless snapshot.knowledge.walkable? wanted[0], wanted[1]
+      return slip snapshot, quarry if snapshot.blocked.includes? wanted
 
       direction
+    end
+
+    # The step a creature that does not path takes when another creature
+    # stands on its way, or `nil` to wait.
+    #
+    # Two steps from the quarry it steps to a free square beside the quarry,
+    # the first in reading order. Further off it waits.
+    private def self.slip(snapshot : Snapshot, quarry : {Int32, Int32}) : Direction?
+      return unless apart(snapshot.at, quarry) == 2
+
+      spot = between(snapshot.at, quarry).find { |found| free? snapshot, quarry, found }
+      beside snapshot.at, spot if spot
     end
 
     # Which way one step along the line from *at* to *quarry* goes.
