@@ -110,8 +110,8 @@ are harder to explain in a spec. Brogue's monster flight works this way.
 
 The character can dig through walls. Any weapon can do it, but badly, and a pickaxe does it far
 better. Each kind of wall takes a different amount of damage to destroy, so soft rock gives way in a
-few blows and the hardest stone takes a long time. Gold ore veins are set in some walls. Digging one
-out yields gold ore, which is an item of its own and not gold, and it does not stack.
+few blows and the hardest stone takes a long time. Now and then a dig runs into a gold ore vein,
+which is rare. A vein yields gold ore, an item of its own that is not gold and does not stack.
 
 ### Where the game is drifting
 
