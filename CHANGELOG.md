@@ -64,6 +64,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   line, so the scrollback says who was saved and where.
 * The replay sent when a run ends now carries the final save with it, so the state the run ended
   in is on the server beside the log.
+* A scroll of identify offers everything you carry that has something left to learn, and each
+  row says what that is: the kind, the blessing, or both. An item of known kind whose blessing you
+  do not know is offered now. Putting the menu away keeps the scroll unread.
+* A blessed scroll of identify names everything you carry, kind and blessing, and asks nothing. A
+  cursed one picks its own target, and sometimes picks something you already knew all about.
+* A replay recorded with an earlier version stops verifying at the first blessed or cursed scroll
+  of identify read, or the first one read with nothing left to name.
 
 ### Fixed
 
@@ -83,6 +90,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   A creature that cannot reach any free square beside you waits where it is, instead of stepping
   back and forth. A slime steps to a free square beside you when another creature is in its way.
   A replay recorded with an earlier version stops verifying at the first turn a creature does this.
+* A scroll of identify read when nothing you carry has anything left to learn says "There is
+  nothing you do not know about what you carry." and stays in your pack, with no turn spent. It
+  was used up before, to no effect.
 
 ## [0.4.2] - 2026-10-14
 

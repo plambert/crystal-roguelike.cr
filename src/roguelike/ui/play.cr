@@ -2535,18 +2535,42 @@ module Roguelike::Ui
       end
     end
 
-    # Asks which carried item the scroll under *letter* names.
+    # Asks which carried item the scroll under *letter* names, then reads it.
     #
-    # Only what the character has not found out is offered. A person who
-    # spent the scroll on something already named would have learned nothing.
-    # Another scroll of the same kind is left out too, since reading this one
-    # names that kind.
+    # Only what has something left to learn is offered, and each row says
+    # what that is. With nothing to offer the scroll goes to `Game`, which
+    # refuses it and keeps it. Backing out of the menu leaves the scroll
+    # unread.
     private def identify_with(letter : Char) : Nil
+      found = @game.identifiable letter
+      if found.empty?
+        read_now letter
+        return
+      end
+
+      choose("Identify what?", identify_rows(letter, found), about(found)) do |key|
+        next unless key
+
+        read_now letter, id_under(key)
+        refresh
+      end
+    end
+
+    # *entries* as menu rows, each saying what is left to learn about it.
+    private def identify_rows(letter : Char, entries : Array({Char, Item})) : Array(Widgets::Menu::Entry)
       reading = @game.player.inventory[letter].try &.kind
 
-      ask_which letter, "Identify what?" do |item|
-        !@game.lore.known?(item.kind) && item.kind != reading
+      rows(entries).map_with_index do |row, index|
+        row.copy_with text: "#{row.text} (#{Play.unlearned @game.unlearned(entries[index][1], reading)})"
       end
+    end
+
+    # What a row of the identify menu says is left to learn.
+    def self.unlearned(left : Game::Unlearned) : String
+      return "kind and blessing unknown" if left.kind? && left.blessing?
+      return "kind unknown" if left.kind?
+
+      "blessing unknown"
     end
 
     # Asks which carried item the scroll under *letter* mends.

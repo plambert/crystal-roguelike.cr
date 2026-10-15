@@ -164,15 +164,40 @@ Spectator.describe "quaffing, reading and zapping" do
       expect(run.game.player.inventory.has? 'a').to be_false
     end
 
-    # Offering an empty list would be a question with no answer.
-    it "reads the scroll anyway when there is nothing left to name" do
+    it "keeps a scroll of identify when there is nothing left to name" do
       run = carrying [Item.new Kind::IdentifyScroll]
 
       run.press "r", "a"
 
       expect(run.menu.showing?).to be_false
-      expect(run.game.player.inventory.has? 'a').to be_false
-      expect(run.log).to contain "You feel knowledgeable, and the feeling passes."
+      expect(run.game.player.inventory.has? 'a').to be_true
+      expect(run.log).to contain "There is nothing you do not know about what you carry."
+    end
+
+    it "says on each row what a scroll of identify would learn" do
+      run = carrying [Item.new(Kind::IdentifyScroll),
+                      Item.new(Kind::HealingPotion),
+                      Item.new(Kind::Dagger),
+                      Item.new(Kind::Mace, blessing_known: true)]
+
+      run.press "r", "a"
+
+      expect(offered run).to eq ['b', 'c']
+      texts = run.menu.entries.map &.text
+      expect(texts[0]).to end_with "(kind and blessing unknown)"
+      expect(texts[1]).to end_with "(blessing unknown)"
+    end
+
+    it "keeps a scroll of identify when its menu is put away" do
+      run = carrying [Item.new(Kind::IdentifyScroll), Item.new(Kind::HealingPotion)]
+      turn = run.game.turn
+
+      run.press "r", "a"
+      run.press "Escape"
+
+      expect(run.menu.showing?).to be_false
+      expect(run.game.player.inventory.has? 'a').to be_true
+      expect(run.game.turn).to eq turn
     end
   end
 

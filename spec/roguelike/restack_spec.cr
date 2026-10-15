@@ -141,9 +141,12 @@ Spectator.describe "restacking the pack" do
   end
 
   describe "a save" do
+    # The potion is what the scroll learns. A scroll of identify with nothing
+    # left to learn is refused, and a refused action does not restack.
     it "keeps two stacks that now match until something is learned" do
       kept = Playing.store
-      game = packed arrows(3, Blessing::Blessed, true), arrows(2, Blessing::Blessed), scroll
+      game = packed arrows(3, Blessing::Blessed, true), arrows(2, Blessing::Blessed), scroll,
+        Item.new(Kind::HealingPotion)
       game.player.name = "Sparky"
       pile(game, 'b').reveal_blessing
       kept.write game
@@ -152,7 +155,7 @@ Spectator.describe "restacking the pack" do
       expect(again.player.inventory.has? 'a').to be_true
       expect(again.player.inventory.has? 'b').to be_true
 
-      identify again, 'c', 'a'
+      identify again, 'c', 'd'
 
       expect(again.player.inventory.has? 'b').to be_false
       expect(again.player.inventory.count 'a').to eq 5

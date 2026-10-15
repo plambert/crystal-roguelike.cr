@@ -829,7 +829,8 @@ The phase that introduces the type monster bands will use in Phase 19.
 
   `Game#effect_of` answers what an item would do before the turn is spent, which is what lets
   `Play` ask the second question first. A scroll of identify asks which carried item it names,
-  and leaves itself out of that list: spending it to name itself teaches nobody anything. A wand
+  and leaves itself out of that list: spending it to name itself teaches nobody anything. The
+  section on blessings and curses says what the list holds now. A wand
   of striking puts Phase 21's targeting cursor up rather than a second menu, and `Aiming::Zap`
   joins `Fire` and `Throw` on the same three keys.
 
@@ -1954,6 +1955,31 @@ same, and asks first so it is never done by accident.
 
 A scroll of identify stays one call. Its choice needs no marks, and taking a scroll off somebody who
 changed their mind would be worse.
+
+### What a scroll of identify learns
+
+A scroll of identify learns an item's kind and its blessing. A known kind shows the enchantment, so
+there is no separate enchantment to learn yet. `Game#unlearned` says which of the two is left on an
+item, and `Game#identifiable` lists the carried items with either one left. The scroll's own letter
+is not on the list. Another scroll of the same kind is offered only for its blessing, because
+reading this one names the kind.
+
+The blessing on the scroll decides what it does, the way it does for a scroll of blessing.
+
+| Blessing | What it does |
+| --- | --- |
+| Uncursed | `Play` asks which listed item, and each row says what is left to learn |
+| Blessed | Names every carried item, with one line counting the letters |
+| Cursed | Picks its own target, from everything carried one time in four |
+
+When nothing on the list is left, the scroll is refused before it is read. It stays in the pack and
+no turn is spent. The refusal does not depend on the blessing on the scroll. The character cannot
+see that blessing, so a refusal that depended on it would give it away. `Game#legal` offers no
+read of such a scroll. Backing out of the menu leaves the scroll unread.
+
+The question still goes up before the scroll is read, so the menu tells the player what an unknown
+scroll is before the read does. Moving it after the read is the same change `Play#bless_with` made
+for a scroll of blessing.
 
 ## Spikes
 
