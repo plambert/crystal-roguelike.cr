@@ -156,6 +156,29 @@ Spectator.describe "the save written every few hundred turns" do
     expect(Verifier.check(file).trouble).to be_nil
   end
 
+  # The periodic save is not sent. A process that goes out from under the
+  # run before the next action still sends what was played.
+  it "sends the end of the run when the log closes right after it" do
+    store = Playing.store
+    root = directory
+    logs = root / "logs"
+    Dir.mkdir_p logs
+
+    recording logs, root do
+      run = playing store
+      wait run, Play::AUTOSAVE_EVERY
+      outbox = Submit::Outbox.new root / "outbox"
+      expect(outbox.parcels).to be_empty
+
+      Log.ended nil
+
+      expect(outbox.parcels.map(&.seq)).to eq [2]
+      expect(outbox.parcels.first.pieces.map(&.kind)).to eq ["replay", "meta"]
+    end
+
+    expect(Recording.read(only logs).footer.try &.outcome).to eq "truncated"
+  end
+
   it "writes nothing when there is no store" do
     root = directory
     logs = root / "logs"

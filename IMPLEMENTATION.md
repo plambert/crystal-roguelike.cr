@@ -1561,6 +1561,8 @@ load carries the log on from it through `Save::Held#carried`.
 * **Not uploaded.** `Save::Store#write` takes `send: false`, and no parcel is packed. A parcel
   holds the whole log and a save, and one every 500 turns would fill the outbox with copies of the
   same run. The pause still takes a number, so the uploaded parcels of one run can skip numbers.
+  The server takes the highest number. An unsent pause leaves the log marked as acted, so a process
+  that ends before the next action still writes a footer and packs a parcel.
 * **Turns, not wall time.** A turn count gives the same saves on every replay of a run, and a spec
   can drive it without a clock. A person away from the keyboard takes no turns and loses nothing.
 * **A pause costs a fingerprint.** It is the same code path as a staircase save. In a release
