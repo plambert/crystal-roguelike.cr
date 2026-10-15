@@ -13,6 +13,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A replay upload shows a progress line on standard error for each file it sends, with the file's
   name, the bytes sent of the total, and a bar. On a terminal the line redraws in place. When
   standard error is a file or a pipe, each file gets one line.
+* `replay dump` writes the messages of a recorded run, one per line with the turn it came on.
+  Dumping one replay with two builds and comparing the files shows a change of wording that
+  `replay verify` cannot see. It stops with a report where the run differs from the recording.
+  `--output` names a file, and standard output is the default.
 
 ## [0.4.2] - 2026-10-14
 

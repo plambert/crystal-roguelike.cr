@@ -8,6 +8,7 @@ require "./replay/verifier"
 require "./replay/viewer"
 require "./replay/log"
 require "./replay/upgrade"
+require "./replay/dump"
 require "./replay/export"
 
 module Roguelike
