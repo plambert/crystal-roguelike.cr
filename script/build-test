@@ -36,6 +36,7 @@
 # `--local` builds the same test build for this machine only: no static
 # archives, no Homebrew, no `--release`, so it links against whatever the
 # compiler finds and takes a fraction of the time. It runs on any platform.
+# Passing `--release` after it builds an optimized binary the same way.
 #
 #     script/build-test --local [CRYSTAL BUILD ARGUMENT...]
 #
@@ -56,7 +57,11 @@ say() {
 if [ "${1:-}" = --local ]; then
   shift
   mkdir -p bin
-  say "compiling $out for this machine, without --release"
+  speed="without --release"
+  for arg in "$@"; do
+    [ "$arg" = --release ] && speed="with --release"
+  done
+  say "compiling $out for this machine, $speed"
   crystal build --progress -Dtest_build -o "$out" src/main.cr "$@"
   say "done"
   "$out" --version
