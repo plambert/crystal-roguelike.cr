@@ -118,6 +118,9 @@ module Roguelike::Ui
     # carried.
     @listed : Hash(Char, Listing) = {} of Char => Listing
 
+    # The page each list of carried items was left on, by its title.
+    @left_on = {} of String => String
+
     # Whether the person asked for another run when this one ended.
     #
     # `Session` reads this once `#finished?` is true. A run that was quit
@@ -918,7 +921,104 @@ module Roguelike::Ui
                page : Int32, about : Hash(Char, Listing)? = nil,
                &chosen : Char? -> Nil) : Nil
       ready_the_menu about, chosen
+      @menu.tabs_width = tabs_room about
       @menu.show application, title, pages, page
+    end
+
+    # How wide the row of page names may make the rows of a menu, so the
+    # detail box beside it keeps the width its widest lines need.
+    #
+    # The menu is centered and the detail box hangs one cell to its left. A
+    # detail box *d* cells wide fits when the menu leaves d + 1 cells on that
+    # side, so the menu is at most screen - 2 * (d + 1) wide. Its border and
+    # padding take `Widgets::Menu#gutter` cells on each side, which leaves
+    # the rows screen - 2 * (d + 1) - 2 * gutter. At 80 columns a detail box
+    # 21 wide leaves the rows 80 - 44 - 4 = 32.
+    #
+    # The detail box is its widest line plus a border and a padding cell on
+    # each side, four cells in all. A menu with no detail box has no cap.
+    private def tabs_room(about : Hash(Char, Listing)?) : Int32
+      return Int32::MAX if about.nil? || about.empty?
+
+      policy = application.tree.policy
+      widest = about.values.max_of do |found|
+        lines = Detail.about(@game, found.item, slot: found.slot)
+        lines.max_of? { |line| Widgets::Menu.cells(line, policy) } || 0
+      end
+      detail = (widest + 4).clamp Tooltip::LEAST_WIDTH, Tooltip::WIDTH
+
+      application.tree.screen.width - 2 * (detail + 1) - 2 * @menu.gutter
+    end
+
+    # Puts carried *found* up under *title*, with a page for each class of
+    # item among them. Runs *chosen* with the key pressed.
+    #
+    # *note* gives the text to end each row with, such as
+    # "(blessing unknown)". A row it answers `nil` for has none.
+    def choose(title : String, found : Array({Char, Item}),
+               note : Proc({Char, Item}, String?)? = nil,
+               &chosen : Char? -> Nil) : Nil
+      notes = note ? found.map { |entry| note.call(entry).as(String?) } : nil
+      choose_by_class title, listings(found), about(found), notes: notes, &chosen
+    end
+
+    # Puts *listings* up under *title*, with a page for each class of item
+    # among them after the page that holds them all.
+    #
+    # Pages turn up only when there are two classes or more. One class has
+    # the same rows as the first page, so a row of names would say nothing.
+    # *every* gives every class a page, empty or not. An empty page has one
+    # dimmed row saying so.
+    #
+    # The menu opens on the page named *page*, or else on the page it was
+    # left on the last time a menu with this title was up.
+    #
+    # *notes* holds the text to end each row with, in the order of
+    # *listings*.
+    private def choose_by_class(title : String, listings : Array(Listing),
+                                about : Hash(Char, Listing), every : Bool = false,
+                                page : String? = nil, notes : Array(String?)? = nil,
+                                &chosen : Char? -> Nil) : Nil
+      pages = class_pages listings, every, notes
+      if pages.size < 3
+        choose title, pages[0][1], about, &chosen
+        return
+      end
+
+      wanted = page || @left_on[title]?
+      at = pages.index { |found| found[0] == wanted } || 0
+
+      choose(title, pages, at, about) do |key|
+        @left_on[title] = @menu.page_name || EVERYTHING
+        chosen.call key
+      end
+    end
+
+    # The row an empty page shows.
+    NOTHING = Widgets::Menu::Entry.new ' ', "nothing", enabled: false, mark: ' '
+
+    # *listings* as pages, each a name and its rows. The first page holds
+    # every row. *every* keeps a page for a class with no rows. Each row
+    # ends with its note from *notes*.
+    private def class_pages(listings : Array(Listing), every : Bool,
+                            notes : Array(String?)? = nil) : Array({String, Array(Widgets::Menu::Entry)})
+      rows = listed listings
+      if notes
+        rows = rows.map_with_index do |row, index|
+          extra = notes[index]?
+          extra ? row.copy_with(text: "#{row.text} #{extra}") : row
+        end
+      end
+      pages = [{EVERYTHING, rows}]
+
+      PACK_CLASSES.each do |name|
+        found = rows.zip(listings)
+          .select { |(_row, listing)| Play.pack_class(listing.item.kind.item_class) == name }
+          .map &.[0]
+        pages << {name, found} if every || !found.empty?
+      end
+
+      pages.map { |(name, found)| {name, found.empty? ? [NOTHING] : found} }
     end
 
     # Hooks the menu up to hang *about* off its rows and to run *chosen*.
@@ -1801,7 +1901,7 @@ module Roguelike::Ui
         return
       end
 
-      choose("Drop what?", carried, carried_about) do |key|
+      choose("Drop what?", inventory.entries) do |key|
         next unless key
 
         drop_at key
@@ -1818,23 +1918,18 @@ module Roguelike::Ui
     # Shows what the character carries, one page for each class of item.
     # `i` does this.
     #
-    # The first page holds everything. The rest hold one class each, and a
-    # class the character carries none of has no page. Every item keeps its
-    # own letter on every page. A letter puts up what can be done with that
-    # item.
+    # The first page holds everything. The rest hold one class each. Every
+    # class has a page, so the names along the top are always the same. Every
+    # item keeps its own letter on every page. A letter puts up what can be
+    # done with that item.
     #
     # *page* names the page to show first. The menu of actions comes back to
     # the page it was opened from.
     def show_inventory(page : String? = nil) : Nil
-      if @game.player.inventory.empty?
-        say "You are carrying nothing."
-        return
-      end
+      found = @game.player.inventory.entries
 
-      pages = pack_pages
-      at = pages.index { |found| found[0] == page } || 0
-
-      choose("Inventory", pages, at, carried_about) do |key|
+      choose_by_class("Inventory", listings(found), about(found),
+        every: true, page: page) do |key|
         if key
           act_on key, @menu.page_name || EVERYTHING
         else
@@ -1861,19 +1956,6 @@ module Roguelike::Ui
       in .light?, .tool?                                  then "tools"
       in .treasure?                                       then "treasure"
       end
-    end
-
-    # The inventory pages, each a name and its rows.
-    private def pack_pages : Array({String, Array(Widgets::Menu::Entry)})
-      entries = @game.player.inventory.entries
-      pages = [{EVERYTHING, rows(entries)}]
-
-      PACK_CLASSES.each do |name|
-        found = entries.select { |_letter, item| Play.pack_class(item.kind.item_class) == name }
-        pages << {name, rows(found)} unless found.empty?
-      end
-
-      pages
     end
 
     # What can be done with one carried item, in the order the menu lists it.
@@ -1997,16 +2079,6 @@ module Roguelike::Ui
       end
 
       refresh
-    end
-
-    # Every carried entry, as a menu row.
-    private def carried : Array(Widgets::Menu::Entry)
-      rows @game.player.inventory.entries
-    end
-
-    # The same rows, by the letter each is carried under.
-    private def carried_about : Hash(Char, Listing)
-      about @game.player.inventory.entries
     end
 
     # *entries* as menu rows, each marked with the slot holding it.
@@ -2509,7 +2581,7 @@ module Roguelike::Ui
       end
 
       title = scroll.kind.effect.remove_curse? ? "Lift a curse from what?" : "Bless what?"
-      choose(title, rows(found), about(found)) do |key|
+      choose(title, found) do |key|
         if key
           @game.perform Action::Choose.new(id_under key)
           refresh
@@ -2601,7 +2673,7 @@ module Roguelike::Ui
         return
       end
 
-      choose(title, rows(found), about(found)) do |key|
+      choose(title, found) do |key|
         read_now letter, key ? id_under(key) : nil
         refresh
       end
@@ -2682,11 +2754,11 @@ module Roguelike::Ui
 
     # Asks which of *held* to take off.
     private def choose_slot(held : Array({Slot, Item})) : Nil
-      entries = listed(held.map_with_index do |(slot, item), index|
+      worn = held.map_with_index do |(slot, item), index|
         Listing.new Widgets::Menu.letter(index), item, slot
-      end)
+      end
 
-      choose("Take off what?", entries, about(held.map &.[1])) do |key|
+      choose_by_class("Take off what?", worn, about(held.map &.[1])) do |key|
         next unless key
 
         found = held[Widgets::Menu.index key]?
@@ -2822,7 +2894,7 @@ module Roguelike::Ui
         return
       end
 
-      choose(title, rows(found), about(found)) do |key|
+      choose(title, found) do |key|
         next unless key
 
         chosen.call key

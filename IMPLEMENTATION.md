@@ -215,7 +215,7 @@ none of it is fixed and a preset can rebind the lot.
 | `<` `>` | Up stairs, down stairs |
 | `,` | Pick up what is here |
 | `d` | Drop something |
-| `i` | Inventory. `Left` and `Right` show one class of item at a time; a letter lists what can be done with that item |
+| `i` | Inventory. `Left` and `Right` show one class of item at a time, here and in every list of carried items; a letter lists what can be done with that item |
 | `w` `T` `q` `r` `z` `a` `t` `d` | In the menu on an inventory letter, the same actions on that item, always in that order |
 | `w` `T` | Wield a weapon or wear armor, swapping out what is there; take a weapon or armor off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
@@ -2051,24 +2051,50 @@ first, the way `r` does, and an item with two targets to apply asks which, the w
 in the sidebar puts up the same menu, and `Escape` from that goes back to the map. A recorded run
 answers no such click, because it takes no actions but its own.
 
-### Pages in the inventory
+### Pages by class of item
 
 The inventory is a `Widgets::Menu` with pages. The first page holds everything. The others hold
 one class each, in the order of `Play::PACK_CLASSES`: weapons, armor, amulets, potions, scrolls,
-wands, tools and treasure. A class the character carries none of has no page. Lights and spikes
-share the tools page, because both are applied. Every item keeps its own letter on every page,
-and only the letters on the page showing are bound.
+wands, tools and treasure. Lights and spikes share the tools page, because both are applied. Every
+item keeps its own letter on every page, and only the letters on the page showing are bound.
+
+The inventory always has all nine pages, so the names along the top never move. An empty pack
+still opens it. An empty page shows one dimmed row that says "nothing". The box is sized for the
+longest page, and a blank box that size reads as a fault in the drawing. The row is unbound, so
+`Enter` on it does nothing.
+
+Every other menu of carried items has the same pages, built from the items that menu offers: drop,
+wield or wear, take off, drink, read, zap, throw, the scroll of identify and the scroll of repair,
+and the target of a blessing or of remove curse. These menus have a page only for a class among
+their rows. A menu whose rows are all one class has no pages at all, because the page of that class
+would hold the same rows as the first page. `Play#choose` with carried entries builds them, so a
+caller that filters the pack gets pages without asking. A caller can pass a note for each item,
+such as "(blessing unknown)", and the row ends with it on every page. The take off menu numbers
+its rows by slot rather than by letter, and has pages all the same. Pick up lists the floor and
+apply lists targets that include wall sconces, so neither has pages.
+
+Each menu opens on the page it was left on, by its title, for as long as the run is being played.
+A page the menu does not have this time opens it on the first page. The rows are built once for
+every page, so the names line up the same way on each.
+
+Pages change which rows are shown and nothing else. A letter answers the same `on_choose` block it
+did before, and that block performs the same action. A recorded run holds the same actions.
 
 `Left` and `Right` turn the page, and go round at either end. A menu with pages gives up the
 sideways scroll those keys do in other menus. The names are drawn in a row along the top of the
 box, the page showing in brackets and bold, with an arrow at each end. A click on a name turns to
 it, and a click on an arrow turns one page that way. The box is sized for the widest row and the
-longest page, so it keeps its size as the pages turn.
+longest page, so it keeps its size as the pages turn. The row of names widens the box only as far
+as leaves the detail box beside it the width its widest lines need, and `Play#tabs_room` holds the
+arithmetic. A row of names wider than the box slides to keep the page showing in the middle, and
+a name cut by either end is drawn as far as it fits. At 80 columns that shows the pages beside
+the one showing. At 40 columns a long name fills the row, and only the arrows say there is more.
 
 An open overlay pushes its bindings onto the focus stack when it goes up. Turning a page replaces
 that copy as well as the menu's own, or the letters of the page before would still answer.
 
-The help screen lists these keys under "in the inventory". `Keys::Section` has notes for keys a
+The help screen lists these keys under "in the inventory", and says the pages work in every list
+of carried items. `Keys::Section` has notes for keys a
 menu answers while it is up, which nothing binds globally.
 
 ## A name to start with

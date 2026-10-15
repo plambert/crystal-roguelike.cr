@@ -443,6 +443,45 @@ Spectator.describe TermBuf::Widgets::Menu do
     end
   end
 
+  describe "the row of page names" do
+    # A menu with four pages on a screen too narrow for every name.
+    def paged : Shown
+      menu = Widgets::Menu.new
+      root = Widgets::Panel.new(
+        width: Widgets::Layout::Sizing.grow,
+        height: Widgets::Layout::Sizing.grow)
+      root.add menu
+
+      session = Headless.open root, 40, 20
+      rows = [Entry.new('a', "one")]
+      pages = ["all", "weapons", "armor", "amulets"].map { |name| {name, rows} }
+      menu.show session.app, "Inventory", pages, 0
+      session.render
+
+      Shown.new menu, session, [] of Char?
+    end
+
+    # The row of names as drawn, between the arrows.
+    def names(run : Shown) : String
+      line = run.session.rows.find(&.includes?('←')) || ""
+      line[(line.index('←') || 0)..(line.index('→') || -1)]
+    end
+
+    it "draws a name cut by the far edge as far as it fits" do
+      run = paged
+
+      expect(names run).to eq "← [all]  weapo →"
+    end
+
+    it "keeps the page showing whole as it slides" do
+      run = paged
+      run.session.press "Right"
+      run.session.render
+
+      expect(names run).to eq "←   [weapons]  →"
+    end
+  end
+
   describe "picking a row" do
     it "answers the letter pressed" do
       run = shown ["one", "two"]

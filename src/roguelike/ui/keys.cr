@@ -204,7 +204,7 @@ module Roguelike::Ui
       actions = Play::Handle.values
       notes = [
         {"a-z A-Z", "what to do with that item"},
-        {"Left Right", "show one class of item at a time"},
+        {"Left Right", "show one class of item at a time, here and in every list of carried items"},
         {actions.join(" ", &.key), actions.join(", ", &.label)},
       ]
 

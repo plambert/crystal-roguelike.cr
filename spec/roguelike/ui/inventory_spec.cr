@@ -98,12 +98,13 @@ Spectator.describe "picking up and dropping" do
   end
 
   describe "i" do
-    it "says so when the character carries nothing" do
+    it "opens when the character carries nothing" do
       run = litter
 
       run.press "i"
 
-      expect(run.said).to contain "carrying nothing"
+      expect(run.menu.showing?).to be_true
+      expect(run.text).to contain "nothing"
     end
 
     it "lists what is carried, by letter" do
