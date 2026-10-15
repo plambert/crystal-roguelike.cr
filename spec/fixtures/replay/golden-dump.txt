@@ -1,0 +1,44 @@
+1	You drop 3 uncursed iron spikes.
+3	You put out an uncursed torch.
+5	You light an uncursed torch.
+6	You drink an uncursed potion of minor healing.
+6	You feel no different.
+8	You put out an uncursed torch.
+10	There is a staircase leading up here.
+10	You see 3 uncursed iron spikes here.
+11	You are no longer holding an uncursed short sword.
+13	You close the door.
+14	There is a staircase leading up here.
+14	You see 3 uncursed iron spikes here.
+16	You close the door.
+17	You drop an uncursed short sword.
+18	You open the door.
+22	You are no longer wearing uncursed leather armor.
+25	You are now wearing uncursed leather armor.
+33	You light an uncursed torch.
+34	You put out an uncursed torch.
+37	You close the door.
+38	You see an uncursed short sword here.
+41	You are no longer wearing uncursed leather armor.
+42	You open the door.
+47	You drop uncursed leather armor.
+50	You drop an uncursed torch.
+52	a - an uncursed torch
+54	You light an uncursed torch.
+56	You drop an uncursed torch.
+57	You see an uncursed short sword here.
+59	You see an uncursed short sword here.
+65	You see an uncursed short sword here.
+68	You see an uncursed torch here.
+69	a - an uncursed torch
+72	You see an uncursed short sword here.
+75	You put out an uncursed torch.
+77	You close the door.
+78	You light an uncursed torch.
+79	You close the door.
+80	You open the door.
+81	You drop an uncursed torch.
+82	You open the door.
+83	a - an uncursed torch
+84	You close the door.
+85	You open the door.

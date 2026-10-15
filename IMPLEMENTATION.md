@@ -3091,6 +3091,24 @@ The map is what costs, and it compresses about forty to one. `--output` with a n
 writes it compressed, which is what a five thousand action run wants. Leaving the legal actions
 out saves under one percent.
 
+## Writing out what a run said
+
+`replay dump FILE` writes the messages of a run, one per line, as the turn, a tab and the text.
+`--output` names a file and standard output is the default.
+
+The fingerprint leaves the message log out, so `replay verify` cannot see a build that picks a
+different sentence and changes nothing else. Dumping one replay with two builds and comparing the
+output shows the wording change at the turn it happened.
+
+The run is rebuilt and every action performed the way `Replay::Verifier` does it. The lines each
+action adds to the log are held until the next checkpoint agrees. A difference stops the dump with a
+report, and the held lines are not written, because messages after a difference say nothing about
+the build.
+
+Only lines the game adds inside `Game#perform` are in a replay. A line a run's ui writes outside it
+does not appear. A repeated message raises the count on the line already written, and the dump
+does not write that line again. The golden replay's dump is a spec fixture.
+
 ## Test builds record every run
 
 A test build is compiled with `-Dtest_build`, as `crystal build -Dtest_build src/main.cr` or
@@ -3203,7 +3221,8 @@ neither line and reads as it always did. The golden replay is format 2 and verif
 The streamed fingerprint scheme left the format at 3. The lines have the same shape, and a value
 says which scheme made it. See "Two schemes" under "What a fingerprint costs".
 
-`replay verify`, `replay view`, `replay export` and `replay upgrade` all read pauses and resumes.
+`replay verify`, `replay view`, `replay export`, `replay dump` and `replay upgrade` all read pauses
+and resumes.
 The viewer files them under the action they follow, so a step backwards across a load works the way
 it does anywhere else. Upgrade writes each pause and resume again where it stood. A footer in the
 middle of the file, which ends one process's share, comes out as `truncated` whatever it said.
@@ -4957,11 +4976,6 @@ spikes a door or decides whether a fight is worth having, so what they measure i
 menu of what can be done with that item: equip, take off, wear, quaff, read, throw, inspect,
 identify. The menu should be a fixed list with the entries that do not apply dimmed rather than
 left out, so the same key is in the same place every time.
-
-### One more replay command
-
-`replay dump` writes the messages of a run, so the messages of two builds over one run can be put
-side by side. It is not built. `replay export` was in this list and is now built.
 
 ### A note on where the game is drifting
 

@@ -8,6 +8,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* `replay dump` writes the messages of a recorded run, one per line with the turn it came on.
+  Dumping one replay with two builds and comparing the files shows a change of wording that
+  `replay verify` cannot see. It stops with a report where the run differs from the recording.
+  `--output` names a file, and standard output is the default.
+
 ## [0.4.2] - 2026-10-14
 
 The Seen list lights and walks to what you point at, the right mouse button pans the map, arrows and

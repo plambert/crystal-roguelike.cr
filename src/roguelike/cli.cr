@@ -224,7 +224,7 @@ module Roguelike
     # `crystal-roguelike replay`, which works on recorded runs.
     #
     # It does nothing on its own. `replay verify`, `replay view`,
-    # `replay upgrade` and `replay export` are what sit under it.
+    # `replay upgrade`, `replay export` and `replay dump` are what sit under it.
     Shell::AutoComplete.command Replaying,
       name: "replay",
       description: "Work on a run recorded with --replay-log" do
@@ -351,6 +351,47 @@ module Roguelike
       end
     end
 
+    # `crystal-roguelike replay dump`, which writes the messages of a
+    # recorded run.
+    #
+    # Two builds dumping one replay give two files to compare, which shows a
+    # wording change that the fingerprints cannot.
+    Shell::AutoComplete.command Dumping,
+      name: "dump",
+      description: "Write the messages of a recorded run, one per line" do
+      flag output : Path? = nil, "--output",
+        "Where to write. Standard output by default"
+
+      positional file : Path, "The replay file to dump"
+
+      def run
+        target = output
+
+        if target
+          ok = ::File.open(target, "w") { |io| dumped io }
+        else
+          ok = dumped STDOUT
+        end
+
+        exit 1 unless ok
+      end
+
+      # Dumps the file to *to*. Answers whether it went through.
+      #
+      # The report goes to standard error, so that a dump written to
+      # standard output holds the messages and nothing else.
+      private def dumped(to : IO) : Bool
+        report = begin
+          Replay::Dump.run file, to
+        rescue error : Replay::Error | JSON::Error | ::File::Error
+          Replay::Dump::Report.new file, 0, 0, error.message || error.class.name
+        end
+
+        STDERR.puts report
+        report.ok?
+      end
+    end
+
     # `crystal-roguelike replay upgrade`, which writes a recorded run out
     # again under this build's fingerprints.
     #
@@ -394,6 +435,7 @@ module Roguelike
     subcommand Watching
     subcommand Upgrading
     subcommand Exporting
+    subcommand Dumping
   end
 
   # The flags that belong to whoever works on the game rather than to whoever
