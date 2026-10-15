@@ -348,6 +348,22 @@ Spectator.describe "the menu on an inventory letter" do
       expect(taken by_page).to eq [Roguelike::Action::Drop.new(id).to_json]
     end
 
+    it "ends a row with its note on every page" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+      note = ->(entry : {Char, Item}) : String? do
+        entry[1].kind.item_class.potion? ? "(blessing unknown)" : nil
+      end
+
+      run.play.choose("Which?", run.game.player.inventory.entries, note) { }
+      run.render
+
+      texts = run.menu.pages.map { |(name, rows)| {name, rows.map &.text} }.to_h
+      expect(texts["all"][1]).to end_with " (blessing unknown)"
+      expect(texts["potions"][0]).to end_with " (blessing unknown)"
+      expect(texts["all"][0]).not_to contain "unknown"
+      expect(texts["weapons"][0]).to eq texts["all"][0]
+    end
+
     it "opens on the page it was left on" do
       run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
 

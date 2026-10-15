@@ -926,9 +926,14 @@ module Roguelike::Ui
 
     # Puts carried *found* up under *title*, with a page for each class of
     # item among them. Runs *chosen* with the key pressed.
+    #
+    # *note* gives the text to end each row with, such as
+    # "(blessing unknown)". A row it answers `nil` for has none.
     def choose(title : String, found : Array({Char, Item}),
+               note : Proc({Char, Item}, String?)? = nil,
                &chosen : Char? -> Nil) : Nil
-      choose_by_class title, listings(found), about(found), &chosen
+      notes = note ? found.map { |entry| note.call(entry).as(String?) } : nil
+      choose_by_class title, listings(found), about(found), notes: notes, &chosen
     end
 
     # Puts *listings* up under *title*, with a page for each class of item
@@ -941,10 +946,14 @@ module Roguelike::Ui
     #
     # The menu opens on the page named *page*, or else on the page it was
     # left on the last time a menu with this title was up.
+    #
+    # *notes* holds the text to end each row with, in the order of
+    # *listings*.
     private def choose_by_class(title : String, listings : Array(Listing),
                                 about : Hash(Char, Listing), every : Bool = false,
-                                page : String? = nil, &chosen : Char? -> Nil) : Nil
-      pages = class_pages listings, every
+                                page : String? = nil, notes : Array(String?)? = nil,
+                                &chosen : Char? -> Nil) : Nil
+      pages = class_pages listings, every, notes
       if pages.size < 3
         choose title, pages[0][1], about, &chosen
         return
@@ -963,10 +972,17 @@ module Roguelike::Ui
     NOTHING = Widgets::Menu::Entry.new ' ', "nothing", enabled: false, mark: ' '
 
     # *listings* as pages, each a name and its rows. The first page holds
-    # every row. *every* keeps a page for a class with no rows.
-    private def class_pages(listings : Array(Listing),
-                            every : Bool) : Array({String, Array(Widgets::Menu::Entry)})
+    # every row. *every* keeps a page for a class with no rows. Each row
+    # ends with its note from *notes*.
+    private def class_pages(listings : Array(Listing), every : Bool,
+                            notes : Array(String?)? = nil) : Array({String, Array(Widgets::Menu::Entry)})
       rows = listed listings
+      if notes
+        rows = rows.map_with_index do |row, index|
+          extra = notes[index]?
+          extra ? row.copy_with(text: "#{row.text} #{extra}") : row
+        end
+      end
       pages = [{EVERYTHING, rows}]
 
       PACK_CLASSES.each do |name|

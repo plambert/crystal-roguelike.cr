@@ -516,12 +516,14 @@ module TermBuf::Widgets
     #
     # The title is measured too. It is drawn in the top edge of the border,
     # and a box narrower than its own title has the title cut instead.
+    #
+    # The row of page names is not measured. A row wider than the box slides
+    # to keep the page showing in view.
     private def fit_into(screen : Rect, policy : Unicode::WidthPolicy) : Nil
       rows = measured
       widest_row = rows.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
       widest_row += TAIL if rows.any? &.tail
       widest_row += MIRROR
-      widest_row = Math.max widest_row, @tabs.wanted unless @tabs.hidden?
 
       @list.widest = Math.max widest_row, Menu.cells(title, policy) + TITLE_SLACK
 

@@ -2042,9 +2042,10 @@ wield or wear, take off, drink, read, zap, throw, the scroll of identify and the
 and the target of a blessing or of remove curse. These menus have a page only for a class among
 their rows. A menu whose rows are all one class has no pages at all, because the page of that class
 would hold the same rows as the first page. `Play#choose` with carried entries builds them, so a
-caller that filters the pack gets pages without asking. The take off menu numbers its rows by slot
-rather than by letter, and has pages all the same. Pick up lists the floor and apply lists targets
-that include wall sconces, so neither has pages.
+caller that filters the pack gets pages without asking. A caller can pass a note for each item,
+such as "(blessing unknown)", and the row ends with it on every page. The take off menu numbers
+its rows by slot rather than by letter, and has pages all the same. Pick up lists the floor and
+apply lists targets that include wall sconces, so neither has pages.
 
 Each menu opens on the page it was left on, by its title, for as long as the run is being played.
 A page the menu does not have this time opens it on the first page. The rows are built once for
@@ -2057,7 +2058,9 @@ did before, and that block performs the same action. A recorded run holds the sa
 sideways scroll those keys do in other menus. The names are drawn in a row along the top of the
 box, the page showing in brackets and bold, with an arrow at each end. A click on a name turns to
 it, and a click on an arrow turns one page that way. The box is sized for the widest row and the
-longest page, so it keeps its size as the pages turn.
+longest page, so it keeps its size as the pages turn. The row of names does not widen the box, so
+the box beside it keeps its width, and a row of names wider than the box slides to keep the page
+showing in view.
 
 An open overlay pushes its bindings onto the focus stack when it goes up. Turning a page replaces
 that copy as well as the menu's own, or the letters of the page before would still answer.
