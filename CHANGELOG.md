@@ -51,6 +51,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* The messages of one move are the only ones drawn in the bright color. The line about what you
+  stepped onto no longer stays bright through the next move, and a move that picks things up keeps
+  all of its lines together.
 * `X` no longer stops in a doorway or the neck of a cave with "You stop. Walking on would show you
   nothing new." while the room beside it still has ground left to see.
 

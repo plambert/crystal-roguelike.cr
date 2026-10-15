@@ -529,6 +529,49 @@ Spectator.describe "items on the floor" do
     end
   end
 
+  describe "rounds of the log" do
+    alias Action = Roguelike::Action
+    alias Blessing = Roguelike::Blessing
+    alias Direction = Roguelike::Direction
+
+    # The index of the newest line in *game*'s log that starts with *text*.
+    def line_of(game : Roguelike::Game, text : String) : Int32
+      game.log.lines.rindex(&.starts_with?(text)) || raise "#{text.inspect} was not said"
+    end
+
+    it "puts the piles of two steps in two rounds" do
+      game = bare
+      game.floor.drop 3, 2, Item.new(Kind::Dagger)
+      game.floor.drop 3, 3, Item.new(Kind::LongSword)
+
+      game.perform Action::Move.new(Direction::East)
+      game.perform Action::Move.new(Direction::South)
+
+      first = line_of game, "You see a dagger"
+      second = line_of game, "You see a long sword"
+      expect(game.log.round_of first).not_to eq game.log.round_of(second)
+      expect(game.log.current? first).to be_false
+      expect(game.log.current? second).to be_true
+    end
+
+    it "keeps every line of a step with pickups in one round" do
+      game = bare
+      game.player.inventory.add(Item.new Kind::Arrow, count: 8) || raise "no room"
+      game.player.inventory.add(Item.new Kind::HealingPotion) || raise "no room"
+      game.floor.drop 3, 2, Item.new(Kind::Arrow, count: 3)
+      game.floor.drop 3, 2, Item.new(Kind::HealingPotion)
+      game.floor.drop 3, 2, Item.new(Kind::Dagger)
+      start = game.log.size
+
+      game.perform Action::Move.new(Direction::East)
+
+      expect(game.turn).to eq 3
+      expect(game.log.size - start).to eq 3
+      rounds = (start...game.log.size).map { |index| game.log.round_of index }
+      expect(rounds.uniq).to eq [game.log.round - 1]
+    end
+  end
+
   describe "serialization" do
     it "keeps what is on the floor" do
       game = bare

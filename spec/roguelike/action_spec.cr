@@ -83,6 +83,19 @@ Spectator.describe Roguelike::Action do
     game.to_json
   end
 
+  # *game* written out without the rounds of its log.
+  #
+  # `#perform` closes a round of the log at the end of an action that took
+  # time. It is the one place that knows where an action ends. A verb called
+  # directly writes the same lines and leaves the round alone.
+  def played(game : Roguelike::Game) : String
+    found = JSON.parse(game.to_json).as_h
+    log = found["log"].as_h
+    log.delete "rounds"
+    log.delete "round"
+    found.to_json
+  end
+
   # A copy of *game* that shares nothing with it.
   def copy(game : Roguelike::Game) : Roguelike::Game
     Roguelike::Game.from_json game.to_json
@@ -587,7 +600,8 @@ Spectator.describe Roguelike::Action do
     # Everything below is played twice. One run calls the verbs the way
     # `Ui::Play` used to. The other goes through `#perform`. The two runs
     # must end on the same state, which is what shows `#perform` dispatches
-    # and decides nothing.
+    # and decides nothing about the game. The rounds of the log are left
+    # out of the comparison, because `#perform` closes them.
     it "reaches the same state through #perform as through the verbs" do
       direct = stocked
       direct.pick_up direct.here.first
@@ -614,7 +628,7 @@ Spectator.describe Roguelike::Action do
        Action::Remove.new(Slot::Melee)].each { |action| routed.perform action }
 
       expect(routed.turn).to eq direct.turn
-      expect(state routed).to eq state direct
+      expect(played routed).to eq played direct
     end
 
     it "reads a scroll that asks afterwards the same way either road" do
@@ -628,7 +642,7 @@ Spectator.describe Roguelike::Action do
       routed.perform Action::Choose.new(chosen)
 
       expect(routed.asking).to be_nil
-      expect(state routed).to eq state direct
+      expect(played routed).to eq played direct
     end
 
     it "reads a scroll that names its item up front the same way either road" do
@@ -638,7 +652,7 @@ Spectator.describe Roguelike::Action do
       routed = stocked
       routed.perform Action::Read.new(id(routed, 'e'), id(routed, 'd'))
 
-      expect(state routed).to eq state direct
+      expect(played routed).to eq played direct
     end
   end
   describe "a walk" do

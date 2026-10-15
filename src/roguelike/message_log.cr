@@ -48,8 +48,8 @@ module Roguelike
     def initialize(@lines : Array(String) = [] of String)
     end
 
-    # Closes the round being written. `Game` calls this when the character
-    # can act again.
+    # Closes the round being written. `Game#perform` calls this at the end
+    # of an action that took time.
     def next_round : Nil
       @round += 1
     end

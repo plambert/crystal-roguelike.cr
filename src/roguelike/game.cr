@@ -283,6 +283,13 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @overlooked : Int32 = 0
 
+    # Whether the action being performed has spent any time.
+    #
+    # `#spend` sets it and `#perform` reads it. An action that took a turn
+    # closes a round of the log when it is over, however many turns it took.
+    @[JSON::Field(ignore: true)]
+    @turned : Bool = false
+
     # How many times something has attacked the character, hit or miss.
     #
     # A step reads it before it moves and again before each thing it picks
@@ -2998,9 +3005,7 @@ module Roguelike
         tick
       end
 
-      # What the action wrote and what the world wrote in answer share one
-      # round of the log.
-      @log.next_round
+      @turned = true
     end
 
     # One tick of the world.
@@ -6149,10 +6154,17 @@ module Roguelike
       return Verdict.refused if over?
 
       recording
+      @turned = false
       before = @player.inventory.signature
       verdict = dispatched action
       restack if @player.inventory.signature != before && !over?
       clear_bearers
+
+      # What the action wrote and what the world wrote in answer share one
+      # round of the log. A step that picks up three things spends four
+      # turns and is still one round. An action that took no time leaves
+      # its lines in the round the next action closes.
+      @log.next_round if @turned
       @recorder.try &.act action unless verdict.refused?
       verdict
     end
