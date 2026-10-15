@@ -220,8 +220,8 @@ none of it is fixed and a preset can rebind the lot.
 | `w` `T` | Wield a weapon or wear armor, swapping out what is there; take a weapon or armor off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
 | `f` `t` | Fire the ranged weapon, throw something |
-| `a` | Apply. Light or put out a torch, a candle, or a wall sconce |
-| `o` `c` | Open, close |
+| `a` | Apply. Light or put out a torch, a candle, or a wall sconce, or spike a door |
+| `o` `c` | Open, close. `c` on a shut door asks to drive a spike into it |
 | `x` | Examine. Put a cursor on the map and move it with the movement keys |
 | `Escape` | Take back whatever is waiting for a key |
 | `M` | Turn mouse reporting on and off |
@@ -1935,6 +1935,17 @@ the same as another, so three of them are one inventory entry rather than three 
 
 Nothing drives one under a door yet. That verb arrives with bracing and with creatures that open
 doors, which are listed below as three entries that have to land together.
+
+Two keys drive a spike now. `a` lists one row for each shut, unspiked door beside the character.
+`c` on a shut door asks "Spike the door?" with `n` as the default, and a yes sends the same
+`Action::Apply` the `a` row sends, so a replay holds the same action either way. `c` never spikes
+without the question. A door with a spike in it already is said so and left alone. Shut doors count
+as answers to `c` only while the character carries a spike, so `c` with no spike still says there
+is nothing to close.
+
+Driving a spike costs `Costs::SPIKE`, half a turn. A person can shut a door on something chasing
+them and spike it before it arrives. Pulling a spike out is part of opening the door and costs what
+opening costs.
 
 The character starts with three. A floor hands them out at a weight of 7 against a table totaling
 460, which is 1.5 out of every 100 items it scatters, in stacks of two to four. At that rate a
@@ -3893,8 +3904,9 @@ starting kit into shut doors to hold them.
   is left behind at the first door.
 * A creature walking round a blocker builds its own `Descent`. It crosses a shut door when that
   creature opens doors.
-* `a` offers an iron spike once for each shut, unspiked door beside the character. Driving one
-  takes a turn and one spike from the pack.
+* `a` offers an iron spike once for each shut, unspiked door beside the character. `c` on a shut
+  door offers the same spike behind a yes or no question. Driving one takes half a turn and one
+  spike from the pack.
 * A spiked door does not open from the far side. The attempt takes no turn. From the spiked side
   it opens, and the spike goes back into the pack, or to the character's feet when the pack is
   full.
@@ -3967,6 +3979,61 @@ a door and spikes it would show the rule far more.
 * No bot spikes a door.
 * A band that mixes kinds that open doors with ones that cannot keeps the whole band off doors.
   Every band holds one species today, and every kind of a species agrees, so no band is mixed.
+
+### Breaking a door down
+
+A shut door that will not open for the character can be broken. Today that is a door spiked from
+the far side. `Game#stuck` is the one check for why a door will not open, and a lock would be a
+second reason added there.
+
+* A step into a stuck door is refused as before. `Ui::Play` then asks "Break it down?" with `n` as
+  the default. A no changes nothing. A yes sends `Action::Break` with the direction, which swings
+  once and makes the door the target.
+* The target is `Game#forcing`, a `ForcedDoor` with the floor id and the square. It is in the save
+  and the fingerprint, and it is written only while it is set. Every `Action::Move` into the target
+  swings at it without asking. A walk in one direction, or a route, that reaches it swings too, and
+  the line the swing writes stops the walk the usual way.
+* The target is dropped when the door breaks, when the character is no longer beside it or is on
+  another floor, when the door opens or stops holding, and on any blow between the character and a
+  creature. `#fought_with` drops it, so a creature attacking and the character attacking a creature
+  both count. `#perform` checks the rest after every action.
+* A swing rolls `Combat.damage` on the character's melee dice, with the strength modifier and the
+  weapon's enchantment and condition. There is no roll to hit. It costs `Costs.swing` for the
+  weapon and calls `#jar` the way a swing at a creature does. "You hit the door." above half its hit
+  points, "The door splinters." at half or below. Each swing records `Event::DoorStruck`.
+* `Floor#battered` holds the hit points left in each damaged door, by `Floor.spot`. A door with no
+  entry is whole. `Floor::Stored#battered` is written only when a door is damaged, so a floor with
+  none writes what it wrote before.
+* A whole wooden door has `Floor::WOODEN_DOOR`, 12 hit points. The expected swings to break one:
+
+  | Weapon | Dice | Swings |
+  | --- | --- | --- |
+  | Dagger | 1d4 | 5.2 |
+  | Short sword, the starting weapon | 1d6 | 3.9 |
+  | Rapier, mace | 1d6+1 | 3.1 |
+  | Long sword, spear | 1d8 | 3.2 |
+
+* At zero the square becomes `Terrain::BrokenDoor`, written `/` in a floor file and drawn `/` in the
+  door's wood color. "The door breaks!" records `Event::DoorBroken`. The spike falls on the square
+  it was driven from, or in the doorway when that square is not passable. The hit point entry goes,
+  and touching the square takes it off the character's barred list.
+* A broken door is passable and transparent like an open door. `Terrain#door?` is true for it, so
+  the chambers code keeps it as the neck between two rooms and a walk stops on it as on any
+  doorway. It is not `open_door?` or `closed_door?`, so nothing closes it and nothing spikes it.
+* `Game#legal` offers `Action::Break` for each stuck door beside an armed character.
+
+#### Decisions
+
+* **Bare hands are refused.** With nothing swung in hand, a step into a stuck door writes
+  `Game::BARE_DOOR` and asks nothing. `Action::Break` refuses the same way. No turn passes. Fists
+  roll 1d2, so a door would take eight swings or more, and a person would not choose that.
+* **The crash stands in for noise.** When a door breaks, every band with a member within
+  `Game::NOISE_REACH`, six squares, of the door records a sighting of the character through
+  `Knowledge#saw`. A band asleep becomes alert and walks to the sighting, the way a hunting band
+  does once it loses sight of the character. A noise system would replace this.
+* **Creatures do not break doors.** A goblin held by a spike waits behind the door the way it did
+  before. Breaking doors for creatures would need a rule for when a band decides a door is worth
+  the noise. `creature_opens` is unchanged, because a broken door is passable and never reaches it.
 
 ## Floors of many sizes and layouts
 

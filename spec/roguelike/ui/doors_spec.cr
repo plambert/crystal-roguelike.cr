@@ -105,6 +105,171 @@ Spectator.describe "doors, stairs and leaving" do
     end
   end
 
+  # A game on *map* with the character at *x*, *y*, carrying *spikes*
+  # spikes and holding a short sword when *armed*.
+  def kitted(map : String, x : Int32, y : Int32, spikes : Int32 = 0,
+             armed : Bool = false, rows : Int32 = 24,
+             & : Roguelike::Floor ->) : Playing::Run
+    floor = Playing.daylight Roguelike::Floor.parse("room", map)
+    yield floor
+
+    player = Roguelike::Player.new "room", x, y
+    if spikes > 0
+      player.inventory.add Roguelike::Item.new(Roguelike::ItemKind::Spike, count: spikes)
+    end
+
+    if armed
+      letter = player.inventory.add Roguelike::Item.new(Roguelike::ItemKind::ShortSword)
+      player.equipment.put Roguelike::Slot::Melee, letter if letter
+    end
+
+    game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}), player
+    Playing.open game, rows: rows
+  end
+
+  # :ditto:
+  def kitted(map : String, x : Int32, y : Int32, spikes : Int32 = 0,
+             armed : Bool = false) : Playing::Run
+    kitted(map, x, y, spikes, armed) { }
+  end
+
+  describe "c on a shut door" do
+    it "asks before driving a spike" do
+      run = kitted "#####\n#<+.#\n#####", 1, 1, spikes: 2
+
+      run.press "c"
+
+      expect(run.prompt.asking?).to be_true
+      expect(run.game.floor.spiked?(2, 1)).to be_false
+    end
+
+    it "spikes the door on yes" do
+      run = kitted "#####\n#<+.#\n#####", 1, 1, spikes: 2
+
+      run.press "c"
+      run.press "y"
+
+      expect(run.game.floor.spiked?(2, 1)).to be_true
+      expect(run.said).to eq "You drive a spike into the door."
+    end
+
+    it "leaves the door alone on no" do
+      run = kitted "#####\n#<+.#\n#####", 1, 1, spikes: 2
+
+      run.press "c"
+      run.press "n"
+
+      expect(run.game.floor.spiked?(2, 1)).to be_false
+      expect(run.turn).to eq 0
+    end
+
+    it "says so and does nothing when the door is spiked already" do
+      run = kitted "#####\n#<+.#\n#####", 1, 1, spikes: 2
+
+      run.press "c"
+      run.press "y"
+      turn = run.turn
+      run.press "c"
+
+      expect(run.prompt.asking?).to be_false
+      expect(run.said).to eq "The door already has a spike in it."
+      expect(run.turn).to eq turn
+      expect(run.game.player.inventory.count(run.game.player.inventory.entries.first[0])).to eq 1
+    end
+  end
+
+  describe "a door spiked from the far side" do
+    MAP = "######\n#<.+.#\n######"
+
+    def barred(armed : Bool = true, rows : Int32 = 24) : Playing::Run
+      kitted(MAP, 2, 1, armed: armed, rows: rows) do |floor|
+        floor.drive_spike 3, 1, Roguelike::Direction::East,
+          Roguelike::Item.new(Roguelike::ItemKind::Spike)
+      end
+    end
+
+    it "asks to break it down when a step finds it held" do
+      run = barred
+
+      run.press "l"
+
+      expect(run.prompt.asking?).to be_true
+      expect(run.turn).to eq 0
+    end
+
+    it "changes nothing on no" do
+      run = barred
+
+      run.press "l"
+      run.press "n"
+
+      expect(run.game.door_target).to be_nil
+      expect(run.game.floor.door_health(3, 1)).to eq Roguelike::Floor::WOODEN_DOOR
+      expect(run.turn).to eq 0
+    end
+
+    it "swings and sets the target on yes" do
+      run = barred
+
+      run.press "l"
+      run.press "y"
+
+      expect(run.game.door_target).to eq({3, 1})
+      expect(run.game.floor.door_health(3, 1)).to be < Roguelike::Floor::WOODEN_DOOR
+      expect(run.turn).to eq 1
+    end
+
+    it "swings again on the next step without asking" do
+      run = barred
+      run.press "l"
+      run.press "y"
+      left = run.game.floor.door_health(3, 1)
+
+      run.press "l"
+
+      expect(run.prompt.asking?).to be_false
+      expect(run.game.floor.door_health(3, 1)).to be < left
+    end
+
+    # The bar shows only in a window tall enough for it.
+    it "shows the door in the bar while it is the target" do
+      run = barred rows: 40
+      run.press "l"
+      run.press "y"
+      left = run.game.floor.door_health(3, 1)
+
+      expect(run.text).to contain "door #{left}/#{Roguelike::Floor::WOODEN_DOOR}"
+    end
+
+    it "tells a character with bare hands they need a weapon" do
+      run = barred armed: false
+
+      run.press "l"
+
+      expect(run.prompt.asking?).to be_false
+      expect(run.said).to eq Roguelike::Game::BARE_DOOR
+      expect(run.turn).to eq 0
+    end
+
+    it "breaks, and the character walks through" do
+      run = barred
+      run.press "l"
+      run.press "y"
+      20.times do
+        break if run.game.floor.terrain(3, 1).broken_door?
+
+        run.press "l"
+      end
+
+      expect(run.game.floor.terrain(3, 1)).to eq Terrain::BrokenDoor
+      # The spike lies on the far side, where it was driven from.
+      expect(run.row(1)[0, 6]).to eq "#<@/(#"
+
+      run.press "l"
+      expect(run.at).to eq({3, 1})
+    end
+  end
+
   describe "c" do
     it "closes the one open door beside the character" do
       run = room "#####\n#<'.#\n#####", 1, 1
@@ -432,7 +597,8 @@ Spectator.describe "doors, stairs and leaving" do
       expect(run.map.highlights).to be_empty
     end
 
-    it "lights up the open doors for c, not the shut ones" do
+    # The character starts with spikes, so `c` takes the shut door too.
+    it "lights up the open doors and the shut one for c" do
       run = Playing.open
       TO_JUNCTION.each_char { |key| run.press key.to_s }
       run.press "o"
@@ -443,7 +609,7 @@ Spectator.describe "doors, stairs and leaving" do
       run.press "c"
 
       # The north door counts too. Walking through it left it open.
-      expect(run.map.highlights.to_a.sort).to eq [{9, 12}, {10, 11}, {11, 12}]
+      expect(run.map.highlights.to_a.sort).to eq [{9, 12}, {10, 11}, {10, 13}, {11, 12}]
     end
 
     it "leaves the door's own glyph showing under the highlight" do

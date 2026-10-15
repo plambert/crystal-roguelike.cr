@@ -8,19 +8,6 @@ module Roguelike::Ui
 
     # `G`, walking that way until something is worth stopping for.
     Run
-
-    # The terrain this command acts on. Every square holding it beside the
-    # character is an answer, and the map lights those squares up.
-    #
-    # `nil` for a command that takes any direction. A walk takes all eight,
-    # so lighting up the ones it would take would light up the whole ring.
-    def terrain : Terrain?
-      case self
-      in .open?  then Terrain::ClosedDoor
-      in .close? then Terrain::OpenDoor
-      in .run?   then nil
-      end
-    end
   end
 
   # A command waiting for a square to be aimed at.
@@ -1118,8 +1105,27 @@ module Roguelike::Ui
 
       # A blocked step says why. The pane has to be redrawn either way.
       done = @game.perform stepping(direction)
-      @map.follow @game.player.x, @game.player.y unless done.step.try &.blocked?
+      blocked = done.step.try &.blocked?
+      @map.follow @game.player.x, @game.player.y unless blocked
       refresh
+      offer_to_break direction if blocked
+    end
+
+    # Asks whether to break down the door *direction*, once a step into it
+    # has found it will not open.
+    #
+    # A yes swings at it, and every later step into it swings again without
+    # asking. A character with nothing in hand is told they need a weapon.
+    private def offer_to_break(direction : Direction) : Nil
+      return unless @game.stuck? direction
+      return say Game::BARE_DOOR unless @game.armed?
+
+      ask("Break it down?", "yn", default: 'n') do |key|
+        next unless key == 'y'
+
+        @game.perform Action::Break.new(direction)
+        refresh
+      end
     end
 
     # The action a movement key sends.
@@ -1573,12 +1579,16 @@ module Roguelike::Ui
     # One shut door beside the character needs no question. More than one
     # does. None is said and nothing else happens.
     def open_door : Nil
-      start Pending::Open, Terrain::ClosedDoor, "open"
+      start Pending::Open, "open"
     end
 
-    # Closes a door. It works the same way as `#open_door`.
+    # Closes a door, or spikes a shut one. It works the same way as
+    # `#open_door`.
+    #
+    # A shut door counts while the character carries a spike. Choosing one
+    # asks before the spike goes in.
     def close_door : Nil
-      start Pending::Close, Terrain::OpenDoor, "close"
+      start Pending::Close, "close"
     end
 
     # Goes down the staircase the character stands on.
@@ -3003,10 +3013,7 @@ module Roguelike::Ui
       waiting = @pending
       return unless waiting
 
-      wanted = waiting.terrain
-      return unless wanted
-
-      @game.doors(wanted).each do |direction|
+      answers(waiting).each do |direction|
         spot = direction.from @game.player.x, @game.player.y
         @map.highlight spot[0], spot[1]
       end
@@ -3295,10 +3302,10 @@ module Roguelike::Ui
       refresh
     end
 
-    # Starts *command*. Finds the one door of *terrain* beside the character,
+    # Starts *command*. Finds the one door beside the character it acts on,
     # or asks which one.
-    private def start(command : Pending, terrain : Terrain, verb : String) : Nil
-      found = @game.doors terrain
+    private def start(command : Pending, verb : String) : Nil
+      found = answers command
 
       case found.size
       when 0
@@ -3372,11 +3379,47 @@ module Roguelike::Ui
     private def act(command : Pending, direction : Direction) : Nil
       case command
       in .open?  then @game.perform Action::Open.new(direction)
-      in .close? then @game.perform Action::Close.new(direction)
+      in .close? then return close_toward direction
       in .run?   then dash direction
       end
 
       refresh
+    end
+
+    # The directions *command* acts on. The map lights up their squares.
+    #
+    # A walk takes all eight, so lighting up the ones it would take would
+    # light up the whole ring. It lights up none.
+    private def answers(command : Pending) : Array(Direction)
+      case command
+      in .open?  then @game.doors(Terrain::ClosedDoor)
+      in .close? then @game.closeable
+      in .run?   then [] of Direction
+      end
+    end
+
+    # Closes the door *direction*, or offers to spike it when it is shut.
+    #
+    # A door with a spike in it already is said so and left alone. Nothing
+    # is spiked without a yes.
+    private def close_toward(direction : Direction) : Nil
+      spot = direction.from @game.player.x, @game.player.y
+      spike = @game.spike_carried
+      unless spike && @game.floor.tile?(spot[0], spot[1]).try(&.terrain.closed_door?)
+        @game.perform Action::Close.new(direction)
+        return refresh
+      end
+
+      if @game.floor.spiked? spot[0], spot[1]
+        return say "The door already has a spike in it."
+      end
+
+      ask("Spike the door?", "yn", default: 'n') do |key|
+        next unless key == 'y'
+
+        @game.perform Action::Apply.new(item: spike.id, at: spot)
+        refresh
+      end
     end
 
     # Walks *direction*. `G` and then a direction key does this.

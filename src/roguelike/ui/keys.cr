@@ -137,7 +137,8 @@ module Roguelike::Ui
       end
     end
 
-    # `o` opens a door. `c` closes one. `<` and `>` take a staircase.
+    # `o` opens a door. `c` closes one, or spikes a shut one. `<` and `>`
+    # take a staircase.
     #
     # *play* answers each of these. A door needs a direction, and `Play` finds
     # it or asks for it.
@@ -145,7 +146,7 @@ module Roguelike::Ui
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("o"), "open a door",
           ->(_context : Widgets::Context) { play.open_door; nil }
-        map.bind TermBuf::Key.parse("c"), "close a door",
+        map.bind TermBuf::Key.parse("c"), "close or spike a door",
           ->(_context : Widgets::Context) { play.close_door; nil }
         map.bind TermBuf::Key.parse(">"), "go down the staircase",
           ->(_context : Widgets::Context) { play.descend; nil }

@@ -36,6 +36,8 @@ module Roguelike
       "destroyed"      => Destroyed,
       "detected"       => Detected,
       "door"           => Door,
+      "door_broken"    => DoorBroken,
+      "door_struck"    => DoorStruck,
       "dropped"        => Dropped,
       "fizzled"        => Fizzled,
       "fled"           => Fled,
@@ -157,6 +159,31 @@ module Roguelike
 
       def initialize(@at : {Int32, Int32}, @open : Bool, @by : Int32? = nil,
                      @unseen : Bool = false)
+      end
+    end
+
+    # A blow the character landed on the shut door at *at*.
+    #
+    # *damage* is what it took off. A door's hit points are on the screen,
+    # so the event may carry them.
+    class DoorStruck < Event
+      getter kind : String = "door_struck"
+
+      getter at : {Int32, Int32}
+      getter damage : Int32
+
+      def initialize(@at : {Int32, Int32}, @damage : Int32)
+      end
+    end
+
+    # The door at *at* broke under the character's blows. The square is a
+    # broken doorway now.
+    class DoorBroken < Event
+      getter kind : String = "door_broken"
+
+      getter at : {Int32, Int32}
+
+      def initialize(@at : {Int32, Int32})
       end
     end
 
@@ -325,6 +352,12 @@ module Roguelike
 
         # The door already has a spike in it.
         AlreadySpiked
+
+        # Breaking a door down needs a weapon.
+        BareHands
+
+        # The door opens, so there is nothing to break down.
+        DoorOpens
 
         # The armor was made for somebody of another size.
         WrongSize

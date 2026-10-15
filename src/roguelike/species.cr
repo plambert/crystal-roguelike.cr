@@ -146,7 +146,7 @@ module Roguelike
     #
     # A band that has noticed nothing takes no turn. `Game#creatures_notice`
     # is the only method that writes this, apart from being hit, which wakes a
-    # band whatever it had noticed.
+    # band whatever it had noticed, and the crash of a door broken nearby.
     property awareness : Awareness
 
     def initialize(@id : String, @faction : Faction = Faction::Dungeon,

@@ -35,6 +35,7 @@ module Roguelike
     OpenDoor
     StairsUp
     StairsDown
+    BrokenDoor
 
     # Which terrain a floor file's *mark* names.
     #
@@ -98,9 +99,13 @@ module Roguelike
       stone_floor? || dirt_floor?
     end
 
-    # Whether this terrain is a door. Open or shut.
+    # Whether this terrain is a doorway. Open, shut or broken.
+    #
+    # A broken door is a doorway with no door left in it. It is still the
+    # neck between two rooms, so everything that treats a doorway specially
+    # treats it the same way.
     def door? : Bool
-      closed_door? || open_door?
+      closed_door? || open_door? || broken_door?
     end
 
     # Whether this terrain is a staircase. Up or down.
@@ -126,6 +131,7 @@ module Roguelike
       Terrain::DirtFloor  => TerrainKind.new(',', "dirt floor", "packed earth", false, false),
       Terrain::ClosedDoor => TerrainKind.new('+', "closed door", "a shut wooden door", true, true),
       Terrain::OpenDoor   => TerrainKind.new('\'', "open door", "a doorway standing open", false, false),
+      Terrain::BrokenDoor => TerrainKind.new('/', "broken door", "a doorway with its door smashed in", false, false),
       Terrain::StairsUp   => TerrainKind.new('<', "staircase up", "a staircase leading up", false, false),
       Terrain::StairsDown => TerrainKind.new('>', "staircase down", "a staircase leading down", false, false),
     }

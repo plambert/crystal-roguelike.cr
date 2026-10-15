@@ -436,6 +436,7 @@ module Roguelike::Ui
       Terrain::DirtFloor  => Look.new('.', DIRT),
       Terrain::ClosedDoor => Look.new('+', WOOD),
       Terrain::OpenDoor   => Look.new('\'', WOOD),
+      Terrain::BrokenDoor => Look.new('/', WOOD),
       Terrain::StairsUp   => Look.new('<', STAIRS),
       Terrain::StairsDown => Look.new('>', STAIRS),
     }

@@ -408,12 +408,17 @@ module Roguelike::Ui
     #
     # `Game` says which creature that is, how hurt it is and how well the
     # character has made it out. The row is hidden while there is no fight.
+    # The door the character is breaking down takes the bar while there is
+    # one.
     #
     # The name goes inside the bar in front of the count, because the label
     # outside it is two columns wide. A creature the character can see is
     # named by its species. One they have only made out as an outline is
     # named by how big it is.
     private def fought(game : Game) : Nil
+      door = game.door_target
+      return forced(game, door) if door
+
       creature = game.fought
       @fighting = !creature.nil?
       @fight.hidden = !@fighting
@@ -422,6 +427,19 @@ module Roguelike::Ui
       name = Naming.creature creature, game.fought_regard
       @threat.show creature.hit_points, creature.max_hit_points,
         "#{name} #{creature.hit_points}/#{creature.max_hit_points}"
+    end
+
+    # The bar for the door the character is breaking down, at *spot*.
+    #
+    # It reads like a creature's bar, with the door's hit points over a
+    # whole door's.
+    private def forced(game : Game, spot : {Int32, Int32}) : Nil
+      @fighting = true
+      @fight.hidden = false
+
+      left = game.floor.door_health spot[0], spot[1]
+      whole = Floor::WOODEN_DOOR
+      @threat.show left, whole, "door #{left}/#{whole}"
     end
 
     # The five scores, with their names over them.

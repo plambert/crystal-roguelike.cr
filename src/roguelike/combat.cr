@@ -130,7 +130,15 @@ module Roguelike
       roll = rng.rand 1..SIDES
       return Blow.new roll, bonus, against, false, 0 unless lands? roll, bonus, against
 
-      Blow.new roll, bonus, against, true, Math.max(damage.roll(rng), LEAST)
+      Blow.new roll, bonus, against, true, damage(rng, damage)
+    end
+
+    # What a blow that lands with *damage* takes off. Never less than
+    # `LEAST`.
+    #
+    # A blow at a door rolls this alone. A door does not dodge.
+    def self.damage(rng : Rng, damage : Dice) : Int32
+      Math.max damage.roll(rng), LEAST
     end
 
     # What a shooter adds to a shot from *weapon* with *ammunition*.

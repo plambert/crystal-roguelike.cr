@@ -24,6 +24,12 @@ module Roguelike
     def turn? : Bool
       !blocked?
     end
+
+    # Whether the character spent the turn on the square ahead and stayed
+    # where they were.
+    def stayed? : Bool
+      opened? || struck?
+    end
   end
 
   # How a run ended.
@@ -229,6 +235,18 @@ module Roguelike
     # It has a default, so a save written before this field existed loads
     # with nothing made out.
     getter fought_regard : Regard = Regard::Nothing
+
+    # The door the character is breaking down, and the floor it is on.
+    record ForcedDoor, floor : String, at : {Int32, Int32} do
+      include JSON::Serializable
+    end
+
+    # The door the character is breaking down. `nil` when there is none.
+    #
+    # A step into this door swings at it without asking. It is `nil` until
+    # the first door is broken into, so a run that never breaks one saves
+    # the bytes it saved before.
+    @forcing : ForcedDoor? = nil
 
     # Everything the last command sent across the floor, in the order it
     # flew.
@@ -713,7 +731,8 @@ module Roguelike
     # A step into a shut door opens it. The character stays where they are.
     # The turn counts. A person opens a door in one turn and walks through it
     # in the next. A door spiked from the other side does not open, and the
-    # step counts no turn.
+    # step counts no turn. A step into the door the character is breaking
+    # down swings at it.
     #
     # A step into any other impassable square moves nothing. It counts no
     # turn.
@@ -729,6 +748,7 @@ module Roguelike
       end
 
       if shut_door? wanted
+        return batter wanted if forcing? wanted
         return Step::Blocked unless open_by_hand wanted, forgive: true
 
         spot_items
@@ -982,8 +1002,9 @@ module Roguelike
       # leaves the character where they were, so the walk counts no step and
       # takes the same square again next time. Everything that stops a walk
       # is still asked about, because a creature can arrive while the door
-      # swings.
-      if taken.opened?
+      # swings. A walk into the door the character is breaking down swings
+      # at it the same way.
+      if taken.stayed?
         settle walk, before, along: false, doors: false
 
         return !walk.over?
@@ -1376,11 +1397,13 @@ module Roguelike
     # *doors* says whether a shut door is one of those. A walk in one
     # direction stops in front of one, because the person named no
     # destination beyond it. A walk along a route opens it, because they
-    # picked a square on the far side.
+    # picked a square on the far side. The door the character is breaking
+    # down is never in the way. The walk swings at it.
     private def blocked_ahead?(direction : Direction,
                                doors : Bool = true) : Bool
       wanted = direction.from @player.x, @player.y
       return true if floor.monster wanted[0], wanted[1]
+      return false if forcing? wanted
       return false if !doors && shut_door? wanted
 
       !floor.passable? wanted[0], wanted[1]
@@ -1755,8 +1778,10 @@ module Roguelike
     # know how much is left in what they missed.
     #
     # A blow at a different creature starts the count again and forgets what
-    # was made out of the last one.
+    # was made out of the last one. A blow either way gives up the door the
+    # character was breaking down.
     private def fought_with(creature : Monster) : Nil
+      @forcing = nil
       held = @fought
       @fought_regard = Regard::Nothing unless held && held.same? creature
 
@@ -3574,11 +3599,11 @@ module Roguelike
     # along a route opens a door and goes on, the way it goes on past a
     # remembered pile.
     private def open_by_hand(spot : {Int32, Int32}, forgive : Bool = false) : Bool
-      if floor.spiked_against? spot, @player.at
+      held = stuck spot
+      if held
         @player.knowledge.bar spot[0], spot[1]
         handled spot
-        say "The door is spiked shut from the other side.",
-          Event::Refused.new(:spiked_shut)
+        say held[0], Event::Refused.new(held[1])
         return false
       end
 
@@ -3612,7 +3637,7 @@ module Roguelike
     # Answers whether it went in.
     #
     # The spike holds the door from the side the character stands on. It
-    # takes a turn.
+    # takes half a turn.
     private def drive_spike(letter : Char, x : Int32, y : Int32) : Bool
       item = @player.inventory[letter]
       return false unless item && item.kind.spike?
@@ -3635,7 +3660,7 @@ module Roguelike
       floor.drive_spike x, y, side, one
       handled spot
       say "You drive a spike into the door.", Event::Spiked.new(spot, driven: true)
-      spend_turn
+      spend Costs::SPIKE
       true
     end
 
@@ -3653,7 +3678,18 @@ module Roguelike
     # Whether the door one step *direction* is spiked shut against the
     # character.
     private def held_shut?(direction : Direction) : Bool
-      floor.spiked_against? direction.from(@player.x, @player.y), @player.at
+      !stuck(direction.from @player.x, @player.y).nil?
+    end
+
+    # Why the shut door on *spot* will not open for the character, as a line
+    # and as a reason. `nil` when it opens.
+    #
+    # A spike driven from the far side is the only reason today. A lock
+    # would be a second one, written here.
+    private def stuck(spot : {Int32, Int32}) : {String, Event::Refused::Reason}?
+      return unless floor.spiked_against? spot, @player.at
+
+      {"The door is spiked shut from the other side.", Event::Refused::Reason::SpikedShut}
     end
 
     # Closes the door *direction*. Answers whether it closed.
@@ -3705,6 +3741,156 @@ module Roguelike
        Event::Refused.new(:doorway_items)}
     end
 
+    # ------------------------------------------------------- breaking doors
+
+    # What the character is told when they try to break a door down with
+    # nothing in the hand.
+    BARE_DOOR = "You need a weapon to break the door down."
+
+    # How many squares from a door the crash of it breaking carries.
+    NOISE_REACH = 6
+
+    # Whether the shut door one step *direction* will not open for the
+    # character.
+    def stuck?(direction : Direction) : Bool
+      wanted = direction.from @player.x, @player.y
+      shut_door?(wanted) && !stuck(wanted).nil?
+    end
+
+    # Whether the character could break down the door one step *direction*.
+    # It will not open for them and they have a weapon in hand.
+    def forcible?(direction : Direction) : Bool
+      stuck?(direction) && armed?
+    end
+
+    # Whether the character holds something in hand that swings as a weapon.
+    def armed? : Bool
+      held = @player.wielded
+      !held.nil? && Player.swung?(held)
+    end
+
+    # The door the character is breaking down. `nil` when there is none on
+    # the floor they are on.
+    def door_target : {Int32, Int32}?
+      held = @forcing
+      return unless held && held.floor == floor.id
+
+      held.at
+    end
+
+    # Whether *spot* holds the door the character is breaking down.
+    private def forcing?(spot : {Int32, Int32}) : Bool
+      door_target == spot
+    end
+
+    # Starts breaking down the door one step *direction*, and swings at it
+    # once. Answers what the swing did.
+    #
+    # The door becomes the character's target. A door that opens, and a
+    # character with nothing in hand, are refused with no turn taken.
+    def break_down(direction : Direction) : Step
+      clear_step
+      wanted = direction.from @player.x, @player.y
+      unless shut_door? wanted
+        say "There is no shut door there.", Event::Refused.new(:no_door)
+        return Step::Blocked
+      end
+
+      unless stuck wanted
+        say "The door is not stuck. Open it.", Event::Refused.new(:door_opens)
+        return Step::Blocked
+      end
+
+      unless armed?
+        say BARE_DOOR, Event::Refused.new(:bare_hands)
+        return Step::Blocked
+      end
+
+      @forcing = ForcedDoor.new floor.id, wanted
+      batter wanted
+    end
+
+    # Swings the weapon in hand at the shut door on *spot*.
+    #
+    # The damage roll is a swing's, with no roll to hit. A door does not
+    # dodge. The swing costs what a swing at a creature costs.
+    private def batter(spot : {Int32, Int32}) : Step
+      damage = Combat.damage exchange, @player.damage
+      left = floor.batter spot[0], spot[1], damage
+
+      if left.zero?
+        record Event::DoorStruck.new(spot, damage)
+        smash spot
+      elsif left * 2 > Floor::WOODEN_DOOR
+        say "You hit the door.", Event::DoorStruck.new(spot, damage)
+      else
+        say "The door splinters.", Event::DoorStruck.new(spot, damage)
+      end
+
+      jar
+      spend Costs.swing(@player.wielded)
+      Step::Struck
+    end
+
+    # Breaks in the door on *spot*.
+    #
+    # The doorway stays with no door in it. A spike in the door falls on the
+    # side it was driven from. The character's map stops barring the square.
+    private def smash(spot : {Int32, Int32}) : Nil
+      floor.set spot[0], spot[1], Terrain::BrokenDoor
+      floor.mend_door spot[0], spot[1]
+
+      held = floor.pull_spike spot[0], spot[1]
+      if held
+        far = held.side.from spot[0], spot[1]
+        far = spot unless floor.passable? far[0], far[1]
+        floor.drop far[0], far[1], held.item
+      end
+
+      @forcing = nil
+      handled spot
+      say "The door breaks!", Event::DoorBroken.new(spot)
+      alarm spot
+    end
+
+    # Tells every band with a member within `NOISE_REACH` of *spot* where
+    # the character is.
+    #
+    # This stands in for the crash of a door until the game has a noise
+    # system. A band asleep wakes and searches, the way a hunting band does
+    # once it loses sight of its quarry.
+    private def alarm(spot : {Int32, Int32}) : Nil
+      heard = Set(String).new
+      floor.each_monster do |column, row, creature|
+        next unless Math.max((column - spot[0]).abs, (row - spot[1]).abs) <= NOISE_REACH
+
+        heard << creature.band
+      end
+
+      heard.each do |id|
+        band = floor.band id
+        next unless band
+
+        band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
+        band.awareness = Awareness::Alert if band.awareness.asleep?
+      end
+    end
+
+    # Gives up the door target once it no longer stands.
+    #
+    # The character has walked away from the door or left the floor, or the
+    # door has opened or no longer holds.
+    private def drop_stale_door : Nil
+      held = @forcing
+      return unless held
+
+      spot = held.at
+      return if held.floor == floor.id && Notice.touching?(spot, @player.at) &&
+                shut_door?(spot) && stuck(spot)
+
+      @forcing = nil
+    end
+
     # Every direction holding a door of *terrain*.
     #
     # `o` and `c` use this. One door needs no question. More than one does.
@@ -3713,6 +3899,26 @@ module Roguelike
         wanted = direction.from @player.x, @player.y
         floor.tile?(wanted[0], wanted[1]).try(&.terrain) == terrain
       end
+    end
+
+    # Every direction `c` acts on.
+    #
+    # An open door is shut. A shut door is spiked, so it counts while the
+    # character carries a spike.
+    def closeable : Array(Direction)
+      spiking = !spike_carried.nil?
+      Direction.values.select do |direction|
+        wanted = direction.from @player.x, @player.y
+        terrain = floor.tile?(wanted[0], wanted[1]).try &.terrain
+        terrain.try(&.open_door?) || (spiking && terrain.try(&.closed_door?))
+      end
+    end
+
+    # The first iron spike in the pack. `nil` when the character carries
+    # none.
+    def spike_carried : Item?
+      @player.inventory.each { |_letter, item| return item if item.kind.spike? }
+      nil
     end
 
     # What the character is standing on.
@@ -6160,6 +6366,7 @@ module Roguelike
       verdict = dispatched action
       restack if @player.inventory.signature != before && !over?
       clear_bearers
+      drop_stale_door
 
       # What the action wrote and what the world wrote in answer share one
       # round of the log. A step that picks up three things spends four
@@ -6201,7 +6408,7 @@ module Roguelike
     private def dispatched(action : Action) : Verdict
       case action
       when Action::Move, Action::Wait, Action::Open, Action::Close,
-           Action::Descend, Action::Ascend
+           Action::Break, Action::Descend, Action::Ascend
         moving action
       when Action::PickUp, Action::Drop, Action::Wield, Action::Wear,
            Action::Remove
@@ -6273,8 +6480,8 @@ module Roguelike
 
     # The verbs that move the character about the floor, or off it.
     private def moving(action : Action::Move | Action::Wait | Action::Open |
-                                Action::Close | Action::Descend |
-                                Action::Ascend) : Verdict
+                                Action::Close | Action::Break |
+                                Action::Descend | Action::Ascend) : Verdict
       case action
       in Action::Move
         Verdict.done step(action.dir)
@@ -6287,6 +6494,8 @@ module Roguelike
       in Action::Close
         close action.dir
         Verdict.done
+      in Action::Break
+        Verdict.done break_down(action.dir)
       in Action::Descend
         descend
         Verdict.done
@@ -6661,6 +6870,9 @@ module Roguelike
         found << Action::Open.new direction unless held_shut? direction
       end
       doors(Terrain::OpenDoor).each { |direction| found << Action::Close.new direction }
+      doors(Terrain::ClosedDoor).each do |direction|
+        found << Action::Break.new direction if forcible? direction
+      end
       found << Action::Descend.new if standing_on.stairs_down?
       found << Action::Ascend.new if standing_on.stairs_up?
       found << Action::Explore.new if explorable?
@@ -6715,7 +6927,7 @@ module Roguelike
     private def steps?(direction : Direction) : Bool
       wanted = direction.from @player.x, @player.y
       return true if floor.monster wanted[0], wanted[1]
-      return !held_shut?(direction) if shut_door? wanted
+      return !held_shut?(direction) || forcing?(wanted) if shut_door? wanted
 
       floor.passable? wanted[0], wanted[1]
     end

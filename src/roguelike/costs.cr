@@ -6,8 +6,8 @@ module Roguelike
   # `Pace::TICK` is one tick. An action that costs two ticks leaves the actor
   # a tick in debt, which is paid off before it acts again.
   #
-  # Everything costs one tick but getting a suit of armor on or off and
-  # hitting something. A blow costs what the weapon says, and the table is
+  # Everything costs one tick but getting a suit of armor on or off,
+  # driving a spike, and hitting something. A blow costs what the weapon says, and the table is
   # here so that changing a number is a change to one place rather than to
   # `Game`.
   module Costs
@@ -17,6 +17,12 @@ module Roguelike
 
     # A blow with nothing in the hand.
     BARE = 80
+
+    # Driving an iron spike into a door.
+    #
+    # Half a turn. A person shuts a door on something chasing them and
+    # spikes it before the chaser reaches it.
+    SPIKE = TURN // 2
 
     # Getting a suit of armor on or off.
     #

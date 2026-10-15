@@ -109,6 +109,17 @@ module Roguelike
     # The spikes driven into shut doors, by `Floor.spot`.
     getter spikes : Hash(String, DoorSpike) = {} of String => DoorSpike
 
+    # The hit points left in each damaged door, by `Floor.spot`. A door with
+    # no entry is whole.
+    getter battered : Hash(String, Int32) = {} of String => Int32
+
+    # The hit points of a whole wooden door.
+    #
+    # A short sword rolls 1d6, three and a half on average, and breaks one
+    # in about four swings. A dagger rolls 1d4 and takes about five. A long
+    # sword or a spear rolls 1d8 and takes about three.
+    WOODEN_DOOR = 12
+
     def initialize(@id : String, @columns : Int32, @rows : Int32, @tiles : Array(Tile),
                    @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
                    @glow : Hash(String, Int32) = {} of String => Int32,
@@ -475,6 +486,27 @@ module Roguelike
       across <= 0
     end
 
+    # The hit points left in the door at *x*, *y*.
+    def door_health(x : Int32, y : Int32) : Int32
+      @battered[Floor.spot x, y]? || WOODEN_DOOR
+    end
+
+    # Takes *damage* off the door at *x*, *y*. Answers what is left, never
+    # less than zero.
+    def batter(x : Int32, y : Int32, damage : Int32) : Int32
+      changed
+      left = Math.max door_health(x, y) - damage, 0
+      @battered[Floor.spot x, y] = left
+      left
+    end
+
+    # Forgets the damage to the door at *x*, *y*. A broken door has no hit
+    # points left to keep.
+    def mend_door(x : Int32, y : Int32) : Nil
+      changed
+      @battered.delete Floor.spot(x, y)
+    end
+
     # Yields every spiked door, with its spike.
     def each_spike(& : Int32, Int32, DoorSpike ->) : Nil
       @spikes.each do |spot, held|
@@ -615,6 +647,10 @@ module Roguelike
       @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::DoorSpike)))]
       getter spikes : Hash(String, DoorSpike)? = nil
 
+      # Left out when no door is damaged, for the same reason.
+      @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Int32)))]
+      getter battered : Hash(String, Int32)? = nil
+
       def initialize(@id : String, @map : Array(String),
                      @litter : Hash(String, Array(Item)) = {} of String => Array(Item),
                      @glow : Hash(String, Int32) = {} of String => Int32,
@@ -622,14 +658,16 @@ module Roguelike
                      @fixtures : Hash(String, Fixture) = {} of String => Fixture,
                      @monsters : Hash(String, Monster) = {} of String => Monster,
                      @bands : Hash(String, Band) = {} of String => Band,
-                     @spikes : Hash(String, DoorSpike)? = nil)
+                     @spikes : Hash(String, DoorSpike)? = nil,
+                     @battered : Hash(String, Int32)? = nil)
       end
     end
 
     # The stored form of this floor.
     def stored : Stored
       Stored.new @id, to_map, @litter, @glow, @ambient, @fixtures, @monsters,
-        @bands, @spikes.empty? ? nil : @spikes
+        @bands, @spikes.empty? ? nil : @spikes,
+        @battered.empty? ? nil : @battered
     end
 
     def self.new(pull : JSON::PullParser) : Floor
@@ -641,6 +679,7 @@ module Roguelike
       held.bands.each { |id, band| floor.bands[id] = band }
       held.monsters.each { |spot, creature| floor.monsters[spot] = creature }
       held.spikes.try &.each { |spot, spike| floor.spikes[spot] = spike }
+      held.battered.try &.each { |spot, left| floor.battered[spot] = left }
       floor.ambient = held.ambient
 
       floor
@@ -656,7 +695,7 @@ module Roguelike
         @litter == other.litter && @glow == other.glow &&
         @ambient == other.ambient && @fixtures == other.fixtures &&
         @monsters == other.monsters && @bands == other.bands &&
-        @spikes == other.spikes
+        @spikes == other.spikes && @battered == other.battered
     end
 
     def to_s(io : IO) : Nil

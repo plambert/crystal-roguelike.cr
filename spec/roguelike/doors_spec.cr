@@ -12,6 +12,9 @@ Spectator.describe "creatures and doors" do
   alias Monster = Roguelike::Monster
   alias Notice = Roguelike::Notice
   alias Player = Roguelike::Player
+  alias Slot = Roguelike::Slot
+  alias Costs = Roguelike::Costs
+  alias Action = Roguelike::Action
   alias Species = Roguelike::Species
   alias Step = Roguelike::Step
   alias Terrain = Roguelike::Terrain
@@ -180,6 +183,191 @@ Spectator.describe "creatures and doors" do
 
       expect(game.floor.terrain(*DOOR)).to eq Terrain::OpenDoor
       expect(game.floor.spiked?(*DOOR)).to be_false
+    end
+  end
+
+  describe "a spike" do
+    it "takes half a turn to drive" do
+      game, _ = rooms Species::Slime, at: {8, 3}
+      before = game.player.pace.energy
+
+      spiked game
+
+      expect(Costs::SPIKE).to eq Costs::TURN // 2
+      expect(game.player.pace.energy - before).to eq Costs::TURN - Costs::SPIKE
+    end
+  end
+
+  # A game on `ROOMS` with the door spiked from the west and the character
+  # east of it with a short sword. Nothing else is on the floor.
+  def barred(armed : Bool = true) : Game
+    floor = Playing.daylight Floor.parse("rooms", ROOMS)
+    floor.drive_spike DOOR[0], DOOR[1], Direction::West, Item.new(ItemKind::Spike)
+
+    player = Player.new floor.id, 5, 1, hit_points: 500
+    if armed
+      letter = player.inventory.add Item.new(ItemKind::ShortSword)
+      player.equipment.put Slot::Melee, letter if letter
+    end
+
+    game = Game.new World.new(SEED, {floor.id => floor}), player
+    game.enroll
+    game
+  end
+
+  # Swings at the door until it breaks. Answers how many swings it took.
+  def broken(game : Game) : Int32
+    swings = 1
+    game.perform Action::Break.new(Direction::West)
+    until game.floor.terrain(*DOOR).broken_door?
+      raise "the door will not break" if swings > 30
+
+      game.perform Action::Move.new(Direction::West)
+      swings += 1
+    end
+
+    swings
+  end
+
+  describe "breaking a door" do
+    it "swings once and makes the door the target" do
+      game = barred
+
+      expect(game.break_down Direction::West).to eq Step::Struck
+      expect(game.door_target).to eq DOOR
+      expect(game.floor.door_health(*DOOR)).to be < Floor::WOODEN_DOOR
+      expect(game.turn).to eq 1
+    end
+
+    it "swings again on the next step into the door" do
+      game = barred
+      game.break_down Direction::West
+      left = game.floor.door_health(*DOOR)
+
+      expect(game.step Direction::West).to eq Step::Struck
+      expect(game.floor.door_health(*DOOR)).to be < left
+    end
+
+    it "breaks into a doorway the character walks through" do
+      game = barred
+
+      broken game
+
+      expect(game.floor.terrain(*DOOR)).to eq Terrain::BrokenDoor
+      expect(game.door_target).to be_nil
+      expect(game.floor.battered).to be_empty
+      expect(game.log.lines.last).to eq "The door breaks!"
+      expect(game.player.knowledge.barred?(*DOOR)).to be_false
+
+      expect(game.step Direction::West).to eq Step::Moved
+      expect(game.player.at).to eq DOOR
+    end
+
+    it "drops the spike on the side it was driven from" do
+      game = barred
+
+      broken game
+
+      expect(game.floor.spiked?(*DOOR)).to be_false
+      expect(game.floor.items(3, 1).map(&.kind)).to eq [ItemKind::Spike]
+    end
+
+    it "lets a goblin walk through the doorway" do
+      game = barred
+      broken game
+
+      goblin = Monster.new Species::Goblin, 1, 1, "band-two"
+      game.floor.place goblin
+      game.enroll
+      hunting game, goblin
+      8.times { game.wait }
+
+      expect(goblin.x).to be >= DOOR[0]
+    end
+
+    it "cannot be closed or spiked once broken" do
+      game = barred
+      broken game
+      game.player.inventory.add Item.new(ItemKind::Spike, count: 2)
+
+      expect(game.close Direction::West).to be_false
+      expect(game.closeable).to be_empty
+      expect(game.appliable.none? &.aimed?).to be_true
+    end
+
+    it "refuses bare hands, and takes no turn" do
+      game = barred armed: false
+
+      expect(game.break_down Direction::West).to eq Step::Blocked
+      expect(game.turn).to eq 0
+      expect(game.door_target).to be_nil
+      expect(game.log.lines.last).to eq Game::BARE_DOOR
+      expect(game.forcible? Direction::West).to be_false
+    end
+
+    it "refuses a door that opens" do
+      game, _ = rooms Species::Slime, at: {8, 3}
+      letter = game.player.inventory.add Item.new(ItemKind::ShortSword)
+      game.player.equipment.put Slot::Melee, letter if letter
+
+      expect(game.break_down Direction::East).to eq Step::Blocked
+      expect(game.door_target).to be_nil
+    end
+
+    it "is offered to a bot while the door is stuck" do
+      game = barred
+
+      expect(game.legal.any? do |action|
+        action.is_a?(Action::Break) && action.dir == Direction::West
+      end).to be_true
+    end
+
+    it "gives up the target when a creature attacks" do
+      game = barred
+      game.break_down Direction::West
+
+      orc = Monster.new Species::Orc, 6, 1, "band-two"
+      game.floor.place orc
+      game.enroll
+      hunting game, orc
+      until game.door_target.nil? || game.turn > 20
+        game.wait
+      end
+
+      expect(game.door_target).to be_nil
+    end
+
+    it "gives up the target when the character walks away" do
+      game = barred
+      game.break_down Direction::West
+
+      game.perform Action::Move.new(Direction::East)
+
+      expect(game.door_target).to be_nil
+    end
+
+    it "tells a band near the door where the character is" do
+      game = barred
+      goblin = Monster.new Species::Goblin, 2, 3, "band-two"
+      game.floor.place goblin
+      game.enroll
+
+      broken game
+
+      band = game.floor.band "band-two"
+      expect(band.try &.awake?).to be_true
+      expect(knowledge(game, goblin).sighting(Knowledge::PLAYER).try &.at).to eq game.player.at
+    end
+
+    it "round-trips a half broken door and the target" do
+      game = barred
+      game.break_down Direction::West
+
+      again = Game.from_json game.to_json
+
+      expect(again.door_target).to eq DOOR
+      expect(again.floor.door_health(*DOOR)).to eq game.floor.door_health(*DOOR)
+      expect(again.floor).to eq game.floor
     end
   end
 

@@ -29,9 +29,19 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The inventory shows one class of item at a time, such as weapons, armor, potions or scrolls.
   The left and right arrows move between them, and the first one shows everything. Each item keeps
   its letter. A click on a class name shows that class.
+* You can break down a wooden door that will not open because it is spiked from the other side.
+  Walking into it asks "Break it down?". A yes swings your weapon at it, and each later step into
+  it swings again without asking. The sidebar shows the door's hit points while you work on it.
+  A broken door leaves an open doorway that nobody can shut or spike, and the spike falls on the
+  far side. Creatures near the door hear it break and learn where you are. You need a weapon, and
+  creatures do not break doors.
 
 ### Changed
 
+* `c` on a shut door asks "Spike the door?" when you carry a spike, and drives one in on yes.
+  `c` still closes open doors. The apply menu still offers spikes as well.
+* Driving a spike takes half a turn.
+* A replay recorded with an earlier version stops verifying at the first spike driven.
 * A route drawn by clicking the map or the Seen list fades after four seconds with no move and no
   other click. A second click on the same square within that time still walks it.
 * `X` looks into a dead end or a small pocket beside you before it walks on into open ground, so

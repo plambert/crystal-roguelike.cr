@@ -20,8 +20,8 @@ module Roguelike
   # * The protocol's `remove` names an item. `Game#take_off` names a slot. One
   #   key takes off whatever is in a slot, and a person picks between slots.
   #   `Remove` carries the slot.
-  # * The protocol has no `zap`, `apply`, `ascend`, `fire` or `aim`. This game
-  #   has all five.
+  # * The protocol has no `zap`, `apply`, `ascend`, `fire`, `aim` or
+  #   `break`. This game has all six.
   # * The protocol has one `choose` for every mid-action question. A scroll here
   #   asks for a carried item or for a square. A `choose` cannot carry a
   #   square. `Aim` is the answer that carries one.
@@ -51,6 +51,7 @@ module Roguelike
       "wait"    => Wait,
       "open"    => Open,
       "close"   => Close,
+      "break"   => Break,
       "pickup"  => PickUp,
       "drop"    => Drop,
       "wield"   => Wield,
@@ -178,6 +179,22 @@ module Roguelike
     # door.
     class Close < Action
       getter t : String = "close"
+
+      @[JSON::Field(converter: Roguelike::Action::Compass)]
+      getter dir : Direction
+
+      def initialize(@dir : Direction)
+      end
+    end
+
+    # Breaking down the shut door one square *dir*, which will not open.
+    #
+    # It swings at the door once and makes that door the character's
+    # target. Every later `Move` into it swings again, until it breaks or
+    # the target is dropped. `Ui::Play` sends one when a person says yes to
+    # breaking a door down.
+    class Break < Action
+      getter t : String = "break"
 
       @[JSON::Field(converter: Roguelike::Action::Compass)]
       getter dir : Direction

@@ -202,11 +202,14 @@ Spectator.describe Roguelike::Floor do
       expect(seen).to contain Terrain::Shale
     end
 
+    # A broken door is made in play, by breaking a door down. The door specs
+    # try it.
     it "has one of every terrain in it, so nothing goes untried" do
       seen = Set(Terrain).new
       shipped.each { |_column, _row, tile| seen << tile.terrain }
 
-      expect(seen.size).to eq Terrain.values.size
+      expect(seen.size).to eq Terrain.values.size - 1
+      expect(seen).not_to contain Terrain::BrokenDoor
     end
 
     it "is walled all the way round" do
