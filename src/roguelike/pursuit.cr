@@ -95,7 +95,8 @@ module Roguelike
     #
     # `fleeing` says the creature is running. `shade` is the light on the
     # floor, and `company` is where the rest of its band stands. A running
-    # creature reads both.
+    # creature reads both. `doors` says the creature walks through a door
+    # remembered as shut, because its kind opens doors.
     #
     # `stumble` says this creature is about to put a foot wrong. `Game` rolls
     # it, because nothing here rolls anything.
@@ -117,6 +118,7 @@ module Roguelike
       quarry : {Int32, Int32}? = nil,
       stale : Int32 = 0,
       descent : Descent? = nil,
+      doors : Bool = false,
       blocked : Set({Int32, Int32}) = Descent::EMPTY,
       stumble : Bool = false,
       fleeing : Bool = false,
@@ -200,25 +202,19 @@ module Roguelike
     # What a running creature does.
     #
     # It shuts an open door it has just come through, unless the character is
-    # beside it. Otherwise it steps to a square further from the quarry, one
-    # step further than its own on the band's map. Of those it takes the one
-    # with the least light on it, then the one nearest the rest of its band,
-    # then the first in `Direction` order.
+    # beside it. Otherwise it picks a square to run to and takes the first
+    # step of a shortest way there. See `#escape`. Of the first steps that
+    # are equally good it takes the one with the least light on it, then the
+    # one nearest the rest of its band, then the first in `Direction` order.
     #
-    # A creature with no square further off swings when the character is
+    # A creature with nowhere better to be swings when the character is
     # beside it, because it is cornered. It waits otherwise, which is what a
-    # creature at the edge of its map has done when it has got away.
+    # creature that has got away does.
     private def self.flee(snapshot : Snapshot, quarry : {Int32, Int32}) : Action
       at = snapshot.at
       near = beside at, quarry
       descent = snapshot.descent
       here = descent.try &.[at]
-      away = descent && here ? descent.uphill(at[0], at[1], snapshot.blocked) : Descent::NOWHERE
-
-      if away.empty?
-        return Action.strike(near) if near && snapshot.stale <= FRESH
-        return Action.wait
-      end
 
       if descent && here && !near
         door = Direction.values.find do |direction|
@@ -231,7 +227,171 @@ module Roguelike
         return Action.shut(door) if door
       end
 
+      away = escape snapshot
+      if away.empty?
+        return Action.strike(near) if near && snapshot.stale <= FRESH
+        return Action.wait
+      end
+
       Action.step away.min_by { |direction| shelter snapshot, direction.from(at[0], at[1]) }
+    end
+
+    # How a square ranks as a place to run to. Higher is better.
+    #
+    # A square the character's map never reached ranks first. A square at
+    # the edge of what the band knows ranks next. The rest rank by how far
+    # the character is from them.
+    #
+    # The edge outranks every known square because the band cannot say how
+    # far the ground past it goes. It may be a corridor that runs on, or a
+    # room with another door. A band that knew the ground there would rank
+    # it by distance like any other square, so a door into the unknown beats
+    # a corner the band can see is a dead end.
+    enum Haven
+      Known
+      Edge
+      Beyond
+    end
+
+    # The first steps along the creature's shortest ways to the best square
+    # it can get to before the character can. Empty when no square is better
+    # than the one it stands on.
+    #
+    # A square is one it gets to first when it is strictly nearer the
+    # creature than the character's map says it is to the character. The
+    # best square ranks highest by `Haven`, then is farthest from the
+    # character, then is nearest the creature.
+    #
+    # One flood from the creature finds these squares and enters no other,
+    # so every square on the way keeps the creature ahead of the character.
+    # Each square it reaches records which first steps lead to it on a
+    # shortest way, as one bit for each direction. A first step onto a
+    # square another creature holds is left out.
+    private def self.escape(snapshot : Snapshot) : Array(Direction)
+      descent = snapshot.descent
+      return Descent::NOWHERE unless descent
+
+      at = snapshot.at
+      best = rank snapshot, descent, at, 0
+      found = 0_u8
+      firsts = {at => 0_u8}
+      refused = Set({Int32, Int32}).new
+      edge = [at]
+      away = 0
+
+      while !edge.empty? && away < Descent::LIMIT
+        away += 1
+        wave = spread snapshot, descent, edge, away, firsts, refused
+
+        wave.each do |spot, bits|
+          firsts[spot] = bits
+          next if beaten? descent, spot, away, best
+
+          key = rank snapshot, descent, spot, away, firsts
+          if key > best
+            best = key
+            found = bits
+          elsif key == best
+            found |= bits
+          end
+        end
+
+        edge = wave.keys
+      end
+
+      Direction.values.select { |direction| found.bit(direction.value) == 1 }
+    end
+
+    # The squares one step past *edge*, *away* steps from the creature, that
+    # it reaches before the character does. Each holds the first steps that
+    # lead to it.
+    #
+    # *firsts* holds every square reached so far. A square found to be no
+    # good goes in *refused*, because a square the creature reaches no
+    # sooner than the character now it reaches no sooner later either.
+    private def self.spread(snapshot : Snapshot, descent : Descent,
+                            edge : Array({Int32, Int32}), away : Int32,
+                            firsts : Hash({Int32, Int32}, UInt8),
+                            refused : Set({Int32, Int32})) : Hash({Int32, Int32}, UInt8)
+      wave = {} of {Int32, Int32} => UInt8
+
+      edge.each do |spot|
+        Direction.values.each do |direction|
+          wanted = direction.from spot[0], spot[1]
+          bits = away == 1 ? 1_u8 << direction.value : firsts[spot]
+          held = wave[wanted]?
+          if held
+            wave[wanted] = held | bits
+            next
+          end
+          next if firsts.has_key?(wanted) || refused.includes?(wanted)
+          next if away == 1 && snapshot.blocked.includes?(wanted)
+
+          if ahead?(descent, wanted, away) && open?(snapshot, descent, wanted)
+            wave[wanted] = bits
+          else
+            refused << wanted
+          end
+        end
+      end
+
+      wave
+    end
+
+    # Whether the creature reaches *spot*, *away* steps off, strictly before
+    # the character does. A square the character's map never reached counts.
+    private def self.ahead?(descent : Descent, spot : {Int32, Int32}, away : Int32) : Bool
+      theirs = descent[spot]
+      theirs.nil? || away < theirs
+    end
+
+    # Whether the creature can walk on *spot*.
+    #
+    # A square on the character's map can be walked, because that map was
+    # built over the same knowledge with no more doors than the creature
+    # opens. Asking the knowledge builds a string, so it is asked only about
+    # the rest.
+    private def self.open?(snapshot : Snapshot, descent : Descent, spot : {Int32, Int32}) : Bool
+      return true if descent.includes?(spot[0], spot[1]) && spot != descent.goal
+
+      knowledge = snapshot.knowledge
+      snapshot.doors ? knowledge.crossable?(spot) : knowledge.walkable?(spot)
+    end
+
+    # Whether *spot*, *away* steps from the creature, would rank below *best*
+    # even at the edge of what the band knows. Looking for the edge costs a
+    # look at every neighbor, so a square that cannot win is not looked at.
+    private def self.beaten?(descent : Descent, spot : {Int32, Int32}, away : Int32,
+                             best : {Haven, Int32, Int32}) : Bool
+      theirs = descent[spot]
+      !theirs.nil? && {Haven::Edge, theirs, -away} < best
+    end
+
+    # How *spot*, *away* steps from the creature, ranks as a square to run
+    # to. See `Haven`. *reached* holds the squares the creature's flood has
+    # reached, which are known.
+    private def self.rank(snapshot : Snapshot, descent : Descent,
+                          spot : {Int32, Int32}, away : Int32,
+                          reached : Hash({Int32, Int32}, UInt8)? = nil) : {Haven, Int32, Int32}
+      theirs = descent[spot]
+      return {Haven::Beyond, 0, -away} unless theirs
+
+      haven = edge?(snapshot.knowledge, descent, reached, spot) ? Haven::Edge : Haven::Known
+      {haven, theirs, -away}
+    end
+
+    # Whether something beside *spot* is a square *knowledge* knows nothing
+    # about. A square on the character's map *descent*, or in *reached*, is
+    # known without asking.
+    private def self.edge?(knowledge : Knowledge, descent : Descent,
+                           reached : Hash({Int32, Int32}, UInt8)?, spot : {Int32, Int32}) : Bool
+      Direction.values.any? do |direction|
+        beside = direction.from spot[0], spot[1]
+        next false if descent.includes?(beside[0], beside[1])
+        next false if reached.try &.has_key?(beside)
+
+        !knowledge.known?(beside)
+      end
     end
 
     # How good a square to run to *spot* is. Lower is better.

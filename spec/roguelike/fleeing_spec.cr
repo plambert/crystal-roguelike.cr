@@ -37,15 +37,30 @@ Spectator.describe "hurt creatures running" do
     "###########",
   ]
 
+  # A room with a door in its south wall. The corridor past the door runs
+  # east for further than the room is wide.
+  SIDE_DOOR = [
+    "########################",
+    "#..........#############",
+    "#..........#############",
+    "#..........#############",
+    "#..........#############",
+    "#..........#############",
+    "#######'################",
+    "#######................#",
+    "########################",
+  ]
+
   # A game on *lines* with a band-one creature of *kind* at *at* holding
   # *hit_points*, and the character at *hero*.
   #
   # The band has seen the whole floor and last saw the character where they
-  # stand, so the spec is about running and not about noticing. A floor is
-  # dark unless *daylight* says it is not.
+  # stand, so the spec is about running and not about noticing. Rows below
+  # *hidden_below* stay out of what the band knows. A floor is dark unless
+  # *daylight* says it is not.
   def hunted(lines : Array(String), kind : Kind, at : {Int32, Int32},
              hit_points : Int32, hero : {Int32, Int32},
-             daylight : Bool = true) : {Game, Monster}
+             daylight : Bool = true, hidden_below : Int32? = nil) : {Game, Monster}
     floor = Floor.parse "fleeing", lines
     floor.ambient = 1 if daylight
     creature = Monster.new kind, at[0], at[1], "band-one", hit_points: hit_points
@@ -58,7 +73,11 @@ Spectator.describe "hurt creatures running" do
     raise "the floor has lost the band" unless band
 
     knowledge = band.knowledge floor.id
-    floor.each { |column, row, _tile| knowledge.see floor, column, row }
+    floor.each do |column, row, _tile|
+      next if hidden_below && row > hidden_below
+
+      knowledge.see floor, column, row
+    end
     knowledge.saw Knowledge::PLAYER, player.x, player.y, game.turn
     band.awareness = Awareness::Hunting
 
@@ -201,6 +220,81 @@ Spectator.describe "hurt creatures running" do
       expect(goblin.at).to eq({3, 1})
       swung = game.log.lines.select { |line| line =~ /The goblin warrior (hits|misses) you/ }
       expect(swung).not_to be_empty
+    end
+
+    it "fights in the corner of a room the character stands beside it in" do
+      game, goblin = hunted SIDE_DOOR, Kind::GoblinWarrior, {10, 1}, 2, {9, 2}
+
+      pass game, 4
+
+      expect(goblin.at).to eq({10, 1})
+      swung = game.log.lines.select { |line| line =~ /The goblin warrior (hits|misses) you/ }
+      expect(swung).not_to be_empty
+    end
+  end
+
+  describe "a goblin warrior in a room with a door" do
+    # The east corner is nine steps from the character. The door is six, but
+    # the corridor past it runs on to twenty-one.
+    it "runs for the door rather than the corner" do
+      game, goblin = hunted SIDE_DOOR, Kind::GoblinWarrior, {6, 3}, 2, {1, 3}
+
+      pass game, 5
+
+      expect(goblin.y).to eq 7
+      expect(goblin.x).to be > 7
+    end
+
+    it "keeps away from the door when the character is nearer it" do
+      game, goblin = hunted SIDE_DOOR, Kind::GoblinWarrior, {4, 2}, 2, {7, 5}
+      went = [] of {Int32, Int32}
+
+      5.times do
+        game.wait
+        went << goblin.at
+      end
+
+      expect(went.none? { |spot| spot[1] >= 6 }).to be_true
+      expect(goblin.at).to eq({1, 1})
+    end
+
+    it "shuts the door behind it on the turn after it is through" do
+      game, goblin = hunted SIDE_DOOR, Kind::GoblinWarrior, {6, 3}, 2, {1, 3}
+
+      pass game, 4
+      expect(goblin.at).to eq({8, 7})
+      expect(game.floor.terrain(7, 6)).to eq Terrain::OpenDoor
+
+      game.wait
+
+      expect(goblin.at).to eq({8, 7})
+      expect(game.floor.terrain(7, 6)).to eq Terrain::ClosedDoor
+      expect(game.log.lines).to contain "A door swings shut."
+    end
+
+    # The band has never seen past the shut door, so the door is at the
+    # edge of what it knows. What lies past it might run on for ever.
+    it "runs for a door into ground it has not seen rather than a corner it has" do
+      lines = SIDE_DOOR.dup
+      lines[6] = "#######+################"
+      game, goblin = hunted lines, Kind::GoblinWarrior, {6, 3}, 2, {1, 3}, hidden_below: 6
+
+      pass game, 5
+
+      expect(goblin.y).to be >= 6
+    end
+
+    # Every square of the east wall is nine steps from the character, so it
+    # stops at the nearest of them.
+    it "runs for the far wall when it has seen that the door opens on a closet" do
+      lines = SIDE_DOOR.dup
+      lines[6] = "#######+################"
+      lines[7] = "#######.################"
+      game, goblin = hunted lines, Kind::GoblinWarrior, {6, 3}, 2, {1, 3}
+
+      pass game, 5
+
+      expect(goblin.at).to eq({10, 3})
     end
   end
 

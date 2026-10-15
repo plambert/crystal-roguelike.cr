@@ -4153,8 +4153,8 @@ it has more than half. A slime never runs.
 | `Monster#shaken?`, `#steadied?` | Below a quarter of its maximum, and above half of it |
 | `Game#nerve` | Turns a creature to running before it acts, and says so. Turns it back on recovery |
 | `Game#creatures_recover` | Gives every hurt creature one hit point every ten turns |
-| `Descent#uphill` | The neighbors one step further from the goal |
-| `Pursuit.decide` | A running creature steps uphill, shuts a door behind it, or swings when cornered |
+| `Pursuit.escape` | The first steps toward the best square it reaches before the character |
+| `Pursuit.decide` | A running creature runs, shuts a door behind it, or swings when cornered |
 | `Event::Fled` | The creature that turned to run |
 
 ### Decisions
@@ -4162,19 +4162,29 @@ it has more than half. A slime never runs.
 * **Below a quarter, above half.** The two thresholds leave a band in between where a creature keeps
   doing what it was doing. A goblin warrior with 9 hit points runs at 2 and turns back at 5. A
   creature that healed from 2 to 4 is still running.
-* **Uphill on the band's map.** The character's last sighting is the goal of the band's `Descent`.
-  Each neighbor is either nearer, the same distance, or exactly one step further. A running
-  creature picks among the ones one step further.
-* **Light, then company, then direction.** Among the squares one step further it takes the one with
-  the least light on it. A tie goes to the square nearest another member of its band, by squared
-  distance. A tie after that goes to whichever direction `Direction` names first. Light is
-  `Lighting.over` the floor's sources, worked out once a turn for the first running creature that
-  asks.
-* **Cornered means nothing further off.** A creature with no free uphill square swings when the
-  character is beside it and the sighting is fresh. Otherwise it waits. A creature at the edge of
-  its map has got away as far as the band can see, and waits there.
+* **A place to run to, then the way there.** The character's last sighting is the goal of the
+  band's `Descent`. A running creature floods out from its own square over the same knowledge, and
+  enters only squares it reaches strictly before the character does. Of those it picks the one
+  farthest from the character, nearest itself on a tie, and takes the first step of a shortest way
+  there. Each square the flood reaches carries the first steps that lead to it, as one bit for each
+  direction. A first step onto another creature is left out. A greedy step one square further from
+  the character ended in a corner, because a door across the room is no further away at first.
+* **The edge of what the band knows ranks above any known square.** A square beside one the band
+  knows nothing about may lead to a corridor that runs on, so it beats a corner the band can see is
+  a dead end. A square the character's map never reached ranks above both. Bands start a floor
+  knowing nothing and learn only what their members see and feel, so a shut door usually has
+  unknown ground behind it.
+* **Light, then company, then direction.** Among first steps that lead to equally good squares it
+  takes the one with the least light on it. A tie goes to the square nearest another member of its
+  band, by squared distance. A tie after that goes to whichever direction `Direction` names first.
+  Light is `Lighting.over` the floor's sources, worked out once a turn for the first running
+  creature that asks.
+* **Cornered means nowhere better.** A creature with no square it reaches first that ranks above
+  its own swings when the character is beside it and the sighting is fresh. Otherwise it waits. A
+  creature off the character's map has got away as far as the band can see, and waits there.
 * **A door behind it.** A running creature whose kind opens doors shuts an open door beside it
-  that is nearer the character than it is, unless the character is beside it. Shutting takes the
+  that is nearer the character than it is, unless the character is beside it. It does this before
+  anything else, so a creature with nowhere further to go still shuts the door. Shutting takes the
   turn. A door with a creature, the character or an item in the doorway stays open. The band
   writes the door down as shut. A shut door is opened again the way any other is.
 * **Messages.** "The goblin warrior flees!" when the character can see the creature turn. "The
