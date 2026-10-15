@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-10-15
+
+Wooden doors that are spiked shut can be broken down, the inventory shows one class at a time and
+lists what you can do with an item, creatures step round each other to reach you and flee toward
+doors, `X` checks small pockets first, and the game saves every 500 turns.
+
 ### Added
 
 * The game saves your character every 500 turns, so a crash or a closed window loses less. These
@@ -787,7 +793,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.3.0...v0.4.0

@@ -3,6 +3,18 @@
 What changed in each release, for the people playing it. The full record, including build and
 packaging changes, is in [CHANGELOG.md](CHANGELOG.md).
 
+## [0.4.3] - 2026-10-15
+
+You can break down spiked doors, the inventory sorts by class and offers actions, and creatures
+crowd round you instead of queuing.
+
+* Walking into a spiked wooden door offers to break it down with your weapon.
+* The inventory shows one class at a time, and an item's letter lists what you can do with it.
+* A second creature steps round the first to reach you, and fleeing creatures run for a door.
+* `X` checks small pockets before moving on and walks to items buried in a pile.
+* The title screen has a "what's new" entry with the notes for versions you have not seen.
+* The game saves every 500 turns, so a crash loses less.
+
 ## [0.4.2] - 2026-10-14
 
 The Seen list answers the mouse, arrows and darts wear out, and exploring follows a corridor to its
