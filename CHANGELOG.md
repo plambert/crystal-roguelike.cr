@@ -10,6 +10,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* The game saves your character every 500 turns, so a crash or a closed window loses less. These
+  saves stay on your computer and are not uploaded.
 * A replay upload shows a progress line on standard error for each file it sends, with the file's
   name, the bytes sent of the total, and a bar. On a terminal the line redraws in place. When
   standard error is a file or a pipe, each file gets one line.

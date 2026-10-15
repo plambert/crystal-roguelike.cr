@@ -1512,9 +1512,9 @@ rather than bot games; it is not built.
 
 ### When it is written
 
-On the way down a staircase, on the way out of the dungeon, when the run ends, and when the person
-quits. Not on every turn: writing costs about a millisecond and a whole file, and a turn is worth
-less than that.
+On the way down a staircase, on the way out of the dungeon, when the run ends, when the person
+quits, and every 500 turns. Not on every turn: writing costs about a millisecond and a whole file,
+and a turn is worth less than that.
 
 A run that is over is written and then retired: the file moves out of `saves/` and takes the time
 it ended with it, so `Sparky.json` becomes `Sparky-20260915-234500.json`. One name can end many
@@ -1540,6 +1540,32 @@ is worse than losing the save.
 `Ui::Play` holds a `Save::Store` or holds none. A store is the three directories rather than one of
 them, so `Save::Store.under` is what builds one. A spec drives one on a temporary directory, so
 nothing a spec does can reach a person's own saved characters. `--no-save` plays without one.
+
+### Every 500 turns
+
+`Ui::Play#refresh` writes the run once `AUTOSAVE_EVERY` turns have passed since the last save of any
+kind. `#keep` sets the clock back, so a staircase save at turn 480 puts the next one at turn 980.
+A crash, a closed window or a kill then loses about 500 turns at most, and the next load rewinds
+the replay log by no more than that.
+
+The save says nothing, so a walk or a rest goes on through it. A line in the log would stop
+either one. A rest takes its turns in batches, so the save lands on the first refresh at or past
+the mark. A run that is over is retired by the ending screen and is never written here. A recorded
+run being watched is never written. A run with no store writes nothing.
+
+The save writes a pause into the replay log, as every save does. The save names that pause, and a
+load carries the log on from it through `Save::Held#carried`.
+
+#### Decisions
+
+* **Not uploaded.** `Save::Store#write` takes `send: false`, and no parcel is packed. A parcel
+  holds the whole log and a save, and one every 500 turns would fill the outbox with copies of the
+  same run. The pause still takes a number, so the uploaded parcels of one run can skip numbers.
+* **Turns, not wall time.** A turn count gives the same saves on every replay of a run, and a spec
+  can drive it without a clock. A person away from the keyboard takes no turns and loses nothing.
+* **A pause costs a fingerprint.** It is the same code path as a staircase save. In a release
+  build, a one-floor run at turn 3116 with a 305 KiB save takes 0.84 ms for the pause and 2.63 ms
+  for the whole write.
 
 ### The name
 
