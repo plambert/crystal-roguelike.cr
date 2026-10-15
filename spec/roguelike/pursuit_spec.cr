@@ -38,7 +38,10 @@ Spectator.describe Roguelike::Pursuit do
                paths : Bool = true,
                knowledge : Knowledge? = nil,
                blocked : Array({Int32, Int32}) = [] of {Int32, Int32},
-               stumble : Bool = false) : Pursuit::Snapshot
+               stumble : Bool = false,
+               nearby : Array({Int32, Int32}) = [] of {Int32, Int32},
+               surrounds : Bool = false,
+               bandmates : Array({Int32, Int32}) = [] of {Int32, Int32}) : Pursuit::Snapshot
     held = knowledge || known
     taken = Set({Int32, Int32}).new
     blocked.each { |spot| taken << spot }
@@ -50,7 +53,10 @@ Spectator.describe Roguelike::Pursuit do
       stale: stale,
       descent: quarry && paths ? Descent.toward(held, quarry) : nil,
       blocked: taken,
-      stumble: stumble)
+      stumble: stumble,
+      nearby: nearby,
+      surrounds: surrounds,
+      bandmates: bandmates)
   end
 
   # One open room, for a chase with somewhere to go sideways.
@@ -68,6 +74,16 @@ Spectator.describe Roguelike::Pursuit do
     "#########",
     "#.......#",
     "#########",
+  ]
+
+  # A corridor running south into a room through a doorway on row 2.
+  CROWD = [
+    "#######",
+    "###.###",
+    "###.###",
+    "#.....#",
+    "#.....#",
+    "#######",
   ]
 
   describe "a creature that has never seen the character" do
@@ -189,6 +205,26 @@ Spectator.describe Roguelike::Pursuit do
       expect(found).to eq Action.wait
     end
 
+    # Its way down is taken, and a free square beside the character is one
+    # step round. It walks the shortest way there.
+    it "walks round to a free square beside the character" do
+      held = known CROWD
+      found = Pursuit.decide snapshot({5, 4}, quarry: {3, 2}, knowledge: held,
+        stale: 5, blocked: [{4, 3}])
+
+      expect(found).to eq Action.step(Direction::West, hemmed: true)
+    end
+
+    # Every square beside the character is taken or out of reach. Stepping
+    # sideways would only bring it back next turn.
+    it "waits when no free square beside the character can be reached" do
+      held = known CROWD
+      found = Pursuit.decide snapshot({3, 4}, quarry: {3, 2}, knowledge: held,
+        blocked: [{2, 3}, {3, 3}, {4, 3}])
+
+      expect(found).to eq Action.wait(true)
+    end
+
     # A band that has never looked down a corridor cannot use it.
     it "does not walk a way it has never seen" do
       floor = Floor.parse "test", SPLIT
@@ -219,11 +255,58 @@ Spectator.describe Roguelike::Pursuit do
       expect(found).to eq Action.wait
     end
 
+    it "steps to a free square beside the character when its way is taken" do
+      found = Pursuit.decide snapshot({3, 1}, quarry: {1, 1}, paths: false,
+        blocked: [{2, 1}])
+
+      expect(found).to eq Action.step(Direction::SouthWest)
+    end
+
     it "waits rather than walking into its neighbor" do
       found = Pursuit.decide snapshot({3, 3}, quarry: {1, 1}, paths: false,
         blocked: [{2, 2}])
 
       expect(found).to eq Action.wait
+    end
+  end
+
+  describe "a creature beside the character with a bandmate behind it" do
+    # The bandmate has no square beside the character it can reach. The one
+    # in the doorway steps into the room and the bandmate takes the doorway.
+    it "steps aside to let the bandmate in" do
+      held = known CROWD
+      found = Pursuit.decide snapshot({3, 2}, quarry: {3, 3}, knowledge: held,
+        blocked: [{3, 1}], nearby: [{3, 1}])
+
+      expect(found).to eq Action.step(Direction::SouthWest)
+    end
+
+    it "swings when the bandmate has a square of its own" do
+      held = known CROWD
+      found = Pursuit.decide snapshot({3, 3}, quarry: {3, 2}, knowledge: held,
+        blocked: [{3, 4}], nearby: [{3, 4}])
+
+      expect(found).to eq Action.strike(Direction::North)
+    end
+
+    # The character is in the corridor and the creature in the doorway. Only
+    # one of them can reach the character.
+    it "swings when there is nowhere to step aside to" do
+      held = known CROWD
+      found = Pursuit.decide snapshot({3, 2}, quarry: {3, 1}, knowledge: held,
+        blocked: [{3, 3}], nearby: [{3, 3}])
+
+      expect(found).to eq Action.strike(Direction::North)
+    end
+
+    # A creature that surrounds keeps the flank it holds.
+    it "stays across from a bandmate when it surrounds" do
+      held = known CROWD
+      found = Pursuit.decide snapshot({3, 2}, quarry: {3, 3}, knowledge: held,
+        blocked: [{3, 1}, {3, 4}], nearby: [{3, 1}], surrounds: true,
+        bandmates: [{3, 4}])
+
+      expect(found).to eq Action.strike(Direction::South)
     end
   end
 

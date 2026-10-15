@@ -2354,7 +2354,7 @@ module Roguelike
         stale: quarry.try(&.age(@turn)) || 0,
         descent: descent,
         doors: creature.kind.opens_doors?,
-        blocked: standing_on_squares(creature),
+        blocked: blocked(creature, quarry),
         stumble: stumbles?(creature),
         fleeing: creature.fleeing?,
         shade: creature.fleeing? ? shade : nil,
@@ -2364,7 +2364,23 @@ module Roguelike
         clear: reach > 0 && !!quarry.try { |seen| clear_shot? creature, seen.at, reach },
         surrounds: creature.kind.surrounds?,
         bandmates: creature.kind.surrounds? ? beside_quarry(creature, quarry) : [] of {Int32, Int32},
-        foes: chase.try(&.foes) || [] of {Int32, Int32})
+        foes: chase.try(&.foes) || [] of {Int32, Int32},
+        nearby: nearby(creature, quarry))
+    end
+
+    # Where the other members of *creature*'s band stand beside it. Empty
+    # unless *creature* stands beside *quarry*.
+    private def nearby(creature : Monster, quarry : Sighting?) : Array({Int32, Int32})
+      found = [] of {Int32, Int32}
+      return found unless quarry && Pursuit.gap(creature.at, quarry.at) == 1
+
+      Direction.values.each do |direction|
+        spot = direction.from creature.x, creature.y
+        other = floor.monster spot[0], spot[1]
+        found << spot if other && other.band == creature.band
+      end
+
+      found
     end
 
     # What *creature* runs from, and the map it runs on.
@@ -2507,6 +2523,26 @@ module Roguelike
       return false unless chance > 0
 
       wander.rand(100) < chance
+    end
+
+    # The squares *creature* reads as taken.
+    #
+    # That is every square beside it that something else stands on. A
+    # creature within `Pursuit::CLOSE` steps of *quarry* also sees every
+    # creature within one step further than that from the quarry, so it can
+    # find a way round to a free square beside it.
+    private def blocked(creature : Monster, quarry : Sighting?) : Set({Int32, Int32})
+      taken = standing_on_squares creature
+      return taken unless quarry && Pursuit.gap(creature.at, quarry.at) <= Pursuit::CLOSE
+
+      floor.each_monster do |column, row, other|
+        next if other.same? creature
+        next if Pursuit.gap({column, row}, quarry.at) > Pursuit::CLOSE + 1
+
+        taken << {column, row}
+      end
+
+      taken
     end
 
     # Every square beside *creature* that something else is standing on.
