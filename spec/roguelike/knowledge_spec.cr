@@ -51,6 +51,40 @@ Spectator.describe Roguelike::Knowledge do
       expect(knowledge[1, 1].try &.item.try &.kind).to eq Kind::Cap
     end
 
+    it "records the rest of the pile under the top" do
+      floor = spot
+      floor.drop 1, 1, Item.new Kind::Dagger
+      floor.drop 1, 1, Item.new Kind::Arrow, count: 4
+      floor.drop 1, 1, Item.new Kind::Cap
+
+      knowledge.see floor, 1, 1
+      memory = knowledge[1, 1]
+
+      expect(memory.try &.pile.map(&.kind)).to eq [Kind::Dagger, Kind::Arrow, Kind::Cap]
+      expect(memory.try &.under.try &.map(&.kind)).to eq [Kind::Dagger, Kind::Arrow]
+    end
+
+    it "records nothing under a lone item" do
+      floor = spot
+      floor.drop 1, 1, Item.new Kind::Dagger
+
+      knowledge.see floor, 1, 1
+
+      expect(knowledge[1, 1].try &.under).to be_nil
+      expect(knowledge[1, 1].try &.pile.size).to eq 1
+    end
+
+    it "keeps the pile when the square is only touched" do
+      floor = spot
+      floor.drop 1, 1, Item.new Kind::Dagger
+      floor.drop 1, 1, Item.new Kind::Cap
+      knowledge.see floor, 1, 1
+
+      knowledge.touch floor, 1, 1
+
+      expect(knowledge[1, 1].try &.pile.size).to eq 2
+    end
+
     it "records a fixture" do
       floor = Playing.daylight Floor.parse("lit", ["#####", "#.|.#", "#...#", "#####"])
       knowledge.see floor, 2, 1
@@ -258,6 +292,42 @@ Spectator.describe Roguelike::Knowledge do
       expect(again.size).to eq knowledge.size
       expect(again[1, 1].try &.item.try &.kind).to eq Kind::Dagger
       expect(again[1, 1].try &.turn).to eq 5
+    end
+
+    it "round-trips a pile through JSON" do
+      floor = spot
+      floor.drop 1, 1, Item.new Kind::Dagger
+      floor.drop 1, 1, Item.new Kind::Cap
+      knowledge.see floor, 1, 1
+
+      again = described_class.from_json knowledge.to_json
+
+      expect(again).to eq knowledge
+      expect(again[1, 1].try &.pile.map(&.kind)).to eq [Kind::Dagger, Kind::Cap]
+    end
+
+    it "writes nothing more for a square with one item" do
+      floor = spot
+      floor.drop 1, 1, Item.new Kind::Dagger
+      knowledge.see floor, 1, 1
+
+      expect(knowledge.to_json).not_to contain "under"
+    end
+
+    # What a build before piles were remembered wrote for a dagger at 1,1.
+    OLDER = <<-JSON
+      {"floor":"room","memories":{"1,1":{"terrain":"stone_floor","item":{"id":0,
+      "kind":"dagger","enchantment":0,"condition":"plain","blessing":"uncursed",
+      "blessing_known":false,"count":1,"lit":false,"handling":0},"turn":3,
+      "regard":"everything"}},"sightings":{},"openings":[]}
+      JSON
+
+    it "reads a memory written before piles were remembered" do
+      again = described_class.from_json OLDER
+
+      expect(again[1, 1].try &.item.try &.kind).to eq Kind::Dagger
+      expect(again[1, 1].try &.under).to be_nil
+      expect(again[1, 1].try &.turn).to eq 3
     end
 
     it "round-trips a fixture through JSON" do

@@ -15,8 +15,8 @@ module Roguelike
     # What was fitted to it, if anything.
     getter fixture : Fixture?
 
-    # What was lying on top of the pile, if anything. One item rather than the
-    # pile, because one glyph is what a map draws.
+    # What was lying on top of the pile, if anything. This is the one a map
+    # draws. `#under` holds the rest of the pile.
     getter item : Item?
 
     # Which turn this was seen on.
@@ -39,11 +39,34 @@ module Roguelike
     # before spikes existed and one written now read the same.
     @spiked : Bool? = nil
 
+    # What was lying under `#item`, bottom first. `nil` when nothing was.
+    #
+    # A square with one item or none writes no field, so it writes what it
+    # wrote before this existed. A memory read from an older save has nothing
+    # under its top item.
+    getter under : Array(Item)? = nil
+
     def initialize(@terrain : Terrain, @fixture : Fixture? = nil,
                    @item : Item? = nil, @turn : Int32 = 0,
                    @regard : Regard = Regard::Everything,
-                   spiked : Bool = false)
+                   spiked : Bool = false, under : Array(Item)? = nil)
       @spiked = spiked || nil
+      @under = under unless under.nil? || under.empty?
+    end
+
+    # Every item remembered here, bottom first and `#item` last. Empty for a
+    # square seen with nothing on it.
+    def pile : Array(Item)
+      found = @under.try(&.dup) || [] of Item
+      @item.try { |top| found << top }
+      found
+    end
+
+    # Whether any item remembered here passes the block.
+    def holds?(& : Item -> Bool) : Bool
+      @under.try &.each { |item| return true if yield item }
+      top = @item
+      top ? (yield top) : false
     end
 
     # Whether the door was seen with a spike in it.
@@ -59,13 +82,13 @@ module Roguelike
     def ==(other : Memory) : Bool
       @terrain == other.terrain && @fixture == other.fixture &&
         @item == other.item && @turn == other.turn && @regard == other.regard &&
-        spiked? == other.spiked?
+        spiked? == other.spiked? && @under == other.under
     end
 
     def to_s(io : IO) : Nil
       io << "Memory(" << @terrain
       io << " +" << @fixture if @fixture
-      io << " +" << @item if @item
+      pile.each { |item| io << " +" << item }
       io << ' ' << @regard unless @regard.everything?
       io << " spiked" if spiked?
       io << " turn " << @turn << ')'
@@ -318,6 +341,10 @@ module Roguelike
 
     # Records what *floor* holds at *x*, *y* as of *turn*.
     #
+    # The whole pile is remembered. The character sees every item on a square
+    # in sight, and explore walks to one the pickup takes wherever it lies in
+    # the pile.
+    #
     # Whatever was remembered before is replaced. A square looked at again
     # shows what is there now, not what was there before.
     #
@@ -334,7 +361,9 @@ module Roguelike
       return unless floor.contains? x, y
 
       fitting = floor.fixture x, y
-      lying = floor.items(x, y).last?.try(&.copy)
+      pile = floor.items x, y
+      lying = pile.last?.try(&.copy)
+      beneath = pile.size > 1 ? pile[0, pile.size - 1].map(&.copy) : nil
 
       held = self[x, y]
       made_out = regard
@@ -343,7 +372,7 @@ module Roguelike
       terrain = floor.terrain x, y
       changed if held.nil? || held.terrain != terrain || held.item.try(&.id) != lying.try(&.id)
       @memories[Floor.spot x, y] = Memory.new terrain,
-        fitting.try(&.copy), lying, turn, made_out, floor.spiked?(x, y)
+        fitting.try(&.copy), lying, turn, made_out, floor.spiked?(x, y), beneath
       unbar x, y unless terrain.closed_door?
     end
 
@@ -364,7 +393,8 @@ module Roguelike
       changed if held.nil? || held.terrain != terrain
       @memories[Floor.spot x, y] = Memory.new terrain,
         floor.fixture(x, y).try(&.copy), held.try(&.item), turn,
-        held.try(&.regard) || Regard::Nothing, floor.spiked?(x, y)
+        held.try(&.regard) || Regard::Nothing, floor.spiked?(x, y),
+        held.try(&.under)
       unbar x, y unless terrain.closed_door?
     end
 

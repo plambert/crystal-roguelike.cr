@@ -558,7 +558,8 @@ The phase that introduces the type monster bands will use in Phase 19.
   stops growing after the first few frames of a long walk. A spec round-trips `Knowledge` through
   serialization.
 * **Done.** `Knowledge` holds a `Memory` per square: the terrain, the fixture and the top item as
-  they were, and the turn it was seen on. Each is a copy, so a torch that burns down or a door
+  they were, and the turn it was seen on. `Memory#under` holds the rest of the pile, bottom first,
+  and `Memory#pile` gives the whole of it. Each is a copy, so a torch that burns down or a door
   that shuts after the character looks away does not change what they remember. `Player#memory`
   keeps one per floor, because floors persist. `Game#look` is the one way anything gets in, and
   whatever is about to draw the floor calls it, so what is remembered and what is drawn are never
@@ -5014,6 +5015,35 @@ square in reach, the goal is chosen from those. The way there keeps to the room'
 
 A passage holds the character the same way. On a square no chamber holds, while the passage has a
 frontier square, the goal is chosen from those, and the way there keeps to the passage.
+
+### Piles
+
+A square remembers its whole pile. `Memory#item` is the top item, which the map draws and which
+every older caller reads. `Memory#under` is the rest, bottom first, and `nil` when the top item
+lies alone. `Explore.wanted` asks `Memory#holds?` of every item, so arrows the quiver takes are a
+goal when a dagger lies on them.
+
+* **Old saves load.** `under` is written only when it holds something. A memory without it reads
+  as one with nothing under the top item.
+* **Fingerprints move only for piles.** A square with one item or none writes the bytes it wrote
+  before. The golden replay still verifies without being recorded again.
+* **One regard covers the pile.** The character is as far from every item on a square as from any
+  of them. A closer look is kept while the top item is unchanged, as before.
+* **Detection writes a pile.** Item detection and treasure detection write each square once with
+  everything they found there. They used to write one item at a time, so the last one won.
+* **Unchanged.** `Explore.unread`, the sightings `v` walks to, the pile announced underfoot and
+  the panes still read the top item.
+
+Cost, in a release build, on a dug floor of 14,450 squares with every square known. The pile was
+three items on each of 40 or 400 squares. Medians of 200 runs, or 50 and 20 for the fingerprints.
+
+| Measure | 40 before | 40 after | 400 before | 400 after |
+| --- | --- | --- | --- | --- |
+| `Knowledge#see` on every square | 7.0 ms | 7.1 ms | 7.2 ms | 7.1 ms |
+| `Game#look` | 0.061 ms | 0.061 ms | 0.111 ms | 0.122 ms |
+| Streamed fingerprint | 9.7 ms | 9.9 ms | 10.7 ms | 11.3 ms |
+| Canonical fingerprint | 22.2 ms | 22.5 ms | 24.3 ms | 26.4 ms |
+| Save | 1,067 KB | 1,080 KB | 1,282 KB | 1,404 KB |
 
 ### The small side first
 

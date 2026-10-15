@@ -644,6 +644,69 @@ Spectator.describe "exploring and travelling" do
       expect(game.legal.map &.class).to contain Action::Explore
     end
 
+    it "lists a square whose wanted stack lies under something else" do
+      game = played SIDE_ROOM
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Dagger)
+      game.look
+
+      arrows = ->(item : Item) { item.kind.arrow? }
+
+      expect(Explore.wanted game.knowledge, arrows).to eq [ASIDE]
+    end
+
+    it "is offered while the quiver's arrows lie under something else" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Dagger)
+      knowing_all game
+      game.look
+
+      expect(game.legal.map &.class).to contain Action::Explore
+    end
+
+    it "walks to the quiver's arrows under a dagger and takes them" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, count: 5)
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Dagger)
+      knowing_all game
+      game.look
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.quivered.try &.count).to eq 7
+      expect(game.floor.items(*ASIDE).map &.kind).to eq [Roguelike::ItemKind::Dagger]
+    end
+
+    it "takes gold that lies under something else" do
+      game = played SIDE_ROOM
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Gold, count: 6)
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Dagger)
+      knowing_all game
+      game.look
+
+      game.explore
+
+      expect(game.player.gold).to eq 6
+    end
+
+    it "leaves a pile that holds nothing it would take" do
+      game = played SIDE_ROOM
+      archer game
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Cap)
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Dagger)
+      knowing_all game
+      game.look
+
+      arrows = ->(item : Item) { item.kind.arrow? }
+
+      expect(Explore.wanted game.knowledge, arrows).to be_empty
+      expect(game.legal.map &.class).not_to contain Action::Explore
+    end
+
     it "follows a corridor to its end before it goes back for another door" do
       game = played TWO_DOORS
 

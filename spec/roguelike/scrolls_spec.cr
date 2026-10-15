@@ -148,6 +148,16 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
       expect(game.log.last?.to_s).to contain "Nothing is lying"
     end
 
+    it "writes down every item of a pile" do
+      game = bare
+      game.floor.drop 4, 5, Item.new(Kind::Arrow, count: 5)
+      game.floor.drop 4, 5, Item.new(Kind::LongSword)
+
+      game.read reading(game, Kind::DetectionScroll)
+
+      expect(game.knowledge[4, 5].try &.pile.map(&.kind)).to eq [Kind::Arrow, Kind::LongSword]
+    end
+
     it "names what it found, nearest first" do
       game = bare
       game.floor.drop 5, 5, Item.new(Kind::Mace)

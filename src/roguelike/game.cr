@@ -5052,7 +5052,7 @@ module Roguelike
       return gather_treasure piles if scroll.blessed?
       return ruin_treasure piles if scroll.cursed?
 
-      piles.each { |column, row, item| detect column, row, item }
+      detect piles
       found = piles.map do |column, row, item|
         Event::Found.new item.id, name(item), {column, row}
       end
@@ -5090,10 +5090,11 @@ module Roguelike
       stream = draught
       lost = 0
       ruined = 0
+      noted = [] of {Int32, Int32, Item}
 
       piles.each do |column, row, item|
         unless stream.rand(100) < TREASURE_RUIN
-          detect column, row, item
+          noted << {column, row, item}
           next
         end
 
@@ -5103,11 +5104,13 @@ module Roguelike
         floor.take column, row, item
         left = item.with_count RUINED
         floor.drop column, row, left
-        detect column, row, left
+        noted << {column, row, left}
 
         lost += gone
         ruined += 1
       end
+
+      detect noted
 
       say "#{ruined} piles crumble, and #{lost} gp with them.",
         Event::Gold.new(:ruined, lost, piles: ruined)
@@ -5141,7 +5144,7 @@ module Roguelike
       end
 
       destroyed = scroll.cursed? ? destroy_some(found) : [] of Item
-      found.each { |column, row, item| detect column, row, item }
+      detect found
       list_detected found, destroyed
     end
 
@@ -5585,18 +5588,29 @@ module Roguelike
       visited @player.at
     end
 
-    # Writes *item* down at *column*, *row* without claiming anything else
+    # Writes down every item of *found* where it lies.
+    #
+    # The items of one square are written down together, in the order
+    # *found* holds them. The last of them is the top of the remembered pile.
+    private def detect(found : Array({Int32, Int32, Item})) : Nil
+      squares = {} of {Int32, Int32} => Array(Item)
+      found.each { |column, row, item| (squares[{column, row}] ||= [] of Item) << item }
+      squares.each { |spot, items| detect spot[0], spot[1], items }
+    end
+
+    # Writes *items* down at *column*, *row* without claiming anything else
     # about the square.
     #
     # The terrain goes in because a `Memory` holds one, and something lying
     # on a square says the square can be walked on whatever else it is. What
     # is already remembered wins, so a scroll never rewrites a square the
     # character has looked at.
-    private def detect(column : Int32, row : Int32, item : Item) : Nil
+    private def detect(column : Int32, row : Int32, items : Array(Item)) : Nil
       held = @player.knowledge[column, row]
       @player.knowledge.remember column, row,
         Memory.new(held.try(&.terrain) || floor.terrain(column, row),
-          held.try(&.fixture), item.copy, held.try(&.turn) || @turn)
+          held.try(&.fixture), items.last.copy, held.try(&.turn) || @turn,
+          under: items[0, items.size - 1].map(&.copy))
     end
 
     # ------------------------------------------------- blessing and uncursing

@@ -70,6 +70,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   all of its lines together.
 * `X` no longer stops in a doorway or the neck of a cave with "You stop. Walking on would show you
   nothing new." while the room beside it still has ground left to see.
+* `X` walks to gold or to something it would pick up when it lies under other items in a pile. A
+  scroll of item detection remembers every item of a pile it finds, so `X` goes to those as well.
 
 ## [0.4.2] - 2026-10-14
 
