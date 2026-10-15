@@ -44,6 +44,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   unknown ones. The enchantment and whether it is masterwork or damaged must match. Nothing known
   to be cursed counts, on the floor or in your pack.
 * A replay recorded with an earlier version stops verifying at its first automatic pickup.
+* Leaving a saved run prints the character's name, level, hit points and floor under the seed
+  line, so the scrollback says who was saved and where.
 
 ### Fixed
 

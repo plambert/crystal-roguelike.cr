@@ -140,9 +140,25 @@ module Roguelike
       in .playing? then "You left the dungeon where it was."
       end
       puts "seed #{game.world.seed}    turn #{game.turn}"
+      standing(game, save).try { |line| puts line }
       puts newer if newer
 
       Submit.flush(submit_url || Submit::ENDPOINT) if sending
+    end
+
+    # Who was saved and how they stood, for the line after the seed. `nil`
+    # when nothing was saved.
+    #
+    # A run that is over was retired, and one with no name was never
+    # written. `--no-save` writes nothing.
+    private def standing(game : Game, saved : Bool) : String?
+      return unless saved && game.outcome.playing?
+
+      player = game.player
+      return if player.name.empty?
+
+      "#{player.name}    level #{player.level}    " \
+      "hp #{player.hit_points}/#{player.max_hit_points}    floor #{game.depth}"
     end
 
     # The release notes to offer on the title screen. Notes the person has
