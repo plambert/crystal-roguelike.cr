@@ -106,6 +106,13 @@ fleeing band per turn, with no second flood per creature, and the darkness and b
 still settle equal squares. The cost is a tuning constant with no exact meaning, and decisions that
 are harder to explain in a spec. Brogue's monster flight works this way.
 
+### Mining
+
+The character can dig through walls. Any weapon can do it, but badly, and a pickaxe does it far
+better. Each kind of wall takes a different amount of damage to destroy, so soft rock gives way in a
+few blows and the hardest stone takes a long time. Gold ore veins are set in some walls. Digging one
+out yields gold ore, which is an item of its own and not gold, and it does not stack.
+
 ### Where the game is drifting
 
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
