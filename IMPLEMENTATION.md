@@ -215,7 +215,8 @@ none of it is fixed and a preset can rebind the lot.
 | `<` `>` | Up stairs, down stairs |
 | `,` | Pick up what is here |
 | `d` | Drop something |
-| `i` | Inventory |
+| `i` | Inventory. `Left` and `Right` show one class of item at a time; a letter lists what can be done with that item |
+| `w` `T` `q` `r` `z` `a` `t` `d` | In the menu on an inventory letter, the same actions on that item, always in that order |
 | `w` `T` | Wield a weapon or wear armor, swapping out what is there; take a weapon or armor off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
 | `f` `t` | Fire the ranged weapon, throw something |
@@ -1338,7 +1339,8 @@ The triangle on the pack heading opens and shuts the pack when it is pressed.
 ### Pointing at a menu
 
 Every menu that lists carried items hangs the same box off the row the highlight is on: `i`, `d`,
-`w`, `W`, `T`, `q`, `r`, `z`, `a`, `,` and the second question a scroll of identify asks. The box
+`w`, `W`, `T`, `q`, `r`, `z`, `a`, `,`, the second question a scroll of identify asks, and the
+menu on an inventory letter, where the box is about the one item the menu acts on. The box
 is up the moment the menu is, because the highlight is always on a row. The arrows move it and so
 does the pointer crossing a row, so a person reading the list with either one reads the same thing.
 
@@ -1930,6 +1932,60 @@ place and a row that cannot be picked is left alone by both.
 Only the left button, and only the press. A release is not a second answer to a press, and a press
 that lands past the last row is not a row. A press that picks is claimed; a bare motion report is
 not, because whatever is tracking where the pointer is has to hear about every one of those.
+
+## The menu on an inventory letter
+
+A letter pressed in the inventory puts up what can be done with that item. The rows are fixed, in
+this order, and each key is the key that does the same thing from the map:
+
+| Key | Does | Applies when |
+|---|---|---|
+| `w` | Wield or wear | The item has a slot and is not in it |
+| `T` | Take off | The item is in a slot |
+| `q` | Drink | A potion |
+| `r` | Read | A scroll |
+| `z` | Zap | A wand |
+| `a` | Apply | `Game#appliable` has a target for the item's letter |
+| `t` | Throw | Always |
+| `d` | Drop | Always |
+
+There is no row to inspect the item, because the box beside the menu already describes it. There
+is no row to identify it, because a scroll of identify does that and is read from its own row.
+
+A row that does not apply is dimmed and unbound, so its key and a click on it do nothing. Every row
+keeps its place, so a person learns where `drink` is rather than reading the list each time. The
+dimmed rows are drawn in `Palette::FAINT` rather than the terminal's faint attribute, whose
+contrast depends on the terminal.
+
+Each row runs the second half of its key's command: what that key does once its own menu has been
+answered with the item's letter. `Play#wield_at`, `#quaff_at`, `#read_at` and the rest are those
+halves, and both paths call them. A recorded run therefore holds the same actions whichever way the
+person went, and the replay format does not change. Reading still checks `Game#cannot_read`
+first, the way `r` does, and an item with two targets to apply asks which, the way `a` does.
+
+`Escape` goes back to the inventory, on the page the letter was pressed on. A click on a pack row
+in the sidebar puts up the same menu, and `Escape` from that goes back to the map. A recorded run
+answers no such click, because it takes no actions but its own.
+
+### Pages in the inventory
+
+The inventory is a `Widgets::Menu` with pages. The first page holds everything. The others hold
+one class each, in the order of `Play::PACK_CLASSES`: weapons, armor, amulets, potions, scrolls,
+wands, tools and treasure. A class the character carries none of has no page. Lights and spikes
+share the tools page, because both are applied. Every item keeps its own letter on every page,
+and only the letters on the page showing are bound.
+
+`Left` and `Right` turn the page, and go round at either end. A menu with pages gives up the
+sideways scroll those keys do in other menus. The names are drawn in a row along the top of the
+box, the page showing in brackets and bold, with an arrow at each end. A click on a name turns to
+it, and a click on an arrow turns one page that way. The box is sized for the widest row and the
+longest page, so it keeps its size as the pages turn.
+
+An open overlay pushes its bindings onto the focus stack when it goes up. Turning a page replaces
+that copy as well as the menu's own, or the letters of the page before would still answer.
+
+The help screen lists these keys under "in the inventory". `Keys::Section` has notes for keys a
+menu answers while it is up, which nothing binds globally.
 
 ## A name to start with
 
@@ -5069,13 +5125,6 @@ fill would then move by a pixel rather than by a cell.
 
 `Trial::Bot` shuts doors behind it under `--trial-doors`, and the cautious bot backs away. Neither
 spikes a door or decides whether a fight is worth having, so what they measure is still narrow.
-
-### An action menu on an inventory letter
-
-`i` lists the pack with a letter against each row and the letters do nothing. A letter should open a
-menu of what can be done with that item: equip, take off, wear, quaff, read, throw, inspect,
-identify. The menu should be a fixed list with the entries that do not apply dimmed rather than
-left out, so the same key is in the same place every time.
 
 ### A note on where the game is drifting
 

@@ -30,7 +30,12 @@ module Roguelike::Ui
     }
 
     # A group of keys with a name, which is how the help screen shows them.
-    record Section, title : String, bindings : Widgets::Bindings
+    #
+    # *notes* are rows the help screen shows after the bindings, each a key
+    # and what it does. They are for keys a menu answers while it is up.
+    # Nothing binds them here.
+    record Section, title : String, bindings : Widgets::Bindings,
+      notes : Array({String, String}) = [] of {String, String}
 
     # Binds the application's own keys on *app*, and every section of *play*,
     # and puts the help screen on `F1` and `?`. Answers the help screen.
@@ -187,6 +192,22 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("a"), "light or put out a flame",
           ->(_context : Widgets::Context) { play.apply; nil }
       end
+    end
+
+    # The keys the inventory answers while it is up, and the keys of the menu
+    # an item's letter puts up.
+    #
+    # The menu does not bind these globally. They are listed so a person
+    # reading the help screen can find them.
+    def self.in_the_pack : Section
+      actions = Play::Handle.values
+      notes = [
+        {"a-z A-Z", "what to do with that item"},
+        {"Left Right", "show one class of item at a time"},
+        {actions.join(" ", &.key), actions.join(", ", &.label)},
+      ]
+
+      Section.new "in the inventory", Widgets::Bindings.new, notes
     end
 
     # The message history.

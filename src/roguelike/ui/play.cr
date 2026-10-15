@@ -479,6 +479,7 @@ module Roguelike::Ui
       @menu = Widgets::Menu.new
       @menu.pointer_style = Palette::POINTER_MARK
       @news_page = NewsPage.new
+      @menu.disabled_style = Palette::FAINT
       @history = HistoryPane.new
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
@@ -498,7 +499,8 @@ module Roguelike::Ui
     #
     # A row says what it is about when the pointer crosses it. `#pointed`
     # decides what to do with that once the event has been through the tree.
-    # The pack heading opens and shuts the pack when it is pressed.
+    # The pack heading opens and shuts the pack when it is pressed. A pack row
+    # pressed puts up what can be done with what is on it.
     #
     # `NearbyPane` builds its rows afresh every turn, so the hook goes on the
     # pane rather than on the rows, and the pane hands over whichever row the
@@ -514,6 +516,7 @@ module Roguelike::Ui
 
       @character.pack.each_with_index do |row, index|
         row.on_point = -> { detail row, carried_detail(index); nil }
+        row.on_press = -> { pressed_carried index; nil }
       end
 
       @character.pack_heading.on_press = -> { open_pack; nil }
@@ -526,6 +529,23 @@ module Roguelike::Ui
       return unless found
 
       Detail.about @game, found[1]
+    end
+
+    # Answers a click on the pack row at *index* with the menu of what can be
+    # done with what is on it.
+    #
+    # A recorded run takes no actions but its own, so a click there does
+    # nothing. A click during a walk or a rest stops it, as a click on the map
+    # does.
+    private def pressed_carried(index : Int32) : Nil
+      return interrupted if walking? || resting?
+      return if @viewer || @game.over? || modal? || @aiming
+
+      found = @game.player.inventory.entries[index]?
+      return unless found
+
+      @tooltip.hide
+      act_on found[0]
     end
 
     # Answers a click on the Seen row about *spot*, the way a click on
@@ -587,6 +607,7 @@ module Roguelike::Ui
         Keys::Section.new("doors and stairs", Keys.passing(self)),
         Keys::Section.new("character", Keys.wearing(self)),
         Keys::Section.new("items", Keys.handling(self)),
+        Keys.in_the_pack,
         Keys::Section.new("aiming", Keys.aiming(self)),
         Keys::Section.new("messages", Keys.reading(self)),
       ]
@@ -885,6 +906,21 @@ module Roguelike::Ui
     def choose(title : String, entries : Enumerable(Widgets::Menu::Entry),
                about : Hash(Char, Listing)? = nil,
                &chosen : Char? -> Nil) : Nil
+      ready_the_menu about, chosen
+      @menu.show application, title, entries
+    end
+
+    # Puts *pages* up under *title*, showing the one at *page*. The left and
+    # right keys turn the page.
+    def choose(title : String, pages : Array({String, Array(Widgets::Menu::Entry)}),
+               page : Int32, about : Hash(Char, Listing)? = nil,
+               &chosen : Char? -> Nil) : Nil
+      ready_the_menu about, chosen
+      @menu.show application, title, pages, page
+    end
+
+    # Hooks the menu up to hang *about* off its rows and to run *chosen*.
+    private def ready_the_menu(about : Hash(Char, Listing)?, chosen : Char? -> Nil) : Nil
       @listed = about || {} of Char => Listing
       @menu.column_margin = @listed.empty? ? Widgets::Menu::COLUMN_MARGIN : MENU_MARGIN
       @menu.on_highlight = ->(entry : Widgets::Menu::Entry?) do
@@ -901,7 +937,6 @@ module Roguelike::Ui
       end
 
       clear_the_character
-      @menu.show application, title, entries
     end
 
     # How many columns a menu with a box beside it leaves clear on each side.
@@ -1744,22 +1779,199 @@ module Roguelike::Ui
       choose("Drop what?", carried, carried_about) do |key|
         next unless key
 
-        id = id_under key
-        next unless id
-
-        @game.perform Action::Drop.new(id)
+        drop_at key
         refresh
       end
     end
 
-    # Shows what the character carries.
-    def show_inventory : Nil
+    # Drops what is under *letter*.
+    private def drop_at(letter : Char) : Nil
+      id = id_under letter
+      @game.perform Action::Drop.new(id) if id
+    end
+
+    # Shows what the character carries, one page for each class of item.
+    # `i` does this.
+    #
+    # The first page holds everything. The rest hold one class each, and a
+    # class the character carries none of has no page. Every item keeps its
+    # own letter on every page. A letter puts up what can be done with that
+    # item.
+    #
+    # *page* names the page to show first. The menu of actions comes back to
+    # the page it was opened from.
+    def show_inventory(page : String? = nil) : Nil
       if @game.player.inventory.empty?
         say "You are carrying nothing."
         return
       end
 
-      choose("Inventory", carried, carried_about) { |_key| refresh }
+      pages = pack_pages
+      at = pages.index { |found| found[0] == page } || 0
+
+      choose("Inventory", pages, at, carried_about) do |key|
+        if key
+          act_on key, @menu.page_name || EVERYTHING
+        else
+          refresh
+        end
+      end
+    end
+
+    # The name of the inventory page that holds everything.
+    EVERYTHING = "all"
+
+    # The names of the other inventory pages, in the order they are shown.
+    PACK_CLASSES = {"weapons", "armor", "amulets", "potions", "scrolls", "wands", "tools", "treasure"}
+
+    # The inventory page an item of *kind* is listed on, besides the first.
+    def self.pack_class(kind : ItemClass) : String
+      case kind
+      in .melee?, .ranged_weapon?, .ammunition?, .thrown? then "weapons"
+      in .armor?                                          then "armor"
+      in .amulet?                                         then "amulets"
+      in .potion?                                         then "potions"
+      in .scroll?                                         then "scrolls"
+      in .wand?                                           then "wands"
+      in .light?, .tool?                                  then "tools"
+      in .treasure?                                       then "treasure"
+      end
+    end
+
+    # The inventory pages, each a name and its rows.
+    private def pack_pages : Array({String, Array(Widgets::Menu::Entry)})
+      entries = @game.player.inventory.entries
+      pages = [{EVERYTHING, rows(entries)}]
+
+      PACK_CLASSES.each do |name|
+        found = entries.select { |_letter, item| Play.pack_class(item.kind.item_class) == name }
+        pages << {name, rows(found)} unless found.empty?
+      end
+
+      pages
+    end
+
+    # What can be done with one carried item, in the order the menu lists it.
+    #
+    # The order and the keys never change. An action that does not apply to
+    # the item is dimmed and does nothing, so a key is in the same place
+    # every time. Each key is the one that does the same thing from the map.
+    enum Handle
+      Wield
+      TakeOff
+      Drink
+      Read
+      Zap
+      Apply
+      Throw
+      Drop
+
+      # The key that picks this action.
+      def key : Char
+        case self
+        in Wield   then 'w'
+        in TakeOff then 'T'
+        in Drink   then 'q'
+        in Read    then 'r'
+        in Zap     then 'z'
+        in Apply   then 'a'
+        in Throw   then 't'
+        in Drop    then 'd'
+        end
+      end
+
+      # What the row says.
+      def label : String
+        case self
+        in Wield   then "wield or wear"
+        in TakeOff then "take off"
+        in Drink   then "drink"
+        in Read    then "read"
+        in Zap     then "zap"
+        in Apply   then "apply"
+        in Throw   then "throw"
+        in Drop    then "drop"
+        end
+      end
+
+      # The action *key* picks, or `nil` for a key that picks none.
+      def self.by_key(key : Char) : Handle?
+        values.find { |found| found.key == key }
+      end
+    end
+
+    # Puts up what can be done with the item under *letter*.
+    #
+    # Each row runs what its key runs from the map, with the item already
+    # picked. `Escape` goes back to the inventory page named *back*, or to
+    # the map when there is none.
+    private def act_on(letter : Char, back : String? = nil) : Nil
+      item = @game.carried letter
+      unless item
+        refresh
+        return
+      end
+
+      entries = Handle.values.map do |handle|
+        Widgets::Menu::Entry.new handle.key, handle.label,
+          enabled: handles?(handle, letter, item)
+      end
+
+      about = {} of Char => Listing
+      slot = @game.slot_of letter
+      Handle.values.each { |handle| about[handle.key] = Listing.new handle.key, item, slot }
+
+      choose("#{letter} - #{@game.name item}", entries, about) do |key|
+        handle = key ? Handle.by_key(key) : nil
+        if handle
+          handle_at handle, letter
+        elsif back
+          show_inventory back
+        else
+          refresh
+        end
+      end
+    end
+
+    # Whether *handle* applies to *item*, carried under *letter*.
+    #
+    # These are the same tests the keys use to pick what they offer.
+    private def handles?(handle : Handle, letter : Char, item : Item) : Bool
+      readied = @game.slot_of letter
+
+      case handle
+      in .wield?    then readied.nil? && !Slot.for(item).nil?
+      in .take_off? then !readied.nil?
+      in .drink?    then item.kind.item_class.potion?
+      in .read?     then item.kind.item_class.scroll?
+      in .zap?      then item.kind.item_class.wand?
+      in .apply?    then appliable_at(letter).present?
+      in .throw?    then true
+      in .drop?     then true
+      end
+    end
+
+    # Does *handle* with the item under *letter*.
+    #
+    # Each branch is the second half of the key that does the same thing:
+    # what that key does once its own menu has been answered with *letter*.
+    private def handle_at(handle : Handle, letter : Char) : Nil
+      case handle
+      in .wield?    then wield_at letter
+      in .take_off? then take_off_at letter
+      in .drink?    then quaff_at letter
+      in .read?
+        complaint = @game.cannot_read
+        return say complaint if complaint
+
+        read_at letter
+      in .zap?   then zap_at letter
+      in .apply? then return apply_at letter
+      in .throw? then throw_at letter
+      in .drop?  then drop_at letter
+      end
+
+      refresh
     end
 
     # Every carried entry, as a menu row.
@@ -1863,9 +2075,14 @@ module Roguelike::Ui
 
       offer "Throw what?", "You are carrying nothing to throw.",
         ->(_item : Item) { true } do |letter|
-        item = @game.player.inventory[letter]
-        start_aiming Aiming::Throw, letter, item.kind.reach if item
+        throw_at letter
       end
+    end
+
+    # Puts the cursor up to throw what is under *letter*.
+    private def throw_at(letter : Char) : Nil
+      item = @game.player.inventory[letter]
+      start_aiming Aiming::Throw, letter, item.kind.reach if item
     end
 
     # Aims at the next monster in sight. `Tab` does this.
@@ -2183,9 +2400,14 @@ module Roguelike::Ui
     def quaff : Nil
       offer "Drink what?", "You have nothing to drink.",
         ->(item : Item) { item.kind.item_class.potion? } do |letter|
-        id = id_under letter
-        @game.perform Action::Quaff.new(id) if id
+        quaff_at letter
       end
+    end
+
+    # Drinks the potion under *letter*.
+    private def quaff_at(letter : Char) : Nil
+      id = id_under letter
+      @game.perform Action::Quaff.new(id) if id
     end
 
     # Asks which scroll to read, then reads it. `r` does this.
@@ -2201,15 +2423,20 @@ module Roguelike::Ui
 
       offer "Read what?", "You have nothing to read.",
         ->(item : Item) { item.kind.item_class.scroll? } do |letter|
-        if @game.marks_first? letter
-          bless_with letter
-        elsif @game.target_needed? letter
-          aim_with letter
-        elsif @game.choice_needed? letter
-          @game.effect_of(letter).repair? ? repair_with(letter) : identify_with(letter)
-        else
-          read_now letter
-        end
+        read_at letter
+      end
+    end
+
+    # Reads the scroll under *letter*, and asks whatever it needs asked.
+    private def read_at(letter : Char) : Nil
+      if @game.marks_first? letter
+        bless_with letter
+      elsif @game.target_needed? letter
+        aim_with letter
+      elsif @game.choice_needed? letter
+        @game.effect_of(letter).repair? ? repair_with(letter) : identify_with(letter)
+      else
+        read_now letter
       end
     end
 
@@ -2343,16 +2570,21 @@ module Roguelike::Ui
 
       offer "Zap what?", "You have nothing to zap.",
         ->(item : Item) { item.kind.item_class.wand? } do |letter|
-        item = @game.player.inventory[letter]
-        next unless item
+        zap_at letter
+      end
+    end
 
-        effect = @game.effect_of letter
-        if effect.aimed?
-          start_aiming Aiming::Zap, letter, item.kind.reach
-        else
-          id = id_under letter
-          @game.perform Action::Zap.new(id) if id
-        end
+    # Zaps the wand under *letter*, or puts the cursor up for one that is
+    # aimed.
+    private def zap_at(letter : Char) : Nil
+      item = @game.player.inventory[letter]
+      return unless item
+
+      if @game.effect_of(letter).aimed?
+        start_aiming Aiming::Zap, letter, item.kind.reach
+      else
+        id = id_under letter
+        @game.perform Action::Zap.new(id) if id
       end
     end
 
@@ -2365,9 +2597,14 @@ module Roguelike::Ui
     def wield : Nil
       offer "Wield or wear what?", "You have nothing to wield or wear.",
         ->(item : Item) { !Slot.for(item).nil? } do |letter|
-        id = id_under letter
-        @game.don id if id
+        wield_at letter
       end
+    end
+
+    # Wields or wears what is under *letter*.
+    private def wield_at(letter : Char) : Nil
+      id = id_under letter
+      @game.don id if id
     end
 
     # Asks what to take off, then takes it off.
@@ -2386,6 +2623,12 @@ module Roguelike::Ui
       else
         choose_slot held
       end
+    end
+
+    # Takes off what is under *letter*, if it is readied.
+    private def take_off_at(letter : Char) : Nil
+      slot = @game.slot_of letter
+      @game.perform Action::Remove.new(slot) if slot
     end
 
     # Asks which of *held* to take off.
@@ -2416,6 +2659,27 @@ module Roguelike::Ui
       case found.size
       when 0
         say "You have nothing to light or spike, and there is no sconce beside you."
+      when 1
+        @game.perform lighting(found.first)
+        refresh
+      else
+        choose_target found
+      end
+    end
+
+    # Everything the item under *letter* could be applied to now.
+    private def appliable_at(letter : Char) : Array(Apply)
+      @game.appliable.select { |target| target.letter == letter }
+    end
+
+    # Applies the item under *letter*. Several targets for it ask which, as
+    # `a` does.
+    private def apply_at(letter : Char) : Nil
+      found = appliable_at letter
+
+      case found.size
+      when 0
+        refresh
       when 1
         @game.perform lighting(found.first)
         refresh

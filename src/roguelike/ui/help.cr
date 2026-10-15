@@ -184,6 +184,8 @@ module Roguelike
               @rows << Row.new(line, row == 2 ? MOVING : "")
             end
           end
+
+          section.notes.each { |(keys, description)| @rows << Row.new(keys, description) }
         end
       end
 
