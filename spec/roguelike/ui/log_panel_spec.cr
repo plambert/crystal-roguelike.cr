@@ -9,17 +9,14 @@ Spectator.describe Roguelike::Ui::LogPanel do
   # twenty-four window.
   OVER_THE_PANE = {40, 21}
 
-  # A run with *count* messages said and every held page read.
+  # A run with *count* messages said, with the log at its newest line.
   def talkative(count : Int32 = 12, clock : Bool = false, motion : Bool = false) : Playing::Run
     run = Playing.open clock: clock, motion: motion
     run.clear_monsters
     count.times { |number| run.game.log.add "Something number #{number} happened." }
     run.play.refresh
+    run.pager.to_newest
     run.render
-
-    while run.pager.holding?
-      run.press "."
-    end
 
     run.run_timers if clock
     run
@@ -60,7 +57,7 @@ Spectator.describe Roguelike::Ui::LogPanel do
 
     it "grows no further than what it holds" do
       run = Playing.open rows: 60
-      run.pager.catch_up
+      run.pager.to_newest
       3.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
@@ -74,7 +71,7 @@ Spectator.describe Roguelike::Ui::LogPanel do
 
     it "never shrinks below its unfocused height" do
       run = Playing.open rows: 60
-      run.pager.catch_up
+      run.pager.to_newest
 
       run.press "Shift+Tab"
 
@@ -98,7 +95,7 @@ Spectator.describe Roguelike::Ui::LogPanel do
       run = Playing.open Playing.field
       12.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
-      run.pager.catch_up
+      run.pager.to_newest
       x, y = run.at
       rows = run.screen.map.rect.height
       run.map.camera = {run.map.camera[0], y - rows + 1}
@@ -128,7 +125,7 @@ Spectator.describe Roguelike::Ui::LogPanel do
   describe "the scrollbar" do
     it "is blank while everything fits" do
       run = Playing.open
-      run.pager.catch_up
+      run.pager.to_newest
 
       expect(run.pager.lines.size).to be <= run.pager.rows
       (20..23).each { |row| expect(run.row(row)[79]?).to be_nil }
@@ -146,33 +143,8 @@ Spectator.describe Roguelike::Ui::LogPanel do
     end
   end
 
-  describe "going back on losing focus" do
-    it "shrinks and scrolls to the end with sampled rows, ending on the last rows" do
-      run = talkative 40, clock: true, motion: true
-      run.press "Shift+Tab"
-      run.run_timers
-      run.press "Home"
-      run.run_timers
-      expect(run.pager.scroll_y).to eq 0
-
-      run.press "Tab"
-      drawn = [{run.screen.log_size, run.pager.shown}] + frames(run)
-
-      last = run.pager.lines.size - 1
-      expect(drawn.first[0]).to be < 6
-      expect(drawn.last[0]).to eq 4
-      expect(drawn.last[1]).to eq ((last - 3)..last).to_a
-      expect(drawn.size).to be <= Roguelike::Ui::LogPanel::RETURN_FRAMES + 1
-
-      # The rows inserted along the way skip, so the scroll reads as a
-      # scroll and still ends in a few frames.
-      seen = drawn.flat_map(&.[1]).uniq!.sort!
-      expect(seen.each_cons_pair.any? { |(above, below)| below - above > 1 }).to be_true
-      expect(run.pager.back).to eq 0
-      expect(run.pager.sampled).to be_nil
-    end
-
-    it "lands on the end at once with motion off" do
+  describe "losing focus" do
+    it "shrinks and keeps its place" do
       run = talkative 40
       run.press "Shift+Tab"
       run.press "Home"
@@ -180,24 +152,79 @@ Spectator.describe Roguelike::Ui::LogPanel do
       run.press "Tab"
 
       expect(run.screen.log_size).to eq 4
+      expect(run.pager.back).to be > 0
+      expect(run.row(23)).to contain "newer"
+    end
+  end
+
+  describe "jumping to the end" do
+    # The log focused and scrolled to its oldest line, with motion on.
+    def far_back : Playing::Run
+      run = talkative 40, clock: true, motion: true
+      run.press "Shift+Tab"
+      run.run_timers
+      run.press "Home"
+      run.run_timers
+      run
+    end
+
+    # What each frame drew, from the one drawn now.
+    def jumped(run : Playing::Run) : Array(Array(Int32))
+      [run.pager.shown] + frames(run).map(&.[1])
+    end
+
+    it "inserts sampled rows on End, ending on the last rows" do
+      run = far_back
+      expect(run.pager.scroll_y).to eq 0
+
+      run.press "End"
+      drawn = jumped run
+
+      last = run.pager.lines.size - 1
+      expect(drawn.last).to eq ((last - 5)..last).to_a
+      expect(drawn.size).to be <= Roguelike::Ui::LogPanel::RETURN_FRAMES + 1
+
+      # The rows inserted along the way skip, so the scroll reads as a
+      # scroll and still ends in a few frames.
+      seen = drawn.flat_map(&.itself).uniq!.sort!
+      expect(seen.each_cons_pair.any? { |(above, below)| below - above > 1 }).to be_true
+      expect(run.pager.back).to eq 0
+      expect(run.pager.sampled).to be_nil
+    end
+
+    it "does the same on Enter" do
+      run = far_back
+
+      run.press "Enter"
+      drawn = jumped run
+
+      expect(drawn.size).to be > 2
+      expect(run.pager.back).to eq 0
+    end
+
+    it "lands on the end at once with motion off" do
+      run = talkative 40
+      run.press "Shift+Tab"
+      run.press "Home"
+
+      run.press "End"
+
       expect(run.pager.back).to eq 0
     end
   end
 
   describe "scrolled while unfocused" do
-    it "stays scrolled until a message arrives, then scrolls back to the line before it" do
-      run = talkative 40, clock: true, motion: true
+    it "stays where it is when a message arrives, and the badge counts it" do
+      run = talkative 40
       6.times { run.wheel *OVER_THE_PANE, up: true }
-      before = run.pager.lines.size - 1
+      showing = run.pager.showing
 
       run.game.log.add "Something new happened."
       run.play.refresh
-      drawn = [run.pager.shown] + frames(run).map(&.[1])
+      run.render
 
-      expect(drawn.last(2).first.last).to eq before
-      expect(drawn.last(2).first).to eq ((before - 3)..before).to_a
-      expect(run.pager.back).to eq 0
-      expect(run.rows[23]).to contain "Something new happened."
+      expect(run.pager.showing).to eq showing
+      expect(run.row(23)).to contain "\u2193 7 newer"
     end
   end
 
@@ -228,7 +255,7 @@ Spectator.describe Roguelike::Ui::LogPanel do
       run.clear_monsters
       LIMIT.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
-      run.pager.catch_up
+      run.pager.to_newest
       run.render
       run.run_timers if clock
       run
@@ -269,22 +296,15 @@ Spectator.describe Roguelike::Ui::LogPanel do
       expect(run.pager.newer).to eq newer + 1
     end
 
-    it "scrolls an unfocused log back to the lines before the message" do
-      run = capped clock: true, motion: true
+    it "holds an unfocused log still too, and the badge counts up" do
+      run = capped
       6.times { run.wheel *OVER_THE_PANE, up: true }
-      before = run.game.log.lines.last(4)
+      showing = run.pager.showing
 
-      run.game.log.add "Something new happened."
-      run.play.refresh
-      drawn = [run.pager.showing]
-      while run.tick
-        run.render
-        drawn << run.pager.showing
-      end
+      say_more run
 
-      expect(drawn.last(2).first).to eq before
-      expect(run.pager.back).to eq 0
-      expect(run.rows[23]).to contain "Something new happened."
+      expect(run.pager.showing).to eq showing
+      expect(run.pager.newer).to eq 7
     end
   end
 
@@ -344,8 +364,8 @@ Spectator.describe Roguelike::Ui::LogPanel do
     end
   end
 
-  describe "a held page" do
-    it "holds a taller page in a grown log" do
+  describe "a turn that says more than fits" do
+    it "parks a grown log on the first new line" do
       run = talkative
       run.press "Shift+Tab"
 
@@ -353,27 +373,23 @@ Spectator.describe Roguelike::Ui::LogPanel do
       run.play.refresh
       run.render
 
-      expect(run.pager.holding?).to be_true
-      expect(run.pager.page).to eq 5
-      expect(run.row(23)).to contain "--More--"
+      expect(run.pager.showing.first).to eq "Something else number 0."
+      expect(run.pager.showing.size).to eq 6
+      expect(run.row(23)).to contain "\u2193 6 newer"
+      expect(run.row(23)).not_to contain "--More--"
     end
 
-    it "is shown from its read mark however far the log was scrolled" do
+    it "leaves a log scrolled back where it is" do
       run = talkative
       3.times { run.wheel *OVER_THE_PANE, up: true }
+      showing = run.pager.showing
 
       12.times { |number| run.game.log.add "Something else number #{number}." }
       run.play.refresh
       run.render
 
-      expect(run.pager.holding?).to be_true
-      expect(run.pager.showing.first).to eq "Something else number 0."
-
-      while run.pager.holding?
-        run.press "."
-      end
-
-      expect(run.pager.back).to eq 0
+      expect(run.pager.showing).to eq showing
+      expect(run.pager.newer).to eq 15
     end
   end
 

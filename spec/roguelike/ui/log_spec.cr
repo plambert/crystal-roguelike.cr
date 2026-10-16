@@ -4,9 +4,8 @@ Spectator.describe "the message log" do
   alias Direction = Roguelike::Direction
 
   describe "a flood of messages" do
-    it "holds at --More-- when one action writes more than the log keeps" do
+    it "parks on the oldest line it kept when one action writes more than the log keeps" do
       run = Playing.open
-      run.pager.catch_up
       (Roguelike::MessageLog::LIMIT + 20).times do |number|
         run.game.log.add "You feel thing number #{number}."
       end
@@ -14,8 +13,8 @@ Spectator.describe "the message log" do
       run.play.refresh
       run.render
 
-      expect(run.pager.holding?).to be_true
-      expect(run.pager.unread).to eq run.pager.lines.size
+      expect(run.pager.scroll_y).to eq 0
+      expect(run.pager.newer).to be > 0
     end
   end
 
@@ -100,33 +99,64 @@ Spectator.describe "the message log" do
       expect(run.pager.lines.size).to be > 1
     end
 
-    # A turn that produces six lines in a four row pane loses two of them
-    # without a pager.
-    it "holds at a page boundary when a burst arrives" do
+    # A turn that produces six lines in a four row pane would push the
+    # first two past unread if the pane followed the newest line.
+    it "parks on the first new line when a burst arrives" do
       run = Playing.open
       6.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
 
-      expect(run.pager.holding?).to be_true
-      expect(run.rows[23]).to contain "--More--"
+      expect(run.rows[20]).to contain "Something number 0 happened."
+      expect(run.rows[23]).to contain "\u2193 2 newer"
+      expect(run.rows[23]).not_to contain "--More--"
     end
 
-    it "shows the rest on a key" do
+    it "pages down to the rest on Space, and takes no turn" do
       run = Playing.open
       6.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
+      turn = run.turn
 
-      run.press "l"
+      run.press "Space"
 
-      expect(run.pager.holding?).to be_false
+      expect(run.pager.back).to eq 0
+      expect(run.rows[23]).to contain "Something number 5 happened."
+      expect(run.turn).to eq turn
     end
 
-    # A pager that let other keys through would walk the character while the
-    # person was reading.
-    it "swallows the key that clears it" do
+    it "does nothing on Space at the newest line" do
       run = Playing.open
+      turn = run.turn
+
+      run.press "Space"
+
+      expect(run.pager.back).to eq 0
+      expect(run.turn).to eq turn
+    end
+
+    it "follows new lines again once paged to the end" do
+      run = Playing.open
+      run.clear_monsters
+      6.times { |number| run.game.log.add "Something number #{number} happened." }
+      run.play.refresh
+      run.render
+      run.press "Space"
+
+      run.game.log.add "Something else happened."
+      run.play.refresh
+      run.render
+
+      expect(run.pager.back).to eq 0
+      expect(run.rows[23]).to contain "Something else happened."
+    end
+
+    # Nothing blocks. A key that moves the character moves them while the
+    # lines wait under the badge.
+    it "lets the next key through" do
+      run = Playing.open
+      run.clear_monsters
       start = run.at
       8.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
@@ -134,12 +164,13 @@ Spectator.describe "the message log" do
 
       run.press "l"
 
-      expect(run.at).to eq start
+      expect(run.at).to eq({start[0] + 1, start[1]})
+      expect(run.pager.newer).to be > 0
     end
 
     # The case that asked for this: one scroll says a dozen things, and the
     # pane is four rows.
-    it "holds on the list a scroll of item detection writes" do
+    it "pages through the list a scroll of item detection writes" do
       kinds = [Roguelike::ItemKind::Dagger, Roguelike::ItemKind::Mace,
                Roguelike::ItemKind::Cap, Roguelike::ItemKind::Boots]
 
@@ -156,33 +187,18 @@ Spectator.describe "the message log" do
       run.press "r"
       run.press letter.to_s
 
-      expect(run.pager.holding?).to be_true
-      expect(run.rows[23]).to contain "--More--"
+      expect(run.pager.back).to be > 0
 
-      lines = [] of String
-      while run.pager.holding?
+      lines = run.pager.showing
+      while run.pager.back > 0
+        run.press "Space"
         lines.concat run.pager.showing
-        run.press "Enter"
       end
-      lines.concat run.pager.showing
 
       # Nothing the scroll said went past unseen, which is the whole point
-      # of holding.
+      # of parking.
       everything = run.game.log.lines
       everything.each { |said| expect(lines).to contain said }
-    end
-
-    it "gives the keys back once the reading is done" do
-      run = Playing.open
-      start = run.at
-      6.times { |number| run.game.log.add "Something number #{number} happened." }
-      run.play.refresh
-      run.render
-
-      run.press "l"
-      run.press "l"
-
-      expect(run.at).to eq({start[0] + 1, start[1]})
     end
   end
 
@@ -191,17 +207,14 @@ Spectator.describe "the message log" do
     # twenty-four window.
     OVER_THE_LOG = {40, 21}
 
-    # A run with *count* messages said and every held page read.
+    # A run with *count* messages said, with the log at its newest line.
     def talkative(count : Int32 = 12) : Playing::Run
       run = Playing.open
       run.clear_monsters
       count.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
+      run.pager.to_newest
       run.render
-
-      while run.pager.holding?
-        run.press "."
-      end
 
       run
     end
@@ -234,15 +247,15 @@ Spectator.describe "the message log" do
       expect(run.at).to eq start
     end
 
-    it "goes back to the newest when a turn says something" do
+    it "stays scrolled when a turn says something, and the badge counts it" do
       run = talkative
       3.times { run.wheel *OVER_THE_LOG, up: true }
 
       run.game.log.add "Something new happened."
       run.press "."
 
-      expect(run.pager.back).to eq 0
-      expect(run.rows[23]).to contain run.said
+      expect(run.pager.back).to eq 4
+      expect(run.rows[23]).to contain "\u2193 4 newer"
     end
 
     it "stays scrolled through a turn that says nothing" do
@@ -310,17 +323,16 @@ Spectator.describe "the message log" do
         game.log.add "Something earlier, number #{number}."
       end
       run.play.refresh
-      run.pager.catch_up
+      run.pager.to_newest
       run.render
       run
     end
 
-    # Reads every held page, then fires once. Returns how many lines the
-    # shot and the turn after it wrote.
+    # Puts the log at its newest line, then fires once. Returns how many
+    # lines the shot and the turn after it wrote.
     def volley(run : Playing::Run) : Int32
-      while run.pager.holding?
-        run.press "Enter"
-      end
+      run.pager.to_newest
+      run.render
 
       run.press "f"
       before = run.game.log.written
@@ -328,7 +340,7 @@ Spectator.describe "the message log" do
       run.game.log.written - before
     end
 
-    it "holds on the lines a volley writes" do
+    it "parks on the lines a volley writes, and pages through them" do
       run = fight
 
       # The archers take a few turns to pick up arrows and come into range.
@@ -339,30 +351,23 @@ Spectator.describe "the message log" do
       end
       expect(wrote).to be > run.pager.rows
 
-      expect(run.pager.holding?).to be_true
-      expect(run.rows[23]).to contain "--More--"
+      volleyed = run.game.log.lines.last(wrote)
+      expect(run.pager.showing.first).to eq volleyed.first
 
-      pages = [] of String
-      while run.pager.holding?
+      pages = run.pager.showing
+      while run.pager.back > 0
+        run.press "Space"
         pages.concat run.pager.showing
-        run.press "Enter"
       end
 
-      # The last view keeps older lines above the newest for context. Those
-      # are the longest run at its top that the pages already end with.
-      rest = run.pager.showing
-      sizes = 0..Math.min(rest.size, pages.size)
-      seen = sizes.select { |size| rest.first(size) == pages.last(size) }.max
-      pages.concat rest[seen..]
-
-      # Every line of the volley shows, in order, with none skipped between
-      # one page and the next.
-      expect(pages).to eq run.game.log.lines.last(wrote)
+      # Every line of the volley shows, with none skipped between one page
+      # and the next.
+      volleyed.each { |said| expect(pages).to contain said }
     end
   end
 
   describe "drawn" do
-    it "draws what it drew last time with a page held" do
+    it "draws what it drew last time after a turn that said more than fits" do
       run = Playing.open
       6.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh

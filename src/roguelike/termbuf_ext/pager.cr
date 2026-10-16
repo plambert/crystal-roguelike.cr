@@ -3,48 +3,31 @@ require "termbuf-widgets"
 # Extraction candidate: `TermBuf::Widgets::Pager`, for termbuf-widgets.cr.
 #
 # A pane of N rows shows the last N lines. A turn that produces six lines in
-# a four row pane loses two of them, and those two are never drawn at all.
+# a four row pane would push the first two past before anybody read them.
 #
-# `less` solves this by holding at a page boundary. Roguelikes solve it the
-# same way and write `--More--` at the end of the line. The widget catalog
-# has nothing that does it. `VirtualList` scrolls, and scrolling past unread
-# text is the problem rather than the fix.
+# This pager follows the newest line only while its window is at the end.
+# A batch of lines too big for the pane parks the window with the first of
+# them at the top, so the start of the batch is what shows. A window that is
+# not at the end stays where it is as lines arrive, and a badge on the last
+# row counts what is below. Nothing blocks, and no key is taken.
 #
 # This type is written in `TermBuf::Widgets` rather than in `Roguelike`.
 # Extracting it is then a file move with no edits.
 #
-# Two questions remain open:
-#
-# * Should this be a `VirtualList` over `Rows(String)` instead? A list holds a
-#   window and a selection. A pager holds a read mark and a page size. The two
-#   pieces of state do not overlap, so a subclass would carry a selection it
-#   never uses.
-# * Should `#resize` be needed at all? The widget learns its own size during
-#   `#draw`. Holding is decided outside `#draw` because pushing a focus scope
-#   during a render is not safe. An owner that already knows the pane size
-#   passes it in.
+# One question remains open. Should this be a `VirtualList` over
+# `Rows(String)` instead? A list holds a window and a selection, and a pager
+# never selects, so a subclass would carry a selection it never uses.
 module TermBuf::Widgets
-  # Lines that hold at a page boundary until a key is pressed.
+  # Lines in a window that follows the newest line while it is at the end.
   #
   #     pager.resize 78, 4
-  #     pager.show log.lines
-  #     pager.holding?   # => true when more arrived than one page holds
+  #     pager.show log.lines, arrived: 6
+  #     pager.back    # => how far above the end the window parked
   #
   # The widget wraps what it is given to its own width. A line longer than the
   # pane becomes two lines rather than being cut.
-  #
-  # A pager pushes a focus scope while it holds. Every key then reaches the
-  # pager and stops there. `Router` reads the chain's keymaps before it offers
-  # an event to a widget's `#handle`, so an application binding would answer
-  # before the pager saw the key.
   class Pager < Widget
     include Scrolls
-
-    # What the pager draws at the end of a page when more lines remain.
-    property marker : String = "--More--"
-
-    # What the marker is drawn in.
-    property marker_style : Style = Style::DEFAULT.reverse
 
     # What the newest `#fresh` source lines are drawn in. `nil` draws every
     # line in the pane's own style.
@@ -53,7 +36,7 @@ module TermBuf::Widgets
     # How many of the newest source lines are drawn in `#fresh_style`.
     #
     # An owner sets this each frame. It changes how lines are drawn and
-    # nothing about which lines show or hold.
+    # nothing about which lines show.
     property fresh : Int32 = 0
 
     # A run of characters in one wrapped line drawn in a style of its own.
@@ -65,7 +48,7 @@ module TermBuf::Widgets
     # What finds the accents in a wrapped line. `nil` draws none.
     #
     # It sees each line after wrapping, so an accent never spans two rows. It
-    # changes how lines are drawn and nothing about which lines show or hold.
+    # changes how lines are drawn and nothing about which lines show.
     property accents : Proc(String, Array(Accent))? = nil
 
     # Cells across. An owner sets this with `#resize`.
@@ -77,15 +60,10 @@ module TermBuf::Widgets
     # Every line, wrapped to `#columns`, oldest first.
     getter lines : Array(String) = [] of String
 
-    # How many lines the person has seen.
-    getter read : Int32 = 0
-
     # How many lines back from the newest the window sits.
     #
-    # Zero is the bottom, which is where the pane stands until somebody
-    # scrolls it. A line arriving puts it back to zero: what just happened is
-    # what a person wants to see, and a pane left where it was scrolled to
-    # would go quietly stale.
+    # Zero is the end, where the window follows each line that arrives.
+    # Anywhere else it stays on the lines it shows.
     getter back : Int32 = 0
 
     # How many lines one notch of the wheel moves.
@@ -94,35 +72,36 @@ module TermBuf::Widgets
     # it.
     property wheel : Int32 = 1
 
-    # The application this pager is drawn on.
+    # Whether an owner has asked the pane not to park for now.
     #
-    # An owner sets this once it has built an `App`. Holding needs it to push
-    # a focus scope. A pager without one still holds and still draws the
-    # marker. Other keys then reach their own bindings.
-    property app : App? = nil
+    # `Ui::Play` sets it while a walk, a flight or a recorded run is drawn a
+    # step at a time. The window then follows every line, so the frames of a
+    # walk do not leave it parked part way back. When the owner lets go, the
+    # lines that arrived meanwhile park the window the way one batch would.
+    getter? deferred : Bool = false
 
-    # The focus scope holding pushed.
-    @scope : Focus::Scope? = nil
+    # :ditto:
+    def deferred=(wanted : Bool) : Bool
+      return wanted if wanted == @deferred
 
-    # What to run when a hold an owner asked for is let go.
-    #
-    # A hold the line count called for runs nothing: nobody asked for it, so
-    # nobody is waiting on it. `#hold` is what arms this.
-    property on_release : Proc(Nil)? = nil
+      @deferred = wanted
+      unless wanted
+        came = @deferred_came
+        @deferred_came = 0
+        park came if @back == 0
+      end
+      wanted
+    end
 
-    # Whether an owner asked for a hold that the line count does not call
-    # for. `#hold` sets it and `#advance` clears it.
-    @insisted = false
-
-    # How many wrapped lines each source line became, oldest first.
-    @rows_per_line = [] of Int32
+    # How many lines arrived while the pane was deferred.
+    @deferred_came : Int32 = 0
 
     # The lines to draw in place of the window, by index, top to bottom.
     # `nil` draws the window.
     #
     # An owner sets this to draw the frames of a scroll that skips rows. See
     # `SampledScroll`. The pane draws the last `#rows` of them. Scrolling the
-    # pane, or new text, clears it. A held page draws over it.
+    # pane, or new text, clears it.
     property sampled : Array(Int32)? = nil
 
     # What the pane says while lines below the window are not showing, given
@@ -131,7 +110,7 @@ module TermBuf::Widgets
     # The text is drawn over the right end of the last row, so most of the
     # row stays readable.
     #
-    #     pager.badge = ->(count : Int32) { " \u2193 #{count} newer " }
+    #     pager.badge = ->(count : Int32) { " ↓ #{count} newer " }
     property badge : Proc(Int32, String)? = nil
 
     # What the badge is drawn in.
@@ -141,6 +120,9 @@ module TermBuf::Widgets
     # line at once.
     property on_badge : Proc(Nil)? = nil
 
+    # How many wrapped lines each source line became, oldest first.
+    @rows_per_line = [] of Int32
+
     def initialize(style : Style? = nil)
       @width = Layout::Sizing.grow
       @height = Layout::Sizing.grow
@@ -149,182 +131,76 @@ module TermBuf::Widgets
       @given = [] of String
     end
 
-    # Sets the size of the pane. Wraps the text again when the width changed.
+    # Sets the size of the pane. Wraps the text again when the width changed,
+    # and keeps the window on the line at its top.
     def resize(columns : Int32, rows : Int32) : Nil
       @rows = rows
 
       if columns == @columns
-        settle
+        @back = @back.clamp 0, max_scroll[1]
         return
       end
 
+      top = @back > 0 ? window_top : nil
       @columns = columns
       rewrap
+      place top
     end
 
-    # Shows *source*, oldest first.
-    #
-    # A line already shown stays shown. The read mark moves only when the
-    # person has seen a line.
+    # Shows *source*, oldest first. *arrived* is how many lines were added
+    # at the end since the last call.
     #
     # The same lines a second time change nothing. An owner redraws on every
     # frame, and rewrapping text that has not moved would throw away a
     # scrolled window several times a second.
     #
-    # A source may drop its oldest lines as it gains new ones. A capped log
-    # does this, and its size then stays the same however much is added. The
-    # read mark moves back by what was dropped, so the new lines still count
-    # as unread. An owner that knows how many lines *arrived* since the last
-    # call says so, and the dropped count comes from that. Otherwise the
-    # shown lines are looked for in the new source, which fails when more
-    # arrived than the source keeps, since nothing shown is left in it.
+    # A window at the end follows the new lines. When they make more rows
+    # than the pane has, it parks with the first of them at the top, unless
+    # the pane is `#deferred?`. A window anywhere else stays on the lines it
+    # shows, and what arrived waits below it.
     #
-    # With *keep*, the window stays on the lines it was showing, and what
-    # arrived waits below it. Otherwise the window goes to the newest line.
-    # A capped source may drop lines the window shows. The pager keeps
-    # those lines in front of the source until the window moves on, so the
-    # window holds still and the lines below it count what arrived.
-    def show(source : Array(String), arrived : Int32? = nil, keep : Bool = false) : Nil
+    # A source may drop its oldest lines as it gains new ones. A capped log
+    # does this, and its size then stays the same however much is added. An
+    # owner that knows how many lines *arrived* since the last call says so,
+    # and the dropped count comes from that. Otherwise the shown lines are
+    # looked for in the new source, which fails when more arrived than the
+    # source keeps, since nothing shown is left in it. The pager keeps any
+    # dropped line the window shows in front of the source until the window
+    # moves on, so the window holds still.
+    def show(source : Array(String), arrived : Int32? = nil) : Nil
       return if @given == source
 
       shift = arrived ? dropped(source, arrived) : dropped(source)
-      top = keep ? window_top : nil
+      came = (arrived || source.size - (@source.size - shift)).clamp 0, source.size
+      top = @back > 0 ? window_top : nil
       kept = [] of String
       if top && top[0] < shift
         kept = @source[top[0]..Math.min(window_bottom_line, shift - 1)]
       end
 
-      @read -= @rows_per_line.first(shift).sum - kept.sum { |line| rows_of line }
       @given = source.dup
       @source = kept + source
       @back = 0
       rewrap
-      return unless top
 
-      line = top[0] < shift ? 0 : top[0] - shift + kept.size
-      row = @rows_per_line.first(line).sum + top[1]
-      @back = (@lines.size - @rows - row).clamp 0, max_scroll[1]
-    end
-
-    # The source line the window's top row is in, and which of that line's
-    # wrapped rows it is.
-    private def window_top : {Int32, Int32}
-      line_of Math.max(@lines.size - @rows - @back, 0)
-    end
-
-    # The source line the window's bottom row is in.
-    private def window_bottom_line : Int32
-      line_of(Math.max(@lines.size - 1 - @back, 0))[0]
-    end
-
-    # The source line wrapped row *row* is in, and which of its rows it is.
-    private def line_of(row : Int32) : {Int32, Int32}
-      start = 0
-      @rows_per_line.each_with_index do |size, index|
-        return {index, row - start} if row < start + size
-
-        start += size
+      if top
+        line = top[0] < shift ? 0 : top[0] - shift + kept.size
+        place({line, top[1]})
+      else
+        park came
       end
-      {@rows_per_line.size, 0}
-    end
-
-    # How many rows *line* wraps to.
-    private def rows_of(line : String) : Int32
-      @columns > 0 ? Pager.wrap(line, @columns).size : 1
-    end
-
-    # How many wrapped lines the person has not seen.
-    def unread : Int32
-      @lines.size - @read
-    end
-
-    # Whether more lines arrived than one page holds, or an owner asked to
-    # hold anyway.
-    #
-    # A pane an owner has deferred holds nothing at all. See `#deferred?`.
-    def holding? : Bool
-      return false if @deferred
-
-      @rows > 0 && (@insisted || unread > @rows)
-    end
-
-    # Whether an owner has asked the pane not to hold for now.
-    #
-    # `Ui::Play` sets it while a walk is drawn a step at a time. Lines pile up
-    # during the walk and the hold is for when the person has the keyboard
-    # back: a hold part way through would take the keyboard from the walk and
-    # leave two things pushing focus scopes at once.
-    getter? deferred : Bool = false
-
-    # :ditto:
-    def deferred=(wanted : Bool) : Bool
-      return wanted if wanted == @deferred
-
-      @deferred = wanted
-      settle
-      wanted
-    end
-
-    # Holds at the newest page, however few lines arrived.
-    #
-    # An owner calls this when one line has to be read before anything else
-    # happens. The pane goes on showing the newest page and writes the marker
-    # under it, and the next key clears it the way it clears any other hold.
-    def hold : Bool
-      return false unless @rows > 0
-
-      @insisted = true
-      @read = Math.max @lines.size - page, 0
-      settle
-      true
-    end
-
-    # How many lines one page shows while the pager holds.
-    #
-    # One row goes to the marker. A page that used every row would leave
-    # nowhere to say that more is coming.
-    def page : Int32
-      Math.max @rows - 1, 1
-    end
-
-    # Shows the next page. Does nothing while the pager is not holding.
-    def advance : Bool
-      return false unless holding?
-
-      asked = @insisted
-      @insisted = false
-      @read += page
-      settle
-      @on_release.try &.call if asked
-
-      true
-    end
-
-    # Marks every line as seen, and drops a hold an owner asked for.
-    #
-    # An owner calls this when the lines it has just handed over are lines the
-    # person has already read. Restoring a saved run does that: the log comes
-    # back whole, and none of it is news.
-    def catch_up : Nil
-      @insisted = false
-      @read = @lines.size
-      settle
     end
 
     # Puts the window back on the newest line.
-    #
-    # An owner calls this when what the pane is beside has moved on. A pane
-    # scrolled back is showing what was happening rather than what is.
     def to_newest : Nil
       @back = 0
       @sampled = nil
     end
 
     # How many source lines end below the window, which a person has to
-    # scroll down to read all of. Zero at the newest line, and while a page
-    # is held.
+    # scroll down to read all of. Zero at the newest line.
     def newer : Int32
-      return 0 if holding? || @rows <= 0
+      return 0 if @rows <= 0
 
       bottom = @lines.size - 1 - @back
       ended = -1
@@ -334,12 +210,13 @@ module TermBuf::Widgets
       end
     end
 
+    # How many lines one page moves. One row of the last page stays, so a
+    # line is never paged past unseen.
+    def page : Int32
+      Math.max @rows - 1, 1
+    end
+
     # The lines this pane shows now.
-    #
-    # While the pager holds, this is one page starting at the read mark.
-    # Otherwise it is the `#rows` lines ending `#back` lines above the
-    # newest, so older text stays as context and the wheel reaches further
-    # back.
     def showing : Array(String)
       shown.map { |index| @lines[index] }
     end
@@ -347,8 +224,6 @@ module TermBuf::Widgets
     # The indices of the lines `#showing` answers, top to bottom.
     def shown : Array(Int32)
       return [] of Int32 if @rows <= 0
-
-      return (@read...Math.min(@read + page, @lines.size)).to_a if holding?
 
       frame = @sampled
       return frame.last(@rows).select { |index| index < @lines.size } if frame
@@ -383,11 +258,9 @@ module TermBuf::Widgets
 
     # Which line is at the top of the window.
     #
-    # A held page answers for its first line, and a sampled frame for the
-    # line at the bottom of the frame, so a scrollbar shows what is drawn.
+    # A sampled frame answers for the line at the bottom of the frame, so a
+    # scrollbar shows what is drawn.
     def scroll_y : Int32
-      return @read.clamp(0, max_scroll[1]) if holding?
-
       frame = @sampled
       return (frame.last - @rows + 1).clamp(0, max_scroll[1]) if frame && !frame.empty?
 
@@ -395,19 +268,14 @@ module TermBuf::Widgets
     end
 
     # Moves the window, stopping at either end.
-    #
-    # A held page is not scrolled. What is showing then is a page that has
-    # not been read, and moving it is how a line goes unread.
     def scroll_by(dx : Int32, dy : Int32) : Nil
-      return if holding?
-
       @sampled = nil
       @back = (@back - dy).clamp 0, max_scroll[1]
     end
 
-    # The keyboard lands here while the pager holds. It lands nowhere else.
+    # The keyboard never lands here. The owner binds the keys that scroll it.
     def focusable? : Bool
-      holding?
+      false
     end
 
     def intrinsic_width(policy : Unicode::WidthPolicy) : Layout::Intrinsic
@@ -418,29 +286,13 @@ module TermBuf::Widgets
       Math.max @rows, 1
     end
 
-    # Takes every key while the pager holds. Any key shows the next page.
-    #
-    # A wheel notch is answered whether it holds or not. While it holds, a
-    # notch down shows the next page, which is what the marker is asking
-    # for. Otherwise the notch moves the window over the lines already read.
+    # Answers a notch of the wheel, and a click on the badge.
     def handle(event : Event, context : Context) : Nil
-      case event
-      when Events::Mouse
-        return pressed(event, context) unless event.button.wheel?
+      return unless event.is_a? Events::Mouse
+      return pressed(event, context) unless event.button.wheel?
 
-        context.consume
-
-        if holding?
-          advance if event.button.wheel_down?
-        else
-          scroll_wheel event
-        end
-      when Events::Key
-        return unless holding?
-
-        context.consume
-        advance
-      end
+      context.consume
+      scroll_wheel event
     end
 
     def draw(view : View) : Nil
@@ -457,12 +309,6 @@ module TermBuf::Widgets
         base = bright if bright && index >= from
         view.write 0, row, line, base || Style::DEFAULT
         Pager.accent view, row, line, base || Style::DEFAULT, @accents
-      end
-
-      if holding?
-        spot = Math.min page, view.height - 1
-        view.write 0, spot, @marker, @marker_style
-        return
       end
 
       spot = badge_spot view.width, Math.min(rows.size, view.height)
@@ -522,18 +368,66 @@ module TermBuf::Widgets
       end
     end
 
+    # Parks the window with the first of the last *came* source lines at the
+    # top, when those lines make more rows than the pane has.
+    private def park(came : Int32) : Nil
+      if @deferred
+        @deferred_came += came
+        return
+      end
+      return if @rows <= 0 || came <= 0
+
+      first = @rows_per_line.first(Math.max(@rows_per_line.size - came, 0)).sum
+      return unless @lines.size - first > @rows
+
+      @back = (@lines.size - @rows - first).clamp 0, max_scroll[1]
+    end
+
+    # Puts *top*, a source line and one of its wrapped rows, at the top of
+    # the window. `nil` leaves the window at the end.
+    private def place(top : {Int32, Int32}?) : Nil
+      unless top
+        @back = @back.clamp 0, max_scroll[1]
+        return
+      end
+
+      line = top[0].clamp 0, Math.max(@rows_per_line.size - 1, 0)
+      within = Math.min top[1], Math.max((@rows_per_line[line]? || 1) - 1, 0)
+      row = @rows_per_line.first(line).sum + within
+      @back = (@lines.size - @rows - row).clamp 0, max_scroll[1]
+    end
+
+    # The source line the window's top row is in, and which of that line's
+    # wrapped rows it is.
+    private def window_top : {Int32, Int32}
+      line_of Math.max(@lines.size - @rows - @back, 0)
+    end
+
+    # The source line the window's bottom row is in.
+    private def window_bottom_line : Int32
+      line_of(Math.max(@lines.size - 1 - @back, 0))[0]
+    end
+
+    # The source line wrapped row *row* is in, and which of its rows it is.
+    private def line_of(row : Int32) : {Int32, Int32}
+      start = 0
+      @rows_per_line.each_with_index do |size, index|
+        return {index, row - start} if row < start + size
+
+        start += size
+      end
+      {@rows_per_line.size, 0}
+    end
+
     # How many wrapped lines the newest `#fresh` source lines made.
     private def fresh_rows : Int32
       @rows_per_line.last(@fresh.clamp(0, @rows_per_line.size)).sum
     end
 
     # How many lines at the front of the shown source *source* no longer
-    # holds.
-    #
-    # How many lines went when *arrived* lines were added to the shown
-    # source and it settled at *source*'s size. More arriving than the
-    # source holds drops everything that was shown, and every line left is
-    # unread.
+    # holds, when *arrived* lines were added to the shown source and it
+    # settled at *source*'s size. More arriving than the source holds drops
+    # everything that was shown.
     private def dropped(source : Array(String), arrived : Int32) : Int32
       (@source.size + arrived - source.size).clamp 0, @source.size
     end
@@ -554,10 +448,7 @@ module TermBuf::Widgets
       kept.times.all? { |index| source[index] == @source[shift + index] }
     end
 
-    # Wraps the source to `#columns`. Keeps the read mark where it was.
-    #
-    # Rewrapping changes how many lines there are. The read mark counts
-    # wrapped lines, so it is clamped rather than kept exactly.
+    # Wraps the source to `#columns`.
     private def rewrap : Nil
       wrapped = if @columns > 0
                   @source.map { |line| Pager.wrap line, @columns }
@@ -568,41 +459,6 @@ module TermBuf::Widgets
       @rows_per_line = wrapped.map &.size
       @lines = wrapped.flatten
       @sampled = nil
-
-      settle
-    end
-
-    # Holds the read mark inside the lines there are. Takes or gives back the
-    # keyboard as holding starts or stops.
-    private def settle : Nil
-      @read = @read.clamp 0, @lines.size
-
-      # A deferred pane does not hold, and it does not count the lines as
-      # read either. They pile up unread until the owner lets it hold again,
-      # which is the whole point of deferring it.
-      @read = @lines.size unless @deferred || holding?
-      @back = @back.clamp 0, max_scroll[1]
-
-      holding? ? grab : release
-    end
-
-    # Puts a focus scope over the application, with this pager as its root.
-    private def grab : Nil
-      return if @scope
-
-      app = @app
-      return unless app
-
-      @scope = app.focus.push self
-      app.focus.focus self
-    end
-
-    # Takes that scope off again.
-    private def release : Nil
-      return unless @scope
-
-      @scope = nil
-      @app.try &.focus.pop
     end
 
     # *text* broken into lines no wider than *columns*.

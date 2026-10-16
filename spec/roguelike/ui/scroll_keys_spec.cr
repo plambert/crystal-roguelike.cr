@@ -17,7 +17,7 @@ Spectator.describe "the scrolling keys" do
     run
   end
 
-  # A run with *count* messages said and every held page read.
+  # A run with *count* messages said, with the log at its newest line.
   def talkative(count : Int32 = 40) : Playing::Run
     run = Playing.open
     run.clear_monsters
@@ -25,9 +25,7 @@ Spectator.describe "the scrolling keys" do
     run.play.refresh
     run.render
 
-    while run.pager.holding?
-      run.press "."
-    end
+    run.pager.to_newest
 
     run.play.ring.focus Panel::Log
     run
@@ -298,20 +296,19 @@ Spectator.describe "the scrolling keys" do
       expect(run.at).to eq start
     end
 
-    it "does not scroll a page the log holds, and the key reads it" do
+    it "reads on past a turn that said more than fits" do
       run = Playing.open
       run.clear_monsters
       run.play.ring.focus Panel::Log
       12.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
-      expect(run.pager.holding?).to be_true
-      read = run.pager.read
+      parked = run.pager.back
+      expect(parked).to be > 0
 
-      run.press "Shift+Up"
+      run.press "Shift+Down"
 
-      expect(run.pager.back).to eq 0
-      expect(run.pager.read).to be > read
+      expect(run.pager.back).to eq parked - 1
     end
   end
 

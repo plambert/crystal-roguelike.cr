@@ -158,13 +158,14 @@ Spectator.describe "the messages of the current turn" do
       expect(drawn run, "Beta happened.").to eq Palette::MESSAGE_NEW
     end
 
-    it "holds at --More-- as before" do
+    it "parks on the first new line of a turn that says more than fits" do
       run = Playing.open
       6.times { |number| run.game.log.add "Something number #{number} happened." }
       run.play.refresh
       run.render
 
-      expect(run.rows[23]).to contain "--More--"
+      expect(run.rows[20]).to contain "Something number 0 happened."
+      expect(run.rows[23]).to contain "\u2193 2 newer"
     end
   end
 end

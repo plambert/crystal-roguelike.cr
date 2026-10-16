@@ -187,27 +187,23 @@ Spectator.describe "a run drawn a step at a time" do
       run.tick
 
       expect(run.play.walking?).to be_true
-      expect(run.pager.holding?).to be_false
+      expect(run.pager.back).to eq 0
     end
 
-    it "holds once the walk is over" do
+    it "parks on the first line the walk said once it is over" do
       run = littered
 
       run.press "G", "l"
       run.run_timers
 
       expect(run.play.walking?).to be_false
-      expect(run.pager.holding?).to be_true
+      expect(run.pager.back).to be > 0
     end
 
-    it "gives the keyboard back once the page is let go" do
+    it "gives the keyboard back once the walk is over" do
       run = littered
       run.press "G", "l"
       run.run_timers
-
-      while run.pager.holding?
-        run.press "Space"
-      end
 
       before = run.at
       run.press "h"
@@ -269,12 +265,7 @@ Spectator.describe "a run drawn a step at a time" do
         run.game.log.lines << "Line #{count}."
       end
 
-      # The person reads what the pane holds. The keyboard and the mouse go
-      # back to the map once they have.
       run.play.refresh
-      while run.pager.holding?
-        run.press "Enter"
-      end
 
       run
     end

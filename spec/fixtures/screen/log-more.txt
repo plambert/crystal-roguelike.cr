@@ -21,4 +21,4 @@
                         │ Something number 0 happened.                         │
                         │ Something number 1 happened.                         │
                         │ Something number 2 happened.                         █
-                        │ --More--                                             │
+                        │ Something number 3 happened.               ↓ 2 newer │
