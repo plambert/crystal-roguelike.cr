@@ -84,6 +84,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   window.
 * Shrinking the window brings the character back onto the map instead of leaving them off its
   edge.
+* `X` no longer stops with "Walking on would show you nothing new." beside a pile your full
+  pack has no letter for. It walked to the pile, could not take it, and turned back to it again.
+  It now leaves such a pile and goes on to what is left to see.
 * A scroll of identify read when nothing you carry has anything left to learn says "There is
   nothing you do not know about what you carry." and stays in your pack, with no turn spent. It
   was used up before, to no effect.
