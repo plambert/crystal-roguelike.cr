@@ -109,8 +109,12 @@ module Roguelike
       # The run's seed.
       property seed : UInt64
 
-      # The groups of keys, in the order they are shown.
+      # The groups of keys, in the order they are shown when the map has the focus.
       property sections : Array(Keys::Section) = [] of Keys::Section
+
+      # Answers the title of the section to show first, or `nil` to keep the
+      # usual order. It is asked every time the dialog opens.
+      property first : Proc(String?)? = nil
 
       # How many rows the screen has. The owner sets it, and again on a resize.
       property screen_rows : Int32 = 24
@@ -165,14 +169,33 @@ module Roguelike
         @list
       end
 
-      # Fills `rows` from `sections`. The seed goes under the first heading.
+      # The title of the section that belongs to *panel*, if it has one.
+      def self.title_for(panel : FocusRing::Panel) : String?
+        case panel
+        in .map?  then nil
+        in .info? then "info panel"
+        in .log?  then "log"
+        end
+      end
+
+      # The sections with the one titled *first* leading, then "panels",
+      # then the rest in their usual order.
+      def self.ordered(sections : Array(Keys::Section), first : String?) : Array(Keys::Section)
+        return sections unless first && sections.any? { |section| section.title == first }
+
+        lead = [first, "panels"].uniq
+        head = lead.compact_map { |title| sections.find { |section| section.title == title } }
+        head + sections.reject { |section| lead.includes? section.title }
+      end
+
+      # Fills `rows` from `sections`. The seed goes under the application heading.
       def rebuild : Nil
         @rows.clear
 
-        @sections.each_with_index do |section, index|
+        Help.ordered(@sections, @first.try(&.call)).each_with_index do |section, index|
           @rows << SPACER unless index.zero?
           @rows << Row.new(section.title, header: true)
-          @rows << Row.new("seed", @seed.to_s) if index.zero?
+          @rows << Row.new("seed", @seed.to_s) if section.title == "application"
 
           moves = Keys.directions section.bindings
           if moves.empty?

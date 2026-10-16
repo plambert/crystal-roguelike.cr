@@ -69,6 +69,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The game remembers which sections you closed, in the state directory beside your saves, so
   they stay closed the next time you play. Equipment and the pack start closed, and `i` opens
   the pack.
+* The help screen lists the keys for the panel you are in first.
 
 ### Fixed
 

@@ -42,6 +42,39 @@ Spectator.describe Roguelike::Ui::Help do
     expect(panels).to eq(["Tab", "Shift+Tab", "Escape"])
   end
 
+  it "shows the section for the focused panel first" do
+    panels = {
+      Roguelike::Ui::FocusRing::Panel::Map  => "application",
+      Roguelike::Ui::FocusRing::Panel::Info => "info panel",
+      Roguelike::Ui::FocusRing::Panel::Log  => "log",
+    }
+
+    panels.each do |panel, title|
+      _session, help = wired 1_u64
+      help.first = -> { Help.title_for panel }
+      help.rebuild
+      expect(help.rows.first.keys).to eq(title)
+      shown = help.rows.select(&.header).map(&.keys)
+      shown.sort!
+      known = help.sections.map(&.title)
+      known.sort!
+      expect(shown).to eq(known)
+    end
+  end
+
+  it "follows the focus ring when the help opens" do
+    session, help = wired 1_u64
+
+    session.press "Tab"
+    session.press "?"
+    expect(help.rows.first.keys).to eq("info panel")
+    expect(help.rows.select(&.header).map(&.keys)[1]).to eq("panels")
+    session.press "Escape"
+    session.press "Tab"
+    session.press "?"
+    expect(help.rows.first.keys).to eq("log")
+  end
+
   it "puts a blank row before every heading but the first" do
     _session, help = wired 1_u64
     help.rebuild

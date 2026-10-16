@@ -53,6 +53,7 @@ module Roguelike::Ui
       sections << Section.new("mouse", mousing(&on_mouse)) if on_mouse
 
       help.sections = sections
+      help.first = -> { play.try { |game| Help.title_for game.ring.current } } if play
       sections.each { |section| app.keymap = app.keymap.merge section.bindings }
       app.keymap = app.keymap.merge play.unlisted if play
       help
