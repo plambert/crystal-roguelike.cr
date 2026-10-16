@@ -100,6 +100,33 @@ Spectator.describe Roguelike::Ui::MapPane do
     end
   end
 
+  describe "a resize" do
+    it "brings the character back into the map when the window shrinks" do
+      run = Playing.open columns: 200, rows: 50
+      size = run.game.floor.size
+      run.game.player.move_to size[0] - 3, size[1] - 3
+      run.play.refresh
+      run.render
+      expect(run.map.screen_of(*run.at)).not_to be_nil
+
+      run.resize 80, 24
+
+      spot = run.map.screen_of(*run.at) || raise "the character is off the map"
+      expect(run.screen.map.rect.contains?(*spot)).to be_true
+    end
+
+    it "leaves a camera moved by hand where it is" do
+      run = Playing.open
+      run.render
+      run.press "Home"
+      camera = run.map.camera
+
+      run.resize 80, 25
+
+      expect(run.map.camera).to eq camera
+    end
+  end
+
   describe "#follow" do
     it "does not move for somewhere well inside the window" do
       run = shown Roguelike::Floors.proving_ground, 40, 16

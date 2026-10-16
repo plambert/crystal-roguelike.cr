@@ -153,17 +153,26 @@ Spectator.describe Roguelike::Ui::FocusRing do
   end
 
   describe "the pointer" do
-    it "moves the focus to the panel a left click lands in" do
+    it "moves the focus to the map or the log on a left click" do
       run = Playing.open
-
-      run.click *middle(run.screen.info)
-      expect(run.play.ring.current).to eq Panel::Info
 
       run.click *middle(run.screen.log)
       expect(run.play.ring.current).to eq Panel::Log
 
       run.click *middle(run.screen.map)
       expect(run.play.ring.current).to eq Panel::Map
+    end
+
+    it "leaves the focus alone on a click in the info panel" do
+      run = Playing.open
+
+      run.click *middle(run.screen.info)
+      expect(run.play.ring.current).to eq Panel::Map
+
+      run.press "Tab"
+      run.press "Tab"
+      run.click *middle(run.screen.info)
+      expect(run.play.ring.current).to eq Panel::Log
     end
 
     it "does not move the focus with the wheel" do

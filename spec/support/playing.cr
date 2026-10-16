@@ -177,8 +177,8 @@ module Playing
     # Resizes the terminal under the game. Dragging a window does the
     # same.
     def resize(columns : Int32, rows : Int32) : Nil
-      @play.fit columns, rows
       @session.resize columns, rows
+      @play.fit columns, rows
       @session.render
     end
   end

@@ -361,8 +361,10 @@ module Roguelike
       bounds = drawn_in size
       @terminal.clear unless bounds.contains? @app.tree.screen
 
-      @play.fit bounds.width, bounds.height
+      # The tree takes its new size first, so the layout `Play#fit` asks for
+      # measures the map at that size when it brings the character into view.
       @app.resize bounds
+      @play.fit bounds.width, bounds.height
       @cursor.region.bounds = bounds
       @help.screen_rows = bounds.height
 

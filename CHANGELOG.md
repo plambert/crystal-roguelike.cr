@@ -17,9 +17,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   slow connections and for anyone who finds the motion distracting. `replay view` takes it too,
   and the debug console's `motion on` and `motion off` change it during play.
 * `Tab` moves the focus from the map to the character panel, then to the message log, and back
-  to the map. `Shift+Tab` goes the other way, and `Escape` returns to the map. A left click in a
-  panel moves the focus there. Every game key works whichever panel has the focus. The help
-  screen lists these keys under "panels".
+  to the map. `Shift+Tab` goes the other way, and `Escape` returns to the map. A left click in
+  the map or the log moves the focus there; a click in the character panel acts on its row and
+  leaves the focus alone. Every game key works whichever panel has the focus. The help screen
+  lists these keys under "panels".
 * The focused character panel or message log is drawn on a gray ground, which flashes blue as
   the focus arrives. The rule beside the focused panel turns light blue, so you can see when the
   map has the focus too.
@@ -79,6 +80,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * The Look readout at the bottom of the character panel is no longer cut off on an 80 by 24
   window.
+* Shrinking the window brings the character back onto the map instead of leaving them off its
+  edge.
 * A scroll of identify read when nothing you carry has anything left to learn says "There is
   nothing you do not know about what you carry." and stays in your pack, with no turn spent. It
   was used up before, to no effect.

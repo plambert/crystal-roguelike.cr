@@ -1734,17 +1734,22 @@ module Roguelike::Ui
       @ring.next unless next_target
     end
 
-    # Moves the focus to the panel a left click lands in.
+    # Moves the focus to the map or the log when a left click lands in it.
     #
     # The owner calls this with every event, before the tree sees it, so a
-    # click that a row in the panel answers moves the focus too. The wheel
-    # does not move it, and nothing does while an overlay is up.
+    # click that a row in the log answers moves the focus too. A click in the
+    # info panel acts on its row and leaves the focus alone, so a pack or a
+    # Seen row can be clicked without the panel taking the keys. Only `Tab`
+    # focuses it. The wheel moves no focus, and nothing does while an overlay
+    # is up.
     def focus_under(event : TermBuf::Event) : Nil
       return unless event.is_a? TermBuf::Events::Mouse
       return unless event.button.left? && event.action.press?
       return unless @app.try(&.focus.scopes.size) == 1
 
-      @ring.under(event.x, event.y).try { |panel| @ring.focus panel }
+      @ring.under(event.x, event.y).try do |panel|
+        @ring.focus panel unless panel.info?
+      end
     end
 
     # Takes back whatever is waiting for a key.
@@ -3350,6 +3355,9 @@ module Roguelike::Ui
       # opened stands anyway.
       @history.show application, @game.log.lines if app && @history.showing?
 
+      # A smaller window can leave the character outside the map. The camera
+      # brings them back unless it was moved by hand.
+      keep_in_view
       refresh
     end
 
