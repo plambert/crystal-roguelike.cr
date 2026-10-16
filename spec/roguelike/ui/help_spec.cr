@@ -157,6 +157,29 @@ Spectator.describe Roguelike::Ui::Help do
     expect(list.scroll_y).to eq(0)
   end
 
+  it "fits an 80 column screen, with its corners, the bar and the Close button" do
+    session, help = wired 1_u64, columns: 80, rows: 24
+    session.press "?"
+    session.render
+    lines = session.text.lines
+
+    expect(help.rows.reject(&.header).max_of { |row| row.keys.size + Help::GAP + row.description.size }).to be <= 80
+    expect(lines.any?(&.includes?("╭"))).to be_true
+    expect(lines.any?(&.includes?("╮"))).to be_true
+    expect(lines.any?(&.includes?("╰"))).to be_true
+    expect(lines.any?(&.includes?("╯"))).to be_true
+    expect(lines.any?(&.includes?("Close"))).to be_true
+    expect(help.bar.hidden?).to be_false
+    top = lines.find!(&.includes?("╭"))
+    expect(top.rstrip.ends_with?("╮")).to be_true
+    expect(top.rstrip.size).to be <= 80 - Help::MARGIN_X
+  end
+
+  it "wraps a description wider than the room under its key" do
+    expect(Help.wrap("one two three four", 9)).to eq(["one two", "three", "four"])
+    expect(Help.wrap("unbreakable", 4)).to eq(["unbreakable"])
+  end
+
   it "draws the seed and the diagram on the screen" do
     session, _help = wired 99_u64, rows: 100
 
