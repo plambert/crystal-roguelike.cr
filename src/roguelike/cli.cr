@@ -37,6 +37,14 @@ module Roguelike
     flag replay_every : Int32 = Replay::Log::EVERY, "--replay-every",
       "Turns between two checkpoints in a replay log", range: 1..1_000_000
 
+    # For testing layouts. The game draws in the top left corner as if the
+    # terminal were no bigger than this. See `SizeCap`.
+    flag max_columns : Int32?, "--max-columns",
+      "Draw in at most this many columns, for testing layouts", range: 1..100_000
+
+    flag max_rows : Int32?, "--max-rows",
+      "Draw in at most this many rows, for testing layouts", range: 1..100_000
+
     flag save : Bool = true, "--save",
       "Write the run to the saves directory. --no-save leaves it unwritten"
 
@@ -122,7 +130,8 @@ module Roguelike
 
       session = Session.open seed, flicker: flicker, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
-        character: character, news: news
+        character: character, news: news,
+        size_cap: SizeCap.new(max_columns, max_rows)
 
       exit 1 unless session
 

@@ -201,14 +201,21 @@ module Roguelike::Ui
     # What *request* could be finishing.
     #
     # The first word of a line is a command. Everything after `spawn` is the
-    # name of an item kind. Nothing else completes, because nothing else is a
-    # word out of a list this class knows.
+    # name of an item kind. `max-columns` and `max-rows` take `off`. Nothing
+    # else completes, because nothing else is a word out of a list this class
+    # knows.
     def self.completions(request : Widgets::Completion::Request) : Array(String)
       before = request.text[0, request.range.begin]?.try(&.split) || [] of String
       return Debug::Console::TABLE.map(&.name).select &.starts_with?(request.word) if before.empty?
-      return [] of String unless before.first.downcase == "spawn"
 
-      ItemKind.values.map(&.label).select &.starts_with?(request.word)
+      case before.first.downcase
+      when "spawn"
+        ItemKind.values.map(&.label).select &.starts_with?(request.word)
+      when "max-columns", "max-rows"
+        ["off"].select &.starts_with?(request.word)
+      else
+        [] of String
+      end
     end
   end
 end

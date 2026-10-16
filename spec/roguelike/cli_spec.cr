@@ -99,6 +99,41 @@ Spectator.describe Roguelike::Cli do
     end
   end
 
+  describe "--max-columns and --max-rows" do
+    it "are nil when nobody asked for a cap" do
+      parsed = described_class.parse(%w[])
+
+      expect(parsed.max_columns).to be_nil
+      expect(parsed.max_rows).to be_nil
+    end
+
+    it "take the caps given" do
+      parsed = described_class.parse(%w[--max-columns 60 --max-rows 20])
+
+      expect(parsed.max_columns).to eq 60
+      expect(parsed.max_rows).to eq 20
+    end
+
+    it "refuse zero" do
+      expect { described_class.parse(%w[--max-columns 0]) }
+        .to raise_error Shell::AutoComplete::ParseError, /range/
+      expect { described_class.parse(%w[--max-rows 0]) }
+        .to raise_error Shell::AutoComplete::ParseError, /range/
+    end
+
+    it "refuse something that is not a number" do
+      expect { described_class.parse(%w[--max-columns wide]) }
+        .to raise_error Shell::AutoComplete::ParseError
+      expect { described_class.parse(%w[--max-rows tall]) }
+        .to raise_error Shell::AutoComplete::ParseError
+    end
+
+    it "say in the help that they are for testing layouts" do
+      expect(described_class.help).to contain "--max-columns"
+      expect(described_class.help).to contain "for testing layouts"
+    end
+  end
+
   describe "--help" do
     it "names every flag" do
       help = described_class.help

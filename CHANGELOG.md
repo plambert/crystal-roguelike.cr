@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* `--max-columns N` and `--max-rows N` make the game draw in at most that many columns and rows,
+  in the top left corner of the terminal, for testing layouts without resizing the window. The
+  debug console's `max-columns N` and `max-rows N` change them during play, and `off` clears one.
+
 ### Changed
 
 * Every list of carried items has the class pages the inventory has: drop, wield or wear, take

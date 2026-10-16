@@ -27,6 +27,10 @@ module Roguelike::Debug
     # What the commands have written, oldest first.
     getter lines : Array(String) = [] of String
 
+    # The caps on the size the game draws in. The session that owns the
+    # terminal sets this. `nil` where nothing draws, which is a spec.
+    property size_cap : SizeCap? = nil
+
     # Runs *line* against *game* and writes what it did.
     #
     # A blank line does nothing at all, the way a shell treats one.
@@ -143,6 +147,16 @@ module Roguelike::Debug
 
           console.say "ambient light is #{game.floor.ambient}."
         end),
+
+      Command.new("max-columns", "max-columns [N|off]", "draw in at most N columns",
+        ->(console : Console, _game : Game, words : Array(String)) : Nil do
+          console.cap words, columns: true
+        end),
+
+      Command.new("max-rows", "max-rows [N|off]", "draw in at most N rows",
+        ->(console : Console, _game : Game, words : Array(String)) : Nil do
+          console.cap words, columns: false
+        end),
     ]
 
     # --------------------------------------------------------- the long ones
@@ -156,6 +170,27 @@ module Roguelike::Debug
       TABLE.each do |command|
         say "  #{command.usage.ljust 20} #{command.summary}"
       end
+    end
+
+    # Sets the cap on the columns, or on the rows, to the number *words*
+    # start with, and says what it is now.
+    #
+    # `off` and zero clear it. No number says what it is.
+    def cap(words : Array(String), columns : Bool) : Nil
+      name = columns ? "max-columns" : "max-rows"
+      size_cap = @size_cap
+      return say "#{name} needs a terminal, and there is none here." unless size_cap
+
+      wanted = words.first?.try &.downcase
+      if wanted
+        value = wanted == "off" ? 0 : wanted.to_i?
+        return say "say a number, or off." unless value && value >= 0
+
+        columns ? (size_cap.columns = value) : (size_cap.rows = value)
+      end
+
+      held = columns ? size_cap.columns : size_cap.rows
+      say "#{name} is #{held || "none"}."
     end
 
     # Takes *amount* hit points off, leaving at least one.

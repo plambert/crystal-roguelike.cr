@@ -336,6 +336,61 @@ Spectator.describe Roguelike::Debug::Console do
     end
   end
 
+  describe "max-columns and max-rows" do
+    it "set the cap and say what it is" do
+      game, console = playing
+      cap = Roguelike::SizeCap.new
+      console.size_cap = cap
+
+      console.run "max-columns 60", game
+      expect(cap.columns).to eq 60
+      expect(console.lines.last).to eq "max-columns is 60."
+
+      console.run "max-rows 20", game
+      expect(cap.rows).to eq 20
+      expect(console.lines.last).to eq "max-rows is 20."
+    end
+
+    it "clear the cap with off or zero" do
+      game, console = playing
+      cap = Roguelike::SizeCap.new 60, 20
+      console.size_cap = cap
+
+      console.run "max-columns off", game
+      console.run "max-rows 0", game
+
+      expect(cap.columns).to be_nil
+      expect(cap.rows).to be_nil
+      expect(console.lines.last).to eq "max-rows is none."
+    end
+
+    it "tells the owner each time a cap changes" do
+      game, console = playing
+      cap = Roguelike::SizeCap.new
+      changes = 0
+      cap.on_change = -> { changes += 1; nil }
+      console.size_cap = cap
+
+      console.run "max-columns 60", game
+      console.run "max-rows off", game
+      console.run "max-rows", game
+
+      expect(changes).to eq 2
+    end
+
+    it "refuse something that is not a number" do
+      game, console = playing
+      console.size_cap = Roguelike::SizeCap.new
+
+      console.run "max-columns wide", game
+      expect(console.lines.last).to eq "say a number, or off."
+    end
+
+    it "say so where there is no terminal" do
+      expect(last "max-rows 20").to eq "max-rows needs a terminal, and there is none here."
+    end
+  end
+
   describe "light" do
     it "sets the ambient light" do
       game, console = playing

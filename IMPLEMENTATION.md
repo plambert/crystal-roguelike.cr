@@ -1004,7 +1004,11 @@ to the generator. `spawn bow` and `spawn 20 +1 arrow` take two lines instead of 
 walking.
 
 The commands are `help`, `heal`, `hurt`, `spawn`, `identify`, `remove-curse`, `kill`, `inspect`,
-`goto`, `reveal` and `light`. `help` lists them with what each one takes.
+`goto`, `reveal`, `light`, `max-columns` and `max-rows`. `help` lists them with what each one
+takes.
+
+`max-columns` and `max-rows` are the exception to the box acting on the game. They change the
+`SizeCap`, which belongs to the session. See the size cap below.
 
 Two rules hold for all of them.
 
@@ -1021,6 +1025,29 @@ takes what was typed, hands it over, and puts what came back on the screen. `Deb
 words into an item, and matches a kind by its own label, by its member name, or by the starts of
 the words of its label, so `mwk sh sword` and `pot heal` each name one thing. Words that could
 name more than one thing make nothing and say what they could have meant.
+
+### The size cap
+
+`--max-columns N` and `--max-rows N` make the game draw in the top left corner of the terminal, as
+if the terminal were no bigger than N. They are for testing layouts without resizing the window.
+The debug console's `max-columns` and `max-rows` change the same caps during play. `off` or `0`
+clears one, and no number prints it.
+
+* `SizeCap` holds the caps. `Session.open` makes one and passes it to every run it starts, so a cap
+  set in the console carries into the next run.
+* `Session#sized` applies a size. A terminal resize and a change of cap both go through it, so the
+  two cannot drift. It fits `Ui::Play` and resizes the app and the cursor to the capped rectangle.
+  `Ui::Screen.fits?` and the too-small notice judge the capped size.
+* The session sets `Debug::Console#size_cap` on the console it owns. The console holds the cap and
+  no terminal, so its specs stay pure. A console with no cap says there is no terminal.
+* The renderer never clears the screen, so cells outside a shrunk area keep the last frame.
+  `#sized` clears the terminal once whenever the new area does not cover the old one. The next
+  frame fills the area again.
+* `ObservedApp` drops a mouse report outside its screen rectangle before the tree sees it. The
+  session sends the pointer away then, so no tooltip or pointer shape stays behind. A button
+  pressed inside holds the mouse until it is let go, so a drag of the map goes on past the edge.
+* The caps are display settings. No save, replay log or fingerprint holds them, so a run plays out
+  the same at any cap.
 
 ### The trial harness
 
