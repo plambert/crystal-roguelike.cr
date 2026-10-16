@@ -433,6 +433,32 @@ Spectator.describe TermBuf::Widgets::Pager do
       expect(run.pager.back).to eq 4
     end
 
+    it "keeps its window when a capped source drops the lines it shows" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+      run.pager.scroll_by 0, -40
+      showing = run.pager.showing
+
+      run.pager.show messages(10)[1..], arrived: 1, keep: true
+
+      expect(run.pager.showing).to eq showing
+      expect(run.pager.newer).to eq 6
+    end
+
+    it "lets go of the kept lines once the window moves on" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+      run.pager.scroll_by 0, -40
+      run.pager.show messages(10)[1..], arrived: 1, keep: true
+      run.pager.to_newest
+
+      run.pager.show messages(11)[2..], arrived: 1
+
+      expect(run.pager.lines).to eq messages(11)[2..]
+    end
+
     it "counts the lines below the window" do
       run = scrolled
 

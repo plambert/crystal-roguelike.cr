@@ -217,6 +217,77 @@ Spectator.describe Roguelike::Ui::LogPanel do
     end
   end
 
+  # A log at its cap drops its oldest line for each one it gains, so its
+  # size stays the same while messages arrive.
+  describe "at the log's cap" do
+    LIMIT = Roguelike::MessageLog::LIMIT
+
+    # A run whose log is full, with every line read.
+    def capped(clock : Bool = false, motion : Bool = false) : Playing::Run
+      run = Playing.open clock: clock, motion: motion
+      run.clear_monsters
+      LIMIT.times { |number| run.game.log.add "Something number #{number} happened." }
+      run.play.refresh
+      run.pager.catch_up
+      run.render
+      run.run_timers if clock
+      run
+    end
+
+    # Says one new thing, the way a turn does.
+    def say_more(run : Playing::Run) : Nil
+      run.game.log.add "Something new happened."
+      run.play.refresh
+      run.render
+    end
+
+    it "holds a focused log scrolled to the top in place as a message arrives" do
+      run = capped
+      run.press "Shift+Tab"
+      run.press "Shift+Up", "Shift+Up", "PageUp", "Home"
+      showing = run.pager.showing
+      newer = run.pager.newer
+
+      say_more run
+
+      expect(run.game.log.lines.size).to eq LIMIT
+      expect(run.pager.showing).to eq showing
+      expect(run.pager.newer).to eq newer + 1
+      expect(run.row(23)).to contain "\u2193 #{newer + 1} newer"
+    end
+
+    it "holds a focused log scrolled part way in place as a message arrives" do
+      run = capped
+      run.press "Shift+Tab"
+      run.press "PageUp", "PageUp"
+      showing = run.pager.showing
+      newer = run.pager.newer
+
+      say_more run
+
+      expect(run.pager.showing).to eq showing
+      expect(run.pager.newer).to eq newer + 1
+    end
+
+    it "scrolls an unfocused log back to the lines before the message" do
+      run = capped clock: true, motion: true
+      6.times { run.wheel *OVER_THE_PANE, up: true }
+      before = run.game.log.lines.last(4)
+
+      run.game.log.add "Something new happened."
+      run.play.refresh
+      drawn = [run.pager.showing]
+      while run.tick
+        run.render
+        drawn << run.pager.showing
+      end
+
+      expect(drawn.last(2).first).to eq before
+      expect(run.pager.back).to eq 0
+      expect(run.rows[23]).to contain "Something new happened."
+    end
+  end
+
   describe "the newer badge" do
     it "counts the messages below the view" do
       run = talkative

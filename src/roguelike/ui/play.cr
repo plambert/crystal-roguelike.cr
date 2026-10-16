@@ -4014,7 +4014,10 @@ module Roguelike::Ui
       @pager.on_release = -> { stop_pointing }
       @pager.on_badge = -> { scroll_log_to_end }
       log_panel.on_resize = -> { keep_in_view }
-      @ring.on_change = ->(_was : FocusRing::Panel, now : FocusRing::Panel) do
+
+      before = @ring.on_change
+      @ring.on_change = ->(was : FocusRing::Panel, now : FocusRing::Panel) do
+        before.try &.call(was, now)
         log_panel.focused = now.log?
         nil
       end
