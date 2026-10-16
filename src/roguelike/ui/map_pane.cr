@@ -660,18 +660,10 @@ module Roguelike::Ui
     end
 
     # Where a camera going from *from* to *to* stands after *frame* of
-    # *frames*.
-    #
-    # It moves along the straight line between the two and slows as it
-    # arrives. Each step is a smaller share of the way than the one before.
-    # The last frame lands on *to* exactly.
+    # *frames*. `Widgets::EasedScroll.at` has the curve.
     def self.eased(from : {Int32, Int32}, to : {Int32, Int32},
                    frame : Int32, frames : Int32) : {Int32, Int32}
-      return to if frame >= frames
-
-      share = 1.0 - (1.0 - frame / frames) ** 3
-      {from[0] + ((to[0] - from[0]) * share).round.to_i,
-       from[1] + ((to[1] - from[1]) * share).round.to_i}
+      Widgets::EasedScroll.at from, to, frame, frames
     end
 
     # Where the camera would be if it centred on *x*, *y* now.
