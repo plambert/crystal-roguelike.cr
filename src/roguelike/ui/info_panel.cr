@@ -14,6 +14,11 @@ module Roguelike::Ui
   # file back. A missing or unreadable file leaves every section open. A run
   # with no store has no path, so its sections are remembered only while it
   # runs.
+  #
+  # The panel also holds the keyboard selection. It is on a section header,
+  # or on one of the rows a section shows. `#up`, `#down`, `#left` and
+  # `#right` move it, and `#show` draws it while the panel has the focus.
+  # It stays where it was while the focus is elsewhere.
   class InfoPanel
     # What the file is called in the state directory.
     FILE = "sections.json"
@@ -87,6 +92,140 @@ module Roguelike::Ui
     # Opens *section* unless it is open already.
     def open(section : Widgets::Section) : Nil
       section.toggle unless section.expanded?
+    end
+
+    # What a selected header is drawn through. The header keeps its text
+    # colors and takes `Palette::SELECTED_HEADER` for its ground.
+    HEADER_LIGHT = TermBuf::Blend.new do |_under, over, _column, _row|
+      over.bg Palette::SELECTED_HEADER
+    end
+
+    # What a selected row is drawn through, the same way with
+    # `Palette::SELECTED_ROW`.
+    ROW_LIGHT = TermBuf::Blend.new do |_under, over, _column, _row|
+      over.bg Palette::SELECTED_ROW
+    end
+
+    # The index of the section the selection is in.
+    getter at : Int32 = 0
+
+    # The index of the selected row among the section's rows, or `nil` when
+    # the header is selected.
+    getter row : Int32? = nil
+
+    # The section the selection is in.
+    def section : Widgets::Section
+      @sections[@at]
+    end
+
+    # The selected row, or `nil` when the header is selected.
+    def selected_row : Widgets::Widget?
+      settle
+      found = @row
+      section.rows[found] if found
+    end
+
+    # The selected widget, the row or the header.
+    def selected : Widgets::Widget
+      selected_row || section.header
+    end
+
+    # Moves the selection down. A header goes to the next header. A row goes
+    # to the next row, and the last row to the next header. Answers whether
+    # it moved.
+    def down : Bool
+      settle
+      found = @row
+      if found && found + 1 < section.rows.size
+        @row = found + 1
+        return true
+      end
+      return false if @at + 1 >= @sections.size
+
+      @at += 1
+      @row = nil
+      true
+    end
+
+    # Moves the selection up. A header goes to the header above it. A row
+    # goes to the row above, and the first row to its own header. Answers
+    # whether it moved.
+    def up : Bool
+      settle
+      found = @row
+      if found
+        @row = found.zero? ? nil : found - 1
+        return true
+      end
+      return false if @at.zero?
+
+      @at -= 1
+      true
+    end
+
+    # Takes a selected row back to its header, or closes the section when
+    # its header is selected.
+    def left : Nil
+      settle
+      if @row
+        @row = nil
+      elsif section.expanded?
+        section.toggle
+      end
+    end
+
+    # Opens a closed section, or moves from an open section's header to its
+    # first row. A section with no rows keeps the selection on its header.
+    def right : Nil
+      settle
+      return if @row
+      return section.toggle unless section.expanded?
+
+      @row = 0 unless section.rows.empty?
+    end
+
+    # Puts the selection on the header of *section*.
+    def select(section : Widgets::Section) : Nil
+      found = @sections.index &.same?(section)
+      return unless found
+
+      @at = found
+      @row = nil
+    end
+
+    # Draws the selection when *focused*, and takes it off when not.
+    def show(focused : Bool) : Nil
+      settle
+      wanted = focused ? selected : nil
+      lit = @lit
+      return if lit && wanted && lit.same?(wanted)
+
+      lit.wash = nil if lit
+      @lit = wanted
+      return unless wanted
+
+      if wanted.is_a? Widgets::Section::Header
+        wanted.wash = HEADER_LIGHT
+        return
+      end
+
+      # A widget with no style of its own paints no ground, so the wash
+      # would reach only the cells with text in them.
+      wanted.style ||= Style::DEFAULT
+      wanted.wash = ROW_LIGHT
+    end
+
+    # The widget the selection is drawn on, or `nil` while it is hidden.
+    getter lit : Widgets::Widget? = nil
+
+    # Keeps the selected row inside the rows the section now shows. A
+    # section that closed takes the selection back to its header.
+    private def settle : Nil
+      found = @row
+      return unless found
+
+      count = section.rows.size
+      @row = count.zero? ? nil : Math.min(found, count - 1)
     end
 
     private def toggled(section : Widgets::Section) : Nil
