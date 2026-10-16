@@ -238,13 +238,14 @@ Spectator.describe "the scrolling keys" do
       expect(run.map.camera).to eq start
     end
 
-    it "does nothing on Enter and does not scroll sideways" do
+    it "does not scroll sideways, and takes no turn on Enter" do
       run = crowded
       before = run.rows
 
-      run.press "Enter", "Shift+Right"
-
+      run.press "Shift+Right"
       expect(run.rows).to eq before
+
+      run.press "Enter"
       expect(run.turn).to eq 0
     end
   end

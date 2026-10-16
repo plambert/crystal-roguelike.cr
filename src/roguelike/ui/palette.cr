@@ -155,6 +155,19 @@ module Roguelike::Ui
     # A section header's title.
     HEADER_TITLE = HEADER.bold
 
+    # The ground of the selected section header in a focused info panel.
+    #
+    # A brighter, bluer band than `HEADER_GROUND`. White on it is about 5.5
+    # to 1. It is about 1.4 to 1 against `HEADER_GROUND` and 2.8 to 1
+    # against `FOCUS_GROUND`, and its hue sets it apart from both.
+    SELECTED_HEADER = TermBuf::Color.rgb 0x2E, 0x66, 0xC8
+
+    # The ground of the selected row in a focused info panel.
+    #
+    # A deep blue under the row's own text colors. `PLAIN` on it is about
+    # 8.5 to 1, white about 11 to 1, and `FAINT` about 2.2 to 1.
+    SELECTED_ROW = TermBuf::Color.rgb 0x20, 0x3A, 0x70
+
     # ------------------------------------------------------------- meters
 
     # The colors a bar passes through as it empties.
