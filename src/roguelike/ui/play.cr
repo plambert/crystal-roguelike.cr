@@ -2620,20 +2620,16 @@ module Roguelike::Ui
         return
       end
 
-      choose("Identify what?", identify_rows(letter, found), about(found)) do |key|
+      reading = @game.player.inventory[letter].try &.kind
+      note = ->(entry : {Char, Item}) do
+        "(#{Play.unlearned @game.unlearned(entry[1], reading)})".as(String?)
+      end
+
+      choose("Identify what?", found, note) do |key|
         next unless key
 
         read_now letter, id_under(key)
         refresh
-      end
-    end
-
-    # *entries* as menu rows, each saying what is left to learn about it.
-    private def identify_rows(letter : Char, entries : Array({Char, Item})) : Array(Widgets::Menu::Entry)
-      reading = @game.player.inventory[letter].try &.kind
-
-      rows(entries).map_with_index do |row, index|
-        row.copy_with text: "#{row.text} (#{Play.unlearned @game.unlearned(entries[index][1], reading)})"
       end
     end
 
