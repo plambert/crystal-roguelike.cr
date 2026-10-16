@@ -127,9 +127,16 @@ module Headless
   end
 
   # An application over *root*, drawn into a buffer of *columns* by *rows*.
+  #
+  # Motion is off unless *motion* says otherwise, so every animation draws
+  # its end state in one frame and a fixture reads the same on every run.
+  # Each call sets it, so a spec that turns it on does not leave it on for
+  # the next.
   def self.open(root : TermBuf::Widgets::Widget,
                 columns : Int32 = DEFAULT_COLUMNS,
-                rows : Int32 = DEFAULT_ROWS) : Session
+                rows : Int32 = DEFAULT_ROWS,
+                motion : Bool = false) : Session
+    Roguelike::Ui::Motion.on = motion
     buffer = TermBuf::Buffer.new columns, rows
     events = Channel(TermBuf::Event).new 64
 

@@ -11,6 +11,13 @@ Spectator.describe Roguelike::Cli do
     end
   end
 
+  describe "--motion" do
+    it "is on unless --no-motion is passed" do
+      expect(described_class.parse(%w[]).motion).to be_true
+      expect(described_class.parse(%w[--no-motion]).motion).to be_false
+    end
+  end
+
   describe "--whats-new" do
     it "is off unless it is passed" do
       expect(described_class.parse(%w[]).whats_new).to be_false

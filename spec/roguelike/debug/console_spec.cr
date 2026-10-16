@@ -391,6 +391,29 @@ Spectator.describe Roguelike::Debug::Console do
     end
   end
 
+  describe "motion" do
+    it "turns the animations off and on and says which they are" do
+      game, console = playing
+
+      console.run "motion off", game
+      expect(Roguelike::Ui::Motion.on?).to be_false
+      expect(console.lines.last).to eq "motion is off."
+
+      console.run "motion on", game
+      expect(Roguelike::Ui::Motion.on?).to be_true
+      expect(console.lines.last).to eq "motion is on."
+
+      console.run "motion", game
+      expect(console.lines.last).to eq "motion is on."
+    ensure
+      Roguelike::Ui::Motion.on = false
+    end
+
+    it "refuses a word that is not on or off" do
+      expect(last "motion fast").to eq "say on or off."
+    end
+  end
+
   describe "light" do
     it "sets the ambient light" do
       game, console = playing

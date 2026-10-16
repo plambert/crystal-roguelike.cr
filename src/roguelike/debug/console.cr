@@ -157,6 +157,11 @@ module Roguelike::Debug
         ->(console : Console, _game : Game, words : Array(String)) : Nil do
           console.cap words, columns: false
         end),
+
+      Command.new("motion", "motion [on|off]", "animate the panels, or not",
+        ->(console : Console, _game : Game, words : Array(String)) : Nil do
+          console.motion words
+        end),
     ]
 
     # --------------------------------------------------------- the long ones
@@ -191,6 +196,19 @@ module Roguelike::Debug
 
       held = columns ? size_cap.columns : size_cap.rows
       say "#{name} is #{held || "none"}."
+    end
+
+    # Turns the panels' animations on or off, as *words* say, and says
+    # which they are now. No word says which they are.
+    def motion(words : Array(String)) : Nil
+      case words.first?.try &.downcase
+      when nil   then nil
+      when "on"  then Ui::Motion.on = true
+      when "off" then Ui::Motion.on = false
+      else            return say "say on or off."
+      end
+
+      say "motion is #{Ui::Motion.on? ? "on" : "off"}."
     end
 
     # Takes *amount* hit points off, leaving at least one.

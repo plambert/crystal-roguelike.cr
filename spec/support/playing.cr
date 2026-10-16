@@ -250,6 +250,9 @@ module Playing
   # `App#after` arms nothing, and anything drawn on a timer happens inside the
   # call that started it. Most specs want that: they press a key and read what
   # it did.
+  #
+  # *motion* turns on the panels' animations. They are off otherwise, so a
+  # fixture draws their end state.
   def self.open(game : Roguelike::Game? = nil,
                 columns : Int32 = 80,
                 rows : Int32 = 24,
@@ -258,7 +261,8 @@ module Playing
                 clock : Bool = false,
                 store : Roguelike::Save::Store? = nil,
                 news : Array(Roguelike::WhatsNew::Section) = [] of Roguelike::WhatsNew::Section,
-                viewer : Roguelike::Replay::Viewer? = nil) : Run
+                viewer : Roguelike::Replay::Viewer? = nil,
+                motion : Bool = false) : Run
     # A spec that builds its own run with `Game.new` has not numbered what is
     # in it. `Game.start`, `Game.dug` and a save read back all call `#enroll`,
     # and a hand-built floor has been through none of the three. `Ui::Play`
@@ -278,7 +282,7 @@ module Playing
     play.news = news
     play.fit columns, rows
 
-    session = Headless.open play.root, columns, rows
+    session = Headless.open play.root, columns, rows, motion
     session.clock if clock
     play.app = session.app
     told = [] of String

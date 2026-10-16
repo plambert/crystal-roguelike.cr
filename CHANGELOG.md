@@ -13,6 +13,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `--max-columns N` and `--max-rows N` make the game draw in at most that many columns and rows,
   in the top left corner of the terminal, for testing layouts without resizing the window. The
   debug console's `max-columns N` and `max-rows N` change them during play, and `off` clears one.
+* `--no-motion` turns off the animations of the panels, so each change draws at once. It is for
+  slow connections and for anyone who finds the motion distracting. `replay view` takes it too,
+  and the debug console's `motion on` and `motion off` change it during play.
 
 ### Changed
 

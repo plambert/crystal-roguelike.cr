@@ -25,6 +25,9 @@ module Roguelike
     flag flicker : Bool = true, "--flicker",
       "Let flames waver and the camera pan. --no-flicker holds both still"
 
+    flag motion : Bool = true, "--motion",
+      "Animate the panels. --no-motion draws each change at once"
+
     flag generate : Bool = true, "--generate",
       "Dig a floor from the seed. --no-generate plays the floor that ships"
 
@@ -128,6 +131,7 @@ module Roguelike
       Replay::Log.every = replay_every
       Replay::Log.generate = generate
 
+      Ui::Motion.on = motion
       session = Session.open seed, flicker: flicker, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
         character: character, news: news,
@@ -312,11 +316,16 @@ module Roguelike
       flag flicker : Bool = true, "--flicker",
         "Let flames waver and the camera pan. --no-flicker holds both still"
 
+      flag motion : Bool = true, "--motion",
+        "Animate the panels. --no-motion draws each change at once"
+
       positional file : Path, "The replay file to watch"
 
       def run
         found = opened file
         return exit 1 unless found
+
+        Ui::Motion.on = motion
 
         begin
           exit 1 unless Session.view found, flicker: flicker
