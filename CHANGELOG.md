@@ -33,6 +33,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A message log scrolled back shows a badge such as "↓ 7 newer" at the right end of its last row,
   counting the messages below. Click it to go to the newest line. A scrollbar at the right of the
   log shows whenever it holds more than it shows.
+* With the character panel focused, `Up` and `Down` pick a section or a row, and `Left` and
+  `Right` close and open it. `Enter` does what a click does: it opens the menu for a pack row and
+  walks to a Seen row. A picked row shows its tooltip and lights its square on the map, as the
+  pointer does, and the panel scrolls to keep it in view.
 
 ### Changed
 

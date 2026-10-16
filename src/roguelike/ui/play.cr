@@ -3178,16 +3178,17 @@ module Roguelike::Ui
       # takes the pointer off the map: the pointer is not on the map.
       found = @detailed
       @detailed = nil
-      @nearby.keep found ? found[0] : nil
+      held = hovered found, x, y
+      @nearby.keep held ? held[0] : nil
       spotlight @nearby.spot
       app = @app
 
-      if found && app
-        @tooltip.show app, found[0], found[1]
-        return @pointer.away
+      if held && app
+        @tooltip.show app, held[0], held[1]
+        return @pointer.away if found
+      else
+        @tooltip.hide
       end
-
-      @tooltip.hide
 
       if @examiner.cursoring? && !click
         # The shape still follows the pointer. The pointer is over the map,
@@ -3583,16 +3584,45 @@ module Roguelike::Ui
     #
     # A shot or a square waiting for `Enter` comes first, whichever panel
     # has the focus, so a click on another panel cannot strand it. With
-    # nothing waiting, the map brings the character into view and the log
-    # scrolls to its newest line. The info panel has no use for it yet.
+    # nothing waiting, the map brings the character into view, the info
+    # panel does what a click on its selection does, and the log scrolls to
+    # its newest line.
     def enter : Nil
       return loose if @aiming
 
       case @ring.current
       in .map?  then recenter
-      in .info? then nil
+      in .info? then press_selection
       in .log?  then scroll_log_to_end
       end
+    end
+
+    # Answers `Up`. The info panel moves its selection up. The other panels
+    # do nothing with it.
+    def up : Nil
+      select_by { @info_panel.up } if @ring.current.info?
+    end
+
+    # Answers `Down`, the same way as `#up`.
+    def down : Nil
+      select_by { @info_panel.down } if @ring.current.info?
+    end
+
+    # Answers `Left`. The info panel closes the selected section or goes back
+    # to its header. In the replay viewer the other panels step back an
+    # action.
+    def left : Nil
+      return select_by { @info_panel.left } if @ring.current.info?
+
+      view_back if @viewer
+    end
+
+    # Answers `Right`. The info panel opens the selected section or goes into
+    # its rows. In the replay viewer the other panels step on an action.
+    def right : Nil
+      return select_by { @info_panel.right } if @ring.current.info?
+
+      view_forward if @viewer
     end
 
     # Scrolls the camera by *dx* and *dy* cells.
@@ -3678,6 +3708,122 @@ module Roguelike::Ui
         section.on_point = -> { detail nil, nil; nil }
       end
       @info_panel.on_toggle = ->(_section : Widgets::Section) { refresh; nil }
+
+      before = @ring.on_change
+      @ring.on_change = ->(was : FocusRing::Panel, now : FocusRing::Panel) do
+        before.try &.call(was, now)
+        refocused was, now
+        nil
+      end
+    end
+
+    # Whether the pointer was over the info panel at its last report.
+    #
+    # The pointer and the selection both put the box up. The pointer has
+    # it while it is over the panel. The selection takes it back when the
+    # pointer leaves the panel or a selection key is pressed.
+    @over_info = false
+
+    # Shows the selection when the info panel gains the focus, and hides it
+    # when the panel loses the focus.
+    private def refocused(was : FocusRing::Panel, now : FocusRing::Panel) : Nil
+      return show_selection if now.info?
+      return unless was.info?
+
+      @info_panel.show false
+      return if @over_info
+
+      @tooltip.hide
+      @nearby.unmark
+      spotlight nil
+    end
+
+    # Runs *move* on the selection, then draws the selection, hovers it and
+    # scrolls it into view. A selection key takes the box back from the
+    # pointer.
+    private def select_by(& : -> _) : Nil
+      @over_info = false
+      yield
+      @app.try &.tree.layout_if_needed
+      show_selection
+      reveal_selection
+    end
+
+    # Draws the selection, and hovers it the way the pointer hovers a row.
+    #
+    # The box and the map highlight follow the selected row while the info
+    # panel has the focus and the pointer is not over it. A menu or another
+    # modal box keeps the box it put up.
+    private def show_selection : Nil
+      focused = @ring.current.info?
+      @info_panel.show focused
+      return if !focused || @over_info
+      return if @menu.showing? || modal?
+
+      found = selected_detail
+      @nearby.keep found ? found[0] : nil
+      spotlight @nearby.spot
+      app = @app
+
+      if found && app
+        @tooltip.show app, found[0], found[1]
+      else
+        @tooltip.hide
+      end
+    end
+
+    # What the pointer hovering *found* answers, or what the selection
+    # answers once the pointer is off the info panel at *x*, *y*. `#pointed`
+    # calls this.
+    private def hovered(found : {Widgets::Widget, Array(String)}?,
+                        x : Int32, y : Int32) : {Widgets::Widget, Array(String)}?
+      @over_info = @ring.under(x, y).try(&.info?) || false
+      return found if found || @over_info || !@ring.current.info?
+
+      selected_detail
+    end
+
+    # What the selected row is about, as its pointer hook reports it. `nil`
+    # for a header or a row about nothing.
+    #
+    # The hook is the one the pointer runs, so a Seen row is marked and its
+    # square found the same way.
+    private def selected_detail : {Widgets::Widget, Array(String)}?
+      row = @info_panel.selected_row
+      return unless row.is_a? Line
+
+      held = @detailed
+      @detailed = nil
+      row.on_point.try &.call
+      found = @detailed
+      @detailed = held
+      found
+    end
+
+    # Does what a click on the selection does. A header opens or closes its
+    # section. A row runs its press hook, so a pack row puts up its menu and
+    # a Seen row walks to its square.
+    private def press_selection : Nil
+      row = @info_panel.selected_row
+      return select_by { @info_panel.section.toggle } unless row
+
+      line = row.as? Line
+      line.try &.on_press.try &.call
+    end
+
+    # Scrolls the info panel as little as it takes to show the selection.
+    #
+    # `Scrollable#scroll_to` works out the offset. The offset goes back
+    # where it was, and the panel scrolls there through `#info_glide`.
+    private def reveal_selection : Nil
+      info = @screen.info
+      now = info.scroll_y
+      info.scroll_y = info_glide.heading[1]
+      info.scroll_to @info_panel.selected
+      wanted = info.scroll_y
+      info.scroll_y = now
+
+      scroll_info_to wanted
     end
 
     # What the pack row at *index* is about, or `nil` for an empty row.
@@ -3741,6 +3887,7 @@ module Roguelike::Ui
       @nearby.show @game, seen
       spotlight @nearby.spot
       hold_info_scroll
+      show_selection
     end
 
     # Pulls the info panel's scroll back inside its content.

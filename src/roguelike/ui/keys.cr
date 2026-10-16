@@ -149,9 +149,29 @@ module Roguelike::Ui
       scrolling(play, "the map", "the top of the floor", "the bottom of the floor").merge own
     end
 
-    # The scrolling keys of the info panel. `Enter` has no use there yet.
+    # The scrolling keys of the info panel, and the keys that move its
+    # selection.
+    #
+    # `Up` and `Down` move among the section headers and the rows of an
+    # open section. `Left` and `Right` close and open the selected section,
+    # and go out of its rows and into them. `Enter` does what a click on the
+    # selection does. `Play` answers these for the focused panel, so the
+    # replay viewer's `Left` and `Right` go through the same methods.
     def self.info_panel(play : Play) : Widgets::Bindings
-      scrolling play, "the info panel", "the top of the panel", "the bottom of the panel"
+      own = Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Up"), "select the section or row above",
+          ->(_context : Widgets::Context) { play.up; nil }
+        map.bind TermBuf::Key.parse("Down"), "select the section or row below",
+          ->(_context : Widgets::Context) { play.down; nil }
+        map.bind TermBuf::Key.parse("Left"), "close the section, or go back to its header",
+          ->(_context : Widgets::Context) { play.left; nil }
+        map.bind TermBuf::Key.parse("Right"), "open the section, or go into its rows",
+          ->(_context : Widgets::Context) { play.right; nil }
+        map.bind TermBuf::Key.parse("Enter"), "do what a click on the selection does",
+          ->(_context : Widgets::Context) { play.enter; nil }
+      end
+
+      scrolling(play, "the info panel", "the top of the panel", "the bottom of the panel").merge own
     end
 
     # The scrolling keys of the log, and `Enter` for it.
@@ -318,9 +338,9 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("Space"), "play the run, or stop it",
           ->(_context : Widgets::Context) { play.toggle_playback; nil }
         map.bind TermBuf::Key.parse("Right"), "one action forward",
-          ->(_context : Widgets::Context) { play.view_forward; nil }
+          ->(_context : Widgets::Context) { play.right; nil }
         map.bind TermBuf::Key.parse("Left"), "one action back",
-          ->(_context : Widgets::Context) { play.view_back; nil }
+          ->(_context : Widgets::Context) { play.left; nil }
         map.bind TermBuf::Key.parse("g"), "go to a turn",
           ->(_context : Widgets::Context) { play.ask_for_turn; nil }
         map.bind TermBuf::Key.parse("+"), "one speed faster",
