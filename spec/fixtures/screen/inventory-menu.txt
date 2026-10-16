@@ -1,24 +1,24 @@
- —              D1 Lv 1 │#####
- HP        12/12        │#...#
- XP        0/20         │#.@.#
-                      ╭─ Inventory ──────────────────────╮
+ —              D1 Lv 1 █#####
+ HP        12/12        █#...#
+ XP        0/20         █#.@.#
+ ▼ Scores             ╭─ Inventory ──────────────────────╮
  AC   Gold         Tur│ ← [all]  weapons   armor   amu → │
 ╭───────────────────╮ │ ⟪ a    a dagger                ⟫ │
 │ a dagger          │ │   b    9 arrows                  │
 │ unknown           │ ╰──────────────────────────────────╯
-│ damage 1d4        │── │
-│ swing quick (75)  │   │
-│ thrown 10 squares │   │
-│ weight 10         │   │
-╰───────────────────╯── │
+│ damage 1d4        │   █
+│ swing quick (75)  │   █
+│ thrown 10 squares │   █
+│ weight 10         │   █
+╰───────────────────╯   █
+ hd  —                  █
+ hnd —                  █
+ ft  —                  █
+ shd —                  █
+ ▼ Pack                 █
+ a ) dagger             █
+ b ) 9 arrow            █───────────────────────────────────────────────────────
+ ▼ Here                 │ a - a dagger
+   staircase up         │ b - 9 arrows
+ ▼ Seen                 │
    nothing              │
-                        │
- Look                   │
- ────────────────────── │
- Point at the map, or   │
- press x.               │
-                        │───────────────────────────────────────────────────────
-                        │ a - a dagger
-                        │ b - 9 arrows
-                        │
-                        │

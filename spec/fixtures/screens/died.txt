@@ -1,24 +1,24 @@
- —              D1 Lv 1 │#########
- HP        0/12         │#..o....#
- XP        0/20         │#..@...>#
-                        │#########
- AC   Gold╭─ You died ───────────────────────────────────────╮
- 0    37  │  Killed by an orc.                               │
-          │                                                  │
- Here     │  turn 1                                          │
- ─────────│  level 1, 0 experience                           │
-   stairca│  37 gold                                         │
-          │                                                  │
- Seen     │  You were carrying:                              │
- ─────────│    a torch                                       │
-   orc    │    a +1 long sword (weapon in hand)              │
-          │    12 arrows                                     │
- Look     │    a potion of healing                           │
- ─────────│                                                  │
- Point at │  seed 20260915                                   │
- press x. │  Play again? y starts a new run, n quits.  [yN]  │
-          ╰──────────────────────────────────────────────────╯──────────
-                        │ You miss the orc.
-                        │ The orc notices you.
-                        │ The orc hits you for 8.
-                        │ You die...
+ —              D1 Lv 1 █#########
+ HP        0/12         █#..o....#
+ XP        0/20         █#..@...>#
+ vs      orc 14/14      █#########
+ ▼ Scores ╭─ You died ───────────────────────────────────────╮
+ AC   Gold│  Killed by an orc.                               │
+ 0    37  │                                                  │
+ St Dx Cn │  turn 1                                          │
+ 10 10 10 │  level 1, 0 experience                           │
+ ▼ Equipme│  37 gold                                         │
+ wpn +1 lo│                                                  │
+ rng —    │  You were carrying:                              │
+ qvr —    │    a torch                                       │
+ bod —    │    a +1 long sword (weapon in hand)              │
+ hd  —    │    12 arrows                                     │
+ hnd —    │    a potion of healing                           │
+ ft  —    │                                                  │
+ shd —    │  seed 20260915                                   │
+ ▼ Pack   │  Play again? y starts a new run, n quits.  [yN]  │
+ a ( torch╰──────────────────────────────────────────────────╯──────────
+ b ) +1 long swd        │ You miss the orc.
+ c ) 12 arrow           │ The orc notices you.
+ d ! dark potion        │ The orc hits you for 8.
+ ▼ Here                 │ You die...

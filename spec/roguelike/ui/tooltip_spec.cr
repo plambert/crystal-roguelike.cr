@@ -295,24 +295,24 @@ Spectator.describe Roguelike::Ui::Tooltip do
   end
 
   describe "the pack heading" do
-    it "opens the pack when it is pressed" do
+    it "shuts the pack when it is pressed" do
       run = playing
-      expect(run.play.character.showing_pack?).to be_false
+      expect(run.play.character.showing_pack?).to be_true
 
       heading = run.play.character.pack_heading
+      run.click heading.rect.x, heading.rect.y
+
+      expect(run.play.character.showing_pack?).to be_false
+    end
+
+    it "opens it again on a second press" do
+      run = playing
+      heading = run.play.character.pack_heading
+
+      run.click heading.rect.x, heading.rect.y
       run.click heading.rect.x, heading.rect.y
 
       expect(run.play.character.showing_pack?).to be_true
-    end
-
-    it "shuts it again on a second press" do
-      run = playing
-      heading = run.play.character.pack_heading
-
-      run.click heading.rect.x, heading.rect.y
-      run.click heading.rect.x, heading.rect.y
-
-      expect(run.play.character.showing_pack?).to be_false
     end
 
     # A press on the sidebar is not a press on the map. The examine cursor

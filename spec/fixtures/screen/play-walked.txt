@@ -1,24 +1,24 @@
- —              D1 Lv 1 │
- HP        12/12        │  ###################
- XP        0/20         │ #..$.|.........|....#
-                        │ #.........?.........#
- AC   Gold         Turn │ #...................#
- 2    0              13 │ #....<..............+
-                        │ #...................#
- Here                   │ #.)...............(.#
- ────────────────────── │ #...|..........@....#
-   stone floor          │  ########+###########
-   sconce               │
-                        │
- Seen                   │
- ────────────────────── │
-   a torch              │
-                        │
- Look                   │
- ────────────────────── │
- Point at the map, or   │
- press x.               │───────────────────────────────────────────────────────
-                        │ armor and a lit torch.
-                        │ You carry three spikes and a potion of minor healing.
-                        │ Press ? for the keys.
-                        │ The granite blocks your way. (x 3)
+ —              D1 Lv 1 █
+ HP        12/12        █  ###################
+ XP        0/20         █ #..$.|.........|....#
+ ▼ Scores               █ #.........?.........#
+ AC   Gold         Turn █ #...................#
+ 2    0              13 █ #....<..............+
+ St Dx Cn In Sl         █ #...................#
+ 10 10 10 10 10         █ #.)...............(.#
+ ▼ Equipment            █ #...|..........@....#
+ wpn short swd          █  ########+###########
+ rng —                  █
+ qvr —                  █
+ bod leather            █
+ hd  —                  █
+ hnd —                  █
+ ft  —                  █
+ shd —                  █
+ ▼ Pack                 │
+ a ) short swd          │
+ b [ leather            │───────────────────────────────────────────────────────
+ c ( torch              │ armor and a lit torch.
+ d ( 3 iron spike       │ You carry three spikes and a potion of minor healing.
+ e ! minor heal potion  │ Press ? for the keys.
+ ▼ Here                 │ The granite blocks your way. (x 3)

@@ -1,24 +1,24 @@
- —              D1 Lv 1 │#########
- HP        12/12        │#....o..#
- XP        0/20         │#..<...@#
-                        │#########
- AC   ╭─ You win ─────────────────────────────────────────────────╮
- 0    │  You climbed down and out of the dungeon with your life.  │
-      │                                                           │
- Here │  turn 4                                                   │
- ─────│  level 1, 0 experience                                    │
-   sta│  37 gold                                                  │
-      │                                                           │
- Seen │  You were carrying:                                       │
- ─────│    a torch                                                │
-   orc│    a +1 long sword (weapon in hand)                       │
-      │    12 arrows                                              │
- Look │    a potion of healing                                    │
- ─────│                                                           │
- Point│  seed 20260915                                            │
- press│  Play again? y starts a new run, n quits.  [yN]           │
-      ╰───────────────────────────────────────────────────────────╯─────
-                        │ The orc notices you.
-                        │ The orc misses you.
-                        │ There is a staircase leading down here.
-                        │
+ —              D1 Lv 1 █#########
+ HP        12/12        █#....o..#
+ XP        0/20         █#..<...@#
+ vs      orc 14/14      █#########
+ ▼ Sco╭─ You win ─────────────────────────────────────────────────╮
+ AC   │  You climbed down and out of the dungeon with your life.  │
+ 0    │                                                           │
+ St Dx│  turn 4                                                   │
+ 10 10│  level 1, 0 experience                                    │
+ ▼ Equ│  37 gold                                                  │
+ wpn +│                                                           │
+ rng —│  You were carrying:                                       │
+ qvr —│    a torch                                                │
+ bod —│    a +1 long sword (weapon in hand)                       │
+ hd  —│    12 arrows                                              │
+ hnd —│    a potion of healing                                    │
+ ft  —│                                                           │
+ shd —│  seed 20260915                                            │
+ ▼ Pac│  Play again? y starts a new run, n quits.  [yN]           │
+ a ( t╰───────────────────────────────────────────────────────────╯─────
+ b ) +1 long swd        │ The orc notices you.
+ c ) 12 arrow           │ The orc misses you.
+ d ! dark potion        │ There is a staircase leading down here.
+ ▼ Here                 │

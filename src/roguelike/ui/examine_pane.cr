@@ -1,13 +1,14 @@
 require "../../crystal-roguelike"
 
 module Roguelike::Ui
-  # What is on one square, written out in the sidebar.
+  # What is on one square, written out in the "Look" section of the info
+  # panel.
   #
   # This pane holds the last square it was pointed at. It does not blank
   # when the pointer moves off the map, because the pointer crosses the log
   # on its way to anywhere else.
   class ExaminePane
-    # The heading. It says what the pane is for while the pane is empty.
+    # The section's title.
     HEADING = "Look"
 
     # What the pane says before anything has been looked at.
@@ -33,8 +34,9 @@ module Roguelike::Ui
     # The sentence under it.
     SPIKED_DETAIL = "a shut wooden door with an iron spike driven in"
 
-    # The widget itself. A caller puts it in a tree.
-    getter root : Widgets::Panel
+    # The section the pane writes in. A collapsed header names what is on
+    # the square.
+    getter section : Widgets::Section
 
     # Where the readout points, in the floor's own coordinates.
     getter where : Widgets::Label
@@ -75,19 +77,18 @@ module Roguelike::Ui
       @aim.hidden = true
       @aim.style = Style::DEFAULT.bold
 
-      heading = Widgets::Label.new HEADING
-      heading.style = Style::DEFAULT.bold
-      heading.height = Layout::Sizing.fixed 1
       @where.style = Style::DEFAULT.faint
       @where.hidden = true
 
-      @root = Widgets::Panel.new(
-        direction: Layout::Direction::Column,
-        width: Layout::Sizing.grow,
-        height: Layout::Sizing.grow)
-      @root.add heading,
-        Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        @where, @what, @detail, @doing, @arms, @litter, @aim
+      @section = InfoPanel.section HEADING
+      @section.body.add @where, @what, @detail, @doing, @arms, @litter, @aim
+      @section.summarize = -> { summary }
+    end
+
+    # What a collapsed header says. Empty until something has been looked
+    # at.
+    def summary : String
+      @where.hidden? ? "" : @what.text
     end
 
     # Says what a shot at the square being pointed at would do. `nil` says

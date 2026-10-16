@@ -190,7 +190,7 @@ Spectator.describe Roguelike::Ui::FocusRing do
       run = Playing.open
       run.press "Tab"
 
-      expect(run.screen.info.style.try &.background).to eq Palette::FOCUS_GROUND
+      expect(run.screen.info_panel.style.try &.background).to eq Palette::FOCUS_GROUND
       expect(run.screen.log.style).to be_nil
     end
 
@@ -199,18 +199,18 @@ Spectator.describe Roguelike::Ui::FocusRing do
       run.press "Tab", "Tab"
 
       expect(run.screen.log.style.try &.background).to eq Palette::FOCUS_GROUND
-      expect(run.screen.info.style).to be_nil
+      expect(run.screen.info_panel.style).to be_nil
     end
 
     it "fades from the flash to the gray when motion is on" do
       run = Playing.open clock: true, motion: true
       run.press "Tab"
 
-      expect(run.screen.info.style.try &.background).to eq Palette::FOCUS_FLASH
+      expect(run.screen.info_panel.style.try &.background).to eq Palette::FOCUS_FLASH
 
       run.run_timers
 
-      expect(run.screen.info.style.try &.background).to eq Palette::FOCUS_GROUND
+      expect(run.screen.info_panel.style.try &.background).to eq Palette::FOCUS_GROUND
     end
 
     it "draws the rules beside the focused panel in the focus color" do

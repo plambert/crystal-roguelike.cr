@@ -12,11 +12,10 @@ module Roguelike::Ui
   #     │            │ log                          │
   #     └────────────┴──────────────────────────────┘
   #
-  # The info panel runs the whole height on the left. It holds the
-  # character, what is in sight and what is being examined. Its width
-  # depends on the terminal width. See `.info_width`. When its content is
-  # taller than the terminal, it scrolls as one, and the rule beside it
-  # carries the thumb.
+  # The info panel runs the whole height on the left. Its width depends on
+  # the terminal width. See `.info_width`. The vitals are pinned at its top.
+  # The sections under them scroll as one when they are taller than the
+  # room left, and the rule beside the panel carries the thumb.
   #
   # The map and the log share the right side. The map takes whatever is
   # left. A rule under the map names the floor. The log is `LOG_ROWS` rows,
@@ -96,14 +95,21 @@ module Roguelike::Ui
     # rows of map.
     MINIMUM_ROWS = 16
 
-    # The window the info panel scrolls in.
+    # The window the info panel's sections scroll in.
     #
-    # It never takes the keyboard, and it binds no keys. The arrows move the
-    # character. The wheel scrolls it, and so does the thumb on the rule
-    # beside it.
+    # It never takes the keyboard, and it binds no keys. The movement keys
+    # move the character. The wheel scrolls it, and so does the thumb on the
+    # rule beside it.
     class Scroll < Widgets::Scrollable
       def focusable? : Bool
         false
+      end
+
+      # A window can be any height, since it scrolls what does not fit. The
+      # engine measures its least height from its content, which would push
+      # it past the room under the pinned vitals.
+      def min_height : Int32
+        clip_y? ? 0 : super
       end
     end
 
@@ -126,14 +132,22 @@ module Roguelike::Ui
     # Where the floor is drawn.
     getter map : Widgets::Panel
 
-    # What the character is, and what is around them.
+    # The info panel: the pinned block over the scrolling sections. The
+    # focus tint goes on this, so it covers both.
+    getter info_panel : Widgets::Panel
+
+    # What is pinned at the top of the info panel.
+    getter pinned : Widgets::Panel
+
+    # The window the info panel's sections scroll in.
     getter info : Scroll
 
     # What has just happened, oldest first.
     getter log : Widgets::Panel
 
-    # The rule between the info panel and the right side. It carries the
-    # info panel's scroll thumb, and it hides when the panel hides.
+    # The rule between the info panel and the right side. It runs the
+    # panel's whole height and carries the thumb of the sections' scroll. It
+    # hides when the panel hides.
     getter gutter : Widgets::RuleBar
 
     # The rule under the map. It names the floor.
@@ -146,14 +160,21 @@ module Roguelike::Ui
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)
 
-      # A blank row between the panes stacked in it. Each writes its own
-      # heading and rule, and two of them touching read as one pane.
+      # The sections pad their own rows, so their headers can span the
+      # whole width.
+      @pinned = Widgets::Panel.new(
+        direction: Layout::Direction::Column,
+        width: Layout::Sizing.grow,
+        height: Layout::Sizing.fit)
       @info = Scroll.new(
-        width: Layout::Sizing.fixed(INFO_WIDTH),
-        height: Layout::Sizing.grow,
-        padding: Layout::Padding.symmetric(horizontal: 1),
-        gap: 1)
+        width: Layout::Sizing.grow,
+        height: Layout::Sizing.grow)
       @info.keymap = nil
+      @info_panel = Widgets::Panel.new(
+        direction: Layout::Direction::Column,
+        width: Layout::Sizing.fixed(INFO_WIDTH),
+        height: Layout::Sizing.grow)
+      @info_panel.add @pinned, @info
 
       @gutter = Widgets::RuleBar.new @info, Widgets::Scrollbar::Orientation::Vertical
       @rule = Widgets::Divider.new Widgets::Divider::Orientation::Horizontal
@@ -173,7 +194,7 @@ module Roguelike::Ui
         direction: Layout::Direction::Row,
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)
-      @playing.add @info, @gutter, right
+      @playing.add @info_panel, @gutter, right
 
       @notice_text = Widgets::Label.new "", align: TermBuf::Unicode::Align::Center
       @notice = Widgets::Panel.new(
@@ -273,9 +294,9 @@ module Roguelike::Ui
       @notice.hidden = room
 
       wanted = room && Screen.info? columns
-      @info.hidden = !wanted
+      @info_panel.hidden = !wanted
       @gutter.hidden = !wanted
-      @info.width = Layout::Sizing.fixed(Screen.info_width columns)
+      @info_panel.width = Layout::Sizing.fixed(Screen.info_width columns)
       @log.height = Layout::Sizing.fixed(Screen.log_height rows)
 
       # The engine does not hold a scroll to the content it finds, and a
@@ -348,25 +369,21 @@ module Roguelike::Ui
       Math.max columns - beside - 2, 0
     end
 
-    # Puts *widgets* in the info panel, stacked in the order given. Takes out
-    # whatever was there.
+    # Pins *pinned* at the top of the info panel and stacks *sections* under
+    # it, in the order given. Takes out whatever was there.
     #
-    # `Ui::CharacterPane` goes at the top, then `Ui::NearbyPane` and
-    # `Ui::ExaminePane`. What the character is does not move when what is in
-    # sight does, so the block a person reads every turn is the fixed one.
-    def show_info(*widgets : Widgets::Widget) : Nil
+    # The vitals of `Ui::CharacterPane` are what is pinned. They are what a
+    # person reads every turn, so they never scroll away.
+    def show_info(pinned : Widgets::Widget, sections : Enumerable) : Nil
+      @pinned.clear
+      @pinned.add pinned
       @info.clear
-      widgets.each { |widget| @info.add widget }
-    end
-
-    # :ditto:
-    def show_sidebar(*widgets : Widgets::Widget) : Nil
-      show_info *widgets
+      sections.each { |section| @info.add section }
     end
 
     # Whether the info panel is being shown.
     def info? : Bool
-      !@info.hidden?
+      !@info_panel.hidden?
     end
 
     # :ditto:

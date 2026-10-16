@@ -1,27 +1,27 @@
- —              D1 Lv 1 │
- HP        12/12        │  #########
- XP        0/20         │ #..$.|.....
-                        │ #.........?
- AC   Gold         Turn │ #..........
- 2    0               0 │ #....@......
-                        │ #..........
- Here                   │ #.)........
- ────────────────────── │ #...|......
-   staircase up         │  ########+
-                        │
- Seen                   │
- ────────────────────── │
-   29 gold pieces       │
-   4 darts              │
-   a scroll XIXAXA      │
-                        │
- Look                   │
- ────────────────────── │
- Point at the map, or   │───────────────────────────────────────────────────────
- press x.               │ You are in a dungeon with a short sword, leather
-                        │ armor and a lit torch.
-                        │ You carry three spikes and a potion of minor healing.
-                        │ Press ? for the keys.
+ —              D1 Lv 1 █
+ HP        12/12        █  #########
+ XP        0/20         █ #..$.|.....
+ ▼ Scores               █ #.........?
+ AC   Gold         Turn █ #..........
+ 2    0               0 █ #....@......
+ St Dx Cn In Sl         █ #..........
+ 10 10 10 10 10         █ #.)........
+ ▼ Equipment            █ #...|......
+ wpn short swd          █  ########+
+ rng —                  █
+ qvr —                  █
+ bod leather            █
+ hd  —                  █
+ hnd —                  █
+ ft  —                  █
+ shd —                  │
+ ▼ Pack                 │
+ a ) short swd          │
+ b [ leather            │───────────────────────────────────────────────────────
+ c ( torch              │ You are in a dungeon with a short sword, leather
+ d ( 3 iron spike       │ armor and a lit torch.
+ e ! minor heal potion  │ You carry three spikes and a potion of minor healing.
+ ▼ Here                 │ Press ? for the keys.
 
 ........................R.......................................................
 ........................R.......................................................

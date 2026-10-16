@@ -1,24 +1,24 @@
- —              D1 Lv 1 │#########
- HP        12/12        │#..o....#
- XP        0/20         │#..@...>#
-                        │#########
- AC   Gold         Turn │
- 0    37              0 │
-                        │
- Here                   │
- ────────────────────── │
+ —              D1 Lv 1 █#########
+ HP        12/12        █#..o....#
+ XP        0/20         █#..@...>#
+ ▼ Scores               █#########
+ AC   Gold         Turn █
+ 0    37              0 █
+ St Dx Cn In Sl         █
+ 10 10 10 10 10         █
+ ▼ Equipment            █
+ wpn +1 long swd        █
+ rng —    ╭─ crystal-roguelike version       · seed 20260915 ─╮
+ qvr —    │ ⟪ a - new character                             ⟫ │
+ bod —    │   Q - quit                                        │
+ hd  —    ╰───────────────────────────────────────────────────╯
+ hnd —                  █
+ ft  —                  █
+ shd —                  █
+ ▼ Pack                 █
+ a ( torch              │
+ b ) +1 long swd        │───────────────────────────────────────────────
+ c ) 12 arrow           │
+ d ! dark potion        │
+ ▼ Here                 │
    staircase up         │
-          ╭─ crystal-roguelike version       · seed 20260915 ─╮
- Seen     │ ⟪ a - new character                             ⟫ │
- ─────────│   Q - quit                                        │
-   orc    ╰───────────────────────────────────────────────────╯
-                        │
- Look                   │
- ────────────────────── │
- Point at the map, or   │
- press x.               │
-                        │───────────────────────────────────────────────
-                        │
-                        │
-                        │
-                        │

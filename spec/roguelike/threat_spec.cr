@@ -327,18 +327,16 @@ Spectator.describe "the creature last fought" do
       expect(run.play.character.health.label).to eq "HP"
     end
 
-    # The bar is the last thing the pane gives up, and the character's own
-    # bars are never given up at all.
-    it "gives the row up on a screen with no room for it" do
+    # The bar is pinned with the character's own bars, so a short screen
+    # scrolls the sections under them instead.
+    it "keeps the row on a short screen" do
       game, creature = arena
       run = playing game
       game.attack creature
       run.play.refresh
 
-      expect(run.play.character.fight.hidden?).to be_false
-
       run.resize 80, 18
-      expect(run.play.character.fight.hidden?).to be_true
+      expect(run.play.character.fight.hidden?).to be_false
       expect(run.play.character.health.hidden?).to be_false
       expect(run.play.character.learning.hidden?).to be_false
     end

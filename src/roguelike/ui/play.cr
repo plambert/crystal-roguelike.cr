@@ -87,7 +87,7 @@ module Roguelike::Ui
     # `Session` gives a run the store under the person's home. A spec gives
     # one a store on a temporary directory, or none at all, so that nothing
     # a spec does writes to a person's saved characters.
-    property store : Save::Store? = nil
+    getter store : Save::Store? = nil
 
     # How the flames waver. `Session` advances it on a timer.
     getter flicker : Flicker
@@ -446,6 +446,7 @@ module Roguelike::Ui
       @character = CharacterPane.new
       @examine = ExaminePane.new
       @nearby = NearbyPane.new
+      @info_panel = InfoPanel.new @character.sections + @nearby.sections + [@examine.section]
       @examiner = Examiner.new @map, @examine
       @examiner.lore = @game.lore
       @examiner.game = @game
@@ -3639,12 +3640,23 @@ module Roguelike::Ui
 
     # ------------------------------------------------------ the info panel
 
-    # Puts the pointer hooks on the rows of the sidebar.
+    # The sections of the info panel, and which of them are open.
+    getter info_panel : InfoPanel
+
+    # Gives the run *store*. The info panel keeps its sections' state in the
+    # same state directory.
+    def store=(store : Save::Store?) : Save::Store?
+      @store = store
+      @info_panel.path = store.try { |held| held.root / InfoPanel::FILE }
+      store
+    end
+
+    # Puts the pointer hooks on the rows of the info panel.
     #
     # A row says what it is about when the pointer crosses it. `#pointed`
     # decides what to do with that once the event has been through the tree.
-    # The pack heading opens and shuts the pack when it is pressed. A pack row
-    # pressed puts up what can be done with what is on it.
+    # A section header says nothing, so the box comes down over it. A pack
+    # row pressed puts up what can be done with what is on it.
     #
     # `NearbyPane` builds its rows afresh every turn, so the hook goes on the
     # pane rather than on the rows, and the pane hands over whichever row the
@@ -3663,8 +3675,10 @@ module Roguelike::Ui
         row.on_press = -> { pressed_carried index; nil }
       end
 
-      @character.pack_heading.on_press = -> { open_pack; nil }
-      @character.pack_heading.on_point = -> { detail nil, nil; nil }
+      @info_panel.sections.each do |section|
+        section.on_point = -> { detail nil, nil; nil }
+      end
+      @info_panel.on_toggle = ->(_section : Widgets::Section) { refresh; nil }
     end
 
     # What the pack row at *index* is about, or `nil` for an empty row.
@@ -3707,66 +3721,40 @@ module Roguelike::Ui
       @detailed = row && lines ? {row, lines} : nil
     end
 
-    # Opens the pack, or shuts it, and lays the sidebar out again.
+    # Opens the pack section unless it is open already.
     def open_pack : Nil
-      @character.toggle_pack
-      refresh
+      @info_panel.open @character.packed
     end
 
-    # How many rows the info panel's two lists get on a screen of *rows*.
-    #
-    # Whatever the map's height leaves, less the headings and rules of the two
-    # sections and the most `ExaminePane` writes. A shorter screen gives them
-    # less, and `NearbyPane` elides what does not fit rather than pushing the
-    # readout off the bottom.
-    #
-    # The budgets measure against the map's height, which is shorter than the
-    # info panel. The rows under the map's height are spare, so the readout
-    # at the bottom has room to show whole.
-    def self.nearby_budget(rows : Int32, character : Int32 = 0) : Int32
-      Math.max Screen.map_rows(rows) - character - SIDEBAR_CHROME - EXAMINE_ROWS, 2
-    end
-
-    # How many rows `CharacterPane` may take of a screen of *rows*.
-    #
-    # What is left over once the two readouts under it have what they need.
-    # The character block is the one that can give rows up: it knows what it
-    # would drop first, and a person who wants all of it can make the window
-    # taller.
-    def self.character_rows(rows : Int32) : Int32
-      Math.max Screen.map_rows(rows) - LEAST_READOUTS, CharacterPane::LEAST
-    end
-
-    # Rows the three sidebar headings and the rules under them take.
-    SIDEBAR_CHROME = 6
-
-    # The most rows `ExaminePane` writes at once.
-    EXAMINE_ROWS = 6
-
-    # The fewest rows the three readouts are left with.
-    #
-    # A heading, a rule and one row each for Here, Seen and Look, and the two
-    # blank rows between the three panes. The character block takes
-    # everything above that and gives rows back when there are not enough.
-    LEAST_READOUTS = SIDEBAR_CHROME + 3 + 3
-
-    # Puts the three panes in the info panel and hooks their rows.
+    # Pins the vitals and stacks the sections in the info panel, and hooks
+    # their rows.
     private def build_info : Nil
-      @screen.show_info @character.root, @nearby.root, @examine.root
+      @screen.show_info @character.vitals, @info_panel.sections
       watch_the_sidebar
     end
 
-    # Draws the three panes from the run as it stands, with *seen* the
+    # Draws the info panel from the run as it stands, with *seen* the
     # squares in sight.
+    #
+    # Every section draws all its rows, and the panel scrolls.
     private def refresh_info(seen : Vision) : Nil
-      # The character block writes itself, then gives up whatever rows the
-      # window has no room for. What is left over is what the two readouts
-      # under it get, so the order here decides the sidebar.
       @character.show @game
-      @character.fit Play.character_rows @rows
-      @nearby.budget = Play.nearby_budget @rows, @character.height
       @nearby.show @game, seen
       spotlight @nearby.spot
+      hold_info_scroll
+    end
+
+    # Pulls the info panel's scroll back inside its content.
+    #
+    # A section that closed or a list that shrank leaves less to show, and
+    # the scroll does not follow the content by itself. The tree is laid out
+    # first so the content is measured as it now stands.
+    private def hold_info_scroll : Nil
+      info = @screen.info
+      return if info.scroll_y.zero?
+
+      @app.try &.tree.layout_if_needed
+      info.scroll_y = info.scroll_y.clamp 0, info.max_scroll[1]
     end
 
     # Scrolls the info panel *rows* rows, up when negative.

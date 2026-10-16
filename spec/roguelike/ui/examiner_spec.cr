@@ -570,8 +570,16 @@ Spectator.describe Roguelike::Ui::Examiner do
   end
 
   describe "drawn" do
+    # The screen with the info panel scrolled to the Look section at its
+    # bottom.
+    def looking(run : Playing::Run) : String
+      run.render
+      run.screen.info.scroll_to_end
+      run.text
+    end
+
     it "draws what it drew last time with nothing looked at" do
-      drawn = Playing.open.text
+      drawn = looking Playing.open
 
       expect(drawn).to eq Fixture.expected("screen/examine-empty.txt", drawn)
     end
@@ -579,7 +587,7 @@ Spectator.describe Roguelike::Ui::Examiner do
     it "draws what it drew last time pointed at the up staircase" do
       run = Playing.open
       hover run, 6, 5
-      drawn = run.text
+      drawn = looking run
 
       expect(drawn).to eq Fixture.expected("screen/examine-stairs.txt", drawn)
     end
@@ -589,7 +597,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       hover run, 6, 5
       run.press "x"
       run.press "j"
-      drawn = run.text
+      drawn = looking run
 
       expect(drawn).to eq Fixture.expected("screen/examine-cursor.txt", drawn)
     end
