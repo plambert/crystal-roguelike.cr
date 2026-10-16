@@ -143,7 +143,7 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("Shift+Right"), "scroll the map right a column",
           ->(_context : Widgets::Context) { play.scroll_columns(1); nil }
         map.bind TermBuf::Key.parse("Enter"),
-          "loose the shot, walk to the square, or bring the character into view",
+          "fire, walk to the square, or find the character",
           ->(_context : Widgets::Context) { play.enter; nil }
       end
 
@@ -299,7 +299,7 @@ module Roguelike::Ui
       actions = Play::Handle.values
       notes = [
         {"a-z A-Z", "what to do with that item"},
-        {"Left Right", "show one class of item at a time, here and in every list of carried items"},
+        {"Left Right", "show one class of item at a time"},
         {actions.join(" ", &.key), actions.join(", ", &.label)},
       ]
 

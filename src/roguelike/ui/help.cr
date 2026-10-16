@@ -25,6 +25,12 @@ module Roguelike
       # Rows the border, the gap and the Close button take.
       CHROME = 4
 
+      # Cells left clear left and right of the dialog when it is at its widest.
+      MARGIN_X = 1
+
+      # Columns the border, the padding, and the scrollbar with its gap take.
+      CHROME_X = 6
+
       # Cells between the keys and what they do.
       GAP = 2
 
@@ -119,6 +125,10 @@ module Roguelike
       # How many rows the screen has. The owner sets it, and again on a resize.
       property screen_rows : Int32 = 24
 
+      # The widest a row of the list may be. A longer description wraps onto
+      # rows under its key. The owner sets it from the screen on opening.
+      property text_width : Int32 = Int32::MAX
+
       # The rows as they stand, rebuilt every time the dialog opens.
       getter rows = [] of Row
 
@@ -153,6 +163,7 @@ module Roguelike
 
       # Builds the rows from the sections and sizes the list to the screen.
       protected def prepare(app : Widgets::App) : Nil
+        @text_width = Math.max app.tree.screen.width - 2 * MARGIN_X - CHROME_X, 8
         rebuild
         @list.most = Math.max screen_rows - 2 * MARGIN - CHROME, 1
         @bar.hidden = @rows.size <= @list.most
@@ -210,6 +221,37 @@ module Roguelike
 
           section.notes.each { |(keys, description)| @rows << Row.new(keys, description) }
         end
+
+        wrap_descriptions
+      end
+
+      # Splits every description wider than `text_width` over several rows.
+      # The first keeps the key and the rest have none.
+      private def wrap_descriptions : Nil
+        keys_width = @rows.reject(&.header).max_of?(&.keys.size) || 0
+        room = Math.max @text_width - keys_width - GAP, 8
+
+        wrapped = @rows.flat_map do |row|
+          next [row] if row.header || row.description.size <= room
+
+          lines = Help.wrap row.description, room
+          lines.map_with_index { |line, index| Row.new(index.zero? ? row.keys : "", line) }
+        end
+        @rows.replace wrapped
+      end
+
+      # Breaks *text* at spaces into lines of at most *width* cells. A word
+      # wider than that stays whole on its own line.
+      def self.wrap(text : String, width : Int32) : Array(String)
+        lines = [] of String
+        text.split(' ', remove_empty: true).each do |word|
+          if lines.empty? || lines.last.size + 1 + word.size > width
+            lines << word
+          else
+            lines[-1] = "#{lines.last} #{word}"
+          end
+        end
+        lines
       end
 
       # The movement keys around the character, as five lines.
