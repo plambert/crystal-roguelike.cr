@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-16
+
+The screen has a new layout, with the character panel down the left in sections that close and
+scroll, the message log under the map without `--More--` stops, and `Tab` to move the focus
+between them; carried-item lists all have class pages, and a scroll of identify can name blessings.
+
 ### Added
 
 * `--max-columns N` and `--max-rows N` make the game draw in at most that many columns and rows,
@@ -876,7 +882,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.0...v0.4.1

@@ -3,6 +3,18 @@
 What changed in each release, for the people playing it. The full record, including build and
 packaging changes, is in [CHANGELOG.md](CHANGELOG.md).
 
+## [0.5.0] - 2026-10-16
+
+The screen is laid out anew, with the character panel down the left, the log under the map, and
+`Tab` to move between them.
+
+* `Tab` moves the focus among the map, character panel and log, and each scrolls on its own.
+* The character panel keeps your vitals at the top and folds into sections you can close.
+* The log never stops for `--More--` and shows a badge counting the newer messages below.
+* Every list of carried items has class pages and keeps the same size as you change pages.
+* A scroll of identify offers whatever has something left to learn, including blessings.
+* `X` no longer gets stuck beside a pile your full pack has no room for.
+
 ## [0.4.3] - 2026-10-15
 
 You can break down spiked doors, the inventory sorts by class and offers actions, and creatures
