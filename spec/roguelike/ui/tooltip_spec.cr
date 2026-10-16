@@ -111,16 +111,16 @@ Spectator.describe Roguelike::Ui::Tooltip do
       ]
     end
 
-    # The sidebar is where a person is pointing. Covering it would cover the
-    # row they asked about.
-    it "hangs to the left of the row, over the map" do
+    # The info panel is where a person is pointing. Covering it would cover
+    # the row they asked about.
+    it "hangs to the right of the row, over the map" do
       run = playing
       row = run.play.character.slot_row Slot::Melee
 
       point_at run, row
 
       box = run.play.tooltip.rect
-      expect(box.x + box.width).to be <= row.rect.x
+      expect(box.x).to be >= row.rect.x + row.rect.width
     end
 
     it "draws it" do
@@ -419,7 +419,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
     it "reads as its size in the readout" do
       run = hall
 
-      run.hover 7, 1
+      run.hover_map 7, 1
 
       expect(run.examine.what.text).to eq Size::Small.label
       expect(run.examine.detail.text).to eq Roguelike::Ui::ExaminePane::MOVING
@@ -453,7 +453,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
       expect(in_sight run).to contain "goblin warrior"
       expect(run.play.tooltip.written.first).to eq "goblin warrior"
 
-      run.hover 7, 1
+      run.hover_map 7, 1
 
       expect(run.examine.what.text).to eq "goblin warrior"
     end

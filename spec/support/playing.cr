@@ -91,6 +91,32 @@ module Playing
       @session.render
     end
 
+    # Where the cell *x*, *y* of the map pane is in the buffer.
+    #
+    # The map pane does not start at the buffer's origin. The info panel and
+    # its rule are to the left of it.
+    def on_map(x : Int32, y : Int32) : {Int32, Int32}
+      box = screen.map.rect
+      {box.x + x, box.y + y}
+    end
+
+    # Row *y* of the map pane, from its first column to the buffer's edge.
+    def map_row(y : Int32) : String
+      box = screen.map.rect
+      row(box.y + y).ljust(box.right)[box.x..]
+    end
+
+    # A motion report with no button held over cell *x*, *y* of the map
+    # pane.
+    def hover_map(x : Int32, y : Int32) : Nil
+      hover *on_map(x, y)
+    end
+
+    # The left button going down over cell *x*, *y* of the map pane.
+    def click_map(x : Int32, y : Int32) : Nil
+      click *on_map(x, y)
+    end
+
     # A motion report with no button held. Mode 1003 sends these.
     def hover(x : Int32, y : Int32) : Nil
       @session.send TermBuf::Events::Mouse.new(

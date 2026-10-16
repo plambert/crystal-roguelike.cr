@@ -1,24 +1,24 @@
-                                                       │ —              D1 Lv 1
-  ###################                                  │ HP        12/12
- #..$.|.........|....#                                 │ XP        0/20
- #.........?.........#                                 │
- #...................#                                 │ AC   Gold         Turn
- #....<..............+                                 │ 2    0              13
- #...................#                                 │
- #.)...............(.#                                 │ Here
- #...|..........@....#                                 │ ──────────────────────
-  ########+###########                                 │   stone floor
-                                                       │   sconce
-                                                       │
-                                                       │ Seen
-                                                       │ ──────────────────────
-                                                       │   a torch
-                                                       │
-                                                       │ Look
-                                                       │ ──────────────────────
-                                                       │ Point at the map, or
-────────────────────────────────────────────────────────────────────────────────
- You are in a dungeon with a short sword, leather armor and a lit torch.
- You carry three spikes and a potion of minor healing. Press ? for the keys.
- The granite blocks your way. (x 3)
-
+ —              D1 Lv 1 │
+ HP        12/12        │  ###################
+ XP        0/20         │ #..$.|.........|....#
+                        │ #.........?.........#
+ AC   Gold         Turn │ #...................#
+ 2    0              13 │ #....<..............+
+                        │ #...................#
+ Here                   │ #.)...............(.#
+ ────────────────────── │ #...|..........@....#
+   stone floor          │  ########+###########
+   sconce               │
+                        │
+ Seen                   │
+ ────────────────────── │
+   a torch              │
+                        │
+ Look                   │
+ ────────────────────── │
+ Point at the map, or   │
+ press x.               │───────────────────────────────────────────────────────
+                        │ armor and a lit torch.
+                        │ You carry three spikes and a potion of minor healing.
+                        │ Press ? for the keys.
+                        │ The granite blocks your way. (x 3)

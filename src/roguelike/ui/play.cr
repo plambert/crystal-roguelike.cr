@@ -449,7 +449,7 @@ module Roguelike::Ui
       @character = CharacterPane.new
       @examine = ExaminePane.new
       @nearby = NearbyPane.new
-      @screen.show_sidebar @character.root, @nearby.root, @examine.root
+      @screen.show_info @character.root, @nearby.root, @examine.root
       @examiner = Examiner.new @map, @examine
       @examiner.lore = @game.lore
       @examiner.game = @game

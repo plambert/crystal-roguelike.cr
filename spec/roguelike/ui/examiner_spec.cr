@@ -4,9 +4,10 @@ Spectator.describe Roguelike::Ui::Examiner do
   alias Direction = Roguelike::Direction
   alias Ui = Roguelike::Ui
 
-  # A motion report with no button held. Mode 1003 sends these.
+  # A motion report with no button held over cell *x*, *y* of the map pane.
+  # Mode 1003 sends these.
   def hover(run : Playing::Run, x : Int32, y : Int32) : Nil
-    run.hover x, y
+    run.hover_map x, y
   end
 
   describe "before anything has been looked at" do
@@ -70,11 +71,11 @@ Spectator.describe Roguelike::Ui::Examiner do
 
     # The readout holds what it last had. A panel that empties whenever the
     # pointer crosses the log is a panel nobody can read.
-    it "leaves the readout alone over the sidebar" do
+    it "leaves the readout alone over the info panel" do
       run = Playing.open
 
       hover run, 6, 5
-      hover run, 70, 5
+      run.hover 10, 5
 
       expect(run.examiner.spot).to eq({6, 5})
       expect(run.examine.what.text).to eq "staircase up"
@@ -84,7 +85,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       run = Playing.open
 
       hover run, 6, 5
-      hover run, 20, 21
+      run.hover 40, 21
 
       expect(run.examiner.spot).to eq({6, 5})
     end
@@ -106,7 +107,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       run = Playing.open
 
       run.session.send TermBuf::Events::Mouse.new(
-        TermBuf::Input::Mouse::Button::Left, 6, 5,
+        TermBuf::Input::Mouse::Button::Left, *run.on_map(6, 5),
         TermBuf::Modifiers::None,
         TermBuf::Input::Mouse::Action::Press)
 
@@ -310,7 +311,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       run = Playing.open
 
       run.press "x"
-      run.click 20, 12
+      run.click_map 20, 12
 
       expect(run.examiner.spot).to eq({20, 12})
       expect(run.map.cursor).to eq({20, 12})
@@ -321,7 +322,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       run = Playing.open
 
       run.press "x"
-      run.click 70, 5
+      run.click 10, 5
 
       expect(run.examiner.spot).to eq({6, 5})
     end
@@ -333,7 +334,7 @@ Spectator.describe Roguelike::Ui::Examiner do
 
       run.press "x"
       run.session.send TermBuf::Events::Mouse.new(
-        TermBuf::Input::Mouse::Button::WheelDown, 20, 12,
+        TermBuf::Input::Mouse::Button::WheelDown, *run.on_map(20, 12),
         TermBuf::Modifiers::None,
         TermBuf::Input::Mouse::Action::Press)
       run.render
@@ -355,7 +356,7 @@ Spectator.describe Roguelike::Ui::Examiner do
 
       run.press "x"
       hover run, 20, 12
-      hover run, 70, 5
+      run.hover 10, 5
 
       expect(run.pointer.shape).to eq Ui::Pointer::ELSEWHERE
       expect(run.pointer.cursor).to be_nil
@@ -385,7 +386,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       hover run, 6, 5
       run.press "x"
 
-      expect(run.examiner.screen_spot).to eq({6, 5})
+      expect(run.examiner.screen_spot).to eq run.on_map(6, 5)
     end
 
     # The pointer moved the readout. The pointer is then taken off the map.
@@ -397,10 +398,10 @@ Spectator.describe Roguelike::Ui::Examiner do
       hover run, 6, 5
       run.press "x"
       run.press "j"
-      hover run, 70, 5
+      run.hover 10, 5
 
       expect(run.pointer.cursor).to be_nil
-      expect(run.play.cursor).to eq({6, 6})
+      expect(run.play.cursor).to eq run.on_map(6, 6)
     end
 
     # The mouse is resting on the square it last reported. The keyboard is
@@ -414,8 +415,8 @@ Spectator.describe Roguelike::Ui::Examiner do
       run.press "j"
       run.press "j"
 
-      expect(run.pointer.cursor).to eq({6, 5})
-      expect(run.play.cursor).to eq({6, 7})
+      expect(run.pointer.cursor).to eq run.on_map(6, 5)
+      expect(run.play.cursor).to eq run.on_map(6, 7)
     end
 
     it "goes to the pointer while there is no examine cursor" do
@@ -423,7 +424,7 @@ Spectator.describe Roguelike::Ui::Examiner do
 
       hover run, 9, 7
 
-      expect(run.play.cursor).to eq({9, 7})
+      expect(run.play.cursor).to eq run.on_map(9, 7)
     end
 
     # The pointer is over the map, so its shape is still the crosshair. The
@@ -434,8 +435,8 @@ Spectator.describe Roguelike::Ui::Examiner do
       run.press "x"
       hover run, 9, 7
 
-      expect(run.pointer.cursor).to eq({9, 7})
-      expect(run.play.cursor).to eq({6, 5})
+      expect(run.pointer.cursor).to eq run.on_map(9, 7)
+      expect(run.play.cursor).to eq run.on_map(6, 5)
     end
 
     it "goes nowhere while the cursor is scrolled out of the window" do
@@ -615,7 +616,7 @@ Spectator.describe Roguelike::Ui::Examiner do
       run.render
 
       expect(run.examiner.spot).to eq({7, 5})
-      expect(run.row(5)[7]).to eq '.'
+      expect(run.map_row(5)[7]).to eq '.'
     end
 
     # The glyph is the same either way. The cell's style is the only evidence
@@ -624,28 +625,28 @@ Spectator.describe Roguelike::Ui::Examiner do
       run = Playing.open
 
       hover run, 6, 5
-      plain = run.buffer.hit(6, 5).try &.cell.style
-      beside = run.buffer.hit(7, 5).try &.cell.style
+      plain = run.buffer.hit(*run.on_map(6, 5)).try &.cell.style
+      beside = run.buffer.hit(*run.on_map(7, 5)).try &.cell.style
 
       run.press "x"
       run.render
 
-      expect(run.buffer.hit(6, 5).try &.cell.style).not_to eq plain
-      expect(run.buffer.hit(7, 5).try &.cell.style).to eq beside
+      expect(run.buffer.hit(*run.on_map(6, 5)).try &.cell.style).not_to eq plain
+      expect(run.buffer.hit(*run.on_map(7, 5)).try &.cell.style).to eq beside
     end
 
     it "puts the square back when the cursor goes" do
       run = Playing.open
 
       hover run, 6, 5
-      plain = run.buffer.hit(6, 5).try &.cell.style
+      plain = run.buffer.hit(*run.on_map(6, 5)).try &.cell.style
 
       run.press "x"
       run.render
       run.press "Escape"
       run.render
 
-      expect(run.buffer.hit(6, 5).try &.cell.style).to eq plain
+      expect(run.buffer.hit(*run.on_map(6, 5)).try &.cell.style).to eq plain
     end
   end
 end

@@ -17,6 +17,12 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     Playing.open game, 80, rows
   end
 
+  # Row *y* of the screen, cut at the right edge of the info panel.
+  def info_row(run : Playing::Run, y : Int32) : String
+    box = run.screen.info.rect
+    run.row(y).ljust(box.right)[box.x, box.width]
+  end
+
   # Which row of the pane holds *slot*.
   def slot_row(run : Playing::Run, slot : Slot) : Roguelike::Ui::Line
     run.play.character.slot_row slot
@@ -39,7 +45,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
 
     it "draws the level against the right edge" do
       run = playing name: "Sparky"
-      row = run.row run.play.character.who.rect.y
+      row = info_row run, run.play.character.who.rect.y
 
       expect(row.rstrip).to end_with "Lv 1"
       expect(row).to contain "Sparky"
@@ -49,7 +55,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     # it rather than pushing it off the row.
     it "cuts a name too long for the row" do
       run = playing name: "Bartholomew the Unreasonably Long"
-      row = run.row run.play.character.who.rect.y
+      row = info_row run, run.play.character.who.rect.y
 
       expect(row.rstrip).to end_with "Lv 1"
       expect(row).to contain Roguelike::Ui::Line::ELLIPSIS

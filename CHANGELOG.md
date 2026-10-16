@@ -30,9 +30,16 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   cursed one picks its own target, and sometimes picks something you already knew all about.
 * A replay recorded with an earlier version stops verifying at the first blessed or cursed scroll
   of identify read, or the first one read with nothing left to name.
+* The character panel is on the left, the full height of the window. It scrolls under the wheel
+  when what it holds does not fit, and a thumb on the rule beside it shows where you are. On a
+  wide window it grows up to 36 columns, so item names stop wrapping.
+* The message log sits under the map instead of across the whole window. It has six rows on a
+  window more than 40 rows tall.
 
 ### Fixed
 
+* The Look readout at the bottom of the character panel is no longer cut off on an 80 by 24
+  window.
 * A scroll of identify read when nothing you carry has anything left to learn says "There is
   nothing you do not know about what you carry." and stays in your pack, with no turn spent. It
   was used up before, to no effect.

@@ -4,39 +4,71 @@ module Roguelike::Ui
   # The regions the game is drawn in. This class does not decide what goes in
   # them.
   #
-  #     ┌──────────────────────────┬────────────┐
-  #     │ map                      │ sidebar    │
-  #     │                          │            │
-  #     ├──────────────────────────┴────────────┤
-  #     │ status                                │
-  #     │ log                                   │
-  #     └───────────────────────────────────────┘
+  #     ┌────────────┬──────────────────────────────┐
+  #     │ info       │ map                          │
+  #     │            │                              │
+  #     │            │                              │
+  #     │            ├──────────────────────────────┤
+  #     │            │ log                          │
+  #     └────────────┴──────────────────────────────┘
   #
-  # The map takes whatever width is left. The sidebar has a fixed width. It
-  # holds a name and a short description. Those read at a width that does not
-  # change.
+  # The info panel runs the whole height on the left. It holds the
+  # character, what is in sight and what is being examined. Its width
+  # depends on the terminal width. See `.info_width`. When its content is
+  # taller than the terminal, it scrolls as one, and the rule beside it
+  # carries the thumb.
   #
-  # The status line is one row. The log is `LOG_ROWS` rows. Both run the
-  # whole width, so a long message is not cut off at the sidebar.
+  # The map and the log share the right side. The map takes whatever is
+  # left. A rule under the map names the floor. The log is `LOG_ROWS` rows,
+  # or `TALL_LOG_ROWS` on a tall terminal.
   #
   # This class opens no terminal. It reads no event. A `Screen` is a widget
   # tree. A spec builds one, renders it into a buffer, and reads the cells
   # back.
   class Screen
-    # How wide the sidebar is.
+    # How wide the info panel is on a terminal of `INFO_GROWS_FROM` columns
+    # or fewer.
     #
     # Twenty-four columns holds "a masterwork +1 chain mail" on one line. That
     # is about the longest item name that has to fit without wrapping.
-    SIDEBAR_WIDTH = 24
+    INFO_WIDTH = 24
 
-    # The narrowest screen that keeps the sidebar.
+    # The widest the info panel gets.
+    INFO_MOST_WIDTH = 36
+
+    # The terminal width the info panel starts to grow at.
     #
-    # Under this width the sidebar is hidden rather than squeezed. The
-    # number is the sidebar width plus enough map to play in.
-    SIDEBAR_MINIMUM_COLUMNS = 60
+    # An 80 column terminal keeps the narrow panel, so the map still shows a
+    # whole room.
+    INFO_GROWS_FROM = 100
+
+    # How many terminal columns the info panel takes for each column it
+    # grows.
+    INFO_GROWTH = 4
+
+    # The fewest map columns worth playing in beside the info panel.
+    LEAST_MAP_COLUMNS = 35
+
+    # The narrowest screen that keeps the info panel.
+    #
+    # Under this width the panel is hidden rather than squeezed. The number
+    # is the panel, the rule beside it, and enough map to play in.
+    INFO_MINIMUM_COLUMNS = INFO_WIDTH + 1 + LEAST_MAP_COLUMNS
+
+    # The info panel's width under the name it had before it moved left.
+    SIDEBAR_WIDTH = INFO_WIDTH
+
+    # :ditto:
+    SIDEBAR_MINIMUM_COLUMNS = INFO_MINIMUM_COLUMNS
 
     # Rows the message log is given.
     LOG_ROWS = 4
+
+    # Rows the message log is given on a terminal taller than `TALL_ROWS`.
+    TALL_LOG_ROWS = 6
+
+    # The height above which a terminal counts as tall.
+    TALL_ROWS = 40
 
     # What a banner too wide for the window ends with.
     BANNER_ELLIPSIS = "\u2026"
@@ -48,12 +80,8 @@ module Roguelike::Ui
     # fewer.
     getter banner : Widgets::Label? = nil
 
-    # How many rows are not the map. The rule and the log.
-    #
-    # There was a status row between them. Everything on it is in the
-    # sidebar now, stacked, where there is room for it and for a bar beside
-    # each number.
-    CHROME_ROWS = 1 + LOG_ROWS
+    # The height `#fit` was last given.
+    @rows : Int32 = 0
 
     # The narrowest terminal the game is drawn in.
     #
@@ -64,9 +92,20 @@ module Roguelike::Ui
 
     # The shortest terminal the game is drawn in.
     #
-    # `CHROME_ROWS` of the height is not the map. This height leaves ten rows
-    # to play in.
+    # The rule and the log take five rows of this height. That leaves eleven
+    # rows of map.
     MINIMUM_ROWS = 16
+
+    # The window the info panel scrolls in.
+    #
+    # It never takes the keyboard, and it binds no keys. The arrows move the
+    # character. The wheel scrolls it, and so does the thumb on the rule
+    # beside it.
+    class Scroll < Widgets::Scrollable
+      def focusable? : Bool
+        false
+      end
+    end
 
     # The whole tree. `App` and `Layout::Tree` take it.
     #
@@ -88,14 +127,14 @@ module Roguelike::Ui
     getter map : Widgets::Panel
 
     # What the character is, and what is around them.
-    getter sidebar : Widgets::Panel
+    getter info : Scroll
 
     # What has just happened, oldest first.
     getter log : Widgets::Panel
 
-    # The rule between the map and the sidebar. It hides when the sidebar
-    # hides.
-    getter gutter : Widgets::Divider
+    # The rule between the info panel and the right side. It carries the
+    # info panel's scroll thumb, and it hides when the panel hides.
+    getter gutter : Widgets::RuleBar
 
     # The rule under the map. It names the floor.
     getter rule : Widgets::Divider
@@ -109,13 +148,14 @@ module Roguelike::Ui
 
       # A blank row between the panes stacked in it. Each writes its own
       # heading and rule, and two of them touching read as one pane.
-      @sidebar = Widgets::Panel.new(
-        width: Layout::Sizing.fixed(SIDEBAR_WIDTH),
+      @info = Scroll.new(
+        width: Layout::Sizing.fixed(INFO_WIDTH),
         height: Layout::Sizing.grow,
         padding: Layout::Padding.symmetric(horizontal: 1),
         gap: 1)
+      @info.keymap = nil
 
-      @gutter = Widgets::Divider.new Widgets::Divider::Orientation::Vertical
+      @gutter = Widgets::RuleBar.new @info, Widgets::Scrollbar::Orientation::Vertical
       @rule = Widgets::Divider.new Widgets::Divider::Orientation::Horizontal
 
       @log = Widgets::Panel.new(
@@ -123,17 +163,17 @@ module Roguelike::Ui
         height: Layout::Sizing.fixed(LOG_ROWS),
         padding: Layout::Padding.symmetric(horizontal: 1))
 
-      upper = Widgets::Panel.new(
-        direction: Layout::Direction::Row,
-        width: Layout::Sizing.grow,
-        height: Layout::Sizing.grow)
-      upper.add @map, @gutter, @sidebar
-
-      @playing = Widgets::Panel.new(
+      right = Widgets::Panel.new(
         direction: Layout::Direction::Column,
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)
-      @playing.add upper, @rule, @log
+      right.add @map, @rule, @log
+
+      @playing = Widgets::Panel.new(
+        direction: Layout::Direction::Row,
+        width: Layout::Sizing.grow,
+        height: Layout::Sizing.grow)
+      @playing.add @info, @gutter, right
 
       @notice_text = Widgets::Label.new "", align: TermBuf::Unicode::Align::Center
       @notice = Widgets::Panel.new(
@@ -151,6 +191,32 @@ module Roguelike::Ui
         width: Layout::Sizing.grow,
         height: Layout::Sizing.grow)
       @root.add @playing, @notice
+    end
+
+    # The info panel under the name it had before it moved left.
+    def sidebar : Scroll
+      @info
+    end
+
+    # How wide the info panel is on a terminal of *columns*.
+    #
+    # It is `INFO_WIDTH` up to `INFO_GROWS_FROM` columns. Past that it gains
+    # a column for every `INFO_GROWTH` columns, and stops at
+    # `INFO_MOST_WIDTH`, which a terminal of 148 columns reaches. Item names
+    # then stop wrapping, and the map keeps most of the extra width.
+    def self.info_width(columns : Int32) : Int32
+      grown = Math.max(columns - INFO_GROWS_FROM, 0) // INFO_GROWTH
+      Math.min INFO_WIDTH + grown, INFO_MOST_WIDTH
+    end
+
+    # Whether a terminal of *columns* keeps the info panel.
+    def self.info?(columns : Int32) : Bool
+      columns >= INFO_MINIMUM_COLUMNS
+    end
+
+    # How many rows the log pane is on a terminal of *rows*.
+    def self.log_height(rows : Int32) : Int32
+      rows > TALL_ROWS ? TALL_LOG_ROWS : LOG_ROWS
     end
 
     # Whether a terminal of *columns* by *rows* has room for the game.
@@ -206,9 +272,16 @@ module Roguelike::Ui
       @playing.hidden = !room
       @notice.hidden = room
 
-      wanted = room && columns >= SIDEBAR_MINIMUM_COLUMNS
-      @sidebar.hidden = !wanted
+      wanted = room && Screen.info? columns
+      @info.hidden = !wanted
       @gutter.hidden = !wanted
+      @info.width = Layout::Sizing.fixed(Screen.info_width columns)
+      @log.height = Layout::Sizing.fixed(Screen.log_height rows)
+
+      # The engine does not hold a scroll to the content it finds, and a
+      # resize changes both. The top is always in range.
+      @info.scroll_y = 0
+      @rows = rows
     end
 
     # Whether the game is being drawn. The notice draws otherwise.
@@ -257,40 +330,54 @@ module Roguelike::Ui
       made
     end
 
-    # How many rows the message log has for its lines.
+    # How many rows the message log has for its lines, on the screen `#fit`
+    # was last given.
     #
     # A banner takes one of them.
     def log_rows : Int32
-      @banner ? LOG_ROWS - 1 : LOG_ROWS
+      height = Screen.log_height @rows
+      @banner ? height - 1 : height
     end
 
     # How wide the log pane's text is on a screen of *columns*.
     #
-    # The pane runs the whole width. Its padding takes one column on each
-    # side.
+    # The pane runs the width of the map. Its padding takes one column on
+    # each side.
     def self.log_width(columns : Int32) : Int32
-      Math.max columns - 2, 0
+      beside = info?(columns) ? info_width(columns) + 1 : 0
+      Math.max columns - beside - 2, 0
     end
 
-    # Puts *widgets* in the sidebar, stacked in the order given. Takes out
+    # Puts *widgets* in the info panel, stacked in the order given. Takes out
     # whatever was there.
     #
     # `Ui::CharacterPane` goes at the top, then `Ui::NearbyPane` and
     # `Ui::ExaminePane`. What the character is does not move when what is in
     # sight does, so the block a person reads every turn is the fixed one.
+    def show_info(*widgets : Widgets::Widget) : Nil
+      @info.clear
+      widgets.each { |widget| @info.add widget }
+    end
+
+    # :ditto:
     def show_sidebar(*widgets : Widgets::Widget) : Nil
-      @sidebar.clear
-      widgets.each { |widget| @sidebar.add widget }
+      show_info *widgets
     end
 
-    # Whether the sidebar is being shown.
+    # Whether the info panel is being shown.
+    def info? : Bool
+      !@info.hidden?
+    end
+
+    # :ditto:
     def sidebar? : Bool
-      !@sidebar.hidden?
+      info?
     end
 
-    # How many rows the map pane gets on a screen of *rows*.
+    # How many rows the map pane gets on a screen of *rows*. The rule and the
+    # log take the rest.
     def self.map_rows(rows : Int32) : Int32
-      Math.max rows - CHROME_ROWS, 0
+      Math.max rows - 1 - log_height(rows), 0
     end
   end
 end

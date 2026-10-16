@@ -138,11 +138,11 @@ Spectator.describe "picking up and dropping" do
       run = litter [Item.new(Kind::Dagger)]
 
       expect(run.map.mark?(2, 2)).to eq Roguelike::Ui::Palette::PLAYER
-      expect(run.row(2)[2]).to eq '@'
+      expect(run.map_row(2)[2]).to eq '@'
 
       run.press "l"
       expect(run.map.mark?(2, 2)).to be_nil
-      expect(run.row(2)[2]).to eq ')'
+      expect(run.map_row(2)[2]).to eq ')'
     end
 
     it "draws each class with its own glyph" do
@@ -169,7 +169,7 @@ Spectator.describe "picking up and dropping" do
     it "lists what is on a square" do
       run = litter [Item.new(Kind::Dagger), Item.new(Kind::Arrow, count: 3)]
 
-      run.hover 2, 2
+      run.hover_map 2, 2
 
       expect(run.examine.litter.text).to contain "a dagger"
       expect(run.examine.litter.text).to contain "3 arrows"

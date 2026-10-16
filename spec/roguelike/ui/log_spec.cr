@@ -189,7 +189,7 @@ Spectator.describe "the message log" do
   describe "scrolling the pane" do
     # Where a notch of the wheel lands on the log pane of an eighty by
     # twenty-four window.
-    OVER_THE_LOG = {10, 21}
+    OVER_THE_LOG = {40, 21}
 
     # A run with *count* messages said and every held page read.
     def talkative(count : Int32 = 12) : Playing::Run

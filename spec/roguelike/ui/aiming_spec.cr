@@ -262,7 +262,7 @@ Spectator.describe "aiming" do
 
       expect(run.game.sight.includes? 7, 1).to be_false
       expect(run.game.sight.backlit? run.game.floor, 7, 1).to be_true
-      expect(run.row(1)[7]).to eq Roguelike::Size::Small.glyph
+      expect(run.map_row(1)[7]).to eq Roguelike::Size::Small.glyph
     end
 
     it "is what f aims at" do

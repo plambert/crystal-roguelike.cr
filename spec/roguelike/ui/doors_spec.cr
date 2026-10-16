@@ -30,7 +30,7 @@ Spectator.describe "doors, stairs and leaving" do
 
       run.press "l"
 
-      expect(run.row(1)[0, 5]).to eq "#@'.#"
+      expect(run.map_row(1)[0, 5]).to eq "#@'.#"
     end
   end
 
@@ -263,7 +263,7 @@ Spectator.describe "doors, stairs and leaving" do
 
       expect(run.game.floor.terrain(3, 1)).to eq Terrain::BrokenDoor
       # The spike lies on the far side, where it was driven from.
-      expect(run.row(1)[0, 6]).to eq "#<@/(#"
+      expect(run.map_row(1)[0, 6]).to eq "#<@/(#"
 
       run.press "l"
       expect(run.at).to eq({3, 1})
@@ -620,7 +620,7 @@ Spectator.describe "doors, stairs and leaving" do
       spot = run.map.grid.view_of 11, 12
       raise "the door is not in view" unless spot
 
-      expect(run.row(spot[1])[spot[0]]).to eq '+'
+      expect(run.map_row(spot[1])[spot[0]]).to eq '+'
     end
 
     it "asks which door to close once two are open" do
@@ -662,16 +662,16 @@ Spectator.describe "doors, stairs and leaving" do
     # Readable around it, and dimmed. The glyphs stay where they were.
     it "dims what is behind it without covering it" do
       run = Playing.open
-      wall = style_at run, 2, 2
-      character = style_at run, 6, 5
-      logged = style_at run, 1, 20
+      wall = style_at run, *run.on_map(2, 2)
+      character = style_at run, *run.on_map(6, 5)
+      logged = style_at run, 26, 20
 
       run.press "Q"
 
-      expect(style_at(run, 2, 2)).not_to eq wall
-      expect(style_at(run, 6, 5)).not_to eq character
-      expect(style_at(run, 1, 20)).not_to eq logged
-      expect(run.row(5)[6]).to eq '@'
+      expect(style_at(run, *run.on_map(2, 2))).not_to eq wall
+      expect(style_at(run, *run.on_map(6, 5))).not_to eq character
+      expect(style_at(run, 26, 20)).not_to eq logged
+      expect(run.map_row(5)[6]).to eq '@'
     end
 
     # A box is drawn in the middle of the screen. A character standing in the

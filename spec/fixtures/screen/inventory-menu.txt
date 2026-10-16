@@ -1,24 +1,24 @@
-#####                                                  │ —              D1 Lv 1
-#...#                                                  │ HP        12/12
-#.@.#                                                  │ XP        0/20
-#...#                 ╭─ Inventory ──────────────────────╮
-#####                 │ ← [all]  weapons   armor   amu → │C   Gold         Turn
-╭───────────────────╮ │ ⟪ a    a dagger                ⟫ │    0               2
+ —              D1 Lv 1 │#####
+ HP        12/12        │#...#
+ XP        0/20         │#.@.#
+                      ╭─ Inventory ──────────────────────╮
+ AC   Gold         Tur│ ← [all]  weapons   armor   amu → │
+╭───────────────────╮ │ ⟪ a    a dagger                ⟫ │
 │ a dagger          │ │   b    9 arrows                  │
-│ unknown           │ ╰──────────────────────────────────╯ere
-│ damage 1d4        │                                  │ ──────────────────────
-│ swing quick (75)  │                                  │   staircase up
-│ thrown 10 squares │                                  │
-│ weight 10         │                                  │ Seen
-╰───────────────────╯                                  │ ──────────────────────
-                                                       │   nothing
-                                                       │
-                                                       │ Look
-                                                       │ ──────────────────────
-                                                       │ Point at the map, or
-                                                       │
-────────────────────────────────────────────────────────────────────────────────
- a - a dagger
- b - 9 arrows
-
-
+│ unknown           │ ╰──────────────────────────────────╯
+│ damage 1d4        │── │
+│ swing quick (75)  │   │
+│ thrown 10 squares │   │
+│ weight 10         │   │
+╰───────────────────╯── │
+   nothing              │
+                        │
+ Look                   │
+ ────────────────────── │
+ Point at the map, or   │
+ press x.               │
+                        │───────────────────────────────────────────────────────
+                        │ a - a dagger
+                        │ b - 9 arrows
+                        │
+                        │

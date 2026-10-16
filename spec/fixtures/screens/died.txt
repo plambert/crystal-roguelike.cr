@@ -1,24 +1,24 @@
-#########                                      │ —              D1 Lv 1
-#..o....#                                      │ HP        0/12
-#..@...>#                                      │ XP        0/20
-#########                                      │
-          ╭─ You died ───────────────────────────────────────╮     Turn
-          │  Killed by an orc.                               │        1
+ —              D1 Lv 1 │#########
+ HP        0/12         │#..o....#
+ XP        0/20         │#..@...>#
+                        │#########
+ AC   Gold╭─ You died ───────────────────────────────────────╮
+ 0    37  │  Killed by an orc.                               │
           │                                                  │
-          │  turn 1                                          │
-          │  level 1, 0 experience                           │─────────
-          │  37 gold                                         │p
+ Here     │  turn 1                                          │
+ ─────────│  level 1, 0 experience                           │
+   stairca│  37 gold                                         │
           │                                                  │
-          │  You were carrying:                              │
-          │    a torch                                       │─────────
-          │    a +1 long sword (weapon in hand)              │
+ Seen     │  You were carrying:                              │
+ ─────────│    a torch                                       │
+   orc    │    a +1 long sword (weapon in hand)              │
           │    12 arrows                                     │
-          │    a potion of healing                           │
-          │                                                  │─────────
-          │  seed 20260915                                   │map, or
-          │  Play again? y starts a new run, n quits.  [yN]  │
-──────────╰──────────────────────────────────────────────────╯──────────
- You miss the orc.
- The orc notices you.
- The orc hits you for 8.
- You die...
+ Look     │    a potion of healing                           │
+ ─────────│                                                  │
+ Point at │  seed 20260915                                   │
+ press x. │  Play again? y starts a new run, n quits.  [yN]  │
+          ╰──────────────────────────────────────────────────╯──────────
+                        │ You miss the orc.
+                        │ The orc notices you.
+                        │ The orc hits you for 8.
+                        │ You die...
