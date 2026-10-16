@@ -6,6 +6,7 @@ require "./termbuf_ext/observed_app"
 require "./termbuf_ext/pager"
 require "./termbuf_ext/prompt"
 require "./termbuf_ext/ramp"
+require "./termbuf_ext/rule_bar"
 require "./termbuf_ext/terminal_info"
 
 # Everything drawn on the screen.
