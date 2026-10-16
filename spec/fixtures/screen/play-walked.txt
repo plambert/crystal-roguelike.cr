@@ -18,7 +18,7 @@
  ────────────────────── │
  Point at the map, or   │
  press x.               │───────────────────────────────────────────────────────
-                        │ armor and a lit torch.
-                        │ You carry three spikes and a potion of minor healing.
-                        │ Press ? for the keys.
-                        │ The granite blocks your way. (x 3)
+                        │ armor and a lit torch.                               │
+                        │ You carry three spikes and a potion of minor healing.█
+                        │ Press ? for the keys.                                █
+                        │ The granite blocks your way. (x 3)                   █

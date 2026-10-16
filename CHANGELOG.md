@@ -30,6 +30,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `Enter` brings the map back to the character when they have scrolled off screen, and scrolls
   the message log to its newest line when the log has the focus. A shot or a walk that is waiting
   for `Enter` still goes first.
+* A message log scrolled back shows a badge such as "↓ 7 newer" at the right end of its last row,
+  counting the messages below. Click it to go to the newest line. A scrollbar at the right of the
+  log shows whenever it holds more than it shows.
 
 ### Changed
 
@@ -52,6 +55,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   wide window it grows up to 36 columns, so item names stop wrapping.
 * The message log sits under the map instead of across the whole window. It has six rows on a
   window more than 40 rows tall.
+* The message log grows when it has the focus, to show more of what was said, up to a quarter of
+  the window. When the focus leaves, it shrinks and scrolls back to the newest line.
+* A message log scrolled back with the wheel stays there while you walk, until a new message
+  arrives. It then scrolls back to the newest line. With the focus on the log, a new message does
+  not move it.
 
 ### Fixed
 

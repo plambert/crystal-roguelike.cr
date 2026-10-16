@@ -1,0 +1,24 @@
+ —              D1 Lv 1 │
+ HP        12/12        │  #########
+ XP        0/20         │ #..$.|.....
+                        │ #.........?
+ AC   Gold         Turn │ #..........
+ 2    0               0 │ #....@......
+                        │ #..........
+ Here                   │ #.)........
+ ────────────────────── │ #...|......
+   staircase up         │  ########+
+                        │
+ Seen                   │
+ ────────────────────── │
+   29 gold pieces       │
+   4 darts              │
+   a scroll XIXAXA      │
+                        │
+ Look                   │───────────────────────────────────────────────────────
+ ────────────────────── │ Something number 6 happened.                         │
+ Point at the map, or   │ Something number 7 happened.                         │
+ press x.               │ Something number 8 happened.                         │
+                        │ Something number 9 happened.                         │
+                        │ Something number 10 happened.                        █
+                        │ Something number 11 happened.                        █

@@ -2891,7 +2891,6 @@ module Roguelike::Ui
       show_aim
       refresh_log
       land
-      newest_on_a_new_turn
 
       show_ending
       restate_transport
@@ -3788,14 +3787,6 @@ module Roguelike::Ui
 
     # ------------------------------------------------------------ the log
 
-    # Which turn the log pane was last drawn for.
-    #
-    # A pane scrolled back goes to the newest line when the turn moves on,
-    # because what it is showing then is what was happening rather than what
-    # is. A turn that says nothing counts: the character walked, and the
-    # pane is beside a floor that has moved.
-    @shown_turn : Int32 = 0
-
     # Puts every message of the run up, or takes the box down.
     # `Ctrl+P` does this.
     #
@@ -3848,7 +3839,7 @@ module Roguelike::Ui
     # written by the time the log had written *written* lines.
     private def show_log(count : Int32, written : Int32) : Nil
       lines = @game.log.lines
-      @pager.show lines.first(count.clamp(0, lines.size)), arrived: written - @shown_written
+      log_panel.show lines.first(count.clamp(0, lines.size)), written - @shown_written
       @shown_written = written
     end
 
@@ -3863,12 +3854,21 @@ module Roguelike::Ui
       refresh
     end
 
+    # The log pane: the pager, its scrollbar, and how tall it is.
+    private def log_panel : LogPanel
+      @log_panel ||= LogPanel.new @screen
+    end
+
+    @log_panel : LogPanel? = nil
+
     # Builds the pager the log is read in and puts it in the log pane.
     private def build_log : Widgets::Pager
-      pager = Widgets::Pager.new
+      panel = log_panel
+      pager = panel.pager
       pager.fresh_style = Palette::MESSAGE_NEW
       pager.accents = ->BlessingWords.accents(String)
-      @screen.show_log pager
+      pager.badge_style = Palette::NEWER_BADGE
+      @screen.show_log panel.root
       pager
     end
 
@@ -3877,6 +3877,27 @@ module Roguelike::Ui
       # Reading the line a hold was asked for is what the pointer on the map
       # was waiting for. `>` puts both up together.
       @pager.on_release = -> { stop_pointing }
+      @pager.on_badge = -> { scroll_log_to_end }
+      log_panel.on_resize = -> { keep_in_view }
+      @ring.on_change = ->(_was : FocusRing::Panel, now : FocusRing::Panel) do
+        log_panel.focused = now.log?
+        nil
+      end
+    end
+
+    # Keeps the character in view after the log pane changed height and the
+    # map with it.
+    #
+    # The map learns its new size when the tree is laid out, so the tree is
+    # laid out first. A camera somebody moved by hand stays where it is.
+    private def keep_in_view : Nil
+      app = @app
+      return unless app
+
+      app.tree.layout_if_needed
+      return if @home || @map.panning? || @map.drifting? || @examiner.cursoring?
+
+      @map.follow @game.player.x, @game.player.y
     end
 
     # Shows the log as the run has it, and marks the newest turn's lines.
@@ -3885,27 +3906,22 @@ module Roguelike::Ui
       @pager.fresh = @game.log.current
     end
 
-    # Puts the log on its newest line when the turn has moved on.
-    private def newest_on_a_new_turn : Nil
-      return if @shown_turn == @game.turn
-
-      @shown_turn = @game.turn
-      @pager.to_newest
-    end
-
-    # Sizes the log to a screen *columns* wide.
+    # Sizes the log to a screen *columns* wide, on the screen `#fit` was
+    # last given.
     private def fit_log(columns : Int32) : Nil
-      @pager.resize Screen.log_width(columns), @screen.log_rows
+      log_panel.fit Screen.log_width(columns), @rows
     end
 
     # Scrolls the log *rows* lines, up when negative. A page the log is
     # holding is not scrolled.
     private def scroll_log(rows : Int32) : Nil
+      log_panel.finish
       log_glide.by 0, rows, @app, Motion.on?
     end
 
     # Scrolls the log to line *row* of what it has said.
     private def scroll_log_to(row : Int32) : Nil
+      log_panel.finish
       log_glide.to 0, row, @app, Motion.on?
     end
 

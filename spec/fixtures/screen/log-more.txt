@@ -18,7 +18,7 @@
  Look                   │
  ────────────────────── │
  Point at the map, or   │───────────────────────────────────────────────────────
- press x.               │ Something number 0 happened.
-                        │ Something number 1 happened.
-                        │ Something number 2 happened.
-                        │ --More--
+ press x.               │ Something number 0 happened.                         │
+                        │ Something number 1 happened.                         │
+                        │ Something number 2 happened.                         █
+                        │ --More--                                             │

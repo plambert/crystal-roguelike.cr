@@ -70,6 +70,10 @@ module Roguelike::Ui
     # The height above which a terminal counts as tall.
     TALL_ROWS = 40
 
+    # The share of the terminal's height the focused log may grow to, in
+    # percent.
+    LOG_MOST_SHARE = 25
+
     # What a banner too wide for the window ends with.
     BANNER_ELLIPSIS = "\u2026"
 
@@ -82,6 +86,10 @@ module Roguelike::Ui
 
     # The height `#fit` was last given.
     @rows : Int32 = 0
+
+    # How many rows the log pane is now. `#fit` sets it to
+    # `.log_height`, and `#grow_log` changes it.
+    getter log_size : Int32 = LOG_ROWS
 
     # The narrowest terminal the game is drawn in.
     #
@@ -158,10 +166,12 @@ module Roguelike::Ui
       @gutter = Widgets::RuleBar.new @info, Widgets::Scrollbar::Orientation::Vertical
       @rule = Widgets::Divider.new Widgets::Divider::Orientation::Horizontal
 
+      # The column on the right is the log's scrollbar, so the padding is on
+      # the left only.
       @log = Widgets::Panel.new(
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fixed(LOG_ROWS),
-        padding: Layout::Padding.symmetric(horizontal: 1))
+        padding: Layout::Padding.new(left: 1))
 
       right = Widgets::Panel.new(
         direction: Layout::Direction::Column,
@@ -217,6 +227,13 @@ module Roguelike::Ui
     # How many rows the log pane is on a terminal of *rows*.
     def self.log_height(rows : Int32) : Int32
       rows > TALL_ROWS ? TALL_LOG_ROWS : LOG_ROWS
+    end
+
+    # The most rows the focused log pane grows to on a terminal of *rows*.
+    # It is `LOG_MOST_SHARE` percent of the height, and never less than
+    # `.log_height`.
+    def self.log_most(rows : Int32) : Int32
+      Math.max rows * LOG_MOST_SHARE // 100, log_height(rows)
     end
 
     # Whether a terminal of *columns* by *rows* has room for the game.
@@ -276,7 +293,8 @@ module Roguelike::Ui
       @info.hidden = !wanted
       @gutter.hidden = !wanted
       @info.width = Layout::Sizing.fixed(Screen.info_width columns)
-      @log.height = Layout::Sizing.fixed(Screen.log_height rows)
+      @log_size = Screen.log_height rows
+      @log.height = Layout::Sizing.fixed(@log_size)
 
       # The engine does not hold a scroll to the content it finds, and a
       # resize changes both. The top is always in range.
@@ -335,14 +353,20 @@ module Roguelike::Ui
     #
     # A banner takes one of them.
     def log_rows : Int32
-      height = Screen.log_height @rows
-      @banner ? height - 1 : height
+      @banner ? @log_size - 1 : @log_size
+    end
+
+    # Makes the log pane *rows* rows tall. The map gives up the rows, or
+    # takes them back. `#fit` puts it back to `.log_height`.
+    def grow_log(rows : Int32) : Nil
+      @log_size = rows
+      @log.height = Layout::Sizing.fixed(rows)
     end
 
     # How wide the log pane's text is on a screen of *columns*.
     #
     # The pane runs the width of the map. Its padding takes one column on
-    # each side.
+    # the left, and the scrollbar takes one on the right.
     def self.log_width(columns : Int32) : Int32
       beside = info?(columns) ? info_width(columns) + 1 : 0
       Math.max columns - beside - 2, 0

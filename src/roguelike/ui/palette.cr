@@ -133,6 +133,13 @@ module Roguelike::Ui
     # to 1 against the ground.
     FOCUS_RULE = Style::DEFAULT.fg TermBuf::Color.rgb(0x7F, 0xB8, 0xFF)
 
+    # The badge on the log's last row that counts the messages below it.
+    #
+    # White on a dark blue, about 8 to 1, so it stands out from the text
+    # beside it on any ground the log has.
+    NEWER_BADGE = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF))
+      .bg(TermBuf::Color.rgb(0x1F, 0x4E, 0x9E)).bold
+
     # ------------------------------------------------------------- meters
 
     # The colors a bar passes through as it empties.

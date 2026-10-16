@@ -238,10 +238,22 @@ Spectator.describe "the message log" do
       run = talkative
       3.times { run.wheel *OVER_THE_LOG, up: true }
 
+      run.game.log.add "Something new happened."
       run.press "."
 
       expect(run.pager.back).to eq 0
       expect(run.rows[23]).to contain run.said
+    end
+
+    it "stays scrolled through a turn that says nothing" do
+      run = talkative
+      3.times { run.wheel *OVER_THE_LOG, up: true }
+      said = run.game.log.written
+
+      run.press "."
+
+      expect(run.game.log.written).to eq said
+      expect(run.pager.back).to eq 3
     end
   end
 

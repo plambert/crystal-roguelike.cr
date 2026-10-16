@@ -36,6 +36,10 @@ module Roguelike::Ui
     # the fade at once.
     property app : Widgets::App? = nil
 
+    # What runs when the focus moves, given the panel that had it and the
+    # panel that has it now.
+    property on_change : Proc(Panel, Panel, Nil)? = nil
+
     def initialize(@screen : Screen)
       @tint = Widgets::Tint.new Palette::FOCUS_FLASH, Palette::FOCUS_GROUND
       show
@@ -58,8 +62,7 @@ module Roguelike::Ui
     def focus(panel : Panel) : Panel
       return @current if panel == @current || !shown?(panel)
 
-      @current = panel
-      show
+      moved panel
       panel
     end
 
@@ -73,8 +76,14 @@ module Roguelike::Ui
     def fit : Nil
       return if shown? @current
 
-      @current = Panel::Map
+      moved Panel::Map
+    end
+
+    private def moved(panel : Panel) : Nil
+      was = @current
+      @current = panel
       show
+      @on_change.try &.call(was, panel)
     end
 
     # The panel at *x*, *y* of the screen, or `nil` for a cell in none of
