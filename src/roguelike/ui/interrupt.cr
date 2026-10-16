@@ -55,7 +55,7 @@ module Roguelike::Ui
     # Gives the keyboard back to whatever had it.
     #
     # It takes off its own layer wherever that sits. A layer pushed over it
-    # since, such as a page the pager holds, stays where it is.
+    # since, such as a menu, stays where it is.
     def let_go : Nil
       scope = @scope
       return unless scope
