@@ -1,24 +1,24 @@
  —              D1 Lv 1 │
  HP        12/12        │  #########
  XP        0/20         │ #..$.|.....
-                        │ #.........?
+ ▼ Scores               │ #.........?
  AC   Gold         Turn │ #..........
  2    0               0 │ #....@......
-                        │ #..........
- Here                   │ #.)........
- ────────────────────── │ #...|......
-   staircase up         │  ########+
-                        │
- Seen                   │
- ────────────────────── │
+ St Dx Cn In Sl         │ #..........
+ 10 10 10 10 10         │ #.)........
+ ▶ Equipment          2 │ #...|......
+ ▶ Pack               5 │  ########+
+ ▼ Here                 │
+   staircase up         │
+ ▼ Seen                 │
    29 gold pieces       │
    4 darts              │
    a scroll XIXAXA      │
-                        │
- Look                   │
- ────────────────────── │
- 6, 5                   │───────────────────────────────────────────────────────
- staircase up           │ You are in a dungeon with a short sword, leather
- a staircase leading up │ armor and a lit torch.
+ ▼ Look                 │
+ 6, 5                   │
+ staircase up           │
+ a staircase leading up │───────────────────────────────────────────────────────
+                        │ You are in a dungeon with a short sword, leather
+                        │ armor and a lit torch.
                         │ You carry three spikes and a potion of minor healing.
                         │ Press ? for the keys.

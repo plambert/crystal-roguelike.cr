@@ -239,7 +239,7 @@ Spectator.describe Roguelike::Ui::LogPanel do
       run = talkative
       3.times { run.wheel *OVER_THE_PANE, up: true }
 
-      expect(run.row(23)).to start_with "                        │ Something number"
+      expect(run.row(23)[24..]).to start_with "│ Something number"
     end
 
     it "updates as messages arrive" do

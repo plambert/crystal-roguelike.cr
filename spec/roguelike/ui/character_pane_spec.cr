@@ -147,22 +147,22 @@ Spectator.describe Roguelike::Ui::CharacterPane do
 
     it "writes a row per entry, by its letter" do
       run = playing carrying: [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 14)]
-      run.play.character.toggle_pack
-      run.play.refresh
 
       expect(run.play.character.pack[0].text).to eq "a)bow"
       expect(run.play.character.pack[1].text).to eq "b)14 arrow"
     end
 
-    it "says how many entries did not fit" do
-      many = (0...(Pane::MOST_PACK + 3)).map do |plus|
-        Item.new Kind::Dagger, enchantment: plus
-      end
+    it "writes every entry, however many there are" do
+      many = (0...13).map { |plus| Item.new Kind::Dagger, enchantment: plus }
       run = playing carrying: many
-      run.play.character.toggle_pack
-      run.play.refresh
 
-      expect(run.play.character.pack[Pane::MOST_PACK].text).to eq "3 more"
+      expect(run.play.character.pack.count { |row| !row.hidden? }).to eq 13
+    end
+
+    it "counts its entries on a shut header" do
+      run = playing carrying: [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 14)]
+
+      expect(run.play.character.pack_heading.text).to eq "#{Pane::SHUT} #{Pane::PACK} 2"
     end
   end
 
@@ -192,111 +192,80 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     end
   end
 
-  describe "#fit" do
-    # The level and the bars are what a person reads every turn. Everything
-    # else gives way before they do.
-    it "keeps the level and the bars in a window with almost no room" do
-      pane = playing.play.character
-      pane.fit Pane::LEAST
-
-      expect(pane.vitals.hidden?).to be_false
-      expect(pane.lower.hidden?).to be_true
-    end
-
-    it "keeps an open pack and scrolls the equipment and the pack instead" do
-      run = playing rows: 32, carrying: [Item.new(Kind::Bow)]
-      pane = run.play.character
-      pane.toggle_pack
-      run.play.refresh
-      room = Roguelike::Ui::Play.character_rows 32
-
-      expect(pane.height).to be <= room
-      expect(pane.scoring.hidden?).to be_false
-      expect(pane.lower.hidden?).to be_false
-      expect(pane.pack[0].hidden?).to be_false
-      expect(pane.showing_vacant?).to be_false
-    end
-
-    it "scrolls under the wheel and goes back to the top when the pack is clicked" do
-      run = playing rows: 32, carrying: [Item.new(Kind::Bow)]
-      pane = run.play.character
-      pane.toggle_pack
-      run.play.refresh
+  describe "the sections" do
+    it "pins the vitals above the scrolling sections" do
+      run = playing rows: 24, carrying: [Item.new(Kind::Bow)]
       run.render
-      heading = pane.worn_heading.rect
+      run.screen.info.scroll_y = run.screen.info.max_scroll[1]
+      run.render
+
+      expect(run.play.character.who.rect.y).to eq 0
+      expect(info_row run, 0).to contain "Lv 1"
+    end
+
+    it "counts the armor class on a shut scores header" do
+      run = playing
+      run.play.character.scoring.toggle
+
+      expect(run.play.character.scoring.header.text).to eq "#{Pane::SHUT} #{Pane::SCORES} AC 0"
+    end
+
+    it "counts the filled slots on a shut equipment header" do
+      run = playing carrying: [Item.new(Kind::LongSword)]
+      run.game.wield 'a'
+      run.play.refresh
+
+      expect(run.play.character.worn_heading.text).to eq "#{Pane::SHUT} #{Pane::WORN} 1"
+    end
+
+    it "scrolls under the wheel and keeps every section's rows" do
+      run = playing rows: 24, carrying: [Item.new(Kind::Bow)]
+      run.play.character.worn.toggle
+      run.play.character.packed.toggle
+      run.render
+      heading = run.play.character.worn_heading.rect
 
       run.wheel heading.x, heading.y, up: false
-      expect(pane.lower.scroll_y).to be > 0
-      expect(run.text).to contain "bow"
-
-      run.play.open_pack
-      expect(pane.lower.scroll_y).to eq 0
-      expect(pane.showing_pack?).to be_false
+      expect(run.screen.info.scroll_y).to be > 0
+      expect(run.play.character.vitals.rect.y).to eq 0
     end
 
-    it "stops scrolling at the end of the pack" do
-      run = playing rows: 32, carrying: [Item.new(Kind::Bow)]
-      pane = run.play.character
-      pane.toggle_pack
-      run.play.refresh
+    it "pulls the scroll back when a section shuts under it" do
+      run = playing rows: 24, carrying: [Item.new(Kind::Bow)]
+      run.play.character.worn.toggle
+      run.play.character.packed.toggle
       run.render
-      heading = pane.worn_heading.rect
+      run.screen.info.scroll_y = run.screen.info.max_scroll[1]
+      run.render
 
-      5.times { run.wheel heading.x, heading.y, up: false }
-      expect(pane.lower.scroll_y).to eq pane.lower.max_scroll[1]
-      expect(run.text).to contain "bow"
-    end
+      run.play.character.worn.toggle
+      run.play.character.packed.toggle
+      run.render
 
-    it "gives everything back when the window grows again" do
-      pane = playing.play.character
-      pane.fit Pane::LEAST
-      pane.fit 100
-
-      expect(pane.scoring.hidden?).to be_false
-      expect(pane.worn.hidden?).to be_false
-      expect(pane.packed.hidden?).to be_false
-    end
-
-    it "keeps a quiver that remembers its kind when the empty rows go" do
-      run = playing rows: 32, carrying: [Item.new(Kind::Bow)]
-      run.game.player.quiver_memory = Roguelike::Equipment::Remembered.new(Kind::Stone)
-      pane = run.play.character
-      pane.toggle_pack
-      run.play.refresh
-
-      expect(pane.showing_vacant?).to be_false
-      expect(slot_row(run, Slot::Melee).hidden?).to be_true
-      expect(slot_row(run, Slot::Quiver).hidden?).to be_false
-    end
-
-    it "never takes more rows than it was given" do
-      pane = playing.play.character
-
-      (Pane::LEAST..40).each do |room|
-        pane.fit room
-
-        expect(pane.height).to be <= room
-      end
+      expect(run.screen.info.scroll_y).to be <= run.screen.info.max_scroll[1]
     end
   end
 
   describe "on the screen" do
-    it "leaves the three readouts room at the shortest terminal there is" do
+    it "scrolls to the three readouts at the shortest terminal there is" do
       run = playing rows: Roguelike::Ui::Screen::MINIMUM_ROWS
+      run.render
+      run.screen.info.scroll_to_end
       drawn = run.text
 
-      expect(drawn).to contain "Here"
+      expect(drawn).to contain "Lv 1"
       expect(drawn).to contain "Seen"
       expect(drawn).to contain "Look"
     end
 
-    it "shows everything but the pack at a tall terminal" do
+    it "shows every section at a tall terminal" do
       drawn = playing(rows: 50).text
 
       expect(drawn).to contain "Lv 1"
-      expect(drawn).to contain "Worn/Wielded"
+      expect(drawn).to contain "Equipment"
       expect(drawn).to contain "Pack"
       expect(drawn).to contain "Here"
+      expect(drawn).to contain "Look"
     end
   end
 end

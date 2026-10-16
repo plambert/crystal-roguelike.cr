@@ -60,6 +60,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A message log scrolled back with the wheel stays there while you walk, until a new message
   arrives. It then scrolls back to the newest line. With the focus on the log, a new message does
   not move it.
+* Your name, level, hit points and experience stay at the top of the character panel. The rest
+  of the panel scrolls under them, and every list in it shows in full.
+* The character panel is in sections: Scores, Equipment, Pack, Here, Seen and Look. Each starts
+  with a colored header row, so no rows are spent on rules and blank lines between them.
+* A click on a section's header closes the section, and another opens it. A closed header shows
+  a short summary, such as how many things are in your pack or in sight.
+* The game remembers which sections you closed, in the state directory beside your saves, so
+  they stay closed the next time you play. Equipment and the pack start closed, and `i` opens
+  the pack.
 
 ### Fixed
 

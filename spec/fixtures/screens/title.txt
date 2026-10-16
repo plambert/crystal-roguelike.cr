@@ -1,22 +1,22 @@
  —              D1 Lv 1 │#########
  HP        12/12        │#..o....#
  XP        0/20         │#..@...>#
-                        │#########
+ ▼ Scores               │#########
  AC   Gold         Turn │
  0    37              0 │
-                        │
- Here                   │
- ────────────────────── │
-   staircase up         │
-          ╭─ crystal-roguelike version       · seed 20260915 ─╮
- Seen     │ ⟪ a - new character                             ⟫ │
- ─────────│   Q - quit                                        │
+ St Dx Cn In Sl         │
+ 10 10 10 10 10         │
+ ▶ Equipment          1 │
+ ▶ Pack               4 │
+ ▼ Here   ╭─ crystal-roguelike version       · seed 20260915 ─╮
+   stairca│ ⟪ a - new character                             ⟫ │
+ ▼ Seen   │   Q - quit                                        │
    orc    ╰───────────────────────────────────────────────────╯
-                        │
- Look                   │
- ────────────────────── │
+ ▼ Look                 │
  Point at the map, or   │
  press x.               │
+                        │
+                        │
                         │───────────────────────────────────────────────
                         │
                         │

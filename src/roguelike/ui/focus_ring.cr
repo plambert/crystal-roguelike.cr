@@ -92,7 +92,7 @@ module Roguelike::Ui
     def under(x : Int32, y : Int32) : Panel?
       return Panel::Map if within? @screen.map, x, y
       return Panel::Log if within? @screen.log, x, y
-      return Panel::Info if within?(@screen.info, x, y) || within?(@screen.gutter, x, y)
+      return Panel::Info if within?(@screen.info_panel, x, y) || within?(@screen.gutter, x, y)
 
       nil
     end
@@ -120,7 +120,7 @@ module Roguelike::Ui
     # Draws the focus where it now is.
     private def show : Nil
       tinted = case @current
-               in .info? then @screen.info
+               in .info? then @screen.info_panel
                in .log?  then @screen.log
                in .map?  then nil
                end

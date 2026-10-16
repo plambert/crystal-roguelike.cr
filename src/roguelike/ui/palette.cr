@@ -139,6 +139,21 @@ module Roguelike::Ui
     # beside it on any ground the log has.
     NEWER_BADGE = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF))
       .bg(TermBuf::Color.rgb(0x1F, 0x4E, 0x9E)).bold
+    # ------------------------------------------------------------- sections
+
+    # The ground of a section header in the info panel.
+    #
+    # A slate blue that stands apart from both grounds the panel is drawn
+    # on. It is about 2.9 to 1 against black, 2.6 to 1 against `GROUND` and
+    # 2.1 to 1 against `FOCUS_GROUND`, so the band reads as a separator on
+    # either. White on it is about 7.4 to 1.
+    HEADER_GROUND = TermBuf::Color.rgb 0x4A, 0x56, 0x70
+
+    # What a section header is drawn in: white on `HEADER_GROUND`.
+    HEADER = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bg(HEADER_GROUND)
+
+    # A section header's title.
+    HEADER_TITLE = HEADER.bold
 
     # ------------------------------------------------------------- meters
 

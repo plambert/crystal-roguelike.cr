@@ -94,6 +94,8 @@ Spectator.describe Roguelike::Ui::Tooltip do
   describe "pointing at an equipment row" do
     it "puts the box up" do
       run = playing
+      run.play.info_panel.open run.play.character.worn
+      run.render
 
       point_at run, run.play.character.slot_row(Slot::Melee)
 
@@ -102,6 +104,8 @@ Spectator.describe Roguelike::Ui::Tooltip do
 
     it "writes the slot, the whole name and what the item does" do
       run = playing
+      run.play.info_panel.open run.play.character.worn
+      run.render
 
       point_at run, run.play.character.slot_row(Slot::Melee)
 

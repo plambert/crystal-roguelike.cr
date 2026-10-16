@@ -239,16 +239,35 @@ Spectator.describe Roguelike::Ui::NearbyPane do
     end
   end
 
-  describe "the row budget" do
-    it "shrinks with the height of the screen" do
-      tall = Roguelike::Ui::Play.nearby_budget 60
-      short = Roguelike::Ui::Play.nearby_budget 24
+  describe "the sections" do
+    it "counts what is in sight on a shut Seen header" do
+      run = room
+      run.game.floor.drop 8, 3, Item.new(Kind::LongSword)
+      run.game.floor.drop 6, 3, Item.new(Kind::Dagger)
+      run.play.refresh
+      run.nearby.seen_section.toggle
 
-      expect(tall).to be > short
+      expect(run.nearby.seen_section.header.text).to eq "\u25B6 #{NearbyPane::SEEN} 2"
     end
 
-    it "never goes below one row" do
-      expect(Roguelike::Ui::Play.nearby_budget 16).to be >= 1
+    it "names the terrain on a shut Here header" do
+      run = room
+      run.game.floor.drop 5, 3, Item.new(Kind::Dagger)
+      run.play.refresh
+      run.nearby.here_section.toggle
+
+      expect(run.nearby.here_section.header.text).to eq "\u25B6 #{NearbyPane::HERE} staircase up +1"
+    end
+
+    it "caps a long Seen list at the budget" do
+      run = room
+      (NearbyPane::BUDGET + 4).times do |index|
+        run.game.floor.drop 1 + index % 9, 1 + index // 9 % 2, Item.new(Kind::Dagger, enchantment: index)
+      end
+      run.play.refresh
+
+      expect(in_sight(run).size).to eq NearbyPane::BUDGET
+      expect(in_sight(run).last).to contain "more"
     end
   end
 end

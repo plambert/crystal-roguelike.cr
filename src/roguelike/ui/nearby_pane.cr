@@ -1,9 +1,9 @@
 require "../../crystal-roguelike"
 
 module Roguelike::Ui
-  # What is underfoot and what is in sight, written out in the sidebar.
+  # What is underfoot and what is in sight, written out in the info panel.
   #
-  # Two sections. "Here" is the square the character stands on. It says what
+  # Two sections of the panel. "Here" is the square the character stands on. It says what
   # the square is made of, what is bolted to it, and what is lying there.
   # "Seen" is everything the character can see from that square. Creatures
   # come first, then items. Both are nearest first.
@@ -17,9 +17,9 @@ module Roguelike::Ui
   # and `Play` puts the box up. A row of "Seen" also knows the square the
   # creature stands on or the item lies on, which `Play` lights on the map.
   #
-  # `ExaminePane` is the other half of the sidebar. That pane describes one
-  # square somebody pointed at. This pane writes both its sections without
-  # being pointed anywhere.
+  # `ExaminePane` writes the "Look" section under these. That pane describes
+  # one square somebody pointed at. This pane writes both its sections
+  # without being pointed anywhere.
   class NearbyPane
     # The heading over what is underfoot.
     HERE = "Here"
@@ -38,15 +38,12 @@ module Roguelike::Ui
     # read with `,`.
     MOST_HERE = 5
 
-    # How many rows the "Seen" section takes at the narrowest, whatever the
-    # budget says.
-    LEAST_SEEN = 3
-
-    # How many rows both sections take when nobody has said otherwise.
+    # How many rows the "Seen" section takes when nobody has said otherwise.
     BUDGET = 20
 
-    # The widget itself. A caller puts it in a tree.
-    getter root : Widgets::Panel
+    # The two sections.
+    getter here_section : Widgets::Section
+    getter seen_section : Widgets::Section
 
     # The rows under "Here".
     getter here : Widgets::Panel
@@ -67,54 +64,24 @@ module Roguelike::Ui
     # `Play` answers it the way it answers a click on that square of the map.
     property on_press : Proc({Int32, Int32}, Nil)? = nil
 
-    # How many rows the two sections may take between them.
+    # How many rows "Seen" takes at most.
     #
-    # The owner works this out from the height of the screen and sets it on
-    # every resize. Anything past it is elided into one row saying how much
-    # was left out, so the pane never pushes what is under it off the bottom.
+    # The panel scrolls, so this only caps a very long list. Anything past it
+    # is elided into one row saying how much was left out.
     property budget : Int32 = BUDGET
 
     def initialize
-      @here = Widgets::Panel.new(
-        direction: Layout::Direction::Column,
-        width: Layout::Sizing.grow)
-
-      @seen = Widgets::Panel.new(
-        direction: Layout::Direction::Column,
-        width: Layout::Sizing.grow)
-
-      # A blank row between the two sections. Two lists run together under
-      # one rule read as one list.
-      @root = Widgets::Panel.new(
-        direction: Layout::Direction::Column,
-        width: Layout::Sizing.grow,
-        gap: 1)
-      @root.add NearbyPane.section(HERE, @here),
-        NearbyPane.section(SEEN, @seen)
+      @here_section = InfoPanel.section HERE
+      @seen_section = InfoPanel.section SEEN
+      @here = @here_section.body
+      @seen = @seen_section.body
 
       clear
     end
 
-    # One section: a heading, a rule, and *rows* under them.
-    #
-    # `ExaminePane` writes its own heading the same way. The sidebar is three
-    # of these stacked.
-    def self.section(title : String, rows : Widgets::Panel) : Widgets::Panel
-      heading = Widgets::Label.new title
-      heading.style = Style::DEFAULT.bold
-
-      # One row, always. A heading of its own height is the first thing the
-      # layout squeezes when the sidebar runs out, and a rule with no
-      # heading over it says nothing at all.
-      heading.height = Layout::Sizing.fixed 1
-
-      panel = Widgets::Panel.new(
-        direction: Layout::Direction::Column,
-        width: Layout::Sizing.grow)
-      panel.add heading,
-        Widgets::Divider.new(Widgets::Divider::Orientation::Horizontal),
-        rows
-      panel
+    # The two sections, top first.
+    def sections : Array(Widgets::Section)
+      [@here_section, @seen_section]
     end
 
     # Writes both sections from *game* and what it can see.
@@ -132,7 +99,9 @@ module Roguelike::Ui
       @spots.clear
 
       fill @here, empty, MOST_HERE
-      fill @seen, empty, LEAST_SEEN
+      fill @seen, empty, @budget
+      @here_section.summary = ""
+      @seen_section.summary = "0"
     end
 
     # Writes the "Here" section.
@@ -157,6 +126,9 @@ module Roguelike::Ui
       end
 
       fill @here, rows, MOST_HERE
+
+      more = rows.size - 1
+      @here_section.summary = more > 0 ? "#{terrain.label} +#{more}" : terrain.label
     end
 
     # Writes the "Seen" section.
@@ -182,7 +154,8 @@ module Roguelike::Ui
         rows << place(line, lying.spot)
       end
 
-      fill @seen, rows, Math.max(@budget - @here.children.size, LEAST_SEEN)
+      fill @seen, rows, @budget
+      @seen_section.summary = rows.size.to_s
     end
 
     # Ties *line* to *spot*, the square it is about.
@@ -294,9 +267,6 @@ module Roguelike::Ui
                     lines : Array(String)? = nil) : Line
       line = Line.new
 
-      # One row at most, and none when the sidebar has run out of room. A row
-      # that could not be squeezed would take its cell off the log below it.
-      line.height = Layout::Sizing.fit max: 1
       line.put Line::INDENT, text, style || Style::DEFAULT
       line.on_point = -> { pointed line, lines }
       line
@@ -331,8 +301,8 @@ module Roguelike::Ui
     # Takes the marks off the marked row unless *row* is that row.
     #
     # `Play` calls this once a pointer report has been through the tree.
-    # *row* is the row of the whole sidebar that the report reached. A
-    # pointer on a row of another pane, or off the sidebar, leaves this pane
+    # *row* is the row of the whole info panel that the report reached. A
+    # pointer on a row of another pane, or off the panel, leaves this pane
     # with no marked row.
     def keep(row : Widgets::Widget?) : Nil
       return if row && row.same? @marked
@@ -342,7 +312,7 @@ module Roguelike::Ui
 
     # Takes the marks off the marked row.
     #
-    # `Play` calls this when the pointer leaves the sidebar. A row left
+    # `Play` calls this when the pointer leaves the info panel. A row left
     # marked would show the pointer on it after the pointer is gone.
     def unmark : Nil
       found = @marked

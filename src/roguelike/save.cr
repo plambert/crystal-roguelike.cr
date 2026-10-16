@@ -150,6 +150,11 @@ module Roguelike
       def initialize(@directory : Path, @deaths : Path, @wins : Path)
       end
 
+      # The state directory the three directories are in.
+      def root : Path
+        @directory.parent
+      end
+
       # The store this game saves to, under the XDG state directory.
       #
       # `$XDG_STATE_HOME/roguelike` when that is set and absolute, and
