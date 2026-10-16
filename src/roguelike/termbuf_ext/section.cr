@@ -80,29 +80,30 @@ module TermBuf::Widgets
         1
       end
 
+      # The title keeps its cells. A summary too long for what is left is
+      # cut with an ellipsis.
       def draw(view : View) : Nil
         return if view.width <= 0 || view.height <= 0
 
+        policy = view.policy
         paint = section.header_style
         view.fill view.bounds, ' ', paint
 
-        summary = section.expanded? ? "" : section.summary
         room = view.width - 2 * INSET
-        unless summary.empty?
-          wide = Unicode.string_width summary, view.policy
-          room -= wide + 1
-          view.write view.width - INSET - wide, 0, summary, paint if room >= 0
-        end
-        return if room <= 0
+        head = Unicode.truncate "#{glyph policy} ", room, policy
+        view.write INSET, 0, head, paint
+        at = INSET + Unicode.string_width(head, policy)
 
-        head = "#{glyph view.policy} "
-        view.write INSET, 0, Unicode.truncate(head, room, view.policy), paint
+        title = Unicode.truncate section.title, view.width - INSET - at, policy
+        view.write at, 0, title, section.title_style
+        at += Unicode.string_width title, policy
 
-        left = room - Unicode.string_width(head, view.policy)
-        return if left <= 0
+        summary = section.expanded? ? "" : section.summary
+        left = view.width - INSET - at - 1
+        return if summary.empty? || left <= 0
 
-        title = Unicode.truncate section.title, left, view.policy
-        view.write INSET + Unicode.string_width(head, view.policy), 0, title, section.title_style
+        cut = Unicode.ellipsize summary, left, policy: policy
+        view.write view.width - INSET - Unicode.string_width(cut, policy), 0, cut, paint
       end
     end
 
@@ -110,7 +111,11 @@ module TermBuf::Widgets
     getter title : String
 
     # What a collapsed header says against its right edge. Empty says nothing.
-    property summary : String = ""
+    setter summary : String = ""
+
+    # What works the summary out each time the header is drawn. It takes
+    # the place of `#summary=` while it is set.
+    property summarize : Proc(String)? = nil
 
     # The ground and text of the header row.
     property header_style : Style
@@ -146,6 +151,12 @@ module TermBuf::Widgets
         padding: body_padding
       add @header
       add @body
+    end
+
+    # What a collapsed header says against its right edge.
+    def summary : String
+      found = @summarize
+      found ? found.call : @summary
     end
 
     # Opens or closes the body without telling `#on_toggle`.

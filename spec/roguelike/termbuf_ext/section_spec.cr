@@ -56,6 +56,25 @@ Spectator.describe TermBuf::Widgets::Section do
     expect(section.header.text).to eq "▶ Pack 3"
   end
 
+  it "cuts a summary too long for the row and keeps the title" do
+    section, session = drawn
+    section.summary = "a great many"
+    section.expanded = false
+    session.render
+
+    expect(session.row(0)).to eq " ▶ Pack …"
+  end
+
+  it "asks the summary hook each time the header is drawn" do
+    section, session = drawn
+    count = 0
+    section.summarize = -> { count += 1; count.to_s }
+    section.expanded = false
+    session.render
+
+    expect(section.summary).to eq "2"
+  end
+
   it "leaves the summary off while expanded" do
     section, session = drawn
     section.summary = "3"
