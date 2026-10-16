@@ -11,9 +11,9 @@ module Roguelike::Ui
   #
   # A click on a header opens or closes its section. Each toggle writes `FILE`
   # in the state directory beside the saves. Giving the panel a path reads the
-  # file back. A missing or unreadable file leaves every section open. A run
-  # with no store has no path, so its sections are remembered only while it
-  # runs.
+  # file back. A missing or unreadable file leaves each section as it starts,
+  # see `CLOSED_AT_FIRST`. A run with no store has no path, so its sections
+  # are remembered only while it runs.
   #
   # The panel also holds the keyboard selection. It is on a section header,
   # or on one of the rows a section shows. `#up`, `#down`, `#left` and

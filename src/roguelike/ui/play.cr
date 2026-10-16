@@ -1720,10 +1720,6 @@ module Roguelike::Ui
       end
     end
 
-    # Takes back whatever is waiting for a key. `Escape` does this.
-    #
-    # A pending command goes first. The prompt goes next. The examine cursor
-    # goes last. One press takes back one thing.
     # Gives the focus back to the map from another panel, or takes back
     # whatever is waiting when the map has it. `Escape` does this.
     def escape : Nil
@@ -1751,6 +1747,10 @@ module Roguelike::Ui
       @ring.under(event.x, event.y).try { |panel| @ring.focus panel }
     end
 
+    # Takes back whatever is waiting for a key.
+    #
+    # A pending command goes first. The prompt goes next. The examine cursor
+    # goes last. One press takes back one thing.
     def cancel : Nil
       if @pending
         @pending = nil
