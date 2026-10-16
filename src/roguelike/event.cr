@@ -49,6 +49,7 @@ module Roguelike
       "ground"         => Ground,
       "healed"         => Healed,
       "identified"     => Identified,
+      "identified_all" => IdentifiedAll,
       "interrupted"    => Interrupted,
       "kindled"        => Kindled,
       "level_up"       => LevelUp,
@@ -361,6 +362,9 @@ module Roguelike
 
         # The armor was made for somebody of another size.
         WrongSize
+
+        # Nothing carried has anything left for a scroll of identify to name.
+        NothingUnknown
       end
 
       getter kind : String = "refused"
@@ -517,6 +521,18 @@ module Roguelike
 
       def initialize(@name : String, @appearance : String? = nil,
                      @news : Bool = true)
+      end
+    end
+
+    # Everything carried named at once, by a blessed scroll of identify.
+    #
+    # *count* is how many letters had something left to learn.
+    class IdentifiedAll < Event
+      getter kind : String = "identified_all"
+
+      getter count : Int32
+
+      def initialize(@count : Int32)
       end
     end
 

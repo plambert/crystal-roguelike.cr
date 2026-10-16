@@ -8,6 +8,27 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* Every list of carried items has the class pages the inventory has: drop, wield or wear, take
+  off, drink, read, zap, throw, and the lists a scroll asks from. Only classes in that list get a
+  page, and a list of one class has none. Each list opens on the page you left it on.
+* The inventory always shows every class, and opens even when you carry nothing. A class you
+  carry none of shows "nothing".
+* A scroll of identify offers everything you carry that has something left to learn, and each
+  row says what that is: the kind, the blessing, or both. An item of known kind whose blessing you
+  do not know is offered now. Putting the menu away keeps the scroll unread.
+* A blessed scroll of identify names everything you carry, kind and blessing, and asks nothing. A
+  cursed one picks its own target, and sometimes picks something you already knew all about.
+* A replay recorded with an earlier version stops verifying at the first blessed or cursed scroll
+  of identify read, or the first one read with nothing left to name.
+
+### Fixed
+
+* A scroll of identify read when nothing you carry has anything left to learn says "There is
+  nothing you do not know about what you carry." and stays in your pack, with no turn spent. It
+  was used up before, to no effect.
+
 ## [0.4.3] - 2026-10-15
 
 Wooden doors that are spiked shut can be broken down, the inventory shows one class at a time and

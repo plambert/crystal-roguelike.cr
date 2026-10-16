@@ -465,19 +465,102 @@ Spectator.describe "drinking, reading and zapping" do
       expect(game.log.lines.find(&.starts_with? "It is").to_s).to contain "cursed"
     end
 
-    it "is used up when there is nothing to name" do
+    it "reveals the blessing on an item whose kind is known" do
+      dagger = Item.new Kind::Dagger, blessing: Roguelike::Blessing::Blessed
+      game = carrying [Item.new(Kind::IdentifyScroll), dagger]
+      game.enroll
+      scroll = game.carried('a').try(&.id) || 0
+
+      choices = game.legal.select(Roguelike::Action::Read).select { |read| read.item == scroll }.map(&.choice)
+      expect(choices).to eq [dagger.id]
+
+      game.read 'a', 'b'
+
+      expect(dagger.blessing_known?).to be_true
+      expect(game.log.lines).to contain "It is a blessed dagger."
+    end
+
+    it "is not offered an item with nothing left to learn" do
+      dagger = Item.new Kind::Dagger, blessing_known: true
+      game = carrying [Item.new(Kind::IdentifyScroll), dagger, Item.new(Kind::HealingPotion)]
+
+      expect(game.identifiable('a').map(&.[0])).to eq ['c']
+    end
+
+    it "is refused, and kept, when there is nothing left to learn" do
+      game = carrying [Item.new(Kind::IdentifyScroll), Item.new(Kind::Dagger, blessing_known: true)]
+      game.enroll
+      turn = game.turn
+
+      expect(game.read 'a').to be_false
+      expect(game.player.inventory.has? 'a').to be_true
+      expect(game.turn).to eq turn
+      expect(game.log.lines).to contain "There is nothing you do not know about what you carry."
+      expect(game.legal.select(Roguelike::Action::Read)).to be_empty
+    end
+
+    it "is refused by the action, which spends nothing" do
       game = carrying [Item.new(Kind::IdentifyScroll)]
+      game.enroll
+      turn = game.turn
+
+      found = game.perform Roguelike::Action::Read.new(game.carried('a').try(&.id) || 0)
+
+      expect(found.refused?).to be_true
+      expect(game.turn).to eq turn
+      expect(game.player.inventory.has? 'a').to be_true
+    end
+
+    it "is refused when blessed and there is nothing left to learn" do
+      game = carrying [Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Blessed)]
+
+      expect(game.read 'a').to be_false
+      expect(game.player.inventory.has? 'a').to be_true
+    end
+
+    # A refusal that depended on the hidden curse would give the curse away.
+    it "is refused when cursed and there is nothing left to learn" do
+      game = carrying [Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Cursed)]
+
+      expect(game.read 'a').to be_false
+      expect(game.player.inventory.has? 'a').to be_true
+    end
+
+    it "names everything carried when blessed, and asks nothing" do
+      dagger = Item.new Kind::Dagger, blessing: Roguelike::Blessing::Cursed
+      wand = Item.new Kind::LightWand
+      game = carrying [Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Blessed),
+                       Item.new(Kind::HealingPotion), dagger, wand]
+
+      expect(game.choice_needed? 'a').to be_false
 
       game.read 'a'
 
-      expect(game.player.inventory.has? 'a').to be_false
-      expect(game.log.lines).to contain "You feel knowledgeable, and the feeling passes."
+      expect(game.lore.known? Kind::HealingPotion).to be_true
+      expect(game.lore.known? Kind::LightWand).to be_true
+      expect(game.player.inventory.items.all? { |_letter, item| item.blessing_known? }).to be_true
+      expect(game.log.lines).to contain "You now know all about 3 of them."
     end
 
+    it "picks its own target when cursed" do
+      dagger = Item.new Kind::Dagger, blessing: Roguelike::Blessing::Blessed
+      game = carrying [Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Cursed), dagger]
+
+      expect(game.choice_needed? 'a').to be_false
+
+      game.read 'a'
+
+      expect(dagger.blessing_known?).to be_true
+      expect(game.log.lines.any? &.starts_with?("The scroll picks out")).to be_true
+    end
+
+    # The wand keeps the second read from being refused once the potion is
+    # known.
     it "says so when the character already knew" do
       game = carrying [
         Item.new(Kind::IdentifyScroll, count: 2),
         Item.new(Kind::HealingPotion),
+        Item.new(Kind::LightWand),
       ]
 
       game.read 'a', 'b'

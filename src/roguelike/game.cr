@@ -4613,17 +4613,20 @@ module Roguelike
 
     # Reads what is under *letter*. Answers whether it was read.
     #
-    # *choice* is the carried item a scroll of identify works on. Every other
-    # scroll ignores it.
+    # *choice* is the carried item an uncursed scroll of identify or of repair
+    # works on. Every other scroll ignores it.
     #
     # A scroll is words on paper. Somebody standing in the dark cannot make
-    # them out, and the scroll is not spent finding that out.
+    # them out, and the scroll is not spent finding that out. A scroll of
+    # identify is not spent when there is nothing left to learn about what
+    # the character carries.
     def read(letter : Char, choice : Char? = nil) : Bool
       complaint = cannot_read
       if complaint
         say complaint, Event::Refused.new(:too_dark)
         return false
       end
+      return false if refused_identify? letter
 
       use letter, ItemClass::Scroll, "read", choice do |item|
         say "You read #{name item}.",
@@ -4633,18 +4636,68 @@ module Roguelike
 
     # Whether reading the scroll under *letter* will ask for a carried item.
     #
-    # A scroll of identify always asks. A scroll of blessing, of remove curse
-    # or of repair asks only when nothing has touched it: a blessed one
-    # reaches everything and a cursed one picks its own target.
+    # A scroll of identify, of blessing, of remove curse or of repair asks
+    # only when it is uncursed. A blessed one reaches everything and a cursed
+    # one picks its own target.
     def choice_needed?(letter : Char) : Bool
       item = @player.inventory[letter]
       return false unless item
-
-      effect = item.kind.effect
-      return true if effect.identify?
-      return false unless effect.picks_one?
+      return false unless item.kind.effect.chosen?
 
       item.blessing.uncursed?
+    end
+
+    # What the character has yet to learn about an item.
+    @[Flags]
+    enum Unlearned
+      Kind
+      Blessing
+    end
+
+    # What is left to learn about *item*.
+    #
+    # *reading* is the kind of the scroll being read. Reading it names that
+    # kind, so only the blessing is left to learn on another of the same kind.
+    # A kind that is known shows its enchantment, so there is no enchantment
+    # to learn apart from the kind.
+    def unlearned(item : Item, reading : ItemKind? = nil) : Unlearned
+      found = Unlearned::None
+      found |= Unlearned::Kind unless @lore.known?(item.kind) || item.kind == reading
+      found |= Unlearned::Blessing unless item.blessing_known?
+      found
+    end
+
+    # The carried items with something left to learn, for the scroll of
+    # identify under *letter*.
+    #
+    # The scroll's own letter is left out. It is about to be used up.
+    def identifiable(letter : Char) : Array({Char, Item})
+      reading = @player.inventory[letter].try &.kind
+
+      @player.inventory.entries.select do |held, item|
+        held != letter && !unlearned(item, reading).none?
+      end
+    end
+
+    # What a scroll of identify says when there is nothing left to learn.
+    NOTHING_UNKNOWN = "There is nothing you do not know about what you carry."
+
+    # Whether the scroll under *letter* is a scroll of identify with nothing
+    # left to learn.
+    #
+    # This holds whatever the blessing on the scroll. The character cannot
+    # see the blessing, so a refusal that depended on it would give it away.
+    def nothing_to_identify?(letter : Char) : Bool
+      effect_of(letter).identify? && identifiable(letter).empty?
+    end
+
+    # Refuses a scroll of identify with nothing left to learn, and says so.
+    # Answers whether it refused.
+    private def refused_identify?(letter : Char) : Bool
+      return false unless nothing_to_identify? letter
+
+      say NOTHING_UNKNOWN, Event::Refused.new(:nothing_unknown)
+      true
     end
 
     # Whether reading the scroll under *letter* will ask for a square.
@@ -5006,7 +5059,7 @@ module Roguelike
       case effect
       in .none?            then nothing_happens
       in .heal?            then mend item
-      in .identify?        then name_one choice
+      in .identify?        then identify item, choice
       in .map_floor?       then map_the_floor
       in .light?           then light_up
       in .strike?          then bolt item, target
@@ -5919,21 +5972,89 @@ module Roguelike
         Event::Healed.new(put_back)
     end
 
-    # Names the carried item under *choice*, and whether it is cursed.
-    private def name_one(choice : Char?) : Nil
+    # What a scroll of identify does.
+    #
+    # An uncursed one names the one item the character picked. A blessed one
+    # names everything carried. A cursed one picks its own target, which
+    # sometimes has nothing left to learn.
+    private def identify(scroll : Item, choice : Char?) : Nil
+      return identify_astray if scroll.cursed?
+      return identify_all if scroll.blessed?
+
+      identify_one choice
+    end
+
+    # Learns the kind and the blessing of *item* under *letter*. Answers
+    # whether either was news.
+    private def make_out(letter : Char, item : Item) : Bool
+      kind = @lore.learn item.kind
+      blessing = learned letter, item
+      kind || blessing
+    end
+
+    # An uncursed scroll, which names the carried item under *choice*.
+    private def identify_one(choice : Char?) : Nil
       item = choice ? @player.inventory[choice] : nil
       unless item && choice
-        say "You feel knowledgeable, and the feeling passes.",
+        say "The writing fades with nothing to settle on.",
           Event::Fizzled.new(:no_choice)
         return
       end
 
-      news = @lore.learn item.kind
-      learned choice, item
-
+      news = make_out choice, item
       say news ? "It is #{name item}." : "You knew that already. It is #{name item}.",
         Event::Identified.new(name(item), @lore.appearance(item.kind),
           news: news)
+    end
+
+    # A blessed scroll, which names everything carried.
+    #
+    # The items are collected before any is named, because naming one can
+    # move it to a letter of its own. The line counts letters, which is what
+    # the character sees in the pack.
+    private def identify_all : Nil
+      named = Set(Char).new
+      @player.inventory.items.each do |letter, item|
+        named << letter if make_out letter, item
+      end
+
+      if named.empty?
+        say "You knew all of it already.", Event::Fizzled.new(:nothing_to_change)
+        return
+      end
+
+      say "You now know all about #{named.size} of them.",
+        Event::IdentifiedAll.new(named.size)
+    end
+
+    # A cursed scroll, which picks its own target.
+    #
+    # Three times in four it picks among the things with something left to
+    # learn. The fourth time it picks among everything carried, and may land
+    # on something the character already knew all about.
+    private def identify_astray : Nil
+      stream = draught
+      carried = @player.inventory.items
+      wanted = carried.reject { |_letter, item| unlearned(item).none? }
+
+      pool = stream.rand(100) < STRAY || wanted.empty? ? carried : wanted
+      if pool.empty?
+        say "The writing fades with nothing to settle on.",
+          Event::Fizzled.new(:nothing_to_change)
+        return
+      end
+
+      letter, item = pool[stream.rand pool.size]
+      picked = "The scroll picks out #{letter}, #{name item}"
+
+      unless make_out letter, item
+        say "#{picked}, to no effect.",
+          Event::Fizzled.new(:nothing_to_change, item: item.id, name: name(item))
+        return
+      end
+
+      say "#{picked}. It is #{name item}.",
+        Event::Identified.new(name(item), @lore.appearance(item.kind))
     end
 
     # Writes the shape of the whole floor into what the character remembers.
@@ -6785,6 +6906,7 @@ module Roguelike
       wanted = action.choice
       choice = wanted ? letter_of(wanted) : nil
       return Verdict.refused if wanted && choice.nil?
+      return Verdict.refused if cannot_read.nil? && refused_identify?(letter)
 
       if marks_first? letter
         @asking = start_reading letter
@@ -7070,9 +7192,13 @@ module Roguelike
     #
     # A scroll that names a carried item before it is read is offered once
     # per item it could name. It is offered once with nothing named where
-    # there is nothing it could work on. `Ui::Play` offers the same list.
+    # there is nothing it could work on. A scroll of identify with nothing
+    # left to learn is not offered, because reading it is refused.
+    # `Ui::Play` offers the same list.
     private def legal_reading(found : Array(Action), letter : Char,
                               item : Item) : Nil
+      return if nothing_to_identify? letter
+
       # A scroll whose question comes after the reading is one action with
       # nothing named in it. A scroll with no question is the same.
       if marks_first?(letter) || !choice_needed?(letter)
@@ -7091,18 +7217,15 @@ module Roguelike
 
     # The carried items the scroll under *letter* could work on, by id.
     #
-    # A scroll of identify names a kind the character has not made out. A
-    # scroll of repair mends what is damaged. The scroll itself is not on the
-    # list, because it is about to be used up, and neither is another scroll
-    # of its kind, because reading it names that kind anyway.
+    # A scroll of identify works on what has something left to learn, as
+    # `#identifiable` answers. A scroll of repair mends what is damaged. The
+    # scroll itself is not on the list, because it is about to be used up.
     private def reading_choices(letter : Char) : Array(Int32)
-      repair = effect_of(letter).repair?
-      reading = @player.inventory[letter].try &.kind
+      return identifiable(letter).map { |_held, item| item.id } unless effect_of(letter).repair?
 
       @player.inventory.entries.compact_map do |held, item|
         next if held == letter
-        wanted = repair ? item.mendable? && item.condition.damaged? : !@lore.known?(item.kind) && item.kind != reading
-        next unless wanted
+        next unless item.mendable? && item.condition.damaged?
 
         item.id
       end
