@@ -23,6 +23,9 @@ module Roguelike
     # when none was, so `--seed N` goes on reproducing N and a run started
     # without it is a new dungeon every time.
     #
+    # *size_cap* limits how much of the terminal the game draws in. Every run
+    # shares it, so a cap the debug console set carries into the next run.
+    #
     # This method reads the size before it enters the alternate screen. The
     # message then stays where the person can read it. Handing the screen back
     # would wipe it.
@@ -33,11 +36,13 @@ module Roguelike
     def self.open(seed : UInt64?, flicker : Bool = true,
                   generate : Bool = true, console : Bool = false,
                   store : Save::Store? = nil, character : String? = nil,
-                  news : Array(WhatsNew::Section) = [] of WhatsNew::Section) : Session?
+                  news : Array(WhatsNew::Section) = [] of WhatsNew::Section,
+                  size_cap : SizeCap = SizeCap.new) : Session?
       size = TermBuf::SizeDetector.detect
+      columns, rows = size_cap.apply size.columns, size.rows
 
-      unless Ui::Screen.fits? size.columns, size.rows
-        STDERR.puts Ui::Screen.too_small(size.columns, size.rows)
+      unless Ui::Screen.fits? columns, rows
+        STDERR.puts Ui::Screen.too_small(columns, rows)
         return
       end
 
@@ -58,7 +63,7 @@ module Roguelike
 
         loop do
           played = new terminal, Rng.for(seed), flicker, generate, console,
-            store, character, previous, news: news
+            store, character, previous, news: news, size_cap: size_cap
           ran = played
           played.run
 
@@ -143,6 +148,9 @@ module Roguelike
     # The list of keys that work here. `F1` and `?` show it.
     getter help : Ui::Help
 
+    # The most columns and rows the game draws in.
+    getter size_cap : SizeCap
+
     # Whether the terminal is reporting the mouse.
     #
     # This starts on. Pointing at a square is the quickest way to read a map.
@@ -166,9 +174,9 @@ module Roguelike
                    console : Bool = false, store : Save::Store? = nil,
                    character : String? = nil, previous : String? = nil,
                    viewer : Replay::Viewer? = nil,
-                   news : Array(WhatsNew::Section) = [] of WhatsNew::Section)
-      size = @terminal.size
-      bounds = TermBuf::Rect.full size.columns, size.rows
+                   news : Array(WhatsNew::Section) = [] of WhatsNew::Section,
+                   @size_cap : SizeCap = SizeCap.new)
+      bounds = drawn_in @terminal.size
 
       @play = Ui::Play.new Session.starting(viewer, @rng, generate), console
 
@@ -179,7 +187,7 @@ module Roguelike
       @play.store = store
       @play.previous_name = previous
       @play.news = news
-      @play.fit size.columns, size.rows
+      @play.fit bounds.width, bounds.height
 
       @app = Ui::Widgets::ObservedApp.new @terminal, @play.root, bounds,
         @terminal.events, @terminal.policy
@@ -192,9 +200,13 @@ module Roguelike
       @app.images = @terminal.images
       @app.on_event = ->(event : TermBuf::Event) { unclaimed event }
       @app.on_deliver = ->(event : TermBuf::Event) { noticed event }
+      @app.on_outside = ->(_event : TermBuf::Event) { tell @play.pointer_away }
 
       @help = Ui::Help.new @play.game.world.seed
-      @help.screen_rows = size.rows
+      @help.screen_rows = bounds.height
+
+      @size_cap.on_change = -> { sized @terminal.size }
+      @play.console.try &.console.size_cap = @size_cap
       Ui::Keys.install(@app, @help, @play, -> { self.mousing = !mousing?; nil }) { @play.confirm_quit }
 
       self.mousing = true
@@ -323,19 +335,32 @@ module Roguelike
     private def unclaimed(event : TermBuf::Event) : Nil
       case event
       when TermBuf::Events::Mouse  then tell @play.reported(event)
-      when TermBuf::Events::Resize then resized event
+      when TermBuf::Events::Resize then sized event.size
       when TermBuf::Events::Focus  then self.focused = event.focused
       end
     end
 
-    private def resized(resize : TermBuf::Events::Resize) : Nil
-      size = resize.size
-      bounds = TermBuf::Rect.full size.columns, size.rows
+    # The part of a terminal of *size* the game draws in. It is the top left
+    # corner, cut down to the caps.
+    private def drawn_in(size : TermBuf::ScreenSize) : TermBuf::Rect
+      columns, rows = @size_cap.apply size.columns, size.rows
+      TermBuf::Rect.full columns, rows
+    end
 
-      @play.fit size.columns, size.rows
+    # Lays the game out again for a terminal of *size*. A resize and a change
+    # of cap both come here.
+    #
+    # Nothing draws outside the area, so cells the game drew in before stay
+    # on the screen when the area shrinks. The terminal is cleared once then,
+    # and the next frame fills the area again.
+    private def sized(size : TermBuf::ScreenSize) : Nil
+      bounds = drawn_in size
+      @terminal.clear unless bounds.contains? @app.tree.screen
+
+      @play.fit bounds.width, bounds.height
       @app.resize bounds
       @cursor.region.bounds = bounds
-      @help.screen_rows = size.rows
+      @help.screen_rows = bounds.height
 
       # The square the pointer was over has moved.
       tell @play.pointer_away

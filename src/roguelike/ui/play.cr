@@ -3317,6 +3317,10 @@ module Roguelike::Ui
 
       @placard.fit_into Rect.new(0, 0, columns, rows)
       @entry.fit_into Rect.new(0, 0, columns, rows)
+      @console.try do |pane|
+        pane.fit_into Rect.new(0, 0, columns, rows)
+        pane.redraw
+      end
 
       app = @app
       @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app
