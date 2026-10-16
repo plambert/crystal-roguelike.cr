@@ -74,7 +74,6 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   they stay closed the next time you play. Equipment and the pack start closed, and `i` opens
   the pack.
 * The help screen lists the keys for the panel you are in first.
-* The help screen fits an 80 column terminal. Long descriptions wrap under their keys.
 
 ### Fixed
 
