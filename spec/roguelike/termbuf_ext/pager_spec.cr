@@ -412,4 +412,76 @@ Spectator.describe TermBuf::Widgets::Pager do
       expect(style_at run, 3, 1).to eq TermBuf::Style::DEFAULT
     end
   end
+
+  describe "scrolled back" do
+    # A scrolled pager, with every line read.
+    def scrolled(back : Int32 = 3) : Paged
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+      run.pager.scroll_by 0, -back
+      run
+    end
+
+    it "keeps its window when asked to as a line arrives" do
+      run = scrolled
+      showing = run.pager.showing
+
+      run.pager.show messages(10), arrived: 1, keep: true
+
+      expect(run.pager.showing).to eq showing
+      expect(run.pager.back).to eq 4
+    end
+
+    it "counts the lines below the window" do
+      run = scrolled
+
+      expect(run.pager.newer).to eq 3
+      run.pager.to_newest
+      expect(run.pager.newer).to eq 0
+    end
+
+    it "draws a badge over the end of the last row when it has one" do
+      run = scrolled
+      run.pager.badge = ->(count : Int32) { "[#{count}]" }
+
+      expect(run.session.row(3)).to eq "Message number 6.          [3]"
+    end
+
+    it "goes to the newest line when the badge is clicked" do
+      run = scrolled
+      run.pager.badge = ->(count : Int32) { "[#{count}]" }
+      run.session.render
+
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::Left, 28, 3, TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+
+      expect(run.pager.back).to eq 0
+    end
+  end
+
+  describe "a sampled frame" do
+    it "draws the lines it names instead of the window" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+
+      run.pager.sampled = [0, 2, 4, 8]
+
+      expect(run.session.rows).to eq ["Message number 1.", "Message number 3.",
+                                      "Message number 5.", "Message number 9."]
+    end
+
+    it "is cleared by a scroll" do
+      run = paged
+      run.pager.show messages(9)
+      run.pager.catch_up
+      run.pager.sampled = [0, 2, 4, 8]
+
+      run.pager.scroll_by 0, -1
+
+      expect(run.pager.sampled).to be_nil
+    end
+  end
 end

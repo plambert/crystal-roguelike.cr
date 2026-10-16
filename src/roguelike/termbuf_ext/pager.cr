@@ -117,6 +117,30 @@ module TermBuf::Widgets
     # How many wrapped lines each source line became, oldest first.
     @rows_per_line = [] of Int32
 
+    # The lines to draw in place of the window, by index, top to bottom.
+    # `nil` draws the window.
+    #
+    # An owner sets this to draw the frames of a scroll that skips rows. See
+    # `SampledScroll`. The pane draws the last `#rows` of them. Scrolling the
+    # pane, or new text, clears it. A held page draws over it.
+    property sampled : Array(Int32)? = nil
+
+    # What the pane says while lines below the window are not showing, given
+    # how many messages those are. `nil` says nothing.
+    #
+    # The text is drawn over the right end of the last row, so most of the
+    # row stays readable.
+    #
+    #     pager.badge = ->(count : Int32) { " \u2193 #{count} newer " }
+    property badge : Proc(Int32, String)? = nil
+
+    # What the badge is drawn in.
+    property badge_style : Style = Style::DEFAULT.reverse
+
+    # What a click on the badge runs. `nil` puts the window on the newest
+    # line at once.
+    property on_badge : Proc(Nil)? = nil
+
     def initialize(style : Style? = nil)
       @width = Layout::Sizing.grow
       @height = Layout::Sizing.grow
@@ -153,13 +177,20 @@ module TermBuf::Widgets
     # call says so, and the dropped count comes from that. Otherwise the
     # shown lines are looked for in the new source, which fails when more
     # arrived than the source keeps, since nothing shown is left in it.
-    def show(source : Array(String), arrived : Int32? = nil) : Nil
+    #
+    # With *keep*, the window stays on the lines it was showing, and what
+    # arrived waits below it. Otherwise the window goes to the newest line.
+    def show(source : Array(String), arrived : Int32? = nil, keep : Bool = false) : Nil
       return if @source == source
 
-      @read -= arrived ? dropped(source, arrived) : dropped(source)
+      gone = arrived ? dropped(source, arrived) : dropped(source)
+      before = @lines.size
+      @read -= gone
       @source = source.dup
+      held = @back
       @back = 0
       rewrap
+      @back = (held + @lines.size - (before - gone)).clamp 0, max_scroll[1] if keep
     end
 
     # How many wrapped lines the person has not seen.
@@ -246,6 +277,21 @@ module TermBuf::Widgets
     # scrolled back is showing what was happening rather than what is.
     def to_newest : Nil
       @back = 0
+      @sampled = nil
+    end
+
+    # How many source lines end below the window, which a person has to
+    # scroll down to read all of. Zero at the newest line, and while a page
+    # is held.
+    def newer : Int32
+      return 0 if holding? || @rows <= 0
+
+      bottom = @lines.size - 1 - @back
+      ended = -1
+      @rows_per_line.count do |size|
+        ended += size
+        ended > bottom
+      end
     end
 
     # The lines this pane shows now.
@@ -255,11 +301,19 @@ module TermBuf::Widgets
     # newest, so older text stays as context and the wheel reaches further
     # back.
     def showing : Array(String)
-      return [] of String if @rows <= 0
+      shown.map { |index| @lines[index] }
+    end
 
-      return @lines[@read, page] if holding?
+    # The indices of the lines `#showing` answers, top to bottom.
+    def shown : Array(Int32)
+      return [] of Int32 if @rows <= 0
 
-      @lines[scroll_y, @rows]
+      return (@read...Math.min(@read + page, @lines.size)).to_a if holding?
+
+      frame = @sampled
+      return frame.last(@rows).select { |index| index < @lines.size } if frame
+
+      (scroll_y...Math.min(scroll_y + @rows, @lines.size)).to_a
     end
 
     # Lines there are, and cells across.
@@ -288,7 +342,15 @@ module TermBuf::Widgets
     end
 
     # Which line is at the top of the window.
+    #
+    # A held page answers for its first line, and a sampled frame for the
+    # line at the bottom of the frame, so a scrollbar shows what is drawn.
     def scroll_y : Int32
+      return @read.clamp(0, max_scroll[1]) if holding?
+
+      frame = @sampled
+      return (frame.last - @rows + 1).clamp(0, max_scroll[1]) if frame && !frame.empty?
+
       Math.max @lines.size - @rows - @back, 0
     end
 
@@ -299,6 +361,7 @@ module TermBuf::Widgets
     def scroll_by(dx : Int32, dy : Int32) : Nil
       return if holding?
 
+      @sampled = nil
       @back = (@back - dy).clamp 0, max_scroll[1]
     end
 
@@ -323,7 +386,7 @@ module TermBuf::Widgets
     def handle(event : Event, context : Context) : Nil
       case event
       when Events::Mouse
-        return unless event.button.wheel?
+        return pressed(event, context) unless event.button.wheel?
 
         context.consume
 
@@ -343,23 +406,62 @@ module TermBuf::Widgets
     def draw(view : View) : Nil
       return if view.width <= 0 || view.height <= 0
 
-      more = holding?
-      first = more ? @read : scroll_y
       bright = @fresh_style
       from = @lines.size - fresh_rows
+      rows = shown
 
-      showing.each_with_index do |line, row|
+      rows.each_with_index do |index, row|
         break if row >= view.height
 
-        base = bright if bright && first + row >= from
+        line = @lines[index]
+        base = bright if bright && index >= from
         view.write 0, row, line, base || Style::DEFAULT
         Pager.accent view, row, line, base || Style::DEFAULT, @accents
       end
 
-      return unless more
+      if holding?
+        spot = Math.min page, view.height - 1
+        view.write 0, spot, @marker, @marker_style
+        return
+      end
 
-      spot = Math.min page, view.height - 1
-      view.write 0, spot, @marker, @marker_style
+      spot = badge_spot view.width, Math.min(rows.size, view.height)
+      view.write spot[0], spot[1], spot[2], @badge_style if spot
+    end
+
+    # Where the badge goes in a pane *width* cells across with *rows* rows
+    # drawn, and what it says. `nil` while nothing is waiting below.
+    private def badge_spot(width : Int32, rows : Int32) : {Int32, Int32, String}?
+      return if @sampled || rows <= 0
+
+      found = @badge
+      return unless found
+
+      count = newer
+      return if count <= 0
+
+      text = found.call count
+      size = Unicode.string_width text
+      return if size > width
+
+      {width - size, rows - 1, text}
+    end
+
+    # Answers a press on the badge. Lets any other press past.
+    private def pressed(event : Events::Mouse, context : Context) : Nil
+      return unless event.button.left? && event.action.press?
+
+      box = content
+      spot = badge_spot box.width, Math.min(shown.size, box.height)
+      return unless spot
+
+      size = Unicode.string_width spot[2]
+      return unless event.y == box.y + spot[1]
+      return unless event.x >= box.x + spot[0] && event.x < box.x + spot[0] + size
+
+      context.consume
+      found = @on_badge
+      found ? found.call : to_newest
     end
 
     # Draws the accents *finder* finds in *line* over the line already
@@ -429,6 +531,7 @@ module TermBuf::Widgets
 
       @rows_per_line = wrapped.map &.size
       @lines = wrapped.flatten
+      @sampled = nil
 
       settle
     end
