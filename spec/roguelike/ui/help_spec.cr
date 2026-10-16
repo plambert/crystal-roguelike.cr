@@ -26,7 +26,7 @@ Spectator.describe Roguelike::Ui::Help do
 
     expect(help.open?).to be_true
     headers = rows.select(&.header).map(&.keys)
-    expect(headers).to eq(["application", "panels", "moving", "time", "getting about", "doors and stairs", "character", "items", "in the inventory", "aiming", "messages", "map"])
+    expect(headers).to eq(["application", "panels", "map", "info panel", "log", "moving", "time", "getting about", "doors and stairs", "character", "items", "in the inventory", "aiming", "messages", "mouse"])
     expect(rows[0].keys).to eq("application")
     expect(rows[1].keys).to eq("seed")
     expect(rows[1].description).to eq("4272")
@@ -84,9 +84,9 @@ Spectator.describe Roguelike::Ui::Help do
   end
 
   it "fits the screen, leaving the margin, and shows the bar only when it scrolls" do
-    session, help = wired 1_u64, rows: 80
+    session, help = wired 1_u64, rows: 100
     session.press "?"
-    expect(help.list.most).to eq(80 - 2 * Help::MARGIN - Help::CHROME)
+    expect(help.list.most).to eq(100 - 2 * Help::MARGIN - Help::CHROME)
     expect(help.rows.size).to be <= help.list.most
     expect(help.bar.hidden?).to be_true
     session.press "Escape"
@@ -125,7 +125,7 @@ Spectator.describe Roguelike::Ui::Help do
   end
 
   it "draws the seed and the diagram on the screen" do
-    session, _help = wired 99_u64
+    session, _help = wired 99_u64, rows: 100
 
     session.press "?"
     session.render

@@ -50,7 +50,7 @@ module Roguelike::Ui
       own = own.merge Keys.examining(play) if play
       sections = [Section.new("application", own)]
       sections.concat play.sections if play
-      sections << Section.new("map", mousing(&on_mouse)) if on_mouse
+      sections << Section.new("mouse", mousing(&on_mouse)) if on_mouse
 
       help.sections = sections
       sections.each { |section| app.keymap = app.keymap.merge section.bindings }
@@ -122,6 +122,65 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.ring.previous; nil }
         map.bind TermBuf::Key.parse("Escape"), "back to the map, or stop what is waiting",
           ->(_context : Widgets::Context) { play.escape; nil }
+      end
+    end
+
+    # The scrolling keys of the map, and `Enter` for it.
+    #
+    # `Shift+Up` and `Shift+Down` scroll a row, `Shift+Left` and
+    # `Shift+Right` a column, `PageUp` and `PageDown` a page, and `Home` and
+    # `End` go to the top and bottom of the floor. Every panel binds the
+    # same keys, and `Play` acts on the panel with the focus.
+    #
+    # `Enter` looses the shot or walks to the square a pick is waiting on.
+    # With nothing waiting, it brings the character into view when they are
+    # off screen.
+    def self.map_panel(play : Play) : Widgets::Bindings
+      own = Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Shift+Left"), "scroll the map left a column",
+          ->(_context : Widgets::Context) { play.scroll_columns(-1); nil }
+        map.bind TermBuf::Key.parse("Shift+Right"), "scroll the map right a column",
+          ->(_context : Widgets::Context) { play.scroll_columns(1); nil }
+        map.bind TermBuf::Key.parse("Enter"),
+          "loose the shot, walk to the square, or bring the character into view",
+          ->(_context : Widgets::Context) { play.enter; nil }
+      end
+
+      scrolling(play, "the map", "the top of the floor", "the bottom of the floor").merge own
+    end
+
+    # The scrolling keys of the info panel. `Enter` has no use there yet.
+    def self.info_panel(play : Play) : Widgets::Bindings
+      scrolling play, "the info panel", "the top of the panel", "the bottom of the panel"
+    end
+
+    # The scrolling keys of the log, and `Enter` for it.
+    def self.log_panel(play : Play) : Widgets::Bindings
+      own = Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Enter"), "scroll to the newest message",
+          ->(_context : Widgets::Context) { play.enter; nil }
+      end
+
+      scrolling(play, "the log", "the oldest message", "the newest message").merge own
+    end
+
+    # The keys every panel scrolls by. *what* names the panel, and *top* and
+    # *bottom* say where `Home` and `End` go in it.
+    private def self.scrolling(play : Play, what : String, top : String,
+                               bottom : String) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Shift+Up"), "scroll #{what} up a row",
+          ->(_context : Widgets::Context) { play.scroll_rows(-1); nil }
+        map.bind TermBuf::Key.parse("Shift+Down"), "scroll #{what} down a row",
+          ->(_context : Widgets::Context) { play.scroll_rows(1); nil }
+        map.bind TermBuf::Key.parse("PageUp"), "scroll #{what} up a page",
+          ->(_context : Widgets::Context) { play.scroll_pages(-1); nil }
+        map.bind TermBuf::Key.parse("PageDown"), "scroll #{what} down a page",
+          ->(_context : Widgets::Context) { play.scroll_pages(1); nil }
+        map.bind TermBuf::Key.parse("Home"), "go to #{top}",
+          ->(_context : Widgets::Context) { play.scroll_to_edge(false); nil }
+        map.bind TermBuf::Key.parse("End"), "go to #{bottom}",
+          ->(_context : Widgets::Context) { play.scroll_to_edge(true); nil }
       end
     end
 
@@ -234,21 +293,18 @@ module Roguelike::Ui
       end
     end
 
-    # `f` fires and `t` throws. `Enter` looses the shot, or walks to the
-    # square `_` picked. `Tab` aims at the next monster, and `.panels`
-    # binds it.
+    # `f` fires and `t` throws. `Tab` aims at the next monster, and `.panels`
+    # binds it. `Enter` looses the shot, or walks to the square `_` picked,
+    # and `.map_panel` binds it.
     #
-    # `Enter` does nothing while nothing is being aimed. The movement keys
-    # are already bound, and `Play` sends them to the targeting cursor the
-    # same way it sends them to the examine cursor.
+    # The movement keys are already bound, and `Play` sends them to the
+    # targeting cursor the same way it sends them to the examine cursor.
     def self.aiming(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("f"), "fire the readied ranged weapon",
           ->(_context : Widgets::Context) { play.fire; nil }
         map.bind TermBuf::Key.parse("t"), "throw something",
           ->(_context : Widgets::Context) { play.throw; nil }
-        map.bind TermBuf::Key.parse("Enter"), "loose the shot, or walk to the square",
-          ->(_context : Widgets::Context) { play.loose; nil }
       end
     end
 

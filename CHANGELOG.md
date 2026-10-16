@@ -23,6 +23,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The focused character panel or message log is drawn on a gray ground, which flashes blue as
   the focus arrives. The rule beside the focused panel turns light blue, so you can see when the
   map has the focus too.
+* `Shift+Up` and `Shift+Down` scroll the panel that has the focus by a row, and `PageUp` and
+  `PageDown` by a page. `Home` and `End` go to the top and the bottom. `Shift+Left` and
+  `Shift+Right` scroll the map sideways. The scrolls glide, unless motion is off. A turn that
+  passes puts the map back on the character, as a drag of the view does.
+* `Enter` brings the map back to the character when they have scrolled off screen, and scrolls
+  the message log to its newest line when the log has the focus. A shot or a walk that is waiting
+  for `Enter` still goes first.
 
 ### Changed
 

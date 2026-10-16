@@ -669,8 +669,9 @@ module Roguelike::Ui
     # Where the camera would be if it centred on *x*, *y* now.
     #
     # It is worked out by centring and putting the camera back, for the same
-    # reason `#camera_for` follows and puts it back.
-    private def center_for(x : Int32, y : Int32) : {Int32, Int32}
+    # reason `#camera_for` follows and puts it back. `Play#recenter` scrolls
+    # to it.
+    def center_for(x : Int32, y : Int32) : {Int32, Int32}
       held = camera
       @grid.center_on x, y
       found = camera

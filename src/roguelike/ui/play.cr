@@ -512,6 +512,9 @@ module Roguelike::Ui
       if @viewer
         return [
           Keys::Section.new("panels", Keys.panels(self)),
+          Keys::Section.new("map", Keys.map_panel(self)),
+          Keys::Section.new("info panel", Keys.info_panel(self)),
+          Keys::Section.new("log", Keys.log_panel(self)),
           Keys::Section.new("moving", Keys.moving { |direction| view_move direction }),
           Keys::Section.new("playing the run", Keys.viewing(self)),
         ]
@@ -519,6 +522,9 @@ module Roguelike::Ui
 
       found = [
         Keys::Section.new("panels", Keys.panels(self)),
+        Keys::Section.new("map", Keys.map_panel(self)),
+        Keys::Section.new("info panel", Keys.info_panel(self)),
+        Keys::Section.new("log", Keys.log_panel(self)),
         Keys::Section.new("moving", Keys.moving { |direction| step direction }),
         Keys::Section.new("time", Keys.timing(self)),
         Keys::Section.new("getting about", Keys.exploring(self)),
@@ -3107,12 +3113,19 @@ module Roguelike::Ui
       wanted = {found.camera[0] + found.from[0] - x, found.camera[1] + found.from[1] - y}
       before = @map.camera
       @map.camera = wanted
-      return if @map.camera == before
+      leave_home before unless @map.camera == before
+    end
 
-      unless @home
-        @home = before
-        @home_turn = @game.turn
-      end
+    # Records that the camera left *before* by hand, so the next turn can
+    # put it back.
+    #
+    # A drag and a scroll key both use this. The first move of a stretch
+    # keeps its place, and a later one leaves it be.
+    private def leave_home(before : {Int32, Int32}) : Nil
+      return if @home
+
+      @home = before
+      @home_turn = @game.turn
     end
 
     # Puts the camera back where it was before the view was dragged, then
@@ -3521,6 +3534,109 @@ module Roguelike::Ui
       @game.perform Action::Read.new(id, choice)
     end
 
+    # ------------------------------------------------------ the panel keys
+
+    # The scrolls the map, the info panel and the log answer alike. Each one
+    # acts on the panel the focus ring names.
+
+    # Scrolls the focused panel *rows* rows, up when negative.
+    # `Shift+Up` and `Shift+Down` do this.
+    def scroll_rows(rows : Int32) : Nil
+      case @ring.current
+      in .map?  then scroll_map 0, rows
+      in .info? then scroll_info rows
+      in .log?  then scroll_log rows
+      end
+    end
+
+    # Scrolls the map *columns* columns, left when negative.
+    # `Shift+Left` and `Shift+Right` do this. The other panels do not
+    # scroll sideways.
+    def scroll_columns(columns : Int32) : Nil
+      scroll_map columns, 0 if @ring.map?
+    end
+
+    # Scrolls the focused panel *pages* pages, up when negative.
+    # `PageUp` and `PageDown` do this.
+    def scroll_pages(pages : Int32) : Nil
+      case @ring.current
+      in .map?  then scroll_map 0, pages * @map.grid.page
+      in .info? then scroll_info pages * @screen.info.page
+      in .log?  then scroll_log pages * @pager.page
+      end
+    end
+
+    # Scrolls the focused panel to its top, or to its bottom with *bottom*.
+    # `Home` and `End` do this. The map scrolls to the top or bottom of the
+    # floor and keeps its column.
+    def scroll_to_edge(bottom : Bool) : Nil
+      row = bottom ? Int32::MAX : 0
+
+      case @ring.current
+      in .map?  then scroll_map_to @map.camera[0], row
+      in .info? then scroll_info_to row
+      in .log?  then scroll_log_to row
+      end
+    end
+
+    # Answers `Enter` for the focused panel.
+    #
+    # A shot or a square waiting for `Enter` comes first, whichever panel
+    # has the focus, so a click on another panel cannot strand it. With
+    # nothing waiting, the map brings the character into view and the log
+    # scrolls to its newest line. The info panel has no use for it yet.
+    def enter : Nil
+      return loose if @aiming
+
+      case @ring.current
+      in .map?  then recenter
+      in .info? then nil
+      in .log?  then scroll_log_to_end
+      end
+    end
+
+    # Scrolls the camera by *dx* and *dy* cells.
+    private def scroll_map(dx : Int32, dy : Int32) : Nil
+      now = map_glide.heading
+      scroll_map_to now[0] + dx, now[1] + dy
+    end
+
+    # Scrolls the camera to *x*, *y*, stopping at the edges of the floor.
+    #
+    # The camera stops following the character, the way a drag stops it.
+    # The next turn puts it back and follows the character from there.
+    private def scroll_map_to(x : Int32, y : Int32) : Nil
+      goal = map_glide.clamp x, y
+      return if goal == map_glide.heading
+
+      leave_home @map.camera
+      map_glide.to goal[0], goal[1], @app, Motion.on?
+    end
+
+    # Centers the camera on the character when they are off screen.
+    #
+    # The camera follows them from there, so what a drag or a scroll key
+    # left behind is let go.
+    private def recenter : Nil
+      player = @game.player
+      return if @map.screen_of player.x, player.y
+
+      @home = nil
+      @drag = nil
+      goal = @map.center_for player.x, player.y
+      map_glide.to goal[0], goal[1], @app, Motion.on?
+    end
+
+    # The scroll that moves the camera.
+    private def map_glide : Widgets::EasedScroll
+      @map_glide ||= Widgets::EasedScroll.new(
+        -> { @map.camera },
+        ->(x : Int32, y : Int32) { @map.camera = {x, y}; nil },
+        -> { @map.grid.max_scroll })
+    end
+
+    @map_glide : Widgets::EasedScroll? = nil
+
     # ------------------------------------------------------ the info panel
 
     # Puts the pointer hooks on the rows of the sidebar.
@@ -3653,6 +3769,23 @@ module Roguelike::Ui
       spotlight @nearby.spot
     end
 
+    # Scrolls the info panel *rows* rows, up when negative.
+    private def scroll_info(rows : Int32) : Nil
+      info_glide.by 0, rows, @app, Motion.on?
+    end
+
+    # Scrolls the info panel to row *row* of its content.
+    private def scroll_info_to(row : Int32) : Nil
+      info_glide.to 0, row, @app, Motion.on?
+    end
+
+    # The scroll that moves the info panel.
+    private def info_glide : Widgets::EasedScroll
+      @info_glide ||= Widgets::EasedScroll.over @screen.info
+    end
+
+    @info_glide : Widgets::EasedScroll? = nil
+
     # ------------------------------------------------------------ the log
 
     # Which turn the log pane was last drawn for.
@@ -3764,5 +3897,28 @@ module Roguelike::Ui
     private def fit_log(columns : Int32) : Nil
       @pager.resize Screen.log_width(columns), @screen.log_rows
     end
+
+    # Scrolls the log *rows* lines, up when negative. A page the log is
+    # holding is not scrolled.
+    private def scroll_log(rows : Int32) : Nil
+      log_glide.by 0, rows, @app, Motion.on?
+    end
+
+    # Scrolls the log to line *row* of what it has said.
+    private def scroll_log_to(row : Int32) : Nil
+      log_glide.to 0, row, @app, Motion.on?
+    end
+
+    # Scrolls the log to its newest line.
+    def scroll_log_to_end : Nil
+      scroll_log_to Int32::MAX
+    end
+
+    # The scroll that moves the log.
+    private def log_glide : Widgets::EasedScroll
+      @log_glide ||= Widgets::EasedScroll.over @pager
+    end
+
+    @log_glide : Widgets::EasedScroll? = nil
   end
 end
