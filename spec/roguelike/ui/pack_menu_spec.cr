@@ -277,6 +277,30 @@ Spectator.describe "the menu on an inventory letter" do
       expect(run.menu.page_name).to eq "potions"
     end
 
+    it "keeps the top of the box in place as the pages turn" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::Arrow, count: 9),
+                      Item.new(Kind::HealingPotion)], rows: 40
+
+      run.press "i"
+      top = run.menu.rect.y
+      run.press "Right", "Right", "Right", "Right"
+
+      expect(run.menu.page_name).to eq "potions"
+      expect(run.menu.entries.size).to eq 1
+      expect(run.menu.rect.y).to eq top
+      expect(top).to eq run.menu.row_margin
+    end
+
+    it "hangs the detail box level with the row highlighted" do
+      run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+
+      run.press "i"
+      run.press "Down"
+      run.render
+
+      expect(run.play.tooltip.rect.y).to eq run.menu.list.rect.y + 1
+    end
+
     it "turns to a page whose name is clicked" do
       run = carrying [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
       run.press "i"

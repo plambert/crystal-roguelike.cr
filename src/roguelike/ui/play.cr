@@ -920,7 +920,8 @@ module Roguelike::Ui
     def choose(title : String, pages : Array({String, Array(Widgets::Menu::Entry)}),
                page : Int32, about : Hash(Char, Listing)? = nil,
                &chosen : Char? -> Nil) : Nil
-      ready_the_menu about, chosen
+      ready_the_menu about, chosen,
+        top: pages.max_of(&.[1].size) + PAGED_CHROME
       @menu.tabs_width = tabs_room about
       @menu.show application, title, pages, page
     end
@@ -1021,8 +1022,16 @@ module Roguelike::Ui
       pages.map { |(name, found)| {name, found.empty? ? [NOTHING] : found} }
     end
 
+    # The rows a menu with pages takes besides its list: the border at the
+    # top and the bottom, and the row of page names.
+    PAGED_CHROME = 3
+
     # Hooks the menu up to hang *about* off its rows and to run *chosen*.
-    private def ready_the_menu(about : Hash(Char, Listing)?, chosen : Char? -> Nil) : Nil
+    #
+    # *top* is the height of a menu that hangs from the top of the screen,
+    # or `nil` for one in the middle.
+    private def ready_the_menu(about : Hash(Char, Listing)?, chosen : Char? -> Nil,
+                               top : Int32? = nil) : Nil
       @listed = about || {} of Char => Listing
       @menu.column_margin = @listed.empty? ? Widgets::Menu::COLUMN_MARGIN : MENU_MARGIN
       @menu.on_highlight = ->(entry : Widgets::Menu::Entry?) do
@@ -1038,7 +1047,7 @@ module Roguelike::Ui
         nil
       end
 
-      clear_the_character
+      clear_the_character top
     end
 
     # How many columns a menu with a box beside it leaves clear on each side.
@@ -1094,14 +1103,15 @@ module Roguelike::Ui
     # A box is drawn in the middle of the screen. The map pane fills the top
     # left of it. A character standing in the middle of the pane would be
     # behind the box, and a person answering a question about what is around
-    # them has to see what is around them.
+    # them has to see what is around them. A menu with pages hangs from the
+    # top instead, and *top* is its height.
     #
     # The camera goes back where it was once the question is answered.
-    private def clear_the_character : Nil
+    private def clear_the_character(top : Int32? = nil) : Nil
       return if @parked
 
       here = @map.camera
-      return unless @map.avoid @game.player.x, @game.player.y, modal_area
+      return unless @map.avoid @game.player.x, @game.player.y, modal_area(top)
 
       @parked = here
     end
@@ -1130,15 +1140,18 @@ module Roguelike::Ui
     # The band is three quarters of the screen wide. A question sized to its
     # own text is narrower than that. Reserving more than the box needs costs
     # one camera move and never leaves the character behind the box.
-    private def modal_area : Rect
+    #
+    # A menu *tall* rows high that hangs from the top covers a band that
+    # starts `Widgets::Menu#row_margin` rows down.
+    private def modal_area(tall : Int32? = nil) : Rect
       room = @map.grid.viewport_size
       return Rect.new(0, 0, 0, 0) if room[0] <= 0 || room[1] <= 0 || @columns <= 0
 
       width = Math.max @columns * 3 // 4, 1
       left = (@columns - width) // 2
-      top = (@rows - MODAL_ROWS) // 2
+      top = tall ? @menu.row_margin : (@rows - MODAL_ROWS) // 2
 
-      Rect.new(left, top, width, MODAL_ROWS)
+      Rect.new(left, top, width, tall || MODAL_ROWS)
         .intersect Rect.new(0, 0, room[0], room[1])
     end
 

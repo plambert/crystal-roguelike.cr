@@ -15,6 +15,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   page, and a list of one class has none. Each list opens on the page you left it on.
 * The inventory always shows every class, and opens even when you carry nothing. A class you
   carry none of shows "nothing".
+* A list with class pages opens near the top of the window and stays the same size, so its title
+  and class names do not move as you change pages.
 * A scroll of identify offers everything you carry that has something left to learn, and each
   row says what that is: the kind, the blessing, or both. An item of known kind whose blessing you
   do not know is offered now. Putting the menu away keeps the scroll unread.

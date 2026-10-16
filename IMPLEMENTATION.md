@@ -2089,6 +2089,8 @@ as leaves the detail box beside it the width its widest lines need, and `Play#ta
 arithmetic. A row of names wider than the box slides to keep the page showing in the middle, and
 a name cut by either end is drawn as far as it fits. At 80 columns that shows the pages beside
 the one showing. At 40 columns a long name fills the row, and only the arrows say there is more.
+A menu with pages hangs from the top of the screen, `Widgets::Menu#row_margin` rows down, and its
+list keeps the height of the longest page, so the title and the names stay put as the pages turn.
 
 An open overlay pushes its bindings onto the focus stack when it goes up. Turning a page replaces
 that copy as well as the menu's own, or the letters of the page before would still answer.

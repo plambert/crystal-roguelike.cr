@@ -385,6 +385,9 @@ module TermBuf::Widgets
       end
     end
 
+    # The layer the box is drawn on.
+    @layer : Int32
+
     def initialize(z : Int32 = Z::DIALOG, style : Style? = nil)
       @list = Content.new Rows.of([] of Entry),
         width: Layout::Sizing.fit(min: 1),
@@ -399,8 +402,8 @@ module TermBuf::Widgets
       @height = Layout::Sizing.fit(min: MINIMUM_HEIGHT)
       @border = Border.rounded
       @style = style
-      @floating = Layout::Floating.on nil, Layout::AttachPoint::Center,
-        Layout::AttachPoint::Center, z: z
+      @layer = z
+      place
 
       @list.on_draw = ->(view : View, _index : Int32, entry : Entry, chosen : Bool, lit : Bool) do
         draw_entry view, entry, chosen && lit
@@ -432,13 +435,16 @@ module TermBuf::Widgets
       @pages = [] of {String, Array(Entry)}
       @page = 0
       @tabs.hidden = true
+      place
       put_up app, title, entries.to_a
     end
 
     # Puts *pages* up on *app* under *title*, showing the one at *page*.
     #
     # The box is sized for the widest row and the longest page of them all,
-    # so it stays the same size as the pages turn.
+    # so it stays the same size as the pages turn. It hangs from the top of
+    # the screen rather than from the middle, `#row_margin` rows down, so a
+    # menu of another length puts its names in the same place.
     def show(app : App, title : String?, pages : Array({String, Array(Entry)}),
              page : Int32) : Nil
       return show(app, title, [] of Entry) if pages.empty?
@@ -448,6 +454,7 @@ module TermBuf::Widgets
       @tabs.names = pages.map &.[0]
       @tabs.current = @page
       @tabs.hidden = false
+      place top: true
       put_up app, title, pages[@page][1]
     end
 
@@ -468,6 +475,13 @@ module TermBuf::Widgets
       @list.select 0
       rebind if open?
       highlighted
+    end
+
+    # Puts the box in the middle of the screen, or at the top of it.
+    private def place(top : Bool = false) : Nil
+      point = top ? Layout::AttachPoint::CenterTop : Layout::AttachPoint::Center
+      @floating = Layout::Floating.on nil, point, point,
+        dy: top ? @row_margin : 0, z: @layer
     end
 
     # Puts the bindings for the rows showing in place of the old ones.
@@ -548,8 +562,11 @@ module TermBuf::Widgets
       self.width = Layout::Sizing.fit min: MINIMUM_WIDTH, max: widest
       self.height = Layout::Sizing.fit min: MINIMUM_HEIGHT, max: tallest
 
-      @list.height = Layout::Sizing.fit min: 1,
-        max: Math.max(Math.min(longest, @max_rows), 1)
+      # A menu with pages holds the list at the height of the longest page,
+      # less the border and the row of names when the screen is short.
+      shown = Math.max(Math.min(longest, @max_rows), 1)
+      least = @pages.empty? ? 1 : shown.clamp(1, Math.max(tallest - 3, 1))
+      @list.height = Layout::Sizing.fit min: least, max: shown
 
       @room = Math.min @list.widest, Math.max(widest - inset.horizontal, 0)
     end
