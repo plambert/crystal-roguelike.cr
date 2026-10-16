@@ -11,6 +11,13 @@ module Roguelike::Ui
   # The game's keys reach the application's keymap whichever panel has the
   # focus, so the movement keys move the character from the info and log
   # panels too.
+  #
+  # A focused info or log panel has a tinted ground. It fades from
+  # `Palette::FOCUS_FLASH` to `Palette::FOCUS_GROUND` when `Motion.on?`, and
+  # takes the gray at once otherwise. The map has no tint. The rule beside
+  # the focused panel is drawn in `Palette::FOCUS_RULE`. For the info panel
+  # that is the rule on its right. For the log it is the rule above it. For
+  # the map it is both of those, since the map sits between them.
   class FocusRing
     # The panels, in the order `Tab` visits them.
     enum Panel
@@ -22,7 +29,16 @@ module Roguelike::Ui
     # The panel with the focus.
     getter current : Panel = Panel::Map
 
+    # The fading ground the focused panel is drawn on.
+    getter tint : Widgets::Tint
+
+    # The application the fade arms its timers on. `nil` draws the end of
+    # the fade at once.
+    property app : Widgets::App? = nil
+
     def initialize(@screen : Screen)
+      @tint = Widgets::Tint.new Palette::FOCUS_FLASH, Palette::FOCUS_GROUND
+      show
     end
 
     # Moves the focus to the next panel. Answers that panel.
@@ -43,6 +59,8 @@ module Roguelike::Ui
       return @current if panel == @current || !shown?(panel)
 
       @current = panel
+      show
+      panel
     end
 
     # Whether the map has the focus.
@@ -56,6 +74,7 @@ module Roguelike::Ui
       return if shown? @current
 
       @current = Panel::Map
+      show
     end
 
     # The panel at *x*, *y* of the screen, or `nil` for a cell in none of
@@ -87,6 +106,20 @@ module Roguelike::Ui
       end
 
       @current
+    end
+
+    # Draws the focus where it now is.
+    private def show : Nil
+      tinted = case @current
+               in .info? then @screen.info
+               in .log?  then @screen.log
+               in .map?  then nil
+               end
+
+      tinted ? @tint.apply(tinted, @app, Motion.on?) : @tint.clear
+
+      @screen.gutter.style = @current.log? ? nil : Palette::FOCUS_RULE
+      @screen.rule.style = @current.info? ? nil : Palette::FOCUS_RULE
     end
   end
 end

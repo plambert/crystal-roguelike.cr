@@ -20,6 +20,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   to the map. `Shift+Tab` goes the other way, and `Escape` returns to the map. A left click in a
   panel moves the focus there. Every game key works whichever panel has the focus. The help
   screen lists these keys under "panels".
+* The focused character panel or message log is drawn on a gray ground, which flashes blue as
+  the focus arrives. The rule beside the focused panel turns light blue, so you can see when the
+  map has the focus too.
 
 ### Changed
 

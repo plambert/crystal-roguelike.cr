@@ -2,6 +2,38 @@ require "../../spec_helper"
 
 Spectator.describe Roguelike::Ui::FocusRing do
   alias Panel = Roguelike::Ui::FocusRing::Panel
+  alias Palette = Roguelike::Ui::Palette
+
+  # The style drawn at *x*, *y*.
+  def drawn_style(run : Playing::Run, x : Int32, y : Int32) : TermBuf::Style
+    found = run.buffer.hit x, y
+    raise "nothing is drawn at #{x},#{y}" unless found
+
+    run.buffer.styles[found.cell.style]
+  end
+
+  # The screen, then a blank row, then one row of marks for each row of
+  # the screen. `T` is a cell on the focus ground, `R` a cell in the rule's
+  # focus color, and `.` any other cell.
+  def marked(run : Playing::Run) : String
+    text = run.text
+    marks = (0...run.buffer.height).map do |row|
+      String.build do |line|
+        run.buffer.width.times do |column|
+          style = drawn_style run, column, row
+          line << if style.background == Palette::FOCUS_GROUND
+            'T'
+          elsif style.foreground == Palette::FOCUS_RULE.foreground
+            'R'
+          else
+            '.'
+          end
+        end
+      end
+    end
+
+    "#{text}\n\n#{marks.join '\n'}"
+  end
 
   # The center of *widget*, in buffer cells.
   def middle(widget : TermBuf::Widgets::Widget) : {Int32, Int32}
@@ -150,6 +182,75 @@ Spectator.describe Roguelike::Ui::FocusRing do
       run.click 1, 1
 
       expect(run.play.ring.current).to eq Panel::Map
+    end
+  end
+
+  describe "the tint" do
+    it "puts the focused info panel on the focus ground" do
+      run = Playing.open
+      run.press "Tab"
+
+      expect(run.screen.info.style.try &.background).to eq Palette::FOCUS_GROUND
+      expect(run.screen.log.style).to be_nil
+    end
+
+    it "moves to the log and leaves the info panel as it was" do
+      run = Playing.open
+      run.press "Tab", "Tab"
+
+      expect(run.screen.log.style.try &.background).to eq Palette::FOCUS_GROUND
+      expect(run.screen.info.style).to be_nil
+    end
+
+    it "fades from the flash to the gray when motion is on" do
+      run = Playing.open clock: true, motion: true
+      run.press "Tab"
+
+      expect(run.screen.info.style.try &.background).to eq Palette::FOCUS_FLASH
+
+      run.run_timers
+
+      expect(run.screen.info.style.try &.background).to eq Palette::FOCUS_GROUND
+    end
+
+    it "draws the rules beside the focused panel in the focus color" do
+      run = Playing.open
+
+      expect(run.screen.gutter.style).to eq Palette::FOCUS_RULE
+      expect(run.screen.rule.style).to eq Palette::FOCUS_RULE
+
+      run.press "Tab"
+      expect(run.screen.gutter.style).to eq Palette::FOCUS_RULE
+      expect(run.screen.rule.style).to be_nil
+
+      run.press "Tab"
+      expect(run.screen.gutter.style).to be_nil
+      expect(run.screen.rule.style).to eq Palette::FOCUS_RULE
+    end
+  end
+
+  describe "the screen at 80 by 24" do
+    it "marks the map's rules when the map has the focus" do
+      run = Playing.open
+      drawn = marked run
+
+      expect(drawn).to eq Fixture.expected("screen/focus-map.txt", drawn)
+    end
+
+    it "tints the info panel when it has the focus" do
+      run = Playing.open
+      run.press "Tab"
+      drawn = marked run
+
+      expect(drawn).to eq Fixture.expected("screen/focus-info.txt", drawn)
+    end
+
+    it "tints the log when it has the focus" do
+      run = Playing.open
+      run.press "Shift+Tab"
+      drawn = marked run
+
+      expect(drawn).to eq Fixture.expected("screen/focus-log.txt", drawn)
     end
   end
 end

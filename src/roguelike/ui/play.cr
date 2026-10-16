@@ -342,6 +342,7 @@ module Roguelike::Ui
     # page each need it to push a focus scope.
     def app=(app : Widgets::App?) : Widgets::App?
       @pager.app = app
+      @ring.app = app
       @app = app
     end
 

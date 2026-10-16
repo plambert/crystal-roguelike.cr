@@ -115,6 +115,24 @@ module Roguelike::Ui
     # What an empty equipment slot is drawn in.
     VACANT = Style::DEFAULT.fg TermBuf::Color.rgb(0x4A, 0x4E, 0x58)
 
+    # ------------------------------------------------------------- focus
+
+    # The ground of a focused info or log panel once its fade has settled.
+    #
+    # It is a gray a little above the terminal's black, dark enough that
+    # every light text color keeps its contrast. `PLAIN` on it is about 11.6
+    # to 1, `STRONG` about 15 to 1, and `FAINT` about 3 to 1.
+    FOCUS_GROUND = TermBuf::Color.rgb 0x22, 0x26, 0x2E
+
+    # The ground a focused panel's fade starts at. A blue of the same depth
+    # as `FOCUS_GROUND`, so it draws the eye without washing the text out.
+    # `PLAIN` on it is about 10.4 to 1.
+    FOCUS_FLASH = TermBuf::Color.rgb 0x1E, 0x2E, 0x4C
+
+    # What the rule beside the focused panel is drawn in. It is about 9.4
+    # to 1 against the ground.
+    FOCUS_RULE = Style::DEFAULT.fg TermBuf::Color.rgb(0x7F, 0xB8, 0xFF)
+
     # ------------------------------------------------------------- meters
 
     # The colors a bar passes through as it empties.
