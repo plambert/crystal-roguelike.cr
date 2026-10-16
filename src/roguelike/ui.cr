@@ -8,6 +8,7 @@ require "./termbuf_ext/pager"
 require "./termbuf_ext/prompt"
 require "./termbuf_ext/ramp"
 require "./termbuf_ext/rule_bar"
+require "./termbuf_ext/section"
 require "./termbuf_ext/terminal_info"
 require "./termbuf_ext/tint"
 
