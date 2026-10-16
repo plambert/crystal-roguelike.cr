@@ -432,14 +432,6 @@ module Roguelike::Ui
     # can do for them.
     property previous_name : String? = nil
 
-    # Which turn the log pane was last drawn for.
-    #
-    # A pane scrolled back goes to the newest line when the turn moves on,
-    # because what it is showing then is what was happening rather than what
-    # is. A turn that says nothing counts: the character walked, and the
-    # pane is beside a floor that has moved.
-    @shown_turn : Int32 = 0
-
     # The size of the screen, as `#fit` was last told it.
     @columns : Int32 = 0
     @rows : Int32 = 0
@@ -454,7 +446,6 @@ module Roguelike::Ui
       @character = CharacterPane.new
       @examine = ExaminePane.new
       @nearby = NearbyPane.new
-      @screen.show_info @character.root, @nearby.root, @examine.root
       @examiner = Examiner.new @map, @examine
       @examiner.lore = @game.lore
       @examiner.game = @game
@@ -464,14 +455,7 @@ module Roguelike::Ui
       @flicker = Flicker.new @game.world.seed
       @map.flicker = @flicker
 
-      @pager = Widgets::Pager.new
-      @pager.fresh_style = Palette::MESSAGE_NEW
-      @pager.accents = ->BlessingWords.accents(String)
-      @screen.show_log @pager
-
-      # Reading the line a hold was asked for is what the pointer on the map
-      # was waiting for. `>` puts both up together.
-      @pager.on_release = -> { stop_pointing }
+      @pager = build_log
 
       @interrupt.on_key = -> { interrupted }
       @hurry.passes = true
@@ -489,7 +473,8 @@ module Roguelike::Ui
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
       @tooltip = Tooltip.new
-      watch_the_sidebar
+      watch_the_log
+      build_info
 
       if console
         pane = ConsolePane.new @game
@@ -497,80 +482,6 @@ module Roguelike::Ui
         @console = pane
       end
 
-      refresh
-    end
-
-    # Puts the pointer hooks on the rows of the sidebar.
-    #
-    # A row says what it is about when the pointer crosses it. `#pointed`
-    # decides what to do with that once the event has been through the tree.
-    # The pack heading opens and shuts the pack when it is pressed. A pack row
-    # pressed puts up what can be done with what is on it.
-    #
-    # `NearbyPane` builds its rows afresh every turn, so the hook goes on the
-    # pane rather than on the rows, and the pane hands over whichever row the
-    # pointer found.
-    private def watch_the_sidebar : Nil
-      @nearby.on_point = ->(row : Line, lines : Array(String)?) { detail row, lines }
-      @nearby.on_press = ->(spot : {Int32, Int32}) { pressed_seen spot }
-
-      Slot.listed.each do |slot|
-        row = @character.slot_row slot
-        row.on_point = -> { detail row, Detail.about(@game, slot); nil }
-      end
-
-      @character.pack.each_with_index do |row, index|
-        row.on_point = -> { detail row, carried_detail(index); nil }
-        row.on_press = -> { pressed_carried index; nil }
-      end
-
-      @character.pack_heading.on_press = -> { open_pack; nil }
-      @character.pack_heading.on_point = -> { detail nil, nil; nil }
-    end
-
-    # What the pack row at *index* is about, or `nil` for an empty row.
-    private def carried_detail(index : Int32) : Array(String)?
-      found = @game.player.inventory.entries[index]?
-      return unless found
-
-      Detail.about @game, found[1]
-    end
-
-    # Answers a click on the pack row at *index* with the menu of what can be
-    # done with what is on it.
-    #
-    # A recorded run takes no actions but its own, so a click there does
-    # nothing. A click during a walk or a rest stops it, as a click on the map
-    # does.
-    private def pressed_carried(index : Int32) : Nil
-      return interrupted if walking? || resting?
-      return if @viewer || @game.over? || modal? || @aiming
-
-      found = @game.player.inventory.entries[index]?
-      return unless found
-
-      @tooltip.hide
-      act_on found[0]
-    end
-
-    # Answers a click on the Seen row about *spot*, the way a click on
-    # *spot* itself is answered.
-    #
-    # The box beside the row comes down. The refresh that follows builds the
-    # rows again, and the box would hang beside a row that is gone.
-    private def pressed_seen(spot : {Int32, Int32}) : Nil
-      @tooltip.hide
-      walk_toward spot
-    end
-
-    # Records what the pointer is over. `nil` for a row about nothing.
-    private def detail(row : Widgets::Widget?, lines : Array(String)?) : Nil
-      @detailed = row && lines ? {row, lines} : nil
-    end
-
-    # Opens the pack, or shuts it, and lays the sidebar out again.
-    def open_pack : Nil
-      @character.toggle_pack
       refresh
     end
 
@@ -861,15 +772,6 @@ module Roguelike::Ui
       @retired = true
     rescue error : File::Error | IO::Error | ArgumentError
       @game.log.add "The game could not be saved: #{error.message}"
-    end
-
-    # Puts every message of the run up, or takes the box down.
-    # `Ctrl+P` does this.
-    #
-    # The box is filled from the log each time it opens, so what it shows is
-    # what has been said up to now.
-    def toggle_history : Nil
-      @history.toggle application, @game.log.lines
     end
 
     # Puts the debug console up, or takes it down. `` ` `` does this.
@@ -1428,9 +1330,6 @@ module Roguelike::Ui
     # What the turn question says when what was typed is not a number.
     TURN_UNREADABLE = "That is not a turn number."
 
-    # What the banner lists after the numbers.
-    TRANSPORT_KEYS = "Space play   h l step   g turn   1-5 speed   Q leave"
-
     # Plays *found* back rather than a run somebody is at the keyboard for.
     #
     # The banner goes up here and takes a row from the log pane. The caller
@@ -1614,29 +1513,6 @@ module Roguelike::Ui
     private def view_wait : Time::Span
       found = VIEW_SPEEDS[@view_speed - 1]
       found.zero? ? VIEW_TICK : found
-    end
-
-    # Writes the transport on the banner.
-    private def restate_transport : Nil
-      line = @screen.banner
-      found = @viewer
-      return unless line && found
-
-      line.text = Play.transport found, @playing_back, @view_speed
-    end
-
-    # What the banner says.
-    def self.transport(viewer : Replay::Viewer, playing : Bool,
-                       speed : Int32) : String
-      state = viewer.done? ? "end" : playing ? "playing" : "paused"
-
-      String.build do |text|
-        text << "turn " << viewer.turn
-        text << "   action " << viewer.at << " of " << viewer.size
-        text << "   " << state
-        text << "   speed " << speed
-        text << "   " << TRANSPORT_KEYS
-      end
     end
 
     # Walks toward the nearest square the character has not seen. `X` does
@@ -2996,14 +2872,7 @@ module Roguelike::Ui
       @map.sight = seen
       @map.knowledge = @game.knowledge
 
-      # The character block writes itself, then gives up whatever rows the
-      # window has no room for. What is left over is what the two readouts
-      # under it get, so the order here decides the sidebar.
-      @character.show @game
-      @character.fit Play.character_rows @rows
-      @nearby.budget = Play.nearby_budget @rows, @character.height
-      @nearby.show @game, seen
-      spotlight @nearby.spot
+      refresh_info seen
       @tooltip.hide if @tooltip.showing? && !@tooltip.hanging?
       restate_examine
 
@@ -3014,13 +2883,9 @@ module Roguelike::Ui
       offer_directions
       show_route
       show_aim
-      show_log @game.log.lines.size, @game.log.written
-      @pager.fresh = @game.log.current
+      refresh_log
       land
-      if @shown_turn != @game.turn
-        @shown_turn = @game.turn
-        @pager.to_newest
-      end
+      newest_on_a_new_turn
 
       show_ending
       restate_transport
@@ -3453,7 +3318,7 @@ module Roguelike::Ui
       @screen.fit columns, rows
       @ring.fit
       @news_page.screen_rows = rows
-      @pager.resize Screen.log_width(columns), @screen.log_rows
+      fit_log columns
 
       @placard.fit_into Rect.new(0, 0, columns, rows)
       @entry.fit_into Rect.new(0, 0, columns, rows)
@@ -3488,64 +3353,6 @@ module Roguelike::Ui
         @pending = command
         say "Which way? Press a direction, or Escape."
       end
-    end
-
-    # How many rows the info panel's two lists get on a screen of *rows*.
-    #
-    # Whatever the map's height leaves, less the headings and rules of the two
-    # sections and the most `ExaminePane` writes. A shorter screen gives them
-    # less, and `NearbyPane` elides what does not fit rather than pushing the
-    # readout off the bottom.
-    #
-    # The budgets measure against the map's height, which is shorter than the
-    # info panel. The rows under the map's height are spare, so the readout
-    # at the bottom has room to show whole.
-    def self.nearby_budget(rows : Int32, character : Int32 = 0) : Int32
-      Math.max Screen.map_rows(rows) - character - SIDEBAR_CHROME - EXAMINE_ROWS, 2
-    end
-
-    # How many rows `CharacterPane` may take of a screen of *rows*.
-    #
-    # What is left over once the two readouts under it have what they need.
-    # The character block is the one that can give rows up: it knows what it
-    # would drop first, and a person who wants all of it can make the window
-    # taller.
-    def self.character_rows(rows : Int32) : Int32
-      Math.max Screen.map_rows(rows) - LEAST_READOUTS, CharacterPane::LEAST
-    end
-
-    # Rows the three sidebar headings and the rules under them take.
-    SIDEBAR_CHROME = 6
-
-    # The most rows `ExaminePane` writes at once.
-    EXAMINE_ROWS = 6
-
-    # The fewest rows the three readouts are left with.
-    #
-    # A heading, a rule and one row each for Here, Seen and Look, and the two
-    # blank rows between the three panes. The character block takes
-    # everything above that and gives rows back when there are not enough.
-    LEAST_READOUTS = SIDEBAR_CHROME + 3 + 3
-
-    # Whether the log is holding a page that has not been read.
-    def holding? : Bool
-      @pager.holding?
-    end
-
-    # How many lines the log had written when the pager last saw it.
-    #
-    # The pager is told how many lines arrived rather than left to match the
-    # new log against the old. A capped log that gains more lines in one
-    # action than it keeps shares nothing with what was shown, and matching
-    # would take the whole flood as already read.
-    @shown_written : Int32 = 0
-
-    # Shows the first *count* lines of the log on the pager, which were all
-    # written by the time the log had written *written* lines.
-    private def show_log(count : Int32, written : Int32) : Nil
-      lines = @game.log.lines
-      @pager.show lines.first(count.clamp(0, lines.size)), arrived: written - @shown_written
-      @shown_written = written
     end
 
     # Runs *command* on the door *direction*.
@@ -3714,6 +3521,204 @@ module Roguelike::Ui
       @game.perform Action::Read.new(id, choice)
     end
 
+    # ------------------------------------------------------ the info panel
+
+    # Puts the pointer hooks on the rows of the sidebar.
+    #
+    # A row says what it is about when the pointer crosses it. `#pointed`
+    # decides what to do with that once the event has been through the tree.
+    # The pack heading opens and shuts the pack when it is pressed. A pack row
+    # pressed puts up what can be done with what is on it.
+    #
+    # `NearbyPane` builds its rows afresh every turn, so the hook goes on the
+    # pane rather than on the rows, and the pane hands over whichever row the
+    # pointer found.
+    private def watch_the_sidebar : Nil
+      @nearby.on_point = ->(row : Line, lines : Array(String)?) { detail row, lines }
+      @nearby.on_press = ->(spot : {Int32, Int32}) { pressed_seen spot }
+
+      Slot.listed.each do |slot|
+        row = @character.slot_row slot
+        row.on_point = -> { detail row, Detail.about(@game, slot); nil }
+      end
+
+      @character.pack.each_with_index do |row, index|
+        row.on_point = -> { detail row, carried_detail(index); nil }
+        row.on_press = -> { pressed_carried index; nil }
+      end
+
+      @character.pack_heading.on_press = -> { open_pack; nil }
+      @character.pack_heading.on_point = -> { detail nil, nil; nil }
+    end
+
+    # What the pack row at *index* is about, or `nil` for an empty row.
+    private def carried_detail(index : Int32) : Array(String)?
+      found = @game.player.inventory.entries[index]?
+      return unless found
+
+      Detail.about @game, found[1]
+    end
+
+    # Answers a click on the pack row at *index* with the menu of what can be
+    # done with what is on it.
+    #
+    # A recorded run takes no actions but its own, so a click there does
+    # nothing. A click during a walk or a rest stops it, as a click on the map
+    # does.
+    private def pressed_carried(index : Int32) : Nil
+      return interrupted if walking? || resting?
+      return if @viewer || @game.over? || modal? || @aiming
+
+      found = @game.player.inventory.entries[index]?
+      return unless found
+
+      @tooltip.hide
+      act_on found[0]
+    end
+
+    # Answers a click on the Seen row about *spot*, the way a click on
+    # *spot* itself is answered.
+    #
+    # The box beside the row comes down. The refresh that follows builds the
+    # rows again, and the box would hang beside a row that is gone.
+    private def pressed_seen(spot : {Int32, Int32}) : Nil
+      @tooltip.hide
+      walk_toward spot
+    end
+
+    # Records what the pointer is over. `nil` for a row about nothing.
+    private def detail(row : Widgets::Widget?, lines : Array(String)?) : Nil
+      @detailed = row && lines ? {row, lines} : nil
+    end
+
+    # Opens the pack, or shuts it, and lays the sidebar out again.
+    def open_pack : Nil
+      @character.toggle_pack
+      refresh
+    end
+
+    # How many rows the info panel's two lists get on a screen of *rows*.
+    #
+    # Whatever the map's height leaves, less the headings and rules of the two
+    # sections and the most `ExaminePane` writes. A shorter screen gives them
+    # less, and `NearbyPane` elides what does not fit rather than pushing the
+    # readout off the bottom.
+    #
+    # The budgets measure against the map's height, which is shorter than the
+    # info panel. The rows under the map's height are spare, so the readout
+    # at the bottom has room to show whole.
+    def self.nearby_budget(rows : Int32, character : Int32 = 0) : Int32
+      Math.max Screen.map_rows(rows) - character - SIDEBAR_CHROME - EXAMINE_ROWS, 2
+    end
+
+    # How many rows `CharacterPane` may take of a screen of *rows*.
+    #
+    # What is left over once the two readouts under it have what they need.
+    # The character block is the one that can give rows up: it knows what it
+    # would drop first, and a person who wants all of it can make the window
+    # taller.
+    def self.character_rows(rows : Int32) : Int32
+      Math.max Screen.map_rows(rows) - LEAST_READOUTS, CharacterPane::LEAST
+    end
+
+    # Rows the three sidebar headings and the rules under them take.
+    SIDEBAR_CHROME = 6
+
+    # The most rows `ExaminePane` writes at once.
+    EXAMINE_ROWS = 6
+
+    # The fewest rows the three readouts are left with.
+    #
+    # A heading, a rule and one row each for Here, Seen and Look, and the two
+    # blank rows between the three panes. The character block takes
+    # everything above that and gives rows back when there are not enough.
+    LEAST_READOUTS = SIDEBAR_CHROME + 3 + 3
+
+    # Puts the three panes in the info panel and hooks their rows.
+    private def build_info : Nil
+      @screen.show_info @character.root, @nearby.root, @examine.root
+      watch_the_sidebar
+    end
+
+    # Draws the three panes from the run as it stands, with *seen* the
+    # squares in sight.
+    private def refresh_info(seen : Vision) : Nil
+      # The character block writes itself, then gives up whatever rows the
+      # window has no room for. What is left over is what the two readouts
+      # under it get, so the order here decides the sidebar.
+      @character.show @game
+      @character.fit Play.character_rows @rows
+      @nearby.budget = Play.nearby_budget @rows, @character.height
+      @nearby.show @game, seen
+      spotlight @nearby.spot
+    end
+
+    # ------------------------------------------------------------ the log
+
+    # Which turn the log pane was last drawn for.
+    #
+    # A pane scrolled back goes to the newest line when the turn moves on,
+    # because what it is showing then is what was happening rather than what
+    # is. A turn that says nothing counts: the character walked, and the
+    # pane is beside a floor that has moved.
+    @shown_turn : Int32 = 0
+
+    # Puts every message of the run up, or takes the box down.
+    # `Ctrl+P` does this.
+    #
+    # The box is filled from the log each time it opens, so what it shows is
+    # what has been said up to now.
+    def toggle_history : Nil
+      @history.toggle application, @game.log.lines
+    end
+
+    # Writes the transport on the banner.
+    private def restate_transport : Nil
+      line = @screen.banner
+      found = @viewer
+      return unless line && found
+
+      line.text = Play.transport found, @playing_back, @view_speed
+    end
+
+    # What the banner says.
+    def self.transport(viewer : Replay::Viewer, playing : Bool,
+                       speed : Int32) : String
+      state = viewer.done? ? "end" : playing ? "playing" : "paused"
+
+      String.build do |text|
+        text << "turn " << viewer.turn
+        text << "   action " << viewer.at << " of " << viewer.size
+        text << "   " << state
+        text << "   speed " << speed
+        text << "   " << TRANSPORT_KEYS
+      end
+    end
+
+    # What the banner lists after the numbers.
+    TRANSPORT_KEYS = "Space play   h l step   g turn   1-5 speed   Q leave"
+
+    # Whether the log is holding a page that has not been read.
+    def holding? : Bool
+      @pager.holding?
+    end
+
+    # How many lines the log had written when the pager last saw it.
+    #
+    # The pager is told how many lines arrived rather than left to match the
+    # new log against the old. A capped log that gains more lines in one
+    # action than it keeps shares nothing with what was shown, and matching
+    # would take the whole flood as already read.
+    @shown_written : Int32 = 0
+
+    # Shows the first *count* lines of the log on the pager, which were all
+    # written by the time the log had written *written* lines.
+    private def show_log(count : Int32, written : Int32) : Nil
+      lines = @game.log.lines
+      @pager.show lines.first(count.clamp(0, lines.size)), arrived: written - @shown_written
+      @shown_written = written
+    end
+
     # Adds *line* to the log.
     #
     # It goes to the log rather than through `Game#say`. Every line from here
@@ -3723,6 +3728,41 @@ module Roguelike::Ui
     private def say(line : String) : Nil
       @game.log.add line
       refresh
+    end
+
+    # Builds the pager the log is read in and puts it in the log pane.
+    private def build_log : Widgets::Pager
+      pager = Widgets::Pager.new
+      pager.fresh_style = Palette::MESSAGE_NEW
+      pager.accents = ->BlessingWords.accents(String)
+      @screen.show_log pager
+      pager
+    end
+
+    # Hooks the pager once `@pager` is set.
+    private def watch_the_log : Nil
+      # Reading the line a hold was asked for is what the pointer on the map
+      # was waiting for. `>` puts both up together.
+      @pager.on_release = -> { stop_pointing }
+    end
+
+    # Shows the log as the run has it, and marks the newest turn's lines.
+    private def refresh_log : Nil
+      show_log @game.log.lines.size, @game.log.written
+      @pager.fresh = @game.log.current
+    end
+
+    # Puts the log on its newest line when the turn has moved on.
+    private def newest_on_a_new_turn : Nil
+      return if @shown_turn == @game.turn
+
+      @shown_turn = @game.turn
+      @pager.to_newest
+    end
+
+    # Sizes the log to a screen *columns* wide.
+    private def fit_log(columns : Int32) : Nil
+      @pager.resize Screen.log_width(columns), @screen.log_rows
     end
   end
 end
