@@ -251,10 +251,14 @@ module Roguelike
     #
     # Anything but a tick of the flames may change what the map shows. The
     # map pane drops the drawings it keeps while it is idle.
+    #
+    # A left click moves the focus to the panel it lands in, whatever in the
+    # panel answers it.
     private def noticed(event : TermBuf::Event) : Nil
       return if event.is_a?(TermBuf::Events::Timer) && event.nonce == @wavering
 
       @play.map.forget_frames
+      @play.focus_under event
     end
 
     # Records whether the window has the focus. The map pane is idle while

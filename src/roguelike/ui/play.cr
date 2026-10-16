@@ -44,6 +44,9 @@ module Roguelike::Ui
     # The regions being drawn in.
     getter screen : Screen
 
+    # Which panel has the focus.
+    getter ring : FocusRing
+
     # The window the floor is played in.
     getter map : MapPane
 
@@ -443,6 +446,7 @@ module Roguelike::Ui
     def initialize(@game : Game, console : Bool = false)
       @kept_turn = @game.turn
       @screen = Screen.new
+      @ring = FocusRing.new @screen
       @map = MapPane.new @game.floor
       @screen.show @map.grid
 
@@ -595,12 +599,14 @@ module Roguelike::Ui
     def sections : Array(Keys::Section)
       if @viewer
         return [
+          Keys::Section.new("panels", Keys.panels(self)),
           Keys::Section.new("moving", Keys.moving { |direction| view_move direction }),
           Keys::Section.new("playing the run", Keys.viewing(self)),
         ]
       end
 
       found = [
+        Keys::Section.new("panels", Keys.panels(self)),
         Keys::Section.new("moving", Keys.moving { |direction| step direction }),
         Keys::Section.new("time", Keys.timing(self)),
         Keys::Section.new("getting about", Keys.exploring(self)),
@@ -1834,6 +1840,33 @@ module Roguelike::Ui
     #
     # A pending command goes first. The prompt goes next. The examine cursor
     # goes last. One press takes back one thing.
+    # Gives the focus back to the map from another panel, or takes back
+    # whatever is waiting when the map has it. `Escape` does this.
+    def escape : Nil
+      return cancel if @ring.map?
+
+      @ring.focus FocusRing::Panel::Map
+    end
+
+    # Moves the focus to the next panel, or aims at the next monster while
+    # something is being aimed. `Tab` does this.
+    def tab : Nil
+      @ring.next unless next_target
+    end
+
+    # Moves the focus to the panel a left click lands in.
+    #
+    # The owner calls this with every event, before the tree sees it, so a
+    # click that a row in the panel answers moves the focus too. The wheel
+    # does not move it, and nothing does while an overlay is up.
+    def focus_under(event : TermBuf::Event) : Nil
+      return unless event.is_a? TermBuf::Events::Mouse
+      return unless event.button.left? && event.action.press?
+      return unless @app.try(&.focus.scopes.size) == 1
+
+      @ring.under(event.x, event.y).try { |panel| @ring.focus panel }
+    end
+
     def cancel : Nil
       if @pending
         @pending = nil
@@ -3417,6 +3450,7 @@ module Roguelike::Ui
       @columns = columns
       @rows = rows
       @screen.fit columns, rows
+      @ring.fit
       @news_page.screen_rows = rows
       @pager.resize Screen.log_width(columns), @screen.log_rows
 

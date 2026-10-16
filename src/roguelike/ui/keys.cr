@@ -99,14 +99,29 @@ module Roguelike::Ui
       end
     end
 
-    # `x` puts the examine cursor on the map and takes it off again. `Escape`
-    # takes back whatever is waiting.
+    # `x` puts the examine cursor on the map and takes it off again.
     def self.examining(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("x"), "look at a square",
           ->(_context : Widgets::Context) { play.toggle_examine; nil }
-        map.bind TermBuf::Key.parse("Escape"), "stop what is waiting",
-          ->(_context : Widgets::Context) { play.cancel; nil }
+      end
+    end
+
+    # `Tab` and `Shift+Tab` move the focus among the map, the info panel and
+    # the log. `Escape` gives it back to the map, and on the map it takes
+    # back whatever is waiting.
+    #
+    # `Tab` aims at the next monster while something is being aimed. An
+    # overlay pushes a focus scope with its own keys, so none of these
+    # reach the panels while one is up.
+    def self.panels(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Tab"), "focus the next panel, or aim at the next monster",
+          ->(_context : Widgets::Context) { play.tab; nil }
+        map.bind TermBuf::Key.parse("Shift+Tab"), "focus the previous panel",
+          ->(_context : Widgets::Context) { play.ring.previous; nil }
+        map.bind TermBuf::Key.parse("Escape"), "back to the map, or stop what is waiting",
+          ->(_context : Widgets::Context) { play.escape; nil }
       end
     end
 
@@ -219,27 +234,19 @@ module Roguelike::Ui
       end
     end
 
-    # `f` fires and `t` throws. `Tab` aims at the next monster in sight and
-    # `Enter` looses the shot, or walks to the square `_` picked.
+    # `f` fires and `t` throws. `Enter` looses the shot, or walks to the
+    # square `_` picked. `Tab` aims at the next monster, and `.panels`
+    # binds it.
     #
-    # Neither does anything while nothing is being aimed. The movement keys
+    # `Enter` does nothing while nothing is being aimed. The movement keys
     # are already bound, and `Play` sends them to the targeting cursor the
     # same way it sends them to the examine cursor.
-    #
-    # `Tab` means "the next widget" in every application `Widgets` builds.
-    # This binding takes the key only while something is being aimed and
-    # hands it to the focus stack otherwise.
     def self.aiming(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("f"), "fire the readied ranged weapon",
           ->(_context : Widgets::Context) { play.fire; nil }
         map.bind TermBuf::Key.parse("t"), "throw something",
           ->(_context : Widgets::Context) { play.throw; nil }
-        map.bind TermBuf::Key.parse("Tab"), "aim at the next monster",
-          ->(context : Widgets::Context) do
-            context.focus.next unless play.next_target
-            nil
-          end
         map.bind TermBuf::Key.parse("Enter"), "loose the shot, or walk to the square",
           ->(_context : Widgets::Context) { play.loose; nil }
       end

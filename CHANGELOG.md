@@ -16,6 +16,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `--no-motion` turns off the animations of the panels, so each change draws at once. It is for
   slow connections and for anyone who finds the motion distracting. `replay view` takes it too,
   and the debug console's `motion on` and `motion off` change it during play.
+* `Tab` moves the focus from the map to the character panel, then to the message log, and back
+  to the map. `Shift+Tab` goes the other way, and `Escape` returns to the map. A left click in a
+  panel moves the focus there. Every game key works whichever panel has the focus. The help
+  screen lists these keys under "panels".
 
 ### Changed
 
