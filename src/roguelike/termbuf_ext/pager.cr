@@ -146,6 +146,7 @@ module TermBuf::Widgets
       @height = Layout::Sizing.grow
       @style = style
       @source = [] of String
+      @given = [] of String
     end
 
     # Sets the size of the pane. Wraps the text again when the width changed.
@@ -180,17 +181,56 @@ module TermBuf::Widgets
     #
     # With *keep*, the window stays on the lines it was showing, and what
     # arrived waits below it. Otherwise the window goes to the newest line.
+    # A capped source may drop lines the window shows. The pager keeps
+    # those lines in front of the source until the window moves on, so the
+    # window holds still and the lines below it count what arrived.
     def show(source : Array(String), arrived : Int32? = nil, keep : Bool = false) : Nil
-      return if @source == source
+      return if @given == source
 
-      gone = arrived ? dropped(source, arrived) : dropped(source)
-      before = @lines.size
-      @read -= gone
-      @source = source.dup
-      held = @back
+      shift = arrived ? dropped(source, arrived) : dropped(source)
+      top = keep ? window_top : nil
+      kept = [] of String
+      if top && top[0] < shift
+        kept = @source[top[0]..Math.min(window_bottom_line, shift - 1)]
+      end
+
+      @read -= @rows_per_line.first(shift).sum - kept.sum { |line| rows_of line }
+      @given = source.dup
+      @source = kept + source
       @back = 0
       rewrap
-      @back = (held + @lines.size - (before - gone)).clamp 0, max_scroll[1] if keep
+      return unless top
+
+      line = top[0] < shift ? 0 : top[0] - shift + kept.size
+      row = @rows_per_line.first(line).sum + top[1]
+      @back = (@lines.size - @rows - row).clamp 0, max_scroll[1]
+    end
+
+    # The source line the window's top row is in, and which of that line's
+    # wrapped rows it is.
+    private def window_top : {Int32, Int32}
+      line_of Math.max(@lines.size - @rows - @back, 0)
+    end
+
+    # The source line the window's bottom row is in.
+    private def window_bottom_line : Int32
+      line_of(Math.max(@lines.size - 1 - @back, 0))[0]
+    end
+
+    # The source line wrapped row *row* is in, and which of its rows it is.
+    private def line_of(row : Int32) : {Int32, Int32}
+      start = 0
+      @rows_per_line.each_with_index do |size, index|
+        return {index, row - start} if row < start + size
+
+        start += size
+      end
+      {@rows_per_line.size, 0}
+    end
+
+    # How many rows *line* wraps to.
+    private def rows_of(line : String) : Int32
+      @columns > 0 ? Pager.wrap(line, @columns).size : 1
     end
 
     # How many wrapped lines the person has not seen.
@@ -487,26 +527,22 @@ module TermBuf::Widgets
       @rows_per_line.last(@fresh.clamp(0, @rows_per_line.size)).sum
     end
 
-    # How many wrapped lines at the front of the shown source *source* no
-    # longer holds.
+    # How many lines at the front of the shown source *source* no longer
+    # holds.
     #
-    # How many wrapped lines went when *arrived* lines were added to the
-    # shown source and it settled at *source*'s size. More arriving than the
+    # How many lines went when *arrived* lines were added to the shown
+    # source and it settled at *source*'s size. More arriving than the
     # source holds drops everything that was shown, and every line left is
     # unread.
     private def dropped(source : Array(String), arrived : Int32) : Int32
-      gone = (@source.size + arrived - source.size).clamp 0, @source.size
-      @rows_per_line.first(gone).sum
+      (@source.size + arrived - source.size).clamp 0, @source.size
     end
 
     # The shown source is looked for at the front of *source*, with one more
     # of its oldest lines left off each try. A source that shares nothing with
     # the shown one is new text rather than a continuation, and drops nothing.
     private def dropped(source : Array(String)) : Int32
-      gone = (0...@source.size).find { |shift| continues? source, shift }
-      return 0 unless gone
-
-      @rows_per_line.first(gone).sum
+      (0...@source.size).find { |shift| continues? source, shift } || 0
     end
 
     # Whether *source* starts with the shown source less its first *shift*
