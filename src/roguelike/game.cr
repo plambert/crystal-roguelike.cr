@@ -7071,16 +7071,27 @@ module Roguelike
     # are taken when the carried ones might be blessed too. A known curse on
     # either side is no reason to take anything.
     #
+    # A full pack narrows both rules to what would join a letter it already
+    # holds. An explore plans over the same answer, so it does not walk to a
+    # pile the pickup would have to leave.
+    #
     # Gold is taken apart from this, by `#take_coins`.
     private def auto_takes : Proc(Item, Bool)?
       quiver = quiver_takes
+      pack = @player.inventory
       held = [] of Item
-      @player.inventory.each_item do |_, item|
+      pack.each_item do |_, item|
         held << item if item.kind.stacks? && !item.known_cursed?
       end
-      return quiver if held.empty?
 
-      ->(item : Item) { quiver.try(&.call(item)) || held.any?(&.might_be?(item)) }
+      wanted = if held.empty?
+                 quiver
+               else
+                 ->(item : Item) { quiver.try(&.call(item)) || held.any?(&.might_be?(item)) }
+               end
+      return wanted unless wanted && pack.full?
+
+      ->(item : Item) { wanted.call(item) && pack.room_for?(item) }
     end
 
     # Which items the quiver takes back off the floor. `nil` when the quiver

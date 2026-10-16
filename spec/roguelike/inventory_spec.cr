@@ -38,6 +38,15 @@ Spectator.describe Roguelike::Inventory do
       expect(bag.full?).to be_true
       expect(bag.add(Item.new(Kind::Dagger))).to be_nil
     end
+
+    it "has room for what would join a letter once every letter is taken" do
+      bag.add Item.new(Kind::Arrow, count: 5)
+      (Roguelike::Inventory::LETTERS.size - 1).times { bag.add Item.new(Kind::LongSword) }
+
+      expect(bag.room_for?(Item.new(Kind::Arrow, count: 7))).to be_true
+      expect(bag.room_for?(Item.new(Kind::Arrow, 1, count: 7))).to be_false
+      expect(bag.room_for?(Item.new(Kind::Dagger))).to be_false
+    end
   end
 
   # Dropping b does not move what is under c.

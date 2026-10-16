@@ -160,6 +160,11 @@ module Roguelike
       @slots.size >= LETTERS.size
     end
 
+    # Whether `#add` would find *item* a letter.
+    def room_for?(item : Item) : Bool
+      !full? || @slots.each_value.any? &.holds?(item)
+    end
+
     # The item under *letter* that an action takes, or `nil` for a letter
     # nothing is under.
     #

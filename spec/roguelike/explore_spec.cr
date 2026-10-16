@@ -634,6 +634,38 @@ Spectator.describe "exploring and travelling" do
       expect(game.floor.items(*ASIDE)).to be_empty
     end
 
+    it "leaves arrows a full pack has no letter for, and goes on" do
+      game = played SIDE_ROOM
+      pack = game.player.inventory
+      pack.add Item.new(Roguelike::ItemKind::Arrow, 2, count: 13,
+        blessing: Roguelike::Blessing::Blessed, blessing_known: true)
+      (Roguelike::Inventory::LETTERS.size - 1).times { pack.add Item.new(Roguelike::ItemKind::Dagger) }
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, 2, count: 11,
+        blessing: Roguelike::Blessing::Blessed)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.floor.items(*ASIDE).size).to eq 1
+      expect(pack.count 'a').to eq 13
+    end
+
+    it "takes arrows that join a letter when the pack is full" do
+      game = played SIDE_ROOM
+      pack = game.player.inventory
+      pack.add Item.new(Roguelike::ItemKind::Arrow, 2, count: 13)
+      (Roguelike::Inventory::LETTERS.size - 1).times { pack.add Item.new(Roguelike::ItemKind::Dagger) }
+      game.floor.drop *ASIDE, Item.new(Roguelike::ItemKind::Arrow, 2, count: 11)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.floor.items(*ASIDE)).to be_empty
+      expect(pack.count 'a').to eq 24
+    end
+
     it "is offered while ammunition the quiver takes is remembered" do
       game = played SIDE_ROOM
       archer game
