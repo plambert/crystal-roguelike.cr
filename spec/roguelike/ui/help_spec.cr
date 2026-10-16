@@ -117,9 +117,9 @@ Spectator.describe Roguelike::Ui::Help do
   end
 
   it "fits the screen, leaving the margin, and shows the bar only when it scrolls" do
-    session, help = wired 1_u64, rows: 100
+    session, help = wired 1_u64, rows: 120
     session.press "?"
-    expect(help.list.most).to eq(100 - 2 * Help::MARGIN - Help::CHROME)
+    expect(help.list.most).to eq(120 - 2 * Help::MARGIN - Help::CHROME)
     expect(help.rows.size).to be <= help.list.most
     expect(help.bar.hidden?).to be_true
     session.press "Escape"
