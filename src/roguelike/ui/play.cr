@@ -3455,12 +3455,16 @@ module Roguelike::Ui
       end
     end
 
-    # How many rows the sidebar's two lists get on a screen of *rows*.
+    # How many rows the info panel's two lists get on a screen of *rows*.
     #
-    # Whatever the sidebar has left, less the headings and rules of the two
+    # Whatever the map's height leaves, less the headings and rules of the two
     # sections and the most `ExaminePane` writes. A shorter screen gives them
     # less, and `NearbyPane` elides what does not fit rather than pushing the
     # readout off the bottom.
+    #
+    # The budgets measure against the map's height, which is shorter than the
+    # info panel. The rows under the map's height are spare, so the readout
+    # at the bottom has room to show whole.
     def self.nearby_budget(rows : Int32, character : Int32 = 0) : Int32
       Math.max Screen.map_rows(rows) - character - SIDEBAR_CHROME - EXAMINE_ROWS, 2
     end
