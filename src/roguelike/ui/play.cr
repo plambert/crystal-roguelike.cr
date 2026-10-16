@@ -65,8 +65,8 @@ module Roguelike::Ui
     # What the character is, stacked down the sidebar.
     getter character : CharacterPane
 
-    # What has just happened, held at a page boundary when a turn says more
-    # than the pane shows at once.
+    # What has just happened. A turn that says more than the pane shows
+    # parks it on the first new line.
     getter pager : Widgets::Pager
 
     # The list of things to choose from, when there is one.
@@ -338,10 +338,10 @@ module Roguelike::Ui
 
     # The application this play is drawn on.
     #
-    # The owner sets this once it has built an `App`. A question and a held
-    # page each need it to push a focus scope.
+    # The owner sets this once it has built an `App`. A question needs it to
+    # push a focus scope, and the log arms its frames on it.
     def app=(app : Widgets::App?) : Widgets::App?
-      @pager.app = app
+      log_panel.app = app
       @ring.app = app
       @app = app
     end
@@ -739,11 +739,11 @@ module Roguelike::Ui
       @kept_turn = game.turn
 
       # The log came back with the run. The person read those lines in the
-      # session that wrote them, so the pane does not hold a page at a time
-      # through the whole history before it shows where they are now.
+      # session that wrote them, so none of it counts as arrived, and the
+      # pane shows the newest line.
       @shown_written = game.log.written
+      @pager.to_newest
       refresh
-      @pager.catch_up
 
       look_at_player
     end
@@ -1109,10 +1109,9 @@ module Roguelike::Ui
       @examiner.screen_spot || @pointer.cursor
     end
 
-    # Whether a box is holding the keyboard. A question, a list and a held
-    # page each do.
+    # Whether a box is holding the keyboard. A question and a list each do.
     def modal? : Bool
-      @prompt.asking? || @entry.asking? || @menu.showing? || @pager.holding? ||
+      @prompt.asking? || @entry.asking? || @menu.showing? ||
         @placard.showing? || @history.showing? || (@console.try &.showing? || false)
     end
 
@@ -1675,7 +1674,6 @@ module Roguelike::Ui
       aim_at spot, @game.way_to(spot)
       say "The stairs are here."
       reveal spot
-      @pager.hold
     end
 
     # Points the map at *goal*, along *route*.
@@ -1684,10 +1682,7 @@ module Roguelike::Ui
       @pointing = Pointing.new goal, route, @game.turn
     end
 
-    # Takes the way off the map.
-    #
-    # `>` puts a route up behind `--More--`. Reading that line is what the
-    # route was for, so the next key takes both away together.
+    # Takes the way off the map, and stops it fading.
     private def stop_pointing : Nil
       return unless @pointing
 
@@ -3584,7 +3579,7 @@ module Roguelike::Ui
       case @ring.current
       in .map?  then scroll_map_to @map.camera[0], row
       in .info? then scroll_info_to row
-      in .log?  then scroll_log_to row
+      in .log?  then bottom ? scroll_log_to_end : scroll_log_to(row)
       end
     end
 
@@ -3965,11 +3960,6 @@ module Roguelike::Ui
     # What the banner lists after the numbers.
     TRANSPORT_KEYS = "Space play   h l step   g turn   1-5 speed   Q leave"
 
-    # Whether the log is holding a page that has not been read.
-    def holding? : Bool
-      @pager.holding?
-    end
-
     # How many lines the log had written when the pager last saw it.
     #
     # The pager is told how many lines arrived rather than left to match the
@@ -4017,9 +4007,6 @@ module Roguelike::Ui
 
     # Hooks the pager once `@pager` is set.
     private def watch_the_log : Nil
-      # Reading the line a hold was asked for is what the pointer on the map
-      # was waiting for. `>` puts both up together.
-      @pager.on_release = -> { stop_pointing }
       @pager.on_badge = -> { scroll_log_to_end }
       log_panel.on_resize = -> { keep_in_view }
 
@@ -4072,8 +4059,19 @@ module Roguelike::Ui
     end
 
     # Scrolls the log to its newest line.
+    #
+    # A long way back, the scroll inserts a sample of the lines between.
     def scroll_log_to_end : Nil
-      scroll_log_to Int32::MAX
+      log_glide.cancel
+      log_panel.to_end
+    end
+
+    # Pages the log down, whichever panel has the focus. `Space` does this.
+    # At the newest line it does nothing, and it never takes a turn.
+    def page_log : Nil
+      return if @pager.back == 0
+
+      scroll_log @pager.page
     end
 
     # The scroll that moves the log.

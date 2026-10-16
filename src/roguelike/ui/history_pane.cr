@@ -4,9 +4,9 @@ module Roguelike::Ui
   # Every message of the run, in a box over the game.
   #
   # The log pane is a few rows, and a quarter of the window at most while it
-  # has the focus. A turn that says more than fits pushes the first lines
-  # off, and `Widgets::Pager` holds at a page boundary so that nothing goes
-  # past unread. This box shows the whole run at once, in most of the window.
+  # has the focus. A turn that says more than fits parks the pane on its
+  # first new line, and a badge counts the rest. This box shows the whole
+  # run at once, in most of the window.
   #
   # The box holds a window over the lines and no copy of them beyond the
   # wrapping. It is opened with `HistoryPane::TOGGLE`, scrolled with the

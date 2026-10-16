@@ -5,7 +5,7 @@ Spectator.describe "the box of messages" do
   # twenty-four window.
   INSIDE = {20, 10}
 
-  # A run with *count* messages said and every held page read.
+  # A run with *count* messages said, with the log at its newest line.
   def talkative(count : Int32 = 40) : Playing::Run
     run = Playing.open
     run.clear_monsters
@@ -13,9 +13,7 @@ Spectator.describe "the box of messages" do
     run.play.refresh
     run.render
 
-    while run.pager.holding?
-      run.press "."
-    end
+    run.pager.to_newest
 
     run
   end

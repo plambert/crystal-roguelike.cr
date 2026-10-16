@@ -9,7 +9,6 @@ Spectator.describe TermBuf::Widgets::Pager do
   def paged(columns : Int32 = 30, rows : Int32 = 4) : Paged
     pager = Widgets::Pager.new
     session = Headless.open pager, columns, rows
-    pager.app = session.app
     pager.resize columns, rows
 
     Paged.new pager, session
@@ -19,11 +18,32 @@ Spectator.describe TermBuf::Widgets::Pager do
     (1..count).map { |number| "Message number #{number}." }
   end
 
+  # A pager showing *count* messages, at the newest line.
+  def seen(count : Int32 = 9) : Paged
+    run = paged
+    run.pager.show messages(count)
+    run.pager.to_newest
+    run
+  end
+
+  # A notch of the wheel over the pane.
+  #
+  # The pane is drawn first. A widget the tree has not laid out yet sits
+  # nowhere, and a report lands on nothing.
+  def notch(run : Paged, up : Bool) : Nil
+    run.session.render
+    button = up ? TermBuf::Input::Mouse::Button::WheelUp : TermBuf::Input::Mouse::Button::WheelDown
+
+    run.session.send TermBuf::Events::Mouse.new(
+      button, 1, 1, TermBuf::Modifiers::None,
+      TermBuf::Input::Mouse::Action::Press)
+    run.session.render
+  end
+
   describe "with nothing to show" do
-    it "draws nothing and holds nothing" do
+    it "draws nothing" do
       run = paged
 
-      expect(run.pager.holding?).to be_false
       expect(run.session.rows).to eq ["", "", "", ""]
     end
   end
@@ -35,170 +55,77 @@ Spectator.describe TermBuf::Widgets::Pager do
 
       expect(run.session.rows[0, 3])
         .to eq ["Message number 1.", "Message number 2.", "Message number 3."]
-      expect(run.pager.holding?).to be_false
+      expect(run.pager.back).to eq 0
     end
   end
 
-  describe "as many lines as the pane" do
-    it "shows them all without holding" do
-      run = paged
-      run.pager.show messages(4)
+  describe "at the end" do
+    it "follows lines that fit" do
+      run = seen
+      run.pager.show messages(11), arrived: 2
 
-      expect(run.pager.holding?).to be_false
-      expect(run.session.row(3)).to eq "Message number 4."
-    end
-  end
-
-  describe "more lines than the pane" do
-    # One row goes to the marker. A page that used every row would leave
-    # nowhere to say that more is coming.
-    it "holds after one page, with a row left for the marker" do
-      run = paged
-      run.pager.show messages(6)
-
-      expect(run.pager.holding?).to be_true
-      expect(run.session.rows[0, 3])
-        .to eq ["Message number 1.", "Message number 2.", "Message number 3."]
-      expect(run.session.row(3)).to eq "--More--"
+      expect(run.pager.back).to eq 0
+      expect(run.session.row(3)).to eq "Message number 11."
     end
 
-    it "shows the rest on a key, with older lines for context" do
-      run = paged
-      run.pager.show messages(6)
-      run.session.press "l"
+    it "parks on the first new line when more arrive than fit" do
+      run = seen
+      run.pager.show messages(15), arrived: 6
 
-      expect(run.pager.holding?).to be_false
-      expect(run.session.rows)
-        .to eq ["Message number 3.", "Message number 4.",
-                "Message number 5.", "Message number 6."]
+      expect(run.session.row(0)).to eq "Message number 10."
+      expect(run.pager.newer).to eq 2
     end
 
-    # A pager that let other keys through would walk the character while the
-    # person was reading.
-    it "takes every key while it holds" do
-      run = paged
-      run.pager.show messages(6)
+    it "parks on the first new line when it is not told how many arrived" do
+      run = seen
+      run.pager.show messages(15)
 
-      expect(run.pager.focusable?).to be_true
+      expect(run.session.row(0)).to eq "Message number 10."
     end
 
-    it "gives the keyboard back once the reading is done" do
-      run = paged
-      run.pager.show messages(6)
-      run.session.press "l"
+    it "follows again once scrolled to the end" do
+      run = seen
+      run.pager.show messages(15), arrived: 6
+      run.pager.scroll_by 0, 40
+
+      run.pager.show messages(16), arrived: 1
+
+      expect(run.pager.back).to eq 0
+      expect(run.session.row(3)).to eq "Message number 16."
+    end
+
+    it "follows every line while deferred" do
+      run = seen
+      run.pager.deferred = true
+
+      run.pager.show messages(12), arrived: 3
+      run.pager.show messages(15), arrived: 3
+
+      expect(run.pager.back).to eq 0
+    end
+
+    it "parks on the first line that arrived while deferred once let go" do
+      run = seen
+      run.pager.deferred = true
+      run.pager.show messages(12), arrived: 3
+      run.pager.show messages(15), arrived: 3
+
+      run.pager.deferred = false
+
+      expect(run.session.row(0)).to eq "Message number 10."
+    end
+
+    it "takes no key" do
+      run = seen
+      run.pager.show messages(15), arrived: 6
 
       expect(run.pager.focusable?).to be_false
     end
 
-    it "pages twice when there is twice as much" do
-      run = paged
-      run.pager.show messages(9)
-
-      expect(run.session.row(0)).to eq "Message number 1."
-      expect(run.pager.advance).to be_true
-
-      expect(run.session.row(0)).to eq "Message number 4."
-      expect(run.pager.holding?).to be_true
-      expect(run.pager.advance).to be_true
-
-      expect(run.pager.holding?).to be_false
-      expect(run.session.row(3)).to eq "Message number 9."
-    end
-
-    # Twenty lines through a three row pane. Two lines a page, ten pages.
-    it "walks twenty lines through a three row pane" do
+    it "pages with one line kept from the page before" do
       run = paged 30, 3
-      run.pager.show messages(20)
 
-      pages = [] of Array(String)
-      loop do
-        pages << run.pager.showing
-        break unless run.pager.advance
-      end
-
-      expect(pages.size).to eq 10
-      expect(pages.first).to eq ["Message number 1.", "Message number 2."]
-      expect(pages[1]).to eq ["Message number 3.", "Message number 4."]
-      expect(pages.last).to eq ["Message number 18.", "Message number 19.",
-                                "Message number 20."]
-      expect(run.pager.unread).to eq 0
-    end
-  end
-
-  # A capped log drops its oldest line for each one it gains, so its size
-  # stops changing once it is full.
-  describe "a source that drops its oldest lines" do
-    # A pager over 200 lines, every one of them read.
-    def full : Paged
-      run = paged
-      run.pager.show messages(200)
-      run.pager.catch_up
-      run
-    end
-
-    it "holds when as many arrive as are dropped" do
-      run = full
-      run.pager.show messages(206)[6..]
-
-      expect(run.pager.unread).to eq 6
-      expect(run.pager.holding?).to be_true
-    end
-
-    it "pages through what arrived, skipping none" do
-      run = full
-      run.pager.show messages(206)[6..]
-
-      pages = [] of String
-      while run.pager.holding?
-        pages.concat run.pager.showing
-        run.pager.advance
-      end
-
-      # The last view keeps older lines above the newest for context.
-      rest = run.pager.showing
-      pages.concat rest[(rest.index(pages.last) || -1) + 1..]
-
-      expect(pages).to eq messages(206).last(6)
-    end
-
-    # The read mark counts wrapped lines, so a dropped line that wrapped
-    # takes more than one off it. Taking one would leave three unread, which
-    # a four row pane shows without holding.
-    it "counts the wrapped lines of what was dropped" do
-      run = paged
-      long = "A single message far too long to fit on one row here."
-      run.pager.show [long] + messages(10)
-      run.pager.catch_up
-
-      run.pager.show messages(15)
-
-      expect(run.pager.unread).to eq 5
-      expect(run.pager.holding?).to be_true
-    end
-
-    it "holds nothing for a source that shares no lines with the last" do
-      run = full
-      run.pager.show ["Something else entirely."]
-
-      expect(run.pager.holding?).to be_false
-    end
-
-    it "holds everything when told more arrived than the source keeps" do
-      run = full
-      flood = (1..200).map { |number| "Found thing number #{number}." }
-
-      run.pager.show flood, arrived: 400
-
-      expect(run.pager.unread).to eq 200
-      expect(run.pager.holding?).to be_true
-    end
-
-    it "counts the dropped lines from the arrival count" do
-      run = full
-      run.pager.show messages(206)[6..], arrived: 6
-
-      expect(run.pager.unread).to eq 6
-      expect(run.pager.holding?).to be_true
+      expect(run.pager.page).to eq 2
     end
   end
 
@@ -212,15 +139,42 @@ Spectator.describe TermBuf::Widgets::Pager do
         .to eq "A single message far too long to fit on one row here."
     end
 
-    # Six wrapped rows in a four row pane. One message can hold the pane on
+    # Six wrapped rows in a four row pane. One message can park the pane on
     # its own.
-    it "counts its wrapped rows toward a page" do
+    it "parks on its first row" do
       run = paged 20, 4
       run.pager.show ["one two three four five six seven eight nine ten " \
-                      "eleven twelve thirteen fourteen fifteen sixteen"]
+                      "eleven twelve thirteen fourteen fifteen sixteen"], arrived: 1
 
       expect(run.pager.lines.size).to be > 4
-      expect(run.pager.holding?).to be_true
+      expect(run.pager.scroll_y).to eq 0
+    end
+  end
+
+  # A capped log drops its oldest line for each one it gains, so its size
+  # stops changing once it is full.
+  describe "a source that drops its oldest lines" do
+    it "parks on the first of what arrived" do
+      run = seen 200
+      run.pager.show messages(206)[6..], arrived: 6
+
+      expect(run.pager.showing.first).to eq "Message number 201."
+    end
+
+    it "follows a source that shares no lines with the last" do
+      run = seen 200
+      run.pager.show ["Something else entirely."], arrived: 0
+
+      expect(run.pager.back).to eq 0
+    end
+
+    it "parks on the oldest line kept when more arrived than the source keeps" do
+      run = seen 200
+      flood = (1..200).map { |number| "Found thing number #{number}." }
+
+      run.pager.show flood, arrived: 400
+
+      expect(run.pager.showing.first).to eq "Found thing number 1."
     end
   end
 
@@ -242,47 +196,35 @@ Spectator.describe TermBuf::Widgets::Pager do
 
       expect(run.pager.showing).to be_empty
     end
-  end
 
-  describe "#catch_up" do
-    it "marks every line as seen" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
+    # A long log wraps to more rows at a narrower width. The window stays at
+    # the end rather than counting the extra rows as anything new.
+    it "stays at the newest line when the width narrows" do
+      run = paged 60, 4
+      run.pager.show (1..50).map { |number| "Message number #{number} is long enough to wrap." }
+      run.pager.to_newest
 
-      expect(run.pager.unread).to eq 0
-      expect(run.pager.holding?).to be_false
+      run.pager.resize 20, 4
+
+      expect(run.pager.back).to eq 0
+      expect(run.pager.newer).to eq 0
     end
-  end
 
-  describe "#advance" do
-    it "does nothing while the pager is not holding" do
-      run = paged
-      run.pager.show messages(2)
+    it "keeps the line at the top of a scrolled window when the width changes" do
+      run = paged 60, 4
+      run.pager.show (1..50).map { |number| "Message number #{number} is long enough to wrap." }
+      run.pager.scroll_by 0, -20
+      top = run.pager.showing.first
 
-      expect(run.pager.advance).to be_false
+      run.pager.resize 20, 4
+
+      expect(run.pager.showing.first).to eq Widgets::Pager.wrap(top, 20).first
     end
   end
 
   describe "scrolling back" do
-    # A notch of the wheel over the pane.
-    #
-    # The pane is drawn first. A widget the tree has not laid out yet sits
-    # nowhere, and a report lands on nothing.
-    def notch(run : Paged, up : Bool) : Nil
-      run.session.render
-      button = up ? TermBuf::Input::Mouse::Button::WheelUp : TermBuf::Input::Mouse::Button::WheelDown
-
-      run.session.send TermBuf::Events::Mouse.new(
-        button, 1, 1, TermBuf::Modifiers::None,
-        TermBuf::Input::Mouse::Action::Press)
-      run.session.render
-    end
-
     it "shows the lines above the pane" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
+      run = seen
       run.pager.scroll_by 0, -2
 
       expect(run.pager.back).to eq 2
@@ -291,18 +233,14 @@ Spectator.describe TermBuf::Widgets::Pager do
     end
 
     it "stops at the oldest line" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
+      run = seen
       run.pager.scroll_by 0, -40
 
       expect(run.pager.showing.first).to eq "Message number 1."
     end
 
     it "stops at the newest" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
+      run = seen
       run.pager.scroll_by 0, 40
 
       expect(run.pager.back).to eq 0
@@ -310,9 +248,7 @@ Spectator.describe TermBuf::Widgets::Pager do
     end
 
     it "answers a notch of the wheel" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
+      run = seen
 
       notch run, up: true
 
@@ -320,40 +256,76 @@ Spectator.describe TermBuf::Widgets::Pager do
       expect(run.session.row(3)).to eq "Message number 8."
     end
 
-    # What just happened is what a person wants to see. A pane left where it
-    # was scrolled to would go quietly stale.
-    it "goes back to the newest when a line arrives" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
+    it "stays where it is when a line arrives" do
+      run = seen
       run.pager.scroll_by 0, -3
-      run.pager.show messages(10)
+      showing = run.pager.showing
 
-      expect(run.pager.back).to eq 0
-      expect(run.pager.showing.last).to eq "Message number 10."
+      run.pager.show messages(10), arrived: 1
+
+      expect(run.pager.showing).to eq showing
+      expect(run.pager.back).to eq 4
     end
 
-    it "changes nothing while the pager holds" do
-      run = paged
-      run.pager.show messages(9)
+    it "keeps its window when a capped source drops the lines it shows" do
+      run = seen
+      run.pager.scroll_by 0, -40
+      showing = run.pager.showing
 
-      run.pager.scroll_by 0, -2
-      notch run, up: true
+      run.pager.show messages(10)[1..], arrived: 1
 
-      expect(run.pager.back).to eq 0
-      expect(run.pager.showing.first).to eq "Message number 1."
+      expect(run.pager.showing).to eq showing
+      expect(run.pager.newer).to eq 6
     end
 
-    # The marker is asking for a key. A notch down is as good an answer as
-    # one.
-    it "takes a notch down as a page while it holds" do
-      run = paged
-      run.pager.show messages(9)
+    it "lets go of the kept lines once the window moves on" do
+      run = seen
+      run.pager.scroll_by 0, -40
+      run.pager.show messages(10)[1..], arrived: 1
+      run.pager.to_newest
 
-      notch run, up: false
+      run.pager.show messages(11)[2..], arrived: 1
 
-      expect(run.pager.read).to eq 3
-      expect(run.pager.showing.first).to eq "Message number 4."
+      expect(run.pager.lines).to eq messages(11)[2..]
+    end
+
+    it "counts the lines below the window" do
+      run = seen
+      run.pager.scroll_by 0, -3
+
+      expect(run.pager.newer).to eq 3
+      run.pager.to_newest
+      expect(run.pager.newer).to eq 0
+    end
+  end
+
+  describe "the badge" do
+    it "is not drawn unless an owner gives it text" do
+      run = seen
+      run.pager.scroll_by 0, -3
+
+      expect(run.session.row(3)).to eq "Message number 6."
+    end
+
+    it "is drawn over the end of the last row" do
+      run = seen
+      run.pager.scroll_by 0, -3
+      run.pager.badge = ->(count : Int32) { "[#{count}]" }
+
+      expect(run.session.row(3)).to eq "Message number 6.          [3]"
+    end
+
+    it "goes to the newest line when clicked" do
+      run = seen
+      run.pager.scroll_by 0, -3
+      run.pager.badge = ->(count : Int32) { "[#{count}]" }
+      run.session.render
+
+      run.session.send TermBuf::Events::Mouse.new(
+        TermBuf::Input::Mouse::Button::Left, 28, 3, TermBuf::Modifiers::None,
+        TermBuf::Input::Mouse::Action::Press)
+
+      expect(run.pager.back).to eq 0
     end
   end
 
@@ -413,85 +385,9 @@ Spectator.describe TermBuf::Widgets::Pager do
     end
   end
 
-  describe "scrolled back" do
-    # A scrolled pager, with every line read.
-    def scrolled(back : Int32 = 3) : Paged
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
-      run.pager.scroll_by 0, -back
-      run
-    end
-
-    it "keeps its window when asked to as a line arrives" do
-      run = scrolled
-      showing = run.pager.showing
-
-      run.pager.show messages(10), arrived: 1, keep: true
-
-      expect(run.pager.showing).to eq showing
-      expect(run.pager.back).to eq 4
-    end
-
-    it "keeps its window when a capped source drops the lines it shows" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
-      run.pager.scroll_by 0, -40
-      showing = run.pager.showing
-
-      run.pager.show messages(10)[1..], arrived: 1, keep: true
-
-      expect(run.pager.showing).to eq showing
-      expect(run.pager.newer).to eq 6
-    end
-
-    it "lets go of the kept lines once the window moves on" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
-      run.pager.scroll_by 0, -40
-      run.pager.show messages(10)[1..], arrived: 1, keep: true
-      run.pager.to_newest
-
-      run.pager.show messages(11)[2..], arrived: 1
-
-      expect(run.pager.lines).to eq messages(11)[2..]
-    end
-
-    it "counts the lines below the window" do
-      run = scrolled
-
-      expect(run.pager.newer).to eq 3
-      run.pager.to_newest
-      expect(run.pager.newer).to eq 0
-    end
-
-    it "draws a badge over the end of the last row when it has one" do
-      run = scrolled
-      run.pager.badge = ->(count : Int32) { "[#{count}]" }
-
-      expect(run.session.row(3)).to eq "Message number 6.          [3]"
-    end
-
-    it "goes to the newest line when the badge is clicked" do
-      run = scrolled
-      run.pager.badge = ->(count : Int32) { "[#{count}]" }
-      run.session.render
-
-      run.session.send TermBuf::Events::Mouse.new(
-        TermBuf::Input::Mouse::Button::Left, 28, 3, TermBuf::Modifiers::None,
-        TermBuf::Input::Mouse::Action::Press)
-
-      expect(run.pager.back).to eq 0
-    end
-  end
-
   describe "a sampled frame" do
     it "draws the lines it names instead of the window" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
+      run = seen
 
       run.pager.sampled = [0, 2, 4, 8]
 
@@ -500,9 +396,7 @@ Spectator.describe TermBuf::Widgets::Pager do
     end
 
     it "is cleared by a scroll" do
-      run = paged
-      run.pager.show messages(9)
-      run.pager.catch_up
+      run = seen
       run.pager.sampled = [0, 2, 4, 8]
 
       run.pager.scroll_by 0, -1

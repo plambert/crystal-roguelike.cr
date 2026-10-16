@@ -61,10 +61,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The message log sits under the map instead of across the whole window. It has six rows on a
   window more than 40 rows tall.
 * The message log grows when it has the focus, to show more of what was said, up to a quarter of
-  the window. When the focus leaves, it shrinks and scrolls back to the newest line.
-* A message log scrolled back with the wheel stays there while you walk, until a new message
-  arrives. It then scrolls back to the newest line. With the focus on the log, a new message does
-  not move it.
+  the window. When the focus leaves, it shrinks and stays where you left it.
+* The message log no longer stops with `--More--` and waits for a key. When more arrives than
+  fits, it shows the first of the new lines with a "↓ N newer" badge for the rest, and every key
+  works as usual. `Space` pages the log down from any panel, and once you reach the newest line
+  the log follows new messages again. While you are scrolled back, new messages leave it where it
+  is and the badge counts them. `Enter`, `End` and a click on the badge go to the newest line.
 * Your name, level, hit points and experience stay at the top of the character panel. The rest
   of the panel scrolls under them, and every list in it shows in full.
 * The character panel is in sections: Scores, Equipment, Pack, Here, Seen and Look. Each starts

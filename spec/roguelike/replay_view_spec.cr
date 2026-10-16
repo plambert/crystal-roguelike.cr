@@ -328,12 +328,12 @@ Spectator.describe "watching a recorded run" do
       done run
     end
 
-    it "holds no page of messages" do
+    it "follows the newest message" do
       run = watching
       run.press "Space"
 
       expect(run.pager.deferred?).to be_true
-      expect(run.pager.holding?).to be_false
+      expect(run.pager.back).to eq 0
       done run
     end
 

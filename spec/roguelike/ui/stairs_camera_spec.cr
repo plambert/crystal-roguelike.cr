@@ -63,9 +63,6 @@ Spectator.describe "the camera after a staircase" do
   it "puts the character in the middle of the window on the floor above" do
     run = on_the_stairs
     run.press ">"
-    while run.pager.holding?
-      run.press "Enter"
-    end
 
     run.press "<"
 

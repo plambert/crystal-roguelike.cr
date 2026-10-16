@@ -166,7 +166,7 @@ Spectator.describe TermBuf::Widgets::EasedScroll do
     pager = Widgets::Pager.new
     pager.resize 20, 4
     pager.show (1..30).map { |number| "line #{number}" }
-    pager.catch_up
+    pager.to_newest
     session = clocked
     glide = described_class.over pager
     newest = pager.scroll_y

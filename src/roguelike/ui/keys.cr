@@ -176,10 +176,18 @@ module Roguelike::Ui
     end
 
     # The scrolling keys of the log, and `Enter` for it.
+    #
+    # `Space` pages the log down whichever panel has the focus. It takes no
+    # turn. A recorded run keeps `Space` for its transport.
     def self.log_panel(play : Play) : Widgets::Bindings
       own = Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("Enter"), "scroll to the newest message",
           ->(_context : Widgets::Context) { play.enter; nil }
+
+        unless play.viewer
+          map.bind TermBuf::Key.parse("Space"), "page the log down, from any panel",
+            ->(_context : Widgets::Context) { play.page_log; nil }
+        end
       end
 
       scrolling(play, "the log", "the oldest message", "the newest message").merge own

@@ -58,10 +58,10 @@ Spectator.describe "when a run is written to the store" do
 
   describe "carrying a character on" do
     # A run whose log is far longer than the pane, written out and read back.
-    def carried_on(lines : Int32 = 40) : Playing::Run
+    def carried_on(lines : Int32 = 40, tail : String = "") : Playing::Run
       store = Playing.store
       first = playing store
-      lines.times { |written| first.game.log.add "Line number #{written}." }
+      lines.times { |written| first.game.log.add "Line number #{written} #{tail}".rstrip }
       first.play.keep
 
       later = Playing.open nil, 80, 24, store: store
@@ -70,18 +70,27 @@ Spectator.describe "when a run is written to the store" do
     end
 
     # The log comes back whole. The person read it in the session that wrote
-    # it, so none of it waits behind `--More--`.
-    it "does not page through the history that came back with it" do
+    # it, so none of it counts as new.
+    it "shows the newest line of the history that came back with it" do
       run = carried_on
 
-      expect(run.pager.holding?).to be_false
-      expect(run.text).not_to contain "--More--"
+      expect(run.pager.back).to eq 0
+      expect(run.pager.newer).to eq 0
+      expect(run.text).not_to contain "newer"
     end
 
-    it "counts every restored line as read" do
-      run = carried_on
+    # A full log wraps to more rows in a narrower window. The window stays
+    # on the newest line, and nothing comes back as new.
+    it "stays on the newest line of a full log when the window narrows" do
+      run = carried_on Roguelike::MessageLog::LIMIT,
+        "is a line long enough to wrap once the window gets narrower"
+      run.resize 160, 40
+      run.resize 80, 24
 
-      expect(run.pager.unread).to eq 0
+      expect(run.game.log.lines.size).to eq Roguelike::MessageLog::LIMIT
+      expect(run.pager.back).to eq 0
+      expect(run.pager.newer).to eq 0
+      expect(run.pager.showing.last).to contain "Welcome back, Sparky."
     end
 
     it "shows the newest lines rather than the oldest" do
@@ -103,7 +112,7 @@ Spectator.describe "when a run is written to the store" do
     it "holds nothing when the log is short" do
       run = carried_on 1
 
-      expect(run.pager.holding?).to be_false
+      expect(run.pager.back).to eq 0
     end
   end
 
