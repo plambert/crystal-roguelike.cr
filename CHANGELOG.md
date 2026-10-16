@@ -45,6 +45,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   page, and a list of one class has none. Each list opens on the page you left it on.
 * The inventory always shows every class, and opens even when you carry nothing. A class you
   carry none of shows "nothing".
+* A list with class pages opens near the top of the window and stays the same size, so its title
+  and class names do not move as you change pages.
 * `c` on a shut door asks "Spike the door?" when you carry a spike, and drives one in on yes.
   `c` still closes open doors. The apply menu still offers spikes as well.
 * Driving a spike takes half a turn.
