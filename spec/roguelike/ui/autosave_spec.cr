@@ -45,9 +45,9 @@ Spectator.describe "the save written every few hundred turns" do
     made
   end
 
-  # The one file in *where*.
+  # The one replay log in *where*. The events file beside it is left out.
   def only(where : Path) : Path
-    found = Dir.children where
+    found = Dir.children(where).select(&.ends_with? ".jsonl")
     raise "#{where} holds #{found.size} files" unless found.size == 1
 
     where / found.first
@@ -173,7 +173,7 @@ Spectator.describe "the save written every few hundred turns" do
       Log.ended nil
 
       expect(outbox.parcels.map(&.seq)).to eq [2]
-      expect(outbox.parcels.first.pieces.map(&.kind)).to eq ["replay", "meta"]
+      expect(outbox.parcels.first.pieces.map(&.kind)).to eq ["replay", "events", "meta"]
     end
 
     expect(Recording.read(only logs).footer.try &.outcome).to eq "truncated"

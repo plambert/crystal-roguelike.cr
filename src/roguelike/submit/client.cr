@@ -47,11 +47,31 @@ module Roguelike
       end
 
       # Sends every piece of *parcel*, the log first and the meta last.
+      #
+      # A server that takes no events files answers 400 when asked for a
+      # form for one. That piece is left out and the rest still go.
       def send(parcel : Parcel) : Nil
         parcel.pieces.each do |piece|
           raise Error.new "#{piece.kind} is #{piece.size} bytes, over the #{LIMIT} byte limit" if piece.size > LIMIT
 
-          upload ticket(parcel, piece), piece
+          begin
+            form = ticket parcel, piece
+          rescue error : Refused
+            raise error unless piece.kind == Parcel::EVENTS && error.status == 400
+
+            next
+          end
+          upload form, piece
+        end
+      end
+
+      # A request for a form that the server turned down.
+      class Refused < Error
+        # The status the server answered with.
+        getter status : Int32
+
+        def initialize(@status : Int32, message : String)
+          super message
         end
       end
 
@@ -63,7 +83,7 @@ module Roguelike
         response = client(@url, ANSWER) do |http|
           http.post @url.request_target, HTTP::Headers{"Content-Type" => "application/json"}, request.to_json
         end
-        raise Error.new "the upload server answered #{response.status_code} #{reason response}" unless response.status.success?
+        raise Refused.new response.status_code, "the upload server answered #{response.status_code} #{reason response}" unless response.status.success?
 
         Ticket.from_json response.body
       rescue error : IO::Error | OpenSSL::Error | JSON::Error | URI::Error

@@ -37,6 +37,9 @@ module Roguelike
     flag replay_log : String?, "--replay-log",
       {{ flag?(:test_build) ? "Write every run to this file, not to the test_logs state directory. %s is the character, %d a rising number" : "Write every run to this file. %s is the character, %d a rising number" }}
 
+    flag events : Bool = true, "--events",
+      "Write each recorded run's events beside its replay log. --no-events leaves them out"
+
     flag replay_every : Int32 = Replay::Log::EVERY, "--replay-every",
       "Turns between two checkpoints in a replay log", range: 1..1_000_000
 
@@ -139,6 +142,7 @@ module Roguelike
       Replay::Log.pattern = Replay::Log.pattern_for replay_log
       Replay::Log.every = replay_every
       Replay::Log.generate = generate
+      Events::Writer.enabled = events
 
       Ui::Motion.on = motion
       session = Session.open seed, flicker: flicker, generate: generate,

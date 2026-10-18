@@ -5030,6 +5030,80 @@ default.
 * **The address is a constant.** `Submit::ENDPOINT` is empty until the upload stack exists. An empty
   address sends nothing and says nothing, and parcels wait.
 
+## The events file
+
+Every recorded run writes the events it emits to a file beside its replay log, one JSON line each,
+gzipped. The file is `<log stem>.events.jsonl.gz`, so `run.jsonl` has `run.events.jsonl.gz`.
+`Events::Writer` writes it and `Replay::Log` opens, pauses and closes it with itself.
+`--no-events` turns it off. A parcel carries a copy as `events.jsonl.gz`, and its meta says
+`"events":true`.
+
+### Lines
+
+| Line | What it holds |
+| --- | --- |
+| `header` | `format` (1 today), `game_version`, and `log`, the id `Submit.log_id` gives the replay log |
+| An event | `turn`, `floor` (the depth), `kind`, the event's own fields, its facts, and `text` last |
+| `stats` | The character's numbers, after any event that moved one |
+| `pause` | `pause` and `turn`, written with each pause in the replay log |
+| `resume` | `pause`, `turn` and `game_version`, when a run is carried on from a save |
+| `footer` | `turn` and `outcome`, when the replay log gets a footer |
+
+Header, pause, resume and footer lines have a `type`. Event and stats lines have a `kind` and no
+`type`. An event line parses as its `Event` class once `floor_id` is read back as `floor`.
+`Event::Climbed` names the floor's id `floor`, and the line already uses that name for the depth.
+
+### Facts
+
+The game's `Event`s hold only what the character knows, because a bot reads `Game#events`. Each
+event also carries `Event#facts`, which its JSON leaves out and the writer merges into the line. A
+fact never replaces a field the event has.
+
+| Kind | Facts added |
+| --- | --- |
+| `attack` | `attacker_species`, `target_species`, `roll`, `weapon`, `launcher`, `left`, and `attacker` for a shooter the character could not see |
+| `slain` | `attacker` when a creature killed it, `attacker_species`, `target_species`, `weapon`, `launcher` |
+| `over` | The same, for a death |
+| `climbed` | `level`, and `hp` as current and maximum |
+| `picked_up`, `used`, `identified` | `item_facts` |
+
+* A species is the creature's kind as its JSON spells it, such as `goblin_warrior`. The character
+  is `player`. The events' own `species` and `killer_species` fields stay the labels they were.
+* `roll` is `{"dice":"1d6+1","total":4}`. A miss rolls no damage and has the dice alone.
+* `left` is the target's hit points after the blow, the character's or a creature's.
+* An item is `kind`, `count`, `enchantment`, `blessing` and `condition`, plus `known` with one flag
+  each for `kind`, `enchantment` and `blessing`. The kind flag comes from the lore and the blessing
+  flag from `Item#blessing_known?`. Enchantment is always known today. A creature's item has no
+  `known`, since nothing it holds is the character's to learn.
+
+### Stats
+
+A `stats` line holds `level`, `ac`, `hp_max`, `to_hit`, `damage` as dice, `damage_bonus`,
+`ranged_to_hit` and `ranged_damage` when a ranged weapon is readied with ammunition it shoots,
+`pace` as the speed, and `attributes`. Current hit points and gold are left out. The attack and
+heal lines give the hit points, and the gold events give the gold.
+
+The writer checks the numbers after every event and again once the action is written. A line is
+written when they differ from the last line, and always after `climbed`, `level_up` and `over`.
+`cause` is the kind of the event that moved them, the action's `t` when no event did, and `start`
+or `resume` for the line that opens a session.
+
+### When lines are written
+
+* **An action's lines wait for the replay log.** They are written when the log writes the action. A
+  refused action is not in the log, and its lines are dropped. So is anything emitted outside
+  `Game#perform`. A replay of the log rebuilds the same lines.
+* **A pause ends a gzip member.** The file reads whole after every save. A process killed between
+  saves loses the lines since the last one.
+* **A resume appends.** A run carried on from a save goes on in the file beside its log, after a
+  `resume` line naming the pause. A file whose last member was cut off is first written again from
+  the lines that read whole. Lines between that pause line and the resume line are a branch the
+  save went back past, and a reader drops them. A log that starts afresh starts a new events file.
+* **The client skips an events piece a server refuses.** A server that answers 400 to the request
+  for an events form does not take them yet. The rest of the parcel still goes.
+
+`spec/fixtures/events/run.events.jsonl` is 25 lines of one headless run, unzipped.
+
 ## The update check
 
 `Update.notice` asks GitHub for the latest release and answers one line naming it and its address
