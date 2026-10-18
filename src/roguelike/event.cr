@@ -70,6 +70,7 @@ module Roguelike
       "restacked"      => Restacked,
       "spilled"        => Spilled,
       "split"          => Split,
+      "stats"          => Stats,
       "status_end"     => StatusEnd,
       "status_start"   => StatusStart,
       "stopped"        => Stopped,
@@ -85,6 +86,17 @@ module Roguelike
     # `Game#say` fills it in. It is for a person reading a log. A client reads
     # the fields, and the text is optional.
     property text : String? = nil
+
+    # What happened, as the discriminator names it.
+    abstract def kind : String
+
+    # What the game knows about this event beyond what the character does.
+    #
+    # It is not part of the event's own JSON, so a bot reading `Game#events`
+    # sees only what the character knows. `Events::Writer` writes it into the
+    # events file beside the event's fields.
+    @[JSON::Field(ignore: true)]
+    property facts : Events::Facts? = nil
 
     # One thing, as the character would name it.
     record Thing, item : Int32, name : String do
@@ -903,6 +915,63 @@ module Roguelike
 
       def initialize(@halt : Halt, @creature : Int32? = nil,
                      @things : Array(Thing)? = nil)
+      end
+    end
+
+    # The character's numbers, as the game works them out.
+    #
+    # The game does not put this in `Game#events`. `Events::Writer` writes one
+    # to the events file whenever a number moves, and at a floor arrival, a
+    # level up and the end of the run. *cause* is the kind of the event that
+    # moved a number, or the action's `t` when no event did. Current hit
+    # points are left out. Attack and heal lines carry those.
+    #
+    # *ranged_to_hit* and *ranged_damage* are `nil` unless a ranged weapon is
+    # readied with ammunition it shoots.
+    class Stats < Event
+      getter kind : String = "stats"
+
+      getter level : Int32
+      getter ac : Int32
+      getter hp_max : Int32
+      getter to_hit : Int32
+      getter damage : String
+      getter damage_bonus : Int32
+      getter ranged_to_hit : Int32?
+      getter ranged_damage : String?
+      getter pace : Int32
+      getter attributes : Attributes
+      property cause : String? = nil
+
+      def initialize(@level : Int32, @ac : Int32, @hp_max : Int32,
+                     @to_hit : Int32, @damage : String, @damage_bonus : Int32,
+                     @ranged_to_hit : Int32?, @ranged_damage : String?,
+                     @pace : Int32, @attributes : Attributes)
+      end
+
+      # The numbers *player* has now.
+      def self.of(player : Player) : Stats
+        melee = player.damage
+        weapon = player.ranged_weapon
+        ammunition = player.quivered
+        if weapon && ammunition && ammunition.kind.ranged_weapon == weapon.kind
+          ranged = {player.to_shoot(weapon, ammunition),
+                    player.shot_damage(weapon, ammunition).to_s}
+        end
+
+        new player.level, player.armor_class, player.max_hit_points,
+          player.to_hit, melee.to_s, melee.bonus, ranged.try(&.[0]),
+          ranged.try(&.[1]), player.pace.speed, player.attributes
+      end
+
+      # Whether *other* holds the same numbers, whatever caused either.
+      def same?(other : Stats) : Bool
+        numbers == other.numbers
+      end
+
+      protected def numbers
+        {@level, @ac, @hp_max, @to_hit, @damage, @damage_bonus,
+         @ranged_to_hit, @ranged_damage, @pace, @attributes}
       end
     end
 
