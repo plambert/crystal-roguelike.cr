@@ -19,6 +19,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Replay logs record an explore and a travel as `explore` and `travel` actions, one per step, and
   `replay verify` plays them back. The bot protocol takes both, and an observation names the
   chamber the character stands in and whether all of it has been seen.
+* This branch rebuilds the events file of a 0.2.3 replay log with `replay events`. A recorded run
+  also writes its events beside its replay log, and `--no-events` turns that off.
 
 ### Changed
 
