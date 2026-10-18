@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* This branch rebuilds the events file of a 0.2.4 replay log with `replay events`. A recorded run
+  also writes its events beside its replay log, and `--no-events` turns that off.
+
 ## [0.2.4] - 2026-10-04
 
 Uploads and the update check work on a Mac without Homebrew, `X` explores, `_` travels, and the
