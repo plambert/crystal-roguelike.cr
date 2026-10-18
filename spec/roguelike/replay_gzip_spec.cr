@@ -11,7 +11,7 @@ Spectator.describe "a gzipped replay log" do
     Dir.mkdir_p directory
     Recording.played directory.to_s, turns: 6
 
-    plain = directory / Dir.children(directory).first
+    plain = directory / Dir.children(directory).find!(&.ends_with? ".jsonl")
     packed = Path["#{plain}.gz"]
     File.open packed, "w" do |output|
       Compress::Gzip::Writer.open(output) { |gzip| File.open(plain) { |input| IO.copy input, gzip } }

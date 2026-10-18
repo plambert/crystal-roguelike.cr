@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* A recorded run writes every event it emits to a gzipped JSON Lines file beside its replay log,
+  with the dice of each blow, the facts of each item and the character's numbers whenever they
+  change. `--no-events` turns it off.
+
 ## [0.5.0] - 2026-10-16
 
 The screen has a new layout, with the character panel down the left in sections that close and
