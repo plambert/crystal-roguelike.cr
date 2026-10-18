@@ -34,6 +34,9 @@ module Roguelike
     flag replay_log : String?, "--replay-log",
       {{ flag?(:test_build) ? "Write every run to this file, not to the test_logs state directory. %s is the character, %d a rising number" : "Write every run to this file. %s is the character, %d a rising number" }}
 
+    flag events : Bool = true, "--events",
+      "Write each recorded run's events beside its replay log. --no-events leaves them out"
+
     flag replay_every : Int32 = Replay::Log::EVERY, "--replay-every",
       "Turns between two checkpoints in a replay log", range: 1..1_000_000
 
@@ -114,6 +117,7 @@ module Roguelike
       Replay::Log.pattern = Replay::Log.pattern_for replay_log
       Replay::Log.every = replay_every
       Replay::Log.generate = generate
+      Events::Writer.enabled = events
 
       session = Session.open seed, flicker: flicker, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
@@ -224,7 +228,7 @@ module Roguelike
     # `crystal-roguelike replay`, which works on recorded runs.
     #
     # It does nothing on its own. `replay verify`, `replay view`,
-    # `replay upgrade` and `replay export` are what sit under it.
+    # `replay upgrade`, `replay export` and `replay events` are what sit under it.
     Shell::AutoComplete.command Replaying,
       name: "replay",
       description: "Work on a run recorded with --replay-log" do
@@ -351,6 +355,37 @@ module Roguelike
       end
     end
 
+    # `crystal-roguelike replay events`, which writes the events file a
+    # recorded run would have written. See `Replay::Backfill`.
+    #
+    # It exits 2 when the rebuilt run differs from the log, and 3 when the
+    # log goes on in another version. Either way standard error says the turn.
+    Shell::AutoComplete.command Eventing,
+      name: "events",
+      description: "Write the events file for a recorded run" do
+      flag target : Path? = nil, "--out",
+        "Where to write. Beside the replay file by default"
+
+      flag from_save : Path? = nil, "--from-save",
+        "Carry the run on from this save, appending to the events file"
+
+      flag from_turn : Int32? = nil, "--from-turn",
+        "With --from-save, start at the resume on this turn"
+
+      positional file : Path, "The replay file to read"
+
+      def run
+        if from_save.nil? != from_turn.nil?
+          STDERR.puts "--from-save and --from-turn go together"
+          exit 1
+        end
+
+        report = Replay::Backfill.run file, target, from_save, from_turn
+        report.message.try { |message| STDERR.puts message }
+        exit report.status unless report.ok?
+      end
+    end
+
     # `crystal-roguelike replay upgrade`, which writes a recorded run out
     # again under this build's fingerprints.
     #
@@ -394,6 +429,7 @@ module Roguelike
     subcommand Watching
     subcommand Upgrading
     subcommand Exporting
+    subcommand Eventing
   end
 
   # The flags that belong to whoever works on the game rather than to whoever

@@ -8,6 +8,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* This branch rebuilds the events file of a 0.4.1 replay log with `replay events`. A recorded run
+  also writes its events beside its replay log, and `--no-events` turns that off.
+
+### Fixed
+
+* The upload client builds with Crystal 1.22.
+
 ## [0.4.1] - 2026-10-12
 
 Repeated messages show a count, and the pack restacking no longer stops `X`, `_` or `v`, which
