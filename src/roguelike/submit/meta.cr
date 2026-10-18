@@ -28,15 +28,19 @@ module Roguelike
       # The identity of the log for the server. See `Submit.log_id`.
       getter log : String
 
+      # Who is playing. Left out when this process has no tester.
+      @[JSON::Field(emit_null: false)]
+      getter tester : Tester?
+
       def initialize(@version : String, @platform : String, @outcome : String,
                      @turn : Int32, @seed : UInt64, @character : String,
-                     @log : String)
+                     @log : String, @tester : Tester? = nil)
       end
 
       # What *game* is described as now, for the log called *log*.
       def self.of(game : Game, log : String) : Meta
         new VERSION, PLATFORM, game.outcome.to_s.downcase, game.turn,
-          game.world.seed, game.player.name, log
+          game.world.seed, game.player.name, log, Tester.current
       end
     end
   end

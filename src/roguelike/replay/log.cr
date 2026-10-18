@@ -378,7 +378,8 @@ module Roguelike
           state: state,
           run: rebuilt?(state) ? nil : @game.to_json,
           every: @every,
-          continued: carried
+          continued: carried,
+          tester: Tester.current
       end
 
       # Whether the seed, the name and the log rebuild the run as it stands.

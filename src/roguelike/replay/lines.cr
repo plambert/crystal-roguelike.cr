@@ -98,13 +98,18 @@ module Roguelike
       # it began has a `resume` line instead.
       getter continued : Carried?
 
+      # Who was playing. Left out when the process had no tester, which is
+      # every headless, bot and spec run.
+      @[JSON::Field(emit_null: false)]
+      getter tester : Tester?
+
       def initialize(@game_version : String, @crystal_version : String,
                      @seed : UInt64, @generate : Bool,
                      @streams : Hash(String, Int32), @player : String,
                      @source : String, @started_at : Time, @turn : Int32,
                      @log : Array(String), @state : String,
                      @run : String? = nil, @every : Int32? = nil,
-                     @continued : Carried? = nil)
+                     @continued : Carried? = nil, @tester : Tester? = nil)
       end
     end
 
