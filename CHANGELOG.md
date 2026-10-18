@@ -18,6 +18,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A recorded run writes every event it emits to a gzipped JSON Lines file beside its replay log,
   with the dice of each blow, the facts of each item and the character's numbers whenever they
   change. A sent run carries the file, and `--no-events` turns it off.
+* `replay events LOG` writes the events file for a replay log that was recorded without one.
 
 ## [0.5.0] - 2026-10-16
 

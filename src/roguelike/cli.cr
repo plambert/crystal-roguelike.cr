@@ -296,7 +296,8 @@ module Roguelike
     # `crystal-roguelike replay`, which works on recorded runs.
     #
     # It does nothing on its own. `replay verify`, `replay view`,
-    # `replay upgrade`, `replay export` and `replay dump` are what sit under it.
+    # `replay upgrade`, `replay export`, `replay dump` and `replay events` are
+    # what sit under it.
     Shell::AutoComplete.command Replaying,
       name: "replay",
       description: "Work on a run recorded with --replay-log" do
@@ -469,6 +470,37 @@ module Roguelike
       end
     end
 
+    # `crystal-roguelike replay events`, which writes the events file a
+    # recorded run would have written. See `Replay::Backfill`.
+    #
+    # It exits 2 when the rebuilt run differs from the log, and 3 when the
+    # log goes on in another version. Either way standard error says the turn.
+    Shell::AutoComplete.command Eventing,
+      name: "events",
+      description: "Write the events file for a recorded run" do
+      flag target : Path? = nil, "--out",
+        "Where to write. Beside the replay file by default"
+
+      flag from_save : Path? = nil, "--from-save",
+        "Carry the run on from this save, appending to the events file"
+
+      flag from_turn : Int32? = nil, "--from-turn",
+        "With --from-save, start at the resume on this turn"
+
+      positional file : Path, "The replay file to read"
+
+      def run
+        if from_save.nil? != from_turn.nil?
+          STDERR.puts "--from-save and --from-turn go together"
+          exit 1
+        end
+
+        report = Replay::Backfill.run file, target, from_save, from_turn
+        report.message.try { |message| STDERR.puts message }
+        exit report.status unless report.ok?
+      end
+    end
+
     # `crystal-roguelike replay upgrade`, which writes a recorded run out
     # again under this build's fingerprints.
     #
@@ -513,6 +545,7 @@ module Roguelike
     subcommand Upgrading
     subcommand Exporting
     subcommand Dumping
+    subcommand Eventing
   end
 
   # The flags that belong to whoever works on the game rather than to whoever

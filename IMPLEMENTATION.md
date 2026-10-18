@@ -5104,6 +5104,23 @@ or `resume` for the line that opens a session.
 
 `spec/fixtures/events/run.events.jsonl` is 25 lines of one headless run, unzipped.
 
+### Rebuilding the file
+
+`replay events LOG` writes the events file a replay log would have had. `Replay::Backfill` rebuilds
+the run the way `Replay::Verifier` does and gives it a `Backfill::Sink` as its log. The sink is a
+`Replay::Log` that writes no replay file, so `Game#perform` hands `Events::Writer` each event and
+each action at the moments the live game did. A rebuilt file unpacks to the same lines as the live
+one. `--out PATH` names the file.
+
+* **Pauses, resumes and footers.** Each one in the log writes the same line. A footer followed by
+  a resume closes the file, and the resume opens it again in append mode.
+* **A run that spans versions.** The command stops at the header or the first resume whose
+  version, without its `+g` build, is not this binary's. It prints the turn and that version to
+  standard error and exits 3. That version's binary goes on with `--from-save FILE --from-turn N`.
+  It loads the save, skips to the resume on turn N, and appends to the file without a header.
+* **A run that differs.** A checkpoint, pause or resume that does not match, or a refused action,
+  stops the command with the turn on standard error and exit status 2.
+
 ## The update check
 
 `Update.notice` asks GitHub for the latest release and answers one line naming it and its address
