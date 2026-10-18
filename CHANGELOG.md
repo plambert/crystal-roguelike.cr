@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-18
+
+The game asks for a tester name that labels uploaded runs, and a recorded run writes a gzipped
+events file beside its replay log, with the dice of every blow, the facts of every item and each
+change to the character's numbers.
+
 ### Added
 
 * The first time you start the game it asks for a tester name, and an empty answer is
@@ -894,7 +900,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.1...v0.4.2

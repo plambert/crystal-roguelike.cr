@@ -3,6 +3,16 @@
 What changed in each release, for the people playing it. The full record, including build and
 packaging changes, is in [CHANGELOG.md](CHANGELOG.md).
 
+## [0.6.0] - 2026-10-18
+
+The game asks for your tester name, and every run you send carries a full record of what
+happened in it, blow by blow.
+
+* The first time you start the game it asks for a tester name; an empty answer stays anonymous.
+* `--tester-name` and `--tester-id` let you appear as one tester on two machines.
+* A recorded run keeps every blow, item and change to your character, and sends it with the run.
+* `--no-events` turns that record off, and `replay events` builds it for an older recording.
+
 ## [0.5.0] - 2026-10-16
 
 The screen is laid out anew, with the character panel down the left, the log under the map, and
