@@ -60,12 +60,21 @@ module Roguelike
       # takes. `script/golden.cr` passes false. It reads the actions out of a
       # file whose fingerprints it is about to write afresh, and those are
       # the values being replaced.
+      #
+      # *stop* is asked about each line in order. The first line it says yes
+      # to is the last line read, and the lines after it are left unread.
       def self.read(path : Path | String,
-                    fingerprints : Bool = true) : Reading
+                    fingerprints : Bool = true,
+                    stop : Proc(String, Bool)? = nil) : Reading
         where = Path.new path
         found = lines where
         found.pop if found.last?.try &.blank?
         raise Error.new "the file is empty" if found.empty?
+
+        if stop
+          last = found.index { |line| stop.call line }
+          found = found[0..last] if last
+        end
 
         new where, *sorted(found, fingerprints)
       end
