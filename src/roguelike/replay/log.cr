@@ -200,6 +200,9 @@ module Roguelike
 
       @file : File
 
+      # The events file beside this one, or `nil` when events are off.
+      getter events : Events::Writer? = nil
+
       # A new file for *game*, named from *pattern*.
       #
       # *carried* is the save the run was loaded from, when the log that save
@@ -213,7 +216,9 @@ module Roguelike
         @due = @game.turn + @every
 
         @game.look
-        write header(carried)
+        made = header(carried)
+        write made
+        @events = Events::Writer.started @game, @path, Submit.log_id(made)
         @@open << self
       end
 
@@ -238,6 +243,8 @@ module Roguelike
         @game.look
         write Resume.new pause, @game.turn, @game.fingerprint,
           Log.resumed_at || Time.utc, "#{VERSION}+g#{BUILD}"
+        @events = Events::Writer.resumed @game, @path,
+          Submit.log_id(read.header), pause
         @@open << self
       end
 
@@ -265,6 +272,7 @@ module Roguelike
       # holds what they know as well as where they are.
       def act(action : Action) : Nil
         write Act.new @game.turn, action
+        @events.try &.commit(action)
         @acted = true
         @game.look
 
@@ -286,6 +294,7 @@ module Roguelike
         @pauses += 1
         write Pause.new @pauses, @game.turn, @game.fingerprint,
           Log.paused_at || Time.utc
+        @events.try &.pause(@pauses)
         @acted = false
         Mark.new @path.to_s, @pauses
       end
@@ -323,6 +332,7 @@ module Roguelike
       private def finish(footer : Footer?) : Nil
         write footer if footer
         @file.close
+        @events.try &.close(!footer.nil?)
         @open = false
         @@open.delete self
       end
