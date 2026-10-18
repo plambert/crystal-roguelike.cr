@@ -45,9 +45,9 @@ Spectator.describe "the save written every few hundred turns" do
     made
   end
 
-  # The one file in *where*.
+  # The one replay log in *where*. The events file beside it is left out.
   def only(where : Path) : Path
-    found = Dir.children where
+    found = Dir.children(where).select(&.ends_with? ".jsonl")
     raise "#{where} holds #{found.size} files" unless found.size == 1
 
     where / found.first

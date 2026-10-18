@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* This branch rebuilds the events file of a 0.4.3 replay log with `replay events`. A recorded run
+  also writes its events beside its replay log, and `--no-events` turns that off.
+
 ## [0.4.3] - 2026-10-15
 
 Wooden doors that are spiked shut can be broken down, the inventory shows one class at a time and

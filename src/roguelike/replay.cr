@@ -10,6 +10,7 @@ require "./replay/log"
 require "./replay/upgrade"
 require "./replay/dump"
 require "./replay/export"
+require "./replay/events"
 
 module Roguelike
   # A run written down, and a run read back.
