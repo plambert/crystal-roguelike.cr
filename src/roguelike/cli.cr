@@ -78,6 +78,14 @@ module Roguelike
       "Send replay logs to this URL instead of the built-in one",
       hidden: true
 
+    # The name and uuid that label this tester's uploaded runs. Either one
+    # writes the tester file and skips the first-launch question.
+    flag tester_id : String?, "--tester-id",
+      "Use this uuid as your tester id, keeping your tester name"
+
+    flag tester_name : String?, "--tester-name",
+      "Use this name to label your uploaded runs"
+
     # A development tool. It is off unless this is passed, so a normal run has
     # neither the box nor the key that opens it.
     #
@@ -123,6 +131,7 @@ module Roguelike
       return matched if matchup
       return played if trial > 0
 
+      tester_root = arranged_tester
       news = arrive
       newer = announced
       sending = Submit.arrange autosubmit, flag_given?(:autosubmit)
@@ -135,7 +144,7 @@ module Roguelike
       session = Session.open seed, flicker: flicker, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
         character: character, news: news,
-        size_cap: SizeCap.new(max_columns, max_rows)
+        size_cap: SizeCap.new(max_columns, max_rows), tester_root: tester_root
 
       exit 1 unless session
 
@@ -157,6 +166,19 @@ module Roguelike
       puts newer if newer
 
       Submit.flush(submit_url || Submit::ENDPOINT) if sending
+    end
+
+    # Settles who the tester is from the file and the flags, before anything
+    # is drawn. Answers the state directory when the game has to ask, and
+    # `nil` when the tester is known.
+    private def arranged_tester : Path?
+      root = Submit.root
+      found = Tester.arrange root, tester_id, tester_name
+      Tester.current = found
+      found ? nil : root
+    rescue error : ArgumentError
+      STDERR.puts "--tester-id: #{error.message}"
+      exit 1
     end
 
     # Who was saved and how they stood, for the line after the seed. `nil`

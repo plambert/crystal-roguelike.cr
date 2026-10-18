@@ -627,6 +627,23 @@ module Roguelike::Ui
       answered_the_name name
     end
 
+    # Asks for a tester name, keeps it under *root*, and then runs *after*.
+    #
+    # An empty line and `Escape` both answer `anonymous`. The game gives
+    # every answer a uuid and sets `Tester.current` to the result.
+    def ask_the_tester(root : Path, after : Proc(Nil)) : Nil
+      @entry.on_answer = ->(answer : String?) do
+        tester = Tester.named answer
+        tester.write root
+        Tester.current = tester
+        after.call
+        nil
+      end
+
+      @entry.ask application, Placards::TESTER_QUESTION,
+        placeholder: Tester::ANONYMOUS
+    end
+
     # Every character in the store, or nothing when there is no store.
     private def saved : Array(Save::Held)
       @store.try(&.characters) || [] of Save::Held

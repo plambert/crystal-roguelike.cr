@@ -26,6 +26,10 @@ module Roguelike
     # *size_cap* limits how much of the terminal the game draws in. Every run
     # shares it, so a cap the debug console set carries into the next run.
     #
+    # *tester_root* is the state directory to write the tester file in. The
+    # first run asks for a tester name before the title screen when it is
+    # given. A later run does not ask again.
+    #
     # This method reads the size before it enters the alternate screen. The
     # message then stays where the person can read it. Handing the screen back
     # would wipe it.
@@ -37,7 +41,8 @@ module Roguelike
                   generate : Bool = true, console : Bool = false,
                   store : Save::Store? = nil, character : String? = nil,
                   news : Array(WhatsNew::Section) = [] of WhatsNew::Section,
-                  size_cap : SizeCap = SizeCap.new) : Session?
+                  size_cap : SizeCap = SizeCap.new,
+                  tester_root : Path? = nil) : Session?
       size = TermBuf::SizeDetector.detect
       columns, rows = size_cap.apply size.columns, size.rows
 
@@ -63,7 +68,8 @@ module Roguelike
 
         loop do
           played = new terminal, Rng.for(seed), flicker, generate, console,
-            store, character, previous, news: news, size_cap: size_cap
+            store, character, previous, news: news, size_cap: size_cap,
+            tester_root: tester_root
           ran = played
           played.run
 
@@ -72,6 +78,7 @@ module Roguelike
           # run that just ended was under, because that is what somebody who
           # answered "play again" usually wants.
           character = nil
+          tester_root = nil
           previous = played.play.game.player.name.presence
 
           break unless played.again?
@@ -175,7 +182,8 @@ module Roguelike
                    character : String? = nil, previous : String? = nil,
                    viewer : Replay::Viewer? = nil,
                    news : Array(WhatsNew::Section) = [] of WhatsNew::Section,
-                   @size_cap : SizeCap = SizeCap.new)
+                   @size_cap : SizeCap = SizeCap.new,
+                   tester_root : Path? = nil)
       bounds = drawn_in @terminal.size
 
       @play = Ui::Play.new Session.starting(viewer, @rng, generate), console
@@ -228,7 +236,16 @@ module Roguelike
 
       # `--character` says who is playing, so the title screen and the name
       # question are both answered already.
-      character ? @play.play_as(character) : @play.show_title
+      begin_play = -> do
+        character ? @play.play_as(character) : @play.show_title
+        nil
+      end
+
+      if tester_root
+        @play.ask_the_tester tester_root, begin_play
+      else
+        begin_play.call
+      end
     end
 
     # Schedules the next tick of the flames, and the one after it.

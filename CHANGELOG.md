@@ -8,6 +8,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* The first time you start the game it asks for a tester name, and an empty answer is
+  "anonymous". The name labels your uploaded runs on the developer's dashboard. The game asks
+  once and keeps the answer, with a random id, in `tester.json` in its state directory.
+* `--tester-name TEXT` sets the tester name, and `--tester-id UUID` sets the tester id, so one
+  tester on two machines can be one row on the dashboard. Either flag skips the question.
+
 ## [0.5.0] - 2026-10-16
 
 The screen has a new layout, with the character panel down the left in sections that close and

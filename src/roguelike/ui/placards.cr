@@ -46,6 +46,11 @@ module Roguelike::Ui
     # makes a file name.
     NAME_UNUSABLE = "That name has no letters or digits in it. Try another."
 
+    # What the tester question asks, on the first launch only.
+    #
+    # It says why the name is wanted. An empty line is anonymous.
+    TESTER_QUESTION = "Your name labels your uploaded runs on the developer's dashboard."
+
     # What it asks again when the file that name would be written to belongs
     # to somebody else.
     #
