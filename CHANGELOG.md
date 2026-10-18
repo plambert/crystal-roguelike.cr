@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* This branch rebuilds the events file of a 0.2.3 replay log with `replay events`. A recorded run
+  also writes its events beside its replay log, and `--no-events` turns that off.
+
 ## [0.2.3] - 2026-10-04
 
 The game needs 256 colours, the help screen groups every key, routes walk straight, aiming offers

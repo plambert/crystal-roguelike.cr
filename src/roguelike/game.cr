@@ -322,6 +322,7 @@ module Roguelike
     # work the third out from the outcome.
     private def record(event : Event) : Nil
       @events << event
+      @recorder.try &.events.try &.note(event)
     end
 
     # Whether the run is over.
@@ -1322,21 +1323,25 @@ module Roguelike
       flanking = Combat.flanking(@player.at, creature.at) do |spot|
         against? spot, creature
       end
+      dice = @player.damage
       blow = Combat.swing exchange, @player.to_hit + flanking,
-        creature.armor_class, @player.damage
+        creature.armor_class, dice
 
       weapon = swung_with
+      held = @player.wielded
       behind = flanking > 0 ? " from behind" : ""
       if blow.hit?
         creature.hurt blow.damage
         say "You hit the #{creature.label}#{behind} for #{blow.damage}.",
-          Event::Attack.new(true, target: creature.id, damage: blow.damage,
-            with: weapon, flanking: flanking > 0)
-        kill creature unless creature.alive?
+          with_facts(Event::Attack.new(true, target: creature.id,
+            damage: blow.damage, with: weapon, flanking: flanking > 0),
+            fight_facts(nil, creature, held, dice: dice, blow: blow))
+        kill creature, held unless creature.alive?
       else
         say "You miss the #{creature.label}.",
-          Event::Attack.new(false, target: creature.id, with: weapon,
-            flanking: flanking > 0)
+          with_facts(Event::Attack.new(false, target: creature.id,
+            with: weapon, flanking: flanking > 0),
+            fight_facts(nil, creature, held, dice: dice, blow: blow))
       end
 
       jar
@@ -1359,7 +1364,11 @@ module Roguelike
     # which throws the index away anyway. The console reaches it outside
     # `#spend`, because a console command takes no turn, and the index would
     # otherwise go on answering with a creature that is off the floor.
-    def kill(creature : Monster) : Nil
+    #
+    # *weapon* and *launcher* are what the character killed it with, for the
+    # events file.
+    def kill(creature : Monster, weapon : Item? = nil,
+             launcher : Item? = nil) : Nil
       clear_bearers
       floor.remove creature.x, creature.y
       creature.drop_everything.each do |item|
@@ -1367,7 +1376,8 @@ module Roguelike
       end
       forget_dead creature
       say "You kill the #{creature.label}.",
-        Event::Slain.new(creature.id, creature.label)
+        with_facts(Event::Slain.new(creature.id, creature.label),
+          fight_facts(nil, creature, weapon, launcher))
 
       gained = @player.gain creature.kind.experience
       return unless gained > 0
@@ -1379,6 +1389,40 @@ module Roguelike
     # What the character is swinging with. `nil` for bare hands.
     private def swung_with : String?
       @player.wielded.try { |item| name item }
+    end
+
+    # *event*, carrying *facts* for the events file.
+    private def with_facts(event : T, facts : Events::Facts) : T forall T
+      event.facts = facts
+      event
+    end
+
+    # The facts of a blow, a kill or a death, for the events file.
+    #
+    # *attacker* and *target* are `nil` for the character. *weapon* is what
+    # struck and *launcher* is what sent it. The character's own things say
+    # what the character knows of them. *dice* and *blow* are set for a blow
+    # and give the roll and what the target has left.
+    private def fight_facts(attacker : Monster?, target : Monster?,
+                            weapon : Item?, launcher : Item? = nil,
+                            dice : Dice? = nil,
+                            blow : Blow? = nil) : Events::Facts
+      lore = attacker ? nil : @lore
+      total = blow.try { |found| found.damage if found.hit? }
+      left = target ? target.hit_points : @player.hit_points if blow
+
+      Events::Facts.new attacker: attacker.try(&.id),
+        attacker_species: Events::Facts.species(attacker),
+        target_species: Events::Facts.species(target),
+        roll: dice.try { |found| Events::Roll.new found.to_s, total },
+        weapon: weapon.try { |item| Events::ItemFacts.of item, lore },
+        launcher: launcher.try { |item| Events::ItemFacts.of item, lore },
+        left: left
+    end
+
+    # The facts of one of the character's things, for the events file.
+    private def item_facts(item : Item) : Events::Facts
+      Events::Facts.new item_facts: Events::ItemFacts.of(item, @lore)
     end
 
     # ------------------------------------------------------------- shooting
@@ -1466,7 +1510,7 @@ module Roguelike
       say "You shoot #{name one}.",
         Event::Loosed.new(one.id, name(one), target, thrown: false)
       loose one, target, ranged_weapon.kind.reach, bonus, damage,
-        Costs.loose(ranged_weapon)
+        Costs.loose(ranged_weapon), ranged_weapon
       true
     end
 
@@ -1520,13 +1564,14 @@ module Roguelike
     # A creature in the way is swung at, whether or not it was the square
     # aimed at. A missile stops at the first thing standing in the line.
     private def loose(missile : Item, target : {Int32, Int32}, reach : Int32,
-                      bonus : Int32, damage : Dice, cost : Int32) : Nil
+                      bonus : Int32, damage : Dice, cost : Int32,
+                      launcher : Item? = nil) : Nil
       shot = flight target, reach
       @in_flight = Missile.new shot, missile
       spot = shot.at
       struck = floor.monster spot[0], spot[1]
 
-      hit struck, missile.kind.label, bonus, damage if struck
+      hit struck, missile.kind.label, bonus, damage, missile, launcher if struck
 
       floor.drop spot[0], spot[1], missile
       spend cost
@@ -1536,20 +1581,26 @@ module Roguelike
     #
     # An arrow, a thrown rock and a bolt from a wand all land here. The noun
     # is what the message calls it.
+    #
+    # *weapon* is the missile, or the wand that sent the bolt, and
+    # *launcher* is what shot the missile. Both are for the events file.
     private def hit(creature : Monster, noun : String, bonus : Int32,
-                    damage : Dice) : Blow
+                    damage : Dice, weapon : Item? = nil,
+                    launcher : Item? = nil) : Blow
       fought_with creature
       blow = Combat.swing exchange, bonus, creature.armor_class, damage
 
       if blow.hit?
         creature.hurt blow.damage
         say "The #{noun} hits the #{creature.label} for #{blow.damage}.",
-          Event::Attack.new(true, target: creature.id, damage: blow.damage,
-            with: noun)
-        kill creature unless creature.alive?
+          with_facts(Event::Attack.new(true, target: creature.id,
+            damage: blow.damage, with: noun),
+            fight_facts(nil, creature, weapon, launcher, damage, blow))
+        kill creature, weapon, launcher unless creature.alive?
       else
         say "The #{noun} misses the #{creature.label}.",
-          Event::Attack.new(false, target: creature.id, with: noun)
+          with_facts(Event::Attack.new(false, target: creature.id, with: noun),
+            fight_facts(nil, creature, weapon, launcher, damage, blow))
       end
 
       wake creature if creature.alive?
@@ -2001,15 +2052,21 @@ module Roguelike
         blow = Combat.swing exchange, bonus, @player.armor_class, damage
         if blow.hit?
           @player.hurt blow.damage
+          facts = fight_facts creature, nil, one, weapon, damage, blow
           say "The #{noun} hits you for #{blow.damage}.",
-            Event::Attack.new(true, attacker: shooter, damage: blow.damage, with: noun)
-          character_died creature unless @player.alive?
+            with_facts(Event::Attack.new(true, attacker: shooter,
+              damage: blow.damage, with: noun), facts)
+          character_died creature, one, weapon unless @player.alive?
         else
-          say "The #{noun} misses you.", Event::Attack.new(false, attacker: shooter, with: noun)
+          say "The #{noun} misses you.",
+            with_facts(Event::Attack.new(false, attacker: shooter, with: noun),
+              fight_facts(creature, nil, one, weapon, damage, blow))
           spot = stray creature.at, spot
         end
       else
-        say "The #{noun} misses you.", Event::Attack.new(false, attacker: shooter, with: noun)
+        say "The #{noun} misses you.",
+          with_facts(Event::Attack.new(false, attacker: shooter, with: noun),
+            fight_facts(creature, nil, one, weapon, damage))
       end
 
       floor.drop spot[0], spot[1], one
@@ -2221,19 +2278,24 @@ module Roguelike
         besets? spot
       end
       outflanked if flanking > 0
+      dice = creature.damage
+      held = creature.wielded
       blow = Combat.swing exchange, creature.to_hit + flanking,
-        @player.armor_class, creature.damage
+        @player.armor_class, dice
 
       behind = flanking > 0 ? " from behind" : ""
       if blow.hit?
         @player.hurt blow.damage
         say "The #{creature.label} #{creature.kind.verb} you#{behind} for #{blow.damage}.",
-          Event::Attack.new(true, attacker: creature.id, damage: blow.damage,
-            flanking: flanking > 0)
-        character_died creature unless @player.alive?
+          with_facts(Event::Attack.new(true, attacker: creature.id,
+            damage: blow.damage, flanking: flanking > 0),
+            fight_facts(creature, nil, held, dice: dice, blow: blow))
+        character_died creature, held unless @player.alive?
       else
         say "The #{creature.label} misses you.",
-          Event::Attack.new(false, attacker: creature.id, flanking: flanking > 0)
+          with_facts(Event::Attack.new(false, attacker: creature.id,
+            flanking: flanking > 0),
+            fight_facts(creature, nil, held, dice: dice, blow: blow))
       end
 
       blow
@@ -2293,20 +2355,23 @@ module Roguelike
     # The swing rolls on the `brawl` stream. The character is told only when
     # they can make out both creatures.
     private def brawl(creature : Monster, victim : Monster) : Blow
-      blow = Combat.swing brawling, creature.to_hit, victim.armor_class,
-        creature.damage
+      dice = creature.damage
+      blow = Combat.swing brawling, creature.to_hit, victim.armor_class, dice
       shown = regard_of(creature).everything? && regard_of(victim).everything?
 
       if blow.hit?
         victim.hurt blow.damage
         if shown
           say "The #{creature.label} #{creature.kind.verb} the #{victim.label} for #{blow.damage}.",
-            Event::Attack.new(true, attacker: creature.id, target: victim.id,
-              damage: blow.damage)
+            with_facts(Event::Attack.new(true, attacker: creature.id,
+              target: victim.id, damage: blow.damage),
+              fight_facts(creature, victim, creature.wielded, dice: dice, blow: blow))
         end
       elsif shown
         say "The #{creature.label} misses the #{victim.label}.",
-          Event::Attack.new(false, attacker: creature.id, target: victim.id)
+          with_facts(Event::Attack.new(false, attacker: creature.id,
+            target: victim.id),
+            fight_facts(creature, victim, creature.wielded, dice: dice, blow: blow))
       end
 
       if victim.alive?
@@ -2342,7 +2407,8 @@ module Roguelike
       return unless shown
 
       say "The #{killer.label} kills the #{victim.label}.",
-        Event::Slain.new(victim.id, victim.label)
+        with_facts(Event::Slain.new(victim.id, victim.label),
+          fight_facts(killer, victim, killer.wielded))
     end
 
     # Every band on this floor forgets where it saw *creature*, which is dead.
@@ -2351,13 +2417,16 @@ module Roguelike
       floor.each_band { |band| band.knowledge?(floor.id).try &.lost(key) }
     end
 
-    # Ends the run. *killer* is the creature that did it.
-    private def character_died(killer : Monster) : Nil
+    # Ends the run. *killer* is the creature that did it, and *weapon* and
+    # *launcher* what it did it with.
+    private def character_died(killer : Monster, weapon : Item? = nil,
+                               launcher : Item? = nil) : Nil
       @outcome = Outcome::Died
       @killer = killer.label
       say "You die...",
-        Event::Over.new(@outcome, killer: killer.id,
-          killer_species: killer.label)
+        with_facts(Event::Over.new(@outcome, killer: killer.id,
+          killer_species: killer.label),
+          fight_facts(killer, nil, weapon, launcher))
     end
 
     # Takes one turn for what the character just did.
@@ -3479,7 +3548,9 @@ module Roguelike
       clear_bearers
 
       deep = Game.depth_of ground
-      say line, Event::Climbed.new(ground.id, deep, spot)
+      say line, with_facts(Event::Climbed.new(ground.id, deep, spot),
+        Events::Facts.new(level: @player.level,
+          hp: {@player.hit_points, @player.max_hit_points}))
       arrived
       spend_turn
     end
@@ -3534,7 +3605,8 @@ module Roguelike
       end
 
       say "#{letter} - #{name item}",
-        Event::PickedUp.new(taken_id(letter, item), name item)
+        with_facts(Event::PickedUp.new(taken_id(letter, item), name item),
+          item_facts(item))
       claim item
       spend_turn
       true
@@ -3610,7 +3682,8 @@ module Roguelike
         end
 
         say "You pick up #{name item}.",
-          Event::PickedUp.new(taken_id(letter, item), name item)
+          with_facts(Event::PickedUp.new(taken_id(letter, item), name item),
+            item_facts(item))
       end
     end
 
@@ -3694,7 +3767,7 @@ module Roguelike
     def quaff(letter : Char) : Bool
       use letter, ItemClass::Potion, "drink" do |item|
         say "You drink #{name item}.",
-          Event::Used.new(item.id, name(item), :drink)
+          with_facts(Event::Used.new(item.id, name(item), :drink), item_facts(item))
       end
     end
 
@@ -3724,7 +3797,7 @@ module Roguelike
 
       use letter, ItemClass::Scroll, "read", choice do |item|
         say "You read #{name item}.",
-          Event::Used.new(item.id, name(item), :read)
+          with_facts(Event::Used.new(item.id, name(item), :read), item_facts(item))
       end
     end
 
@@ -3797,8 +3870,8 @@ module Roguelike
 
       used.reveal_blessing unless used.blessing.uncursed?
       say "You read #{name used}.",
-        Event::Used.new(used.id, name(used), :read)
-      found_out used.kind
+        with_facts(Event::Used.new(used.id, name(used), :read), item_facts(used))
+      found_out used.kind, used
       mark_for used
       spend_turn
       used
@@ -3837,8 +3910,8 @@ module Roguelike
 
       used.reveal_blessing unless used.blessing.uncursed?
       say "You read #{name used}.",
-        Event::Used.new(used.id, name(used), :read)
-      found_out used.kind
+        with_facts(Event::Used.new(used.id, name(used), :read), item_facts(used))
+      found_out used.kind, used
       spend_turn
       used
     end
@@ -3886,16 +3959,17 @@ module Roguelike
 
       unless item.spend
         say "You zap #{name item}. Nothing happens.",
-          Event::Used.new(item.id, name(item), :zap, spent: true)
+          with_facts(Event::Used.new(item.id, name(item), :zap, spent: true),
+            item_facts(item))
         cool item
         spend_turn
         return true
       end
 
       say "You zap #{name item}.",
-        Event::Used.new(item.id, name(item), :zap)
+        with_facts(Event::Used.new(item.id, name(item), :zap), item_facts(item))
       work item.kind.effect, item, target: target
-      found_out item.kind
+      found_out item.kind, item
       grasp letter, item
       cool item
       spend_turn
@@ -4088,7 +4162,7 @@ module Roguelike
       used.reveal_blessing unless used.blessing.uncursed?
 
       yield used
-      found_out used.kind
+      found_out used.kind, used
       work used.kind.effect, used, choice: choice
       spend_turn
       true
@@ -4975,11 +5049,12 @@ module Roguelike
     # Every effect in this phase is one somebody watching would understand,
     # so using an item names its kind. A potion that did nothing visible
     # would not, and this is where that exception goes when there is one.
-    private def found_out(kind : ItemKind) : Nil
+    private def found_out(kind : ItemKind, used : Item? = nil) : Nil
       return unless @lore.learn kind
 
-      say "It was #{name Item.new(kind)}.",
-        Event::Identified.new(name(Item.new(kind)), @lore.appearance(kind))
+      event = Event::Identified.new(name(Item.new(kind)), @lore.appearance(kind))
+      event = with_facts(event, item_facts(used)) if used
+      say "It was #{name Item.new(kind)}.", event
     end
 
     # Puts hit points back.
@@ -5005,8 +5080,8 @@ module Roguelike
       learned choice, item
 
       say news ? "It is #{name item}." : "You knew that already. It is #{name item}.",
-        Event::Identified.new(name(item), @lore.appearance(item.kind),
-          news: news)
+        with_facts(Event::Identified.new(name(item), @lore.appearance(item.kind),
+          news: news), item_facts(item))
     end
 
     # Writes the shape of the whole floor into what the character remembers.
@@ -5088,7 +5163,7 @@ module Roguelike
         return
       end
 
-      hit struck, "bolt", @player.to_zap, item.kind.power
+      hit struck, "bolt", @player.to_zap, item.kind.power, item
     end
 
     # ------------------------------------------------------------ equipment
@@ -5416,6 +5491,7 @@ module Roguelike
     # and `#legal` offers a bot nothing else.
     def perform(action : Action) : Verdict
       @events.clear
+      @recorder.try &.events.try &.drop
       return Verdict.refused if over?
 
       recording
@@ -5500,6 +5576,11 @@ module Roguelike
     # what the save names, or `nil` when nothing records the run.
     def pause : Replay::Mark?
       @recorder.try &.pause
+    end
+
+    # The events file beside this run's log, or `nil` when none is written.
+    def events_file : Path?
+      @recorder.try &.events.try &.path
     end
 
     # Opens the log for this run, once, on the first action.
