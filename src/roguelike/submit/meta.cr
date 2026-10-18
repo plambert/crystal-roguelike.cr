@@ -28,15 +28,20 @@ module Roguelike
       # The identity of the log for the server. See `Submit.log_id`.
       getter log : String
 
+      # Whether the parcel carries an events file. A parcel packed before
+      # events existed reads as false.
+      getter? events : Bool = false
+
       def initialize(@version : String, @platform : String, @outcome : String,
                      @turn : Int32, @seed : UInt64, @character : String,
-                     @log : String)
+                     @log : String, @events : Bool = false)
       end
 
-      # What *game* is described as now, for the log called *log*.
-      def self.of(game : Game, log : String) : Meta
+      # What *game* is described as now, for the log called *log*. *events*
+      # says whether the parcel carries an events file.
+      def self.of(game : Game, log : String, events : Bool = false) : Meta
         new VERSION, PLATFORM, game.outcome.to_s.downcase, game.turn,
-          game.world.seed, game.player.name, log
+          game.world.seed, game.player.name, log, events
       end
     end
   end

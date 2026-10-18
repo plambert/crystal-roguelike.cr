@@ -6,8 +6,9 @@ module Roguelike
     # One send, waiting in the outbox as a directory.
     #
     # The directory is named `<log>-<seq>`. It holds `meta.json`, a gzipped
-    # copy of the log as `replay.jsonl.gz`, and a gzipped copy of the save
-    # as `save.json.gz` when the parcel was packed with one. The copies are
+    # copy of the log as `replay.jsonl.gz`, a gzipped copy of the save as
+    # `save.json.gz` when the parcel was packed with one, and a copy of the
+    # events file as `events.jsonl.gz` when the run writes one. The copies are
     # taken when the parcel is packed, so what is sent is what the run
     # looked like at that moment, whatever the live file does afterwards.
     class Parcel
@@ -15,12 +16,14 @@ module Roguelike
       META   = "meta"
       REPLAY = "replay"
       SAVE   = "save"
+      EVENTS = "events"
 
       # What each kind is called on disk here.
       NAMES = {
         META   => "meta.json",
         REPLAY => "replay.jsonl.gz",
         SAVE   => "save.json.gz",
+        EVENTS => "events.jsonl.gz",
       }
 
       # One file in the parcel.
@@ -38,15 +41,17 @@ module Roguelike
       def initialize(@directory : Path, @meta : Meta, @seq : Int32)
       end
 
-      # Packs *log* and *save* for *meta* into *directory*, as sequence
-      # number *seq*.
+      # Packs *log*, *save* and *events* for *meta* into *directory*, as
+      # sequence number *seq*. The events file is gzipped already, and goes
+      # in as it is.
       def self.pack(directory : Path, meta : Meta, seq : Int32, log : Path,
-                    save : Path?) : Parcel
+                    save : Path?, events : Path? = nil) : Parcel
         Dir.mkdir_p directory
 
         File.write directory / NAMES[META], meta.to_json
         Parcel.compress log, directory / NAMES[REPLAY]
         Parcel.compress save, directory / NAMES[SAVE] if save
+        File.copy events, directory / NAMES[EVENTS] if events
 
         new directory, meta, seq
       end
@@ -72,10 +77,11 @@ module Roguelike
         "#{meta.log}-#{seq.to_s.rjust 3, '0'}"
       end
 
-      # The files to send, the log before the save and the meta last, so a
-      # listing that has the meta has the rest.
+      # The files to send. The log, the save and the events go in that
+      # order and the meta goes last, so a listing that has the meta has the
+      # rest.
       def pieces : Array(Piece)
-        [REPLAY, SAVE, META].compact_map do |kind|
+        [REPLAY, SAVE, EVENTS, META].compact_map do |kind|
           path = @directory / NAMES[kind]
           next unless File.exists? path
 

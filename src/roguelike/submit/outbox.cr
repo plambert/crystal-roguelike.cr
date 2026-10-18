@@ -22,8 +22,10 @@ module Roguelike
       end
 
       # Packs a parcel for *meta* and puts it here.
-      def pack(meta : Meta, seq : Int32, log : Path, save : Path?) : Parcel
-        Parcel.pack @directory / Parcel.name(meta, seq), meta, seq, log, save
+      def pack(meta : Meta, seq : Int32, log : Path, save : Path?,
+               events : Path? = nil) : Parcel
+        Parcel.pack @directory / Parcel.name(meta, seq), meta, seq, log, save,
+          events
       end
 
       # The parcels here, oldest first.

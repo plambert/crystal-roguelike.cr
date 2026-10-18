@@ -86,8 +86,9 @@ module Roguelike
       return unless outbox && mark
 
       log = Path[mark.log]
-      meta = Meta.of game, Submit.log_id(log)
-      outbox.pack meta, mark.pause, log, save
+      events = Submit.events_of game
+      meta = Meta.of game, Submit.log_id(log), !events.nil?
+      outbox.pack meta, mark.pause, log, save, events
     rescue error : File::Error | IO::Error | JSON::Error | Replay::Error
       STDERR.puts "replay upload: #{error.message}"
     end
@@ -100,8 +101,9 @@ module Roguelike
       outbox = @@outbox
       return unless outbox
 
-      meta = Meta.of game, Submit.log_id(log)
-      outbox.pack meta, pauses + 1, log, nil
+      events = Submit.events_of game
+      meta = Meta.of game, Submit.log_id(log), !events.nil?
+      outbox.pack meta, pauses + 1, log, nil, events
     rescue error : File::Error | IO::Error | JSON::Error | Replay::Error
       STDERR.puts "replay upload: #{error.message}"
     end
@@ -118,6 +120,11 @@ module Roguelike
       return if url.empty?
 
       outbox.flush Client.new(url, progress), output
+    end
+
+    # The events file *game* writes, when there is one on disk to pack.
+    def self.events_of(game : Game) : Path?
+      game.events_file.try { |path| path if File.exists? path }
     end
 
     # The identity of the log at *path* for the server.

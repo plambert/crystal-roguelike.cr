@@ -18,6 +18,10 @@ class FakeUploadServer
   # Whether to refuse every request for a form.
   property? refuse : Bool = false
 
+  # The kinds to answer 400 for, the way a server that does not know them
+  # does.
+  property unknown = [] of String
+
   getter port : Int32
 
   def initialize
@@ -45,6 +49,12 @@ class FakeUploadServer
       if refuse?
         response.status_code = 403
         response.print %({"error": "bad token"})
+        return
+      end
+
+      if @unknown.includes? body["kind"].as_s
+        response.status_code = 400
+        response.print %({"error": "bad kind"})
         return
       end
 
@@ -197,7 +207,8 @@ Spectator.describe Roguelike::Submit do
           first = outbox.parcels
           expect(first.size).to eq(1)
           expect(first.first.seq).to eq(1)
-          expect(first.first.pieces.map(&.kind)).to eq(["replay", "save", "meta"])
+          expect(first.first.pieces.map(&.kind)).to eq(["replay", "save", "events", "meta"])
+          expect(first.first.meta.events?).to be_true
           expect(first.first.meta.character).to eq("packer")
 
           2.times { game.perform game.legal.reject(Roguelike::Action::Ascend).sample(rng) }
@@ -225,7 +236,7 @@ Spectator.describe Roguelike::Submit do
         ended = outbox.parcels.select { |parcel| parcel.meta.character == "ender" }
         expect(ended.size).to eq(1)
         expect(ended.first.seq).to eq(1)
-        expect(ended.first.pieces.map(&.kind)).to eq(["replay", "meta"])
+        expect(ended.first.pieces.map(&.kind)).to eq(["replay", "events", "meta"])
       end
     end
 
@@ -248,12 +259,12 @@ Spectator.describe Roguelike::Submit do
           game.perform Roguelike::Action::Ascend.new
           expect(game.over?).to be_true
           expect(outbox.parcels.map(&.seq)).to eq([1, 2])
-          expect(outbox.parcels.last.pieces.map(&.kind)).to eq(["replay", "meta"])
+          expect(outbox.parcels.last.pieces.map(&.kind)).to eq(["replay", "events", "meta"])
 
           # The save written after joins that parcel rather than making one.
           store.write game
           expect(outbox.parcels.map(&.seq)).to eq([1, 2])
-          expect(outbox.parcels.last.pieces.map(&.kind)).to eq(["replay", "save", "meta"])
+          expect(outbox.parcels.last.pieces.map(&.kind)).to eq(["replay", "save", "events", "meta"])
           expect(outbox.parcels.last.meta.outcome).to eq("left")
 
           game
@@ -353,6 +364,31 @@ Spectator.describe Roguelike::Submit do
         expect(output.to_s).to contain("403")
         expect(output.to_s).to contain("tried again next time")
         expect(outbox.parcels.size).to eq(1)
+      ensure
+        server.close
+      end
+    end
+
+    it "sends the rest of a parcel to a server that takes no events" do
+      where = root
+      server = FakeUploadServer.new
+      server.unknown = ["events"]
+      begin
+        log = where / "run.jsonl"
+        events = where / "run.events.jsonl.gz"
+        File.write log, "{}\n"
+        File.open(events, "w") { |file| Compress::Gzip::Writer.open(file, &.print("{}\n")) }
+        meta = Submit::Meta.new "0.2.1", "linux-x86_64", "won", 1, 1_u64, "r", "04" * 16, events: true
+        outbox = Submit::Outbox.new where / "outbox"
+        parcel = outbox.pack meta, 1, log, nil, events
+        expect(parcel.pieces.map(&.kind)).to eq(["replay", "events", "meta"])
+
+        output = IO::Memory.new
+        outbox.flush Submit::Client.new(server.url), output
+
+        expect(outbox.parcels).to be_empty
+        expect(server.asked.map(&.["kind"].as_s)).to eq(["replay", "events", "meta"])
+        expect(server.uploads.keys.map(&.split('-').last)).to eq(["replay", "meta"])
       ensure
         server.close
       end
