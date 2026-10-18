@@ -161,7 +161,8 @@ module Roguelike
           game = Verifier.rebuild header
           return differs(header.turn, "the run does not start where the log does") unless game.agrees?(header.state)
 
-          attach game, Events::Writer.started(game, @stand_in, @id)
+          attach game, Events::Writer.started(game, @stand_in, @id,
+            header.game_version)
           walked game, 0
         end
 
@@ -188,7 +189,8 @@ module Roguelike
             @bookmarks.paused line, game if line.is_a?(Pause) && line.pause == resume.pause
           end
 
-          attach game, Events::Writer.resumed(game, @stand_in, @id, resume.pause)
+          attach game, Events::Writer.resumed(game, @stand_in, @id,
+            resume.pause, resume.game_version)
           walked game, at + 1
         end
 
@@ -225,7 +227,8 @@ module Roguelike
               game = @bookmarks.resumed line, game
               return differs(line.turn, "the loaded run differs") unless held?(game, line.turn, line.state)
 
-              attach game, Events::Writer.resumed(game, @stand_in, @id, line.pause)
+              attach game, Events::Writer.resumed(game, @stand_in, @id,
+                line.pause, line.game_version)
             end
           end
 

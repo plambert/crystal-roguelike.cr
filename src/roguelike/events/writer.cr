@@ -38,6 +38,11 @@ module Roguelike
       # Whether a recorded run writes events. `--no-events` clears it.
       class_property? enabled : Bool = true
 
+      # The version the header and resume lines name, which is this build's.
+      def self.version : String
+        "#{VERSION}+g#{BUILD}"
+      end
+
       # Where the events of the log at *log* go.
       def self.path_for(log : Path) : Path
         Path["#{log.to_s.rchop Replay::Naming::SUFFIX}#{SUFFIX}"]
@@ -45,10 +50,14 @@ module Roguelike
 
       # A new file for *game*, beside the log at *log* whose id is *id*.
       # `nil` when events are off or the file will not open.
-      def self.started(game : Game, log : Path, id : String) : Writer?
+      #
+      # *version* is the build the header names. A backfill passes the one
+      # that recorded the log.
+      def self.started(game : Game, log : Path, id : String,
+                       version : String = Writer.version) : Writer?
         return unless enabled?
 
-        new game, path_for(log), id, nil
+        new game, path_for(log), id, nil, version
       rescue error : ::File::Error
         STDERR.puts "events: #{error.message}"
         nil
@@ -58,11 +67,14 @@ module Roguelike
       #
       # A file that is not there, or that will not read at all, starts
       # again with a header.
-      def self.resumed(game : Game, log : Path, id : String,
-                       pause : Int32) : Writer?
+      #
+      # *version* is the build the resume line names. A backfill passes the
+      # one that recorded the resume.
+      def self.resumed(game : Game, log : Path, id : String, pause : Int32,
+                       version : String = Writer.version) : Writer?
         return unless enabled?
 
-        new game, path_for(log), id, pause
+        new game, path_for(log), id, pause, version
       rescue error : ::File::Error
         STDERR.puts "events: #{error.message}"
         nil
@@ -88,15 +100,15 @@ module Roguelike
       @cause : String? = nil
 
       private def initialize(@game : Game, @path : Path, id : String,
-                             pause : Int32?)
+                             pause : Int32?, version : String)
         if pause && Writer.repaired(@path)
           @file = ::File.new @path, "a"
           line({type: "resume", pause: pause, turn: @game.turn,
-                game_version: "#{VERSION}+g#{BUILD}"})
+                game_version: version})
         else
           @file = ::File.new @path, "w"
-          line({type: "header", format: FORMAT,
-                game_version: "#{VERSION}+g#{BUILD}", log: id})
+          line({type: "header", format: FORMAT, game_version: version,
+                log: id})
           line({type: "resume", pause: pause, turn: @game.turn}) if pause
         end
 

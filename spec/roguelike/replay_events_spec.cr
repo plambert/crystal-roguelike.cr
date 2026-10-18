@@ -143,6 +143,34 @@ Spectator.describe Roguelike::Replay::Backfill do
       expect(found).to eq(live)
     end
 
+    it "names the builds that recorded the header and the resume" do
+      where = logs
+      spanning where
+      log = log_in where
+      built = Writer.version
+      header = "#{Roguelike::VERSION}+gfeedfac"
+      resumed = "#{Roguelike::VERSION}+gc0ffee0"
+      other = where / "other.jsonl.txt"
+      moved = File.read_lines(log).map do |line|
+        if line.includes? %("type":"header")
+          line.sub(%("game_version":"#{built}"), %("game_version":"#{header}"))
+        elsif line.includes? %("type":"resume")
+          line.sub(%("game_version":"#{built}"), %("game_version":"#{resumed}"))
+        else
+          line
+        end
+      end
+      File.write other, moved.join('\n') + '\n'
+
+      target = where / "named.events.jsonl.gz"
+      expect(Backfill.run(other, target).ok?).to be_true
+      versions = lines(target).compact_map do |line|
+        found = JSON.parse(line)
+        found["game_version"]?.try { |version| {found["type"].as_s, version.as_s} }
+      end
+      expect(versions).to eq([{"header", header}, {"resume", resumed}])
+    end
+
     it "plays straight through a resume from this version" do
       where = logs
       spanning where
