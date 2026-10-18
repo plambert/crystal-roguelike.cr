@@ -15,6 +15,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   Walking over that ammunition, or picking it up with `,`, puts it back in the quiver, and the
   equipment panel shows the empty quiver dimmed as "no stones" or "no arrows". Wielding another
   kind of ammunition, or taking the quiver off with `T`, forgets it.
+* This branch rebuilds the events file of a 0.3.0 replay log with `replay events`. A recorded run
+  also writes its events beside its replay log, and `--no-events` turns that off.
 
 ### Changed
 

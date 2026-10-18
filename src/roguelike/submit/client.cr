@@ -1,4 +1,5 @@
 require "http/client"
+require "http/server"
 require "openssl"
 require "../../roguelike"
 
