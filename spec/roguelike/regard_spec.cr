@@ -213,7 +213,7 @@ Spectator.describe "how well something is made out" do
       expect(lore.name spear).to eq "a cursed -2 spear"
       expect(lore.name spear).to eq lore.name(spear, regard: Regard::Everything)
 
-      expect(Naming.short lore, spear).to eq "crs -2 spear"
+      expect(Naming.short lore, spear).to eq "-2 spear"
       expect(Naming.short lore, spear).to eq Naming.short(lore, spear, Regard::Everything)
     end
 

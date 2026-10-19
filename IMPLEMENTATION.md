@@ -1333,8 +1333,11 @@ early in a level. Whether a bar shades or steps should be a person's own choice,
 written down either way.
 
 `Ui::Naming.short` writes an item for a column: no article, the count in front, the noun singular,
-and every word shortened rather than left out, so `bls mwk +1 chain` is still four separate facts.
-A name too long for the column is cut and marked. The whole name belongs in a tooltip.
+and every word shortened rather than left out, so `mwk +1 chain` is still three separate facts.
+The blessing is not a word in it. The slot and pack rows draw it as the same one-cell mark the
+item menus use, from `Palette.blessing`, against the slot word or the pack letter, and leave the
+cell blank for a blessing not worked out. A name too long for the column is cut and marked. The
+whole name belongs in a tooltip.
 
 `Ui::Line` is one row written at columns the caller picks, which is what keeps the numbers under
 each other. It is a fixed row rather than a `Widgets::Label` because the layout squeezes a label to
