@@ -199,11 +199,13 @@ module Roguelike
       # How many pauses the file holds.
       getter pauses : Int32 = 0
 
-      # Whether an action has been written since the last pause.
+      # Whether an action has been written since the last pause that was
+      # sent.
       #
       # A log closed with nothing since its last pause is paused rather than
-      # cut off, and it gets no footer.
-      @acted : Bool = false
+      # cut off, and it gets no footer. A save with nothing since the last
+      # one sent packs no parcel.
+      getter? acted : Bool = false
 
       @file : File
 

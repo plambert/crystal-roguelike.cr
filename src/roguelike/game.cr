@@ -6717,6 +6717,11 @@ module Roguelike
       @recorder.try &.ending
     end
 
+    # Whether the log holds actions no parcel has carried yet.
+    def unsent? : Bool
+      @recorder.try(&.acted?) || false
+    end
+
     # The events file beside this run's log, or `nil` when none is written.
     def events_file : Path?
       @recorder.try &.events.try &.path

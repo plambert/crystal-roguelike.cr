@@ -215,6 +215,12 @@ Spectator.describe Roguelike::Submit do
           store.write game
           expect(outbox.parcels.map(&.seq)).to eq([1, 2])
 
+          # A save with no action since the last one sent, as when the stairs
+          # save and a quit right after it, writes a pause and no parcel.
+          store.write game
+          expect(outbox.parcels.map(&.seq)).to eq([1, 2])
+          expect(store.held("packer").try(&.replay).try(&.pause)).to eq(3)
+
           # The log is closed with nothing acted since the save. The save's
           # parcel already holds everything, so none is added.
           Log.ended nil

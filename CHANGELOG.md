@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Fixed
+
+* Saving twice with no turn between, as when you take the stairs and then quit, sends one
+  parcel instead of two copies of the same one.
+
 ## [0.6.0] - 2026-10-18
 
 The game asks for a tester name that labels uploaded runs, and a recorded run writes a gzipped

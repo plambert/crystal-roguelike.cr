@@ -205,16 +205,21 @@ module Roguelike
       #
       # *send* false writes the file and packs no parcel. The pause still goes
       # in the log, because the save names it and a load carries on from it.
+      #
+      # A save with nothing acted since the last one sent packs no parcel
+      # either. The parcel before it carries the same run, as when the stairs
+      # save and a quit right after it would send two copies.
       def write(game : Game, send : Bool = true) : Path
         wanted = path game.player.name
         Dir.mkdir_p @directory
 
+        packed = send && (game.unsent? || !game.ending.nil?)
         temporary = Path["#{wanted}.writing"]
         held = Held.of game, send
         File.write temporary, held.to_pretty_json
         File.rename temporary, wanted
 
-        Submit.saved game, held.replay || game.ending, wanted if send
+        Submit.saved game, held.replay || game.ending, wanted if packed
         wanted
       end
 
