@@ -1,6 +1,7 @@
 require "../../spec_helper"
 
 Spectator.describe Roguelike::Ui::CharacterPane do
+  alias Blessing = Roguelike::Blessing
   alias Item = Roguelike::Item
   alias Kind = Roguelike::ItemKind
   alias Naming = Roguelike::Ui::Naming
@@ -21,6 +22,16 @@ Spectator.describe Roguelike::Ui::CharacterPane do
   def info_row(run : Playing::Run, y : Int32) : String
     box = run.screen.info.rect
     run.row(y).ljust(box.right)[box.x, box.width]
+  end
+
+  # What a row draws at *column*, or `nil` for a blank cell.
+  def span_at(row : Roguelike::Ui::Line, column : Int32) : Roguelike::Ui::Line::Span?
+    row.spans.find &.column.==(column)
+  end
+
+  # What a row draws at *column*, where something must be drawn.
+  def span_at!(row : Roguelike::Ui::Line, column : Int32) : Roguelike::Ui::Line::Span
+    row.spans.find! &.column.==(column)
   end
 
   # Which row of the pane holds *slot*.
@@ -126,6 +137,19 @@ Spectator.describe Roguelike::Ui::CharacterPane do
 
       expect(slot_row(run, Slot::Melee).text).to eq "wpnlong swd"
     end
+
+    it "marks a known blessing beside the slot word, as the menus do" do
+      sword = Item.new Kind::LongSword, blessing: Blessing::Cursed, blessing_known: true
+      run = playing carrying: [sword]
+      run.game.wield 'a'
+      run.play.refresh
+      row = slot_row run, Slot::Melee
+      mark = span_at!(row, Pane::MARK)
+
+      expect(mark.text).to eq Roguelike::Ui::Palette::CURSED.to_s
+      expect(mark.style).to eq Roguelike::Ui::Palette::CURSED_MARK
+      expect(row.text).not_to contain "crs"
+    end
   end
 
   describe "the pack" do
@@ -150,6 +174,42 @@ Spectator.describe Roguelike::Ui::CharacterPane do
 
       expect(run.play.character.pack[0].text).to eq "a)bow"
       expect(run.play.character.pack[1].text).to eq "b)14 arrow"
+    end
+
+    it "marks a known blessing beside the letter and leaves the word out" do
+      run = playing carrying: [
+        Item.new(Kind::Dagger, blessing: Blessing::Blessed, blessing_known: true),
+      ]
+      row = run.play.character.pack[0]
+      mark = span_at!(row, Pane::PACK_MARK)
+
+      expect(mark.text).to eq Roguelike::Ui::Palette::BLESSED.to_s
+      expect(mark.style).to eq Roguelike::Ui::Palette::BLESSED_MARK
+      expect(row.text).to eq "a#{Roguelike::Ui::Palette::BLESSED})dagger"
+      expect(row.text).not_to contain "bls"
+    end
+
+    # A menu draws the mark for uncursed too. Only an unknown blessing is blank.
+    it "marks a known uncursed item" do
+      run = playing carrying: [
+        Item.new(Kind::Dagger, blessing: Blessing::Uncursed, blessing_known: true),
+      ]
+      mark = span_at!(run.play.character.pack[0], Pane::PACK_MARK)
+
+      expect(mark.text).to eq Roguelike::Ui::Palette::UNCURSED.to_s
+      expect(mark.style).to eq Roguelike::Ui::Palette::UNCURSED_MARK
+    end
+
+    it "leaves the mark cell blank for a blessing not worked out" do
+      run = playing carrying: [Item.new(Kind::Dagger, blessing: Blessing::Blessed)]
+      row = run.play.character.pack[0]
+
+      expect(span_at row, Pane::PACK_MARK).to be_nil
+      expect(row.text).to eq "a)dagger"
+    end
+
+    it "starts the names in the same column as the slot rows do" do
+      expect(Pane::PACK_NAME).to eq Pane::NAME
     end
 
     it "writes every entry, however many there are" do

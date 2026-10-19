@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Changed
+
+* The equipment and pack lists on the left show an item's blessing with the same marks as the
+  inventory menu, in place of the words "bls" and "crs". An uncursed item you know about now has
+  its mark there too.
+
 ### Fixed
 
 * Saving twice with no turn between, as when you take the stairs and then quit, sends one

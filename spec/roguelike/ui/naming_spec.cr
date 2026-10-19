@@ -23,18 +23,19 @@ Spectator.describe Roguelike::Ui::Naming do
       expect(Naming.short lore, Item.new(Kind::Arrow, count: 14)).to eq "14 arrow"
     end
 
-    it "shortens the condition and the blessing" do
-      item = Item.new Kind::ChainMail, enchantment: 1,
-        condition: Condition::Masterwork, blessing: Blessing::Blessed,
-        blessing_known: true
+    it "shortens the condition" do
+      item = Item.new Kind::ChainMail, enchantment: 1, condition: Condition::Masterwork
 
-      expect(Naming.short lore, item).to eq "bls mwk +1 chain"
+      expect(Naming.short lore, item).to eq "mwk +1 chain"
     end
 
-    it "says nothing about an uncursed item" do
-      item = Item.new Kind::Dagger, blessing: Blessing::Uncursed, blessing_known: true
+    # The sidebar draws the blessing as a mark beside the name.
+    it "leaves out a blessing that is worked out" do
+      Blessing.values.each do |blessing|
+        item = Item.new Kind::Dagger, blessing: blessing, blessing_known: true
 
-      expect(Naming.short lore, item).to eq "dagger"
+        expect(Naming.short lore, item).to eq "dagger"
+      end
     end
 
     it "shortens the kinds whose own name is too long" do

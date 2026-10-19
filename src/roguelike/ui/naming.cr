@@ -5,9 +5,10 @@ module Roguelike::Ui
   #
   # `Lore#name` writes the whole thing: "a blessed masterwork +1 chain mail".
   # The sidebar has 22 columns and a slot word takes six of them, so it writes
-  # "bls mwk +1 chain" instead. Nothing is dropped: every word is shortened
-  # rather than left out, so two items that read differently in full read
-  # differently here.
+  # "mwk +1 chain" instead. Every word is shortened rather than left out, so
+  # two items that read differently in full read differently here. The
+  # blessing is the one word left out, because the sidebar draws it as a mark
+  # in a column of its own.
   #
   # A tooltip and every menu write the whole name. This is for the column.
   #
@@ -18,16 +19,6 @@ module Roguelike::Ui
       Condition::Damaged    => "dmg",
       Condition::Plain      => "",
       Condition::Masterwork => "mwk",
-    }
-
-    # What each blessing is shortened to.
-    #
-    # Nothing for uncursed. Most things are uncursed, and a column of "unc"
-    # says less than a blank does.
-    BLESSINGS = {
-      Blessing::Cursed   => "crs",
-      Blessing::Uncursed => "",
-      Blessing::Blessed  => "bls",
     }
 
     # The kinds whose own label is too long for a column.
@@ -89,17 +80,19 @@ module Roguelike::Ui
     # What *item* is called, as *lore* knows it, short enough for a column.
     #
     #     14 +1 arrow
-    #     bls mwk +1 chain
+    #     mwk +1 chain
     #     swirly potion
     #     ZELGO MER scroll
     #
     # The count goes in front and the noun stays singular. "14 arrow" is one
     # column shorter than "14 arrows" and says the same thing in a list.
     #
+    # The blessing is left out. Every row that writes this name draws the
+    # blessing as a mark beside it, from `Palette.blessing`.
+    #
     # *regard* says how well the character has made the item out. Anything
-    # short of `Regard::Everything` writes the kind and no more: "spear"
-    # rather than "crs -2 spear". The default makes everything out, so the
-    # pack and every menu read as they always have.
+    # short of `Regard::Everything` writes the kind and no more. A cursed
+    # -2 spear is "spear". The default makes everything out.
     def self.short(lore : Lore, item : Item,
                    regard : Regard = Regard::Everything) : String
       return item.kind.label if item.kind.proper?
@@ -108,7 +101,6 @@ module Roguelike::Ui
       words << item.count.to_s if item.count > 1
 
       if regard.everything?
-        words << BLESSINGS[item.blessing] if item.blessing_known?
         words << CONDITIONS[item.condition]
         words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
         words << noun lore, item

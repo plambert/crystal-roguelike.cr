@@ -33,16 +33,21 @@ module Roguelike::Ui
     # spec builds a character without going near the title screen.
     NOBODY = "—"
 
-    # Where an item's name starts on a slot row.
+    # Where the blessing mark and the item's name go on a slot row.
     #
-    # There is no glyph on these rows. The slot word says what sort of thing
-    # is in the slot, and the two columns a glyph would take are two more of
-    # the name.
-    NAME = 4
+    # The mark sits against the slot word, the way a menu puts it against
+    # the key. There is no glyph on these rows. The slot word says what sort
+    # of thing is in the slot, and the two columns a glyph would take are two
+    # more of the name.
+    MARK = 3
+    NAME = 5
 
     # The same on a pack row, where a letter takes the first column.
-    PACK_GLYPH = 2
-    PACK_NAME  = 4
+    #
+    # The names on both sorts of row start in the same column.
+    PACK_MARK  = 1
+    PACK_GLYPH = 3
+    PACK_NAME  = 5
 
     # What the bar for the creature being fought is labeled.
     #
@@ -277,7 +282,7 @@ module Roguelike::Ui
       end
     end
 
-    # One row per slot: the slot word, the item's glyph, and its name.
+    # One row per slot: the slot word, the blessing mark, and the item's name.
     #
     # An empty quiver that remembers its kind says "no stones". The summary
     # counts the slots with something in them.
@@ -297,13 +302,15 @@ module Roguelike::Ui
           next
         end
 
+        marked row, MARK, item
         row.put NAME, Naming.short(game.lore, item), Palette[item].style
       end
 
       @worn.summary = filled.to_s
     end
 
-    # The pack, one entry to a row, by the letter it is carried under.
+    # The pack, one entry to a row: the letter it is carried under, the
+    # blessing mark, the glyph and the name.
     private def written_pack(game : Game) : Nil
       entries = game.player.inventory.entries
       @pack.each do |row|
@@ -316,11 +323,19 @@ module Roguelike::Ui
         row = @pack[index]
         row.hidden = false
         row.put 0, letter.to_s, Palette::FAINT
+        marked row, PACK_MARK, item
         row.put PACK_GLYPH, look.glyph.to_s, look.style
         row.put PACK_NAME, Naming.short(game.lore, item), look.style
       end
 
       @packed.summary = entries.size.to_s
+    end
+
+    # Writes the blessing mark of *item* at *column*, as the item menus draw
+    # it. An item whose blessing is not worked out gets a blank cell.
+    private def marked(row : Line, column : Int32, item : Item) : Nil
+      mark = Palette.blessing item
+      row.put column, mark.glyph.to_s, mark.style if mark
     end
   end
 end
