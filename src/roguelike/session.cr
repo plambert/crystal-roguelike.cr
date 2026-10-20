@@ -70,6 +70,7 @@ module Roguelike
           played = new terminal, Rng.for(seed), flicker, generate, console,
             store, character, previous, news: news, size_cap: size_cap,
             tester_root: tester_root
+          Options.current.try &.apply(played)
           ran = played
           played.run
 

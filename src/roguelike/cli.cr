@@ -134,18 +134,19 @@ module Roguelike
       return matched if matchup
       return played if trial > 0
 
+      options = arranged_options
       tester_root = arranged_tester
       news = arrive
-      newer = announced
-      sending = Submit.arrange autosubmit, flag_given?(:autosubmit)
+      newer = announced options
+      sending = Submit.arrange options.autosubmit?, flag_given?(:autosubmit)
 
       Replay::Log.pattern = Replay::Log.pattern_for replay_log
       Replay::Log.every = replay_every
       Replay::Log.generate = generate
       Events::Writer.enabled = events
 
-      Ui::Motion.on = motion
-      session = Session.open seed, flicker: flicker, generate: generate,
+      options.apply
+      session = Session.open seed, flicker: options.flicker?, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
         character: character, news: news,
         size_cap: SizeCap.new(max_columns, max_rows), tester_root: tester_root
@@ -170,6 +171,23 @@ module Roguelike
       puts newer if newer
 
       Submit.flush(submit_url || Submit::ENDPOINT) if sending
+    end
+
+    # Reads `options.json` and lays the flags the person typed over it, for
+    # this run only. Makes the result `Options.current`.
+    private def arranged_options : Options
+      found = Options.arrange Submit.root,
+        motion: typed(:motion, motion),
+        flicker: typed(:flicker, flicker),
+        update_check: typed(:update_check, update_check),
+        autosubmit: typed(:autosubmit, autosubmit)
+      Options.current = found
+      found
+    end
+
+    # *value* when the flag *name* was typed, and `nil` when it was not.
+    private def typed(name : Symbol, value : Bool) : Bool?
+      value if flag_given? name
     end
 
     # Settles who the tester is from the file and the flags, before anything
@@ -214,8 +232,8 @@ module Roguelike
 
     # Prints the line about a newer release, when there is one and the check
     # is wanted, and answers it so the run can print it again at the end.
-    private def announced : String?
-      return unless update_check
+    private def announced(options : Options) : String?
+      return unless options.update_check?
 
       newer = Update.notice
       puts newer if newer
