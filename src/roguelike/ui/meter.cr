@@ -11,7 +11,8 @@ module Roguelike::Ui
   #
   # The fill color comes from `Palette.meter` and the levels the caller
   # names, so a bar shades from green to red as it empties and every bar in
-  # the game reads the same way.
+  # the game reads the same way. The `bar_color` option makes it step
+  # between the levels instead.
   class Meter < Widgets::Widget
     # How many columns the label takes, the space after it included.
     LABEL = 3
@@ -65,7 +66,8 @@ module Roguelike::Ui
 
     # What the bar is drawn in now.
     def fill : TermBuf::Color
-      Palette.meter @levels, percent
+      banded = Options.current.try(&.bar_color.bands?) || false
+      Palette.meter @levels, percent, banded
     end
 
     def intrinsic_width(policy : TermBuf::Unicode::WidthPolicy) : Layout::Intrinsic

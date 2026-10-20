@@ -232,8 +232,8 @@ module Roguelike::Ui
     # as it empties rather than stepping at a boundary. Below the last level
     # it stays at the last color.
     #
-    # Whether a bar shades or steps should be a person's own choice. It
-    # shades for now, and the levels are here either way.
+    # Whether a bar shades or steps is the `bar_color` option. See
+    # `.meter`.
     drawn health : Array({Int32, TermBuf::Color}) = [
       {100, green},
       {80, light_green},
@@ -283,7 +283,11 @@ module Roguelike::Ui
     # At or above the first level it is the first color. Between two levels
     # it is mixed from the two by how far between them it is. Below the last
     # level it is the last color.
-    def self.meter(levels : Array({Int32, TermBuf::Color}), percent : Int32) : TermBuf::Color
+    #
+    # A *banded* bar is not mixed. It takes the color of whichever of the two
+    # levels is nearer.
+    def self.meter(levels : Array({Int32, TermBuf::Color}), percent : Int32,
+                   banded : Bool = false) : TermBuf::Color
       held = percent.clamp 0, 100
       return levels.first[1] if held >= levels.first[0]
 
@@ -295,7 +299,10 @@ module Roguelike::Ui
         span = above[0] - below[0]
         return below[1] if span <= 0
 
-        return mix below[1], above[1], (held - below[0]) / span.to_f
+        part = (held - below[0]) / span.to_f
+        return part >= 0.5 ? above[1] : below[1] if banded
+
+        return mix below[1], above[1], part
       end
 
       levels.last[1]
