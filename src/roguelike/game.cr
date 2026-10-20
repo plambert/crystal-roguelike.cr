@@ -4516,8 +4516,7 @@ module Roguelike
     # Takes any gold on the square, without a turn of its own.
     #
     # The step onto the square is the turn. Nobody walks over coins and
-    # leaves them, and asking would be a keystroke for every pile. Coins the
-    # character put down stay where they are.
+    # leaves them, and asking would be a keystroke for every pile.
     #
     # Gold is counted rather than carried, so there is no pack to fill and no
     # way for this to refuse.
@@ -4526,7 +4525,7 @@ module Roguelike
     private def take_coins : Nil
       taken = 0
 
-      here.select { |item| item.kind.item_class.treasure? && !item.dropped? }.each do |item|
+      here.select(&.kind.item_class.treasure?).each do |item|
         next unless floor.take @player.x, @player.y, item
 
         @player.take_gold item.count
@@ -4670,7 +4669,6 @@ module Roguelike
 
       purse = Item.new ItemKind::Gold, count: dropped
       purse.enroll next_id
-      purse.set_down
       floor.drop @player.x, @player.y, purse
       @pack_moves += 1
       say "You drop #{dropped} gold pieces.",

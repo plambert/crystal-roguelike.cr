@@ -30,10 +30,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * Saving twice with no turn between, as when you take the stairs and then quit, sends one
   parcel instead of two copies of the same one.
-* Explore no longer stops with "Walking on would show you nothing new" after it picks something
-  up and walks back over a square it already crossed.
-* Explore and automatic pickup leave alone what you drop, gold included, so the walk does not
-  turn back for it.
+* Explore no longer stops with "You have been here already" after it picks something up on the
+  way.
+* Explore no longer walks back to pick up something you just dropped.
 
 ## [0.6.0] - 2026-10-18
 
