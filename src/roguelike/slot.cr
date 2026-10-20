@@ -64,7 +64,7 @@ module Roguelike
     # What is in a hand first, then what is worn. The order never changes, so
     # a person learns where to look rather than reading the labels.
     def self.listed : Array(Slot)
-      [Melee, Ranged, Quiver, Body, Head, Hands, Feet, Shield]
+      LISTED_SLOTS.to_a
     end
 
     # What the inventory writes beside an item held here.
@@ -200,4 +200,9 @@ module Roguelike
       values.select &.armor?
     end
   end
+
+  # The slots in the order `Slot.listed` gives, made once. A constant inside
+  # an enum is a member, so this stands beside it.
+  LISTED_SLOTS = {Slot::Melee, Slot::Ranged, Slot::Quiver, Slot::Body, Slot::Head,
+                  Slot::Hands, Slot::Feet, Slot::Shield}
 end

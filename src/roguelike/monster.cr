@@ -562,7 +562,19 @@ module Roguelike
     # Everything it holds: what it has readied, in the order `Slot.listed`
     # gives, then what it carries.
     def belongings : Array(Item)
-      Slot.listed.compact_map { |slot| in_slot slot } + @carrying
+      found = [] of Item
+      each_belonging { |item| found << item }
+      found
+    end
+
+    # Yields what `#belongings` answers, in the same order, with no list.
+    #
+    # The light on a floor reads what every creature holds each time it is
+    # worked out, so this runs for every creature several times a turn.
+    def each_belonging(& : Item ->) : Nil
+      gear = @gear
+      LISTED_SLOTS.each { |slot| gear[slot]?.try { |item| yield item } } if gear
+      @carrying.each { |item| yield item }
     end
 
     # Takes everything it holds off it. Answers what was taken.

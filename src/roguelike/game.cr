@@ -4322,7 +4322,7 @@ module Roguelike
       end
 
       floor.each_monster do |column, row, creature|
-        creature.belongings.each do |item|
+        creature.each_belonging do |item|
           found << LightSource.new(column, row, item.light) if item.lit?
         end
       end
@@ -6639,7 +6639,7 @@ module Roguelike
           next unless creature
 
           yield creature
-          creature.belongings.each { |held| yield held }
+          creature.each_belonging { |held| yield held }
         end
 
         lying = [] of {Int32, Int32}
