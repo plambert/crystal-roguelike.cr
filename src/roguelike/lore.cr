@@ -132,6 +132,19 @@ module Roguelike
       "#{Lore.article noun} #{noun}"
     end
 
+    # What one of *kind* is called by somebody who has not found it out.
+    #
+    #     a scroll THARR
+    #     an oak wand
+    #
+    # `nil` for a kind with no appearance.
+    def unknown_name(kind : ItemKind) : String?
+      return unless appearance kind
+
+      noun = disguised_noun Item.new(kind), plural: false, blessing: false
+      "#{Lore.article noun} #{noun}"
+    end
+
     # :ditto:, without the article or the count.
     def noun_for(item : Item, blessing : Bool = true,
                  identified : Bool = false,

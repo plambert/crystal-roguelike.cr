@@ -52,6 +52,7 @@ module Roguelike
       "identified_all" => IdentifiedAll,
       "interrupted"    => Interrupted,
       "kindled"        => Kindled,
+      "learned"        => Learned,
       "level_up"       => LevelUp,
       "lights_out"     => LightsOut,
       "looming"        => Looming,
@@ -520,10 +521,10 @@ module Roguelike
       end
     end
 
-    # A kind of item the character has made out.
+    # One item a scroll of identify has named.
     #
-    # It holds for every item of that appearance, this one and the next.
-    # *news* false means they already knew.
+    # *appearance* is what its kind looks like. *news* false means the
+    # character already knew all of it.
     class Identified < Event
       getter kind : String = "identified"
 
@@ -533,6 +534,21 @@ module Roguelike
 
       def initialize(@name : String, @appearance : String? = nil,
                      @news : Bool = true)
+      end
+    end
+
+    # A disguised kind the character has found out.
+    #
+    # It holds for every item of that appearance, this one and the next.
+    # *name* is one of the kind by its true name, and *appearance* is what
+    # the kind looks like. A run has at most one of these per kind.
+    class Learned < Event
+      getter kind : String = "learned"
+
+      getter name : String
+      getter appearance : String
+
+      def initialize(@name : String, @appearance : String)
       end
     end
 
