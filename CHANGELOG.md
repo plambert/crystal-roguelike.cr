@@ -29,6 +29,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The game reads its colors from `theme.json` in its state directory when that file exists. The
   file holds one color per line, written as `#rrggbb`. Without the file, or for a color the file
   leaves out, the game uses its own colors.
+* "Color theme" on the options screen lists every color the game draws, grouped as Map,
+  Creatures, Light, Items, Text, Panels and Bars. `Enter` on a color opens a picker, and the
+  screen behind changes as you choose, so you see the color in place. A preview at the top shows
+  map glyphs, an item line and a message in the current colors. `r` puts one color back, and
+  "Reset every color" puts them all back after asking. Each change is saved to `theme.json`. On a
+  terminal without 24 bit color the picker offers the 256 colors it can draw.
 
 ### Changed
 

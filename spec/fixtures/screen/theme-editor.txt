@@ -1,0 +1,16 @@
+
+  ╭─ Color theme ────────────────────╮
+ #│  # . + . > @ g o j ! ? $         │
+ #│ a dagger, a scroll, 12 gold      │
+ #│ You hit the orc. The orc dies.   │
+ #│                                  │
+ #│ Map                            █ │
+ #│ Granite                        │ │
+ #│                         #a0a6b2│ │
+  │ Sandstone                      │ │
+  │                         #c2a05a│ │
+──│ Shale                          │ │──
+ Y│                         #7c99bc│ │
+ s│ Stone floor                    │ │
+ Y╰──────────────────────────────────╯f
+ minor healing. Press ? for the keys.

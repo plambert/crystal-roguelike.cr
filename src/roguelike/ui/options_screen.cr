@@ -31,6 +31,19 @@ module Roguelike::Ui
     # The smallest the box is, whatever the screen.
     LEAST = {30, 8}
 
+    # The key of the row that opens the theme editor.
+    THEME_KEY = "theme"
+
+    # What that row says. It is no wider than the widest label already on
+    # the screen, so the labels keep their column.
+    THEME_LABEL = "Color theme"
+
+    # What its input column says.
+    THEME_HINT = "Enter to edit"
+
+    # The setting that row follows.
+    DISPLAY_LAST = "bar_color"
+
     # The state directory the files are written under.
     property root : Path
 
@@ -49,10 +62,15 @@ module Roguelike::Ui
     # The list of keys `?` and `F1` show over the screen.
     getter help : Help
 
+    # The color theme editor, which the "Color theme" row opens over
+    # the screen.
+    getter theme_editor : ThemeEditor
+
     def initialize(@root : Path = Submit.root, z : Int32 = Widgets::Overlay::Z::DIALOG - 10)
       @options = Options.new
       @form = OptionsScreen.form_for @options, Tester::ANONYMOUS
       @help = Help.new
+      @theme_editor = ThemeEditor.new @root
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
 
@@ -80,6 +98,7 @@ module Roguelike::Ui
       @form.attach app
       add @form
 
+      @theme_editor.root = @root
       @help.sections = [Keys.options_screen(self, app)]
       self.keymap = @help.sections.first.bindings
       fit_into app.tree.screen
@@ -87,7 +106,8 @@ module Roguelike::Ui
     end
 
     # The form for *options*, a section for each heading in
-    # `Options::SETTINGS`, with *name* in the tester's row.
+    # `Options::SETTINGS`, with *name* in the tester's row. The row that
+    # opens the theme editor ends the Display section.
     #
     # A key a flag set for this run carries a note naming the flag.
     def self.form_for(options : Options, name : String) : Widgets::Form
@@ -102,6 +122,11 @@ module Roguelike::Ui
 
         flag = options.flag setting.key
         form.note setting.key, "Set by #{flag} for this run" if flag
+
+        if setting.key == DISPLAY_LAST
+          form.section(setting.section).action THEME_KEY, THEME_LABEL, hint: THEME_HINT,
+            help: "Choose the color of each thing the game draws"
+        end
       end
 
       form
@@ -137,12 +162,19 @@ module Roguelike::Ui
     # Sizes the box again for a screen that has changed size.
     def refit(screen : Rect) : Nil
       fit_into screen if showing?
+      @theme_editor.refit screen
+    end
+
+    # Puts the theme editor up over the screen.
+    def show_theme_editor(app : Widgets::App) : Nil
+      @theme_editor.show app
     end
 
     # Takes the screen down and gives the keyboard back.
     def dismiss : Nil
       return unless open?
 
+      @theme_editor.dismiss
       @help.close_with nil if @help.open?
       self.keymap = nil
       close
@@ -191,6 +223,13 @@ module Roguelike::Ui
       if event.is_a? Widgets::Form::Changed
         context.consume
         changed event.key, event.value
+        return
+      end
+
+      if event.is_a?(Widgets::Form::Activated) && event.key == THEME_KEY
+        context.consume
+        app = @app
+        show_theme_editor app if app
         return
       end
 

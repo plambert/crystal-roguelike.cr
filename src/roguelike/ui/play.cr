@@ -82,6 +82,10 @@ module Roguelike::Ui
     # options screen. `Session` sets this to apply them to itself.
     property on_options : Proc(Options, Nil) = ->(options : Options) { options.apply; nil }
 
+    # How many colors the theme editor's picker offers. `Session` sets
+    # `Indexed256` on a terminal without 24 bit color.
+    property color_depth : Widgets::Depth = Widgets::Depth::TrueColor
+
     # The one-key question, when there is one.
     getter prompt : Widgets::Prompt
 
@@ -630,7 +634,34 @@ module Roguelike::Ui
       options = Options.current || Options.read(screen.root)
       screen.on_change = @on_options
       screen.on_close = after
+
+      editor = screen.theme_editor
+      editor.depth = @color_depth
+      editor.on_change = -> { retheme; nil }
+      editor.confirm = ->(question : String, answered : Proc(Char?, Nil)) do
+        ask(question, "yn", default: 'n') { |key| answered.call key }
+        nil
+      end
+
       screen.show application, options
+    end
+
+    # Draws the screen again in the palette as it now stands.
+    #
+    # Most of what is drawn reads `Palette` on every frame. These pieces copy
+    # a style or a color when they are built, so each is handed the new one.
+    def retheme : Nil
+      @ring.retheme
+      @info_panel.retheme
+      @character.retheme
+      @nearby.retheme
+      @map.retheme
+      @menu.pointer_style = Palette.pointer_mark
+      @menu.disabled_style = Palette.faint
+      @pager.fresh_style = Palette.message_new
+      @pager.badge_style = Palette.newer_badge
+      @screen.banner.try &.style=(Palette.strong)
+      redraw
     end
 
     # What the row picked at the title screen does.

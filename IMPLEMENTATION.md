@@ -1857,6 +1857,27 @@ writes nothing to the replay log.
 widget's own handler, so each of those actions asks `Form#type` first, and a row that takes the key
 as text gets it instead. `?` and `F1` show the screen's own keys, from `Keys.options_screen`.
 
+### The theme editor
+
+"Color theme" is an action row at the end of the Display section. It opens `ThemeEditor`, a
+second modal overlay over the options screen, which stays up underneath and gets the keyboard back
+on `Escape`. The editor holds a `Preview` drawn from `Palette` on every frame, and under it a
+`Form` with one section per `Theme::ENTRIES` group and one color row per entry. A change sets the
+color with `Theme#with`, writes `theme.json` under the options screen's state directory, runs
+`Palette.rebuild`, and calls `Play#retheme`. `r` puts the row's color back to `Theme::DEFAULT`.
+The reset row asks through `Play#ask` before it puts every color back.
+
+Most of the screen reads `Palette` as it draws, but a few pieces copy a style or a color when they
+are built. `Play#retheme` hands each of them the new one: the focus ring's tint, the info panel's
+section headers, the character pane's bars, the marks on the Seen row the pointer is on, the map's
+ground, which also drops its kept idle frames, the menu's pointer and disabled styles, the log's
+new message and badge styles, and the replay banner. It then redraws.
+
+The color row's popover sits at the popover z, under the editor, so the editor's own `ColorRow`
+lifts it above the editor each time it opens. `Session` sets `Play#color_depth` to `Indexed256`
+on a terminal without `TrueColor`, and the picker then offers only the palette. The theme stores
+the `Rgb` of the index chosen, through `ThemeEditor.stored`.
+
 ## Blessings and curses
 
 A blessing is hidden on each item until the character finds out. There are now three ways they do:

@@ -117,15 +117,23 @@ module Roguelike::Ui
       @current
     end
 
+    # Builds the tint again from the palette and draws the focus in it at
+    # once, with no fade.
+    def retheme : Nil
+      @tint.clear
+      @tint = Widgets::Tint.new Palette.focus_flash, Palette.focus_ground
+      show animate: false
+    end
+
     # Draws the focus where it now is.
-    private def show : Nil
+    private def show(animate : Bool = Motion.on?) : Nil
       tinted = case @current
                in .info? then @screen.info_panel
                in .log?  then @screen.log
                in .map?  then nil
                end
 
-      tinted ? @tint.apply(tinted, @app, Motion.on?) : @tint.clear
+      tinted ? @tint.apply(tinted, @app, animate) : @tint.clear
 
       @screen.gutter.style = @current.log? ? nil : Palette.focus_rule
       @screen.rule.style = @current.info? ? nil : Palette.focus_rule

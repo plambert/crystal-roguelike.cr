@@ -152,6 +152,42 @@ module Roguelike::Ui
       Section.new "options", bindings, notes
     end
 
+    # The keys the theme editor answers while it is up.
+    #
+    # The form binds the arrows, `Tab`, `Home`, `End`, the page keys and
+    # `Enter`, and a color row opens its picker on `Enter` and `Space`. The
+    # bindings here add the letters and `Escape`.
+    def self.theme_editor(editor : ThemeEditor, app : Widgets::App) : Section
+      bindings = Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Escape"), "back to the options",
+          ->(_context : Widgets::Context) { editor.dismiss; nil }
+        map.bind TermBuf::Key.parse("F1"), "show the keys that work here",
+          ->(_context : Widgets::Context) { editor.show_help app; nil }
+        map.bind TermBuf::Key.parse("?"), "show the keys that work here",
+          ->(_context : Widgets::Context) { editor.show_help app; nil }
+        map.bind TermBuf::Key.parse("j"), "the row below",
+          ->(context : Widgets::Context) { editor.step 1, context; nil }
+        map.bind TermBuf::Key.parse("k"), "the row above",
+          ->(context : Widgets::Context) { editor.step(-1, context); nil }
+        map.bind TermBuf::Key.parse("h"), "the first row of the group above",
+          ->(context : Widgets::Context) { editor.leap(-1, context); nil }
+        map.bind TermBuf::Key.parse("l"), "the first row of the group below",
+          ->(context : Widgets::Context) { editor.leap 1, context; nil }
+        map.bind TermBuf::Key.parse("r"), "put this color back to the game's own",
+          ->(_context : Widgets::Context) { editor.reset_row; nil }
+      end
+
+      notes = [
+        {"Up Down", "the row above or below"},
+        {"Tab Shift+Tab", "the next or the previous row"},
+        {"Enter Space", "choose a color, or reset every color"},
+        {"Home End", "the first or the last row"},
+        {"PageUp PageDown", "a screenful up or down"},
+      ]
+
+      Section.new "color theme", bindings, notes
+    end
+
     # `Tab` and `Shift+Tab` move the focus among the map, the info panel and
     # the log. `Escape` gives it back to the map, and on the map it takes
     # back whatever is waiting.

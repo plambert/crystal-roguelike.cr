@@ -156,6 +156,14 @@ module Roguelike::Ui
       block widgets.to_a.map &.as(Widgets::Widget)
     end
 
+    # Gives each bar its colors from the palette as it now stands.
+    def retheme : Nil
+      @health.retheme Palette.health
+      @magic.retheme Palette.magic
+      @learning.retheme Palette.learning
+      @threat.retheme Palette.threat
+    end
+
     # The three sections, top first.
     def sections : Array(Widgets::Section)
       [@scoring, @worn, @packed]

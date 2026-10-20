@@ -41,6 +41,12 @@ module Roguelike::Ui
       @height = Layout::Sizing.fixed 1
     end
 
+    # Takes the label style and *levels* from the palette as it now stands.
+    def retheme(levels : Array({Int32, TermBuf::Color})) : Nil
+      @label_style = Palette.faint
+      @levels = levels
+    end
+
     # Writes a new reading. Answers nothing.
     def show(value : Int32, most : Int32, text : String? = nil) : Nil
       @value = value

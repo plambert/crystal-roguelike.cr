@@ -202,6 +202,12 @@ module Roguelike
       @play.news = news
       @play.fit bounds.width, bounds.height
 
+      # The theme stores 24 bit colors. A terminal without them draws the
+      # nearest of the 256, so the picker offers only those.
+      unless @terminal.capabilities.includes? TermBuf::Capability::TrueColor
+        @play.color_depth = Ui::Widgets::Depth::Indexed256
+      end
+
       @app = Ui::Widgets::ObservedApp.new @terminal, @play.root, bounds,
         @terminal.events, @terminal.policy
       @cursor = @terminal.cursor bounds
