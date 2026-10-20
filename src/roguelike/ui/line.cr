@@ -3,8 +3,8 @@ require "../../crystal-roguelike"
 module Roguelike::Ui
   # One row of text, written at columns the caller picks.
   #
-  #     line.put 0, "ac", Palette::FAINT
-  #     line.put 3, "5", Palette::STRONG
+  #     line.put 0, "ac", Palette.faint
+  #     line.put 3, "5", Palette.strong
   #
   # A `Widgets::Label` holds one string in one style. A status row is several
   # short pieces in several styles, each at a column of its own so the ones

@@ -12,10 +12,14 @@ module Roguelike::Ui
   # and marking the word would make every line about them look like news.
   module BlessingWords
     # The underline under "blessed".
-    BLESSED = Style::DEFAULT.underlined color: TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)
+    def self.blessed : Style
+      Palette.blessed_word
+    end
 
     # The underline under "cursed", in the red the meters use for danger.
-    CURSED = Style::DEFAULT.underlined color: Palette::RED
+    def self.cursed : Style
+      Palette.cursed_word
+    end
 
     # The two words, whole.
     WORD = /\b(blessed|cursed)\b/i
@@ -27,7 +31,7 @@ module Roguelike::Ui
       found = [] of Widgets::Pager::Accent
 
       line.scan WORD do |match|
-        style = match[1].downcase == "blessed" ? BLESSED : CURSED
+        style = match[1].downcase == "blessed" ? blessed : cursed
         found << Widgets::Pager::Accent.new(match.begin, match[0].size, style)
       end
 

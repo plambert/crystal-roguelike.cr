@@ -59,7 +59,7 @@ Spectator.describe "the Seen list" do
       hover_row run
 
       expect(run.map.spotlight).to eq GOBLIN
-      expect(goblin_style(run)).to eq Palette::SPOTLIT
+      expect(goblin_style(run)).to eq Palette.spotlit
     end
 
     it "blinks the square on a timer" do
@@ -72,7 +72,7 @@ Spectator.describe "the Seen list" do
       run.tick
       run.render
       expect(run.map.spotlight).to be_nil
-      expect(goblin_style(run)).not_to eq Palette::SPOTLIT
+      expect(goblin_style(run)).not_to eq Palette.spotlit
 
       run.tick
       run.render
@@ -129,7 +129,7 @@ Spectator.describe "the Seen list" do
       hover_row run
 
       expect(run.map.spotlight).to eq GOBLIN
-      expect(goblin_style(run)).to eq Palette::SPOTLIT
+      expect(goblin_style(run)).to eq Palette.spotlit
     end
   end
 

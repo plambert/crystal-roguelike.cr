@@ -16,6 +16,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   that a scroll THARR is a scroll of identify." The line comes after what the item did. This
   replaces the old "It was ..." line. A blessed scroll of identify gives one line for each new kind,
   in letter order.
+* The game reads its colors from `theme.json` in its state directory when that file exists. The
+  file holds one color per line, written as `#rrggbb`. Without the file, or for a color the file
+  leaves out, the game uses its own colors.
 
 ### Changed
 

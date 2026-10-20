@@ -105,10 +105,10 @@ module Roguelike::Ui
 
     def initialize
       @who = Line.new
-      @health = Meter.new "HP", levels: Palette::HEALTH
-      @magic = Meter.new "MP", levels: Palette::MAGIC
-      @learning = Meter.new "XP", levels: Palette::LEARNING
-      @threat = Meter.new THREAT_LABEL, levels: Palette::THREAT
+      @health = Meter.new "HP", levels: Palette.health
+      @magic = Meter.new "MP", levels: Palette.magic
+      @learning = Meter.new "XP", levels: Palette.learning
+      @threat = Meter.new THREAT_LABEL, levels: Palette.threat
       @number_names = Line.new
       @numbers = Line.new
       @score_names = Line.new
@@ -191,8 +191,8 @@ module Roguelike::Ui
       player = game.player
 
       @who.clear
-      @who.put 0, player.name.empty? ? NOBODY : player.name, Palette::STRONG
-      @who.put_right "D#{game.depth} Lv #{player.level}", Palette::PLAIN
+      @who.put 0, player.name.empty? ? NOBODY : player.name, Palette.strong
+      @who.put_right "D#{game.depth} Lv #{player.level}", Palette.plain
 
       @health.show player.hit_points, player.max_hit_points
       @magic.show 0, 0
@@ -200,14 +200,14 @@ module Roguelike::Ui
       fought game
 
       @number_names.clear
-      @number_names.put 0, "AC", Palette::FAINT
-      @number_names.put GOLD, "Gold", Palette::FAINT
-      @number_names.put_right "Turn", Palette::FAINT
+      @number_names.put 0, "AC", Palette.faint
+      @number_names.put GOLD, "Gold", Palette.faint
+      @number_names.put_right "Turn", Palette.faint
 
       @numbers.clear
-      @numbers.put 0, player.armor_class.to_s, Palette::STRONG
-      @numbers.put GOLD, player.gold.to_s, Palette::COIN
-      @numbers.put_right game.turn.to_s, Palette::PLAIN
+      @numbers.put 0, player.armor_class.to_s, Palette.strong
+      @numbers.put GOLD, player.gold.to_s, Palette.coin
+      @numbers.put_right game.turn.to_s, Palette.plain
 
       written_scores player
       written_slots game
@@ -277,8 +277,8 @@ module Roguelike::Ui
       @scores.clear
 
       Attributes::Which.values.each_with_index do |which, index|
-        @score_names.put index * 3, which.short, Palette::FAINT
-        @scores.put index * 3, player.attributes[which].to_s.rjust(2), Palette::PLAIN
+        @score_names.put index * 3, which.short, Palette.faint
+        @scores.put index * 3, player.attributes[which].to_s.rjust(2), Palette.plain
       end
     end
 
@@ -295,10 +295,10 @@ module Roguelike::Ui
         filled += 1 if item
 
         row.clear
-        row.put 0, slot.short, Palette::FAINT
+        row.put 0, slot.short, Palette.faint
 
         unless item
-          row.put NAME, memory ? "no #{memory.kind.plural}" : NOTHING, Palette::VACANT
+          row.put NAME, memory ? "no #{memory.kind.plural}" : NOTHING, Palette.vacant
           next
         end
 
@@ -322,7 +322,7 @@ module Roguelike::Ui
         look = Palette[item]
         row = @pack[index]
         row.hidden = false
-        row.put 0, letter.to_s, Palette::FAINT
+        row.put 0, letter.to_s, Palette.faint
         marked row, PACK_MARK, item
         row.put PACK_GLYPH, look.glyph.to_s, look.style
         row.put PACK_NAME, Naming.short(game.lore, item), look.style

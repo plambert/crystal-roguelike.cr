@@ -148,7 +148,7 @@ module Roguelike::Ui
         @detail.text = fitting.description
       elsif terrain.closed_door? && floor.spiked?(x, y)
         @what.text = SPIKED
-        @what.style = Palette::SPIKED.style
+        @what.style = Palette.spiked.style
         @detail.text = SPIKED_DETAIL
       else
         @what.text = terrain.label

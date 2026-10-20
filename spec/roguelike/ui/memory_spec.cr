@@ -181,9 +181,9 @@ Spectator.describe "what the character remembers" do
     # than any gap inside the lit range. A square drawn from memory is not a
     # dimly lit square, and it has to read as something else at a glance.
     it "is drawn further from the dimmest lit square than one lit step" do
-      base = Ui::Palette::STONE
-      shades = (0..Ui::Palette::RAMP.top).map do |step|
-        Ui::Palette::RAMP[base, step].foreground.red
+      base = Ui::Palette.stone
+      shades = (0..Ui::Palette.ramp.top).map do |step|
+        Ui::Palette.ramp[base, step].foreground.red
       end
 
       remembered = shades[1] - shades[0]
@@ -195,7 +195,7 @@ Spectator.describe "what the character remembers" do
     # A torch reaches the top, so the color at the top of the ramp is one
     # somebody sees rather than one nothing ever draws.
     it "is drawn at the top of the ramp beside a torch" do
-      expect(Ui::Palette.step 6).to eq Ui::Palette::RAMP.top
+      expect(Ui::Palette.step 6).to eq Ui::Palette.ramp.top
       expect(Ui::Palette.step 1).to eq Ui::Palette::REMEMBERED + 1
       expect(Ui::Palette.step 0).to eq Ui::Palette::REMEMBERED
     end

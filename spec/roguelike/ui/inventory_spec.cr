@@ -137,7 +137,7 @@ Spectator.describe "picking up and dropping" do
     it "draws what is lying on a square" do
       run = litter [Item.new(Kind::Dagger)]
 
-      expect(run.map.mark?(2, 2)).to eq Roguelike::Ui::Palette::PLAYER
+      expect(run.map.mark?(2, 2)).to eq Roguelike::Ui::Palette.player
       expect(run.map_row(2)[2]).to eq '@'
 
       run.press "l"

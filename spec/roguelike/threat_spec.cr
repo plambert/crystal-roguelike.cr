@@ -346,21 +346,21 @@ Spectator.describe "the creature last fought" do
     # The bar runs the other way from the character's own. A creature at full
     # strength is red and one about to fall is yellow.
     it "is red at full and yellow at empty" do
-      expect(Palette.meter Palette::THREAT, 100).to eq Palette::RED
-      expect(Palette.meter Palette::THREAT, 0).to eq Palette::YELLOW
+      expect(Palette.meter Palette.threat, 100).to eq Palette.red
+      expect(Palette.meter Palette.threat, 0).to eq Palette.yellow
     end
 
     it "shades between the two" do
-      quarter = Palette.meter Palette::THREAT, 25
+      quarter = Palette.meter Palette.threat, 25
 
-      expect(quarter).not_to eq Palette::RED
-      expect(quarter).not_to eq Palette::YELLOW
-      expect(quarter.channels[0]).to be > Palette::YELLOW.channels[0]
+      expect(quarter).not_to eq Palette.red
+      expect(quarter).not_to eq Palette.yellow
+      expect(quarter.channels[0]).to be > Palette.yellow.channels[0]
     end
 
     it "runs the other way from the character's own bar" do
-      expect(Palette.meter Palette::HEALTH, 100).to eq Palette::GREEN
-      expect(Palette.meter Palette::THREAT, 100).to eq Palette::RED
+      expect(Palette.meter Palette.health, 100).to eq Palette.green
+      expect(Palette.meter Palette.threat, 100).to eq Palette.red
     end
   end
 end

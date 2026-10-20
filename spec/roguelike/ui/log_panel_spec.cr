@@ -322,8 +322,8 @@ Spectator.describe Roguelike::Ui::LogPanel do
       spot = run.row(23).index!("↓")
 
       style = drawn_style run, spot, 23
-      expect(style.foreground).to eq Palette::NEWER_BADGE.foreground
-      expect(style.background).to eq Palette::NEWER_BADGE.background
+      expect(style.foreground).to eq Palette.newer_badge.foreground
+      expect(style.background).to eq Palette.newer_badge.background
     end
 
     it "covers only its own width" do

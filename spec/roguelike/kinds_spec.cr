@@ -55,7 +55,7 @@ Spectator.describe Roguelike::Kind do
     end
 
     it "stands out from the ground" do
-      ground = luminance Palette::GROUND
+      ground = luminance Palette.ground
 
       Kind.each do |kind|
         found = luminance Palette[kind].style.foreground

@@ -11,19 +11,19 @@ Spectator.describe Roguelike::Ui::BlessingWords do
   describe ".accents" do
     it "marks blessed in white and cursed in red" do
       expect(marked "a blessed dagger and a cursed ring")
-        .to eq [{"blessed", BlessingWords::BLESSED}, {"cursed", BlessingWords::CURSED}]
+        .to eq [{"blessed", BlessingWords.blessed}, {"cursed", BlessingWords.cursed}]
     end
 
     it "colors the underline and nothing else" do
-      expect(BlessingWords::BLESSED.underline).to eq TermBuf::Underline::Single
-      expect(BlessingWords::BLESSED.underline_color).to eq TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)
-      expect(BlessingWords::CURSED.underline_color).to eq Roguelike::Ui::Palette::RED
-      expect(BlessingWords::CURSED.foreground.default?).to be_true
+      expect(BlessingWords.blessed.underline).to eq TermBuf::Underline::Single
+      expect(BlessingWords.blessed.underline_color).to eq TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)
+      expect(BlessingWords.cursed.underline_color).to eq Roguelike::Ui::Palette.red
+      expect(BlessingWords.cursed.foreground.default?).to be_true
     end
 
     it "matches at the start of a sentence" do
-      expect(marked "Cursed! It will not come off.").to eq [{"Cursed", BlessingWords::CURSED}]
-      expect(marked "Blessed water.").to eq [{"Blessed", BlessingWords::BLESSED}]
+      expect(marked "Cursed! It will not come off.").to eq [{"Cursed", BlessingWords.cursed}]
+      expect(marked "Blessed water.").to eq [{"Blessed", BlessingWords.blessed}]
     end
 
     it "leaves uncursed and longer words alone" do
@@ -32,7 +32,7 @@ Spectator.describe Roguelike::Ui::BlessingWords do
     end
 
     it "finds the word beside punctuation and a repeat count" do
-      expect(marked "The ring is cursed. (x 3)").to eq [{"cursed", BlessingWords::CURSED}]
+      expect(marked "The ring is cursed. (x 3)").to eq [{"cursed", BlessingWords.cursed}]
     end
   end
 

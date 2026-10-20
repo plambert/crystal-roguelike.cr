@@ -467,9 +467,9 @@ module Roguelike::Ui
       @prompt = Widgets::Prompt.new
       @entry = Widgets::Entry.new
       @menu = Widgets::Menu.new
-      @menu.pointer_style = Palette::POINTER_MARK
+      @menu.pointer_style = Palette.pointer_mark
       @news_page = NewsPage.new
-      @menu.disabled_style = Palette::FAINT
+      @menu.disabled_style = Palette.faint
       @history = HistoryPane.new
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
@@ -2287,7 +2287,7 @@ module Roguelike::Ui
         # is put on top of it rather than written into the floor.
         spot = path[found.index]
         @map.clear_marks
-        @map.mark frame.player[0], frame.player[1], Palette::PLAYER
+        @map.mark frame.player[0], frame.player[1], Palette.player
         @map.mark spot[0], spot[1], Palette.flying(frame.missile.item)
 
         @flying = Flying.new found.frames, found.frame, found.index + 1
@@ -2309,7 +2309,7 @@ module Roguelike::Ui
       @map.sight = frame.sight
       @map.freeze frame.frozen
       @map.clear_marks
-      @map.mark frame.player[0], frame.player[1], Palette::PLAYER
+      @map.mark frame.player[0], frame.player[1], Palette.player
 
       behind = @game.log.written - frame.written
       show_log @game.log.lines.size - behind, frame.written
@@ -2441,10 +2441,10 @@ module Roguelike::Ui
       return unless target
 
       shot = @game.flight target, @reach
-      shot.path.each { |spot| @map.aim spot[0], spot[1], Palette::FLIGHT }
+      shot.path.each { |spot| @map.aim spot[0], spot[1], Palette.flight }
 
       stop = shot.at
-      @map.aim stop[0], stop[1], Palette::IMPACT unless stop == @game.player.at
+      @map.aim stop[0], stop[1], Palette.impact unless stop == @game.player.at
 
       @examine.aiming = aimed shot
     end
@@ -2942,7 +2942,7 @@ module Roguelike::Ui
       # The pane reads the floor for what is lying about and the knowledge for
       # what was lying about. A mark is something standing on a square, which
       # is the character now and the monsters later.
-      @map.mark @game.player.x, @game.player.y, Palette::PLAYER
+      @map.mark @game.player.x, @game.player.y, Palette.player
       offer_directions
       show_route
       show_aim
@@ -4054,9 +4054,9 @@ module Roguelike::Ui
     private def build_log : Widgets::Pager
       panel = log_panel
       pager = panel.pager
-      pager.fresh_style = Palette::MESSAGE_NEW
+      pager.fresh_style = Palette.message_new
       pager.accents = ->BlessingWords.accents(String)
-      pager.badge_style = Palette::NEWER_BADGE
+      pager.badge_style = Palette.newer_badge
       @screen.show_log panel.root
       pager
     end

@@ -98,7 +98,7 @@ Spectator.describe "the messages of the current turn" do
       run = Playing.open
       write run, "Something just happened."
 
-      expect(drawn run, "Something just happened.").to eq Palette::MESSAGE_NEW
+      expect(drawn run, "Something just happened.").to eq Palette.message_new
     end
 
     it "draws a line from an earlier turn in the ordinary colour" do
@@ -107,8 +107,8 @@ Spectator.describe "the messages of the current turn" do
       2.times { run.game.log.next_round }
       write run, "Something happens now."
 
-      expect(drawn run, "Something happened before.").not_to eq Palette::MESSAGE_NEW
-      expect(drawn run, "Something happens now.").to eq Palette::MESSAGE_NEW
+      expect(drawn run, "Something happened before.").not_to eq Palette.message_new
+      expect(drawn run, "Something happens now.").to eq Palette.message_new
     end
 
     it "brings a repeated line back into the current round" do
@@ -140,13 +140,13 @@ Spectator.describe "the messages of the current turn" do
       20.times { run.press "h" }
       bumped = run.said
 
-      expect(drawn run, bumped).to eq Palette::MESSAGE_NEW
+      expect(drawn run, bumped).to eq Palette.message_new
 
       run.press "."
       run.press "."
       run.press "."
 
-      expect(drawn run, bumped).not_to eq Palette::MESSAGE_NEW
+      expect(drawn run, bumped).not_to eq Palette.message_new
     end
 
     it "draws every line a turn wrote in the bright colour" do
@@ -154,8 +154,8 @@ Spectator.describe "the messages of the current turn" do
       write run, "Alpha happened."
       write run, "Beta happened."
 
-      expect(drawn run, "Alpha happened.").to eq Palette::MESSAGE_NEW
-      expect(drawn run, "Beta happened.").to eq Palette::MESSAGE_NEW
+      expect(drawn run, "Alpha happened.").to eq Palette.message_new
+      expect(drawn run, "Beta happened.").to eq Palette.message_new
     end
 
     it "parks on the first new line of a turn that says more than fits" do

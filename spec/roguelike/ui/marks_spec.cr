@@ -46,7 +46,7 @@ Spectator.describe "the marks against a row of a list" do
       run = carrying [sword Blessing::Blessed]
 
       expect(pack(run).first.mark).to eq Palette::BLESSED
-      expect(pack(run).first.mark_style).to eq Palette::BLESSED_MARK
+      expect(pack(run).first.mark_style).to eq Palette.blessed_mark
     end
 
     it "marks a cursed item" do
@@ -60,7 +60,7 @@ Spectator.describe "the marks against a row of a list" do
       run = carrying [sword Blessing::Uncursed]
 
       expect(pack(run).first.mark).to eq Palette::UNCURSED
-      expect(pack(run).first.mark_style).to eq Palette::UNCURSED_MARK
+      expect(pack(run).first.mark_style).to eq Palette.uncursed_mark
     end
 
     # An item whose blessing is not worked out has no mark. Every item whose
@@ -165,7 +165,7 @@ Spectator.describe "the marks against a row of a list" do
 
       point_at run, row
 
-      expect(row.marks).to eq Roguelike::Ui::NearbyPane::MARKS
+      expect(row.marks).to eq Roguelike::Ui::NearbyPane.marks
     end
 
     it "is the only row wearing them" do

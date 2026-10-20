@@ -17,7 +17,7 @@ module Roguelike::Ui
     LABEL = 3
 
     # What the label is drawn in.
-    property label_style : Style = Style::DEFAULT.fg TermBuf::Color.rgb(0x6A, 0x70, 0x7C)
+    property label_style : Style = Palette.faint
 
     # What the label says. Two columns: `HP`, `MP`, `XP`.
     property label : String
@@ -35,7 +35,7 @@ module Roguelike::Ui
     def initialize(@label : String,
                    @value : Int32 = 0,
                    @most : Int32 = 1,
-                   @levels : Array({Int32, TermBuf::Color}) = Palette::HEALTH)
+                   @levels : Array({Int32, TermBuf::Color}) = Palette.health)
       @width = Layout::Sizing.grow
       @height = Layout::Sizing.fixed 1
     end
@@ -100,8 +100,8 @@ module Roguelike::Ui
         glyph = at >= 0 && at < word.size ? word[at] : ' '
 
         view.write_char LABEL + index, 0, glyph,
-          Style::DEFAULT.fg(inside ? over : Palette::EMPTY_TEXT)
-            .bg(inside ? color : Palette::EMPTY)
+          Style::DEFAULT.fg(inside ? over : Palette.empty_text)
+            .bg(inside ? color : Palette.empty)
       end
     end
   end
