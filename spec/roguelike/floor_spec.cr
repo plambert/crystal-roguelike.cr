@@ -131,6 +131,29 @@ Spectator.describe Roguelike::Floor do
     end
   end
 
+  describe "#version" do
+    it "rises when a tile, a glow or the ambient level is written" do
+      before = floor.version
+      floor.set 3, 1, Terrain::OpenDoor
+      floor.set_glow 1, 1, 2
+      floor.ambient = 1
+
+      expect(floor.version).to eq before + 3
+    end
+
+    it "stays put while a creature walks and an item is dropped" do
+      floor.set 3, 1, Terrain::StoneFloor
+      creature = Roguelike::Monster.new Roguelike::Species::Goblin, 1, 1, "band"
+      floor.place creature
+      before = floor.version
+
+      expect(floor.walk({1, 1}, {1, 2})).to be_true
+      floor.drop 3, 1, Roguelike::Item.new(Roguelike::ItemKind::Dagger)
+
+      expect(floor.version).to eq before
+    end
+  end
+
   describe "#find" do
     it "answers where a terrain is" do
       expect(floor.find(Terrain::StairsUp)).to eq({2, 1})

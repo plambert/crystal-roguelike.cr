@@ -117,6 +117,33 @@ module Roguelike
       lighting
     end
 
+    # The light *beneath* holds, with *sources* poured over it.
+    #
+    # The light from a list of sources is the same as the light from its
+    # first part with the rest poured on top, as long as the order holds.
+    # `Game#sight` keeps the light from what never moves, the sconces and
+    # what lies on the floor, and pours the character's torch over a copy of
+    # it each step.
+    def self.over(floor : Floor, sources : Enumerable(LightSource),
+                  beneath : Lighting) : Lighting
+      lighting = beneath.copy
+      sources.each { |source| lighting.pour floor, source }
+      lighting
+    end
+
+    # A copy of this lighting, to pour more light into.
+    #
+    # The tables are copied and the lists in `#flames` are shared. `#pour`
+    # never adds to a list it holds, so neither copy changes the other.
+    protected def copy : Lighting
+      made = Lighting.new @levels.dup, @ambient, @kinds.dup, @flames.dup
+      made.best = @best.dup
+      made
+    end
+
+    # :nodoc:
+    protected setter best : Hash({Int32, Int32}, Int32)
+
     # The light one *source* throws over *floor*, and nothing else.
     #
     # `.over` adds the floor's own glow, which is what drawing wants. Making
@@ -216,8 +243,20 @@ module Roguelike
         add spot[0], spot[1], Math.max(source.radius - away + 1, 1), source.kind
         next unless source.kind.flame?
 
-        (@flames[spot] ||= [] of {Int32, Int32}) << source.at
+        flame spot, source.at
       end
+    end
+
+    # Adds a flame standing at *at* to what reaches *spot*.
+    #
+    # It makes a new list rather than adding to the one there. A copy shares
+    # its lists with the lighting it was copied from.
+    private def flame(spot : {Int32, Int32}, at : {Int32, Int32}) : Nil
+      held = @flames[spot]?
+      made = Array({Int32, Int32}).new((held.try(&.size) || 0) + 1)
+      held.try { |before| made.concat before }
+      made << at
+      @flames[spot] = made
     end
 
     # *floor* drawn with *dark* wherever no light reaches.

@@ -200,6 +200,43 @@ Spectator.describe Roguelike::Lighting do
     end
   end
 
+  describe "poured over another" do
+    # The shipped floor's sconces, then three torches standing among them.
+    def lit_floor : {Floor, Array(Source), Array(Source)}
+      floor = Roguelike::Floors.proving_ground
+      still = [] of Source
+
+      floor.each_fixture do |column, row, fitting|
+        fitting.kindle
+        still << Source.new(column, row, fitting.light, facing: fitting.attached)
+      end
+
+      moving = still.first(3).map { |source| Source.new source.x + 1, source.y + 1, 5 }
+      {floor, still, moving}
+    end
+
+    it "gives the light the two lists give poured at once" do
+      floor, still, moving = lit_floor
+      whole = Lighting.over floor, still + moving
+      layered = Lighting.over floor, moving, Lighting.over(floor, still)
+
+      expect(layered.levels).to eq whole.levels
+      expect(layered.kinds).to eq whole.kinds
+      expect(layered.flames).to eq whole.flames
+    end
+
+    it "leaves the light beneath as it was" do
+      floor, still, moving = lit_floor
+      beneath = Lighting.over floor, still
+      before = Lighting.over floor, still
+      Lighting.over floor, moving, beneath
+
+      expect(beneath.levels).to eq before.levels
+      expect(beneath.kinds).to eq before.kinds
+      expect(beneath.flames).to eq before.flames
+    end
+  end
+
   describe "drawn" do
     it "draws what it drew last time for a torch in a room" do
       floor = spot [
