@@ -61,8 +61,9 @@ properties such as silent, sight-based or sound-based, and a clever goblin might
 ### Temporary effects show their time remaining
 
 Each temporary buff or debuff on the character, such as haste or blindness, gets its own row in the
-character pane below the XP row. The row names the effect and shows how much time is left, and it
-goes away when the effect ends.
+character pane below the XP row. The row is a bar that shrinks as the effect runs down, with the
+effect's name and the number of turns remaining written over it, the way the XP bar carries its
+number. The row goes away when the effect ends.
 
 ## Considered
 
