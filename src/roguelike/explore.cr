@@ -127,17 +127,14 @@ module Roguelike
 
     # Every square *knowledge* remembers gold or an item *takes* accepts
     # lying on, in reading order. The whole remembered pile counts, so
-    # arrows under a dagger are found. Gold the character put down does not
-    # count.
+    # arrows under a dagger are found.
     def self.wanted(knowledge : Knowledge,
                     takes : Proc(Item, Bool)? = nil) : Array({Int32, Int32})
       found = [] of {Int32, Int32}
       knowledge.each do |column, row, memory|
         next unless memory.item
 
-        wanted = memory.holds? do |item|
-          (item.kind.gold? && !item.dropped?) || takes.try(&.call(item)) || false
-        end
+        wanted = memory.holds? { |item| item.kind.gold? || takes.try(&.call(item)) || false }
         found << {column, row} if wanted
       end
 

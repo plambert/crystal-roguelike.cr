@@ -229,18 +229,6 @@ Spectator.describe "items on the floor" do
       expect(game.floor.items?(3, 2)).to be_false
     end
 
-    it "leaves coins the character put down" do
-      game = bare
-      game.player.take_gold 12
-      game.drop_gold 5
-
-      game.step Direction::East
-      game.step Direction::West
-
-      expect(game.player.gold).to eq 7
-      expect(game.here.first.count).to eq 5
-    end
-
     it "costs no turn of its own" do
       game = bare
       game.floor.drop 3, 2, Item.new(Kind::Gold, count: 12)
