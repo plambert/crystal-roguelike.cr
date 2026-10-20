@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* `F` fires your ranged weapon at the nearest monster in sight, with no aiming step. With
+  nothing to shoot at, it says so and no turn passes.
+
 ### Changed
 
 * The equipment and pack lists on the left show an item's blessing with the same marks as the

@@ -322,9 +322,9 @@ module Roguelike::Ui
       end
     end
 
-    # `f` fires and `t` throws. `Tab` aims at the next monster, and `.panels`
-    # binds it. `Enter` looses the shot, or walks to the square `_` picked,
-    # and `.map_panel` binds it.
+    # `f` fires, `F` fires at the nearest monster, and `t` throws. `Tab` aims
+    # at the next monster, and `.panels` binds it. `Enter` looses the shot, or
+    # walks to the square `_` picked, and `.map_panel` binds it.
     #
     # The movement keys are already bound, and `Play` sends them to the
     # targeting cursor the same way it sends them to the examine cursor.
@@ -332,6 +332,8 @@ module Roguelike::Ui
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("f"), "fire the readied ranged weapon",
           ->(_context : Widgets::Context) { play.fire; nil }
+        map.bind TermBuf::Key.parse("F"), "fire at the nearest monster",
+          ->(_context : Widgets::Context) { play.fire_at_nearest; nil }
         map.bind TermBuf::Key.parse("t"), "throw something",
           ->(_context : Widgets::Context) { play.throw; nil }
       end

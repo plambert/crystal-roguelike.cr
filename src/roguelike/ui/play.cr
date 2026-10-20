@@ -2104,6 +2104,40 @@ module Roguelike::Ui
       start_aiming Aiming::Fire, nil, @game.firing_reach
     end
 
+    # Fires the readied ranged weapon at the nearest monster in sight. `F`
+    # does this.
+    #
+    # It shoots at what `f` and then `Enter` would shoot at, with no cursor
+    # in between. With nothing to shoot at it says so and spends no turn.
+    # Pressed while a target is being picked, it puts the cursor away the
+    # way `f` does.
+    def fire_at_nearest : Nil
+      if shooting?
+        abort_aiming
+        return
+      end
+
+      complaint = @game.cannot_fire
+      if complaint
+        say complaint
+        return
+      end
+
+      wanted = targets(only_reachable: true).first?
+      unless wanted
+        if @game.monsters_in_sight.empty?
+          say "There is nothing to fire at."
+        else
+          say "There is no clear shot."
+        end
+        return
+      end
+
+      stop_aiming if @aiming
+      @game.perform Action::Fire.new(wanted)
+      refresh
+    end
+
     # Throws a carried item. `t` does this.
     #
     # Anything can be thrown. A rock and a dart go furthest, and anything
@@ -2372,9 +2406,14 @@ module Roguelike::Ui
     # reach, because a wall or another creature is in the line. The cursor
     # can still be moved onto one by hand.
     private def targets : Array({Int32, Int32})
-      here = @game.player.at
       aimed = @aiming
-      only_reachable = !!aimed && shot_at_all?(aimed)
+      targets only_reachable: !!aimed && shot_at_all?(aimed)
+    end
+
+    # :ditto:, leaving out what a missile would not reach when
+    # *only_reachable* is set.
+    private def targets(only_reachable : Bool) : Array({Int32, Int32})
+      here = @game.player.at
 
       found = @game.monsters_in_sight.map(&.at)
       found.select! { |spot| @game.reachable? spot } if only_reachable

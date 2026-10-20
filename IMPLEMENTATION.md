@@ -220,6 +220,7 @@ none of it is fixed and a preset can rebind the lot.
 | `w` `T` | Wield a weapon or wear armor, swapping out what is there; take a weapon or armor off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
 | `f` `t` | Fire the ranged weapon, throw something |
+| `F` | Fire the ranged weapon at the nearest monster in sight, with no aiming step |
 | `a` | Apply. Light or put out a torch, a candle, or a wall sconce, or spike a door |
 | `o` `c` | Open, close. `c` on a shut door asks to drive a spike into it |
 | `x` | Examine. Put a cursor on the map and move it with the movement keys |

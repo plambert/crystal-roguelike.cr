@@ -119,6 +119,84 @@ Spectator.describe "aiming" do
     end
   end
 
+  describe "F" do
+    # Where the shot that just went was aimed, or `nil` when none went.
+    def loosed_at(run : Playing::Run) : {Int32, Int32}?
+      run.game.events.each do |event|
+        return event.at if event.is_a?(Roguelike::Event::Loosed)
+      end
+
+      nil
+    end
+
+    it "shoots at the one monster in sight with no cursor" do
+      run = archer [goblin({6, 1})]
+      before = run.turn
+
+      run.press "F"
+
+      expect(loosed_at run).to eq({6, 1})
+      expect(run.turn).to be > before
+      expect(run.play.aiming).to be_nil
+      expect(run.examiner.cursoring?).to be_false
+    end
+
+    it "shoots at the nearer of two monsters" do
+      run = archer [goblin({8, 1}), goblin({4, 1})]
+
+      run.press "F"
+
+      expect(loosed_at run).to eq({4, 1})
+    end
+
+    it "says so when there is nothing to fire at, and costs no turn" do
+      run = archer
+      before = run.turn
+
+      run.press "F"
+
+      expect(run.said).to eq "There is nothing to fire at."
+      expect(run.turn).to eq before
+      expect(loosed_at run).to be_nil
+    end
+
+    it "says so when no monster in sight can be hit, and costs no turn" do
+      run = archer [goblin({9, 4})], rows: WIDE
+      before = run.turn
+
+      run.press "F"
+
+      expect(run.said).to contain "no clear shot"
+      expect(run.turn).to eq before
+    end
+
+    it "gives the refusal f gives when nothing is readied" do
+      by_f = hall [Item.new(Kind::Arrow, count: 5)], [goblin({6, 1})]
+      by_f.press "f"
+      refusal = by_f.said
+
+      run = hall [Item.new(Kind::Arrow, count: 5)], [goblin({6, 1})]
+      before = run.turn
+
+      run.press "F"
+
+      expect(run.said).to eq refusal
+      expect(run.said).to contain "nothing readied"
+      expect(run.turn).to eq before
+      expect(run.play.aiming).to be_nil
+    end
+
+    it "puts the cursor away when pressed while aiming" do
+      run = archer [goblin({6, 1})]
+      run.press "f"
+
+      run.press "F"
+
+      expect(run.play.aiming).to be_nil
+      expect(loosed_at run).to be_nil
+    end
+  end
+
   describe "choosing a target" do
     it "offers the nearer of two monsters in a line first, and Tab stays on it" do
       run = archer [goblin({4, 1}), goblin({8, 1})]
