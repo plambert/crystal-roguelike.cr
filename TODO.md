@@ -130,6 +130,12 @@ drink on the spot. A waterskin holds water to carry away and drink later, and a 
 How fast thirst builds, how much a waterskin holds, and whether fountain water is always safe are to
 be settled when this is built.
 
+### A floating pack window
+
+The pack in the left sidebar becomes a toggle that opens a floating pack window. The window can be
+dragged to the left or the right side of the map. A reveal toggle on it shrinks the window to a
+very few lines, and toggles it back to full size. The sidebar then has room for other things.
+
 ### Where the game is drifting
 
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
