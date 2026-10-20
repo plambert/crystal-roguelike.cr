@@ -66,7 +66,17 @@ module Roguelike
     # How much light each square has beyond the floor's own.
     #
     # A square with none holds no entry. `#level` answers the ambient for it.
-    getter levels : Hash({Int32, Int32}, Int32)
+    #
+    # A lighting poured over another answers what the two hold together,
+    # which takes a pass over both. `#level` answers one square without it.
+    def levels : Hash({Int32, Int32}, Int32)
+      below = @under
+      return @levels unless below
+
+      merged = below.levels.dup
+      @levels.each { |spot, amount| merged[spot] = (merged[spot]? || 0) + amount }
+      merged
+    end
 
     # How much light every square has whatever else happens. `Floor#ambient`
     # is where this comes from.
@@ -78,7 +88,20 @@ module Roguelike
     # A square lit by a torch and by a magically lit room at once takes the
     # one throwing more. What the square is drawn in follows from this, and so
     # does whether it wavers.
-    getter kinds : Hash({Int32, Int32}, LightKind)
+    #
+    # Two sources that throw the same on a square leave it the kind of the
+    # one poured first. A lighting poured over another keeps the kind below
+    # unless it throws more.
+    def kinds : Hash({Int32, Int32}, LightKind)
+      below = @under
+      return @kinds unless below
+
+      merged = below.kinds.dup
+      @kinds.each do |spot, kind|
+        merged[spot] = kind if @best[spot] > below.strongest(spot)
+      end
+      merged
+    end
 
     # The strongest single contribution each square has taken, for deciding
     # which source wins `#kinds`.
@@ -92,7 +115,21 @@ module Roguelike
     #
     # This says nothing about how much light a square has. `#level` is the
     # light, and no flame changes it.
-    getter flames : Hash({Int32, Int32}, Array({Int32, Int32}))
+    #
+    # The flames of a lighting poured over another come after the flames
+    # below.
+    def flames : Hash({Int32, Int32}, Array({Int32, Int32}))
+      below = @under
+      return @flames unless below
+
+      merged = below.flames.dup
+      @flames.each { |spot, list| merged[spot] = (merged[spot]? || NO_FLAMES) + list }
+      merged
+    end
+
+    # The lighting this one was poured over. `nil` for one worked out on its
+    # own. Every table here holds only what was poured over it.
+    @under : Lighting? = nil
 
     def initialize(@levels : Hash({Int32, Int32}, Int32) = {} of {Int32, Int32} => Int32,
                    @ambient : Int32 = 0,
@@ -105,7 +142,12 @@ module Roguelike
 
     # Where the flames reaching *x*, *y* are standing.
     def flames_at(x : Int32, y : Int32) : Array({Int32, Int32})
-      @flames[{x, y}]? || NO_FLAMES
+      own = @flames[{x, y}]?
+      below = @under.try &.flames_at(x, y)
+      return own || NO_FLAMES if below.nil? || below.empty?
+      return below unless own
+
+      below + own
     end
 
     # The light over *floor* from *sources*, plus whatever the floor glows on
@@ -122,27 +164,45 @@ module Roguelike
     # The light from a list of sources is the same as the light from its
     # first part with the rest poured on top, as long as the order holds.
     # `Game#sight` keeps the light from what never moves, the sconces and
-    # what lies on the floor, and pours the character's torch over a copy of
-    # it each step.
+    # what lies on the floor, and pours the character's torch over it each
+    # step.
+    #
+    # *beneath* is read and never written. The new lighting holds what
+    # *sources* throw and asks *beneath* for the rest, so a step pours one
+    # torch rather than copying the light of the whole floor.
     def self.over(floor : Floor, sources : Enumerable(LightSource),
                   beneath : Lighting) : Lighting
-      lighting = beneath.copy
+      lighting = new ambient: beneath.ambient
+      lighting.under = beneath
       sources.each { |source| lighting.pour floor, source }
       lighting
     end
 
-    # A copy of this lighting, to pour more light into.
-    #
-    # The tables are copied and the lists in `#flames` are shared. `#pour`
-    # never adds to a list it holds, so neither copy changes the other.
-    protected def copy : Lighting
-      made = Lighting.new @levels.dup, @ambient, @kinds.dup, @flames.dup
-      made.best = @best.dup
-      made
+    # :nodoc:
+    protected setter under : Lighting?
+
+    # What this lighting and the ones below it add to *spot*.
+    protected def extra(spot : {Int32, Int32}) : Int32
+      (@levels[spot]? || 0) + (@under.try(&.extra(spot)) || 0)
     end
 
-    # :nodoc:
-    protected setter best : Hash({Int32, Int32}, Int32)
+    # The strongest single contribution *spot* has taken, here or below.
+    protected def strongest(spot : {Int32, Int32}) : Int32
+      own = @best[spot]? || 0
+      below = @under.try(&.strongest(spot)) || 0
+      Math.max own, below
+    end
+
+    # Which kind wins *spot*, here or below. `nil` for a square none lights.
+    protected def kind_of(spot : {Int32, Int32}) : LightKind?
+      below = @under
+      return @kinds[spot]? unless below
+
+      own = @best[spot]?
+      return @kinds[spot]? if own && own > below.strongest(spot)
+
+      below.kind_of spot
+    end
 
     # The light one *source* throws over *floor*, and nothing else.
     #
@@ -157,7 +217,7 @@ module Roguelike
 
     # How much light *x*, *y* has.
     def level(x : Int32, y : Int32) : Int32
-      @ambient + (@levels[{x, y}]? || 0)
+      @ambient + extra({x, y})
     end
 
     # What sort of light is on *x*, *y*. `nil` for a square with none.
@@ -165,7 +225,7 @@ module Roguelike
     # A square lit only by the floor's own ambient level takes `Glimmer`. A
     # floor lit throughout is lit by something, and nothing about it wavers.
     def kind_at(x : Int32, y : Int32) : LightKind?
-      found = @kinds[{x, y}]?
+      found = kind_of({x, y})
       return found if found
       return LightKind::Glimmer if @ambient > 0
 
@@ -184,7 +244,7 @@ module Roguelike
 
     # How many squares have light on them beyond the floor's own.
     def size : Int32
-      @levels.size
+      levels.size
     end
 
     # Adds *amount* of *kind* to what *x*, *y* has.
@@ -243,20 +303,8 @@ module Roguelike
         add spot[0], spot[1], Math.max(source.radius - away + 1, 1), source.kind
         next unless source.kind.flame?
 
-        flame spot, source.at
+        (@flames[spot] ||= [] of {Int32, Int32}) << source.at
       end
-    end
-
-    # Adds a flame standing at *at* to what reaches *spot*.
-    #
-    # It makes a new list rather than adding to the one there. A copy shares
-    # its lists with the lighting it was copied from.
-    private def flame(spot : {Int32, Int32}, at : {Int32, Int32}) : Nil
-      held = @flames[spot]?
-      made = Array({Int32, Int32}).new((held.try(&.size) || 0) + 1)
-      held.try { |before| made.concat before }
-      made << at
-      @flames[spot] = made
     end
 
     # *floor* drawn with *dark* wherever no light reaches.
@@ -287,7 +335,7 @@ module Roguelike
     end
 
     def to_s(io : IO) : Nil
-      io << "Lighting(" << @levels.size << " lit)"
+      io << "Lighting(" << size << " lit)"
     end
   end
 end

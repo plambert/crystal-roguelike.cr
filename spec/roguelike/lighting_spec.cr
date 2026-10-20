@@ -220,9 +220,24 @@ Spectator.describe Roguelike::Lighting do
       whole = Lighting.over floor, still + moving
       layered = Lighting.over floor, moving, Lighting.over(floor, still)
 
-      expect(layered.levels).to eq whole.levels
-      expect(layered.kinds).to eq whole.kinds
-      expect(layered.flames).to eq whole.flames
+      expect(layered.levels.to_a).to eq whole.levels.to_a
+      expect(layered.kinds.to_a).to eq whole.kinds.to_a
+      expect(layered.flames.to_a).to eq whole.flames.to_a
+    end
+
+    it "answers every square the way the two lists poured at once do" do
+      floor, still, moving = lit_floor
+      whole = Lighting.over floor, still + moving
+      layered = Lighting.over floor, moving, Lighting.over(floor, still)
+
+      floor.rows.times do |row|
+        floor.columns.times do |column|
+          expect(layered.level column, row).to eq whole.level(column, row)
+          expect(layered.kind_at column, row).to eq whole.kind_at(column, row)
+          expect(layered.flames_at column, row).to eq whole.flames_at(column, row)
+        end
+      end
+      expect(layered.size).to eq whole.size
     end
 
     it "leaves the light beneath as it was" do
