@@ -123,6 +123,14 @@ Spectator.describe Roguelike::Floor do
     end
   end
 
+  describe ".unspot" do
+    it "reads back the square a key names" do
+      [{0, 0}, {7, 12}, {133, 98}, {-3, 4}, {5, -16}].each do |square|
+        expect(described_class.unspot described_class.spot(*square)).to eq square
+      end
+    end
+  end
+
   describe "#find" do
     it "answers where a terrain is" do
       expect(floor.find(Terrain::StairsUp)).to eq({2, 1})

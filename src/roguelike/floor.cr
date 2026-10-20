@@ -417,8 +417,8 @@ module Roguelike
     # Yields every fitted square, with what is on it.
     def each_fixture(& : Int32, Int32, Fixture ->) : Nil
       @fixtures.each do |spot, fitting|
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, fitting
+        column, row = Floor.unspot spot
+        yield column, row, fitting
       end
     end
 
@@ -443,8 +443,8 @@ module Roguelike
     # Yields every square that glows on its own, with how brightly.
     def each_glow(& : Int32, Int32, Int32 ->) : Nil
       @glow.each do |spot, level|
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, level
+        column, row = Floor.unspot spot
+        yield column, row, level
       end
     end
 
@@ -510,8 +510,8 @@ module Roguelike
     # Yields every spiked door, with its spike.
     def each_spike(& : Int32, Int32, DoorSpike ->) : Nil
       @spikes.each do |spot, held|
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, held
+        column, row = Floor.unspot spot
+        yield column, row, held
       end
     end
 
@@ -563,6 +563,36 @@ module Roguelike
     # this table.
     def self.spot(x : Int32, y : Int32) : String
       "#{x},#{y}"
+    end
+
+    # The square a `#spot` key names.
+    #
+    # It reads the digits in place. `String#split` makes three strings per
+    # key, which is most of what a walk over one of these tables costs.
+    def self.unspot(spot : String) : {Int32, Int32}
+      column = 0
+      row = 0
+      sign = 1
+      across = true
+
+      spot.each_byte do |byte|
+        case byte
+        when '-'.ord then sign = -1
+        when ','.ord
+          column *= sign
+          sign = 1
+          across = false
+        else
+          digit = byte.to_i - '0'.ord
+          if across
+            column = column * 10 + digit
+          else
+            row = row * 10 + digit
+          end
+        end
+      end
+
+      {column, row * sign}
     end
 
     # What is lying on *x*, *y*, oldest first. An empty array for a bare
@@ -622,8 +652,8 @@ module Roguelike
       @litter.each do |spot, pile|
         next if pile.empty?
 
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, pile
+        column, row = Floor.unspot spot
+        yield column, row, pile
       end
     end
 

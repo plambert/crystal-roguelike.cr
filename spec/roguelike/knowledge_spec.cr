@@ -277,6 +277,33 @@ Spectator.describe Roguelike::Knowledge do
 
       expect(knowledge.to_map(floor).join '\n').to eq "###??\n#.#??\n###??"
     end
+
+    it "draws a square again once its terrain changes" do
+      floor = Playing.daylight Floor.parse("rooms", ["#####", "#.#.#", "#####"])
+      knowledge.learn floor, Vision.from(floor, 1, 1, [] of Source), 0
+      knowledge.to_map floor
+
+      floor.set 2, 1, Terrain::OpenDoor
+      knowledge.touch floor, 2, 1
+
+      expect(knowledge.to_map(floor)[1]).to eq "#.'??"
+    end
+
+    it "draws with whichever unknown mark is asked for" do
+      floor = Playing.daylight Floor.parse("rooms", ["#####", "#.#.#", "#####"])
+      knowledge.learn floor, Vision.from(floor, 1, 1, [] of Source), 0
+      knowledge.to_map floor
+
+      expect(knowledge.to_map(floor, ' ')[1]).to eq "#.#  "
+    end
+
+    it "answers rows a caller may change without changing the next answer" do
+      floor = Playing.daylight Floor.parse("rooms", ["#####", "#.#.#", "#####"])
+      knowledge.learn floor, Vision.from(floor, 1, 1, [] of Source), 0
+      knowledge.to_map(floor).clear
+
+      expect(knowledge.to_map(floor).size).to eq 3
+    end
   end
 
   describe "serialization" do

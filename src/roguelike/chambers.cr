@@ -289,8 +289,8 @@ module Roguelike
         end
 
         @knowledge.openings.each do |key|
-          parts = key.split ','
-          at = index parts[0].to_i, parts[1].to_i
+          column, row = Floor.unspot key
+          at = index column, row
           @cross[at] = true if at && !@known[at]
         end
       end
