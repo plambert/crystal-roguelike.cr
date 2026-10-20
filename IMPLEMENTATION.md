@@ -5348,7 +5348,7 @@ planned over what the last one showed.
 | The character is hurt | `You stop. You have been hurt.` |
 | A pile underfoot | `You stop on what is lying here.` |
 | Nothing left to see | `There is nothing left to see on this floor.` |
-| A square stood on twice with nothing learned | `You stop. Walking on would show you nothing new.` |
+| A square stood on twice with nothing learned | `You stop. You have been here already.` |
 | A line in the log | The line itself |
 | A creature in the way | The line `G` writes, such as `The goblin warrior is in the way.` |
 

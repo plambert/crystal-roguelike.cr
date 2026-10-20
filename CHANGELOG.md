@@ -13,6 +13,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The equipment and pack lists on the left show an item's blessing with the same marks as the
   inventory menu, in place of the words "bls" and "crs". An uncursed item you know about now has
   its mark there too.
+* An explore or travel that starts going round in circles now stops with "You stop. You have
+  been here already." The old line said there was nothing new to see, even on a floor with
+  ground left to explore.
 
 ### Fixed
 
