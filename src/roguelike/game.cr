@@ -1178,7 +1178,7 @@ module Roguelike
         line = walk.steps.zero? ? "You know no way there." : "You can get no nearer."
         say line, Event::Stopped.new(Halt::Blocked)
       when Halt::Spent
-        say "You stop. Walking on would show you nothing new.", Event::Stopped.new(Halt::Spent)
+        say "You stop. You have been here already.", Event::Stopped.new(Halt::Spent)
       when Halt::Hurt
         say "You stop. You have been hurt.", Event::Stopped.new(Halt::Hurt)
       when Halt::Item
