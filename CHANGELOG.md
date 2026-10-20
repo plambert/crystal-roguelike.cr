@@ -26,6 +26,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   bar color and the mouse change while you watch. The update check and sending runs take effect
   at the next start. A setting a flag overrode for this run says so, and changing it on the
   screen keeps your choice.
+* The game reads its colors from `theme.json` in its state directory when that file exists. The
+  file holds one color per line, written as `#rrggbb`. Without the file, or for a color the file
+  leaves out, the game uses its own colors.
 
 ### Changed
 

@@ -12,7 +12,7 @@ Spectator.describe Roguelike::Ui::Play do
       run = Playing.open
       spot = run.at
 
-      expect(run.map.mark?(spot[0], spot[1])).to eq Roguelike::Ui::Palette::PLAYER
+      expect(run.map.mark?(spot[0], spot[1])).to eq Roguelike::Ui::Palette.player
     end
 
     # Items are marked too. The character's mark wins on the square they
@@ -24,7 +24,7 @@ Spectator.describe Roguelike::Ui::Play do
         Roguelike::Item.new(Roguelike::ItemKind::Dagger)
       run.play.refresh
 
-      expect(run.map.mark?(spot[0], spot[1])).to eq Roguelike::Ui::Palette::PLAYER
+      expect(run.map.mark?(spot[0], spot[1])).to eq Roguelike::Ui::Palette.player
     end
 
     it "starts in view" do
@@ -78,7 +78,7 @@ Spectator.describe Roguelike::Ui::Play do
       run.press "l"
 
       expect(run.map.mark?(start[0], start[1])).to be_nil
-      expect(run.map.mark?(start[0] + 1, start[1])).to eq Roguelike::Ui::Palette::PLAYER
+      expect(run.map.mark?(start[0] + 1, start[1])).to eq Roguelike::Ui::Palette.player
     end
   end
 

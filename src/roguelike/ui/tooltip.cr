@@ -114,7 +114,7 @@ module Roguelike::Ui
         row.hidden = text.nil?
         next unless text
 
-        row.put 0, text, index.zero? ? Style::DEFAULT.bold : Palette::PLAIN
+        row.put 0, text, index.zero? ? Style::DEFAULT.bold : Palette.plain
       end
 
       open app

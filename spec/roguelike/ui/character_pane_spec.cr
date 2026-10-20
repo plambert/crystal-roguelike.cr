@@ -147,7 +147,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       mark = span_at!(row, Pane::MARK)
 
       expect(mark.text).to eq Roguelike::Ui::Palette::CURSED.to_s
-      expect(mark.style).to eq Roguelike::Ui::Palette::CURSED_MARK
+      expect(mark.style).to eq Roguelike::Ui::Palette.cursed_mark
       expect(row.text).not_to contain "crs"
     end
   end
@@ -184,7 +184,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       mark = span_at!(row, Pane::PACK_MARK)
 
       expect(mark.text).to eq Roguelike::Ui::Palette::BLESSED.to_s
-      expect(mark.style).to eq Roguelike::Ui::Palette::BLESSED_MARK
+      expect(mark.style).to eq Roguelike::Ui::Palette.blessed_mark
       expect(row.text).to eq "a#{Roguelike::Ui::Palette::BLESSED})dagger"
       expect(row.text).not_to contain "bls"
     end
@@ -197,7 +197,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       mark = span_at!(run.play.character.pack[0], Pane::PACK_MARK)
 
       expect(mark.text).to eq Roguelike::Ui::Palette::UNCURSED.to_s
-      expect(mark.style).to eq Roguelike::Ui::Palette::UNCURSED_MARK
+      expect(mark.style).to eq Roguelike::Ui::Palette.uncursed_mark
     end
 
     it "leaves the mark cell blank for a blessing not worked out" do
@@ -241,7 +241,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       run.play.refresh
       named = slot_row(run, Slot::Quiver).spans.find! &.text.==("no arrows")
 
-      expect(named.style).to eq Roguelike::Ui::Palette::VACANT
+      expect(named.style).to eq Roguelike::Ui::Palette.vacant
     end
 
     it "says nothing when the pointer is over it" do

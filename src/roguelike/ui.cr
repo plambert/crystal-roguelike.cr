@@ -28,6 +28,7 @@ end
 
 require "../roguelike"
 require "./ui/motion"
+require "./ui/theme"
 require "./ui/palette"
 require "./ui/line"
 require "./ui/meter"

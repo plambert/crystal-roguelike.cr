@@ -273,8 +273,9 @@ module Roguelike::Ui
     end
 
     # The marks on the row the pointer is on.
-    MARKS = Line::Marks.new Palette::POINTER, Palette::POINTED,
-      Palette::POINTER_MARK
+    def self.marks : Line::Marks
+      Line::Marks.new Palette::POINTER, Palette::POINTED, Palette.pointer_mark
+    end
 
     # Hands *lines* to whoever is watching the pane.
     #
@@ -294,7 +295,7 @@ module Roguelike::Ui
       return if before == line
 
       before.marks = nil if before
-      line.marks = MARKS
+      line.marks = NearbyPane.marks
       @marked = line
     end
 

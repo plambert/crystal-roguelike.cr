@@ -211,14 +211,14 @@ Spectator.describe Roguelike::Options do
 
   describe "bar color" do
     it "mixes between levels as a gradient" do
-      expect(Palette.meter(Palette::HEALTH, 90)).not_to eq Palette::GREEN
-      expect(Palette.meter(Palette::HEALTH, 90)).not_to eq Palette::LIGHT_GREEN
+      expect(Palette.meter(Palette.health, 90)).not_to eq Palette.green
+      expect(Palette.meter(Palette.health, 90)).not_to eq Palette.light_green
     end
 
     it "takes the nearer level as bands" do
-      expect(Palette.meter(Palette::HEALTH, 90, banded: true)).to eq Palette::GREEN
-      expect(Palette.meter(Palette::HEALTH, 89, banded: true)).to eq Palette::LIGHT_GREEN
-      expect(Palette.meter(Palette::HEALTH, 10, banded: true)).to eq Palette::RED
+      expect(Palette.meter(Palette.health, 90, banded: true)).to eq Palette.green
+      expect(Palette.meter(Palette.health, 89, banded: true)).to eq Palette.light_green
+      expect(Palette.meter(Palette.health, 10, banded: true)).to eq Palette.red
     end
   end
 end

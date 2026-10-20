@@ -264,8 +264,8 @@ Spectator.describe "aiming" do
       run.press "f"
       4.times { run.press "l" }
 
-      expect(run.map.flight[{5, 1}]?).to eq Palette::IMPACT
-      expect(run.map.flight[{4, 1}]?).to eq Palette::FLIGHT
+      expect(run.map.flight[{5, 1}]?).to eq Palette.impact
+      expect(run.map.flight[{4, 1}]?).to eq Palette.flight
     end
 
     it "says the shot is clear" do

@@ -43,9 +43,9 @@ Spectator.describe "the info panel selection" do
       String.build do |line|
         run.buffer.width.times do |column|
           found = ground run, column, row
-          line << if found == Palette::SELECTED_HEADER || found == Palette::SELECTED_ROW
+          line << if found == Palette.selected_header || found == Palette.selected_row
             'S'
-          elsif found == Palette::HEADER_GROUND
+          elsif found == Palette.header_ground
             'H'
           else
             '.'
@@ -74,7 +74,7 @@ Spectator.describe "the info panel selection" do
 
       expect(where run).to eq({"Scores", nil})
       expect(run.play.info_panel.lit).to be header
-      expect(ground run, header.rect.x + 3, header.rect.y).to eq Palette::SELECTED_HEADER
+      expect(ground run, header.rect.x + 3, header.rect.y).to eq Palette.selected_header
     end
 
     it "moves among the headers on Down and Up, and stops at the ends" do
@@ -101,7 +101,7 @@ Spectator.describe "the info panel selection" do
 
       run.press "Tab"
       expect(run.play.info_panel.lit).to be_nil
-      expect(ground run, header.rect.x + 3, header.rect.y).to eq Palette::HEADER_GROUND
+      expect(ground run, header.rect.x + 3, header.rect.y).to eq Palette.header_ground
 
       run.press "Shift+Tab"
       expect(where run).to eq({"Pack", nil})
@@ -193,7 +193,7 @@ Spectator.describe "the info panel selection" do
       run.press "Right"
       row = run.play.character.number_names
 
-      expect(ground run, row.rect.right - 2, row.rect.y).to eq Palette::SELECTED_ROW
+      expect(ground run, row.rect.right - 2, row.rect.y).to eq Palette.selected_row
     end
 
     it "goes back to the header when the section closes under it" do

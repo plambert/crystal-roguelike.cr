@@ -51,7 +51,7 @@ Spectator.describe Roguelike::Ui::ExaminePane do
 
       pane.show floor, 7, 1, nil, seen
 
-      expect(pane.what.style).to eq Roguelike::Ui::Palette::SHAPE
+      expect(pane.what.style).to eq Roguelike::Ui::Palette.shape
     end
 
     it "still says out of sight for a dark square with nothing on it" do
@@ -108,7 +108,7 @@ Spectator.describe Roguelike::Ui::ExaminePane do
       pane.show door, 1, 1
 
       expect(pane.what.text).to eq Roguelike::Ui::ExaminePane::SPIKED
-      expect(pane.what.style).to eq Roguelike::Ui::Palette::SPIKED.style
+      expect(pane.what.style).to eq Roguelike::Ui::Palette.spiked.style
     end
 
     it "calls a remembered spiked door a spiked door" do
