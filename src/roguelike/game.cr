@@ -301,6 +301,15 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @overlooked : Int32 = 0
 
+    # How many times something has gone into the pack or come out of it.
+    #
+    # A pickup or a drop changes what an explore wants, so a walk that stands
+    # on a square again after one is not going round in a circle. A walk
+    # compares it only with what it read earlier in the same walk, so the
+    # save leaves it out.
+    @[JSON::Field(ignore: true)]
+    @pack_moves : Int32 = 0
+
     # Whether the action being performed has spent any time.
     #
     # `#spend` sets it and `#perform` reads it. An action that took a turn
@@ -848,9 +857,10 @@ module Roguelike
       getter? visiting : Bool = false
 
       # Where the character has stood during an explore or a travel, with the
-      # `Knowledge#revision` of the time. Standing there again at the same
-      # revision would choose the same way again, so the walk stops.
-      getter stood = Set({ {Int32, Int32}, Int32 }).new
+      # `Knowledge#revision` and the count of pickups and drops at the time.
+      # Standing there again with both unchanged would choose the same way
+      # again, so the walk stops.
+      getter stood = Set({ {Int32, Int32}, Int32, Int32 }).new
 
       # How far it has gone.
       property steps : Int32 = 0
@@ -1065,7 +1075,7 @@ module Roguelike
     # knows now. `nil` when there is no step to take, and the walk is given
     # the reason, and the character is told it, before this answers.
     private def planned_heading(walk : Walk) : Direction?
-      stood = {@player.at, knowledge.revision}
+      stood = {@player.at, knowledge.revision, @pack_moves}
       if walk.stood.includes?(stood) || walk.steps >= floor.columns * floor.rows
         walk.halt = Halt::Spent
       else
@@ -4465,6 +4475,7 @@ module Roguelike
     def pick_up(item : Item) : Bool
       return false unless floor.take @player.x, @player.y, item
 
+      @pack_moves += 1
       if item.kind.item_class.treasure?
         @player.take_gold item.count
         say "You pick up #{Game.coins item.count}.",
@@ -4473,8 +4484,11 @@ module Roguelike
         return true
       end
 
+      left = item.dropped?
+      item.take_up
       letter = @player.inventory.add item
       unless letter
+        item.set_down if left
         floor.drop @player.x, @player.y, item
         say "You cannot carry any more.",
           Event::Refused.new(:pack_full, item: item.id, name: name(item))
@@ -4502,7 +4516,8 @@ module Roguelike
     # Takes any gold on the square, without a turn of its own.
     #
     # The step onto the square is the turn. Nobody walks over coins and
-    # leaves them, and asking would be a keystroke for every pile.
+    # leaves them, and asking would be a keystroke for every pile. Coins the
+    # character put down stay where they are.
     #
     # Gold is counted rather than carried, so there is no pack to fill and no
     # way for this to refuse.
@@ -4511,7 +4526,7 @@ module Roguelike
     private def take_coins : Nil
       taken = 0
 
-      here.select(&.kind.item_class.treasure?).each do |item|
+      here.select { |item| item.kind.item_class.treasure? && !item.dropped? }.each do |item|
         next unless floor.take @player.x, @player.y, item
 
         @player.take_gold item.count
@@ -4520,6 +4535,7 @@ module Roguelike
 
       return unless taken > 0
 
+      @pack_moves += 1
       wrote = @log.written
       say "You pick up #{Game.coins taken}.", Event::Gold.new(:taken, taken)
       @overlooked += @log.written - wrote
@@ -4563,6 +4579,7 @@ module Roguelike
           next
         end
 
+        @pack_moves += 1
         wrote = @log.written
         say "You pick up #{name item}.",
           with_facts(Event::PickedUp.new(taken_id(letter, item), name item),
@@ -4632,7 +4649,11 @@ module Roguelike
       dropped = name_under letter
       held = @player.inventory.remove letter
       @player.equipment.clean @player.inventory
-      held.each { |one| floor.drop @player.x, @player.y, one }
+      held.each do |one|
+        one.set_down
+        floor.drop @player.x, @player.y, one
+      end
+      @pack_moves += 1
       say "You drop #{dropped}.",
         Event::Dropped.new(held.map(&.id), dropped)
       spend_turn
@@ -4649,7 +4670,9 @@ module Roguelike
 
       purse = Item.new ItemKind::Gold, count: dropped
       purse.enroll next_id
+      purse.set_down
       floor.drop @player.x, @player.y, purse
+      @pack_moves += 1
       say "You drop #{dropped} gold pieces.",
         Event::Gold.new(:dropped, dropped)
       spend_turn
@@ -7159,6 +7182,8 @@ module Roguelike
     # are taken when the carried ones might be blessed too. A known curse on
     # either side is no reason to take anything.
     #
+    # Nothing the character put down is taken. They meant to leave it.
+    #
     # A full pack narrows both rules to what would join a letter it already
     # holds. An explore plans over the same answer, so it does not walk to a
     # pile the pickup would have to leave.
@@ -7177,9 +7202,10 @@ module Roguelike
                else
                  ->(item : Item) { quiver.try(&.call(item)) || held.any?(&.might_be?(item)) }
                end
-      return wanted unless wanted && pack.full?
+      return unless wanted
+      return ->(item : Item) { !item.dropped? && wanted.call(item) } unless pack.full?
 
-      ->(item : Item) { wanted.call(item) && pack.room_for?(item) }
+      ->(item : Item) { !item.dropped? && wanted.call(item) && pack.room_for?(item) }
     end
 
     # Which items the quiver takes back off the floor. `nil` when the quiver

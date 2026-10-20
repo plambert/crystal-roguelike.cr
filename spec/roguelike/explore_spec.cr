@@ -634,6 +634,60 @@ Spectator.describe "exploring and travelling" do
       expect(game.floor.items(*ASIDE)).to be_empty
     end
 
+    it "leaves a potion the character put down, though one in the pack might join it" do
+      game = played SIDE_ROOM
+      pack = game.player.inventory
+      pack.add Item.new(Roguelike::ItemKind::HealingPotion)
+      pack.add Item.new(Roguelike::ItemKind::HealingPotion, blessing_known: true)
+      game.enroll
+      start = game.player.at
+
+      game.drop 'a'
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.at).not_to eq start
+      expect(game.floor.items(*start).map &.kind).to eq [Roguelike::ItemKind::HealingPotion]
+      expect(pack.count 'b').to eq 1
+      expect(game.legal.map &.class).not_to contain Action::Explore
+    end
+
+    it "takes a potion again once the character has picked it up by hand" do
+      game = played SIDE_ROOM
+      pack = game.player.inventory
+      pack.add Item.new(Roguelike::ItemKind::HealingPotion)
+      pack.add Item.new(Roguelike::ItemKind::HealingPotion, blessing_known: true)
+      game.enroll
+
+      game.drop 'a'
+      potion = game.floor.items(*game.player.at).first
+      game.pick_up potion
+      expect(pack.items.any? { |_, item| item.dropped? }).to be_false
+
+      held = pack.take('a', 1, game.next_id) || raise "nothing under a"
+      game.floor.drop *ASIDE, held
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.floor.items(*ASIDE)).to be_empty
+    end
+
+    it "goes on past a square it stood on when a pickup came between" do
+      start = {3, 2}
+      game = played HALL, at: start
+      game.player.inventory.add Item.new(Roguelike::ItemKind::HealingPotion)
+      game.floor.drop *start, Item.new(Roguelike::ItemKind::HealingPotion)
+      game.floor.drop *start, Item.new(Roguelike::ItemKind::Dagger)
+      game.floor.drop start[0] + 3, start[1], Item.new(Roguelike::ItemKind::Gold, count: 4)
+      game.enroll
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Explored
+      expect(game.player.gold).to eq 4
+      expect(game.player.inventory.count 'a').to eq 2
+    end
+
     it "leaves arrows a full pack has no letter for, and goes on" do
       game = played SIDE_ROOM
       pack = game.player.inventory

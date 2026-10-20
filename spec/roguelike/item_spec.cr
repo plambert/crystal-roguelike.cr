@@ -365,6 +365,15 @@ Spectator.describe Roguelike::Item do
       expect(one.merge(two).handling).to eq 40
       expect(two.merge(one).handling).to eq 40
     end
+
+    it "is put down when either part was" do
+      one = described_class.new Kind::Arrow, count: 5
+      two = described_class.new Kind::Arrow, count: 7
+      two.set_down
+
+      expect(one.merge(two).dropped?).to be_true
+      expect(two.merge(one).dropped?).to be_true
+    end
   end
 
   describe "#crack" do
@@ -513,6 +522,19 @@ Spectator.describe Roguelike::Item do
         blessing: Roguelike::Blessing::Cursed, blessing_known: true
 
       expect(described_class.from_json(item.to_json)).to eq item
+    end
+
+    it "keeps the mark of a pile the character put down" do
+      item = described_class.new Kind::Arrow, count: 3
+      item.set_down
+
+      expect(described_class.from_json(item.to_json).dropped?).to be_true
+    end
+
+    it "writes no mark for a pile the character never put down" do
+      stored = JSON.parse described_class.new(Kind::Arrow).to_json
+
+      expect(stored.as_h.has_key? "dropped").to be_false
     end
 
     it "round-trips a wand with charges spent" do

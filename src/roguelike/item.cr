@@ -65,6 +65,13 @@ module Roguelike
     # so an item written before sizes existed loads as medium.
     @size : Size? = nil
 
+    # Whether the character put this pile down.
+    #
+    # Automatic pickup leaves such a pile alone, so an explore does not walk
+    # back for what was just set down. Picking it up by hand clears it. A save
+    # holds the field only when it is set.
+    @dropped : Bool? = nil
+
     def initialize(@kind : ItemKind,
                    @enchantment : Int32 = 0,
                    @condition : Condition = Condition::Plain,
@@ -108,6 +115,21 @@ module Roguelike
 
       @id = id
       true
+    end
+
+    # Whether the character put this pile down.
+    def dropped? : Bool
+      @dropped == true
+    end
+
+    # Marks this pile as put down by the character.
+    def set_down : Nil
+      @dropped = true
+    end
+
+    # Clears the mark `#set_down` makes.
+    def take_up : Nil
+      @dropped = nil
     end
 
     # How far this item throws light. Zero while it is not alight.
@@ -367,6 +389,7 @@ module Roguelike
     end
 
     # This item and *other* held as one, with the larger handling of the two.
+    # It is marked as put down when either of them is.
     #
     # The caller has already decided they stack.
     #
@@ -376,6 +399,7 @@ module Roguelike
     def merge(other : Item) : Item
       found = with_count @count + other.count
       found.handle Math.max(@handling, other.handling) - @handling
+      found.set_down if other.dropped?
       found
     end
 
@@ -386,6 +410,8 @@ module Roguelike
     # the same arrows. `#carried` counts a letter as one stack, which is a
     # way of looking at a pile rather than a new pile.
     #
+    # The mark `#set_down` makes carries over too.
+    #
     # A caller that splits a pile in two passes an *id* from `Game#next_id`
     # for the part that leaves. `Inventory::Stack#take` is the one place that
     # happens.
@@ -393,6 +419,7 @@ module Roguelike
       found = Item.new @kind, @enchantment, @condition, count, @charges,
         @blessing, @blessing_known, @lit, @handling, size
       found.enroll id
+      found.set_down if dropped?
       found
     end
 
