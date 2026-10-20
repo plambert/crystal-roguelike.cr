@@ -16,6 +16,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   that a scroll THARR is a scroll of identify." The line comes after what the item did. This
   replaces the old "It was ..." line. A blessed scroll of identify gives one line for each new kind,
   in letter order.
+* The game keeps your preferences in `options.json` in its state directory and reads it at
+  start. It holds motion, flicker, mouse reporting, the update check, sending runs, and a new bar
+  color choice, `gradient` or `bands`. `--motion`, `--flicker`, `--update-check` and
+  `--autosubmit` override the file for one run and leave it unchanged. `--tester-name` still
+  sets the name in `tester.json`.
 
 ### Changed
 
