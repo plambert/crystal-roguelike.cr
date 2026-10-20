@@ -39,37 +39,6 @@ module Roguelike::Ui
     # The smallest the box is, whatever the screen.
     LEAST = {30, 10}
 
-    # How wide the form has to be to put each label beside its swatch. The
-    # longest label and a swatch at 256 colors need this much.
-    NARROW = 42
-
-    # A color row whose picker is drawn over the editor.
-    #
-    # The row's popover takes the popover z by default, which is under any
-    # dialog. This row lifts it above *over* each time it opens.
-    class ColorRow < Widgets::Form::ColorRow
-      def initialize(key : String, label : String, value : TermBuf::Color, @over : Int32)
-        super key, label, value
-      end
-
-      def open : Nil
-        super
-        lift
-      end
-
-      private def lift : Nil
-        held = popover
-        return unless held && held.open?
-
-        floating = held.floating
-        return unless floating && floating.z <= @over
-
-        held.floating = Layout::Floating.new floating.anchor, @over + 1,
-          floating.capture?, floating.overflow
-        held.catcher.try &.z=(@over)
-      end
-    end
-
     # A few things drawn in the theme as it stands: map glyphs on the map's
     # ground, an item line, and a message line.
     class Preview < Widgets::Widget
@@ -161,7 +130,7 @@ module Roguelike::Ui
 
     def initialize(@root : Path = Submit.root, z : Int32 = Widgets::Overlay::Z::DIALOG - 5)
       @preview = Preview.new
-      @form = ThemeEditor.form_for Theme.current, z, @depth
+      @form = ThemeEditor.form_for Theme.current, @depth
       @help = Help.new
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
@@ -183,7 +152,7 @@ module Roguelike::Ui
     # Puts the editor up on *app*, showing `Theme.current`.
     def show(app : Widgets::App) : Nil
       remove @form
-      @form = ThemeEditor.form_for Theme.current, z, @depth
+      @form = ThemeEditor.form_for Theme.current, @depth
       @form.attach app
       add @form
 
@@ -194,16 +163,14 @@ module Roguelike::Ui
     end
 
     # The form for *theme*: a section for each group in `Theme::ENTRIES`, a
-    # color row for each entry, and the reset row at the end. Each picker is
-    # drawn over *z* and offers *depth* colors.
-    def self.form_for(theme : Theme, z : Int32,
-                      depth : Widgets::Depth) : Widgets::Form
-      form = Widgets::Form.new actions: false, depth: depth, narrow: NARROW,
-        height: Layout::Sizing.fit
+    # color row for each entry, and the reset row at the end. Each picker
+    # offers *depth* colors.
+    def self.form_for(theme : Theme, depth : Widgets::Depth) : Widgets::Form
+      form = Widgets::Form.new actions: false, depth: depth, height: Layout::Sizing.fit
 
       Theme::ENTRIES.each do |entry|
         form.section entry.group do |section|
-          section.add_row ColorRow.new(entry.key, entry.label, theme[entry.key], z)
+          section.color entry.key, entry.label, theme[entry.key]
         end
       end
 

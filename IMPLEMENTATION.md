@@ -1873,8 +1873,7 @@ section headers, the character pane's bars, the marks on the Seen row the pointe
 ground, which also drops its kept idle frames, the menu's pointer and disabled styles, the log's
 new message and badge styles, and the replay banner. It then redraws.
 
-The color row's popover sits at the popover z, under the editor, so the editor's own `ColorRow`
-lifts it above the editor each time it opens. `Session` sets `Play#color_depth` to `Indexed256`
+`Session` sets `Play#color_depth` to `Indexed256`
 on a terminal without `TrueColor`, and the picker then offers only the palette. The theme stores
 the `Rgb` of the index chosen, through `ThemeEditor.stored`.
 
