@@ -199,7 +199,7 @@ Spectator.describe Roguelike::Event do
       game.perform Action::Quaff.new(potion.id)
 
       drunk = game.events.compact_map(&.as?(Event::Used)).first
-      found = game.events.compact_map(&.as?(Event::Identified)).first
+      found = game.events.compact_map(&.as?(Event::Learned)).first
 
       expect(look).not_to be_empty
       expect(drunk.verb.drink?).to be_true

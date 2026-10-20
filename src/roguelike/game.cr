@@ -5117,8 +5117,7 @@ module Roguelike
       used.reveal_blessing unless used.blessing.uncursed?
 
       yield used
-      found_out used
-      work used.kind.effect, used, choice: choice
+      found_out(used) { work used.kind.effect, used, choice: choice }
       spend_turn
       true
     end
@@ -6025,17 +6024,35 @@ module Roguelike
     # so using an item names its kind. A potion that did nothing visible
     # would not, and this is where that exception goes when there is one.
     #
-    # The line names one of the kind, with the blessing when the character
-    # knows it, so a cursed scroll is "a cursed scroll of remove curse" and
-    # not a scroll of remove curse that was somehow cursed a line earlier.
+    # A scroll that asks a question says so before the question, because
+    # the character needs to know what the scroll is to answer it.
     private def found_out(used : Item) : Nil
-      kind = used.kind
-      return unless @lore.learn kind
+      say_learned used if @lore.learn used.kind
+    end
 
-      one = Item.new kind, blessing: used.blessing, blessing_known: used.blessing_known?
-      say "It was #{name one}.",
-        with_facts(Event::Identified.new(name(Item.new(kind)), @lore.appearance(kind)),
-          item_facts(used))
+    # :ditto:, after the block says what the item did.
+    #
+    # The kind is learned before the block runs, because an effect can ask
+    # what the character knows.
+    private def found_out(used : Item, &) : Nil
+      news = @lore.learn used.kind
+      yield
+      say_learned used if news
+    end
+
+    # Says that the character now knows the kind of *item*.
+    #
+    # The line names the kind alone. The line that used the item has
+    # already shown its blessing.
+    private def say_learned(item : Item) : Nil
+      kind = item.kind
+      look = @lore.unknown_name kind
+      appearance = @lore.appearance kind
+      return unless look && appearance
+
+      known = name Item.new(kind)
+      say "You learn that #{look} is #{known}.",
+        with_facts(Event::Learned.new(known, appearance), item_facts(item))
     end
 
     # Puts hit points back.
@@ -6077,21 +6094,27 @@ module Roguelike
         return
       end
 
+      fresh = !@lore.known? item.kind
       news = make_out choice, item
       say news ? "It is #{name item}." : "You knew that already. It is #{name item}.",
         with_facts(Event::Identified.new(name(item), @lore.appearance(item.kind),
           news: news), item_facts(item))
+      say_learned item if fresh
     end
 
     # A blessed scroll, which names everything carried.
     #
     # The items are collected before any is named, because naming one can
     # move it to a letter of its own. The line counts letters, which is what
-    # the character sees in the pack.
+    # the character sees in the pack. Each kind learned gets a line of its
+    # own after it, in letter order.
     private def identify_all : Nil
       named = Set(Char).new
+      fresh = [] of {Char, Item}
       @player.inventory.items.each do |letter, item|
+        unknown = !@lore.known? item.kind
         named << letter if make_out letter, item
+        fresh << {letter, item} if unknown
       end
 
       if named.empty?
@@ -6101,6 +6124,7 @@ module Roguelike
 
       say "You now know all about #{named.size} of them.",
         Event::IdentifiedAll.new(named.size)
+      fresh.sort_by(&.[0]).each { |_letter, item| say_learned item }
     end
 
     # A cursed scroll, which picks its own target.
@@ -6122,6 +6146,7 @@ module Roguelike
 
       letter, item = pool[stream.rand pool.size]
       picked = "The scroll picks out #{letter}, #{name item}"
+      fresh = !@lore.known? item.kind
 
       unless make_out letter, item
         say "#{picked}, to no effect.",
@@ -6132,6 +6157,7 @@ module Roguelike
       say "#{picked}. It is #{name item}.",
         with_facts(Event::Identified.new(name(item), @lore.appearance(item.kind)),
           item_facts(item))
+      say_learned item if fresh
     end
 
     # Writes the shape of the whole floor into what the character remembers.

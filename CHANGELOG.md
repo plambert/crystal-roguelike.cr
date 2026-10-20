@@ -8,6 +8,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* When you find out what a potion, scroll or wand is, the message pane says so, as in "You learn
+  that a scroll THARR is a scroll of identify." The line comes after what the item did. This
+  replaces the old "It was ..." line. A blessed scroll of identify gives one line for each new kind,
+  in letter order.
+
 ### Changed
 
 * The equipment and pack lists on the left show an item's blessing with the same marks as the

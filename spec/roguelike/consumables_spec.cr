@@ -211,17 +211,62 @@ Spectator.describe "drinking, reading and zapping" do
 
       game.quaff 'a'
 
+      look = game.lore.unknown_name Kind::HealingPotion
       expect(game.lore.known? Kind::HealingPotion).to be_true
-      expect(game.log.lines).to contain "It was a potion of healing."
+      expect(game.log.lines).to contain "You learn that #{look} is a potion of healing."
     end
 
-    it "names the blessing with the kind when the character knows it" do
+    it "says what the scroll did before what it was" do
+      game = carrying [Item.new(Kind::IdentifyScroll), Item.new(Kind::Dagger)]
+      look = game.lore.appearance Kind::IdentifyScroll
+
+      game.read 'a', 'b'
+
+      expect(game.log.lines.last(2)).to eq [
+        "It is an uncursed dagger.",
+        "You learn that a scroll #{look} is a scroll of identify.",
+      ]
+      learned = game.events.compact_map(&.as?(Roguelike::Event::Learned))
+      expect(learned.map(&.name)).to eq ["a scroll of identify"]
+      expect(learned.map(&.appearance)).to eq [look]
+    end
+
+    it "names the kind alone, without the blessing" do
       cursed = Item.new Kind::RemoveCurseScroll, blessing: Roguelike::Blessing::Cursed, blessing_known: true
       game = carrying [cursed]
+      look = game.lore.appearance Kind::RemoveCurseScroll
 
       game.read 'a'
 
-      expect(game.log.lines).to contain "It was a cursed scroll of remove curse."
+      expect(game.log.lines).to contain "You learn that a scroll #{look} is a scroll of remove curse."
+    end
+
+    it "says nothing about a scroll whose kind is known" do
+      game = carrying [Item.new(Kind::IdentifyScroll), Item.new(Kind::Dagger)]
+      game.lore.learn Kind::IdentifyScroll
+
+      game.read 'a', 'b'
+
+      expect(game.log.lines.last).to eq "It is an uncursed dagger."
+      expect(game.log.lines.any? &.starts_with? "You learn").to be_false
+      expect(game.events.any?(Roguelike::Event::Learned)).to be_false
+    end
+
+    it "learns each kind once, in letter order, from a blessed scroll of identify" do
+      game = carrying [Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Blessed),
+                       Item.new(Kind::LightWand), Item.new(Kind::HealingPotion, count: 2),
+                       Item.new(Kind::Dagger)]
+      game.lore.learn Kind::IdentifyScroll
+      wand = game.lore.unknown_name Kind::LightWand
+      potion = game.lore.unknown_name Kind::HealingPotion
+
+      game.read 'a'
+
+      expect(game.log.lines.last(3)).to eq [
+        "You now know all about 3 of them.",
+        "You learn that #{wand} is a wand of light.",
+        "You learn that #{potion} is a potion of healing.",
+      ]
     end
 
     it "calls it by its look before anybody drinks one" do
@@ -250,7 +295,7 @@ Spectator.describe "drinking, reading and zapping" do
       game.quaff 'a'
 
       said = game.log.lines[before..]
-      expect(said.any? &.starts_with? "It was").to be_false
+      expect(said.any? &.starts_with? "You learn").to be_false
     end
 
     it "names the wand by zapping it" do
