@@ -5069,7 +5069,7 @@ fact never replaces a field the event has.
 | `slain` | `attacker` when a creature killed it, `attacker_species`, `target_species`, `weapon`, `launcher` |
 | `over` | The same, for a death |
 | `climbed` | `level`, and `hp` as current and maximum |
-| `picked_up`, `used`, `identified` | `item_facts` |
+| `picked_up`, `used`, `identified`, `learned` | `item_facts` |
 
 * A species is the creature's kind as its JSON spells it, such as `goblin_warrior`. The character
   is `player`. The events' own `species` and `killer_species` fields stay the labels they were.
