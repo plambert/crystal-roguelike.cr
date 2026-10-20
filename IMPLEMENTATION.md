@@ -1853,14 +1853,9 @@ flag set for this run carries a note naming the flag, and changing it on the scr
 person's own, so the file keeps it. Nothing on the screen is game state. It spends no turn and
 writes nothing to the replay log.
 
-The form relays the message its row's widget sent, and the router delivers a message sent during a
-drain on the drain after, which in the game's loop is the next keystroke. `OptionsScreen::Relay` is
-the form's mailbox and takes `Form::Changed` as it is posted, so a change lands on the key that made
-it.
-
-`j` `k` `h` `l` and `Enter` are bound on the screen and do what the arrows and `Space` do. A
-keymap answers before a widget's own handler, so on the name row those keys are handed to the field
-as typing. `?` and `F1` show the screen's own keys, from `Keys.options_screen`.
+`j` `k` `h` `l` are bound on the screen and do what the arrows do. A keymap answers before a
+widget's own handler, so each of those actions asks `Form#type` first, and a row that takes the key
+as text gets it instead. `?` and `F1` show the screen's own keys, from `Keys.options_screen`.
 
 ## Blessings and curses
 

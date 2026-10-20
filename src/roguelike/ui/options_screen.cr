@@ -49,27 +49,6 @@ module Roguelike::Ui
     # The list of keys `?` and `F1` show over the screen.
     getter help : Help
 
-    # Takes the form's messages as they are posted.
-    #
-    # The form tells of a change by relaying the message its row's widget
-    # sent. The router delivers a message sent during a drain on the drain
-    # after, which in the game's loop is the next keystroke. This takes the
-    # form's own `Form::Changed` at once and passes everything else on.
-    class Relay
-      include Widgets::Mailbox
-
-      def initialize(@screen : OptionsScreen)
-      end
-
-      def post(message : Widgets::Message, source : Widgets::Widget) : Nil
-        if message.is_a?(Widgets::Form::Changed) && source.same?(@screen.form)
-          @screen.changed message.key, message.value
-        else
-          @screen.routed_by.try &.post(message, source)
-        end
-      end
-    end
-
     def initialize(@root : Path = Submit.root, z : Int32 = Widgets::Overlay::Z::DIALOG - 10)
       @options = Options.new
       @form = OptionsScreen.form_for @options, Tester::ANONYMOUS
@@ -98,7 +77,6 @@ module Roguelike::Ui
       @options = options
       remove @form
       @form = OptionsScreen.form_for options, Options.name(@root)
-      @form.mailbox = Relay.new self
       @form.attach app
       add @form
 
@@ -182,15 +160,10 @@ module Roguelike::Ui
       @form.focused_row
     end
 
-    # Hands the key being answered to a text row that has the keyboard, so
-    # what is typed there goes into the field. Answers whether it did.
+    # Hands the key being answered to the row with the keyboard when the row
+    # takes it as text. Answers whether it did.
     def typed?(context : Widgets::Context) : Bool
-      row = focused_row
-      event = context.event
-      return false unless row.is_a?(Widgets::Form::TextRow) && event.is_a?(TermBuf::Events::Key)
-
-      row.press event.key
-      true
+      @form.type context
     end
 
     # Moves the keyboard *step* rows along.
@@ -208,20 +181,20 @@ module Roguelike::Ui
       end
     end
 
-    # Does what `Enter` means on the row with the keyboard. A toggle flips
-    # and a choice moves on.
-    def press(context : Widgets::Context) : Nil
-      return if typed? context
-
-      case row = focused_row
-      when Widgets::Form::ToggleRow then row.activate
-      when Widgets::Form::ChoiceRow then row.input.cycle
-      end
-    end
-
     # The keyboard goes to the first row.
     protected def initial_focus : Widgets::Widget?
       @form.reachable.first?.try &.target
+    end
+
+    # Takes each change the form reports.
+    def handle(event : TermBuf::Event, context : Widgets::Context) : Nil
+      if event.is_a? Widgets::Form::Changed
+        context.consume
+        changed event.key, event.value
+        return
+      end
+
+      super
     end
 
     # Keeps *value* under *key* and applies it.
@@ -229,7 +202,7 @@ module Roguelike::Ui
     # The tester's name goes to `tester.json` through `Options.rename`. Every
     # other key is set on the options, which are written whole. A key a flag
     # set for this run becomes the person's own, so the file keeps it.
-    def changed(key : String, value : Widgets::Form::Value) : Nil
+    private def changed(key : String, value : Widgets::Form::Value) : Nil
       return unless value.is_a? Options::Value
 
       if key == "name"

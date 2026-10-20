@@ -118,10 +118,10 @@ module Roguelike::Ui
 
     # The keys the options screen answers while it is up.
     #
-    # The form binds the arrows, `Tab`, `Home`, `End` and the page keys, and
-    # each row's input binds its own. The notes list those. The bindings
-    # here add the letters, `Enter` and `Escape`. A text row with the
-    # keyboard takes a letter, `?` and `Enter` as typing.
+    # The form binds the arrows, `Tab`, `Home`, `End`, the page keys and
+    # `Enter`, and each row's input binds its own. The notes list those. The
+    # bindings here add the letters and `Escape`. A row that takes text gets
+    # a letter or `?` it takes as typing, as a number row takes a digit.
     def self.options_screen(screen : OptionsScreen, app : Widgets::App) : Section
       bindings = Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("Escape"), "close the options",
@@ -138,14 +138,12 @@ module Roguelike::Ui
           ->(context : Widgets::Context) { screen.turn(-1, context); nil }
         map.bind TermBuf::Key.parse("l"), "the choice after, or a step up",
           ->(context : Widgets::Context) { screen.turn 1, context; nil }
-        map.bind TermBuf::Key.parse("Enter"), "turn a toggle, or take the next choice",
-          ->(context : Widgets::Context) { screen.press context; nil }
       end
 
       notes = [
         {"Up Down", "the row above or below"},
         {"Tab Shift+Tab", "the next or the previous row"},
-        {"Space", "turn a toggle, or take the next choice"},
+        {"Space Enter", "turn a toggle, or take the next choice"},
         {"Left Right", "the choice before or after, or step a number"},
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},

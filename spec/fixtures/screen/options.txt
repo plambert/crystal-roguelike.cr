@@ -1,16 +1,16 @@
 
   ╭─ Options ────────────────────────╮
- #│              ( ) Bands         │ │
  #│                                │ │
  #│ Input                          │ │
- #│ Mouse        ☑                 █ │
- #│                                █ │
+ #│ Mouse        ☑                 │ │
+ #│                                │ │
  #│ Game                           █ │
  #│ Update check ☑                 █ │
-  │ Send runs    ☐                 █ │
+ #│ Send runs    ☐                 █ │
   │                                █ │
-──│ Tester                         █ │──
- Y│ Name         anonymous         █ │
- s│ The name that labels your upload │
+  │ Tester                         █ │
+──│ Name         anonymous         █ │──
+ Y│ The name that labels your        │
+ s│ uploaded runs                    │
  Y╰──────────────────────────────────╯f
  minor healing. Press ? for the keys.
