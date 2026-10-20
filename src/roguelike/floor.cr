@@ -78,10 +78,12 @@ module Roguelike
     # glow and the ambient level, and holds the answer while none of the
     # three has moved. This is what tells it they have.
     #
-    # Every method that writes to the floor raises it. Some of those writes
-    # change nothing a field of view depends on, and raising it for one of
-    # those throws an answer away that was still good. That is the safe
-    # direction to be wrong in.
+    # Writing a square's tile, its glow or the ambient level raises it.
+    # Nothing else a floor holds reaches a field of view or the light on it.
+    # A creature blocks neither, and a source of light is read from the
+    # floor each time rather than from here. Moving a creature or an item
+    # leaves it alone, so a field of view outlasts the creatures walking
+    # through it.
     #
     # It is left out of the JSON and out of `#==`. Two floors that hold the
     # same squares are the same floor whatever each was written to on the way
@@ -267,7 +269,8 @@ module Roguelike
       {@columns, @rows}
     end
 
-    # Records that this floor has been written to. See `#version`.
+    # Records that a tile, a glow or the ambient level changed. See
+    # `#version`.
     protected def changed : Nil
       @version &+= 1
     end
@@ -333,7 +336,6 @@ module Roguelike
       return false unless contains? creature.x, creature.y
       return false if monster? creature.x, creature.y
 
-      changed
       @monsters[Floor.spot creature.x, creature.y] = creature
       @bands[creature.band] ||= Band.new creature.band, creature.kind.faction,
         sharing: creature.kind.sharing
@@ -342,7 +344,6 @@ module Roguelike
 
     # Takes whatever is standing on *x*, *y* off the floor. Answers it.
     def remove(x : Int32, y : Int32) : Monster?
-      changed
       @monsters.delete Floor.spot(x, y)
     end
 
@@ -356,7 +357,6 @@ module Roguelike
       return false unless contains? to[0], to[1]
       return false if monster? to[0], to[1]
 
-      changed
       @monsters.delete Floor.spot(from[0], from[1])
       creature.move_to to
       @monsters[Floor.spot to[0], to[1]] = creature
@@ -404,7 +404,6 @@ module Roguelike
 
     # Fits *fitting* to *x*, *y*. A `nil` takes whatever is there away.
     def set_fixture(x : Int32, y : Int32, fitting : Fixture?) : Nil
-      changed
       key = Floor.spot x, y
 
       if fitting
@@ -417,8 +416,8 @@ module Roguelike
     # Yields every fitted square, with what is on it.
     def each_fixture(& : Int32, Int32, Fixture ->) : Nil
       @fixtures.each do |spot, fitting|
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, fitting
+        column, row = Floor.unspot spot
+        yield column, row, fitting
       end
     end
 
@@ -443,8 +442,8 @@ module Roguelike
     # Yields every square that glows on its own, with how brightly.
     def each_glow(& : Int32, Int32, Int32 ->) : Nil
       @glow.each do |spot, level|
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, level
+        column, row = Floor.unspot spot
+        yield column, row, level
       end
     end
 
@@ -462,14 +461,12 @@ module Roguelike
 
     # Drives *item* into the door at *x*, *y* from the side *side* points to.
     def drive_spike(x : Int32, y : Int32, side : Direction, item : Item) : Nil
-      changed
       @spikes[Floor.spot x, y] = DoorSpike.new side, item
     end
 
     # Takes the spike out of the door at *x*, *y*. Answers it, or `nil` when
     # there was none.
     def pull_spike(x : Int32, y : Int32) : DoorSpike?
-      changed
       @spikes.delete Floor.spot(x, y)
     end
 
@@ -494,7 +491,6 @@ module Roguelike
     # Takes *damage* off the door at *x*, *y*. Answers what is left, never
     # less than zero.
     def batter(x : Int32, y : Int32, damage : Int32) : Int32
-      changed
       left = Math.max door_health(x, y) - damage, 0
       @battered[Floor.spot x, y] = left
       left
@@ -503,15 +499,14 @@ module Roguelike
     # Forgets the damage to the door at *x*, *y*. A broken door has no hit
     # points left to keep.
     def mend_door(x : Int32, y : Int32) : Nil
-      changed
       @battered.delete Floor.spot(x, y)
     end
 
     # Yields every spiked door, with its spike.
     def each_spike(& : Int32, Int32, DoorSpike ->) : Nil
       @spikes.each do |spot, held|
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, held
+        column, row = Floor.unspot spot
+        yield column, row, held
       end
     end
 
@@ -565,6 +560,36 @@ module Roguelike
       "#{x},#{y}"
     end
 
+    # The square a `#spot` key names.
+    #
+    # It reads the digits in place. `String#split` makes three strings per
+    # key, which is most of what a walk over one of these tables costs.
+    def self.unspot(spot : String) : {Int32, Int32}
+      column = 0
+      row = 0
+      sign = 1
+      across = true
+
+      spot.each_byte do |byte|
+        case byte
+        when '-'.ord then sign = -1
+        when ','.ord
+          column *= sign
+          sign = 1
+          across = false
+        else
+          digit = byte.to_i - '0'.ord
+          if across
+            column = column * 10 + digit
+          else
+            row = row * 10 + digit
+          end
+        end
+      end
+
+      {column, row * sign}
+    end
+
     # What is lying on *x*, *y*, oldest first. An empty array for a bare
     # square.
     def items(x : Int32, y : Int32) : Array(Item)
@@ -583,7 +608,6 @@ module Roguelike
     # same thing. The joined pile is marked as put down when either part was,
     # so automatic pickup leaves the whole of it.
     def drop(x : Int32, y : Int32, item : Item) : Nil
-      changed
       pile = @litter[Floor.spot(x, y)] ||= [] of Item
       found = pile.index &.stacks_with?(item)
 
@@ -598,7 +622,6 @@ module Roguelike
 
     # Takes *item* off *x*, *y*. Answers whether it was there.
     def take(x : Int32, y : Int32, item : Item) : Bool
-      changed
       spot = Floor.spot x, y
       pile = @litter[spot]?
       return false unless pile
@@ -613,7 +636,6 @@ module Roguelike
 
     # Takes everything off *x*, *y* and answers it.
     def clear_items(x : Int32, y : Int32) : Array(Item)
-      changed
       @litter.delete(Floor.spot(x, y)) || [] of Item
     end
 
@@ -622,8 +644,8 @@ module Roguelike
       @litter.each do |spot, pile|
         next if pile.empty?
 
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, pile
+        column, row = Floor.unspot spot
+        yield column, row, pile
       end
     end
 

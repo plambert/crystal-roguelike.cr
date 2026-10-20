@@ -2470,7 +2470,7 @@ module Roguelike
       held = @shaded
       return held if held && @shaded_at == key
 
-      made = Lighting.over floor, lights
+      made = light still_lights, moving_lights
       @shaded = made
       @shaded_at = key
       made
@@ -4052,16 +4052,43 @@ module Roguelike
     # one.
     def sight : Vision
       blind = @player.blind?
-      sources = blind ? NO_LIGHTS : lights
+      still = blind ? NO_LIGHTS : still_lights
+      moving = blind ? NO_LIGHTS : moving_lights
+      sources = still + moving
       key = {@player.floor, floor.version, @player.at, blind, sources}
 
       held = @seen
       return held if held && @seen_from == key
 
-      made = blind ? Vision.blind(@player.at) : Vision.from(floor, @player.at, sources)
+      made = if blind
+               Vision.blind @player.at
+             else
+               Vision.new FieldOfView.from(floor, @player.x, @player.y), light(still, moving)
+             end
       @seen = made
       @seen_from = key
       made
+    end
+
+    # The light *still* and then *moving* throw over this floor.
+    #
+    # It is the same as `Lighting.over` with the two lists one after the
+    # other. The light from *still* is kept while the floor's version and
+    # the list stay the same, and *moving* is poured over a copy of it. A
+    # floor holds dozens of sconces and the character's torch moves every
+    # step, so most of the light is worked out once a floor rather than once
+    # a step.
+    private def light(still : Array(LightSource),
+                      moving : Array(LightSource)) : Lighting
+      key = {floor.object_id, floor.version, still}
+      held = @still_light
+      unless held && @still_light_from == key
+        held = Lighting.over floor, still
+        @still_light = held
+        @still_light_from = key
+      end
+
+      moving.empty? ? held : Lighting.over(floor, moving, held)
     end
 
     # What a field of view was worked out from.
@@ -4094,6 +4121,15 @@ module Roguelike
     # :ditto:
     @[JSON::Field(ignore: true)]
     @seen_from : Seeing? = nil
+
+    # The light from the sources that stand still, and what it was worked
+    # out from. See `#light`. Not saved.
+    @[JSON::Field(ignore: true)]
+    @still_light : Lighting? = nil
+
+    # :ditto:
+    @[JSON::Field(ignore: true)]
+    @still_light_from : {UInt64, Int32, Array(LightSource)}? = nil
 
     # The light on the floor for the turn `@shaded_at` names. Not saved.
     @[JSON::Field(ignore: true)]
@@ -4252,6 +4288,12 @@ module Roguelike
     # glowing square is not a source, and `Lighting.over` reads it straight
     # off the floor.
     def lights : Array(LightSource)
+      still_lights + moving_lights
+    end
+
+    # The sconces and what lies alight on the floor, which is the first part
+    # of `#lights`. None of them moves on its own.
+    private def still_lights : Array(LightSource)
       found = [] of LightSource
 
       floor.each_fixture do |column, row, fitting|
@@ -4267,12 +4309,20 @@ module Roguelike
         end
       end
 
+      found
+    end
+
+    # What the character and the monsters carry alight, which is the rest of
+    # `#lights`, in the same order.
+    private def moving_lights : Array(LightSource)
+      found = [] of LightSource
+
       @player.inventory.each do |_letter, item|
         found << LightSource.new(@player.x, @player.y, item.light) if item.lit?
       end
 
       floor.each_monster do |column, row, creature|
-        creature.belongings.each do |item|
+        creature.each_belonging do |item|
           found << LightSource.new(column, row, item.light) if item.lit?
         end
       end
@@ -6589,7 +6639,7 @@ module Roguelike
           next unless creature
 
           yield creature
-          creature.belongings.each { |held| yield held }
+          creature.each_belonging { |held| yield held }
         end
 
         lying = [] of {Int32, Int32}

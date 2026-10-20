@@ -177,6 +177,14 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @chambers : Chambers? = nil
 
+    # The rows `#to_map` drew last, and what it drew them from.
+    @[JSON::Field(ignore: true)]
+    @drawn : Array(String)? = nil
+
+    # :ditto:
+    @[JSON::Field(ignore: true)]
+    @drawn_from : {Int32, Int32, Int32, Char}? = nil
+
     def initialize(@floor : String,
                    @memories : Hash(String, Memory) = {} of String => Memory,
                    @sightings : Hash(String, Sighting) = {} of String => Sighting,
@@ -447,8 +455,8 @@ module Roguelike
     # Yields every square that has been seen, with what was on it.
     def each(& : Int32, Int32, Memory ->) : Nil
       @memories.each do |spot, memory|
-        parts = spot.split ','
-        yield parts[0].to_i, parts[1].to_i, memory
+        column, row = Floor.unspot spot
+        yield column, row, memory
       end
     end
 
@@ -463,16 +471,35 @@ module Roguelike
 
     # *floor* drawn as it is remembered, with *unknown* wherever it is not.
     #
-    # For a spec and for reading a failure, the same way `Vision#to_map` is.
+    # An observation writes it every turn, so it is drawn once per
+    # `#revision` and kept. A square's terrain moves the revision whenever it
+    # changes, so a kept drawing is never out of date.
     def to_map(floor : Floor, unknown : Char = '?') : Array(String)
-      Array.new(floor.rows) do |row|
-        String.build(floor.columns) do |line|
-          floor.columns.times do |column|
-            memory = self[column, row]
-            line << (memory ? memory.terrain.mark : unknown)
-          end
-        end
+      key = {@revision, floor.columns, floor.rows, unknown}
+      held = @drawn
+      return held.dup if held && @drawn_from == key
+
+      made = draw floor.columns, floor.rows, unknown
+      @drawn = made
+      @drawn_from = key
+      made.dup
+    end
+
+    # The rows `#to_map` answers, worked out from the memories alone.
+    #
+    # It walks the squares that have been seen rather than every square of
+    # the floor, so a floor seen a little is drawn quickly.
+    private def draw(columns : Int32, rows : Int32, unknown : Char) : Array(String)
+      grid = Array.new(rows) { Array.new(columns, unknown) }
+
+      @memories.each do |spot, memory|
+        column, row = Floor.unspot spot
+        next unless 0 <= column < columns && 0 <= row < rows
+
+        grid[row][column] = memory.terrain.mark
       end
+
+      grid.map &.join
     end
 
     def ==(other : Knowledge) : Bool

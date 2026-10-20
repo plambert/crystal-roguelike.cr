@@ -200,6 +200,58 @@ Spectator.describe Roguelike::Lighting do
     end
   end
 
+  describe "poured over another" do
+    # The shipped floor's sconces, then three torches standing among them.
+    def lit_floor : {Floor, Array(Source), Array(Source)}
+      floor = Roguelike::Floors.proving_ground
+      still = [] of Source
+
+      floor.each_fixture do |column, row, fitting|
+        fitting.kindle
+        still << Source.new(column, row, fitting.light, facing: fitting.attached)
+      end
+
+      moving = still.first(3).map { |source| Source.new source.x + 1, source.y + 1, 5 }
+      {floor, still, moving}
+    end
+
+    it "gives the light the two lists give poured at once" do
+      floor, still, moving = lit_floor
+      whole = Lighting.over floor, still + moving
+      layered = Lighting.over floor, moving, Lighting.over(floor, still)
+
+      expect(layered.levels.to_a).to eq whole.levels.to_a
+      expect(layered.kinds.to_a).to eq whole.kinds.to_a
+      expect(layered.flames.to_a).to eq whole.flames.to_a
+    end
+
+    it "answers every square the way the two lists poured at once do" do
+      floor, still, moving = lit_floor
+      whole = Lighting.over floor, still + moving
+      layered = Lighting.over floor, moving, Lighting.over(floor, still)
+
+      floor.rows.times do |row|
+        floor.columns.times do |column|
+          expect(layered.level column, row).to eq whole.level(column, row)
+          expect(layered.kind_at column, row).to eq whole.kind_at(column, row)
+          expect(layered.flames_at column, row).to eq whole.flames_at(column, row)
+        end
+      end
+      expect(layered.size).to eq whole.size
+    end
+
+    it "leaves the light beneath as it was" do
+      floor, still, moving = lit_floor
+      beneath = Lighting.over floor, still
+      before = Lighting.over floor, still
+      Lighting.over floor, moving, beneath
+
+      expect(beneath.levels).to eq before.levels
+      expect(beneath.kinds).to eq before.kinds
+      expect(beneath.flames).to eq before.flames
+    end
+  end
+
   describe "drawn" do
     it "draws what it drew last time for a torch in a room" do
       floor = spot [

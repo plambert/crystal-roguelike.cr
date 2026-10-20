@@ -289,8 +289,8 @@ module Roguelike
         end
 
         @knowledge.openings.each do |key|
-          parts = key.split ','
-          at = index parts[0].to_i, parts[1].to_i
+          column, row = Floor.unspot key
+          at = index column, row
           @cross[at] = true if at && !@known[at]
         end
       end
@@ -375,28 +375,31 @@ module Roguelike
       # joined across the four sides of a square. A frontier square takes the
       # sizes of the bodies it is in or beside. The flood runs once for the
       # cut, so the cost does not grow with the length of the frontier.
+      #
+      # The flood works on indices. Most of a floor is unseen when it is first
+      # entered, so this walks most of its squares on every cut.
       private def hidden(edge : Array(Bool)) : Array(Int32)
         body = Array(Int32).new @size, -1
         sizes = [] of Int32
+        pending = [] of Int32
 
         @size.times do |start|
           next if @known[start] || body[start] >= 0
 
           number = sizes.size
           body[start] = number
-          queue = Deque{start}
+          pending << start
           count = 0
 
-          while at = queue.shift?
+          until pending.empty?
+            at = pending.pop
             count += 1
-            x, y = spot at
-            SIDES.each do |offset|
-              found = index(x + offset[0], y + offset[1])
-              next if found.nil? || @known[found] || body[found] >= 0
+            column = at % @columns
 
-              body[found] = number
-              queue << found
-            end
+            flow at - @columns, number, body, pending if at >= @columns
+            flow at - 1, number, body, pending if column > 0
+            flow at + 1, number, body, pending if column < @columns - 1
+            flow at + @columns, number, body, pending if at + @columns < @size
           end
 
           sizes << count
@@ -410,6 +413,15 @@ module Roguelike
           around(square) { |next_to| bodies << body[next_to] unless @known[next_to] }
           Math.min bodies.uniq!.sum { |number| sizes[number] }, BEHIND
         end
+      end
+
+      # Adds *square* to body *number* unless it is seen or already counted.
+      private def flow(square : Int32, number : Int32, body : Array(Int32),
+                       pending : Array(Int32)) : Nil
+        return if @known[square] || body[square] >= 0
+
+        body[square] = number
+        pending << square
       end
 
       private def chamber(anchor : {Int32, Int32}, number : Int32,
