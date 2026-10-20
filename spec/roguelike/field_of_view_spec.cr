@@ -212,6 +212,19 @@ Spectator.describe Roguelike::FieldOfView do
     end
   end
 
+  describe "#includes?" do
+    it "answers what the set of visible squares holds, on and off the floor" do
+      floor = Roguelike::Floors.proving_ground
+      sight = Sight.from floor, 10, 5
+
+      (-2..floor.rows + 1).each do |row|
+        (-2..floor.columns + 1).each do |column|
+          expect(sight.includes? column, row).to eq sight.visible.includes?({column, row})
+        end
+      end
+    end
+  end
+
   describe "#to_map" do
     it "writes the terrain where it is seen and the unseen mark elsewhere" do
       floor = spot [

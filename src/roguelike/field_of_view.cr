@@ -1,3 +1,4 @@
+require "bit_array"
 require "../roguelike"
 
 module Roguelike
@@ -34,6 +35,19 @@ module Roguelike
     # it is within *radius* of the origin by straight-line distance.
     getter radius : Int32?
 
+    # `#visible` as one bit per square of the box that holds it, for
+    # `#includes?`. `nil` until the first ask, and again after a cast adds
+    # to `#visible`.
+    #
+    # A creature deciding whether it has noticed another asks this for every
+    # pair of creatures on the floor, and a bit is far cheaper to read than
+    # a set is to hash into.
+    @marks : BitArray? = nil
+    @left = 0
+    @top = 0
+    @width = 0
+    @height = 0
+
     def initialize(@origin : {Int32, Int32},
                    @visible : Set({Int32, Int32}) = Set({Int32, Int32}).new,
                    @radius : Int32? = nil)
@@ -67,12 +81,38 @@ module Roguelike
 
     # Whether *x*, *y* can be seen.
     def includes?(x : Int32, y : Int32) : Bool
-      @visible.includes?({x, y})
+      marks = @marks || mark
+      column = x - @left
+      row = y - @top
+      return false unless 0 <= column < @width && 0 <= row < @height
+
+      marks[row * @width + column]
     end
 
     # :ditto:
     def includes?(spot : {Int32, Int32}) : Bool
-      @visible.includes? spot
+      includes? spot[0], spot[1]
+    end
+
+    # Lays `#visible` out as bits over the box that holds it.
+    private def mark : BitArray
+      left, top = @origin
+      right, bottom = @origin
+
+      @visible.each do |spot|
+        left = Math.min left, spot[0]
+        right = Math.max right, spot[0]
+        top = Math.min top, spot[1]
+        bottom = Math.max bottom, spot[1]
+      end
+
+      @left = left
+      @top = top
+      @width = right - left + 1
+      @height = bottom - top + 1
+      marks = BitArray.new @width * @height
+      @visible.each { |spot| marks[(spot[1] - top) * @width + spot[0] - left] = true }
+      @marks = marks
     end
 
     # How many squares can be seen.
@@ -237,6 +277,7 @@ module Roguelike
     # Fills `#visible` from the origin over *floor*.
     protected def cast(floor : Floor) : Nil
       Quadrant.each { |quadrant| scan floor, quadrant, Row.first }
+      @marks = nil
     end
 
     # Which square of the floor *depth* and *column* of *quadrant* name.
