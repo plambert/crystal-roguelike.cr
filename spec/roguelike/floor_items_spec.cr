@@ -40,6 +40,17 @@ Spectator.describe "items on the floor" do
       expect(game.here.first.count).to eq 12
     end
 
+    it "marks a joined stack as put down when the part dropped on it was" do
+      game = bare
+      game.floor.drop 2, 2, Item.new(Kind::Arrow, count: 5)
+      dropped = Item.new Kind::Arrow, count: 7
+      dropped.set_down
+      game.floor.drop 2, 2, dropped
+
+      expect(game.here.size).to eq 1
+      expect(game.here.first.dropped?).to be_true
+    end
+
     it "keeps a different stack apart" do
       game = bare
       game.floor.drop 2, 2, Item.new(Kind::Arrow, count: 5)
@@ -156,6 +167,23 @@ Spectator.describe "items on the floor" do
       expect(game.log.last?).to eq "You drop a dagger."
     end
 
+    it "marks what it puts down" do
+      game = bare
+      game.player.inventory.add Item.new(Kind::Dagger)
+      game.drop 'a'
+
+      expect(game.here.first.dropped?).to be_true
+    end
+
+    it "lets a pickup by hand clear the mark" do
+      game = bare
+      game.player.inventory.add Item.new(Kind::Dagger)
+      game.drop 'a'
+      game.pick_up game.here.first
+
+      expect(game.player.inventory['a'].try &.dropped?).to eq false
+    end
+
     it "drops nothing for a letter nothing is under" do
       game = bare
 
@@ -199,6 +227,18 @@ Spectator.describe "items on the floor" do
 
       expect(game.player.gold).to eq 12
       expect(game.floor.items?(3, 2)).to be_false
+    end
+
+    it "leaves coins the character put down" do
+      game = bare
+      game.player.take_gold 12
+      game.drop_gold 5
+
+      game.step Direction::East
+      game.step Direction::West
+
+      expect(game.player.gold).to eq 7
+      expect(game.here.first.count).to eq 5
     end
 
     it "costs no turn of its own" do

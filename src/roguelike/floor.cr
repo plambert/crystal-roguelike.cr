@@ -580,14 +580,17 @@ module Roguelike
     # Puts *item* on *x*, *y*.
     #
     # A stack joins one already there rather than making a second pile of the
-    # same thing.
+    # same thing. The joined pile is marked as put down when either part was,
+    # so automatic pickup leaves the whole of it.
     def drop(x : Int32, y : Int32, item : Item) : Nil
       changed
       pile = @litter[Floor.spot(x, y)] ||= [] of Item
       found = pile.index &.stacks_with?(item)
 
       if found
-        pile[found] = pile[found].add item.count
+        joined = pile[found].add item.count
+        joined.set_down if item.dropped?
+        pile[found] = joined
       else
         pile << item
       end
