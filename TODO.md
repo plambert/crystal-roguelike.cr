@@ -65,19 +65,6 @@ character pane below the XP row. The row is a bar that shrinks as the effect run
 effect's name and the number of turns remaining written over it, the way the XP bar carries its
 number. The row goes away when the effect ends.
 
-### Learning a kind says so
-
-When an item with a random name is found out to be a particular kind, the message pane says so. If
-a scroll of THARR turns out to be a scroll of identify, the player reads a line such as "You learn
-that a scroll of THARR is a scroll of identify." Every item of that kind from then on is shown by
-its true name.
-
-### `F` fires at the nearest enemy
-
-`F` fires the readied ranged weapon at the nearest enemy in sight, with no targeting step in
-between, where `f` asks for a target first. When there is no enemy to fire at, `F` does nothing and
-no turn passes.
-
 ## Considered
 
 ### Sorting the pack
@@ -161,6 +148,20 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### Learning a kind says so
+
+When the character finds out what a potion, scroll or wand is, the message pane says so, as in
+"You learn that a scroll THARR is a scroll of identify." The line comes after what the item did,
+and it replaces the old "It was ..." line. A blessed scroll of identify gives one line for each
+new kind, in letter order.
+
+### `F` fires at the nearest enemy
+
+`F` fires the readied ranged weapon at the nearest monster in sight, with no aiming step. It gives
+the same refusals as `f` for no ranged weapon, an empty quiver or the wrong ammunition. With no
+monster in sight it says "There is nothing to fire at.", and with monsters in sight but none in a
+clear line it says "There is no clear shot." Neither spends a turn.
 
 ### The Seen list is sorted by distance
 
