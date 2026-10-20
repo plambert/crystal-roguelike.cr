@@ -65,6 +65,13 @@ character pane below the XP row. The row is a bar that shrinks as the effect run
 effect's name and the number of turns remaining written over it, the way the XP bar carries its
 number. The row goes away when the effect ends.
 
+### Learning a kind says so
+
+When an item with a random name is found out to be a particular kind, the message pane says so. If
+a scroll of THARR turns out to be a scroll of identify, the player reads a line such as "You learn
+that a scroll of THARR is a scroll of identify." Every item of that kind from then on is shown by
+its true name.
+
 ## Considered
 
 ### Sorting the pack
