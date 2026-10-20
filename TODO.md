@@ -58,6 +58,12 @@ share like that. Other creatures share with band members who speak a common lang
 within range or were seen recently, and call out to the rest. Languages are per creature, with
 properties such as silent, sight-based or sound-based, and a clever goblin might speak Orc.
 
+### Temporary effects show their time remaining
+
+Each temporary buff or debuff on the character, such as haste or blindness, gets its own row in the
+character pane below the XP row. The row names the effect and shows how much time is left, and it
+goes away when the effect ends.
+
 ## Considered
 
 ### Sorting the pack
