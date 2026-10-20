@@ -615,17 +615,20 @@ module Roguelike
     # The visible grid over *ground*, from *seen*.
     #
     # `Vision#each` yields the squares in view, so this touches those rather
-    # than every square of the floor.
+    # than every square of the floor. A row with nothing in view is one
+    # string, shared by every such row.
     private def self.visible_rows(ground : Floor, seen : Vision) : Array(String)
-      rows = Array.new(ground.rows) { Array.new(ground.columns, HIDDEN) }
+      lines = Array(Bytes?).new(ground.rows, nil)
 
       seen.each do |spot|
         next unless ground.contains? spot[0], spot[1]
 
-        rows[spot[1]][spot[0]] = SHOWN
+        line = lines[spot[1]] ||= Bytes.new(ground.columns, HIDDEN.ord.to_u8)
+        line[spot[0]] = SHOWN.ord.to_u8
       end
 
-      rows.map &.join
+      dark = HIDDEN.to_s * ground.columns
+      lines.map { |line| line ? String.new(line) : dark }
     end
 
     # What the character carries, one entry per letter.
