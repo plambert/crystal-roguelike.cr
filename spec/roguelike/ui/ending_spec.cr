@@ -110,10 +110,11 @@ Spectator.describe "how a run starts and ends" do
       expect(run.entry.question).to eq Placards::NAME_QUESTION
     end
 
-    it "offers only a new character and leaving when the store is empty" do
+    it "offers only a new character, the options and leaving when the store is empty" do
       run = playing title: true, store: Playing.store
 
       expect(run.menu.entries.map &.key).to eq [Placards::NEW_KEY,
+                                                Placards::OPTIONS_KEY,
                                                 Placards::QUIT_KEY]
     end
 
@@ -123,7 +124,7 @@ Spectator.describe "how a run starts and ends" do
 
       run = playing title: true, store: store
 
-      expect(run.menu.entries.size).to eq 3
+      expect(run.menu.entries.size).to eq 4
       expect(run.menu.entries[1].text).to contain "Sparky"
       expect(run.menu.entries.last.key).to eq Placards::QUIT_KEY
     end

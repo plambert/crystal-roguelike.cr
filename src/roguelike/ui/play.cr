@@ -75,6 +75,13 @@ module Roguelike::Ui
     # The release notes, drawn over the title screen.
     getter news_page : NewsPage
 
+    # The options screen, which `o` at the title and `O` in play open.
+    getter options_screen : OptionsScreen
+
+    # Pushes the options to whatever runs the game after each change on the
+    # options screen. `Session` sets this to apply them to itself.
+    property on_options : Proc(Options, Nil) = ->(options : Options) { options.apply; nil }
+
     # The one-key question, when there is one.
     getter prompt : Widgets::Prompt
 
@@ -469,6 +476,7 @@ module Roguelike::Ui
       @menu = Widgets::Menu.new
       @menu.pointer_style = Palette::POINTER_MARK
       @news_page = NewsPage.new
+      @options_screen = OptionsScreen.new
       @menu.disabled_style = Palette::FAINT
       @history = HistoryPane.new
       @history.accents = ->BlessingWords.accents(String)
@@ -493,7 +501,8 @@ module Roguelike::Ui
 
     # The bindings that belong to the game rather than to the application.
     def bindings : Widgets::Bindings
-      found = sections.reduce(Keys.examining(self)) { |held, section| held.merge section.bindings }
+      own = Keys.examining(self).merge Keys.preferring(self)
+      found = sections.reduce(own) { |held, section| held.merge section.bindings }
       found.merge unlisted
     end
 
@@ -571,13 +580,14 @@ module Roguelike::Ui
 
     # The rows the title menu offers.
     #
-    # A new character first, every saved character after it, and leaving
-    # last. The two ends keep their keys whatever is in the store, so the
+    # A new character first, every saved character after it, then the
+    # options and what is new, and leaving last. The two ends keep their keys whatever is in the store, so the
     # saves take what is left.
     private def title_rows(held : Array(Save::Held)) : Array(Widgets::Menu::Entry)
       rows = [Widgets::Menu::Entry.new Placards::NEW_KEY, Placards::NEW_ROW]
       keys = Widgets::Menu::LETTERS.reject do |key|
-        {Placards::NEW_KEY, Placards::QUIT_KEY, Placards::WHATS_NEW_KEY}.includes? key
+        {Placards::NEW_KEY, Placards::QUIT_KEY, Placards::WHATS_NEW_KEY,
+         Placards::OPTIONS_KEY}.includes? key
       end
 
       held.each_with_index do |found, index|
@@ -587,6 +597,8 @@ module Roguelike::Ui
         @carrying[key] = found.name
         rows << Widgets::Menu::Entry.new key, Placards.saved_row(found)
       end
+
+      rows << Widgets::Menu::Entry.new Placards::OPTIONS_KEY, Placards::OPTIONS_ROW
 
       unless @news.empty?
         rows << Widgets::Menu::Entry.new Placards::WHATS_NEW_KEY, Placards::WHATS_NEW_ROW
@@ -607,10 +619,25 @@ module Roguelike::Ui
       @news_page.open application
     end
 
+    # Opens the options screen. Closing it runs *after*, or leaves the
+    # keyboard where it was with nothing.
+    #
+    # The interactive game sets `Options.current`. Anything else reads the
+    # file each time, so a spec names its own state directory and its own
+    # options.
+    def show_options(after : Proc(Nil)? = nil) : Nil
+      screen = @options_screen
+      options = Options.current || Options.read(screen.root)
+      screen.on_change = @on_options
+      screen.on_close = after
+      screen.show application, options
+    end
+
     # What the row picked at the title screen does.
     private def chose_at_title(key : Char?) : Nil
       return @finished = true if key.nil? || key == Placards::QUIT_KEY
       return show_news if key == Placards::WHATS_NEW_KEY
+      return show_options(-> { show_title; nil }) if key == Placards::OPTIONS_KEY
 
       name = @carrying[key]?
       return ask_the_name unless name
@@ -1128,8 +1155,8 @@ module Roguelike::Ui
 
     # Whether a box is holding the keyboard. A question and a list each do.
     def modal? : Bool
-      @prompt.asking? || @entry.asking? || @menu.showing? ||
-        @placard.showing? || @history.showing? || (@console.try &.showing? || false)
+      @prompt.asking? || @entry.asking? || @menu.showing? || @placard.showing? ||
+        @history.showing? || @options_screen.showing? || (@console.try &.showing? || false)
     end
 
     # Puts the camera on the character.
@@ -3399,6 +3426,7 @@ module Roguelike::Ui
 
       app = @app
       @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app
+      @options_screen.refit Rect.new(0, 0, columns, rows)
 
       # A box of messages holds its lines wrapped to the width it was opened
       # at, so a window that changed size is filled again rather than sized

@@ -21,6 +21,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   color choice, `gradient` or `bands`. `--motion`, `--flicker`, `--update-check` and
   `--autosubmit` override the file for one run and leave it unchanged. `--tester-name` still
   sets the name in `tester.json`.
+* `o` on the title screen and `O` during play open an options screen with these settings and
+  your tester name. A change is kept as soon as you make it and takes no turn. Motion, flicker,
+  bar color and the mouse change while you watch. The update check and sending runs take effect
+  at the next start. A setting a flag overrode for this run says so, and changing it on the
+  screen keeps your choice.
 
 ### Changed
 
