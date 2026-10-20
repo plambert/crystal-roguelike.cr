@@ -72,6 +72,12 @@ a scroll of THARR turns out to be a scroll of identify, the player reads a line 
 that a scroll of THARR is a scroll of identify." Every item of that kind from then on is shown by
 its true name.
 
+### `F` fires at the nearest enemy
+
+`F` fires the readied ranged weapon at the nearest enemy in sight, with no targeting step in
+between, where `f` asks for a target first. When there is no enemy to fire at, `F` does nothing and
+no turn passes.
+
 ## Considered
 
 ### Sorting the pack
