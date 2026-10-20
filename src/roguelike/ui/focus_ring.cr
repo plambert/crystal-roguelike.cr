@@ -13,9 +13,9 @@ module Roguelike::Ui
   # panels too.
   #
   # A focused info or log panel has a tinted ground. It fades from
-  # `Palette::FOCUS_FLASH` to `Palette::FOCUS_GROUND` when `Motion.on?`, and
+  # `Palette.focus_flash` to `Palette.focus_ground` when `Motion.on?`, and
   # takes the gray at once otherwise. The map has no tint. The rule beside
-  # the focused panel is drawn in `Palette::FOCUS_RULE`. For the info panel
+  # the focused panel is drawn in `Palette.focus_rule`. For the info panel
   # that is the rule on its right. For the log it is the rule above it. For
   # the map it is both of those, since the map sits between them.
   class FocusRing
@@ -41,7 +41,7 @@ module Roguelike::Ui
     property on_change : Proc(Panel, Panel, Nil)? = nil
 
     def initialize(@screen : Screen)
-      @tint = Widgets::Tint.new Palette::FOCUS_FLASH, Palette::FOCUS_GROUND
+      @tint = Widgets::Tint.new Palette.focus_flash, Palette.focus_ground
       show
     end
 
@@ -127,8 +127,8 @@ module Roguelike::Ui
 
       tinted ? @tint.apply(tinted, @app, Motion.on?) : @tint.clear
 
-      @screen.gutter.style = @current.log? ? nil : Palette::FOCUS_RULE
-      @screen.rule.style = @current.info? ? nil : Palette::FOCUS_RULE
+      @screen.gutter.style = @current.log? ? nil : Palette.focus_rule
+      @screen.rule.style = @current.info? ? nil : Palette.focus_rule
     end
   end
 end

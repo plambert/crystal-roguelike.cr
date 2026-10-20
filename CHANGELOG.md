@@ -21,6 +21,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   color choice, `gradient` or `bands`. `--motion`, `--flicker`, `--update-check` and
   `--autosubmit` override the file for one run and leave it unchanged. `--tester-name` still
   sets the name in `tester.json`.
+* The game reads its colors from `theme.json` in its state directory when that file exists. The
+  file holds one color per line, written as `#rrggbb`. Without the file, or for a color the file
+  leaves out, the game uses its own colors.
 
 ### Changed
 

@@ -64,16 +64,16 @@ Spectator.describe Roguelike::Ui::Meter do
       half = Meter.new "HP", 50, 100
       gone = Meter.new "HP", 5, 100
 
-      expect(full.fill).to eq Palette::GREEN
-      expect(gone.fill).to eq Palette::RED
-      expect(half.fill).not_to eq Palette::GREEN
-      expect(half.fill).not_to eq Palette::RED
+      expect(full.fill).to eq Palette.green
+      expect(gone.fill).to eq Palette.red
+      expect(half.fill).not_to eq Palette.green
+      expect(half.fill).not_to eq Palette.red
     end
 
     it "is exactly the named color at each level" do
-      {100 => Palette::GREEN, 80 => Palette::LIGHT_GREEN,
-       60 => Palette::YELLOW, 40 => Palette::ORANGE,
-       20 => Palette::RED}.each do |percent, color|
+      {100 => Palette.green, 80 => Palette.light_green,
+       60 => Palette.yellow, 40 => Palette.orange,
+       20 => Palette.red}.each do |percent, color|
         expect(Meter.new("HP", percent, 100).fill).to eq color
       end
     end
@@ -87,18 +87,18 @@ Spectator.describe Roguelike::Ui::Meter do
     # Running out of magic does not end a run, so the bar never goes red.
     it "never goes red on the magic levels" do
       (0..100).each do |percent|
-        meter = Meter.new "MP", percent, 100, Palette::MAGIC
+        meter = Meter.new "MP", percent, 100, Palette.magic
 
-        expect(meter.fill).not_to eq Palette::RED
+        expect(meter.fill).not_to eq Palette.red
       end
     end
 
     it "stays one color on the experience levels" do
       steps = (0..100).map do |percent|
-        Meter.new("XP", percent, 100, Palette::LEARNING).fill
+        Meter.new("XP", percent, 100, Palette.learning).fill
       end
 
-      expect(steps.uniq).to eq [Palette::LIGHT_GREEN]
+      expect(steps.uniq).to eq [Palette.light_green]
     end
   end
 
@@ -115,19 +115,19 @@ Spectator.describe Roguelike::Ui::Meter do
       found = backgrounds Meter.new("HP", 50, 100)
       bar = found[Meter::LABEL..]
 
-      expect(bar.count &.==(Palette::EMPTY)).to eq bar.size // 2
+      expect(bar.count &.==(Palette.empty)).to eq bar.size // 2
     end
 
     it "fills every cell when it is full" do
       found = backgrounds Meter.new("HP", 100, 100)
 
-      expect(found[Meter::LABEL..].includes? Palette::EMPTY).to be_false
+      expect(found[Meter::LABEL..].includes? Palette.empty).to be_false
     end
 
     it "fills no cell when it is empty" do
       found = backgrounds Meter.new("HP", 0, 100)
 
-      expect(found[Meter::LABEL..].uniq).to eq [Palette::EMPTY]
+      expect(found[Meter::LABEL..].uniq).to eq [Palette.empty]
     end
 
     # The count crosses the boundary between the two halves of the bar, so

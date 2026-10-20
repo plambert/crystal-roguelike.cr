@@ -10,40 +10,76 @@ module Roguelike::Ui
   # model's to say. What it looks like is the screen's. A theme is a different
   # table here rather than a change to the game.
   #
-  # Every style is a constant. The style table interns each one once. A style
-  # built inside a draw call would intern one style per cell. One frame bounds
-  # that count by the screen size. An animation does not bound it at all.
+  # Every style is built once per theme and kept in `Table`. The style table
+  # interns each one once. A style built inside a draw call would intern one
+  # style per cell. One frame bounds that count by the screen size. An
+  # animation does not bound it at all.
+  #
+  # Each reader on this module answers from the table for `Theme.current`.
+  # `Palette.rebuild` makes a new table when the theme changes.
   module Palette
+    # The styles and colors one theme makes. Each is built the first time it
+    # is read.
+    class Table
+      getter theme : Theme
+
+      def initialize(@theme : Theme)
+      end
+    end
+
+    @@table : Table? = nil
+
+    # The table for the current theme. The first read builds it.
+    def self.table : Table
+      @@table ||= Table.new Theme.current
+    end
+
+    # Builds the table again from *theme*. It runs whenever the theme changes.
+    def self.rebuild(theme : Theme = Theme.current) : Nil
+      @@table = Table.new theme
+    end
+
+    # One entry of `Table`, with a reader of the same name on this module.
+    private macro drawn(declaration)
+      class Table
+        getter({{ declaration.var }} : {{ declaration.type }}) { {{ declaration.value }} }
+      end
+
+      def self.{{ declaration.var }} : {{ declaration.type }}
+        table.{{ declaration.var }}
+      end
+    end
+
     # A wall catches the light and a floor does not, so every wall is drawn
     # brighter than the floor beside it. The ramp shades each of these down
     # by how much light is on the square, and a color that starts dim has
     # nowhere to go.
-    GRANITE   = Style::DEFAULT.fg TermBuf::Color.rgb(0xA0, 0xA6, 0xB2)
-    SANDSTONE = Style::DEFAULT.fg TermBuf::Color.rgb(0xC2, 0xA0, 0x5A)
-    SHALE     = Style::DEFAULT.fg TermBuf::Color.rgb(0x7C, 0x99, 0xBC)
-    STONE     = Style::DEFAULT.fg TermBuf::Color.rgb(0x76, 0x7C, 0x8C)
-    DIRT      = Style::DEFAULT.fg TermBuf::Color.rgb(0x7A, 0x6E, 0x5E)
-    WOOD      = Style::DEFAULT.fg TermBuf::Color.rgb(0xD0, 0x8A, 0x3C)
-    STAIRS    = Style::DEFAULT.fg TermBuf::Color.rgb(0xE8, 0xEC, 0xF4)
-    IRON      = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0x9E, 0xA8)
-    HERO      = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bold
+    drawn granite : Style = Style::DEFAULT.fg(theme.granite)
+    drawn sandstone : Style = Style::DEFAULT.fg(theme.sandstone)
+    drawn shale : Style = Style::DEFAULT.fg(theme.shale)
+    drawn stone : Style = Style::DEFAULT.fg(theme.stone)
+    drawn dirt : Style = Style::DEFAULT.fg(theme.dirt)
+    drawn wood : Style = Style::DEFAULT.fg(theme.wood)
+    drawn stairs : Style = Style::DEFAULT.fg(theme.stairs)
+    drawn iron : Style = Style::DEFAULT.fg(theme.iron)
+    drawn hero : Style = Style::DEFAULT.fg(theme.hero).bold
 
     # What light looks like.
     #
     # `Terrain` and `LightKind` carry no color of their own. The model says
     # what is burning. This table says what burning looks like.
-    FLAME   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xB0, 0x50)).bold
-    GLIMMER = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xFF)
+    drawn flame : Style = Style::DEFAULT.fg(theme.flame).bold
+    drawn glimmer : Style = Style::DEFAULT.fg(theme.glimmer)
 
     # What each sort of light is drawn in.
-    LIGHTS = {
-      LightKind::Flame   => FLAME,
-      LightKind::Glimmer => GLIMMER,
+    drawn lights : Hash(LightKind, Style) = {
+      LightKind::Flame   => flame,
+      LightKind::Glimmer => glimmer,
     }
 
     # How *kind* of light draws.
     def self.[](kind : LightKind) : Style
-      LIGHTS[kind]
+      lights[kind]
     end
 
     # How far a lit square is tinted toward the color of what lights it.
@@ -55,134 +91,140 @@ module Roguelike::Ui
     # One ramp of a single step per sort of light. `Ramp` caches what it makes
     # and answers the same style for the same base, so tinting adds one style
     # per look per step per kind and then stops.
-    TINTS = {
-      LightKind::Flame   => Widgets::Ramp.new([TINT], LIGHTS[LightKind::Flame].foreground),
-      LightKind::Glimmer => Widgets::Ramp.new([TINT], LIGHTS[LightKind::Glimmer].foreground),
+    drawn tints : Hash(LightKind, Widgets::Ramp) = {
+      LightKind::Flame   => Widgets::Ramp.new([TINT], lights[LightKind::Flame].foreground),
+      LightKind::Glimmer => Widgets::Ramp.new([TINT], lights[LightKind::Glimmer].foreground),
     }
 
     # What a square offered as an answer is drawn on.
     #
     # The square keeps its own glyph and its own color. Only the background
     # changes. A person choosing a direction has to see which door is which.
-    OFFERED = TermBuf::Color.rgb 0x3A, 0x4E, 0x2A
+    drawn offered : TermBuf::Color = theme.offered
 
     # What the square of a creature pointed at in the Seen list is drawn in.
     #
-    # Dark on bright amber. The map always draws on `GROUND`, so the pair
-    # stands out whatever the terminal's own colors are.
-    SPOTLIT = Style::DEFAULT.fg(TermBuf::Color.rgb(0x0C, 0x0E, 0x12))
-      .bg(TermBuf::Color.rgb(0xF0, 0xC8, 0x40)).bold
+    # The map's own ground on bright amber. The map always draws on
+    # `ground`, so the pair stands out whatever the terminal's own colors
+    # are.
+    drawn spotlit : Style = Style::DEFAULT.fg(theme.ground).bg(theme.spotlight).bold
 
     # What a square a shot would cross is drawn on.
-    FLIGHT = TermBuf::Color.rgb 0x2E, 0x36, 0x52
+    drawn flight : TermBuf::Color = theme.flight
 
     # What the square a shot would stop on is drawn on.
     #
     # A different color from the rest of the line. The line says where the
     # shot goes and this says how far it gets. Somebody aiming past a wall
     # has to see where the two stop agreeing.
-    IMPACT = TermBuf::Color.rgb 0x6A, 0x2E, 0x2E
+    drawn impact : TermBuf::Color = theme.impact
 
     # What the messages of the current round are drawn in.
     #
     # Bright and bold against the pane, so what just happened stands apart
     # from the history above it.
-    MESSAGE_NEW = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xE8, 0x60)).bold
+    drawn message_new : Style = Style::DEFAULT.fg(theme.message_new).bold
 
     # What each class of item is drawn as.
     #
     # The glyphs are the roguelike conventions. A person who has played one
     # reads `)` as a weapon and `!` as a potion without being told.
-    WEAPON = Style::DEFAULT.fg TermBuf::Color.rgb(0xDC, 0xE2, 0xEC)
-    ARMOR  = Style::DEFAULT.fg TermBuf::Color.rgb(0xB4, 0xC2, 0xDC)
-    POTION = Style::DEFAULT.fg TermBuf::Color.rgb(0xE8, 0x64, 0xB4)
-    SCROLL = Style::DEFAULT.fg TermBuf::Color.rgb(0xF0, 0xEA, 0xD0)
-    WAND   = Style::DEFAULT.fg TermBuf::Color.rgb(0x88, 0xE0, 0xCC)
-    TOOL   = Style::DEFAULT.fg TermBuf::Color.rgb(0xE4, 0xA8, 0x60)
-    COIN   = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xD8, 0x48)).bold
+    drawn weapon : Style = Style::DEFAULT.fg(theme.weapon)
+    drawn armor : Style = Style::DEFAULT.fg(theme.armor)
+    drawn potion : Style = Style::DEFAULT.fg(theme.potion)
+    drawn scroll : Style = Style::DEFAULT.fg(theme.scroll)
+    drawn wand : Style = Style::DEFAULT.fg(theme.wand)
+    drawn tool : Style = Style::DEFAULT.fg(theme.tool)
+    drawn coin : Style = Style::DEFAULT.fg(theme.coin).bold
+
+    # The underline under "blessed" where a message names it.
+    drawn blessed_word : Style = Style::DEFAULT.underlined(color: theme.blessed_word)
+
+    # The underline under "cursed", in the red the meters use for danger.
+    drawn cursed_word : Style = Style::DEFAULT.underlined(color: theme.red)
 
     # ------------------------------------------------------------- readouts
 
     # What a label beside a number is drawn in.
-    FAINT = Style::DEFAULT.fg TermBuf::Color.rgb(0x6A, 0x70, 0x7C)
+    drawn faint : Style = Style::DEFAULT.fg(theme.faint)
 
     # What an ordinary number is drawn in.
-    PLAIN = Style::DEFAULT.fg TermBuf::Color.rgb(0xDC, 0xE2, 0xEC)
+    drawn plain : Style = Style::DEFAULT.fg(theme.plain)
 
     # What a number worth reading first is drawn in.
-    STRONG = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bold
+    drawn strong : Style = Style::DEFAULT.fg(theme.strong).bold
 
     # What an empty equipment slot is drawn in.
-    VACANT = Style::DEFAULT.fg TermBuf::Color.rgb(0x4A, 0x4E, 0x58)
+    drawn vacant : Style = Style::DEFAULT.fg(theme.vacant)
 
     # ------------------------------------------------------------- focus
 
     # The ground of a focused info or log panel once its fade has settled.
     #
     # It is a gray a little above the terminal's black, dark enough that
-    # every light text color keeps its contrast. `PLAIN` on it is about 11.6
-    # to 1, `STRONG` about 15 to 1, and `FAINT` about 3 to 1.
-    FOCUS_GROUND = TermBuf::Color.rgb 0x22, 0x26, 0x2E
+    # every light text color keeps its contrast. `plain` on it is about 11.6
+    # to 1, `strong` about 15 to 1, and `faint` about 3 to 1.
+    drawn focus_ground : TermBuf::Color = theme.focus_ground
 
     # The ground a focused panel's fade starts at. A blue of the same depth
-    # as `FOCUS_GROUND`, so it draws the eye without washing the text out.
-    # `PLAIN` on it is about 10.4 to 1.
-    FOCUS_FLASH = TermBuf::Color.rgb 0x1E, 0x2E, 0x4C
+    # as `focus_ground`, so it draws the eye without washing the text out.
+    # `plain` on it is about 10.4 to 1.
+    drawn focus_flash : TermBuf::Color = theme.focus_flash
 
     # What the rule beside the focused panel is drawn in. It is about 9.4
     # to 1 against the ground.
-    FOCUS_RULE = Style::DEFAULT.fg TermBuf::Color.rgb(0x7F, 0xB8, 0xFF)
+    drawn focus_rule : Style = Style::DEFAULT.fg(theme.focus_rule)
 
     # The badge on the log's last row that counts the messages below it.
     #
     # White on a dark blue, about 8 to 1, so it stands out from the text
     # beside it on any ground the log has.
-    NEWER_BADGE = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF))
-      .bg(TermBuf::Color.rgb(0x1F, 0x4E, 0x9E)).bold
+    drawn newer_badge : Style = Style::DEFAULT.fg(theme.badge_text).bg(theme.badge_ground).bold
     # ------------------------------------------------------------- sections
 
     # The ground of a section header in the info panel.
     #
     # A slate blue that stands apart from both grounds the panel is drawn
-    # on. It is about 2.9 to 1 against black, 2.6 to 1 against `GROUND` and
-    # 2.1 to 1 against `FOCUS_GROUND`, so the band reads as a separator on
+    # on. It is about 2.9 to 1 against black, 2.6 to 1 against `ground` and
+    # 2.1 to 1 against `focus_ground`, so the band reads as a separator on
     # either. White on it is about 7.4 to 1.
-    HEADER_GROUND = TermBuf::Color.rgb 0x4A, 0x56, 0x70
+    drawn header_ground : TermBuf::Color = theme.header_ground
 
-    # What a section header is drawn in: white on `HEADER_GROUND`.
-    HEADER = Style::DEFAULT.fg(TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)).bg(HEADER_GROUND)
+    # What a section header is drawn in. The text is white on `header_ground`
+    # by default.
+    drawn header : Style = Style::DEFAULT.fg(theme.header_text).bg(header_ground)
 
     # A section header's title.
-    HEADER_TITLE = HEADER.bold
+    drawn header_title : Style = header.bold
 
     # The ground of the selected section header in a focused info panel.
     #
-    # A brighter, bluer band than `HEADER_GROUND`. White on it is about 5.5
-    # to 1. It is about 1.4 to 1 against `HEADER_GROUND` and 2.8 to 1
-    # against `FOCUS_GROUND`, and its hue sets it apart from both.
-    SELECTED_HEADER = TermBuf::Color.rgb 0x2E, 0x66, 0xC8
+    # A brighter, bluer band than `header_ground`. White on it is about 5.5
+    # to 1. It is about 1.4 to 1 against `header_ground` and 2.8 to 1
+    # against `focus_ground`, and its hue sets it apart from both.
+    drawn selected_header : TermBuf::Color = theme.selected_header
 
     # The ground of the selected row in a focused info panel.
     #
-    # A deep blue under the row's own text colors. `PLAIN` on it is about
-    # 8.5 to 1, white about 11 to 1, and `FAINT` about 2.2 to 1.
-    SELECTED_ROW = TermBuf::Color.rgb 0x20, 0x3A, 0x70
+    # A deep blue under the row's own text colors. `plain` on it is about
+    # 8.5 to 1, white about 11 to 1, and `faint` about 2.2 to 1.
+    drawn selected_row : TermBuf::Color = theme.selected_row
 
     # ------------------------------------------------------------- meters
 
     # The colors a bar passes through as it empties.
-    GREEN        = TermBuf::Color.rgb 0x4C, 0xAF, 0x50
-    LIGHT_GREEN  = TermBuf::Color.rgb 0x8B, 0xC3, 0x4A
-    YELLOW       = TermBuf::Color.rgb 0xD4, 0xB1, 0x06
-    ORANGE       = TermBuf::Color.rgb 0xE8, 0x83, 0x3A
-    LIGHT_ORANGE = TermBuf::Color.rgb 0xF0, 0xA8, 0x60
-    RED          = TermBuf::Color.rgb 0xD3, 0x2F, 0x2F
+    drawn green : TermBuf::Color = theme.green
+    drawn light_green : TermBuf::Color = theme.light_green
+    drawn yellow : TermBuf::Color = theme.yellow
+    drawn orange : TermBuf::Color = theme.orange
+    drawn light_orange : TermBuf::Color = theme.light_orange
+    drawn red : TermBuf::Color = theme.red
 
     # What the empty part of a bar is drawn on.
-    EMPTY = TermBuf::Color.rgb 0x33, 0x36, 0x3C
+    drawn empty : TermBuf::Color = theme.empty
 
     # What text over the empty part is drawn in.
-    EMPTY_TEXT = TermBuf::Color.rgb 0x8A, 0x90, 0x9C
+    drawn empty_text : TermBuf::Color = theme.empty_text
 
     # What the hit point bar is at each level, as a percentage and a color.
     #
@@ -192,12 +234,12 @@ module Roguelike::Ui
     #
     # Whether a bar shades or steps is the `bar_color` option. See
     # `.meter`.
-    HEALTH = [
-      {100, GREEN},
-      {80, LIGHT_GREEN},
-      {60, YELLOW},
-      {40, ORANGE},
-      {20, RED},
+    drawn health : Array({Int32, TermBuf::Color}) = [
+      {100, green},
+      {80, light_green},
+      {60, yellow},
+      {40, orange},
+      {20, red},
     ]
 
     # The same for magic.
@@ -205,17 +247,17 @@ module Roguelike::Ui
     # Light orange at the bottom rather than red. Running out of magic is not
     # the same as running out of blood, and the red is worth keeping for the
     # one bar that means the run is about to end.
-    MAGIC = [
-      {100, GREEN},
-      {80, LIGHT_GREEN},
-      {60, YELLOW},
-      {40, ORANGE},
-      {20, LIGHT_ORANGE},
+    drawn magic : Array({Int32, TermBuf::Color}) = [
+      {100, green},
+      {80, light_green},
+      {60, yellow},
+      {40, orange},
+      {20, light_orange},
     ]
 
     # What the bar for the creature being fought is at each level.
     #
-    # It runs the other way from `HEALTH`. Red is a creature at full strength
+    # It runs the other way from `health`. Red is a creature at full strength
     # and yellow is one about to fall, because this bar is about a threat
     # going away rather than about the character's own safety. A person who
     # reads the two side by side reads both as "green and yellow are good,
@@ -224,17 +266,17 @@ module Roguelike::Ui
     # Three levels rather than five. The bar is one row about one creature
     # and the question it answers is how much is left, so the color has to
     # move far enough to be read at a glance rather than in small steps.
-    THREAT = [
-      {100, RED},
-      {50, ORANGE},
-      {0, YELLOW},
+    drawn threat : Array({Int32, TermBuf::Color}) = [
+      {100, red},
+      {50, orange},
+      {0, yellow},
     ]
 
     # The experience bar, which is one color however full it is.
     #
     # A bar that changes color says something is wrong. Nothing is wrong
     # with being early in a level.
-    LEARNING = [{100, LIGHT_GREEN}, {0, LIGHT_GREEN}]
+    drawn learning : Array({Int32, TermBuf::Color}) = [{100, light_green}, {0, light_green}]
 
     # What a bar of *levels* is drawn in at *percent* full.
     #
@@ -291,24 +333,24 @@ module Roguelike::Ui
       bright > 140 ? TermBuf::Color.rgb(0x10, 0x12, 0x16) : TermBuf::Color.rgb(0xFF, 0xFF, 0xFF)
     end
 
-    ITEMS = {
-      ItemClass::Melee        => Look.new(')', WEAPON),
-      ItemClass::RangedWeapon => Look.new(')', WEAPON),
-      ItemClass::Ammunition   => Look.new(')', WEAPON),
-      ItemClass::Thrown       => Look.new(')', WEAPON),
-      ItemClass::Armor        => Look.new('[', ARMOR),
-      ItemClass::Potion       => Look.new('!', POTION),
-      ItemClass::Scroll       => Look.new('?', SCROLL),
-      ItemClass::Wand         => Look.new('/', WAND),
-      ItemClass::Light        => Look.new('(', TOOL),
-      ItemClass::Tool         => Look.new('(', TOOL),
-      ItemClass::Treasure     => Look.new('$', COIN),
-      ItemClass::Amulet       => Look.new('"', COIN),
+    drawn items : Hash(ItemClass, Look) = {
+      ItemClass::Melee        => Look.new(')', weapon),
+      ItemClass::RangedWeapon => Look.new(')', weapon),
+      ItemClass::Ammunition   => Look.new(')', weapon),
+      ItemClass::Thrown       => Look.new(')', weapon),
+      ItemClass::Armor        => Look.new('[', armor),
+      ItemClass::Potion       => Look.new('!', potion),
+      ItemClass::Scroll       => Look.new('?', scroll),
+      ItemClass::Wand         => Look.new('/', wand),
+      ItemClass::Light        => Look.new('(', tool),
+      ItemClass::Tool         => Look.new('(', tool),
+      ItemClass::Treasure     => Look.new('$', coin),
+      ItemClass::Amulet       => Look.new('"', coin),
     }
 
     # How *item* is drawn where it lies.
     def self.[](item : Item) : Look
-      ITEMS[item.kind.item_class]
+      items[item.kind.item_class]
     end
 
     # What something crossing the floor is drawn in.
@@ -316,7 +358,7 @@ module Roguelike::Ui
     # It is brighter than the same thing lying on the ground. A missile is
     # on the screen for a few frames. It is the thing to look at for those
     # frames.
-    MISSILE = Style::DEFAULT.fg TermBuf::Color.rgb(0xF2, 0xE6, 0xC0)
+    drawn missile : Style = Style::DEFAULT.fg(theme.missile)
 
     # What a bolt from a wand is drawn as.
     #
@@ -329,7 +371,7 @@ module Roguelike::Ui
     # An arrow keeps its own glyph. A person then sees what they let go of.
     # A bolt has no item.
     def self.flying(item : Item?) : Look
-      Look.new item ? self[item].glyph : BOLT, MISSILE
+      Look.new item ? self[item].glyph : BOLT, missile
     end
 
     # ---------------------------------------------------------------- marks
@@ -353,9 +395,9 @@ module Roguelike::Ui
     # None of the three is at full brightness. They sit in a column of their
     # own. They are designed to be distinctive from each other. Uncursed is
     # the faintest, because most items are uncursed.
-    BLESSED_MARK  = Style::DEFAULT.fg TermBuf::Color.rgb(0x90, 0xB8, 0xD8)
-    CURSED_MARK   = Style::DEFAULT.fg TermBuf::Color.rgb(0xC0, 0x80, 0x98)
-    UNCURSED_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x6A, 0x70, 0x7C)
+    drawn blessed_mark : Style = Style::DEFAULT.fg(theme.blessed_mark)
+    drawn cursed_mark : Style = Style::DEFAULT.fg(theme.cursed_mark)
+    drawn uncursed_mark : Style = Style::DEFAULT.fg(theme.uncursed_mark)
 
     # How the blessing of *item* is marked.
     #
@@ -365,9 +407,9 @@ module Roguelike::Ui
       return unless item.blessing_known?
 
       case item.blessing
-      in .blessed?  then Look.new BLESSED, BLESSED_MARK
-      in .cursed?   then Look.new CURSED, CURSED_MARK
-      in .uncursed? then Look.new UNCURSED, UNCURSED_MARK
+      in .blessed?  then Look.new BLESSED, blessed_mark
+      in .cursed?   then Look.new CURSED, cursed_mark
+      in .uncursed? then Look.new UNCURSED, uncursed_mark
       end
     end
 
@@ -397,10 +439,10 @@ module Roguelike::Ui
     #
     # One color is used for the whole column. The marks differ by shape.
     # The color is what separates the column from the names beside it.
-    SLOT_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x88, 0xA8, 0x98)
+    drawn slot_mark : Style = Style::DEFAULT.fg(theme.slot_mark)
 
     # What the mark on a burning light source is drawn in.
-    LIT_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0xE4, 0xA8, 0x60)
+    drawn lit_mark : Style = Style::DEFAULT.fg(theme.lit_mark)
 
     # How *slot* is marked in a list.
     def self.slot(slot : Slot) : Look
@@ -411,12 +453,12 @@ module Roguelike::Ui
               in .head?, .body?, .hands?, .feet?, .shield? then WORN
               end
 
-      Look.new glyph, SLOT_MARK
+      Look.new glyph, slot_mark
     end
 
     # How a burning light source is marked in a list.
     def self.burning : Look
-      Look.new LIT, LIT_MARK
+      Look.new LIT, lit_mark
     end
 
     # The two marks on the row under the pointer. One is at the near edge
@@ -425,22 +467,22 @@ module Roguelike::Ui
     POINTED = '\u27EB'
 
     # What both are drawn in.
-    POINTER_MARK = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0xA4, 0xB4)
+    drawn pointer_mark : Style = Style::DEFAULT.fg(theme.pointer_mark)
 
     # What a creature nobody can see properly is drawn in.
     #
     # One color for every species. A color is as much a name as a letter
     # is, and somebody who can only make out a shape has been told neither.
-    SHAPE = Style::DEFAULT.fg TermBuf::Color.rgb(0x9A, 0x9E, 0xA8)
+    drawn shape : Style = Style::DEFAULT.fg(theme.shape)
 
     # How a creature of *size* is drawn when it is only a shape.
     def self.shape(size : Size) : Look
-      Look.new size.glyph, SHAPE
+      Look.new size.glyph, shape
     end
 
     # The character. Roguelikes have drawn the player as `@` since 1980. A
     # person who has played one looks for it first.
-    PLAYER = Look.new '@', HERO
+    drawn player : Look = Look.new('@', hero)
 
     # What each kind is drawn as.
     #
@@ -449,35 +491,35 @@ module Roguelike::Ui
     # colour names the kind. Each is bright enough to read against the
     # dark ground at a contrast of well over three to one, and the kinds of
     # one species sit far apart in hue so no two share a look.
-    WHITE_SLIME    = Style::DEFAULT.fg TermBuf::Color.rgb(0xEE, 0xEE, 0xEE)
-    BLUE_SLIME     = Style::DEFAULT.fg TermBuf::Color.rgb(0x5C, 0xB8, 0xFF)
-    RED_SLIME      = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0x5C, 0x5C)
-    GREEN_SLIME    = Style::DEFAULT.fg TermBuf::Color.rgb(0x5C, 0xF0, 0x5C)
-    GOBLIN_SCOUT   = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0xE0, 0x40)
-    GOBLIN_WARRIOR = Style::DEFAULT.fg TermBuf::Color.rgb(0xA8, 0xE0, 0x40)
-    GOBLIN_SHAMAN  = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0x70, 0xFF)
-    ORC            = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0x68, 0x50)
-    ORC_ARCHER     = Style::DEFAULT.fg TermBuf::Color.rgb(0x60, 0xE8, 0xE8)
-    ANT            = Style::DEFAULT.fg TermBuf::Color.rgb(0xFF, 0xA0, 0x40)
-    JELLY          = Style::DEFAULT.fg TermBuf::Color.rgb(0xC8, 0xA0, 0xFF)
+    drawn white_slime : Style = Style::DEFAULT.fg(theme.white_slime)
+    drawn blue_slime : Style = Style::DEFAULT.fg(theme.blue_slime)
+    drawn red_slime : Style = Style::DEFAULT.fg(theme.red_slime)
+    drawn green_slime : Style = Style::DEFAULT.fg(theme.green_slime)
+    drawn goblin_scout : Style = Style::DEFAULT.fg(theme.goblin_scout)
+    drawn goblin_warrior : Style = Style::DEFAULT.fg(theme.goblin_warrior)
+    drawn goblin_shaman : Style = Style::DEFAULT.fg(theme.goblin_shaman)
+    drawn orc : Style = Style::DEFAULT.fg(theme.orc)
+    drawn orc_archer : Style = Style::DEFAULT.fg(theme.orc_archer)
+    drawn ant : Style = Style::DEFAULT.fg(theme.ant)
+    drawn jelly : Style = Style::DEFAULT.fg(theme.jelly)
 
-    MONSTERS = {
-      Kind::WhiteSlime    => WHITE_SLIME,
-      Kind::BlueSlime     => BLUE_SLIME,
-      Kind::RedSlime      => RED_SLIME,
-      Kind::GreenSlime    => GREEN_SLIME,
-      Kind::GoblinScout   => GOBLIN_SCOUT,
-      Kind::GoblinWarrior => GOBLIN_WARRIOR,
-      Kind::GoblinShaman  => GOBLIN_SHAMAN,
-      Kind::Orc           => ORC,
-      Kind::OrcArcher     => ORC_ARCHER,
-      Kind::Ant           => ANT,
-      Kind::Jelly         => JELLY,
+    drawn monsters : Hash(Kind, Style) = {
+      Kind::WhiteSlime    => white_slime,
+      Kind::BlueSlime     => blue_slime,
+      Kind::RedSlime      => red_slime,
+      Kind::GreenSlime    => green_slime,
+      Kind::GoblinScout   => goblin_scout,
+      Kind::GoblinWarrior => goblin_warrior,
+      Kind::GoblinShaman  => goblin_shaman,
+      Kind::Orc           => orc,
+      Kind::OrcArcher     => orc_archer,
+      Kind::Ant           => ant,
+      Kind::Jelly         => jelly,
     }
 
     # How *kind* draws.
     def self.[](kind : Kind) : Look
-      Look.new kind.mark, MONSTERS[kind]
+      Look.new kind.mark, monsters[kind]
     end
 
     # How *creature* draws.
@@ -488,27 +530,27 @@ module Roguelike::Ui
     # All three rocks draw as `#`. Their colors differ. That is the roguelike
     # convention. It is also why the three are separate `Terrain` members
     # rather than one wall with a color field.
-    LOOKS = {
-      Terrain::Granite    => Look.new('#', GRANITE),
-      Terrain::Sandstone  => Look.new('#', SANDSTONE),
-      Terrain::Shale      => Look.new('#', SHALE),
-      Terrain::StoneFloor => Look.new('.', STONE),
-      Terrain::DirtFloor  => Look.new('.', DIRT),
-      Terrain::ClosedDoor => Look.new('+', WOOD),
-      Terrain::OpenDoor   => Look.new('\'', WOOD),
-      Terrain::BrokenDoor => Look.new('/', WOOD),
-      Terrain::StairsUp   => Look.new('<', STAIRS),
-      Terrain::StairsDown => Look.new('>', STAIRS),
+    drawn looks : Hash(Terrain, Look) = {
+      Terrain::Granite    => Look.new('#', granite),
+      Terrain::Sandstone  => Look.new('#', sandstone),
+      Terrain::Shale      => Look.new('#', shale),
+      Terrain::StoneFloor => Look.new('.', stone),
+      Terrain::DirtFloor  => Look.new('.', dirt),
+      Terrain::ClosedDoor => Look.new('+', wood),
+      Terrain::OpenDoor   => Look.new('\'', wood),
+      Terrain::BrokenDoor => Look.new('/', wood),
+      Terrain::StairsUp   => Look.new('<', stairs),
+      Terrain::StairsDown => Look.new('>', stairs),
     }
 
     # How *terrain* draws.
     def self.[](terrain : Terrain) : Look
-      LOOKS[terrain]
+      looks[terrain]
     end
 
     # A shut door with an iron spike in it. The glyph differs from a plain
     # shut door's, so it reads without the color.
-    SPIKED = Look.new('ǂ', Style::DEFAULT.fg(TermBuf::Color.rgb(0xD8, 0xDC, 0xE4)).bold)
+    drawn spiked : Look = Look.new('ǂ', Style::DEFAULT.fg(theme.spiked).bold)
 
     # What each sort of fixture is drawn as.
     #
@@ -521,7 +563,7 @@ module Roguelike::Ui
 
     # How *fitting* draws. An unlit one is cold iron. A lit one is the flame.
     def self.[](fitting : Fixture) : Look
-      Look.new FIXTURES[fitting.kind], fitting.lit? ? FLAME : IRON
+      Look.new FIXTURES[fitting.kind], fitting.lit? ? flame : iron
     end
 
     # What the map is painted on.
@@ -531,15 +573,15 @@ module Roguelike::Ui
     # turn the dim end of the ramp into the high-contrast end, and a terminal
     # that lightens a foreground to hold a contrast ratio against its own
     # background undoes the shading altogether.
-    GROUND = TermBuf::Color.rgb 0x0C, 0x0E, 0x12
+    drawn ground : TermBuf::Color = theme.ground
 
     # The style that paints it.
-    GROUND_STYLE = Style::DEFAULT.bg GROUND
+    drawn ground_style : Style = Style::DEFAULT.bg(ground)
 
     # What a square nobody has ever seen draws as. A blank.
-    UNSEEN = Look.new ' ', GROUND_STYLE
+    drawn unseen : Look = Look.new(' ', ground_style)
 
-    # How far toward `SHADOW` each step of `RAMP` moves.
+    # How far toward `shadow` each step of `ramp` moves.
     #
     # Four lit steps and one below them. The gap between the bottom step and
     # the one above it is wider than any gap inside the lit range, because a
@@ -554,7 +596,7 @@ module Roguelike::Ui
     # The step a square draws at when it is remembered rather than seen.
     REMEMBERED = 0
 
-    # The step of `RAMP` a shape draws at while the light behind it holds
+    # The step of `ramp` a shape draws at while the light behind it holds
     # still.
     #
     # The dimmest lit step. A shape is a dark creature in front of a light,
@@ -579,7 +621,7 @@ module Roguelike::Ui
     #
     # A cool near-black rather than black. Shadow on a warm color then reads
     # as shadow rather than as a darker warm color.
-    SHADOW = TermBuf::Color.rgb 0x14, 0x18, 0x22
+    drawn shadow : TermBuf::Color = theme.shadow
 
     # The ramp every square is drawn through.
     #
@@ -587,9 +629,9 @@ module Roguelike::Ui
     # style table only grows. A ramp answers the same style for the same step
     # every time, so the table stops growing once each step of each look has
     # been asked for.
-    RAMP = Widgets::Ramp.new SHADES, SHADOW
+    drawn ramp : Widgets::Ramp = Widgets::Ramp.new(SHADES, shadow)
 
-    # Which step of `RAMP` a square with *level* light draws at.
+    # Which step of `ramp` a square with *level* light draws at.
     #
     # A square with no light on it is remembered rather than seen, so it draws
     # at the bottom. Each `LIGHT_PER_STEP` points of light raises it one step,
@@ -605,7 +647,7 @@ module Roguelike::Ui
       Math.min REMEMBERED + 1 + level // LIGHT_PER_STEP, STEPS - 1
     end
 
-    # *look* drawn at *step* of `RAMP`, tinted by *kind* of light, on the
+    # *look* drawn at *step* of `ramp`, tinted by *kind* of light, on the
     # map's own background.
     #
     # The background is put on after the ramp rather than into it. The ground
@@ -614,11 +656,11 @@ module Roguelike::Ui
     # A square drawn from memory takes no tint. What lights it now says
     # nothing about what it looked like when it was last seen.
     def self.shaded(look : Look, step : Int32, kind : LightKind? = nil) : Look
-      shade = RAMP[look.style, step]
-      tint = kind.try { |lit| TINTS[lit] } if step > REMEMBERED
+      shade = ramp[look.style, step]
+      tint = kind.try { |lit| tints[lit] } if step > REMEMBERED
       shade = tint[shade, 0] if tint
 
-      Look.new look.glyph, shade.bg(GROUND)
+      Look.new look.glyph, shade.bg(ground)
     end
   end
 end

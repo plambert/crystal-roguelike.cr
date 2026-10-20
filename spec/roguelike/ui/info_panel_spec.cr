@@ -25,7 +25,7 @@ Spectator.describe Roguelike::Ui::InfoPanel do
         run.buffer.width.times do |column|
           found = run.buffer.hit column, row
           style = found ? run.buffer.styles[found.cell.style] : TermBuf::Style::DEFAULT
-          line << (style.background == Palette::HEADER_GROUND ? 'H' : '.')
+          line << (style.background == Palette.header_ground ? 'H' : '.')
         end
       end
     end

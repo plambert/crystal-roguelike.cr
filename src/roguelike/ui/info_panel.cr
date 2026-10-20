@@ -51,7 +51,7 @@ module Roguelike::Ui
     # The header spans the panel's whole width. The body keeps one column
     # clear at each side, as the pinned vitals do.
     def self.section(title : String) : Widgets::Section
-      Widgets::Section.new title, Palette::HEADER, Palette::HEADER_TITLE,
+      Widgets::Section.new title, Palette.header, Palette.header_title,
         body_padding: Layout::Padding.symmetric(horizontal: 1)
     end
 
@@ -95,15 +95,15 @@ module Roguelike::Ui
     end
 
     # What a selected header is drawn through. The header keeps its text
-    # colors and takes `Palette::SELECTED_HEADER` for its ground.
+    # colors and takes `Palette.selected_header` for its ground.
     HEADER_LIGHT = TermBuf::Blend.new do |_under, over, _column, _row|
-      over.bg Palette::SELECTED_HEADER
+      over.bg Palette.selected_header
     end
 
     # What a selected row is drawn through, the same way with
-    # `Palette::SELECTED_ROW`.
+    # `Palette.selected_row`.
     ROW_LIGHT = TermBuf::Blend.new do |_under, over, _column, _row|
-      over.bg Palette::SELECTED_ROW
+      over.bg Palette.selected_row
     end
 
     # The index of the section the selection is in.

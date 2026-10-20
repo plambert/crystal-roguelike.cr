@@ -21,9 +21,9 @@ Spectator.describe Roguelike::Ui::FocusRing do
       String.build do |line|
         run.buffer.width.times do |column|
           style = drawn_style run, column, row
-          line << if style.background == Palette::FOCUS_GROUND
+          line << if style.background == Palette.focus_ground
             'T'
-          elsif style.foreground == Palette::FOCUS_RULE.foreground
+          elsif style.foreground == Palette.focus_rule.foreground
             'R'
           else
             '.'
@@ -199,7 +199,7 @@ Spectator.describe Roguelike::Ui::FocusRing do
       run = Playing.open
       run.press "Tab"
 
-      expect(run.screen.info_panel.style.try &.background).to eq Palette::FOCUS_GROUND
+      expect(run.screen.info_panel.style.try &.background).to eq Palette.focus_ground
       expect(run.screen.log.style).to be_nil
     end
 
@@ -207,7 +207,7 @@ Spectator.describe Roguelike::Ui::FocusRing do
       run = Playing.open
       run.press "Tab", "Tab"
 
-      expect(run.screen.log.style.try &.background).to eq Palette::FOCUS_GROUND
+      expect(run.screen.log.style.try &.background).to eq Palette.focus_ground
       expect(run.screen.info_panel.style).to be_nil
     end
 
@@ -215,26 +215,26 @@ Spectator.describe Roguelike::Ui::FocusRing do
       run = Playing.open clock: true, motion: true
       run.press "Tab"
 
-      expect(run.screen.info_panel.style.try &.background).to eq Palette::FOCUS_FLASH
+      expect(run.screen.info_panel.style.try &.background).to eq Palette.focus_flash
 
       run.run_timers
 
-      expect(run.screen.info_panel.style.try &.background).to eq Palette::FOCUS_GROUND
+      expect(run.screen.info_panel.style.try &.background).to eq Palette.focus_ground
     end
 
     it "draws the rules beside the focused panel in the focus color" do
       run = Playing.open
 
-      expect(run.screen.gutter.style).to eq Palette::FOCUS_RULE
-      expect(run.screen.rule.style).to eq Palette::FOCUS_RULE
+      expect(run.screen.gutter.style).to eq Palette.focus_rule
+      expect(run.screen.rule.style).to eq Palette.focus_rule
 
       run.press "Tab"
-      expect(run.screen.gutter.style).to eq Palette::FOCUS_RULE
+      expect(run.screen.gutter.style).to eq Palette.focus_rule
       expect(run.screen.rule.style).to be_nil
 
       run.press "Tab"
       expect(run.screen.gutter.style).to be_nil
-      expect(run.screen.rule.style).to eq Palette::FOCUS_RULE
+      expect(run.screen.rule.style).to eq Palette.focus_rule
     end
   end
 

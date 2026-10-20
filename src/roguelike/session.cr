@@ -62,6 +62,10 @@ module Roguelike
         refused = Ui::Screen.too_few_colors terminal.capabilities
         next if refused
 
+        # Every frame is drawn in the theme, so it is read before the first.
+        Ui::Theme.current = Ui::Theme.read(Path[Save.state_home] / "roguelike")
+        Ui::Palette.rebuild
+
         # A signal stops the process without running `at_exit`, so the
         # replay log's footer is written here or not at all.
         terminal.signals.before_exit { Replay::Log.signalled }

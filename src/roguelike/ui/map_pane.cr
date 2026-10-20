@@ -64,7 +64,7 @@ module Roguelike::Ui
     # What the character can see from where they stand. `nil` draws every
     # square, which is what a pane with no game behind it does.
     #
-    # A square outside this draws as `Palette::UNSEEN`. Nothing on it draws
+    # A square outside this draws as `Palette.unseen`. Nothing on it draws
     # either. A mark is something standing on a square, and a square the
     # character cannot see shows nothing standing on it.
     property sight : Vision? = nil
@@ -90,7 +90,7 @@ module Roguelike::Ui
     # The square lit for the creature pointed at in the Seen list. `nil`
     # lights nothing.
     #
-    # The glyph stays and the whole cell takes `Palette::SPOTLIT`, so the
+    # The glyph stays and the whole cell takes `Palette.spotlit`, so the
     # square stands out from routes, aimed lines and the cursor.
     property spotlight : {Int32, Int32}? = nil
 
@@ -151,16 +151,16 @@ module Roguelike::Ui
     def initialize(floor : Floor)
       @cells = FloorCells.new floor
       @grid = Widgets::CellGrid.new @cells
-      @grid.background = Palette::GROUND_STYLE
+      @grid.background = Palette.ground_style
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
         look = looked_at x, y, tile
 
         style = look.style
-        style = style.bg Palette::OFFERED if @highlights.includes?({x, y})
+        style = style.bg Palette.offered if @highlights.includes?({x, y})
 
         aimed = @flight[{x, y}]?
         style = style.bg aimed if aimed
-        style = Palette::SPOTLIT if @spotlight == {x, y}
+        style = Palette.spotlit if @spotlight == {x, y}
 
         here = @cursor
         style = style.reverse if here && here[0] == x && here[1] == y
@@ -419,7 +419,7 @@ module Roguelike::Ui
 
       fitting = floor.fixture x, y
       return Palette[fitting] if fitting
-      return Palette::SPIKED if tile.terrain.closed_door? && floor.spiked?(x, y)
+      return Palette.spiked if tile.terrain.closed_door? && floor.spiked?(x, y)
 
       Palette[tile.terrain]
     end
@@ -428,7 +428,7 @@ module Roguelike::Ui
     private def remembered(x : Int32, y : Int32) : Look
       held = @knowledge
       memory = held.try &.[](x, y)
-      return Palette::UNSEEN unless memory
+      return Palette.unseen unless memory
 
       # A creature is not remembered here. Phase 19 gives `Memory` one, so
       # that a monster last seen somewhere stays drawn there until the
@@ -441,7 +441,7 @@ module Roguelike::Ui
              elsif fitting
                Palette[fitting]
              elsif memory.spiked? && memory.terrain.closed_door?
-               Palette::SPIKED
+               Palette.spiked
              else
                Palette[memory.terrain]
              end

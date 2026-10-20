@@ -12,7 +12,7 @@ module Roguelike::Ui
   # shifts: two flames guttering at once drop that ground twice as far, and
   # one guttering while the other flares leaves it where it was.
   #
-  # This is drawn rather than played. It shifts which step of `Palette::RAMP`
+  # This is drawn rather than played. It shifts which step of `Palette.ramp`
   # a square is drawn at and changes nothing the game decides: no square comes
   # into sight or goes out of it, nothing is remembered or forgotten, and no
   # turn is taken. A run started from a seed plays out the same whatever the

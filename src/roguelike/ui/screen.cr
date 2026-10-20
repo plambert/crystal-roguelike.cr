@@ -358,7 +358,7 @@ module Roguelike::Ui
       made = Widgets::Label.new "",
         wrap: Layout::Wrap::None,
         ellipsis: BANNER_ELLIPSIS
-      made.style = Palette::STRONG
+      made.style = Palette.strong
 
       @banner = made
 
