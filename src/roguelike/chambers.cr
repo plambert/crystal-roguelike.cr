@@ -116,9 +116,17 @@ module Roguelike
     # Whether each square is walkable and borders a square not yet seen.
     @edge : Array(Bool)
 
-    # How many unseen squares lie behind each frontier square, up to
-    # `BEHIND`. Zero off the frontier.
-    @behind : Array(Int32)
+    # Whether each square has been seen.
+    @known : Array(Bool)
+
+    # What `#behind` has answered for each square, or -1 where it has not
+    # been asked. `nil` until the first ask.
+    @behind : Array(Int32)? = nil
+
+    # The squares one `#behind` count has reached, marked with the count's
+    # number so the next count need not clear them.
+    @counted : Array(Int32)? = nil
+    @count = 0
 
     # The most unseen squares `#behind` counts.
     #
@@ -129,7 +137,7 @@ module Roguelike
     def initialize(@columns : Int32, @rows : Int32, @revision : Int32,
                    @chambers : Array(Chamber), @passages : Array(Passage),
                    @owner : Array(Int32), @edge : Array(Bool),
-                   @behind : Array(Int32))
+                   @known : Array(Bool))
     end
 
     # The chamber *x*, *y* belongs to. `nil` for a corridor, a door, a wall
@@ -182,8 +190,21 @@ module Roguelike
     # the character does not know yet that it is rock. A pocket the
     # character has seen all the way round is small. Space with no seen
     # edge between it and the rest of the floor is large.
+    #
+    # The count floods out over unseen squares from the square and the
+    # squares beside it, and stops at `BEHIND`. It runs on the first ask for
+    # a square and is kept.
     def behind(x : Int32, y : Int32) : Int32
-      inside?(x, y) ? @behind[y * @columns + x] : 0
+      return 0 unless inside? x, y
+
+      square = y * @columns + x
+      return 0 unless @edge[square]
+
+      held = @behind ||= Array(Int32).new(@columns * @rows, -1)
+      found = held[square]
+      return found if found >= 0
+
+      held[square] = count_behind square
     end
 
     # :ditto:
@@ -193,6 +214,45 @@ module Roguelike
 
     private def inside?(x : Int32, y : Int32) : Bool
       x >= 0 && y >= 0 && x < @columns && y < @rows
+    end
+
+    # How many unseen squares are joined to *square*, or to a square beside
+    # it, across the four sides of a square, up to `BEHIND`.
+    private def count_behind(square : Int32) : Int32
+      counted = @counted ||= Array(Int32).new(@columns * @rows, 0)
+      @count += 1
+      mark = @count
+      pending = [] of Int32
+
+      found = take square, counted, mark, pending
+      column = square % @columns
+      row = square // @columns
+      AROUND.each do |offset|
+        x = column + offset[0]
+        y = row + offset[1]
+        found += take y * @columns + x, counted, mark, pending if inside? x, y
+      end
+
+      while found < BEHIND && (at = pending.pop?)
+        x = at % @columns
+        found += take at - @columns, counted, mark, pending if at >= @columns
+        found += take at - 1, counted, mark, pending if x > 0
+        found += take at + 1, counted, mark, pending if x < @columns - 1
+        found += take at + @columns, counted, mark, pending if at + @columns < @columns * @rows
+      end
+
+      Math.min found, BEHIND
+    end
+
+    # Marks *at* and queues it, unless it is seen or this count has it.
+    # Answers how many squares that added.
+    private def take(at : Int32, counted : Array(Int32), mark : Int32,
+                     pending : Array(Int32)) : Int32
+      return 0 if @known[at] || counted[at] == mark
+
+      counted[at] = mark
+      pending << at
+      1
     end
 
     # The eight ways off a square, as offsets. The order is fixed, so what
@@ -224,6 +284,9 @@ module Roguelike
       # Whether the square is open.
       @open : Array(Bool)
 
+      # Whether the square is remembered with an item on it.
+      @item : Array(Bool)
+
       @owner : Array(Int32)
 
       # Each chamber's anchor, by its number.
@@ -235,6 +298,7 @@ module Roguelike
         @ground = Array(Bool).new @size, false
         @cross = Array(Bool).new @size, false
         @open = Array(Bool).new @size, false
+        @item = Array(Bool).new @size, false
         @owner = Array(Int32).new @size, -1
       end
 
@@ -250,7 +314,7 @@ module Roguelike
 
         chambers = @anchors.map_with_index { |anchor, number| chamber anchor, number, members[number], edge }
         Chambers.new @columns, @rows, @knowledge.revision, chambers, passages,
-          @owner, edge, hidden(edge)
+          @owner, edge, @known
       end
 
       private def index(x : Int32, y : Int32) : Int32?
@@ -276,22 +340,22 @@ module Roguelike
         end
       end
 
-      # Fills the three grids the cut reads from what is remembered.
+      # Fills the grids the cut reads from what is remembered.
       private def read : Nil
-        @knowledge.each do |column, row, memory|
-          at = index column, row
-          next unless at
+        grid = @knowledge.grid
+        at = 0
 
-          terrain = memory.terrain
-          @known[at] = true
-          @ground[at] = terrain.passable? && !terrain.door?
-          @cross[at] = @knowledge.crossable? column, row
-        end
-
-        @knowledge.openings.each do |key|
-          column, row = Floor.unspot key
-          at = index column, row
-          @cross[at] = true if at && !@known[at]
+        @rows.times do |row|
+          @columns.times do |column|
+            flags = grid[column, row]
+            unless flags.zero?
+              @known[at] = flags & Knowledge::Grid::SEEN != 0
+              @ground[at] = flags & Knowledge::Grid::GROUND != 0
+              @cross[at] = flags & Knowledge::Grid::CROSS != 0
+              @item[at] = flags & Knowledge::Grid::ITEM != 0
+            end
+            at += 1
+          end
         end
       end
 
@@ -368,62 +432,6 @@ module Roguelike
         end
       end
 
-      # How many unseen squares lie behind each square of *edge*, up to
-      # `BEHIND`.
-      #
-      # One flood over the whole floor numbers the bodies of unseen squares
-      # joined across the four sides of a square. A frontier square takes the
-      # sizes of the bodies it is in or beside. The flood runs once for the
-      # cut, so the cost does not grow with the length of the frontier.
-      #
-      # The flood works on indices. Most of a floor is unseen when it is first
-      # entered, so this walks most of its squares on every cut.
-      private def hidden(edge : Array(Bool)) : Array(Int32)
-        body = Array(Int32).new @size, -1
-        sizes = [] of Int32
-        pending = [] of Int32
-
-        @size.times do |start|
-          next if @known[start] || body[start] >= 0
-
-          number = sizes.size
-          body[start] = number
-          pending << start
-          count = 0
-
-          until pending.empty?
-            at = pending.pop
-            count += 1
-            column = at % @columns
-
-            flow at - @columns, number, body, pending if at >= @columns
-            flow at - 1, number, body, pending if column > 0
-            flow at + 1, number, body, pending if column < @columns - 1
-            flow at + @columns, number, body, pending if at + @columns < @size
-          end
-
-          sizes << count
-        end
-
-        Array.new(@size) do |square|
-          next 0 unless edge[square]
-
-          bodies = [] of Int32
-          bodies << body[square] unless @known[square]
-          around(square) { |next_to| bodies << body[next_to] unless @known[next_to] }
-          Math.min bodies.uniq!.sum { |number| sizes[number] }, BEHIND
-        end
-      end
-
-      # Adds *square* to body *number* unless it is seen or already counted.
-      private def flow(square : Int32, number : Int32, body : Array(Int32),
-                       pending : Array(Int32)) : Nil
-        return if @known[square] || body[square] >= 0
-
-        body[square] = number
-        pending << square
-      end
-
       private def chamber(anchor : {Int32, Int32}, number : Int32,
                           members : Array(Int32), edge : Array(Bool)) : Chamber
         squares = [] of {Int32, Int32}
@@ -436,7 +444,7 @@ module Roguelike
           here = spot square
           squares << here
           frontier ||= edge[square]
-          lying = @knowledge[here].try &.item
+          lying = @knowledge[here].try &.item if @item[square]
           items << Chamber::Lying.new(here, lying) if lying
 
           around square do |next_to|

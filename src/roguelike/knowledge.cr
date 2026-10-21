@@ -277,9 +277,8 @@ module Roguelike
       @memories.each_value do |memory|
         spot = spots[index]
         index += 1
-        terrain = memory.terrain
-        barred = terrain.door? && barred?(spot[0], spot[1])
-        built[spot[0], spot[1]] = Grid.remembered(terrain, barred)
+        barred = memory.terrain.door? && barred?(spot[0], spot[1])
+        built[spot[0], spot[1]] = Grid.remembered(memory, barred)
       end
 
       built
@@ -299,8 +298,7 @@ module Roguelike
       end
 
       held[x, y] = if memory
-                     terrain = memory.terrain
-                     Grid.remembered(terrain, terrain.door? && barred?(x, y))
+                     Grid.remembered(memory, memory.terrain.door? && barred?(x, y))
                    elsif @openings.includes? Floor.spot(x, y)
                      Grid::OPENED
                    else
@@ -605,6 +603,9 @@ module Roguelike
     # The square is remembered as walkable and not a door.
     GROUND = 8_u8
 
+    # The square is remembered with an item on it.
+    ITEM = 16_u8
+
     # How many squares the grid reaches past what was known when it was
     # built.
     MARGIN = 24
@@ -644,10 +645,12 @@ module Roguelike
       self[x, y] & CROSS != 0
     end
 
-    # The flags a square remembered as *terrain* takes. *barred* says
+    # The flags a square remembered as *memory* takes. *barred* says
     # whether it is a door known to be spiked.
-    def self.remembered(terrain : Terrain, barred : Bool) : UInt8
+    def self.remembered(memory : Memory, barred : Bool) : UInt8
+      terrain = memory.terrain
       flags = SEEN
+      flags |= ITEM if memory.item
       if terrain.passable?
         flags |= WALK | CROSS
         flags |= GROUND unless terrain.door?
