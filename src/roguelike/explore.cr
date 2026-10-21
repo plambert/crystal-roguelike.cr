@@ -52,9 +52,13 @@ module Roguelike
                    columns : Int32, rows : Int32,
                    takes : Proc(Item, Bool)? = nil) : Array({Int32, Int32})
       found = knowledge.chambers columns, rows
-      descent = flood knowledge, from, columns, rows
+      piles = Explore.wanted(knowledge, takes)
 
-      goal = nearest descent, Explore.wanted(knowledge, takes)
+      # Each flood here runs only as far as what reads it needs.
+      if reaches_any? knowledge, from, piles
+        descent = toward_any knowledge, from, columns, rows, piles
+        goal = nearest descent, piles
+      end
       unless goal
         room = sweeping knowledge, found, from, columns, rows
         return room if room
@@ -62,6 +66,7 @@ module Roguelike
         ahead = along.try { |inside| smallest found, inside, found.frontier }
         return Route.over(along, ahead) if along && ahead
       end
+      descent ||= toward_frontier knowledge, found, from, columns, rows
       goal ||= smallest found, descent, found.frontier
       goal ||= nearest descent, Explore.unread(knowledge)
       return Route::NOWHERE unless goal
@@ -100,8 +105,7 @@ module Roguelike
 
       squares = Set({Int32, Int32}).new
       room.each { |chamber| squares.concat chamber.squares }
-      inside = Descent.toward knowledge, from, Math.max(columns * rows, Route::LIMIT),
-        doors: true, keep: squares
+      inside = toward_frontier knowledge, chambers, from, columns, rows, squares
       edge = room.flat_map &.squares.select { |spot| chambers.frontier? spot[0], spot[1] }
       goal = smallest chambers, inside, edge
       Route.over inside, goal if goal
@@ -113,16 +117,64 @@ module Roguelike
     def self.wanted?(knowledge : Knowledge, from : {Int32, Int32},
                      columns : Int32, rows : Int32,
                      takes : Proc(Item, Bool)? = nil) : Bool
-      piles = Explore.wanted(knowledge, takes) + Explore.unread(knowledge)
-      return false if piles.empty?
-
-      !nearest(flood(knowledge, from, columns, rows), piles).nil?
+      reaches_any? knowledge, from, Explore.wanted(knowledge, takes) + Explore.unread(knowledge)
     end
 
-    # How many steps every square the character knows is from *from*.
-    private def self.flood(knowledge : Knowledge, from : {Int32, Int32},
-                           columns : Int32, rows : Int32) : Descent
-      Descent.toward knowledge, from, Math.max(columns * rows, Route::LIMIT), doors: true
+    # Whether a flood from *from* that crosses doors reaches any of *spots*
+    # other than *from* itself.
+    #
+    # The flood steps from *from* onto the crossable squares around it, and
+    # from those to every crossable square joined to them.
+    private def self.reaches_any?(knowledge : Knowledge, from : {Int32, Int32},
+                                  spots : Array({Int32, Int32})) : Bool
+      return false if spots.empty?
+
+      grid = knowledge.grid
+      starts = Direction.values.compact_map do |direction|
+        near = direction.from from[0], from[1]
+        near if grid.crossable? near[0], near[1]
+      end
+
+      spots.any? do |spot|
+        spot != from && starts.any? { |start| grid.joined? start, spot }
+      end
+    end
+
+    # How many steps the squares the character knows are from *from*, as far
+    # as `.smallest` needs to choose among frontier squares. *keep* is the
+    # only ground the flood may enter.
+    #
+    # The flood stops once it has gone `REACH` steps and has reached a
+    # frontier square. Every square it leaves out is further off than that
+    # one and counts as large, so `.smallest` picks the square a whole flood
+    # gives it. A route to that square reads only squares nearer than it,
+    # and those are all in.
+    private def self.toward_frontier(knowledge : Knowledge, chambers : Chambers,
+                                     from : {Int32, Int32}, columns : Int32,
+                                     rows : Int32,
+                                     keep : Set({Int32, Int32})? = nil) : Descent
+      met = false
+      Descent.toward(knowledge, from, Math.max(columns * rows, Route::LIMIT),
+        doors: true, keep: keep) do |wave, away|
+        met ||= wave.any? { |spot| chambers.frontier? spot[0], spot[1] }
+        met && away >= REACH
+      end
+    end
+
+    # How many steps the squares the character knows are from *from*, as far
+    # as the first wave that reaches one of *spots*.
+    #
+    # `.nearest` picks the fewest steps, and every one of *spots* that few
+    # steps off is in that wave, so it picks what a whole flood gives it. A
+    # flood that reaches none of them runs to the end.
+    private def self.toward_any(knowledge : Knowledge, from : {Int32, Int32},
+                                columns : Int32, rows : Int32,
+                                spots : Array({Int32, Int32})) : Descent
+      wanted = spots.to_set
+      Descent.toward(knowledge, from, Math.max(columns * rows, Route::LIMIT),
+        doors: true) do |wave|
+        wave.any? { |spot| wanted.includes? spot }
+      end
     end
 
     # Every square *knowledge* remembers gold or an item *takes* accepts
@@ -131,9 +183,7 @@ module Roguelike
     def self.wanted(knowledge : Knowledge,
                     takes : Proc(Item, Bool)? = nil) : Array({Int32, Int32})
       found = [] of {Int32, Int32}
-      knowledge.each do |column, row, memory|
-        next unless memory.item
-
+      knowledge.each_item do |column, row, memory|
         wanted = memory.holds? { |item| item.kind.gold? || takes.try(&.call(item)) || false }
         found << {column, row} if wanted
       end
@@ -146,7 +196,7 @@ module Roguelike
     # because neither stops a walk.
     def self.unread(knowledge : Knowledge) : Array({Int32, Int32})
       found = [] of {Int32, Int32}
-      knowledge.each do |column, row, memory|
+      knowledge.each_item do |column, row, memory|
         item = memory.item
         next unless item && memory.regard < Regard::Everything
         next if item.kind.gold? || item.kind.torch?

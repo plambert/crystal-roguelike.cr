@@ -459,6 +459,117 @@ Spectator.describe Roguelike::Knowledge do
     end
   end
 
+  describe "#each_item and #each_fixture" do
+    it "yield only the squares remembered with one" do
+      floor = Playing.daylight Floor.parse("lit", ["#####", "#.|.#", "#...#", "#####"])
+      floor.drop 1, 1, Item.new Kind::Dagger
+      floor.drop 3, 2, Item.new Kind::Cap
+      5.times { |column| 4.times { |row| knowledge.see floor, column, row } }
+
+      items = [] of {Int32, Int32}
+      knowledge.each_item { |column, row, _| items << {column, row} }
+      fittings = [] of {Int32, Int32}
+      knowledge.each_fixture { |column, row, _| fittings << {column, row} }
+
+      expect(items.sort).to eq [{1, 1}, {3, 2}]
+      expect(fittings).to eq [{2, 1}]
+    end
+  end
+
+  describe "the grid it keeps" do
+    # Every answer the kept grid gives, against a copy that builds its own.
+    def agrees?(knowledge : Roguelike::Knowledge) : Bool
+      fresh = knowledge.copy
+      (-30..40).all? do |column|
+        (-30..40).all? do |row|
+          knowledge.walkable?(column, row) == fresh.walkable?(column, row) &&
+            knowledge.crossable?(column, row) == fresh.crossable?(column, row)
+        end
+      end
+    end
+
+    it "follows every kind of write after it is built" do
+      floor = spot
+      floor.set 6, 2, Terrain::ClosedDoor
+      knowledge = described_class.new "room"
+      knowledge.see floor, 1, 1
+      expect(knowledge.walkable? 1, 1).to be_true
+
+      knowledge.see floor, 6, 2
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.crossable? 6, 2).to be_true
+
+      knowledge.bar 6, 2
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.crossable? 6, 2).to be_false
+
+      floor.set 6, 2, Terrain::OpenDoor
+      knowledge.see floor, 6, 2
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.walkable? 6, 2).to be_true
+
+      knowledge.opening 3, 3
+      knowledge.opening 0, 0
+      knowledge.see floor, 0, 0
+      expect(agrees? knowledge).to be_true
+
+      knowledge.touch floor, 2, 2
+      knowledge.remember 35, 35, Roguelike::Memory.new(Terrain::StoneFloor)
+      knowledge.opening -25, 4
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.walkable? 35, 35).to be_true
+      expect(knowledge.walkable? -25, 4).to be_true
+
+      knowledge.forget
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.walkable? 1, 1).to be_false
+    end
+  end
+
+  describe "the joins it keeps" do
+    # Squares a flood could tell apart, against a copy that joins afresh.
+    def joins_agree?(knowledge : Roguelike::Knowledge) : Bool
+      kept = knowledge.grid
+      fresh = knowledge.copy.grid
+      spots = (0..6).flat_map { |column| (0..4).map { |row| {column, row} } }
+      spots.all? do |one|
+        spots.all? { |other| kept.joined?(one, other) == fresh.joined?(one, other) }
+      end
+    end
+
+    it "joins squares as they are seen and splits them when a door is barred" do
+      floor = Playing.daylight Floor.parse("split", [
+        "#######",
+        "#..#..#",
+        "#..+..#",
+        "#..#..#",
+        "#######",
+      ])
+      knowledge = described_class.new "split"
+      knowledge.see floor, 1, 1
+      knowledge.see floor, 5, 1
+      expect(knowledge.grid.joined?({1, 1}, {5, 1})).to be_false
+
+      [{2, 1}, {1, 2}, {2, 2}, {4, 1}, {5, 2}, {4, 2}, {3, 1}, {3, 3}].each do |spot|
+        knowledge.see floor, spot[0], spot[1]
+      end
+      expect(joins_agree? knowledge).to be_true
+      expect(knowledge.grid.joined?({1, 1}, {5, 1})).to be_false
+
+      knowledge.see floor, 3, 2
+      expect(joins_agree? knowledge).to be_true
+      expect(knowledge.grid.joined?({1, 1}, {5, 1})).to be_true
+
+      knowledge.bar 3, 2
+      expect(joins_agree? knowledge).to be_true
+      expect(knowledge.grid.joined?({1, 1}, {5, 1})).to be_false
+
+      knowledge.opening 3, 0
+      knowledge.see floor, 2, 3
+      expect(joins_agree? knowledge).to be_true
+    end
+  end
+
   describe "on the player" do
     it "gives the floor they stand on an empty one" do
       player = Roguelike::Player.new "room", 3, 2
