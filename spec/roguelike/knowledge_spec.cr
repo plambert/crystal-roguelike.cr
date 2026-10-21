@@ -526,6 +526,50 @@ Spectator.describe Roguelike::Knowledge do
     end
   end
 
+  describe "the joins it keeps" do
+    # Squares a flood could tell apart, against a copy that joins afresh.
+    def joins_agree?(knowledge : Roguelike::Knowledge) : Bool
+      kept = knowledge.grid
+      fresh = knowledge.copy.grid
+      spots = (0..6).flat_map { |column| (0..4).map { |row| {column, row} } }
+      spots.all? do |one|
+        spots.all? { |other| kept.joined?(one, other) == fresh.joined?(one, other) }
+      end
+    end
+
+    it "joins squares as they are seen and splits them when a door is barred" do
+      floor = Playing.daylight Floor.parse("split", [
+        "#######",
+        "#..#..#",
+        "#..+..#",
+        "#..#..#",
+        "#######",
+      ])
+      knowledge = described_class.new "split"
+      knowledge.see floor, 1, 1
+      knowledge.see floor, 5, 1
+      expect(knowledge.grid.joined?({1, 1}, {5, 1})).to be_false
+
+      [{2, 1}, {1, 2}, {2, 2}, {4, 1}, {5, 2}, {4, 2}, {3, 1}, {3, 3}].each do |spot|
+        knowledge.see floor, spot[0], spot[1]
+      end
+      expect(joins_agree? knowledge).to be_true
+      expect(knowledge.grid.joined?({1, 1}, {5, 1})).to be_false
+
+      knowledge.see floor, 3, 2
+      expect(joins_agree? knowledge).to be_true
+      expect(knowledge.grid.joined?({1, 1}, {5, 1})).to be_true
+
+      knowledge.bar 3, 2
+      expect(joins_agree? knowledge).to be_true
+      expect(knowledge.grid.joined?({1, 1}, {5, 1})).to be_false
+
+      knowledge.opening 3, 0
+      knowledge.see floor, 2, 3
+      expect(joins_agree? knowledge).to be_true
+    end
+  end
+
   describe "on the player" do
     it "gives the floor they stand on an empty one" do
       player = Roguelike::Player.new "room", 3, 2

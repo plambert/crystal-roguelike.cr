@@ -54,9 +54,11 @@ module Roguelike
       found = knowledge.chambers columns, rows
       piles = Explore.wanted(knowledge, takes)
 
-      # The flood over the whole floor is built only when something reads it.
-      descent = flood knowledge, from, columns, rows unless piles.empty?
-      goal = descent.try { |reached| nearest reached, piles }
+      # Each flood here runs only as far as what reads it needs.
+      if reaches_any? knowledge, from, piles
+        descent = toward_any knowledge, from, columns, rows, piles
+        goal = nearest descent, piles
+      end
       unless goal
         room = sweeping knowledge, found, from, columns, rows
         return room if room
@@ -115,10 +117,27 @@ module Roguelike
     def self.wanted?(knowledge : Knowledge, from : {Int32, Int32},
                      columns : Int32, rows : Int32,
                      takes : Proc(Item, Bool)? = nil) : Bool
-      piles = Explore.wanted(knowledge, takes) + Explore.unread(knowledge)
-      return false if piles.empty?
+      reaches_any? knowledge, from, Explore.wanted(knowledge, takes) + Explore.unread(knowledge)
+    end
 
-      !nearest(flood(knowledge, from, columns, rows), piles).nil?
+    # Whether a flood from *from* that crosses doors reaches any of *spots*
+    # other than *from* itself.
+    #
+    # The flood steps from *from* onto the crossable squares around it, and
+    # from those to every crossable square joined to them.
+    private def self.reaches_any?(knowledge : Knowledge, from : {Int32, Int32},
+                                  spots : Array({Int32, Int32})) : Bool
+      return false if spots.empty?
+
+      grid = knowledge.grid
+      starts = Direction.values.compact_map do |direction|
+        near = direction.from from[0], from[1]
+        near if grid.crossable? near[0], near[1]
+      end
+
+      spots.any? do |spot|
+        spot != from && starts.any? { |start| grid.joined? start, spot }
+      end
     end
 
     # How many steps the squares the character knows are from *from*, as far
@@ -142,10 +161,20 @@ module Roguelike
       end
     end
 
-    # How many steps every square the character knows is from *from*.
-    private def self.flood(knowledge : Knowledge, from : {Int32, Int32},
-                           columns : Int32, rows : Int32) : Descent
-      Descent.toward knowledge, from, Math.max(columns * rows, Route::LIMIT), doors: true
+    # How many steps the squares the character knows are from *from*, as far
+    # as the first wave that reaches one of *spots*.
+    #
+    # `.nearest` picks the fewest steps, and every one of *spots* that few
+    # steps off is in that wave, so it picks what a whole flood gives it. A
+    # flood that reaches none of them runs to the end.
+    private def self.toward_any(knowledge : Knowledge, from : {Int32, Int32},
+                                columns : Int32, rows : Int32,
+                                spots : Array({Int32, Int32})) : Descent
+      wanted = spots.to_set
+      Descent.toward(knowledge, from, Math.max(columns * rows, Route::LIMIT),
+        doors: true) do |wave|
+        wave.any? { |spot| wanted.includes? spot }
+      end
     end
 
     # Every square *knowledge* remembers gold or an item *takes* accepts

@@ -639,6 +639,11 @@ module Roguelike
 
     @flags : Bytes
 
+    # Which crossable squares are joined to which, across the eight ways
+    # off a square, as a union-find over the grid. `nil` until `#joined?`
+    # asks, and again after a square stops being crossable.
+    @joined : Array(Int32)? = nil
+
     def initialize(@left : Int32, @top : Int32, @columns : Int32, @rows : Int32)
       @flags = Bytes.new @columns * @rows
     end
@@ -654,8 +659,71 @@ module Roguelike
     end
 
     # Sets the flags of *x*, *y*, which must lie inside the grid.
+    #
+    # A square that becomes crossable joins the crossable squares around
+    # it. One that stops being crossable may split what it joined, so the
+    # joins are worked out again on the next ask.
     def []=(x : Int32, y : Int32, flags : UInt8) : UInt8
-      @flags[(y - @top) * @columns + x - @left] = flags
+      at = (y - @top) * @columns + x - @left
+      before = @flags[at]
+      @flags[at] = flags
+
+      if sets = @joined
+        if before & CROSS != 0 && flags & CROSS == 0
+          @joined = nil
+        elsif before & CROSS == 0 && flags & CROSS != 0
+          join_around sets, at
+        end
+      end
+
+      flags
+    end
+
+    # Whether *one* and *other* are both crossable and joined by crossable
+    # squares across the eight ways off a square.
+    #
+    # A flood that crosses doors reaches a square from one beside where it
+    # starts exactly when this holds for the two.
+    def joined?(one : {Int32, Int32}, other : {Int32, Int32}) : Bool
+      return false unless crossable?(one[0], one[1]) && crossable?(other[0], other[1])
+
+      sets = @joined ||= build_joined
+      root(sets, (one[1] - @top) * @columns + one[0] - @left) ==
+        root(sets, (other[1] - @top) * @columns + other[0] - @left)
+    end
+
+    private def build_joined : Array(Int32)
+      sets = Array(Int32).new(@flags.size) { |square| square }
+      @flags.each_with_index do |flags, square|
+        join_around sets, square unless flags & CROSS == 0
+      end
+      sets
+    end
+
+    # Joins the crossable square *at* to every crossable square around it.
+    private def join_around(sets : Array(Int32), at : Int32) : Nil
+      column = at % @columns
+      row = at // @columns
+
+      (Math.max(row - 1, 0)..Math.min(row + 1, @rows - 1)).each do |near_row|
+        (Math.max(column - 1, 0)..Math.min(column + 1, @columns - 1)).each do |near_column|
+          near = near_row * @columns + near_column
+          next if near == at || @flags[near] & CROSS == 0
+
+          one = root sets, at
+          other = root sets, near
+          sets[Math.max(one, other)] = Math.min(one, other) unless one == other
+        end
+      end
+    end
+
+    private def root(sets : Array(Int32), at : Int32) : Int32
+      while (parent = sets[at]) != at
+        grand = sets[parent]
+        sets[at] = grand
+        at = grand
+      end
+      at
     end
 
     def walkable?(x : Int32, y : Int32) : Bool
