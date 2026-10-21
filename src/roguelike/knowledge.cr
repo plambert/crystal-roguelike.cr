@@ -726,6 +726,20 @@ module Roguelike
       at
     end
 
+    # Copies the flags of the squares of a floor of *columns* by *rows*
+    # into *into*, row by row. A square outside the grid is left as it is.
+    def copy(into : Bytes, columns : Int32, rows : Int32) : Nil
+      first = Math.max 0, @left
+      last = Math.min columns, @left + @columns
+      return if first >= last
+
+      (Math.max(0, @top)...Math.min(rows, @top + @rows)).each do |row|
+        width = last - first
+        @flags[(row - @top) * @columns + first - @left, width]
+          .copy_to into[row * columns + first, width]
+      end
+    end
+
     def walkable?(x : Int32, y : Int32) : Bool
       self[x, y] & WALK != 0
     end

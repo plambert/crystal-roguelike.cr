@@ -116,8 +116,8 @@ module Roguelike
     # Whether each square is walkable and borders a square not yet seen.
     @edge : Array(Bool)
 
-    # Whether each square has been seen.
-    @known : Array(Bool)
+    # The knowledge grid's flags for each square.
+    @flags : Bytes
 
     # What `#behind` has answered for each square, or -1 where it has not
     # been asked. `nil` until the first ask.
@@ -137,7 +137,7 @@ module Roguelike
     def initialize(@columns : Int32, @rows : Int32, @revision : Int32,
                    @chambers : Array(Chamber), @passages : Array(Passage),
                    @owner : Array(Int32), @edge : Array(Bool),
-                   @known : Array(Bool))
+                   @flags : Bytes)
     end
 
     # The chamber *x*, *y* belongs to. `nil` for a corridor, a door, a wall
@@ -248,7 +248,7 @@ module Roguelike
     # Answers how many squares that added.
     private def take(at : Int32, counted : Array(Int32), mark : Int32,
                      pending : Array(Int32)) : Int32
-      return 0 if @known[at] || counted[at] == mark
+      return 0 if @flags[at] & Knowledge::Grid::SEEN != 0 || counted[at] == mark
 
       counted[at] = mark
       pending << at
@@ -271,21 +271,11 @@ module Roguelike
     private class Cutting
       @size : Int32
 
-      # Whether the square has been seen.
-      @known : Array(Bool)
-
-      # Whether the square is known ground a chamber can hold. Such a square
-      # is walkable and is not a door.
-      @ground : Array(Bool)
-
-      # Whether the square can be crossed, doors and openings counted.
-      @cross : Array(Bool)
+      # The knowledge grid's flags for each square.
+      @flags : Bytes
 
       # Whether the square is open.
       @open : Array(Bool)
-
-      # Whether the square is remembered with an item on it.
-      @item : Array(Bool)
 
       @owner : Array(Int32)
 
@@ -297,11 +287,8 @@ module Roguelike
 
       def initialize(@knowledge : Knowledge, @columns : Int32, @rows : Int32)
         @size = @columns * @rows
-        @known = Array(Bool).new @size, false
-        @ground = Array(Bool).new @size, false
-        @cross = Array(Bool).new @size, false
+        @flags = Bytes.new @size
         @open = Array(Bool).new @size, false
-        @item = Array(Bool).new @size, false
         @owner = Array(Int32).new @size, -1
         @offsets = StaticArray(Int32, 8).new { |index| AROUND[index][1] * @columns + AROUND[index][0] }
       end
@@ -318,7 +305,7 @@ module Roguelike
 
         chambers = @anchors.map_with_index { |anchor, number| chamber anchor, number, members[number], edge }
         Chambers.new @columns, @rows, @knowledge.revision, chambers, passages,
-          @owner, edge, @known
+          @owner, edge, @flags
       end
 
       private def index(x : Int32, y : Int32) : Int32?
@@ -354,32 +341,34 @@ module Roguelike
         x > 0 && y > 0 && x < @columns - 1 && y < @rows - 1
       end
 
-      # Fills the grids the cut reads from what is remembered.
+      # Copies the knowledge grid's flags over the floor.
       private def read : Nil
-        grid = @knowledge.grid
-        at = 0
+        @knowledge.grid.copy @flags, @columns, @rows
+      end
 
-        @rows.times do |row|
-          @columns.times do |column|
-            flags = grid[column, row]
-            unless flags.zero?
-              @known[at] = flags & Knowledge::Grid::SEEN != 0
-              @ground[at] = flags & Knowledge::Grid::GROUND != 0
-              @cross[at] = flags & Knowledge::Grid::CROSS != 0
-              @item[at] = flags & Knowledge::Grid::ITEM != 0
-            end
-            at += 1
-          end
-        end
+      # Whether the square has been seen.
+      private def known?(square : Int32) : Bool
+        @flags[square] & Knowledge::Grid::SEEN != 0
+      end
+
+      # Whether the square is known ground a chamber can hold. Such a square
+      # is walkable and is not a door.
+      private def ground?(square : Int32) : Bool
+        @flags[square] & Knowledge::Grid::GROUND != 0
+      end
+
+      # Whether the square can be crossed, doors and openings counted.
+      private def cross?(square : Int32) : Bool
+        @flags[square] & Knowledge::Grid::CROSS != 0
       end
 
       # Marks every square whose block of nine is all ground.
       private def mark_open : Nil
         @size.times do |square|
-          next unless @ground[square]
+          next unless ground?(square)
 
           x, y = spot square
-          @open[square] = inner?(x, y) && @offsets.all? { |offset| @ground[square + offset] }
+          @open[square] = inner?(x, y) && @offsets.all? { |offset| ground?(square + offset) }
         end
       end
 
@@ -423,7 +412,7 @@ module Roguelike
       # it works in place.
       private def skirt : Nil
         @size.times do |square|
-          next if !@ground[square] || @open[square]
+          next if !ground?(square) || @open[square]
 
           around square do |next_to|
             next unless @open[next_to]
@@ -439,11 +428,11 @@ module Roguelike
       # A square crossed only by inference is unseen itself, so it counts.
       private def edges : Array(Bool)
         Array.new(@size) do |square|
-          next false unless @cross[square]
-          next true unless @known[square]
+          next false unless cross?(square)
+          next true unless known?(square)
 
           bordering = false
-          around(square) { |next_to| bordering = true unless @known[next_to] }
+          around(square) { |next_to| bordering = true unless known?(next_to) }
           bordering
         end
       end
@@ -460,11 +449,11 @@ module Roguelike
           here = spot square
           squares << here
           frontier ||= edge[square]
-          lying = @knowledge[here].try &.item if @item[square]
+          lying = @knowledge[here].try &.item if @flags[square] & Knowledge::Grid::ITEM != 0
           items << Chamber::Lying.new(here, lying) if lying
 
           around square do |next_to|
-            next unless @cross[next_to]
+            next unless cross?(next_to)
 
             other = @owner[next_to]
             if other < 0
@@ -486,7 +475,7 @@ module Roguelike
         seen = Array(Bool).new @size, false
 
         @size.times do |start|
-          next if !@cross[start] || @owner[start] >= 0 || seen[start]
+          next if !cross?(start) || @owner[start] >= 0 || seen[start]
 
           seen[start] = true
           queue = Deque{start}
@@ -495,7 +484,7 @@ module Roguelike
           while at = queue.shift?
             squares << at
             around at do |next_to|
-              next if !@cross[next_to] || @owner[next_to] >= 0 || seen[next_to]
+              next if !cross?(next_to) || @owner[next_to] >= 0 || seen[next_to]
 
               seen[next_to] = true
               queue << next_to
@@ -516,7 +505,7 @@ module Roguelike
         squares.each do |square|
           ways = 0
           around square do |next_to|
-            next unless @cross[next_to]
+            next unless cross?(next_to)
 
             ways += 1
             other = @owner[next_to]
@@ -526,7 +515,7 @@ module Roguelike
           x, y = spot square
           sides = SIDES.count do |offset|
             found = index(x + offset[0], y + offset[1])
-            !found.nil? && @cross[found]
+            !found.nil? && cross?(found)
           end
 
           junctions << {x, y} if sides >= 3
