@@ -119,6 +119,20 @@ Spectator.describe Roguelike::Descent do
 
       expect(map.steps.values.max).to be <= Descent::LIMIT
     end
+
+    it "stops after the wave its block answers true for" do
+      _floor, knowledge = known
+      whole = Descent.toward knowledge, {1, 1}, limit: 100
+      waves = [] of Int32
+      near = Descent.toward(knowledge, {1, 1}, limit: 100) do |_wave, away|
+        waves << away
+        away == 3
+      end
+
+      expect(waves).to eq [1, 2, 3]
+      expect(near.steps).to eq whole.steps.select { |_, away| away <= 3 }
+      expect(near.steps.keys).to eq whole.steps.keys.first(near.size)
+    end
   end
 
   # One wide open room, for a path with room to bend.

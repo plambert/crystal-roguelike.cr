@@ -116,6 +116,20 @@ module Roguelike
                     limit : Int32 = LIMIT, doors : Bool = false,
                     avoid : Set({Int32, Int32}) = EMPTY,
                     keep : Set({Int32, Int32})? = nil) : Descent
+      toward(knowledge, goal, limit, doors, avoid, keep) { false }
+    end
+
+    # :ditto:
+    #
+    # Yields each wave of squares as it is reached, with how many steps they
+    # are from the goal. The flood stops after a wave the block answers true
+    # for. Every square nearer than that wave is in the descent, with the
+    # distance a whole flood gives it.
+    def self.toward(knowledge : Knowledge, goal : {Int32, Int32},
+                    limit : Int32 = LIMIT, doors : Bool = false,
+                    avoid : Set({Int32, Int32}) = EMPTY,
+                    keep : Set({Int32, Int32})? = nil,
+                    & : Array({Int32, Int32}), Int32 -> Bool) : Descent
       grid = knowledge.grid
       wanted_flag = doors ? Knowledge::Grid::CROSS : Knowledge::Grid::WALK
       left, top, right, bottom = box grid, goal, limit
@@ -150,6 +164,7 @@ module Roguelike
         end
 
         edge = wave
+        break if yield wave, away
       end
 
       new goal, left, top, columns, rows, reached, order

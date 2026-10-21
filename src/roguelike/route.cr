@@ -80,7 +80,7 @@ module Roguelike
       sighted = sighted knowledge, vision, goal
       return {sighted, nil} if sighted
 
-      found = over Descent.toward(knowledge, from, limit, doors: true), goal
+      found = over toward(knowledge, from, goal, limit), goal
       return {found, nil} unless found.empty?
 
       guess = Descent.toward guessed(knowledge, vision), from, limit, doors: true
@@ -92,7 +92,18 @@ module Roguelike
     def self.between(knowledge : Knowledge, from : {Int32, Int32},
                      goal : {Int32, Int32},
                      limit : Int32 = LIMIT) : Array({Int32, Int32})
-      over Descent.toward(knowledge, from, limit, doors: true), goal
+      over toward(knowledge, from, goal, limit), goal
+    end
+
+    # The flood from *from* over *knowledge*, as far as the wave that reaches
+    # *goal*. `.over` reads no square further off than the goal, so the route
+    # is the one a whole flood gives. A flood that never reaches the goal
+    # runs to the end.
+    private def self.toward(knowledge : Knowledge, from : {Int32, Int32},
+                            goal : {Int32, Int32}, limit : Int32) : Descent
+      Descent.toward(knowledge, from, limit, doors: true) do |wave|
+        wave.includes? goal
+      end
     end
 
     # The straight line to *goal*, when the character can see it and walk it.
