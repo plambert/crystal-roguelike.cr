@@ -459,6 +459,56 @@ Spectator.describe Roguelike::Knowledge do
     end
   end
 
+  describe "the grid it keeps" do
+    # Every answer the kept grid gives, against a copy that builds its own.
+    def agrees?(knowledge : Roguelike::Knowledge) : Bool
+      fresh = knowledge.copy
+      (-30..40).all? do |column|
+        (-30..40).all? do |row|
+          knowledge.walkable?(column, row) == fresh.walkable?(column, row) &&
+            knowledge.crossable?(column, row) == fresh.crossable?(column, row)
+        end
+      end
+    end
+
+    it "follows every kind of write after it is built" do
+      floor = spot
+      floor.set 6, 2, Terrain::ClosedDoor
+      knowledge = described_class.new "room"
+      knowledge.see floor, 1, 1
+      expect(knowledge.walkable? 1, 1).to be_true
+
+      knowledge.see floor, 6, 2
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.crossable? 6, 2).to be_true
+
+      knowledge.bar 6, 2
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.crossable? 6, 2).to be_false
+
+      floor.set 6, 2, Terrain::OpenDoor
+      knowledge.see floor, 6, 2
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.walkable? 6, 2).to be_true
+
+      knowledge.opening 3, 3
+      knowledge.opening 0, 0
+      knowledge.see floor, 0, 0
+      expect(agrees? knowledge).to be_true
+
+      knowledge.touch floor, 2, 2
+      knowledge.remember 35, 35, Roguelike::Memory.new(Terrain::StoneFloor)
+      knowledge.opening -25, 4
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.walkable? 35, 35).to be_true
+      expect(knowledge.walkable? -25, 4).to be_true
+
+      knowledge.forget
+      expect(agrees? knowledge).to be_true
+      expect(knowledge.walkable? 1, 1).to be_false
+    end
+  end
+
   describe "on the player" do
     it "gives the floor they stand on an empty one" do
       player = Roguelike::Player.new "room", 3, 2

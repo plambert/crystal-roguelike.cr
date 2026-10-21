@@ -177,6 +177,11 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @chambers : Chambers? = nil
 
+    # What is known of the ground as flat flags, or `nil` until a flood or
+    # a cut asks.
+    @[JSON::Field(ignore: true)]
+    @grid : Grid? = nil
+
     # The rows `#to_map` drew last, and what it drew them from.
     @[JSON::Field(ignore: true)]
     @drawn : Array(String)? = nil
@@ -200,6 +205,7 @@ module Roguelike
     # Records that the door at *x*, *y* would not open.
     def bar(x : Int32, y : Int32) : Nil
       changed if (@barred ||= Set(String).new).add?(Floor.spot x, y)
+      regrid x, y
     end
 
     # Whether the door at *x*, *y* is known to be spiked against whoever
@@ -234,6 +240,72 @@ module Roguelike
       end
 
       @chambers = Chambers.of self, columns, rows
+    end
+
+    # What is known of the ground as flat flags.
+    #
+    # Built on the first ask and kept up to date by every write after that.
+    def grid : Grid
+      @grid ||= build_grid
+    end
+
+    # A grid over every square remembered or crossed, with `Grid::MARGIN`
+    # squares round them.
+    private def build_grid : Grid
+      left = top = Int32::MAX
+      right = bottom = Int32::MIN
+      spots = @memories.keys.map { |key| Floor.unspot key }
+      opened = @openings.map { |key| Floor.unspot key }
+
+      {spots, opened}.each do |list|
+        list.each do |spot|
+          left = Math.min left, spot[0]
+          top = Math.min top, spot[1]
+          right = Math.max right, spot[0]
+          bottom = Math.max bottom, spot[1]
+        end
+      end
+
+      return Grid.new(0, 0, 0, 0) if left > right
+
+      margin = Grid::MARGIN
+      built = Grid.new left - margin, top - margin,
+        right - left + 1 + 2 * margin, bottom - top + 1 + 2 * margin
+
+      opened.each { |spot| built[spot[0], spot[1]] = Grid::OPENED }
+      index = 0
+      @memories.each_value do |memory|
+        spot = spots[index]
+        index += 1
+        terrain = memory.terrain
+        barred = terrain.door? && barred?(spot[0], spot[1])
+        built[spot[0], spot[1]] = Grid.remembered(terrain, barred)
+      end
+
+      built
+    end
+
+    # Writes what is known of *x*, *y* into the grid, when there is one.
+    #
+    # A square outside the grid drops it, and the next ask builds a larger
+    # one.
+    private def regrid(x : Int32, y : Int32, memory : Memory? = self[x, y]) : Nil
+      held = @grid
+      return unless held
+
+      unless held.covers? x, y
+        @grid = nil
+        return
+      end
+
+      held[x, y] = if memory
+                     terrain = memory.terrain
+                     Grid.remembered(terrain, terrain.door? && barred?(x, y))
+                   elsif @openings.includes? Floor.spot(x, y)
+                     Grid::OPENED
+                   else
+                     0_u8
+                   end
     end
 
     # The key `#sightings` holds the character under.
@@ -299,10 +371,7 @@ module Roguelike
     # What is remembered wins over what was inferred. A square seen to be a
     # wall is a wall, whatever was once guessed about it.
     def walkable?(x : Int32, y : Int32) : Bool
-      found = self[x, y]
-      return found.terrain.passable? if found
-
-      @openings.includes? Floor.spot(x, y)
+      grid.walkable? x, y
     end
 
     # :ditto:
@@ -323,13 +392,7 @@ module Roguelike
     # A band whose members open doors paths with this. One whose members do
     # not paths with `#walkable?`.
     def crossable?(x : Int32, y : Int32) : Bool
-      found = self[x, y]
-      if found
-        return true if found.terrain.passable?
-        return found.terrain.door? && !barred?(x, y)
-      end
-
-      @openings.includes? Floor.spot(x, y)
+      grid.crossable? x, y
     end
 
     # :ditto:
@@ -379,9 +442,11 @@ module Roguelike
 
       terrain = floor.terrain x, y
       changed if held.nil? || held.terrain != terrain || held.item.try(&.id) != lying.try(&.id)
-      @memories[Floor.spot x, y] = Memory.new terrain,
+      memory = Memory.new terrain,
         fitting.try(&.copy), lying, turn, made_out, floor.spiked?(x, y), beneath
+      @memories[Floor.spot x, y] = memory
       unbar x, y unless terrain.closed_door?
+      regrid x, y, memory
     end
 
     # Records the shape of *x*, *y* and what is fixed to it, and no more.
@@ -399,11 +464,13 @@ module Roguelike
       held = self[x, y]
       terrain = floor.terrain x, y
       changed if held.nil? || held.terrain != terrain
-      @memories[Floor.spot x, y] = Memory.new terrain,
+      memory = Memory.new terrain,
         floor.fixture(x, y).try(&.copy), held.try(&.item), turn,
         held.try(&.regard) || Regard::Nothing, floor.spiked?(x, y),
         held.try(&.under)
+      @memories[Floor.spot x, y] = memory
       unbar x, y unless terrain.closed_door?
+      regrid x, y, memory
     end
 
     # Writes *memory* down at *x*, *y*, over whatever was there.
@@ -414,6 +481,7 @@ module Roguelike
     def remember(x : Int32, y : Int32, memory : Memory) : Nil
       changed
       @memories[Floor.spot x, y] = memory
+      regrid x, y, memory
     end
 
     # Records that *x*, *y* can be crossed, and nothing else about it.
@@ -425,6 +493,7 @@ module Roguelike
     # or a staircase, none of which the creature has looked at.
     def opening(x : Int32, y : Int32) : Nil
       changed if @openings.add?(Floor.spot x, y)
+      regrid x, y
     end
 
     # Records every square *vision* can see. This is the one way anything gets
@@ -467,6 +536,7 @@ module Roguelike
       @sightings.clear
       @openings.clear
       @barred = nil
+      @grid = nil
     end
 
     # *floor* drawn as it is remembered, with *unknown* wherever it is not.
@@ -511,5 +581,83 @@ module Roguelike
     def to_s(io : IO) : Nil
       io << "Knowledge(" << @floor << ' ' << @memories.size << " seen)"
     end
+  end
+
+  # What a `Knowledge` holds of the ground, as flags in one flat array.
+  #
+  # `Knowledge#walkable?` and `Knowledge#crossable?` read it, and so do the
+  # floods and the chambers cut. It covers every square that is remembered
+  # or crossed, with a margin, and answers nothing known for a square
+  # outside it.
+  #
+  # The knowledge writes each change into it as the change is made, so it
+  # never needs building again while what is learned stays inside it.
+  class Knowledge::Grid
+    # The square has a memory.
+    SEEN = 1_u8
+
+    # `Knowledge#walkable?` holds.
+    WALK = 2_u8
+
+    # `Knowledge#crossable?` holds.
+    CROSS = 4_u8
+
+    # The square is remembered as walkable and not a door.
+    GROUND = 8_u8
+
+    # How many squares the grid reaches past what was known when it was
+    # built.
+    MARGIN = 24
+
+    # The first column and row it covers, and how many of each.
+    getter left : Int32
+    getter top : Int32
+    getter columns : Int32
+    getter rows : Int32
+
+    @flags : Bytes
+
+    def initialize(@left : Int32, @top : Int32, @columns : Int32, @rows : Int32)
+      @flags = Bytes.new @columns * @rows
+    end
+
+    # Whether *x*, *y* lies inside the grid.
+    def covers?(x : Int32, y : Int32) : Bool
+      x >= @left && y >= @top && x < @left + @columns && y < @top + @rows
+    end
+
+    # The flags of *x*, *y*. Zero outside the grid.
+    def [](x : Int32, y : Int32) : UInt8
+      covers?(x, y) ? @flags[(y - @top) * @columns + x - @left] : 0_u8
+    end
+
+    # Sets the flags of *x*, *y*, which must lie inside the grid.
+    def []=(x : Int32, y : Int32, flags : UInt8) : UInt8
+      @flags[(y - @top) * @columns + x - @left] = flags
+    end
+
+    def walkable?(x : Int32, y : Int32) : Bool
+      self[x, y] & WALK != 0
+    end
+
+    def crossable?(x : Int32, y : Int32) : Bool
+      self[x, y] & CROSS != 0
+    end
+
+    # The flags a square remembered as *terrain* takes. *barred* says
+    # whether it is a door known to be spiked.
+    def self.remembered(terrain : Terrain, barred : Bool) : UInt8
+      flags = SEEN
+      if terrain.passable?
+        flags |= WALK | CROSS
+        flags |= GROUND unless terrain.door?
+      elsif terrain.door? && !barred
+        flags |= CROSS
+      end
+      flags
+    end
+
+    # The flags of an opening, a square crossed and never seen.
+    OPENED = WALK | CROSS
   end
 end
