@@ -173,6 +173,13 @@ module Roguelike::Ui
       @grid.on_frame = ->(view : TermBuf::View) { replayed view }
     end
 
+    # Takes the ground from the palette as it now stands, and drops every
+    # drawing kept in the colors before.
+    def retheme : Nil
+      @grid.background = Palette.ground_style
+      forget_frames
+    end
+
     # Sets whether nobody is looking at the window. Drops every drawing the
     # pane keeps.
     def idle=(idle : Bool) : Bool

@@ -1,0 +1,16 @@
+
+  ╭─ Options ────────────────────────╮
+ #│                                │ │
+ #│ Input                          │ │
+ #│ Mouse        ☑                 │ │
+ #│                                │ │
+ #│ Game                           █ │
+ #│ Update check ☑                 █ │
+ #│ Send runs    ☐                 █ │
+  │                                █ │
+  │ Tester                         █ │
+──│ Name         anonymous         █ │──
+ Y│ The name that labels your        │
+ s│ uploaded runs                    │
+ Y╰──────────────────────────────────╯f
+ minor healing. Press ? for the keys.

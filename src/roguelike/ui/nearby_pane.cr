@@ -311,6 +311,11 @@ module Roguelike::Ui
       unmark
     end
 
+    # Marks the marked row again in the palette as it now stands.
+    def retheme : Nil
+      @marked.try &.marks=(NearbyPane.marks)
+    end
+
     # Takes the marks off the marked row.
     #
     # `Play` calls this when the pointer leaves the info panel. A row left

@@ -47,7 +47,7 @@ module Roguelike::Ui
     def self.install(app : Widgets::App, help : Help = Help.new, play : Play? = nil,
                      on_mouse : Proc(Nil)? = nil, &on_quit : -> Nil) : Help
       own = application(&on_quit).merge(helping(help, app))
-      own = own.merge Keys.examining(play) if play
+      own = own.merge(Keys.examining(play)).merge(Keys.preferring(play)) if play
       sections = [Section.new("application", own)]
       sections.concat play.sections if play
       sections << Section.new("mouse", mousing(&on_mouse)) if on_mouse
@@ -106,6 +106,86 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("x"), "look at a square",
           ->(_context : Widgets::Context) { play.toggle_examine; nil }
       end
+    end
+
+    # `O` opens the options screen.
+    def self.preferring(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("O"), "change the options",
+          ->(_context : Widgets::Context) { play.show_options; nil }
+      end
+    end
+
+    # The keys the options screen answers while it is up.
+    #
+    # The form binds the arrows, `Tab`, `Home`, `End`, the page keys and
+    # `Enter`, and each row's input binds its own. The notes list those. The
+    # bindings here add the letters and `Escape`. A row that takes text gets
+    # a letter or `?` it takes as typing, as a number row takes a digit.
+    def self.options_screen(screen : OptionsScreen, app : Widgets::App) : Section
+      bindings = Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Escape"), "close the options",
+          ->(_context : Widgets::Context) { screen.dismiss; nil }
+        map.bind TermBuf::Key.parse("F1"), "show the keys that work here",
+          ->(_context : Widgets::Context) { screen.show_help app; nil }
+        map.bind TermBuf::Key.parse("?"), "show the keys that work here",
+          ->(context : Widgets::Context) { screen.show_help app unless screen.typed? context; nil }
+        map.bind TermBuf::Key.parse("j"), "the row below",
+          ->(context : Widgets::Context) { screen.step 1, context; nil }
+        map.bind TermBuf::Key.parse("k"), "the row above",
+          ->(context : Widgets::Context) { screen.step(-1, context); nil }
+        map.bind TermBuf::Key.parse("h"), "the choice before, or a step down",
+          ->(context : Widgets::Context) { screen.turn(-1, context); nil }
+        map.bind TermBuf::Key.parse("l"), "the choice after, or a step up",
+          ->(context : Widgets::Context) { screen.turn 1, context; nil }
+      end
+
+      notes = [
+        {"Up Down", "the row above or below"},
+        {"Tab Shift+Tab", "the next or the previous row"},
+        {"Space Enter", "turn a toggle, or take the next choice"},
+        {"Left Right", "the choice before or after, or step a number"},
+        {"Home End", "the first or the last row"},
+        {"PageUp PageDown", "a screenful up or down"},
+      ]
+
+      Section.new "options", bindings, notes
+    end
+
+    # The keys the theme editor answers while it is up.
+    #
+    # The form binds the arrows, `Tab`, `Home`, `End`, the page keys and
+    # `Enter`, and a color row opens its picker on `Enter` and `Space`. The
+    # bindings here add the letters and `Escape`.
+    def self.theme_editor(editor : ThemeEditor, app : Widgets::App) : Section
+      bindings = Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Escape"), "back to the options",
+          ->(_context : Widgets::Context) { editor.dismiss; nil }
+        map.bind TermBuf::Key.parse("F1"), "show the keys that work here",
+          ->(_context : Widgets::Context) { editor.show_help app; nil }
+        map.bind TermBuf::Key.parse("?"), "show the keys that work here",
+          ->(_context : Widgets::Context) { editor.show_help app; nil }
+        map.bind TermBuf::Key.parse("j"), "the row below",
+          ->(context : Widgets::Context) { editor.step 1, context; nil }
+        map.bind TermBuf::Key.parse("k"), "the row above",
+          ->(context : Widgets::Context) { editor.step(-1, context); nil }
+        map.bind TermBuf::Key.parse("h"), "the first row of the group above",
+          ->(context : Widgets::Context) { editor.leap(-1, context); nil }
+        map.bind TermBuf::Key.parse("l"), "the first row of the group below",
+          ->(context : Widgets::Context) { editor.leap 1, context; nil }
+        map.bind TermBuf::Key.parse("r"), "put this color back to the game's own",
+          ->(_context : Widgets::Context) { editor.reset_row; nil }
+      end
+
+      notes = [
+        {"Up Down", "the row above or below"},
+        {"Tab Shift+Tab", "the next or the previous row"},
+        {"Enter Space", "choose a color, or reset every color"},
+        {"Home End", "the first or the last row"},
+        {"PageUp PageDown", "a screenful up or down"},
+      ]
+
+      Section.new "color theme", bindings, notes
     end
 
     # `Tab` and `Shift+Tab` move the focus among the map, the info panel and

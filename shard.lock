@@ -14,13 +14,13 @@ shards:
 
   termbuf:
     git: https://github.com/plambert/termbuf.cr.git
-    version: 0.9.0
+    version: 0.11.0
 
   termbuf-input:
     git: https://github.com/plambert/termbuf-input.cr.git
-    version: 0.7.1
+    version: 0.9.0
 
   termbuf-widgets:
     git: https://github.com/plambert/termbuf-widgets.cr.git
-    version: 0.10.0
+    version: 0.12.0
 

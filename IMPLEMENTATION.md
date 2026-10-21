@@ -226,6 +226,7 @@ none of it is fixed and a preset can rebind the lot.
 | `x` | Examine. Put a cursor on the map and move it with the movement keys |
 | `Escape` | Take back whatever is waiting for a key |
 | `M` | Turn mouse reporting on and off |
+| `O` | Options. The same screen `o` opens from the title menu |
 | `Ctrl+E` | Grant experience. A debug key, removed when there is something to kill |
 | `?` or `F1` | Help, from `Router#active_bindings` |
 | `Q` | Quit, behind a `[yn]` prompt |
@@ -1832,6 +1833,49 @@ The seed and the version go in the menu's title, because that is what a bug repo
 title screen is where somebody reads it. `Menu::TITLE_SLACK` keeps the box two cells wider than its
 own title, which it did not before: a box sized to its title exactly had the last letter of it cut
 by the border corner.
+
+The options screen sits between the saves and "what's new", on `o`, and closing it puts the menu
+back.
+
+## The options screen
+
+`o` on the title screen and `O` during play open it. It is an `Overlay` over the whole screen, the
+way `Menu` is, modal and dimming what is behind it, and it holds a `Form` built from
+`Options::SETTINGS`, one section per heading in the order the settings are listed. The screen
+reads the table and names no property, so a new preference is one property and one `Setting`.
+
+Every change applies as it is made, and there is no OK or Cancel. The screen sets the value on
+`Options.current`, writes `options.json`, and hands the options to `Play#on_options`, which
+`Session` points at `Options#apply`. Motion, flicker, bar color and the mouse change at once. The
+update check and sending runs are read at start, so a change to either takes effect on the next
+launch. The name goes to `tester.json` through `Options.rename`, which keeps the tester id. A key a
+flag set for this run carries a note naming the flag, and changing it on the screen makes it the
+person's own, so the file keeps it. Nothing on the screen is game state. It spends no turn and
+writes nothing to the replay log.
+
+`j` `k` `h` `l` are bound on the screen and do what the arrows do. A keymap answers before a
+widget's own handler, so each of those actions asks `Form#type` first, and a row that takes the key
+as text gets it instead. `?` and `F1` show the screen's own keys, from `Keys.options_screen`.
+
+### The theme editor
+
+"Color theme" is an action row at the end of the Display section. It opens `ThemeEditor`, a
+second modal overlay over the options screen, which stays up underneath and gets the keyboard back
+on `Escape`. The editor holds a `Preview` drawn from `Palette` on every frame, and under it a
+`Form` with one section per `Theme::ENTRIES` group and one color row per entry. A change sets the
+color with `Theme#with`, writes `theme.json` under the options screen's state directory, runs
+`Palette.rebuild`, and calls `Play#retheme`. `r` puts the row's color back to `Theme::DEFAULT`.
+The reset row asks through `Play#ask` before it puts every color back.
+
+Most of the screen reads `Palette` as it draws, but a few pieces copy a style or a color when they
+are built. `Play#retheme` hands each of them the new one: the focus ring's tint, the info panel's
+section headers, the character pane's bars, the marks on the Seen row the pointer is on, the map's
+ground, which also drops its kept idle frames, the menu's pointer and disabled styles, the log's
+new message and badge styles, and the replay banner. It then redraws.
+
+`Session` sets `Play#color_depth` to `Indexed256`
+on a terminal without `TrueColor`, and the picker then offers only the palette. The theme stores
+the `Rgb` of the index chosen, through `ThemeEditor.stored`.
 
 ## Blessings and curses
 

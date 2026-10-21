@@ -202,6 +202,12 @@ module Roguelike
       @play.news = news
       @play.fit bounds.width, bounds.height
 
+      # The theme stores 24 bit colors. A terminal without them draws the
+      # nearest of the 256, so the picker offers only those.
+      unless @terminal.capabilities.includes? TermBuf::Capability::TrueColor
+        @play.color_depth = Ui::Widgets::Depth::Indexed256
+      end
+
       @app = Ui::Widgets::ObservedApp.new @terminal, @play.root, bounds,
         @terminal.events, @terminal.policy
       @cursor = @terminal.cursor bounds
@@ -223,6 +229,7 @@ module Roguelike
       Ui::Keys.install(@app, @help, @play, -> { self.mousing = !mousing?; nil }) { @play.confirm_quit }
 
       self.mousing = true
+      @play.on_options = ->(options : Options) { options.apply self; nil }
 
       # The window reports when it gains and loses the focus. `Terminal#close`
       # turns the reports off again.
@@ -233,8 +240,7 @@ module Roguelike
       @app.frame { }
       @play.look_at_player
 
-      @play.flicker.burning = flicker
-      waver if flicker
+      self.flickering = flicker
 
       # A recorded run is already under way. It asks nobody who is playing.
       return if viewer
@@ -251,6 +257,26 @@ module Roguelike
       else
         begin_play.call
       end
+    end
+
+    # Whether the flames waver.
+    def flickering? : Bool
+      @play.flicker.burning?
+    end
+
+    # Starts the flames wavering, or holds them still. The options screen
+    # turns this on and off during a run.
+    def flickering=(on : Bool) : Bool
+      @play.flicker.burning = on
+
+      if on
+        waver unless @wavering
+      elsif armed = @wavering
+        @app.cancel armed
+        @wavering = nil
+      end
+
+      on
     end
 
     # Schedules the next tick of the flames, and the one after it.

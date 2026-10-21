@@ -10,9 +10,9 @@
  ▶ Pack               4 │
  ▼ Here   ╭─ crystal-roguelike version       · seed 20260915 ─╮
    stairca│ ⟪ a - new character                             ⟫ │
- ▼ Seen   │   Q - quit                                        │
-   orc    ╰───────────────────────────────────────────────────╯
- ▼ Look                 │
+ ▼ Seen   │   o - options                                     │
+   orc    │   Q - quit                                        │
+ ▼ Look   ╰───────────────────────────────────────────────────╯
  Point at the map, or   │
  press x.               │
                         │

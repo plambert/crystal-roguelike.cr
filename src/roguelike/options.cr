@@ -142,6 +142,57 @@ module Roguelike
       tester
     end
 
+    # What a setting holds, as the options screen shows it. A choice is the
+    # value of one of its `Setting#choices`.
+    alias Value = Bool | Int32 | String
+
+    # What *key* holds. Raises `KeyError` for a key that is no property.
+    def [](key : String) : Value
+      {% for ivar in @type.instance_vars %}
+        {% unless ivar.name == "overridden" %}
+          if key == {{ ivar.name.stringify }}
+            {% if ivar.type < ::Enum %}
+              return @{{ ivar.name }}.to_s.underscore
+            {% else %}
+              return @{{ ivar.name }}
+            {% end %}
+          end
+        {% end %}
+      {% end %}
+
+      raise KeyError.new "no option #{key.inspect}"
+    end
+
+    # Sets what *key* holds. Raises `KeyError` for a key that is no property,
+    # and `ArgumentError` for a value of the wrong kind.
+    def []=(key : String, value : Value) : Value
+      {% for ivar in @type.instance_vars %}
+        {% unless ivar.name == "overridden" %}
+          if key == {{ ivar.name.stringify }}
+            {% if ivar.type < ::Enum %}
+              raise ArgumentError.new "#{key} holds a choice" unless value.is_a? String
+              @{{ ivar.name }} = {{ ivar.type }}.parse value
+            {% else %}
+              raise ArgumentError.new "#{key} holds a #{{{ ivar.type.stringify }}}" unless value.is_a? {{ ivar.type }}
+              @{{ ivar.name }} = value
+            {% end %}
+            return value
+          end
+        {% end %}
+      {% end %}
+
+      raise KeyError.new "no option #{key.inspect}"
+    end
+
+    # The flag that set *key* for this run, as it was typed, or `nil` when no
+    # flag did.
+    def flag(key : String) : String?
+      return unless overridden? key
+
+      held = self[key]
+      "--#{held == false ? "no-" : ""}#{key.tr "_", "-"}"
+    end
+
     # Notes that a flag set *key* for this run, and what the file held.
     protected def override(key : String, held : JSON::Any) : Nil
       @overridden[key] = held

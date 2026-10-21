@@ -23,14 +23,16 @@ Spectator.describe Roguelike::Ui::NewsPage do
     run = title notes
 
     keys = run.menu.entries.map &.key
-    expect(keys).to eq [Placards::NEW_KEY, Placards::WHATS_NEW_KEY, Placards::QUIT_KEY]
-    expect(run.menu.entries[1].text).to eq Placards::WHATS_NEW_ROW
+    expect(keys).to eq [Placards::NEW_KEY, Placards::OPTIONS_KEY,
+                        Placards::WHATS_NEW_KEY, Placards::QUIT_KEY]
+    expect(run.menu.entries[2].text).to eq Placards::WHATS_NEW_ROW
   end
 
   it "has no row when there are no notes" do
     run = title [] of WhatsNew::Section
 
-    expect(run.menu.entries.map &.key).to eq [Placards::NEW_KEY, Placards::QUIT_KEY]
+    expect(run.menu.entries.map &.key).to eq [Placards::NEW_KEY, Placards::OPTIONS_KEY,
+                                              Placards::QUIT_KEY]
   end
 
   it "shows the notes, and Escape puts the title menu back" do

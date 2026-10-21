@@ -84,6 +84,14 @@ module Roguelike::Ui
       path
     end
 
+    # Paints every header in the palette as it now stands.
+    def retheme : Nil
+      @sections.each do |section|
+        section.header_style = Palette.header
+        section.title_style = Palette.header_title
+      end
+    end
+
     # Which sections are open, by key.
     def state : Hash(String, Bool)
       @sections.to_h { |section| {InfoPanel.key(section), section.expanded?} }

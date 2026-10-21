@@ -36,6 +36,12 @@ module Roguelike::Ui
     # What that row says.
     WHATS_NEW_ROW = "what's new"
 
+    # The key the row that opens the options takes.
+    OPTIONS_KEY = 'o'
+
+    # What that row says.
+    OPTIONS_ROW = "options"
+
     # What the name question asks.
     #
     # The empty line holds a name the game rolled, dimmed. `Enter` takes it,
