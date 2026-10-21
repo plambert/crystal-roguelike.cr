@@ -292,6 +292,9 @@ module Roguelike
       # Each chamber's anchor, by its number.
       @anchors = [] of {Int32, Int32}
 
+      # The index offsets of `AROUND`, for a square off the floor's edge.
+      @offsets : StaticArray(Int32, 8)
+
       def initialize(@knowledge : Knowledge, @columns : Int32, @rows : Int32)
         @size = @columns * @rows
         @known = Array(Bool).new @size, false
@@ -300,6 +303,7 @@ module Roguelike
         @open = Array(Bool).new @size, false
         @item = Array(Bool).new @size, false
         @owner = Array(Int32).new @size, -1
+        @offsets = StaticArray(Int32, 8).new { |index| AROUND[index][1] * @columns + AROUND[index][0] }
       end
 
       def cut : Chambers
@@ -334,10 +338,20 @@ module Roguelike
       # Each index beside *index* that is on the floor, in `AROUND` order.
       private def around(index : Int32, & : Int32 ->) : Nil
         x, y = spot index
+        if inner? x, y
+          @offsets.each { |offset| yield index + offset }
+          return
+        end
+
         AROUND.each do |offset|
           found = index(x + offset[0], y + offset[1])
           yield found if found
         end
+      end
+
+      # Whether all eight squares around *x*, *y* are on the floor.
+      private def inner?(x : Int32, y : Int32) : Bool
+        x > 0 && y > 0 && x < @columns - 1 && y < @rows - 1
       end
 
       # Fills the grids the cut reads from what is remembered.
@@ -365,10 +379,7 @@ module Roguelike
           next unless @ground[square]
 
           x, y = spot square
-          @open[square] = AROUND.all? do |offset|
-            found = index(x + offset[0], y + offset[1])
-            !found.nil? && @ground[found]
-          end
+          @open[square] = inner?(x, y) && @offsets.all? { |offset| @ground[square + offset] }
         end
       end
 
@@ -378,6 +389,8 @@ module Roguelike
       # The scan runs in reading order, so the square that starts a flood is
       # the first open square of its chamber in that order.
       private def flood : Nil
+        queue = [] of Int32
+
         @size.times do |start|
           next unless @open[start] && @owner[start] < 0
 
@@ -385,9 +398,13 @@ module Roguelike
           @anchors << spot(start)
           home = cell start
           @owner[start] = number
-          queue = Deque{start}
+          queue.clear
+          queue << start
+          head = 0
 
-          while at = queue.shift?
+          while head < queue.size
+            at = queue[head]
+            head += 1
             around at do |next_to|
               next unless @open[next_to] && @owner[next_to] < 0
               next unless cell(next_to) == home
@@ -401,21 +418,20 @@ module Roguelike
 
       # Gives each ground square beside an open square to that square's
       # chamber. The first open square in `AROUND` order wins a tie.
+      #
+      # It writes only squares that are not open and reads only open ones, so
+      # it works in place.
       private def skirt : Nil
-        taken = @owner.dup
-
         @size.times do |square|
           next if !@ground[square] || @open[square]
 
           around square do |next_to|
             next unless @open[next_to]
 
-            taken[square] = @owner[next_to]
+            @owner[square] = @owner[next_to]
             break
           end
         end
-
-        @owner = taken
       end
 
       # Whether each square can be crossed and borders one not yet seen.
