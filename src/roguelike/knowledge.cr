@@ -527,6 +527,27 @@ module Roguelike
       end
     end
 
+    # Yields every square remembered with an item on it, with what was on it.
+    def each_item(& : Int32, Int32, Memory ->) : Nil
+      @memories.each do |spot, memory|
+        next unless memory.item
+
+        column, row = Floor.unspot spot
+        yield column, row, memory
+      end
+    end
+
+    # Yields every square remembered with a fixture on it, with what was on
+    # it.
+    def each_fixture(& : Int32, Int32, Memory ->) : Nil
+      @memories.each do |spot, memory|
+        next unless memory.fixture
+
+        column, row = Floor.unspot spot
+        yield column, row, memory
+      end
+    end
+
     # Forgets everything.
     def forget : Nil
       changed

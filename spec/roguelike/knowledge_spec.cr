@@ -459,6 +459,23 @@ Spectator.describe Roguelike::Knowledge do
     end
   end
 
+  describe "#each_item and #each_fixture" do
+    it "yield only the squares remembered with one" do
+      floor = Playing.daylight Floor.parse("lit", ["#####", "#.|.#", "#...#", "#####"])
+      floor.drop 1, 1, Item.new Kind::Dagger
+      floor.drop 3, 2, Item.new Kind::Cap
+      5.times { |column| 4.times { |row| knowledge.see floor, column, row } }
+
+      items = [] of {Int32, Int32}
+      knowledge.each_item { |column, row, _| items << {column, row} }
+      fittings = [] of {Int32, Int32}
+      knowledge.each_fixture { |column, row, _| fittings << {column, row} }
+
+      expect(items.sort).to eq [{1, 1}, {3, 2}]
+      expect(fittings).to eq [{2, 1}]
+    end
+  end
+
   describe "the grid it keeps" do
     # Every answer the kept grid gives, against a copy that builds its own.
     def agrees?(knowledge : Roguelike::Knowledge) : Bool

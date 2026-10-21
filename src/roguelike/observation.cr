@@ -697,7 +697,7 @@ module Roguelike
       here = game.player.at
       found = [] of Lying
 
-      known.each do |column, row, memory|
+      known.each_item do |column, row, memory|
         item = memory.item
         next unless item
         next unless memory.regard.made_out?
@@ -731,7 +731,7 @@ module Roguelike
         found << Fitting.of(fitting, {column, row})
       end
 
-      known.each do |column, row, memory|
+      known.each_fixture do |column, row, memory|
         fitting = memory.fixture
         next unless fitting
         next if seen.includes? column, row

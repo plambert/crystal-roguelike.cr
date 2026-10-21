@@ -131,9 +131,7 @@ module Roguelike
     def self.wanted(knowledge : Knowledge,
                     takes : Proc(Item, Bool)? = nil) : Array({Int32, Int32})
       found = [] of {Int32, Int32}
-      knowledge.each do |column, row, memory|
-        next unless memory.item
-
+      knowledge.each_item do |column, row, memory|
         wanted = memory.holds? { |item| item.kind.gold? || takes.try(&.call(item)) || false }
         found << {column, row} if wanted
       end
@@ -146,7 +144,7 @@ module Roguelike
     # because neither stops a walk.
     def self.unread(knowledge : Knowledge) : Array({Int32, Int32})
       found = [] of {Int32, Int32}
-      knowledge.each do |column, row, memory|
+      knowledge.each_item do |column, row, memory|
         item = memory.item
         next unless item && memory.regard < Regard::Everything
         next if item.kind.gold? || item.kind.torch?
