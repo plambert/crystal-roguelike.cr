@@ -257,7 +257,7 @@ module Roguelike
       found = nil.as({Int32, Int32}?)
       best = {0, 0}
 
-      descent.steps.each do |spot, away|
+      descent.each do |spot, away|
         gap = {Route.apart(spot, goal), away}
         next if found && gap >= best
 
