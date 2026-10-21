@@ -16,11 +16,11 @@ can also be relative, such as "You realize that your dagger (z) is better than y
 (c)!", which lifts the lower bound. A scroll of identify learns it outright. How the steps are
 timed, and what a negative enchantment reveals as, is to be settled when this is built.
 
-### An options screen, and a pickup filter
+### A pickup filter
 
-Somewhere for preferences to live. One is what to pick up without being asked, as an ordered list
-of rules such as "gold only", "never a cursed item", or "anything better than what I have".
-Another is whether a bar's colour comes from the gradient or from fixed bands.
+What to pick up without being asked becomes an ordered list of rules, such as "gold only", "never a
+cursed item", or "anything better than what I have". The rules are set on the options screen. They
+are part of the game state and are recorded in the replay.
 
 ### A modern control configuration
 
@@ -158,6 +158,27 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### A color theme
+
+The game reads its colors from `theme.json` in its state directory when that file exists, one
+color per line written as `#rrggbb`. A color the file leaves out keeps the game's own. "Color theme"
+on the options screen lists every color the game draws, grouped as Map, Creatures, Light, Items,
+Text, Panels and Bars. `Enter` on a color opens a picker, and the screen behind changes as the
+choice moves, with a preview of map glyphs, an item line and a message at the top. `r` puts one
+color back, and "Reset every color" puts them all back after asking. Each change is saved. On a
+terminal without 24 bit color the picker offers the 256 colors it can draw.
+
+### An options screen
+
+Preferences live in `options.json` in the state directory, read at start. They are motion, flicker,
+mouse reporting, the update check, sending runs, and the bar color, which is `gradient` or `bands`.
+`--motion`, `--flicker`, `--update-check` and `--autosubmit` override the file for one run and leave
+it unchanged. `o` on the title screen and `O` during play open the options screen, which also holds
+the tester name. A change is kept as soon as it is made and takes no turn. Motion, flicker, bar
+color and the mouse change while the screen is open, and the update check and sending runs take
+effect at the next start. A setting that a flag overrode for this run says so, and changing it on
+the screen keeps the player's choice.
 
 ### Learning a kind says so
 
