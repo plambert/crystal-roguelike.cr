@@ -65,6 +65,16 @@ character pane below the XP row. The row is a bar that shrinks as the effect run
 effect's name and the number of turns remaining written over it, the way the XP bar carries its
 number. The row goes away when the effect ends.
 
+### Settings for explore
+
+The constants that `X` uses become settings, such as its distances and thresholds, and its parts can
+be turned on and off. A player could turn off every search for items and keep the search for gold.
+A player could also have explore stop only when a monster attacks, when the stairs down are found,
+or both. Players can then shape how exploring behaves, and the bots can run the same algorithm
+with different settings at different points in a run. The strategy bot drives its sweep with the
+game's own explore and spends most of its decision budget there, so settings it can change in the
+middle of a run matter to it.
+
 ## Considered
 
 ### Sorting the pack
