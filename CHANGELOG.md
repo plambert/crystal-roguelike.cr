@@ -52,6 +52,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Explore no longer stops with "You have been here already" after it picks something up on the
   way.
 * Explore no longer walks back to pick up something you just dropped.
+* Travel to a square you can see across ground you have not walked no longer steps back and forth
+  between two squares. It takes the way you remember, or the line you can see when you remember
+  no way there.
 
 ## [0.6.0] - 2026-10-18
 

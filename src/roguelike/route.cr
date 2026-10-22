@@ -36,11 +36,18 @@ module Roguelike
     #
     # Four tries, in this order:
     #
-    # * the straight line to it, when they can see it and walk it;
+    # * the straight line to it, when they can see it and remember every
+    #   square of it;
     # * over what they remember;
     # * over what they remember plus the squares a line of sight crossed,
     #   which is how a lit room on the far side of a dark one is reached;
     # * to whichever square of that second try is nearest the goal.
+    #
+    # The first two run over the same ground, so each step along either one
+    # leaves a shorter way from the next square. A way that ran over what
+    # one square's view inferred could be gone from the next square, and the
+    # way remembered from there could lead back. The third try is taken only
+    # when nothing remembered reaches the goal.
     #
     # Empty when they can reach nothing at all.
     def self.chosen(knowledge : Knowledge, vision : Vision,
@@ -106,27 +113,21 @@ module Roguelike
       end
     end
 
-    # The straight line to *goal*, when the character can see it and walk it.
-    # `nil` otherwise.
+    # The straight line to *goal*, when the character can see it and every
+    # square of the line is known ground they can cross. `nil` otherwise.
     #
     # A line steps once a square and never moves away from the goal on
     # either axis, so it is as short as any route. Somebody walking at what
     # they can see walks at it.
     #
-    # A square along the line that is not remembered was crossed by the line
-    # of sight to the goal, so nothing solid stands in it. `.guessed` reads it
-    # the same way.
+    # A square of the line that is not known leaves the line to `.guessed`.
     def self.sighted(knowledge : Knowledge, vision : Vision,
                      goal : {Int32, Int32}) : Array({Int32, Int32})?
       return unless vision.includes? goal
       return unless knowledge.crossable? goal
 
       line = Line.between vision.origin, goal
-      clear = line[1..-2].all? do |spot|
-        knowledge.crossable?(spot) || knowledge[spot].nil?
-      end
-
-      line if clear
+      line if line[1..-2].all? { |spot| knowledge.crossable? spot }
     end
 
     # The squares from where *descent* was flooded from to *goal*.
