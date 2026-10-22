@@ -470,6 +470,115 @@ Spectator.describe "exploring and travelling" do
       expect(game.legal.map &.class).not_to contain Action::Explore
     end
 
+    # With no light the character sees only the square underfoot, so the
+    # square they stand on stays on the frontier after they look. The next
+    # frontier square is the one beside it, and from there the first one is
+    # next again.
+    it "heads for no square left to see that would show nothing in the dark" do
+      floor = Floor.parse "here", ["#######",
+                                   "#.....#",
+                                   "#######"]
+      knowledge = Roguelike::Knowledge.new floor.id
+      knowledge.see floor, 2, 1
+      knowledge.see floor, 3, 1
+      unlit = ->(_spot : {Int32, Int32}) { false }
+
+      expect(Explore.route knowledge, {2, 1}, floor.columns, floor.rows).to eq [{2, 1}, {3, 1}]
+      expect(Explore.route knowledge, {2, 1}, floor.columns, floor.rows, shows: unlit).to be_empty
+      expect(Explore.route knowledge, {3, 1}, floor.columns, floor.rows, shows: unlit).to be_empty
+      expect(Explore.dark? knowledge, floor.columns, floor.rows, unlit).to be_true
+    end
+
+    # The square east of the corridor's known end is lit, so a step onto
+    # that end shows it.
+    it "heads in the dark for a square left to see with light beside it" do
+      floor = Floor.parse "here", ["#######",
+                                   "#.....#",
+                                   "#######"]
+      knowledge = Roguelike::Knowledge.new floor.id
+      knowledge.see floor, 2, 1
+      knowledge.see floor, 3, 1
+      lamp = ->(spot : {Int32, Int32}) { spot == {4, 1} }
+
+      expect(Explore.route knowledge, {2, 1}, floor.columns, floor.rows, shows: lamp).to eq [{2, 1}, {3, 1}]
+    end
+
+    it "counts an item left to read that lies under gold" do
+      floor = Floor.parse "here", ["#######",
+                                   "#.....#",
+                                   "#######"]
+      floor.drop 4, 1, Item.new(Roguelike::ItemKind::HealingPotion)
+      floor.drop 4, 1, Item.new(Roguelike::ItemKind::Gold, count: 5)
+      knowledge = Roguelike::Knowledge.new floor.id
+      knowledge.see floor, 4, 1, regard: Roguelike::Regard::Kind
+
+      expect(Explore.unread knowledge).to eq [{4, 1}]
+    end
+
+    it "still walks to gold it remembers in the dark" do
+      floor = Floor.parse "here", ["#######",
+                                   "#.....#",
+                                   "#######"]
+      floor.drop 4, 1, Item.new(Roguelike::ItemKind::Gold, count: 5)
+      knowledge = Roguelike::Knowledge.new floor.id
+      (2..4).each { |column| knowledge.see floor, column, 1 }
+
+      expect(Explore.route knowledge, {2, 1}, floor.columns, floor.rows).to eq [{2, 1}, {3, 1}, {4, 1}]
+    end
+
+    # The square east of the start is remembered, so a step onto it is a way
+    # to a frontier square. It shows nothing in the dark either.
+    it "says it is too dark and takes no step with no light at all" do
+      floor = Floor.parse "here", DARK_ROOM
+      floor.ambient = 0
+      player = Roguelike::Player.new "here", *INSIDE, hit_points: 40
+      game = Game.new Roguelike::World.new(SEED, {"here" => floor}), player
+      game.look
+      game.player.knowledge.see floor, INSIDE[0] + 1, INSIDE[1]
+      before = game.turn
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Dark
+      expect(went.steps).to eq 0
+      expect(game.turn).to eq before
+      expect(game.log.last?).to eq "It is too dark to explore any further."
+      expect(game.legal.map &.class).not_to contain Action::Explore
+    end
+
+    # Every square beside the start is remembered, and the room is
+    # remembered as far as column 9. The frontier there would show nothing
+    # in the dark, so explore does not walk to it.
+    it "heads for no unlit square left to see with no light to carry" do
+      floor = Floor.parse "here", DARK_ROOM
+      floor.ambient = 0
+      player = Roguelike::Player.new "here", *INSIDE, hit_points: 40
+      game = Game.new Roguelike::World.new(SEED, {"here" => floor}), player
+      game.look
+      knowing_but(game) { |spot| spot[0] > 9 }
+
+      expect(heading game).to eq({9, 1})
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Dark
+      expect(game.player.at).to eq INSIDE
+    end
+
+    it "says the same for one action in the dark, and takes no turn" do
+      floor = Floor.parse "here", DARK_ROOM
+      floor.ambient = 0
+      player = Roguelike::Player.new "here", *INSIDE, hit_points: 40
+      game = Game.new Roguelike::World.new(SEED, {"here" => floor}), player
+      game.look
+
+      game.perform Action::Explore.new
+
+      expect(game.turn).to eq 0
+      expect(game.player.at).to eq INSIDE
+      expect(game.log.last?).to eq "It is too dark to explore any further."
+    end
+
     it "opens a shut door in its way" do
       game = played DOORED
       game.look

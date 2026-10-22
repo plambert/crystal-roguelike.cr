@@ -1097,7 +1097,7 @@ module Roguelike
     # Why an explore or a travel has no next step.
     private def unplanned(walk : Walk) : Halt
       goal = walk.goal
-      return Halt::Explored unless goal
+      return explored[1] unless goal
       return Halt::Arrived if goal == @player.at
 
       Halt::Blocked
@@ -1180,8 +1180,9 @@ module Roguelike
       return unless walk.planned?
 
       case walk.halt
-      when Halt::Explored
-        say "There is nothing left to see on this floor.", Event::Stopped.new(Halt::Explored)
+      when Halt::Explored, Halt::Dark
+        line, halt = explored
+        say line, Event::Stopped.new(halt)
       when Halt::Arrived
         say "You arrive.", Event::Stopped.new(Halt::Arrived)
       when Halt::Blocked
@@ -1254,7 +1255,7 @@ module Roguelike
       return held[1] if held && held[0] == key
 
       route = if goal.nil?
-                Explore.route known, @player.at, floor.columns, floor.rows, auto_takes
+                Explore.route known, @player.at, floor.columns, floor.rows, auto_takes, shining
               elsif goal == @player.at
                 Route::NOWHERE
               else
@@ -7000,7 +7001,7 @@ module Roguelike
 
       unless direction
         line, halt = if goal.nil?
-                       {"There is nothing left to see on this floor.", Halt::Explored}
+                       explored
                      elsif goal == @player.at
                        {"You are already there.", Halt::Arrived}
                      else
@@ -7240,10 +7241,27 @@ module Roguelike
 
     # Whether an explore has anywhere to go.
     private def explorable? : Bool
-      known = knowledge
-      return true if known.chambers(floor.columns, floor.rows).frontier?
+      Explore.going? knowledge, @player.at, floor.columns, floor.rows, auto_takes, shining
+    end
 
-      Explore.wanted? known, @player.at, floor.columns, floor.rows, auto_takes
+    # Which squares light falls on, for `Explore`. `nil` when the character
+    # carries a light, because they then see beside them wherever they stand.
+    # A blind character sees nothing beside them anywhere.
+    private def shining : Proc({Int32, Int32}, Bool)?
+      return ->(_spot : {Int32, Int32}) { false } if @player.blind?
+      return if @player.inventory.entries.any? { |(_letter, item)| item.lit? && item.light > 0 }
+
+      seen = sight
+      ->(spot : {Int32, Int32}) { seen.lit? spot[0], spot[1] }
+    end
+
+    # What an explore with nowhere to go says, and why it stopped.
+    private def explored : {String, Halt}
+      if Explore.dark? knowledge, floor.columns, floor.rows, shining
+        return {"It is too dark to explore any further.", Halt::Dark}
+      end
+
+      {"There is nothing left to see on this floor.", Halt::Explored}
     end
 
     # Which items automatic pickup takes off the floor. `nil` when it takes

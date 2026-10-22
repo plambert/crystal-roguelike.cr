@@ -536,11 +536,9 @@ module Roguelike
     # `Ui::NearbyPane` lists the same items.
     getter items : Array(Seen)
 
-    # Every item the character remembers lying on a square out of view,
-    # nearest first.
-    #
-    # One per square. A memory holds the top of the pile, which is the one
-    # the map draws.
+    # Every item of every pile the character remembers on a square out of
+    # view, nearest first. A square's items come in the order `#items` gives
+    # them, as they were when it was last seen.
     getter remembered_items : Array(Seen)
 
     # Every fitting the character can see or remembers, nearest first.
@@ -690,20 +688,20 @@ module Roguelike
       found
     end
 
-    # Every item the character remembers lying on a square out of view,
-    # nearest first.
+    # Every item of every pile the character remembers on a square out of
+    # view, nearest first.
     private def self.recalled(game : Game, known : Knowledge,
                               seen : Vision) : Array(Seen)
       here = game.player.at
       found = [] of Lying
 
       known.each_item do |column, row, memory|
-        item = memory.item
-        next unless item
         next unless memory.regard.made_out?
         next if seen.includes? column, row
 
-        found << Lying.new({column, row}, item, memory.turn, memory.regard)
+        memory.pile.each do |item|
+          found << Lying.new({column, row}, item, memory.turn, memory.regard)
+        end
       end
 
       found.sort_by! { |lying| order here, lying.spot }

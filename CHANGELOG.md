@@ -52,6 +52,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Explore no longer stops with "You have been here already" after it picks something up on the
   way.
 * Explore no longer walks back to pick up something you just dropped.
+* Travel to a square you can see across ground you have not walked no longer steps back and forth
+  between two squares. It takes the way you remember, or the line you can see when you remember
+  no way there.
+* Explore no longer steps back and forth between two squares when you have no light. Without a
+  light it walks only to places where light would show you something new, and says "It is too
+  dark to explore any further." when none are left.
+* Explore walks over to read an item it saw from too far off when the item lies under gold, as it
+  already did when the item lay on top. The headless interface lists every item of a remembered
+  pile out of view, not the top one alone.
 
 ## [0.6.0] - 2026-10-18
 

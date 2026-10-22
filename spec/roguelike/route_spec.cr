@@ -283,7 +283,55 @@ Spectator.describe Roguelike::Route do
     end
   end
 
+  # A dark hall with a lamp at its east end, and a way round it remembered.
+  #
+  # The character has walked the top and both ends. The five squares of the
+  # hall between have never been seen.
+  def ringed : {Floor, Knowledge}
+    floor = Floor.parse "ring", ["#########",
+                                 "#.......#",
+                                 "#.#####.#",
+                                 "#.......#",
+                                 "#########"]
+    floor.ambient = 0
+
+    knowledge = Knowledge.new floor.id
+    floor.each do |column, row, _tile|
+      knowledge.see floor, column, row unless row == 3 && 2 <= column <= 6
+    end
+
+    {floor, knowledge}
+  end
+
+  # What the character in `#ringed` sees from *spot* by the lamp.
+  def lamp(floor : Floor, spot : {Int32, Int32}) : Vision
+    Vision.from floor, spot, [Roguelike::LightSource.new(7, 3, 1)]
+  end
+
   describe ".chosen" do
+    # The lamp shows the far end of the hall down a straight line, and the
+    # line crosses ground nobody has seen.
+    it "keeps to the way it remembers when the line crosses unseen ground" do
+      floor, knowledge = ringed
+      seen = lamp floor, {1, 3}
+      found = Route.chosen knowledge, seen, {7, 3}
+
+      expect(seen.includes? 7, 3).to be_true
+      expect(found.last).to eq({7, 3})
+      expect(found.all? { |spot| knowledge.seen? spot[0], spot[1] }).to be_true
+    end
+
+    # Travel plans again after every step. The way from the next square must
+    # be the rest of this one, or the character can step back and forth.
+    it "plans from the next square a way that does not come back" do
+      floor, knowledge = ringed
+      first = Route.chosen knowledge, lamp(floor, {1, 3}), {7, 3}
+      second = Route.chosen knowledge, lamp(floor, first[1]), {7, 3}
+
+      expect(second.size).to eq first.size - 1
+      expect(second).not_to contain({1, 3})
+    end
+
     it "walks the way when there is one" do
       floor, knowledge = known
       found = Route.chosen knowledge, looking(floor, {1, 1}), {7, 1}

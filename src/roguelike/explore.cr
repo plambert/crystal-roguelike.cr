@@ -36,6 +36,17 @@ module Roguelike
   # to see, the goal is the nearest of those, and the walk stops when the
   # character comes near enough to read it.
   #
+  # A square left to see is a goal only when standing on it would show
+  # something. A character who carries a light sees the squares beside
+  # them wherever they stand. One who carries none sees only lit squares
+  # and the square underfoot. For them a frontier square is a goal when
+  # light falls on an unseen square beside it, or when they have not seen
+  # the frontier square itself. Otherwise two dark frontier squares side by
+  # side would have the character step between them for ever, because
+  # standing on either one shows nothing new. The caller says what light
+  # falls where, as *shows*. Piles and items left to read are goals in the
+  # dark as in the light.
+  #
   # Like `Route`, nothing here reads a `Floor`. A route that ends on the
   # character's own square is never answered. The ground under them is known
   # already, and a walk that stood still to look at it would never end.
@@ -47,12 +58,15 @@ module Roguelike
     # *columns* and *rows* are the floor's size. The size of a floor is not a
     # secret, and the edge of it is not a square to go and look at. *takes*
     # says which items automatic pickup takes, and is `nil` when it takes
-    # none.
+    # none. *shows* says whether light falls on a square, and is `nil` when
+    # the character carries a light.
     def self.route(knowledge : Knowledge, from : {Int32, Int32},
                    columns : Int32, rows : Int32,
-                   takes : Proc(Item, Bool)? = nil) : Array({Int32, Int32})
+                   takes : Proc(Item, Bool)? = nil,
+                   shows : Proc({Int32, Int32}, Bool)? = nil) : Array({Int32, Int32})
       found = knowledge.chambers columns, rows
       piles = Explore.wanted(knowledge, takes)
+      edge = Explore.edge knowledge, found, columns, rows, shows
 
       # Each flood here runs only as far as what reads it needs.
       if reaches_any? knowledge, from, piles
@@ -60,14 +74,14 @@ module Roguelike
         goal = nearest descent, piles
       end
       unless goal
-        room = sweeping knowledge, found, from, columns, rows
+        room = sweeping knowledge, found, edge, from, columns, rows
         return room if room
         along = passage knowledge, found, from, columns, rows
-        ahead = along.try { |inside| smallest found, inside, found.frontier }
+        ahead = along.try { |inside| smallest found, inside, found.frontier.select(&edge) }
         return Route.over(along, ahead) if along && ahead
       end
-      descent ||= toward_frontier knowledge, found, from, columns, rows
-      goal ||= smallest found, descent, found.frontier
+      descent ||= toward_frontier knowledge, edge, from, columns, rows
+      goal ||= smallest found, descent, found.frontier.select(&edge)
       goal ||= nearest descent, Explore.unread(knowledge)
       return Route::NOWHERE unless goal
 
@@ -94,7 +108,10 @@ module Roguelike
     # The route keeps to the room. A route that left it through a doorway
     # would put the character in a passage, where the passage rule could
     # turn them back toward the room, and the walk would go round.
+    #
+    # *edge* says which squares left to see are goals.
     private def self.sweeping(knowledge : Knowledge, chambers : Chambers,
+                              edge : Proc({Int32, Int32}, Bool),
                               from : {Int32, Int32}, columns : Int32,
                               rows : Int32) : Array({Int32, Int32})?
       here = Explore.within chambers, from
@@ -103,21 +120,69 @@ module Roguelike
       room = Explore.room chambers, here
       return unless room.any? &.frontier?
 
+      left = room.flat_map &.squares.select(&edge)
+      return if left.empty?
+
       squares = Set({Int32, Int32}).new
       room.each { |chamber| squares.concat chamber.squares }
-      inside = toward_frontier knowledge, chambers, from, columns, rows, squares
-      edge = room.flat_map &.squares.select { |spot| chambers.frontier? spot[0], spot[1] }
-      goal = smallest chambers, inside, edge
+      inside = toward_frontier knowledge, edge, from, columns, rows, squares
+      goal = smallest chambers, inside, left
       Route.over inside, goal if goal
     end
 
-    # Whether a pile worth taking or an item left to read that *knowledge*
-    # remembers lies anywhere the character at *from* can reach, other than
-    # under them.
-    def self.wanted?(knowledge : Knowledge, from : {Int32, Int32},
-                     columns : Int32, rows : Int32,
-                     takes : Proc(Item, Bool)? = nil) : Bool
+    # Whether explore has anywhere to go. That is a square left to see that
+    # is a goal, or a pile worth taking or an item left to read that the
+    # character at *from* can reach, other than under them. *takes* and
+    # *shows* are as `.route` reads them.
+    def self.going?(knowledge : Knowledge, from : {Int32, Int32},
+                    columns : Int32, rows : Int32,
+                    takes : Proc(Item, Bool)? = nil,
+                    shows : Proc({Int32, Int32}, Bool)? = nil) : Bool
+      found = knowledge.chambers columns, rows
+      if found.frontier?
+        return true unless shows
+
+        goal = edge knowledge, found, columns, rows, shows
+        return true if found.frontier.any?(&goal)
+      end
+
       reaches_any? knowledge, from, Explore.wanted(knowledge, takes) + Explore.unread(knowledge)
+    end
+
+    # Whether squares are left to see and none of them would show the
+    # character anything, by *shows*.
+    def self.dark?(knowledge : Knowledge, columns : Int32, rows : Int32,
+                   shows : Proc({Int32, Int32}, Bool)?) : Bool
+      return false unless shows
+
+      found = knowledge.chambers columns, rows
+      return false unless found.frontier?
+
+      goal = edge knowledge, found, columns, rows, shows
+      found.frontier.none?(&goal)
+    end
+
+    # Which squares of the frontier of *chambers* are goals, by *shows*.
+    #
+    # Every one of them when *shows* is `nil`. Otherwise one the character
+    # has not seen, or one with a lit square beside it that they have not
+    # seen.
+    def self.edge(knowledge : Knowledge, chambers : Chambers,
+                  columns : Int32, rows : Int32,
+                  shows : Proc({Int32, Int32}, Bool)?) : Proc({Int32, Int32}, Bool)
+      return ->(spot : {Int32, Int32}) { chambers.frontier? spot[0], spot[1] } unless shows
+
+      ->(spot : {Int32, Int32}) do
+        return false unless chambers.frontier? spot[0], spot[1]
+        return true unless knowledge.seen? spot[0], spot[1]
+
+        Chambers::AROUND.any? do |offset|
+          beside = {spot[0] + offset[0], spot[1] + offset[1]}
+          next false unless 0 <= beside[0] < columns && 0 <= beside[1] < rows
+
+          !knowledge.seen?(beside[0], beside[1]) && shows.call(beside)
+        end
+      end
     end
 
     # Whether a flood from *from* that crosses doors reaches any of *spots*
@@ -141,22 +206,23 @@ module Roguelike
     end
 
     # How many steps the squares the character knows are from *from*, as far
-    # as `.smallest` needs to choose among frontier squares. *keep* is the
-    # only ground the flood may enter.
+    # as `.smallest` needs to choose among the frontier squares *edge* holds
+    # for. *keep* is the only ground the flood may enter.
     #
-    # The flood stops once it has gone `REACH` steps and has reached a
-    # frontier square. Every square it leaves out is further off than that
-    # one and counts as large, so `.smallest` picks the square a whole flood
+    # The flood stops once it has gone `REACH` steps and has reached one of
+    # those squares. Every square it leaves out is further off than that one
+    # and counts as large, so `.smallest` picks the square a whole flood
     # gives it. A route to that square reads only squares nearer than it,
     # and those are all in.
-    private def self.toward_frontier(knowledge : Knowledge, chambers : Chambers,
+    private def self.toward_frontier(knowledge : Knowledge,
+                                     edge : Proc({Int32, Int32}, Bool),
                                      from : {Int32, Int32}, columns : Int32,
                                      rows : Int32,
                                      keep : Set({Int32, Int32})? = nil) : Descent
       met = false
       Descent.toward(knowledge, from, Math.max(columns * rows, Route::LIMIT),
         doors: true, keep: keep) do |wave, away|
-        met ||= wave.any? { |spot| chambers.frontier? spot[0], spot[1] }
+        met ||= wave.any? &edge
         met && away >= REACH
       end
     end
@@ -193,15 +259,15 @@ module Roguelike
 
     # Every square *knowledge* remembers an item on that was seen from too
     # far off to read, in reading order. Gold and torches are left out,
-    # because neither stops a walk.
+    # because neither stops a walk. The whole remembered pile counts, so a
+    # scroll under gold is found.
     def self.unread(knowledge : Knowledge) : Array({Int32, Int32})
       found = [] of {Int32, Int32}
       knowledge.each_item do |column, row, memory|
-        item = memory.item
-        next unless item && memory.regard < Regard::Everything
-        next if item.kind.gold? || item.kind.torch?
+        next unless memory.regard < Regard::Everything
 
-        found << {column, row}
+        unread = memory.holds? { |item| !item.kind.gold? && !item.kind.torch? }
+        found << {column, row} if unread
       end
 
       found.sort_by! { |spot| {spot[1], spot[0]} }
