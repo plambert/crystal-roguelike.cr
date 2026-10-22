@@ -75,6 +75,22 @@ with different settings at different points in a run. The strategy bot drives it
 game's own explore and spends most of its decision budget there, so settings it can change in the
 middle of a run matter to it.
 
+### Events for every change to a character stat
+
+The game emits one kind of event whenever a stat of the character changes. The event carries the
+stat's name, its old value, its new value, and the cause, which is the action or effect that
+changed it. It covers the stored stats, which are hit points, maximum hit points, experience,
+level, the six attributes and gold. It also covers the computed stats, which are armor class,
+to-hit, melee damage dice, ranged damage dice, and speed if it varies. Computed stats are compared
+after each action, and the event fires only when the value differs.
+
+A question such as "when did this run first reach armor class 10, and what was it wearing" now
+needs a probe that replays the run and reads the observation on each turn. With these events in
+the stream, the bots can record the first turn each threshold was met, and the final values, in
+every batch row. A replay then carries the whole history of armor class and hit points, so the
+replay viewer can show them too. The headless protocol already streams events, so this adds an
+event kind and a comparison after each action, and the protocol does not change.
+
 ## Considered
 
 ### Sorting the pack
