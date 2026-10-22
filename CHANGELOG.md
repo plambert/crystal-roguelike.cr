@@ -55,6 +55,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Travel to a square you can see across ground you have not walked no longer steps back and forth
   between two squares. It takes the way you remember, or the line you can see when you remember
   no way there.
+* Explore no longer steps back and forth between two squares when you have no light. Without a
+  light it walks only to places where light would show you something new, and says "It is too
+  dark to explore any further." when none are left.
 
 ## [0.6.0] - 2026-10-18
 

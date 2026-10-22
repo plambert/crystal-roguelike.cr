@@ -63,6 +63,11 @@ module Roguelike
     # and only before its first turn. A creature that comes into sight during
     # a rest answers `Creature`.
     InSight
+
+    # Squares are left to see, but none of them would show the character
+    # anything by the light there is. No pile worth taking or item left to
+    # read is left to walk to either. Only an explore answers this.
+    Dark
   end
 
   # What one walk did.
