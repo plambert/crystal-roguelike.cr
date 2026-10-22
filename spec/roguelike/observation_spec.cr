@@ -443,6 +443,21 @@ Spectator.describe Roguelike::Observation do
       expect(recalled.try &.last_seen_turn).to eq seen_on
     end
 
+    # The right room is behind the wall, so the pile there is out of view.
+    it "gives every item of a pile, not the top one alone" do
+      game = played ROOMS
+      potion = Item.new Kind::HealingPotion
+      gold = Item.new Kind::Gold, count: 9
+      game.floor.drop 6, 2, potion
+      game.floor.drop 6, 2, gold
+      game.look
+      game.player.knowledge.see game.floor, 6, 2
+
+      found = Observation.of(game).remembered_items.select { |item| item.pos == {6, 2} }
+
+      expect(found.map &.item_class).to eq [potion.kind.item_class, gold.kind.item_class]
+    end
+
     it "is left out while it is in view" do
       game = played HALL
       game.floor.drop 3, 1, Item.new(Kind::HealingPotion)

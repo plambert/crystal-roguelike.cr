@@ -503,6 +503,18 @@ Spectator.describe "exploring and travelling" do
       expect(Explore.route knowledge, {2, 1}, floor.columns, floor.rows, shows: lamp).to eq [{2, 1}, {3, 1}]
     end
 
+    it "counts an item left to read that lies under gold" do
+      floor = Floor.parse "here", ["#######",
+                                   "#.....#",
+                                   "#######"]
+      floor.drop 4, 1, Item.new(Roguelike::ItemKind::HealingPotion)
+      floor.drop 4, 1, Item.new(Roguelike::ItemKind::Gold, count: 5)
+      knowledge = Roguelike::Knowledge.new floor.id
+      knowledge.see floor, 4, 1, regard: Roguelike::Regard::Kind
+
+      expect(Explore.unread knowledge).to eq [{4, 1}]
+    end
+
     it "still walks to gold it remembers in the dark" do
       floor = Floor.parse "here", ["#######",
                                    "#.....#",
