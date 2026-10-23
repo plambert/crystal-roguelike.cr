@@ -162,6 +162,63 @@ The pack in the left sidebar becomes a toggle that opens a floating pack window.
 dragged to the left or the right side of the map. A reveal toggle on it shrinks the window to a
 very few lines, and toggles it back to full size. The sidebar then has room for other things.
 
+### Light, darkness and burning squares
+
+Each square holds a light timer and a dark timer. A permanent effect is a sentinel value that the
+tick leaves alone. Both timers count down every turn. Light set alone shows light, dark set alone
+shows darkness, and both set or neither set shows nothing. Light and darkness cancel each other
+and do not stack. The square keeps no record of which came second. While both are present the
+square is neutral, and when one expires the other shows for the turns it has left. A neutral
+square behaves as an ordinary one, so a torch lights it and a creature in it is seen normally.
+Magical darkness blocks light and line of sight like a wall.
+
+A cast of the same kind raises that timer to the new value if the new value is larger. A permanent
+cast over the opposite kind clears both timers, so permanent light destroys darkness and permanent
+darkness destroys light. A temporary cast over the opposite kind writes its own timer, and that
+suppresses the other kind until it runs out. The permanent glow that the floor keeps today becomes
+the light kind with a permanent timer.
+
+The wand of light is an aimed burst centered on a targeted square, with radius 6 as the glow has
+now, and it makes passable squares permanently light. Any square may be targeted, not only a known
+empty one. The bolt travels in a line from the character and bursts where it reaches the target or
+hits a wall. A cursed wand makes temporary magical darkness over the same area for 100 turns, and
+that darkness swallows natural light such as sconces and torches inside it.
+
+Each square also holds a burning timer, and a permanent one uses the same sentinel. Permanent
+burning is the reason it exists, since a floor with a lava channel across the whole map is a later
+idea. Whether lava burns by itself or sets a timer is to be decided when lava arrives. A creature
+that ends its turn on a burning square takes fire damage, whether it moved there or stayed. A cast
+also deals damage at once to the creatures on the squares it sets alight. For now creatures treat
+burning squares as walls when they plan a path, and later a desperate creature may choose to cross.
+Each burning square is a light source of radius 3. Flammable items on a burning square are
+destroyed. Burning stacks by addition, so a second zap adds its turns to the squares chosen both
+times, and some squares burn longer. The display uses the existing flicker clock as another flame,
+with a red underline and overline where the terminal supports them and a changed background color
+where it does not.
+
+The wand of fire sets half of the squares within radius 6 of the character alight at random, for 3
+turns, and never the square under the character. A blessed wand chooses every square that holds a
+creature in range first and then fills the rest at random up to half. It does double damage and
+destroys no items. A cursed wand burns for 5 turns, its draw can include the character's square,
+and it never chooses a square that holds an enemy.
+
+The wand of lightning strikes along a straight line up to 24 squares long in the aimed direction.
+The line and one square on each side of it are lit for one turn. The first creature struck takes
+high damage, and each creature after it along the line takes less. A blessed wand does damage to
+every creature in the lit area, not only on the center line. A cursed wand centers the line on the
+character at the same angle, and the character takes the damage too.
+
+### The potion of fire breathing and the scroll of darkness
+
+The potion of fire breathing breathes a cone 45 degrees wide and 12 squares long, aimed at any
+square within 12 of the character. Each creature in the cone takes 1d4 fire damage. When the
+potion is blessed, creatures in the cone are also set aflame, and each takes 1 damage a turn for 4
+turns after the breath. A few of these potions soften a group without breaking the game.
+
+The scroll of darkness makes a burst of permanent magical darkness centered on the character, with
+radius 3. It follows the light and darkness rules above. It destroys permanent light under it,
+suppresses temporary light, and blocks light and sight like a wall.
+
 ### Where the game is drifting
 
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
