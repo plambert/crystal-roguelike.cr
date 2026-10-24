@@ -23,7 +23,34 @@ module Roguelike
       found : String? = nil,
       expected_turn : Int32? = nil,
       found_turn : Int32? = nil,
-      pause : Int32? = nil
+      pause : Int32? = nil do
+      # The concise message shared by replay export and dump.
+      def consumer_message(record : Record?) : String
+        case @problem
+        in .opening?
+          "the run does not start where it was recorded from. Check it with replay verify."
+        in .over?, .refused?
+          "turn #{@turn}: #{@expected} was refused"
+        in .fingerprint?
+          "turn #{@turn}: the run differs from what was recorded. Check it with replay verify."
+        in .saved?
+          if record.is_a?(Resume)
+            "turn #{@turn}: the loaded run differs from what was recorded. Check it with replay verify."
+          else
+            "turn #{@turn}: the run differs from what was recorded. Check it with replay verify."
+          end
+        in .resume_missing?
+          "turn #{@turn}: the file resumes from pause #{@pause}, which it does not hold"
+        in .footer_turn?
+          "the run ends on turn #{@found_turn}, but the file says turn #{@expected_turn}. " \
+          "Check it with replay verify."
+        in .footer_fingerprint?
+          "turn #{@turn}: the run ends differently from what was recorded. Check it with replay verify."
+        in .footer_outcome?
+          "the run ended #{@found} and the file says #{@expected}. Check it with replay verify."
+        end
+      end
+    end
 
     # One record and the result of applying and checking it.
     record PlaybackStep, record : Record, failure : PlaybackFailure? = nil
@@ -86,11 +113,9 @@ module Roguelike
 
       # Checks the final footer without starting a record traversal.
       #
-      # Exit-handler footers have no final fingerprint, so their turn may be
-      # beyond the actions in the file. A cut-off line can leave an earlier
-      # footer behind.
+      # A malformed tail does not replace a complete footer. Reading clears
+      # it only when another complete record follows.
       def self.footer(reading : Reading, game : Game) : PlaybackFailure?
-        return if reading.truncated?
         footer = reading.footer
         return unless footer
         state = footer.state

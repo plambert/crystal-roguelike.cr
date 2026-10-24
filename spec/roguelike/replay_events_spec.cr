@@ -64,7 +64,7 @@ Spectator.describe Roguelike::Replay::Backfill do
 
     where = Recording.directory / "wrong-footer-#{field}-#{Random.rand UInt32}.jsonl"
     lines << footer.to_json
-    File.write where, lines.join('\n') + "\n"
+    File.write where, lines.join('\n') + "\n" + %({"type":"act")
     where
   end
 
@@ -148,7 +148,9 @@ Spectator.describe Roguelike::Replay::Backfill do
 
     {"state", "turn", "ending"}.each do |field|
       target = where / "invalid-#{field}.events.jsonl.gz"
-      report = Backfill.run wrong_footer(source, field), target
+      wrong = wrong_footer source, field
+      expect(Roguelike::Replay::Reading.read(wrong).truncated?).to be_true
+      report = Backfill.run wrong, target
 
       expect(report.status).to eq(Backfill::DIFFERS)
       expect(report.message.to_s).to contain("turn #{report.turn}")

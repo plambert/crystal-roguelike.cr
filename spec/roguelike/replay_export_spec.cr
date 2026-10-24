@@ -53,7 +53,7 @@ Spectator.describe Roguelike::Replay::Export do
 
     where = spot "wrong-footer-#{field}"
     lines << footer.to_json
-    File.write where, lines.join('\n') + "\n"
+    File.write where, lines.join('\n') + "\n" + %({"type":"act")
     where
   end
 
@@ -172,6 +172,7 @@ Spectator.describe Roguelike::Replay::Export do
 
       {"state", "turn", "ending"}.each do |field|
         where = wrong_footer source, field
+        expect(Roguelike::Replay::Reading.read(where).truncated?).to be_true
         held = IO::Memory.new
         report = Export.run where, held, legal: false
         lines = held.to_s.lines.compact_map { |line| JSON.parse(line) }

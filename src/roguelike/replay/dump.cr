@@ -117,35 +117,7 @@ module Roguelike
       # The line describing a playback failure.
       private def self.trouble(failure : PlaybackFailure,
                                record : Record?) : String
-        case failure.problem
-        in .opening?
-          "the run does not start where it was recorded from. Check it with replay verify."
-        in .over?, .refused?
-          "turn #{failure.turn}: #{failure.expected} was refused"
-        in .fingerprint?
-          "turn #{failure.turn}: the run differs from what was recorded. " \
-          "Check it with replay verify."
-        in .saved?
-          if record.is_a?(Resume)
-            "turn #{failure.turn}: the loaded run differs from what was " \
-            "recorded. Check it with replay verify."
-          else
-            "turn #{failure.turn}: the run differs from what was recorded. " \
-            "Check it with replay verify."
-          end
-        in .resume_missing?
-          "turn #{failure.turn}: the file resumes from pause " \
-          "#{failure.pause}, which it does not hold"
-        in .footer_turn?
-          "the run ends on turn #{failure.found_turn}, but the file says " \
-          "turn #{failure.expected_turn}. Check it with replay verify."
-        in .footer_fingerprint?
-          "turn #{failure.turn}: the run ends differently from what was " \
-          "recorded. Check it with replay verify."
-        in .footer_outcome?
-          "the run ended #{failure.found} and the file says " \
-          "#{failure.expected}. Check it with replay verify."
-        end
+        failure.consumer_message record
       end
     end
   end
