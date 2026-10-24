@@ -225,6 +225,12 @@ module Roguelike::Ui
     # The walk being drawn, or `nil` when nothing is walking.
     @walk : Game::Walk? = nil
 
+    # The timer for the next step of a walk.
+    @walk_timer : UInt64? = nil
+
+    # Invalidates callbacks from an earlier walk.
+    @walk_generation : UInt64 = 0
+
     # How long one batch of rest turns is drawn for.
     #
     # It is a third of a stride. A rest can run for hundreds of turns and
@@ -282,6 +288,12 @@ module Roguelike::Ui
     # The recorded run being played back, or `nil` in a run being played.
     getter viewer : Replay::Viewer? = nil
 
+    # The timer for the next recorded action.
+    @playback_timer : UInt64? = nil
+
+    # Invalidates callbacks from an earlier playback.
+    @playback_generation : UInt64 = 0
+
     # Whether the recorded run is playing rather than standing still.
     getter? playing_back : Bool = false
 
@@ -293,6 +305,12 @@ module Roguelike::Ui
 
     # The rest being drawn, or `nil` when nothing is resting.
     @rest : Game::Rest? = nil
+
+    # The timer for the next batch of rest turns.
+    @rest_timer : UInt64? = nil
+
+    # Invalidates callbacks from an earlier rest.
+    @rest_generation : UInt64 = 0
 
     # How many batches of the rest being drawn have gone already.
     @breaths : Int32 = 0
@@ -346,6 +364,12 @@ module Roguelike::Ui
     # The last teleport the camera panned for. A turn is refreshed many times,
     # and the pan is for the first.
     @panned : Event::Teleported? = nil
+
+    # The timer for the next cell of a camera drift.
+    @glide_timer : UInt64? = nil
+
+    # Invalidates callbacks from an earlier camera drift.
+    @glide_generation : UInt64 = 0
 
     # The application this play is drawn on.
     #
@@ -795,6 +819,16 @@ module Roguelike::Ui
     # to no game: a command waiting for a direction, a shot being aimed, and
     # whether the screen a run ends with has been put up.
     def resume(game : Game) : Nil
+      resume_game game, preserve_playback: false
+    end
+
+    # Changes the run, retaining playback only when the viewer replaced it.
+    private def resume_game(game : Game, preserve_playback : Bool) : Nil
+      pause_playback unless preserve_playback
+      stop_walking
+      stop_resting
+      stop_gliding
+
       @game = game
       @map.floor = game.floor
       @examiner.lore = game.lore
@@ -1312,6 +1346,7 @@ module Roguelike::Ui
     # does during a walk. Every binding the application has is out of reach
     # until the rest stops, so a key pressed part way through stops it.
     private def start_resting(rest : Game::Rest) : Nil
+      stop_resting
       @rest = rest
       @breaths = 0
       @interrupt.grab @app
@@ -1363,7 +1398,17 @@ module Roguelike::Ui
         return unless going
 
         app = @app
-        return if app && app.after(BREATH) { breathe }
+        if app
+          generation = @rest_generation
+          @rest_timer = app.after(BREATH) do
+            if generation == @rest_generation
+              @rest_timer = nil
+              breathe
+            end
+            nil
+          end
+          return if @rest_timer
+        end
       end
     end
 
@@ -1394,6 +1439,11 @@ module Roguelike::Ui
     # who pressed a key to stop a rest knows they stopped it, and the hit
     # point meter is where a rest that ran its course shows.
     private def stop_resting : Nil
+      @rest_generation += 1
+      timer = @rest_timer
+      @rest_timer = nil
+      @app.try &.cancel(timer) if timer
+
       return unless @rest
 
       @rest = nil
@@ -1437,6 +1487,7 @@ module Roguelike::Ui
       return unless found
       return if found.done?
 
+      stop_playback_timer
       @playing_back = true
       sweep
     end
@@ -1444,6 +1495,7 @@ module Roguelike::Ui
     # Stops the playback where it stands.
     def pause_playback : Nil
       @playing_back = false
+      stop_playback_timer
       restate_transport
     end
 
@@ -1526,6 +1578,7 @@ module Roguelike::Ui
       return unless found
 
       @playing_back = false
+      stop_playback_timer
       yield found
       view_drew found
     end
@@ -1539,7 +1592,7 @@ module Roguelike::Ui
         @map.follow @game.player.x, @game.player.y unless teleport
         refresh
       else
-        resume found.game
+        resume_game found.game, preserve_playback: @playing_back
       end
 
       report_trouble found
@@ -1572,8 +1625,26 @@ module Roguelike::Ui
         return unless @playing_back
 
         app = @app
-        return if app && app.after(view_wait) { sweep }
+        if app
+          generation = @playback_generation
+          @playback_timer = app.after(view_wait) do
+            if generation == @playback_generation
+              @playback_timer = nil
+              sweep
+            end
+            nil
+          end
+          return if @playback_timer
+        end
       end
+    end
+
+    # Withdraws the timer for the next recorded action.
+    private def stop_playback_timer : Nil
+      @playback_generation += 1
+      timer = @playback_timer
+      @playback_timer = nil
+      @app.try &.cancel(timer) if timer
     end
 
     # Performs actions until `VIEW_BUDGET` is spent. Answers whether any were
@@ -1770,6 +1841,7 @@ module Roguelike::Ui
     private def reveal(spot : {Int32, Int32}) : Nil
       return unless @map.drift_to spot[0], spot[1]
 
+      stop_gliding
       glide
     end
 
@@ -1782,12 +1854,27 @@ module Roguelike::Ui
       app = @app
 
       if app
-        armed = app.after(GLIDE) { glide if @map.drift }
-        return if armed
+        generation = @glide_generation
+        @glide_timer = app.after(GLIDE) do
+          if generation == @glide_generation
+            @glide_timer = nil
+            glide if @map.drift
+          end
+          nil
+        end
+        return if @glide_timer
       end
 
       while @map.drift
       end
+    end
+
+    # Withdraws the timer for the next cell of a camera drift.
+    private def stop_gliding : Nil
+      @glide_generation += 1
+      timer = @glide_timer
+      @glide_timer = nil
+      @app.try &.cancel(timer) if timer
     end
 
     # Gives the focus back to the map from another panel, or takes back
@@ -3554,6 +3641,7 @@ module Roguelike::Ui
     # pressed part way through stops it rather than doing what it usually
     # does.
     private def start_walking(walk : Game::Walk) : Nil
+      stop_walking
       @walk = walk
       @interrupt.grab @app
 
@@ -3585,7 +3673,17 @@ module Roguelike::Ui
         return unless going
 
         app = @app
-        return if app && app.after(STRIDE) { stride }
+        if app
+          generation = @walk_generation
+          @walk_timer = app.after(STRIDE) do
+            if generation == @walk_generation
+              @walk_timer = nil
+              stride
+            end
+            nil
+          end
+          return if @walk_timer
+        end
       end
     end
 
@@ -3595,6 +3693,11 @@ module Roguelike::Ui
     # stopped it, and the line that would say so is a line that pushes what
     # the walk found off the pane.
     private def stop_walking : Nil
+      @walk_generation += 1
+      timer = @walk_timer
+      @walk_timer = nil
+      @app.try &.cancel(timer) if timer
+
       return unless @walk
 
       @walk = nil

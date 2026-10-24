@@ -78,6 +78,9 @@ module Headless
     # Timers armed and not yet fired, oldest first.
     getter armed : Array(UInt64) = [] of UInt64
 
+    # The wait each armed timer asks for.
+    @waits : Hash(UInt64, Time::Span) = {} of UInt64 => Time::Span
+
     # The nonce the last timer was armed under.
     @nonce : UInt64 = 0
 
@@ -88,13 +91,23 @@ module Headless
     # spec drives an animation a step at a time instead of waiting on a
     # wall clock.
     def clock : Nil
-      @app.after = ->(_span : Time::Span) do
+      @app.after = ->(span : Time::Span) do
         @nonce += 1
         @armed << @nonce
+        @waits[@nonce] = span
         @nonce
       end
 
-      @app.cancel = ->(nonce : UInt64) { @armed.delete nonce; nil }
+      @app.cancel = ->(nonce : UInt64) do
+        @armed.delete nonce
+        @waits.delete nonce
+        nil
+      end
+    end
+
+    # Timers with *span* still waiting, oldest first.
+    def armed_for(span : Time::Span) : Array(UInt64)
+      @armed.select { |nonce| @waits[nonce]? == span }
     end
 
     # Fires the timer armed first. Answers whether there was one.
@@ -102,6 +115,7 @@ module Headless
       nonce = @armed.shift?
       return false unless nonce
 
+      @waits.delete nonce
       send TermBuf::Input::Events::Timer.new(nonce)
       true
     end

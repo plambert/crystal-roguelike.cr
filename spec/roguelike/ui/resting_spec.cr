@@ -4,6 +4,7 @@ Spectator.describe "resting from the keyboard" do
   alias Game = Roguelike::Game
   alias Monster = Roguelike::Monster
   alias Pending = Roguelike::Ui::Pending
+  alias Play = Roguelike::Ui::Play
   alias Species = Roguelike::Species
 
   # A hall with the character at the west end.
@@ -111,6 +112,37 @@ Spectator.describe "resting from the keyboard" do
       run.tick
 
       expect(run.turn).to eq before + 3
+    end
+
+    it "cancels a stopped rest timer before starting one rest chain again" do
+      run = resting 6, clock: true
+      run.press "R"
+      stale = run.armed_for(Play::BREATH).first
+
+      run.press "j"
+      expect(run.armed_for(Play::BREATH)).to be_empty
+
+      run.press "R"
+      expect(run.armed_for(Play::BREATH).size).to eq 1
+      hit_points = run.game.player.hit_points
+      run.session.send TermBuf::Input::Events::Timer.new(stale)
+      expect(run.game.player.hit_points).to eq hit_points
+      expect(run.armed_for(Play::BREATH).size).to eq 1
+      run.press "j"
+    end
+
+    it "cancels a queued rest when the game is replaced" do
+      run = resting 6, clock: true
+      run.press "R"
+      stale = run.armed_for(Play::BREATH).first
+      replacement = Roguelike::Game.start(Roguelike::Rng.new(31_u64))
+
+      run.play.resume replacement
+      expect(run.game.floor).to be replacement.floor
+      expect(run.armed_for(Play::BREATH)).to be_empty
+      hit_points = run.game.player.hit_points
+      run.session.send TermBuf::Input::Events::Timer.new(stale)
+      expect(run.game.player.hit_points).to eq hit_points
     end
 
     it "takes more turns on a later tick than on an early one" do

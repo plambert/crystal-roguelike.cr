@@ -3,6 +3,7 @@ require "../../spec_helper"
 Spectator.describe "running from the keyboard" do
   alias Monster = Roguelike::Monster
   alias Pending = Roguelike::Ui::Pending
+  alias Play = Roguelike::Ui::Play
   alias Species = Roguelike::Species
   alias Terrain = Roguelike::Terrain
 
@@ -16,12 +17,12 @@ Spectator.describe "running from the keyboard" do
   ]
 
   # A run on `SIDE` with the character on the up staircase.
-  def walking(lines : Array(String) = SIDE) : Playing::Run
+  def walking(lines : Array(String) = SIDE, clock : Bool = false) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("run", lines)
     Playing.open Roguelike::Game.new(
       Roguelike::World.new(Playing::SEED, {"run" => floor}),
       Roguelike::Player.new("run", *Roguelike::Game.entrance(floor),
-        hit_points: 40)), 60, 20
+        hit_points: 40)), 60, 20, clock: clock
   end
 
   describe "G" do
@@ -61,6 +62,41 @@ Spectator.describe "running from the keyboard" do
       run.press "G", "l"
 
       expect(run.turn).to eq before + 7
+    end
+
+    it "cancels an interrupted step before starting one walk chain again" do
+      run = walking clock: true
+      run.press "G", "l"
+      stale = run.armed_for(Play::STRIDE).first
+
+      run.press "Escape"
+      expect(run.armed_for(Play::STRIDE)).to be_empty
+
+      run.press "G", "l"
+      expect(run.armed_for(Play::STRIDE).size).to eq 1
+      at = run.at
+      run.session.send TermBuf::Input::Events::Timer.new(stale)
+      expect(run.at).to eq at
+      expect(run.armed_for(Play::STRIDE).size).to eq 1
+
+      run.tick
+      expect(run.at).to eq({at[0] + 1, at[1]})
+      expect(run.armed_for(Play::STRIDE).size).to eq 1
+      run.press "Escape"
+    end
+
+    it "cancels a queued walk when the game is replaced" do
+      run = walking clock: true
+      run.press "G", "l"
+      stale = run.armed_for(Play::STRIDE).first
+      replacement = Roguelike::Game.start(Roguelike::Rng.new(31_u64))
+
+      run.play.resume replacement
+      expect(run.game.floor).to be replacement.floor
+      expect(run.armed_for(Play::STRIDE)).to be_empty
+      at = run.at
+      run.session.send TermBuf::Input::Events::Timer.new(stale)
+      expect(run.at).to eq at
     end
 
     it "forgets the walk on Escape" do
