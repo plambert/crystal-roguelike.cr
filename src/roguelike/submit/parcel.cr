@@ -18,6 +18,10 @@ module Roguelike
       SAVE   = "save"
       EVENTS = "events"
 
+      # The logical names used for paths in uploaded copies.
+      UPLOAD_REPLAY = "replay.jsonl"
+      UPLOAD_SAVE   = "save.json"
+
       # What each kind is called on disk here.
       NAMES = {
         META   => "meta.json",
@@ -49,8 +53,8 @@ module Roguelike
         Dir.mkdir_p directory
 
         File.write directory / NAMES[META], meta.to_json
-        Parcel.compress log, directory / NAMES[REPLAY]
-        Parcel.compress save, directory / NAMES[SAVE] if save
+        Parcel.compress_replay log, directory / NAMES[REPLAY]
+        Parcel.compress_save save, directory / NAMES[SAVE] if save
         File.copy events, directory / NAMES[EVENTS] if events
 
         new directory, meta, seq
@@ -95,13 +99,61 @@ module Roguelike
         Dir.delete @directory
       end
 
-      # Writes *source* gzipped to *target*.
-      protected def self.compress(source : Path, target : Path) : Nil
+      # Writes the replay to *target* with path-bearing continuation metadata
+      # replaced by logical names.
+      protected def self.compress_replay(source : Path, target : Path) : Nil
         File.open source do |input|
           File.open target, "w" do |output|
-            Compress::Gzip::Writer.open(output) { |packed| IO.copy input, packed }
+            Compress::Gzip::Writer.open(output) do |packed|
+              input.each_line(chomp: false) { |line| packed << replay_line(line) }
+            end
           end
         end
+      end
+
+      # Writes the save to *target* with path-bearing replay metadata replaced
+      # by logical names.
+      protected def self.compress_save(source : Path, target : Path) : Nil
+        held = Save::Held.from_json File.read(source)
+        replay = held.replay.try do |mark|
+          Replay::Mark.new UPLOAD_REPLAY, mark.pause
+        end
+        saved = Save::Held.new held.name, held.version, held.saved, held.turn,
+          held.level, held.outcome, held.game, replay
+
+        File.open target, "w" do |output|
+          Compress::Gzip::Writer.open(output) { |packed| packed << saved.to_pretty_json }
+        end
+      end
+
+      # One replay line, with its continuation metadata sanitized when it is
+      # a header.
+      private def self.replay_line(line : String) : String
+        kind = begin
+          Replay::Reading::Kind.from_json(line).type
+        rescue JSON::ParseException
+          return line
+        end
+        return line unless kind == "header"
+
+        carried = ReplayPaths.from_json(line).continued
+        return line unless carried
+
+        header = Replay::Header.from_json line
+        continued = Replay::Carried.new UPLOAD_SAVE, carried.saved_at, carried.turn,
+          carried.log ? UPLOAD_REPLAY : nil, carried.pause
+
+        sanitized = header.with_continued continued
+
+        ending = line.ends_with?('\n') ? "\n" : ""
+        sanitized.to_json + ending
+      end
+
+      # The path-bearing part of a replay header.
+      private struct ReplayPaths
+        include JSON::Serializable
+
+        getter continued : Replay::Carried?
       end
     end
   end

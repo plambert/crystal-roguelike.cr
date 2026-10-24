@@ -90,7 +90,10 @@ end
 Spectator.describe Roguelike::Submit do
   alias Submit = Roguelike::Submit
   alias Log = Roguelike::Replay::Log
+  alias Replay = Roguelike::Replay
   alias Save = Roguelike::Save
+  alias Game = Roguelike::Game
+  alias Tester = Roguelike::Tester
 
   # A directory nothing else writes to.
   def root : Path
@@ -113,6 +116,19 @@ Spectator.describe Roguelike::Submit do
     found = Dir.children(directory).select(&.ends_with? ".jsonl")
     expect(found.size).to eq(1)
     directory / found.first
+  end
+
+  # The text in a gzipped parcel piece.
+  def unpack(path : Path) : String
+    File.open(path) do |file|
+      Compress::Gzip::Reader.open(file, &.gets_to_end)
+    end
+  end
+
+  # A replay header with its type field last.
+  def type_last(header : Replay::Header) : String
+    header.to_json.sub(%({"type":"header",), "{")
+      .sub(/\}\z/, %(,"type":"header"}))
   end
 
   describe ".log_id" do
@@ -152,6 +168,18 @@ Spectator.describe Roguelike::Submit do
       again = Submit::Meta.from_json meta.to_json
       expect(again.log).to eq("ab" * 16)
     end
+
+    it "includes the tester identity when one is set" do
+      previous = Tester.current
+      Tester.current = Tester.new "12345678-1234-1234-1234-123456789abc", "playtester"
+      game = Game.dug Roguelike::Rng.new(Recording::SEED)
+      meta = Submit::Meta.of game, "ab" * 16
+
+      expect(meta.tester.try(&.name)).to eq("playtester")
+      expect(meta.tester.try(&.id)).to eq("12345678-1234-1234-1234-123456789abc")
+    ensure
+      Tester.current = previous
+    end
   end
 
   describe Submit::Parcel do
@@ -159,8 +187,12 @@ Spectator.describe Roguelike::Submit do
       where = root
       log = where / "run.jsonl"
       save = where / "run.json"
-      File.write log, "{\"type\":\"header\"}\n{\"type\":\"act\"}\n"
-      File.write save, "{\"name\":\"x\"}"
+      File.write log, "{\"type\":\"header\"}\n{\"type\":\"act\"}\n{\"type\":\"act\""
+      game = Game.dug Roguelike::Rng.new(7_u64)
+      game.player.name = "x"
+      held = Save::Held.new "x", Roguelike::VERSION, Time.utc, 4,
+        game.player.level, game.outcome, game
+      File.write save, held.to_pretty_json
       meta = Submit::Meta.new "0.0.1", "test-x", "playing", 4, 7_u64, "x", "cd" * 16
 
       parcel = Submit::Parcel.pack where / Submit::Parcel.name(meta, 3), meta, 3, log, save
@@ -179,6 +211,144 @@ Spectator.describe Roguelike::Submit do
 
       parcel.remove
       expect(Dir.exists? parcel.directory).to be_false
+    end
+
+    it "removes local paths from copies without changing a resumed run" do
+      where = root
+      logs = where / "logs"
+      Dir.mkdir_p logs
+      store = Save::Store.under where / "store"
+      Log.pattern = logs.to_s
+      Log.always = nil
+      Submit.outbox = nil
+
+      begin
+        game = Game.dug Roguelike::Rng.new(Recording::SEED)
+        game.player.name = "privacy"
+        6.times { game.perform Roguelike::Action::Wait.new }
+        first_save = store.write game
+        first_log = log_in logs
+        Log.ended nil
+
+        File.delete first_log
+        held = store.held("privacy") || raise "the first save was not written"
+        game = held.carried first_save
+        4.times { game.perform Roguelike::Action::Wait.new }
+        save = store.write game
+        log = log_in logs
+        events = game.events_file || raise "the events file was not written"
+
+        source_log = File.read log
+        source_save = File.read save
+        source_events = File.read events
+        expect(source_log).to contain(where.to_s)
+        expect(source_save).to contain(where.to_s)
+
+        meta = Submit::Meta.of game, Submit.log_id(log), true
+        parcel = Submit::Parcel.pack where / "parcel", meta, 1, log, save, events
+
+        expect(File.read(log)).to eq(source_log)
+        expect(File.read(save)).to eq(source_save)
+        expect(File.read(events)).to eq(source_events)
+
+        uploaded_log = unpack parcel.directory / "replay.jsonl.gz"
+        uploaded_save = unpack parcel.directory / "save.json.gz"
+        uploaded_events = unpack parcel.directory / "events.jsonl.gz"
+        expect(uploaded_log).not_to contain(where.to_s)
+        expect(uploaded_save).not_to contain(where.to_s)
+        expect(uploaded_events).not_to contain(where.to_s)
+
+        replay_path = parcel.directory / "replay.jsonl.gz"
+        reading = Replay::Reading.read replay_path
+        expect(reading.header.run).not_to be_nil
+        expect(reading.header.run).not_to contain(where.to_s)
+        expect(reading.header.run).not_to contain("\"carried\":")
+        expect(reading.header.continued.try(&.save)).to eq("save.json")
+        expect(reading.header.continued.try(&.log)).to eq("replay.jsonl")
+        expect(Replay::Verifier.check(replay_path).trouble).to be_nil
+
+        uploaded_held = Save::Held.from_json uploaded_save
+        expect(uploaded_held.replay.try(&.log)).to eq("replay.jsonl")
+        expect(uploaded_held.game.to_json).not_to contain(where.to_s)
+        expect(uploaded_held.game.to_json).not_to contain("\"carried\":")
+        source_held = Save::Held.from_json source_save
+        expect(uploaded_held.game.fingerprint).to eq(source_held.game.fingerprint)
+
+        Log.ended nil
+        resumed = (store.held("privacy") || raise "the saved character disappeared").carried(save)
+        resumed.perform Roguelike::Action::Wait.new
+        Log.ended nil
+        report = Replay::Verifier.check log
+        expect(report.trouble).to be_nil
+        expect(report.resumes).to eq(1)
+      ensure
+        Log.ended nil
+        Log.pattern = nil
+        Log.always = nil
+        Submit.outbox = nil
+      end
+    end
+
+    it "replaces Windows drive, UNC and extended paths in uploaded metadata" do
+      where = root
+      logs = where / "logs"
+      Dir.mkdir_p logs
+      game = Recording.played logs.to_s, seed: UInt64::MAX, turns: 5, player: "windows"
+      source = log_in logs
+      lines = File.read_lines source
+      header = Replay::Header.from_json lines.first
+      continued = Replay::Carried.new(
+        "C:\\Users\\Alice\\AppData\\Local\\Rogue\\saves\\hero.json",
+        Time.utc, game.turn, "\\\\server\\share\\Alice\\logs\\run.jsonl", 2)
+      lines[0] = type_last header.with_continued(continued)
+      log = where / "windows.jsonl"
+      File.write log, lines.join('\n') + '\n'
+
+      store = Save::Store.under where / "store"
+      save = store.write game
+      held = store.held("windows") || raise "the save was not written"
+      mark = Replay::Mark.new("\\\\?\\C:\\Users\\Alice\\logs\\run.jsonl", 2)
+      windows_save = Save::Held.new held.name, held.version, held.saved, held.turn,
+        held.level, held.outcome, held.game, mark
+      File.write save, windows_save.to_pretty_json
+
+      meta = Submit::Meta.of game, Submit.log_id(log)
+      parcel = Submit::Parcel.pack where / "windows-parcel", meta, 1, log, save
+      uploaded_log = unpack parcel.directory / "replay.jsonl.gz"
+      uploaded_save = Save::Held.from_json unpack(parcel.directory / "save.json.gz")
+      sanitized = Replay::Reading.read(parcel.directory / "replay.jsonl.gz")
+
+      expect(uploaded_log).not_to contain("C:\\Users")
+      expect(uploaded_log).not_to contain("\\\\server")
+      expect(uploaded_log).not_to contain("\\\\?\\")
+      expect(sanitized.header.continued.try(&.save)).to eq("save.json")
+      expect(sanitized.header.continued.try(&.log)).to eq("replay.jsonl")
+      expect(sanitized.header.format).to eq(header.format)
+      expect(sanitized.header.seed).to eq(UInt64::MAX)
+      expect(uploaded_save.replay.try(&.log)).to eq("replay.jsonl")
+      expect(Replay::Verifier.check(parcel.directory / "replay.jsonl.gz").trouble).to be_nil
+    end
+
+    it "refuses a path-bearing header it cannot decode" do
+      where = root
+      logs = where / "logs"
+      Dir.mkdir_p logs
+      game = Recording.played logs.to_s, turns: 3, player: "invalid"
+      lines = File.read_lines log_in logs
+      header = Replay::Header.from_json lines.first
+      continued = Replay::Carried.new(
+        "/Users/private-account/saves/hero.json", Time.utc, game.turn,
+        "/Users/private-account/logs/run.jsonl", 1)
+      invalid_header = type_last(header.with_continued(continued))
+        .sub(/"seed":\d+/, %("seed":"invalid"))
+      log = where / "invalid-header.jsonl"
+      File.write log, ([invalid_header] + lines[1..]).join('\n') + '\n'
+      meta = Submit::Meta.new "0.0.1", "test-x", "playing", game.turn,
+        game.world.seed, game.player.name, "ab" * 16
+
+      expect_raises(JSON::ParseException) do
+        Submit::Parcel.pack where / "invalid-parcel", meta, 1, log, nil
+      end
     end
 
     it "is nil for a directory that is not a parcel" do
@@ -440,7 +610,12 @@ Spectator.describe Roguelike::Submit do
 
       output = IO::Memory.new
       expect(consent.ask IO::Memory.new("y\n"), output).to be_true
-      expect(output.to_s).to contain("What is sent: the seed")
+      expect(output.to_s).to contain("What is sent: the replay's seed")
+      expect(output.to_s).to contain("saved game state is included when a save is sent")
+      expect(output.to_s).to contain("event records")
+      expect(output.to_s).to contain("tester name and ID")
+      expect(output.to_s).to contain("compiler versions")
+      expect(output.to_s).to contain("No local filesystem paths")
       expect(output.to_s).to contain(consent.path.to_s)
       expect(consent.answer).to be_true
       expect(File.read(consent.path)).to start_with("yes ")
