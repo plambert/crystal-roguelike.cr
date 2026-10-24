@@ -8,9 +8,9 @@ module TermBuf::Widgets
   #
   # Extraction candidate: this belongs in `termbuf-widgets.cr`.
   class RecurringTimer
-    @app : App? = nil
-    @nonce : UInt64? = nil
-    @generation : UInt64 = 0
+    private getter app : App? = nil
+    private getter nonce : UInt64? = nil
+    private getter generation : UInt64 = 0
 
     # Arms one callback, or answers whether the same app already has one.
     # With no app or clock, the caller can continue synchronously.

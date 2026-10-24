@@ -57,6 +57,17 @@ Spectator.describe TermBuf::Widgets::RecurringTimer do
     expect(armed).to be_false
     expect(timer.pending?).to be_false
     expect(called).to be_false
+
+    nil_timer = described_class.new
+    nil_called = false
+    nil_armed = nil_timer.after(nil, 1.second) do
+      nil_called = true
+      nil
+    end
+
+    expect(nil_armed).to be_false
+    expect(nil_timer.pending?).to be_false
+    expect(nil_called).to be_false
   end
 
   it "ignores a canceled callback without losing its replacement" do
