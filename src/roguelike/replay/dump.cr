@@ -54,21 +54,21 @@ module Roguelike
         from = Path.new source
         read = Reading.read source
         game = Verifier.rebuild read.header
+        cursor = PlaybackCursor.new read, game
 
-        unless game.agrees? read.header.state
+        if cursor.opening
           return Report.new from, 0, 0,
             "the run does not start where it was recorded from. " \
             "Check it with replay verify."
         end
 
-        written from, read, game, to
+        written from, cursor, to
       end
 
-      # Writes the messages of every action of *read*.
-      private def self.written(from : Path, read : Reading, game : Game,
+      # Writes the messages of every action left on *cursor*.
+      private def self.written(from : Path, cursor : PlaybackCursor,
                                to : IO) : Report
-        bookmarks = Bookmarks.for read
-        mark = game.log.written
+        mark = cursor.game.log.written
         held = [] of String
         count = 0
 
@@ -80,58 +80,44 @@ module Roguelike
           held.clear
         }
 
-        read.records.each do |line|
-          case line
-          in Act
-            verdict = game.perform line.action
-            if verdict.refused?
-              return Report.new from, game.turn, count,
-                "turn #{line.turn}: #{line.action.t} was refused"
-            end
+        while cursor.next_record
+          step = cursor.advance
+          break unless step
+          game = cursor.game
 
-            game.look
+          if failure = step.failure
+            return Report.new from, game.turn, count,
+              trouble(failure, step.record)
+          end
+
+          case step.record
+          in Act
             fresh = {game.log.written - mark, game.log.lines.size}.min
             game.log.lines.last(fresh).each do |text|
               held << "#{game.turn}\t#{text}"
             end
             mark = game.log.written
           in Check, Pause
-            unless game.agrees?(line.state)
-              return Report.new from, game.turn, count,
-                "turn #{line.turn}: the run differs from what was recorded. " \
-                "Check it with replay verify."
-            end
-
             flush.call
-            bookmarks.paused line, game if line.is_a? Pause
           in Resume
-            unless bookmarks.seen? line
-              return Report.new from, game.turn, count,
-                "turn #{line.turn}: the file resumes from pause " \
-                "#{line.pause}, which it does not hold"
-            end
-
-            game = bookmarks.resumed line, game
-            unless game.agrees?(line.state)
-              return Report.new from, game.turn, count,
-                "turn #{line.turn}: the loaded run differs from what was " \
-                "recorded. Check it with replay verify."
-            end
-
             flush.call
             mark = game.log.written
           end
         end
 
-        state = read.footer.try &.state
-        if state && !game.agrees?(state)
-          return Report.new from, game.turn, count,
-            "turn #{game.turn}: the run ends differently from what was " \
-            "recorded. Check it with replay verify."
+        if failure = cursor.finish
+          return Report.new from, cursor.game.turn, count,
+            trouble(failure, nil)
         end
 
         flush.call
-        Report.new from, game.turn, count
+        Report.new from, cursor.game.turn, count
+      end
+
+      # The line describing a playback failure.
+      private def self.trouble(failure : PlaybackFailure,
+                               record : Record?) : String
+        failure.consumer_message record
       end
     end
   end

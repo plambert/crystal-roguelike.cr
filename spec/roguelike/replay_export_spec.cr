@@ -5,7 +5,9 @@ Spectator.describe Roguelike::Replay::Export do
   alias Check = Roguelike::Replay::Check
   alias Export = Roguelike::Replay::Export
   alias Game = Roguelike::Game
+  alias PlaybackCursor = Roguelike::Replay::PlaybackCursor
   alias Rng = Roguelike::Rng
+  alias Verifier = Roguelike::Replay::Verifier
 
   # A file nothing else in this run of the specs writes to.
   def spot(name : String) : Path
@@ -24,6 +26,35 @@ Spectator.describe Roguelike::Replay::Export do
     held = IO::Memory.new
     Export.run source, held, legal: legal
     held.to_s.lines.map { |line| JSON.parse line }
+  end
+
+  # A copy of *source* with one wrong final footer field and a fingerprint.
+  def wrong_footer(source : Path, field : String) : Path
+    reading = Roguelike::Replay::Reading.read source
+    cursor = PlaybackCursor.new reading, Verifier.rebuild(reading.header)
+    while step = cursor.advance
+      raise "#{step.failure}" if step.failure
+    end
+
+    lines = File.read_lines source
+    footer = JSON.parse(lines.pop).as_h
+    footer["state"] = JSON::Any.new(cursor.game.fingerprint like: reading.header.state)
+    footer["turn"] = JSON::Any.new(cursor.game.turn.to_i64)
+    footer["ending"] = JSON::Any.new(cursor.game.outcome.to_s.downcase)
+
+    case field
+    when "state"
+      footer["state"] = JSON::Any.new(reading.header.state)
+    when "turn"
+      footer["turn"] = JSON::Any.new((cursor.game.turn + 1).to_i64)
+    when "ending"
+      footer["ending"] = JSON::Any.new("wrong")
+    end
+
+    where = spot "wrong-footer-#{field}"
+    lines << footer.to_json
+    File.write where, lines.join('\n') + "\n" + %({"type":"act")
+    where
   end
 
   describe "what it writes" do
@@ -90,6 +121,7 @@ Spectator.describe Roguelike::Replay::Export do
       source = recorded
       lines = exported source
 
+      expect(Roguelike::Replay::Reading.read(source).footer.try(&.state)).to be_nil
       expect(lines.last["outcome"]).to eq "truncated"
     end
   end
@@ -133,6 +165,24 @@ Spectator.describe Roguelike::Replay::Export do
       report = Export.run where, IO::Memory.new
       expect(report.ok?).to be_false
       expect(report.trouble.to_s).to contain "does not start where"
+    end
+
+    it "rejects a wrong final fingerprint, turn, or ending" do
+      source = Recording.golden
+
+      {"state", "turn", "ending"}.each do |field|
+        where = wrong_footer source, field
+        expect(Roguelike::Replay::Reading.read(where).truncated?).to be_true
+        held = IO::Memory.new
+        report = Export.run where, held, legal: false
+        lines = held.to_s.lines.compact_map { |line| JSON.parse(line) }
+
+        expect(report.ok?).to be_false
+        expect(report.trouble.to_s).to contain "replay verify"
+        expect(report.pairs).to eq Recording.read(source).acts
+        expect(lines.count { |line| line["type"] == "pair" }).to eq report.pairs
+        expect(lines.last["type"]).to eq "pair"
+      end
     end
   end
 

@@ -77,6 +77,7 @@ module Roguelike
         @game = Verifier.rebuild @reading.header
         Viewer.sweep
         started
+        ended if done?
         keep
       end
 
@@ -118,6 +119,7 @@ module Roguelike
 
         note "turn #{act.turn}: #{act.action.t} was refused" if verdict.refused?
         compared
+        ended if done?
         keep if (@at % EVERY).zero?
         true
       end
@@ -170,6 +172,26 @@ module Roguelike
           note "turn #{check.turn}: the run differs from the file" unless @game.agrees?(check.state)
           @bookmarks.paused check, @game if check.is_a?(Pause)
         end
+      end
+
+      # Records a final-footer difference without stopping the viewing.
+      private def ended : Nil
+        failure = PlaybackCursor.footer @reading, @game
+        return unless failure
+
+        message = case failure.problem
+                  in .footer_turn?
+                    "the run ends on turn #{failure.found_turn}, and the file says " \
+                    "turn #{failure.expected_turn}"
+                  in .footer_fingerprint?
+                    "turn #{failure.turn}: the run ends differently from the file"
+                  in .footer_outcome?
+                    "the run ended #{failure.found}, and the file says #{failure.expected}"
+                  in .opening?, .over?, .refused?, .fingerprint?, .saved?, .resume_missing?
+                    return
+                  end
+
+        note message
       end
 
       # Records *what* as the first difference. A later one is dropped.

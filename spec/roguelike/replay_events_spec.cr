@@ -6,8 +6,10 @@ Spectator.describe Roguelike::Replay::Backfill do
   alias Backfill = Roguelike::Replay::Backfill
   alias Game = Roguelike::Game
   alias Log = Roguelike::Replay::Log
+  alias PlaybackCursor = Roguelike::Replay::PlaybackCursor
   alias Resume = Roguelike::Replay::Resume
   alias Rng = Roguelike::Rng
+  alias Verifier = Roguelike::Replay::Verifier
   alias Writer = Roguelike::Events::Writer
 
   # A directory of logs nothing else writes to.
@@ -35,6 +37,35 @@ Spectator.describe Roguelike::Replay::Backfill do
   # The `type` of each line of *found* that has one.
   def types(found : Array(String)) : Array(String)
     found.compact_map { |line| JSON.parse(line)["type"]?.try(&.as_s) }
+  end
+
+  # A copy of *source* with one wrong final footer field and a fingerprint.
+  def wrong_footer(source : Path, field : String) : Path
+    reading = Roguelike::Replay::Reading.read source
+    cursor = PlaybackCursor.new reading, Verifier.rebuild(reading.header)
+    while step = cursor.advance
+      raise "#{step.failure}" if step.failure
+    end
+
+    lines = File.read_lines source
+    footer = JSON.parse(lines.pop).as_h
+    footer["state"] = JSON::Any.new(cursor.game.fingerprint like: reading.header.state)
+    footer["turn"] = JSON::Any.new(cursor.game.turn.to_i64)
+    footer["ending"] = JSON::Any.new(cursor.game.outcome.to_s.downcase)
+
+    case field
+    when "state"
+      footer["state"] = JSON::Any.new(reading.header.state)
+    when "turn"
+      footer["turn"] = JSON::Any.new((cursor.game.turn + 1).to_i64)
+    when "ending"
+      footer["ending"] = JSON::Any.new("wrong")
+    end
+
+    where = Recording.directory / "wrong-footer-#{field}-#{Random.rand UInt32}.jsonl"
+    lines << footer.to_json
+    File.write where, lines.join('\n') + "\n" + %({"type":"act")
+    where
   end
 
   # Plays *count* actions drawn from `Game#legal`, on a stream of *salt*.
@@ -109,6 +140,31 @@ Spectator.describe Roguelike::Replay::Backfill do
     report = Backfill.run log, where / "rebuilt.events.jsonl.gz"
     expect(report.status).to eq(Backfill::DIFFERS)
     expect(report.message.to_s).to contain("turn #{report.turn}")
+  end
+
+  it "rejects a wrong final fingerprint, turn, or ending" do
+    where = logs
+    source = Recording.golden
+
+    {"state", "turn", "ending"}.each do |field|
+      target = where / "invalid-#{field}.events.jsonl.gz"
+      wrong = wrong_footer source, field
+      expect(Roguelike::Replay::Reading.read(wrong).truncated?).to be_true
+      report = Backfill.run wrong, target
+
+      expect(report.status).to eq(Backfill::DIFFERS)
+      expect(report.message.to_s).to contain("turn #{report.turn}")
+    end
+  end
+
+  it "accepts process footers without a final fingerprint" do
+    where = logs
+    Recording.played where.to_s, turns: 8
+    log = log_in where
+
+    expect(Roguelike::Replay::Reading.read(log).footer.try(&.state)).to be_nil
+    expect(Backfill.run(log, where / "without-final-fingerprint.events.jsonl.gz").ok?)
+      .to be_true
   end
 
   describe "a run that spans versions" do
