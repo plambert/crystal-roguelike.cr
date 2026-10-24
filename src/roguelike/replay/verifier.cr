@@ -103,16 +103,12 @@ module Roguelike
       # How many checkpoints have agreed.
       @checks : Int32 = 0
 
-      # The runs a resume goes back to.
-      @bookmarks : Bookmarks
-
       # How many pauses and resumes have agreed.
       @pauses : Int32 = 0
       @resumes : Int32 = 0
 
       def initialize(@reading : Reading, @force : Bool = false)
         @agreed = @reading.header.turn
-        @bookmarks = Bookmarks.for @reading
       end
 
       # Checks the file.
@@ -124,123 +120,37 @@ module Roguelike
         end
 
         game = Verifier.rebuild @reading.header
-        return failed started(game) unless game.agrees?(@reading.header.state)
+        cursor = PlaybackCursor.new @reading, game
+        return failed started(game) if cursor.opening
 
-        walked game
+        walked cursor
       end
 
-      # Performs every action and compares every checkpoint.
-      private def walked(game : Game) : Report
-        @reading.records.each do |line|
-          case line
-          in Act
-            trouble = acted game, line
-          in Check
-            trouble = checked game, line
-          in Pause
-            trouble = held game, line
-          in Resume
-            game, trouble = resumed game, line
+      # Performs every record and compares the final footer.
+      private def walked(cursor : PlaybackCursor) : Report
+        while step = cursor.advance
+          if failure = step.failure
+            return failed trouble(failure, step.record, cursor.game)
           end
-          return failed trouble if trouble
+
+          case step.record
+          in Act
+            @acts += 1
+          in Check
+            @checks += 1
+            @agreed = step.record.turn
+          in Pause
+            @pauses += 1
+          in Resume
+            @resumes += 1
+          end
         end
 
-        ended game
-      end
-
-      # Performs one action. Answers what went wrong, or `nil`.
-      private def acted(game : Game, act : Act) : String?
-        return "turn #{act.turn}: the run was over before the action" if game.over?
-
-        verdict = game.perform act.action
-        return "turn #{act.turn}: #{act.action.t} was refused#{window}" if verdict.refused?
-
-        @acts += 1
-        game.look
-        nil
-      end
-
-      # Compares one checkpoint. Answers what went wrong, or `nil`.
-      private def checked(game : Game, check : Check) : String?
-        found = game.fingerprint like: check.state
-        unless found == check.state
-          return "turn #{check.turn}: the run differs#{window}\n" \
-                 "  recorded #{check.state}\n" \
-                 "  found    #{found}"
+        if failure = cursor.finish
+          return failed trouble(failure, nil, cursor.game)
         end
 
-        @checks += 1
-        @agreed = check.turn
-        nil
-      end
-
-      # Compares one pause, and keeps the run when a resume goes back to it.
-      private def held(game : Game, pause : Pause) : String?
-        trouble = compared game, pause.turn, pause.state, "the save"
-        return trouble if trouble
-
-        @bookmarks.paused pause, game
-        @pauses += 1
-        nil
-      end
-
-      # Carries the run on from a resume. Answers the run, and what went
-      # wrong or `nil`.
-      #
-      # A difference here and none at the pause says the save did not hold
-      # the whole run.
-      private def resumed(game : Game, resume : Resume) : {Game, String?}
-        unless @bookmarks.seen? resume
-          return {game, "turn #{resume.turn}: the file resumes from pause " \
-                        "#{resume.pause}, which it does not hold"}
-        end
-
-        game = @bookmarks.resumed resume, game
-        trouble = compared game, resume.turn, resume.state, "the loaded run"
-        @resumes += 1 unless trouble
-        {game, trouble}
-      end
-
-      # Compares the run with a fingerprint the file holds at *turn*.
-      private def compared(game : Game, turn : Int32, state : String,
-                           what : String) : String?
-        found = game.fingerprint like: state
-        return if found == state && game.turn == turn
-
-        "turn #{turn}: #{what} differs#{window}\n" \
-        "  recorded #{state} on turn #{turn}\n" \
-        "  found    #{found} on turn #{game.turn}"
-      end
-
-      # Compares the footer, if there is one to compare.
-      #
-      # A footer the exit handler wrote carries no fingerprint, and it is not
-      # compared. The process went away while the run was being played, and
-      # the turn it says may be past the last action that reached the file.
-      # Everything up to that action has been checked already.
-      private def ended(game : Game) : Report
-        footer = @reading.footer
-        return done game unless footer
-
-        state = footer.state
-        return done game unless state
-
-        unless game.turn == footer.turn
-          return failed "the run ended on turn #{game.turn} and the file " \
-                        "says turn #{footer.turn}#{window}"
-        end
-
-        found = game.fingerprint like: state
-        unless state == found
-          return failed "turn #{footer.turn}: the run ends differently#{window}\n" \
-                        "  recorded #{state}\n" \
-                        "  found    #{found}"
-        end
-
-        ending = game.outcome.to_s.downcase
-        return failed "the run ended #{ending} and the file says #{footer.ending}" unless ending == footer.ending
-
-        done game
+        done cursor.game
       end
 
       # Why a rebuilt run does not start where the file says it does.
@@ -258,6 +168,44 @@ module Roguelike
       # Which turns a difference is somewhere inside.
       private def window : String
         " (after turn #{@agreed}, which agreed)"
+      end
+
+      # The line describing a playback failure.
+      private def trouble(failure : PlaybackFailure, record : Record?,
+                          game : Game) : String
+        case failure.problem
+        in .opening?
+          started game
+        in .over?
+          "turn #{failure.turn}: the run was over before the action#{window}"
+        in .refused?
+          "turn #{failure.turn}: #{failure.expected} was refused#{window}"
+        in .fingerprint?
+          "turn #{failure.turn}: the run differs#{window}\n" \
+          "  recorded #{failure.expected}\n" \
+          "  found    #{failure.found}"
+        in .saved?
+          what = case record
+                 in Pause           then "the save"
+                 in Resume          then "the loaded run"
+                 in Act, Check, nil then "the run"
+                 end
+          "turn #{failure.turn}: #{what} differs#{window}\n" \
+          "  recorded #{failure.expected} on turn #{failure.expected_turn}\n" \
+          "  found    #{failure.found} on turn #{failure.found_turn}"
+        in .resume_missing?
+          "turn #{failure.turn}: the file resumes from pause " \
+          "#{failure.pause}, which it does not hold"
+        in .footer_turn?
+          "the run ended on turn #{failure.found_turn} and the file " \
+          "says turn #{failure.expected_turn}#{window}"
+        in .footer_fingerprint?
+          "turn #{failure.turn}: the run ends differently#{window}\n" \
+          "  recorded #{failure.expected}\n" \
+          "  found    #{failure.found}"
+        in .footer_outcome?
+          "the run ended #{failure.found} and the file says #{failure.expected}"
+        end
       end
 
       private def done(game : Game) : Report

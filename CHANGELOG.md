@@ -69,6 +69,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Explore walks over to read an item it saw from too far off when the item lies under gold, as it
   already did when the item lay on top. The headless interface lists every item of a remembered
   pile out of view, not the top one alone.
+* Replay exports and event backfills reject a final state, turn or ending that differs from the log.
 
 ## [0.6.0] - 2026-10-18
 

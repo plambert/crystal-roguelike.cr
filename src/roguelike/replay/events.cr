@@ -159,11 +159,12 @@ module Roguelike
           return elsewhere(header.turn, header.game_version) unless Backfill.ours?(header.game_version)
 
           game = Verifier.rebuild header
-          return differs(header.turn, "the run does not start where the log does") unless game.agrees?(header.state)
+          cursor = PlaybackCursor.new @reading, game, 0, @bookmarks
+          return differs(header.turn, "the run does not start where the log does") if cursor.opening
 
           attach game, Events::Writer.started(game, @stand_in, @id,
             header.game_version)
-          walked game, 0
+          walked cursor
         end
 
         # Loads the run from *save* and plays the records after the first
@@ -180,65 +181,90 @@ module Roguelike
 
           resume = records[at].as(Resume)
           game = Run.loaded save
-          game.look
-          unless game.agrees?(resume.state) && game.turn == resume.turn
-            return differs(turn, "the save differs from the resume")
-          end
 
           records[0...at].each do |line|
             @bookmarks.paused line, game if line.is_a?(Pause) && line.pause == resume.pause
           end
 
-          attach game, Events::Writer.resumed(game, @stand_in, @id,
+          cursor = PlaybackCursor.new @reading, game, at, @bookmarks
+          step = cursor.advance
+          if failure = step.try(&.failure)
+            if failure.problem.resume_missing?
+              return Report.new BROKEN, "#{@log}: turn #{turn}: the log resumes " \
+                                        "from pause #{resume.pause}, which it does not hold"
+            end
+            return differs(turn, "the save differs from the resume")
+          end
+
+          attach cursor.game, Events::Writer.resumed(cursor.game, @stand_in, @id,
             resume.pause, resume.game_version)
-          walked game, at + 1
+          walked cursor
         end
 
-        # Plays the records from *start* on.
-        private def walked(game : Game, start : Int32) : Report
+        # Plays the records from the cursor on.
+        private def walked(cursor : PlaybackCursor) : Report
           records = @reading.records
-          (start...records.size).each do |index|
-            footer if @footers.includes? index
+          while line = cursor.next_record
+            footer if @footers.includes? cursor.at
 
-            case line = records[index]
-            in Act
-              return differs(line.turn, "the run was over before the action") if game.over?
-              return differs(line.turn, "#{line.action.t} was refused") if game.perform(line.action).refused?
-
-              @acts += 1
-              game.look
-            in Check
-              return differs(line.turn, "the run differs") unless game.agrees?(line.state)
-            in Pause
-              return differs(line.turn, "the save differs") unless held?(game, line.turn, line.state)
-
-              @bookmarks.paused line, game
-              @sink.try &.events.try &.pause(line.pause)
-            in Resume
+            if line.is_a?(Resume)
               @sink.try &.done(false)
               @sink = nil
               return elsewhere(line.turn, line.game_version) unless Backfill.ours?(line.game_version)
+            end
 
-              unless @bookmarks.seen? line
-                return Report.new BROKEN, "#{@log}: turn #{line.turn}: the log resumes " \
-                                          "from pause #{line.pause}, which it does not hold"
-              end
+            step = cursor.advance
+            break unless step
+            if failure = step.failure
+              return failed(failure, step.record)
+            end
 
-              game = @bookmarks.resumed line, game
-              return differs(line.turn, "the loaded run differs") unless held?(game, line.turn, line.state)
-
-              attach game, Events::Writer.resumed(game, @stand_in, @id,
-                line.pause, line.game_version)
+            case step.record
+            in Act
+              @acts += 1
+            in Check then nil
+            in Pause
+              pause = step.record.as(Pause)
+              @sink.try &.events.try &.pause(pause.pause)
+            in Resume
+              resume = step.record.as(Resume)
+              attach cursor.game, Events::Writer.resumed(cursor.game, @stand_in,
+                @id, resume.pause, resume.game_version)
             end
           end
 
+          if failure = cursor.finish
+            return failed failure, nil
+          end
+
           footer if @footers.includes?(records.size)
-          Report.new DONE, acts: @acts, turn: game.turn
+          Report.new DONE, acts: @acts, turn: cursor.game.turn
         end
 
-        # Whether *game* is at *turn* with the fingerprint *state*.
-        private def held?(game : Game, turn : Int32, state : String) : Bool
-          game.turn == turn && game.agrees?(state)
+        # Converts a cursor problem into a backfill report.
+        private def failed(failure : PlaybackFailure, record : Record?) : Report
+          why = case failure.problem
+                in .opening?     then "the run does not start where the log does"
+                in .over?        then "the run was over before the action"
+                in .refused?     then "#{failure.expected} was refused"
+                in .fingerprint? then "the run differs"
+                in .saved?
+                  case record
+                  in Pause           then "the save differs"
+                  in Resume          then "the loaded run differs"
+                  in Act, Check, nil then "the run differs"
+                  end
+                in .resume_missing?     then "the log resumes from pause #{failure.pause}, which it does not hold"
+                in .footer_turn?        then "the run ended on turn #{failure.found_turn}, not #{failure.expected_turn}"
+                in .footer_fingerprint? then "the run ends differently"
+                in .footer_outcome?     then "the run ended #{failure.found}, not #{failure.expected}"
+                end
+
+          if failure.problem.resume_missing?
+            Report.new BROKEN, "#{@log}: turn #{failure.turn}: #{why}", @acts, failure.turn
+          else
+            differs failure.turn, why
+          end
         end
 
         # Hands *game* a sink for *writer*.
