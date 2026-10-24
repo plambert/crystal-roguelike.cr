@@ -47,6 +47,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Pausing or interrupting playback, walking, or resting cancels its pending step. Restarting keeps
+  one steady pace; autoplay survives saved-pause rewinds, and camera glides do not accelerate
+  when pointed at again.
 * Saving twice with no turn between, as when you take the stairs and then quit, sends one
   parcel instead of two copies of the same one.
 * Explore no longer stops with "You have been here already" after it picks something up on the

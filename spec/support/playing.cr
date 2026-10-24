@@ -45,7 +45,7 @@ module Playing
     delegate render, rows, row, text, buffer, to: @session
 
     # Drives the clock. A run opened without one has nothing to drive.
-    delegate tick, run_timers, armed, to: @session
+    delegate tick, run_timers, armed, armed_for, to: @session
 
     # Where the character is.
     def at : {Int32, Int32}

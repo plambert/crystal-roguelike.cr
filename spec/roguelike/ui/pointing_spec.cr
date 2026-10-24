@@ -2,6 +2,7 @@ require "../../spec_helper"
 
 Spectator.describe "pointing at a square" do
   alias Game = Roguelike::Game
+  alias Play = Roguelike::Ui::Play
 
   # A hall with the way up at the west end and the way down at the east.
   HALL = [
@@ -30,13 +31,13 @@ Spectator.describe "pointing at a square" do
   # light, so they see their own square and no other.
   def walking(lines : Array(String) = HALL,
               columns : Int32 = 60, rows : Int32 = 20,
-              lit : Bool = true) : Playing::Run
+              lit : Bool = true, clock : Bool = false) : Playing::Run
     floor = Roguelike::Floor.parse "hall", lines
     Playing.daylight floor if lit
     run = Playing.open Game.new(
       Roguelike::World.new(Playing::SEED, {"hall" => floor}),
       Roguelike::Player.new("hall", *Game.entrance(floor),
-        hit_points: 40)), columns, rows
+        hit_points: 40)), columns, rows, clock: clock
     run.clear_monsters
     run
   end
@@ -141,6 +142,43 @@ Spectator.describe "pointing at a square" do
       run.press ">"
 
       expect(run.map.screen_of 197, 1).not_to be_nil
+    end
+
+    it "keeps one camera glide chain when a staircase is pointed at again" do
+      run = walking LONG, clock: true
+      wait = Play::GLIDE
+
+      run.press ">"
+      stale = run.armed_for(wait).first
+      before = run.map.camera
+
+      run.press ">"
+      expect(run.armed_for(wait).size).to eq 1
+      run.session.send TermBuf::Input::Events::Timer.new(stale)
+      expect(run.map.camera).to eq before
+      expect(run.armed_for(wait).size).to eq 1
+
+      run.tick
+      expect(run.map.camera).not_to eq before
+      expect(run.armed_for(wait).size).to eq 1
+
+      run.run_timers
+      expect(run.map.screen_of 197, 1).not_to be_nil
+      expect(run.armed_for(wait)).to be_empty
+    end
+
+    it "cancels a queued camera glide when the game is replaced" do
+      run = walking LONG, clock: true
+      run.press ">"
+      stale = run.armed_for(Play::GLIDE).first
+      replacement = Game.start(Roguelike::Rng.new(31_u64))
+
+      run.play.resume replacement
+      expect(run.map.floor).to be replacement.floor
+      expect(run.armed_for(Play::GLIDE)).to be_empty
+      camera = run.map.camera
+      run.session.send TermBuf::Input::Events::Timer.new(stale)
+      expect(run.map.camera).to eq camera
     end
 
     it "says so when the character has never seen one" do

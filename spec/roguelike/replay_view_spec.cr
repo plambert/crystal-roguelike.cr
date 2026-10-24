@@ -265,6 +265,88 @@ Spectator.describe "watching a recorded run" do
       done run
     end
 
+    it "cancels a paused timer and resumes one playback chain" do
+      run = watching clock: true
+      run.play.view_speed = 1
+      wait = Play::VIEW_SPEEDS.first
+
+      run.press "Space"
+      stale = run.armed_for(wait).first
+      expect(run.armed_for(wait).size).to eq 1
+
+      run.press "Space"
+      expect(run.armed_for(wait)).to be_empty
+
+      run.press "Space"
+      expect(run.armed_for(wait).size).to eq 1
+      at = held(run).at
+      run.session.send TermBuf::Input::Events::Timer.new(stale)
+      expect(held(run).at).to eq at
+      expect(run.armed_for(wait).size).to eq 1
+
+      run.tick
+      expect(held(run).at).to eq at + 1
+      expect(run.armed_for(wait).size).to eq 1
+      run.press "Space"
+      done run
+    end
+
+    it "cancels playback when an explicit game resume replaces it" do
+      run = watching clock: true
+      run.play.view_speed = 1
+      wait = Play::VIEW_SPEEDS.first
+      run.play.toggle_playback
+      stale = run.armed_for(wait).first
+      at = held(run).at
+
+      run.play.resume(Roguelike::Game.start(Roguelike::Rng.new(31_u64)))
+      expect(run.play.playing_back?).to be_false
+      expect(run.armed_for(wait)).to be_empty
+      run.session.send TermBuf::Input::Events::Timer.new(stale)
+      expect(held(run).at).to eq at
+      done run
+    end
+
+    it "keeps playing when a saved pause rewinds the replay game" do
+      source = Roguelike::Replay::Reading.read Recording.golden
+      acts = source.records.select(Roguelike::Replay::Act)
+      game = Roguelike::Replay::Verifier.rebuild source.header
+      game.perform acts.first.action
+      game.look
+
+      at = Time.utc
+      state = game.fingerprint
+      pause = Roguelike::Replay::Pause.new(1, game.turn, state, at)
+      continued = Roguelike::Replay::Resume.new(
+        1, game.turn, state, at, Roguelike::VERSION)
+      records = [acts[0], pause, acts[1], continued, acts[1]] of Roguelike::Replay::Record
+      reading = Roguelike::Replay::Reading.new(
+        Path["audit"], source.header, records, nil, false, 0)
+      run = Playing.open viewer: Viewer.new(reading), clock: true
+      run.play.view_speed = 1
+      wait = Play::VIEW_SPEEDS.first
+
+      run.play.toggle_playback
+      expect(held(run).at).to eq 1
+      expect(run.armed_for(wait).size).to eq 1
+
+      run.tick
+      expect(held(run).at).to eq 2
+      expect(run.play.playing_back?).to be_true
+      expect(run.armed_for(wait).size).to eq 1
+
+      run.tick
+      expect(held(run).at).to eq 3
+      expect(run.play.playing_back?).to be_true
+      expect(run.armed_for(wait).size).to eq 1
+
+      run.tick
+      expect(held(run).done?).to be_true
+      expect(run.play.playing_back?).to be_false
+      expect(run.armed_for(wait)).to be_empty
+      done run
+    end
+
     it "stops when a step is taken" do
       run = watching clock: true
       run.press "Space"
