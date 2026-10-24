@@ -17,9 +17,14 @@ module Roguelike
         This build can send the developer a record of each run you play, so that
         a bug found in play can be reproduced.
 
-        What is sent: the seed, every action taken, the messages shown, the
-        character's name, the game's version and the platform. Nothing else is
-        sent: no paths, host names, user names or anything outside the game.
+        What is sent: the replay's seed, actions, messages and technical
+        details used to verify it, including game and compiler versions and
+        recording time. The saved game state is included when a save is sent.
+        Unless disabled, event records include item and combat details and
+        changes to character stats. The character name, platform, outcome and
+        turn are included. Your tester name and ID are sent when set, to label
+        your runs for the developer. No local filesystem paths or host names
+        are included, and no other files or data from this computer are sent.
 
         A record is sent when the game exits, for each save made and each run
         that ended. --no-autosubmit turns this off for a run. Your answer is

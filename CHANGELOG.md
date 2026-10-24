@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Security
+
+* Uploads replace local save and replay paths with logical names, and the consent prompt explains
+  the tester identity, saved game state and event details that may be sent.
+
 ### Added
 
 * `F` fires your ranged weapon at the nearest monster in sight, with no aiming step. With

@@ -111,6 +111,19 @@ module Roguelike
                      @run : String? = nil, @every : Int32? = nil,
                      @continued : Carried? = nil, @tester : Tester? = nil)
       end
+
+      # Copies this header with different continuation metadata.
+      def with_continued(continued : Carried?) : Header
+        copy = Header.new @game_version, @crystal_version, @seed, @generate,
+          @streams, @player, @source, @started_at, @turn, @log, @state,
+          @run, @every, continued, @tester
+        copy.format = @format
+        copy
+      end
+
+      protected def format=(format : Int32) : Nil
+        @format = format
+      end
     end
 
     # Where a saved run's log is, and the pause the save was written at.
