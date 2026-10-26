@@ -11,8 +11,13 @@ module Roguelike
       Ui::Motion.on = motion?
       return unless session
 
-      session.mousing = mouse?
-      session.flickering = flicker?
+      apply_to session
+    end
+
+    # Applies the two session-owned display preferences to *display*.
+    def apply_to(display) : Nil
+      display.mousing = mouse?
+      display.flickering = flicker?
     end
   end
 end

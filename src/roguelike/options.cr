@@ -47,9 +47,6 @@ module Roguelike
       end
     end
 
-    # The keys that a command line flag can set for one run.
-    FLAGGED = %w[motion flicker update_check autosubmit]
-
     # The preferences in the order the screen shows them.
     #
     # Each key is a JSON property of `Options`, except `name`, which is the
@@ -117,16 +114,29 @@ module Roguelike
     # alone.
     def self.arrange(root : Path, motion : Bool? = nil, flicker : Bool? = nil,
                      update_check : Bool? = nil, autosubmit : Bool? = nil) : Options
-      options = read root
-
-      {% for key in FLAGGED %}
-        unless {{ key.id }}.nil?
-          options.override {{ key }}, JSON::Any.new(options.{{ key.id }}?)
-          options.{{ key.id }} = {{ key.id }}
-        end
-      {% end %}
+      options = arrange_display root, motion: motion, flicker: flicker
+      options.set_flag "update_check", update_check
+      options.set_flag "autosubmit", autosubmit
 
       options
+    end
+
+    # The display preferences for one run, from the file and any flags typed.
+    # Update and upload preferences are left out for commands that do not use
+    # them, such as replay viewing.
+    def self.arrange_display(root : Path, motion : Bool? = nil,
+                             flicker : Bool? = nil) : Options
+      options = read root
+      options.set_flag "motion", motion
+      options.set_flag "flicker", flicker
+      options
+    end
+
+    protected def set_flag(key : String, value : Bool?) : Nil
+      return if value.nil?
+
+      override key, JSON::Any.new self[key].as(Bool)
+      self[key] = value
     end
 
     # The tester's name under *root*, which the `name` setting shows.
