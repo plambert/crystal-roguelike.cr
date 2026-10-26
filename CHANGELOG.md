@@ -52,6 +52,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Explore is offered only when it can reach something to see or collect.
 * Pausing or interrupting playback, walking, or resting cancels its pending step. Restarting keeps
   one steady pace; autoplay survives saved-pause rewinds, and camera glides do not accelerate
   when pointed at again.

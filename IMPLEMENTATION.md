@@ -5437,9 +5437,10 @@ click, as moves.
   for ever. The walk keeps those pairs and stops with `Halt::Spent`. Cutting rooms by the grid made
   such cycles before `Explore.room` joined the pieces again. The guard is for the dark, where
   walking learns nothing.
-* **Offered while there is anything to see.** `Game#legal` offers `Explore` while the cut has a
-  frontier square. A travel takes any square, so it is not on the list, the way a shot is offered
-  only at the creatures in sight.
+* **Offered while there is something reachable to do.** `Game#legal` offers `Explore` when a
+  frontier square, wanted pile or unread item is reachable over known crossable ground. A frontier
+  must also pass explore's light rule. A travel takes any square, so it is not on the list, the way
+  a shot is offered only at creatures in sight.
 * **The format number stays.** `Replay::FORMAT` is still 3. A file holding neither verb reads as it
   did. A build from before this cannot parse a file holding either one, and says so.
 
