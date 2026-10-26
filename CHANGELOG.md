@@ -70,8 +70,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   already did when the item lay on top. The headless interface lists every item of a remembered
   pile out of view, not the top one alone.
 * Replay exports and event backfills reject a final state, turn or ending that differs from the log.
-* Incomplete replay uploads stay out of the send queue, and a failed final-save update leaves the
-  earlier parcel intact.
+* Incomplete replay or required-save uploads stay out of the send queue, and a failed final-save
+  update leaves the earlier parcel intact.
 
 ## [0.6.0] - 2026-10-18
 

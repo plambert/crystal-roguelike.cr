@@ -118,6 +118,32 @@ class FailingParcelFilesystem < Roguelike::Submit::Parcel::Filesystem
   end
 end
 
+class ReentrantParcelFilesystem < Roguelike::Submit::Parcel::Filesystem
+  getter reader : Roguelike::Submit::Parcel?
+
+  def initialize(@directory : Path)
+    @reader = nil
+  end
+
+  def rename(source : Path, target : Path) : Nil
+    super
+    if source.parent.basename.includes?("parcel-stage") &&
+       source.basename == "replay.jsonl.gz" && target.parent == @directory
+      @reader = Roguelike::Submit::Parcel.open(@directory)
+    end
+  end
+end
+
+class RecordingParcelCarrier
+  include Roguelike::Submit::Outbox::Carrier
+
+  getter sent = 0
+
+  def send(parcel : Roguelike::Submit::Parcel) : Nil
+    @sent += 1
+  end
+end
+
 Spectator.describe Roguelike::Submit do
   alias Submit = Roguelike::Submit
   alias Log = Roguelike::Replay::Log
@@ -372,10 +398,16 @@ Spectator.describe Roguelike::Submit do
         game.player.level, game.outcome, game
       save = where / "save.json"
       File.write save, held.to_pretty_json
-      saved = Submit::Parcel.pack where / "saved-001", meta, 1, log, save
+      outbox = Submit::Outbox.new where / "saved-outbox"
+      saved = outbox.pack meta, 1, log, save
       opened = Submit::Parcel.open(saved.directory) || raise "the saved parcel did not open"
       File.delete saved.directory / "save.json.gz"
 
+      expect(Submit::Parcel.open(saved.directory)).to be_nil
+      expect(outbox.parcels).to be_empty
+      carrier = RecordingParcelCarrier.new
+      outbox.flush carrier, IO::Memory.new
+      expect(carrier.sent).to eq(0)
       expect_raises(IO::Error) { opened.pieces }
     end
 
@@ -479,6 +511,87 @@ Spectator.describe Roguelike::Submit do
       expect(recovered.try(&.seq)).to eq(1)
       expect(contents parcel.directory).to eq(before)
       expect(outbox.parcels.map(&.seq)).to eq([1])
+    end
+
+    it "refuses a reentrant reader while a repack is publishing" do
+      where = root
+      old_log = where / "old.jsonl"
+      new_log = where / "new.jsonl"
+      File.write old_log, "old replay\n"
+      File.write new_log, "new replay\n"
+      old_meta = Submit::Meta.new "0.0.1", "test-x", "left", 4, 7_u64,
+        "x", "cd" * 16
+      new_meta = Submit::Meta.new "0.0.1", "test-x", "won", 5, 7_u64,
+        "x", "cd" * 16
+      directory = where / "#{"cd" * 16}-001"
+      Submit::Parcel.pack directory, old_meta, 1, old_log, nil
+      filesystem = ReentrantParcelFilesystem.new directory
+
+      Submit::Parcel.pack directory, new_meta, 1, new_log, nil,
+        filesystem: filesystem
+
+      expect(filesystem.reader).to be_nil
+      published = Submit::Parcel.open(directory) || raise "the repacked parcel did not open"
+      expect(published.meta.outcome).to eq("won")
+      expect(unpack(directory / "replay.jsonl.gz")).to eq("new replay\n")
+    end
+
+    it "leaves similarly prefixed unowned directories unchanged" do
+      where = root
+      log = where / "run.jsonl"
+      File.write log, "{}\n"
+      meta = Submit::Meta.new "0.0.1", "test-x", "left", 4, 7_u64,
+        "x", "cd" * 16
+      outbox = Submit::Outbox.new where / "outbox"
+      parcel = outbox.pack meta, 1, log, nil
+      unowned = [
+        outbox.directory / ".#{parcel.directory.basename}.parcel-backup-not-ours",
+        outbox.directory / ".#{parcel.directory.basename}.parcel-backup-#{"ab" * 12}-owned",
+      ]
+      before = unowned.map do |directory|
+        Dir.mkdir directory
+        File.write directory / "meta.json", "preserve this metadata"
+        File.write directory / "notes.txt", "preserve this note"
+        contents directory
+      end
+
+      expect(outbox.parcels.map(&.seq)).to eq([1])
+      unowned.each_with_index do |directory, index|
+        expect(contents(directory)).to eq(before[index])
+      end
+    end
+
+    it "ignores malformed manifests without interrupting outbox scans or flushes" do
+      where = root
+      log = where / "run.jsonl"
+      File.write log, "{}\n"
+      manifests = [
+        "not json",
+        "1",
+        "{}",
+        %(["meta.json", 3]),
+        %(["meta.json", "replay.jsonl.gz", "../unrelated"]),
+      ]
+
+      manifests.each_with_index do |contents, index|
+        log_id = index.to_s(16).rjust(32, '0')
+        meta = Submit::Meta.new "0.0.1", "test-x", "left", 4, 7_u64,
+          "x", log_id
+        outbox = Submit::Outbox.new where / "outbox-#{index}"
+        parcel = outbox.pack meta, 1, log, nil
+        File.delete parcel.directory / "replay.jsonl.gz"
+
+        token = (index + 1).to_s(16).rjust(24, '0')
+        backup = outbox.directory / ".#{parcel.directory.basename}.parcel-backup-#{token}-owned"
+        Dir.mkdir backup
+        File.write backup / ".parcel-owner", token
+        File.write backup / ".complete", contents
+
+        expect(outbox.parcels).to be_empty
+        carrier = RecordingParcelCarrier.new
+        outbox.flush carrier, IO::Memory.new
+        expect(carrier.sent).to eq(0)
+      end
     end
 
     it "removes local paths from copies without changing a resumed run" do

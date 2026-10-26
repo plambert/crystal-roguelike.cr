@@ -32,6 +32,13 @@ module Roguelike
       }
 
       alias GzipError = Compress::Gzip::Error | Compress::Deflate::Error
+      LOCK  = ".parcel-transaction.lock"
+      STATE = ".parcel-state.json"
+      OWNER = ".parcel-owner"
+
+      record State, version : Int32, save : Bool, token : String do
+        include JSON::Serializable
+      end
 
       # One file in the parcel.
       record Piece, kind : String, path : Path, size : Int64
@@ -48,8 +55,10 @@ module Roguelike
       # Whether a save was part of the packaged contents.
       getter? has_save : Bool
 
+      getter state_token : String?
+
       def initialize(@directory : Path, @meta : Meta, @seq : Int32,
-                     @has_save : Bool)
+                     @has_save : Bool, @state_token : String?)
       end
 
       # File renames are isolated so publication failures can be exercised
@@ -66,10 +75,18 @@ module Roguelike
       def self.pack(directory : Path, meta : Meta, seq : Int32, log : Path,
                     save : Path?, events : Path? = nil,
                     filesystem : Filesystem = Filesystem.new) : Parcel
+        locked directory do
+          pack_locked directory, meta, seq, log, save, events, filesystem
+        end
+      end
+
+      private def self.pack_locked(directory : Path, meta : Meta, seq : Int32,
+                                   log : Path, save : Path?, events : Path?,
+                                   filesystem : Filesystem) : Parcel
         Dir.mkdir_p directory.parent
 
         existing = if File.exists? directory
-                     open(directory) || raise IO::Error.new("#{directory} is not a complete parcel")
+                     open_locked(directory) || raise IO::Error.new("#{directory} is not a complete parcel")
                    end
 
         staging = temporary_directory directory.parent, directory.basename, "stage"
@@ -85,7 +102,9 @@ module Roguelike
           end
           File.copy events_source, staging / NAMES[EVENTS] if events_source
           File.write staging / NAMES[META], actual_meta.to_json
-          validate_contents! staging, actual_meta
+          state = State.new 1, !save_source.nil?, Random::Secure.hex(12)
+          File.write staging / STATE, state.to_json
+          validate_contents! staging, actual_meta, state
 
           if existing
             repack directory, staging, filesystem
@@ -93,7 +112,7 @@ module Roguelike
             filesystem.rename staging, directory
           end
 
-          new directory, actual_meta, seq, !save_source.nil?
+          new directory, actual_meta, seq, state.save, state.token
         ensure
           cleanup_staging staging
         end
@@ -109,12 +128,27 @@ module Roguelike
         seq = name[(dash + 1)..].to_i?
         return unless seq
 
-        recover directory
-        meta = Meta.from_json File.read(directory / NAMES[META])
-        validate_contents! directory, meta
-        new directory, meta, seq, File.file?(directory / NAMES[SAVE])
+        locked(directory, false) { open_locked directory, seq }
       rescue File::Error | IO::Error | JSON::Error
         nil
+      end
+
+      private def self.open_locked(directory : Path, seq : Int32? = nil) : Parcel?
+        actual_seq = seq || begin
+          name = directory.basename
+          dash = name.rindex '-'
+          return unless dash
+
+          name[(dash + 1)..].to_i?
+        end
+        return unless actual_seq
+
+        recover directory
+        meta = Meta.from_json File.read(directory / NAMES[META])
+        state = self.state directory
+        has_save = state ? state.save : File.file?(directory / NAMES[SAVE])
+        validate_contents! directory, meta, state
+        new directory, meta, actual_seq, has_save, state.try(&.token)
       end
 
       # What the directory for *meta* at *seq* is called.
@@ -126,24 +160,13 @@ module Roguelike
       # order and the meta goes last, so a listing that has the meta has the
       # rest.
       def pieces : Array(Piece)
-        present = [] of String
-        NAMES.each do |kind, name|
-          path = @directory / name
-          next unless File.exists? path
-          raise IO::Error.new("#{path} is not a file") unless File.file? path
+        Parcel.locked(@directory, false) { pieces_locked }
+      end
 
-          present << kind
-        end
-
-        unless present.includes?(REPLAY) && present.includes?(META) &&
-               present.includes?(EVENTS) == @meta.events? &&
-               present.includes?(SAVE) == has_save?
-          raise IO::Error.new("#{@directory} is not a complete parcel")
-        end
-        unless File.size(@directory / NAMES[REPLAY]) > 0 &&
-               File.size(@directory / NAMES[META]) > 0
-          raise IO::Error.new("#{@directory} is missing its replay or metadata")
-        end
+      private def pieces_locked : Array(Piece)
+        validate_open_state!
+        present = present_kinds
+        validate_piece_set! present
 
         [REPLAY, SAVE, EVENTS, META].compact_map do |kind|
           path = @directory / NAMES[kind]
@@ -153,16 +176,75 @@ module Roguelike
         end
       end
 
+      private def validate_open_state! : Nil
+        state = Parcel.state @directory
+        return if !state_token && !state
+        return if state.try(&.token) == state_token && state.try(&.save) == has_save?
+
+        raise IO::Error.new("#{@directory} changed after it was opened")
+      end
+
+      private def present_kinds : Array(String)
+        NAMES.compact_map do |kind, name|
+          path = @directory / name
+          next unless File.exists? path
+          raise IO::Error.new("#{path} is not a file") unless File.file? path
+
+          kind
+        end
+      end
+
+      private def validate_piece_set!(present : Array(String)) : Nil
+        unless present.includes?(REPLAY) && present.includes?(META) &&
+               present.includes?(EVENTS) == @meta.events? &&
+               present.includes?(SAVE) == has_save?
+          raise IO::Error.new("#{@directory} is not a complete parcel")
+        end
+        return if File.size(@directory / NAMES[REPLAY]) > 0 &&
+                  File.size(@directory / NAMES[META]) > 0
+
+        raise IO::Error.new("#{@directory} is missing its replay or metadata")
+      end
+
       # Takes the parcel out of the outbox.
       def remove : Nil
-        Parcel.retire_backups @directory
-        pieces.each { |piece| File.delete piece.path }
-        Dir.delete @directory if Dir.children(@directory).empty?
+        Parcel.locked @directory do
+          Parcel.retire_backups @directory
+          pieces_locked.each { |piece| File.delete piece.path }
+          File.delete @directory / STATE if File.file? @directory / STATE
+          Dir.delete @directory if Dir.children(@directory).empty?
+        end
       end
 
       # Retires backups left after a completed repack.
       def self.retire_backups(directory : Path) : Nil
         backups(directory).each { |backup| retire_backup backup, directory }
+      end
+
+      # Reads and validates the durable parcel state, or `nil` for legacy
+      # parcels that predate it.
+      def self.state(directory : Path) : State?
+        path = directory / STATE
+        return unless File.exists? path
+        raise IO::Error.new("#{path} is not a file") unless File.file? path
+
+        value = JSON.parse File.read(path)
+        hash = value.as_h?
+        version = hash.try(&.[]?("version")).try(&.as_i?)
+        save = hash.try(&.[]?("save")).try(&.as_bool?)
+        token = hash.try(&.[]?("token")).try(&.as_s?)
+        version_value = version || raise IO::Error.new("#{path} is invalid")
+        save_value = case save
+                     in Bool then save
+                     in Nil  then raise IO::Error.new("#{path} is invalid")
+                     end
+        token_value = token || raise IO::Error.new("#{path} is invalid")
+        unless version_value == 1 && token_value.matches?(/\A[0-9a-f]{24}\z/)
+          raise IO::Error.new("#{path} is invalid")
+        end
+        State.new version_value, save_value, token_value
+      rescue JSON::Error
+        raise IO::Error.new("#{path} is invalid")
       end
 
       private def self.sources(meta : Meta, save : Path?, events : Path?,
@@ -197,25 +279,23 @@ module Roguelike
 
       private def self.repack(directory : Path, staging : Path,
                               filesystem : Filesystem) : Nil
-        backup = temporary_directory directory.parent, directory.basename, "backup"
+        backup = owned_backup_directory directory.parent, directory.basename
         begin
-          [META, REPLAY, SAVE, EVENTS].each do |kind|
-            name = NAMES[kind]
+          transaction_names.each do |name|
             source = directory / name
             filesystem.rename source, backup / name if File.file? source
           end
 
-          old_names = [META, REPLAY, SAVE, EVENTS].compact_map do |kind|
-            name = NAMES[kind]
+          old_names = transaction_names.compact_map do |name|
             name if File.file?(backup / name)
           end
           write_manifest backup, old_names, filesystem
 
-          [REPLAY, SAVE, EVENTS, META].each do |kind|
-            source = staging / NAMES[kind]
+          [NAMES[REPLAY], NAMES[SAVE], NAMES[EVENTS], STATE, NAMES[META]].each do |name|
+            source = staging / name
             next unless File.file? source
 
-            filesystem.rename source, directory / NAMES[kind]
+            filesystem.rename source, directory / name
           end
         rescue error : Exception
           begin
@@ -253,8 +333,7 @@ module Roguelike
 
       private def self.restore_partial_backup(directory : Path, backup : Path,
                                               filesystem : Filesystem) : Nil
-        [REPLAY, SAVE, EVENTS, META].each do |kind|
-          name = NAMES[kind]
+        [NAMES[REPLAY], NAMES[SAVE], NAMES[EVENTS], STATE, NAMES[META]].each do |name|
           source = backup / name
           target = directory / name
           next unless File.file? source
@@ -269,8 +348,7 @@ module Roguelike
                                                 filesystem : Filesystem) : Nil
         manifest = backup / ".complete"
         names = manifest_names manifest
-        [REPLAY, SAVE, EVENTS].each do |kind|
-          name = NAMES[kind]
+        [NAMES[REPLAY], NAMES[SAVE], NAMES[EVENTS], STATE].each do |name|
           restore_committed_piece directory, backup, name, names.includes?(name), filesystem
         end
 
@@ -278,16 +356,22 @@ module Roguelike
         restore_committed_piece directory, backup, meta_name, true, filesystem
 
         meta = Meta.from_json File.read(directory / meta_name)
-        validate_contents! directory, meta
+        validate_contents! directory, meta, state(directory)
       end
 
       private def self.manifest_names(manifest : Path) : Array(String)
-        names = JSON.parse(File.read(manifest)).as_a.map(&.as_s)
+        value = JSON.parse File.read(manifest)
+        elements = value.as_a? || raise IO::Error.new("#{manifest} is invalid")
+
+        names = elements.compact_map(&.as_s?)
+        raise IO::Error.new("#{manifest} is invalid") unless names.size == elements.size
         unless names.includes?(NAMES[META]) && names.includes?(NAMES[REPLAY]) &&
-               names.all? { |name| NAMES.values.includes? name }
+               names.uniq == names && names.all? { |name| transaction_names.includes? name }
           raise IO::Error.new("#{manifest} is invalid")
         end
         names
+      rescue JSON::Error
+        raise IO::Error.new("#{manifest} is invalid")
       end
 
       private def self.restore_committed_piece(directory : Path, backup : Path,
@@ -337,30 +421,52 @@ module Roguelike
 
       private def self.complete?(directory : Path) : Bool
         meta = Meta.from_json File.read(directory / NAMES[META])
-        validate_contents! directory, meta
+        validate_contents! directory, meta, state(directory)
         true
       rescue File::Error | IO::Error | JSON::Error
         false
       end
 
-      private def self.validate_contents!(directory : Path, meta : Meta) : Nil
+      private def self.validate_contents!(directory : Path, meta : Meta,
+                                          state : State?) : Nil
         replay = directory / NAMES[REPLAY]
         metadata = directory / NAMES[META]
         events = directory / NAMES[EVENTS]
         save = directory / NAMES[SAVE]
 
-        unless File.file?(replay) && File.size(replay) > 0 &&
-               File.file?(metadata) && File.size(metadata) > 0
-          raise IO::Error.new("#{directory} is missing its replay or metadata")
-        end
-        events_exists = File.exists? events
-        if events_exists != meta.events? || (events_exists && !File.file?(events))
-          raise IO::Error.new("#{directory} events metadata does not match its files")
-        end
+        validate_required_files! directory, replay, metadata
+        validate_events! directory, events, meta.events?
+        validate_save_state! directory, save, state
 
         validate_gzip replay
         validate_gzip events if meta.events?
         validate_save save if File.exists? save
+      end
+
+      private def self.validate_required_files!(directory : Path, replay : Path,
+                                                metadata : Path) : Nil
+        return if File.file?(replay) && File.size(replay) > 0 &&
+                  File.file?(metadata) && File.size(metadata) > 0
+
+        raise IO::Error.new("#{directory} is missing its replay or metadata")
+      end
+
+      private def self.validate_events!(directory : Path, events : Path,
+                                        required : Bool) : Nil
+        exists = File.exists? events
+        return if exists == required && (!exists || File.file?(events))
+
+        raise IO::Error.new("#{directory} events metadata does not match its files")
+      end
+
+      private def self.validate_save_state!(directory : Path, save : Path,
+                                            state : State?) : Nil
+        return unless state
+
+        exists = File.exists? save
+        return if state.save == exists && (!exists || File.file?(save))
+
+        raise IO::Error.new("#{directory} save state does not match its files")
       end
 
       private def self.validate_gzip(path : Path) : Nil
@@ -388,10 +494,54 @@ module Roguelike
         return [] of Path unless Dir.exists? directory.parent
 
         prefix = ".#{directory.basename}.parcel-backup-"
+        suffix = "-owned"
         Dir.children(directory.parent).sort.compact_map do |name|
           path = directory.parent / name
-          path if name.starts_with?(prefix) && Dir.exists?(path)
+          token = if name.starts_with?(prefix) && name.ends_with?(suffix) &&
+                     name.size == prefix.size + 24 + suffix.size
+                    name[prefix.size, 24]?
+                  end
+          next unless token.try(&.matches?(/\A[0-9a-f]{24}\z/)) && Dir.exists?(path)
+          next unless File.file?(path / OWNER) && File.read(path / OWNER) == token
+
+          path
         end
+      end
+
+      private def self.transaction_names : Array(String)
+        NAMES.values + [STATE]
+      end
+
+      private def self.lock_path(directory : Path) : Path
+        directory.parent / ".#{directory.basename}#{LOCK}"
+      end
+
+      # Runs *block* while the parcel transaction lock is held.
+      def self.locked(directory : Path, blocking : Bool = true, &)
+        Dir.mkdir_p directory.parent
+        File.open(lock_path(directory), "a+") do |lock|
+          lock.flock_exclusive(blocking) { yield }
+        end
+      end
+
+      private def self.owned_backup_directory(parent : Path, basename : String) : Path
+        10.times do
+          token = Random::Secure.hex(12)
+          path = parent / ".#{basename}.parcel-backup-#{token}-owned"
+          begin
+            Dir.mkdir path
+            begin
+              File.write path / OWNER, token
+              return path
+            rescue error : Exception
+              Dir.delete path if Dir.exists?(path)
+              raise error
+            end
+          rescue error : File::Error
+            raise error unless File.exists? path
+          end
+        end
+        raise IO::Error.new("could not make a private parcel backup under #{parent}")
       end
 
       private def self.temporary_directory(parent : Path, basename : String,
@@ -409,7 +559,7 @@ module Roguelike
       end
 
       private def self.cleanup_staging(staging : Path) : Nil
-        NAMES.each_value do |name|
+        (NAMES.values + [STATE]).each do |name|
           path = staging / name
           File.delete path if File.file? path
         end
@@ -418,7 +568,7 @@ module Roguelike
       end
 
       private def self.cleanup_backup(backup : Path) : Nil
-        (NAMES.values + [".complete", ".complete.tmp"]).each do |name|
+        (transaction_names + [OWNER, ".complete", ".complete.tmp"]).each do |name|
           path = backup / name
           File.delete path if File.file? path
         end
@@ -427,7 +577,7 @@ module Roguelike
       end
 
       private def self.retire_backup(backup : Path, directory : Path) : Nil
-        internal = NAMES.values + [".complete", ".complete.tmp"]
+        internal = transaction_names + [OWNER, ".complete", ".complete.tmp"]
         unknown = Dir.children(backup).reject { |name| internal.includes? name }
         if unknown.empty?
           cleanup_backup backup
