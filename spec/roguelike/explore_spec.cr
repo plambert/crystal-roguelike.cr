@@ -9,6 +9,7 @@ Spectator.describe "exploring and travelling" do
   alias Game = Roguelike::Game
   alias Halt = Roguelike::Halt
   alias Item = Roguelike::Item
+  alias Knowledge = Roguelike::Knowledge
   alias Monster = Roguelike::Monster
   alias Species = Roguelike::Species
   alias Verifier = Roguelike::Replay::Verifier
@@ -210,6 +211,18 @@ Spectator.describe "exploring and travelling" do
         game.player.knowledge.see ground, column, row unless hidden.call({column, row})
       end
     end
+  end
+
+  # Every square of *floor* written into knowledge except *hidden*.
+  def remember_all_but(floor : Floor, hidden : Array({Int32, Int32})) : Knowledge
+    knowledge = Knowledge.new floor.id
+    floor.rows.times do |row|
+      floor.columns.times do |column|
+        knowledge.see floor, column, row unless hidden.includes?({column, row})
+      end
+    end
+
+    knowledge
   end
 
   # The square explore on *game* heads for.
@@ -468,6 +481,99 @@ Spectator.describe "exploring and travelling" do
       game.look
 
       expect(game.legal.map &.class).not_to contain Action::Explore
+    end
+
+    it "is not offered for a disconnected frontier" do
+      lines = ["#########", "#...#...#", "#########"]
+      game = played lines, at: {2, 1}
+      knowing_but(game) { |spot| spot == {7, 1} }
+
+      expect(heading game).to be_nil
+      expect(game.legal.map &.class).not_to contain Action::Explore
+    end
+
+    it "checks whether frontiers are reachable with and without light" do
+      lines = ["#########", "#.......#", "#########"]
+      floor = Floor.parse "here", lines
+      knowledge = remember_all_but floor, [{4, 1}]
+      lit = ->(_spot : {Int32, Int32}) { true }
+
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_true
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows, shows: lit).to be_true
+
+      lines = ["#########", "#...#...#", "#########"]
+      floor = Floor.parse "here", lines
+      knowledge = remember_all_but floor, [{7, 1}]
+
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_false
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows, shows: lit).to be_false
+    end
+
+    it "crosses openable doors and rejects a frontier beyond a known barred door" do
+      floor = Floor.parse "here", ["#########", "#..+....#", "#########"]
+      knowledge = remember_all_but floor, [{7, 1}]
+      grid = knowledge.grid
+
+      expect(grid.joined?({2, 1}, {6, 1})).to be_true
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_true
+      expect(Explore.route(knowledge, {2, 1}, floor.columns, floor.rows)).to contain({3, 1})
+
+      knowledge.bar 3, 1
+
+      expect(grid.joined?({2, 1}, {6, 1})).to be_false
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_false
+      expect(Explore.route knowledge, {2, 1}, floor.columns, floor.rows).to be_empty
+    end
+
+    it "does not count the character's square as an explore goal" do
+      floor = Floor.parse "here", ["#######", "#.....#", "#######"]
+      knowledge = Knowledge.new floor.id
+      knowledge.see floor, 2, 1
+      lit = ->(_spot : {Int32, Int32}) { true }
+
+      expect(Explore.route knowledge, {2, 1}, floor.columns, floor.rows).to be_empty
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_false
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows, shows: lit).to be_false
+    end
+
+    it "keeps reachable gold and automatic ammunition ahead of unreachable frontiers" do
+      floor = Floor.parse "here", ["#########", "#...#...#", "#########"]
+      floor.drop 3, 1, Item.new(Roguelike::ItemKind::Gold, count: 5)
+      knowledge = remember_all_but floor, [{7, 1}]
+
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_true
+
+      floor = Floor.parse "here", ["#########", "#...#...#", "#########"]
+      floor.drop 3, 1, Item.new(Roguelike::ItemKind::Arrow)
+      knowledge = remember_all_but floor, [{7, 1}]
+      arrows = ->(item : Item) { item.kind.arrow? }
+
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows, takes: arrows).to be_true
+    end
+
+    it "keeps reachable unread items ahead of unreachable frontiers" do
+      floor = Floor.parse "here", ["#########", "#...#...#", "#########"]
+      floor.drop 3, 1, Item.new(Roguelike::ItemKind::HealingPotion)
+      knowledge = remember_all_but floor, [{3, 1}, {7, 1}]
+      knowledge.see floor, 3, 1, regard: Roguelike::Regard::Kind
+
+      expect(Explore.unread(knowledge)).to eq [{3, 1}]
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_true
+    end
+
+    it "does not count gold or unread items underfoot as explore goals" do
+      floor = Floor.parse "here", ["#########", "#...#...#", "#########"]
+      floor.drop 2, 1, Item.new(Roguelike::ItemKind::Gold, count: 5)
+      knowledge = remember_all_but floor, [{7, 1}]
+
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_false
+
+      floor = Floor.parse "here", ["#########", "#...#...#", "#########"]
+      floor.drop 2, 1, Item.new(Roguelike::ItemKind::HealingPotion)
+      knowledge = remember_all_but floor, [{2, 1}, {7, 1}]
+      knowledge.see floor, 2, 1, regard: Roguelike::Regard::Kind
+
+      expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_false
     end
 
     # With no light the character sees only the square underfoot, so the

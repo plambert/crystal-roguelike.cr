@@ -140,10 +140,8 @@ module Roguelike
                     shows : Proc({Int32, Int32}, Bool)? = nil) : Bool
       found = knowledge.chambers columns, rows
       if found.frontier?
-        return true unless shows
-
         goal = edge knowledge, found, columns, rows, shows
-        return true if found.frontier.any?(&goal)
+        return true if reaches_any? knowledge, from, found.frontier.select(&goal)
       end
 
       reaches_any? knowledge, from, Explore.wanted(knowledge, takes) + Explore.unread(knowledge)
