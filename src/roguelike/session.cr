@@ -37,7 +37,7 @@ module Roguelike
     # `SizeDetector` is termbuf's internal tier. The stable API cannot answer
     # how big a terminal is without opening it. The other way to find out is
     # to enter the alternate screen and leave it again.
-    def self.open(seed : UInt64?, flicker : Bool = true,
+    def self.open(seed : UInt64?, flicker : Bool? = nil,
                   generate : Bool = true, console : Bool = false,
                   store : Save::Store? = nil, character : String? = nil,
                   news : Array(WhatsNew::Section) = [] of WhatsNew::Section,
@@ -62,19 +62,17 @@ module Roguelike
         refused = Ui::Screen.too_few_colors terminal.capabilities
         next if refused
 
-        # Every frame is drawn in the theme, so it is read before the first.
-        Ui::Theme.current = Ui::Theme.read(Path[Save.state_home] / "roguelike")
-        Ui::Palette.rebuild
+        options = display_preferences
 
         # A signal stops the process without running `at_exit`, so the
         # replay log's footer is written here or not at all.
         terminal.signals.before_exit { Replay::Log.signalled }
 
         loop do
-          played = new terminal, Rng.for(seed), flicker, generate, console,
+          playing_flicker = resolve_flicker(options, flicker)
+          played = new terminal, Rng.for(seed), playing_flicker, generate, console,
             store, character, previous, news: news, size_cap: size_cap,
-            tester_root: tester_root
-          Options.current.try &.apply(played)
+            tester_root: tester_root, mouse: options.mouse?
           ran = played
           played.run
 
@@ -104,7 +102,7 @@ module Roguelike
     #
     # There is no loop around it. A recorded run plays once, and somebody who
     # wants it again runs the command again.
-    def self.view(viewer : Replay::Viewer, flicker : Bool = true) : Session?
+    def self.view(viewer : Replay::Viewer, flicker : Bool? = nil) : Session?
       size = TermBuf::SizeDetector.detect
 
       unless Ui::Screen.fits? size.columns, size.rows
@@ -119,8 +117,10 @@ module Roguelike
         refused = Ui::Screen.too_few_colors terminal.capabilities
         next if refused
 
-        played = new terminal, Rng.for(viewer.game.world.seed), flicker,
-          viewer: viewer
+        options = display_preferences
+        playing_flicker = resolve_flicker(options, flicker)
+        played = new terminal, Rng.for(viewer.game.world.seed), playing_flicker,
+          viewer: viewer, mouse: options.mouse?
         ran = played
         played.run
       end
@@ -131,6 +131,22 @@ module Roguelike
       end
 
       ran
+    end
+
+    # Resolves flicker for each session, or honors an explicit caller value.
+    def self.resolve_flicker(options : Options, override : Bool? = nil) : Bool
+      override.nil? ? options.flicker? : override
+    end
+
+    # Loads display preferences after terminal capabilities are known and
+    # before the first frame is drawn.
+    def self.display_preferences(root : Path = Submit.root) : Options
+      options = Options.current || Options.arrange_display(root)
+      Options.current = options
+      options.apply
+      Ui::Theme.current = Ui::Theme.read root
+      Ui::Palette.rebuild
+      options
     end
 
     # The run a session begins on.
@@ -188,7 +204,8 @@ module Roguelike
                    viewer : Replay::Viewer? = nil,
                    news : Array(WhatsNew::Section) = [] of WhatsNew::Section,
                    @size_cap : SizeCap = SizeCap.new,
-                   tester_root : Path? = nil)
+                   tester_root : Path? = nil,
+                   mouse : Bool = true)
       bounds = drawn_in @terminal.size
 
       @play = Ui::Play.new Session.starting(viewer, @rng, generate), console
@@ -228,7 +245,7 @@ module Roguelike
       @play.console.try &.console.size_cap = @size_cap
       Ui::Keys.install(@app, @help, @play, -> { self.mousing = !mousing?; nil }) { @play.confirm_quit }
 
-      self.mousing = true
+      self.mousing = mouse
       @play.on_options = ->(options : Options) { options.apply self; nil }
 
       # The window reports when it gains and loses the focus. `Terminal#close`

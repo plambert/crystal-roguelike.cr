@@ -145,8 +145,7 @@ module Roguelike
       Replay::Log.generate = generate
       Events::Writer.enabled = events
 
-      options.apply
-      session = Session.open seed, flicker: options.flicker?, generate: generate,
+      session = Session.open seed, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
         character: character, news: news,
         size_cap: SizeCap.new(max_columns, max_rows), tester_root: tester_root
@@ -370,13 +369,27 @@ module Roguelike
         found = opened file
         return exit 1 unless found
 
-        Ui::Motion.on = motion
+        display_options
 
         begin
-          exit 1 unless Session.view found, flicker: flicker
+          exit 1 unless Session.view found
         ensure
           found.close
         end
+      end
+
+      # The display preferences for this command, with only typed flags over
+      # the file. Replay viewing does not arrange game or upload preferences.
+      def display_options(root : Path = Submit.root) : Options
+        found = Options.arrange_display root,
+          motion: typed(:motion, motion), flicker: typed(:flicker, flicker)
+        Options.current = found
+        found
+      end
+
+      # *value* when the flag *name* was typed, and `nil` when it was not.
+      private def typed(name : Symbol, value : Bool) : Bool?
+        value if flag_given? name
       end
 
       # The file at *path*, ready to play. `nil` when it does not read.

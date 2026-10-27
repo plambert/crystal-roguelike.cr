@@ -73,6 +73,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Replay exports and event backfills reject a final state, turn or ending that differs from the log.
 * Incomplete replay or required-save uploads stay out of the send queue, and a failed final-save
   update leaves the earlier parcel intact.
+* Replay viewing now uses your saved theme and display preferences.
 
 ## [0.6.0] - 2026-10-18
 
