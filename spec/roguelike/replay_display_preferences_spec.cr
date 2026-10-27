@@ -41,6 +41,7 @@ Spectator.describe "replay display preferences" do
     expect(Theme.current.granite).to eq TermBuf::Color.rgb(0x01, 0x02, 0x03)
     expect(Palette.table.theme.granite).to eq TermBuf::Color.rgb(0x01, 0x02, 0x03)
     expect(options.flicker?).to be_false
+    expect(Session.resolve_flicker(options)).to be_false
     expect(options.mouse?).to be_false
     expect(options.bar_color).to eq Options::BarColor::Bands
 
@@ -82,6 +83,22 @@ Spectator.describe "replay display preferences" do
     expect(options.overridden?("motion")).to be_true
     expect(options.overridden?("flicker")).to be_true
     expect(Roguelike::Ui::Motion.on?).to be_false
+    expect(File.read(Options.path(root))).to eq contents
+  end
+
+  it "uses the current flicker preference on each start unless overridden" do
+    contents = %({"flicker":false})
+    File.write Options.path(root), contents
+    options = Options.arrange(root, flicker: true)
+    Options.current = options
+
+    expect(Session.resolve_flicker(options)).to be_true
+
+    options.flicker = false
+    expect(Session.resolve_flicker(options)).to be_false
+    expect(Session.resolve_flicker(options, true)).to be_true
+    expect(Session.resolve_flicker(options, false)).to be_false
+    expect(options.overridden?("flicker")).to be_true
     expect(File.read(Options.path(root))).to eq contents
   end
 

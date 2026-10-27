@@ -69,12 +69,10 @@ module Roguelike
         terminal.signals.before_exit { Replay::Log.signalled }
 
         loop do
-          playing_flicker = flicker.nil? ? options.flicker? : flicker
+          playing_flicker = resolve_flicker(options, flicker)
           played = new terminal, Rng.for(seed), playing_flicker, generate, console,
             store, character, previous, news: news, size_cap: size_cap,
             tester_root: tester_root, mouse: options.mouse?
-          options.apply played
-          played.flickering = flicker unless flicker.nil?
           ran = played
           played.run
 
@@ -120,11 +118,9 @@ module Roguelike
         next if refused
 
         options = display_preferences
-        playing_flicker = flicker.nil? ? options.flicker? : flicker
+        playing_flicker = resolve_flicker(options, flicker)
         played = new terminal, Rng.for(viewer.game.world.seed), playing_flicker,
           viewer: viewer, mouse: options.mouse?
-        options.apply played
-        played.flickering = flicker unless flicker.nil?
         ran = played
         played.run
       end
@@ -135,6 +131,11 @@ module Roguelike
       end
 
       ran
+    end
+
+    # Resolves flicker for each session, or honors an explicit caller value.
+    def self.resolve_flicker(options : Options, override : Bool? = nil) : Bool
+      override.nil? ? options.flicker? : override
     end
 
     # Loads display preferences after terminal capabilities are known and

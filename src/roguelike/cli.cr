@@ -145,7 +145,7 @@ module Roguelike
       Replay::Log.generate = generate
       Events::Writer.enabled = events
 
-      session = Session.open seed, flicker: options.flicker?, generate: generate,
+      session = Session.open seed, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
         character: character, news: news,
         size_cap: SizeCap.new(max_columns, max_rows), tester_root: tester_root
