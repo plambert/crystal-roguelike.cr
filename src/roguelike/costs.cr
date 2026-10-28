@@ -40,10 +40,10 @@ module Roguelike
     # A creature's hide counts for the step and adds nothing to a blow.
     PACES = {
       Bulk::None      => {90, 0},
-      Bulk::Light     => {95, 5},
-      Bulk::Medium    => {100, 10},
-      Bulk::Heavy     => {105, 20},
-      Bulk::VeryHeavy => {110, 30},
+      Bulk::Light     => {95, 0},
+      Bulk::Medium    => {100, 0},
+      Bulk::Heavy     => {105, 10},
+      Bulk::VeryHeavy => {110, 20},
     }
 
     # What a shield adds to a melee blow. It does not slow a step.

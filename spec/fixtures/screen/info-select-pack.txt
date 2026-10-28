@@ -6,7 +6,7 @@
  2    0               0 │ #....@......
  St Dx Cn In Sl         │ #..........
  10 10 10 10 10         │ #.[........
- Walk 100%     1.43 dps │ #...|......
+ Walk 100%     1.57 dps │ #...|......
  ▶ Equipment          2 │  ########+
  ▼ Pack                 │
  a✓ ) short swd         ╭───────────────────────╮
@@ -15,7 +15,7 @@
  d✓ ( 3 iron spike      │ damage 1d6            │
  e✓ ! minor heal potion │ swing normal (100)    │
  ▼ Here                 │ thrown 9 squares      │
-   staircase up         │ 1.43 dps against AC 2 │
+   staircase up         │ 1.57 dps against AC 2 │
  ▼ Seen                 │ weight 30             │
    a padded jacket      ╰───────────────────────╯───────────────────────────────
  ▼ Look                 │ You are in a dungeon with a short sword, leather

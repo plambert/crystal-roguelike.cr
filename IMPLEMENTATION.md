@@ -5505,15 +5505,17 @@ accessors.
 | Class | Kinds | Step | Melee blow |
 | --- | --- | --- | --- |
 | None | no body armor | 90 | +0 |
-| Light | padded jacket | 95 | +5 |
-| Medium | leather armor | 100 | +10 |
-| Heavy | chain mail | 105 | +20 |
-| Very heavy | none yet, for plate | 110 | +30 |
+| Light | padded jacket | 95 | +0 |
+| Medium | leather armor | 100 | +0 |
+| Heavy | chain mail | 105 | +10 |
+| Very heavy | none yet, for plate | 110 | +20 |
 
 * A shield adds 10 to a melee blow and nothing to a step.
 * A cap, gloves and boots do not change the class.
-* The blow cost goes on top of the weapon's swing. Chain mail and a shield with a mace cost 155
+* The blow cost goes on top of the weapon's swing. Chain mail and a shield with a mace cost 145
   a blow.
+* Leather armor is the baseline for both costs, so a character in the starting kit steps and
+  swings as before armor had a weight.
 * The table is `Costs::PACES`, one row per class.
 
 ### Creatures
@@ -5547,11 +5549,11 @@ damage and swing a blow rolls with.
 
 * The target is the creature being fought while its bar shows. Otherwise it is
   `Combat::REFERENCE`, armor class 2, a goblin warrior or a goblin in leather.
-* A melee weapon's detail box says "1.43 dps against AC 2", or names the creature.
-* The Scores section has a row with the walking pace and the current rate, `Walk 100%     1.43 dps`.
+* A melee weapon's detail box says "1.57 dps against AC 2", or names the creature.
+* The Scores section has a row with the walking pace and the current rate, `Walk 100%     1.57 dps`.
 * An armor's detail box gives its class and what it does to a step and a blow, as "heavy: steps
-  a twentieth slower (+5%)" and "attacks a fifth slower (+20%)".
-* Putting armor on or taking it off says what changed, as "You walk 15% slower and swing a fifth
+  a twentieth slower (+5%)" and "attacks a tenth slower (+10%)".
+* Putting armor on or taking it off says what changed, as "You walk 15% slower and swing a tenth
   slower now."
 
 ### Measured
@@ -5561,11 +5563,16 @@ loot. Win rate out of a hundred. The first column is the build before armor had 
 
 | Kit | Orc before | Orc after | Orc archer before | Orc archer after |
 | --- | --- | --- | --- | --- |
-| Nothing | 52.0 | 53.9 | 34.4 | 34.0 |
-| Padded jacket | none | 52.4 | none | 38.2 |
-| Leather armor | 63.4 | 56.4 | 45.6 | 40.4 |
-| Chain mail | 75.0 | 65.6 | 59.2 | 46.4 |
-| Chain mail and shield | 85.4 | 74.0 | 73.6 | 62.0 |
+| Nothing | 52.0 | 52.7 | 34.4 | 33.7 |
+| Padded jacket | none | 58.2 | none | 38.3 |
+| Leather armor | 63.4 | 63.7 | 45.6 | 45.6 |
+| Chain mail | 75.0 | 68.1 | 59.2 | 52.1 |
+| Chain mail and shield | 85.4 | 77.8 | 73.6 | 63.0 |
+
+The heavy blow cost was chosen against this table. No value makes leather the better armor
+against an archer while chain mail stays the better one against an orc. The step costs are too
+close for an archer to gain much from a slow walker. At 10 chain mail wins against both, by less
+than it did. At 20 the two tie against both. At 30 leather wins against both.
 
 ### Files
 

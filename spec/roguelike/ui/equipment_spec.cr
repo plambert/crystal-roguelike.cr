@@ -217,8 +217,8 @@ Spectator.describe "wielding, wearing and taking off" do
       run.press row_for(run, "leather armor").to_s
 
       expect(run.log.last(2)).to eq [
-        "You are no longer wearing chain mail. You walk 15% faster and swing a fifth faster now.",
-        "You are now wearing leather armor. You walk a tenth slower and swing a tenth slower now.",
+        "You are no longer wearing chain mail. You walk 15% faster and swing a tenth faster now.",
+        "You are now wearing leather armor. You walk a tenth slower now.",
       ]
       expect(run.game.player.worn.map &.[1].kind).to eq [Kind::LeatherArmor]
       expect(run.turn).to be > turn

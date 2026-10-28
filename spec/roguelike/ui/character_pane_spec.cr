@@ -101,7 +101,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       player.equipment.put Slot::Body, letter
       run.play.refresh
 
-      expect(run.play.character.pacing.text).to eq "Walk95%0.68 dps"
+      expect(run.play.character.pacing.text).to eq "Walk95%0.75 dps"
     end
 
     it "fills the hit point bar from the character" do

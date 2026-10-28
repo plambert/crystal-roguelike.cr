@@ -77,8 +77,8 @@ Spectator.describe "what armor costs in pace" do
       expect(Bulk.values.map &.step).to eq [90, 95, 100, 105, 110]
     end
 
-    it "adds 0, 5, 10, 20 and 30 to a blow by class" do
-      expect(Bulk.values.map &.blow).to eq [0, 5, 10, 20, 30]
+    it "adds 0, 0, 0, 10 and 20 to a blow by class" do
+      expect(Bulk.values.map &.blow).to eq [0, 0, 0, 10, 20]
     end
 
     it "classes the body armor and leaves the rest out" do
@@ -97,8 +97,9 @@ Spectator.describe "what armor costs in pace" do
     it "adds the body armor's blow cost and a shield's" do
       expect(Costs.blow_drag([Item.new(Kind::Cap), Item.new(Kind::Boots)])).to eq 0
       expect(Costs.blow_drag([Item.new(Kind::Shield)])).to eq 10
-      expect(Costs.blow_drag([Item.new(Kind::LeatherArmor)])).to eq 10
-      expect(Costs.blow_drag([Item.new(Kind::ChainMail), Item.new(Kind::Shield)])).to eq 30
+      expect(Costs.blow_drag([Item.new(Kind::LeatherArmor)])).to eq 0
+      expect(Costs.blow_drag([Item.new(Kind::ChainMail)])).to eq 10
+      expect(Costs.blow_drag([Item.new(Kind::ChainMail), Item.new(Kind::Shield)])).to eq 20
     end
 
     it "words a part of a turn" do
@@ -135,10 +136,11 @@ Spectator.describe "what armor costs in pace" do
       expect(hall([Kind::PaddedJacket]).player.stride).to eq 95
     end
 
-    it "swings slower in body armor and with a shield" do
+    it "swings slower in chain mail and with a shield" do
       expect(hall.player.swing).to eq Costs::BARE
+      expect(hall([Kind::LeatherArmor]).player.swing).to eq Costs::BARE
       expect(hall([Kind::Shield]).player.swing).to eq Costs::BARE + 10
-      expect(hall([Kind::ChainMail, Kind::Shield]).player.swing).to eq Costs::BARE + 30
+      expect(hall([Kind::ChainMail, Kind::Shield]).player.swing).to eq Costs::BARE + 20
     end
 
     it "says what chain mail does when it goes on and comes off" do
@@ -147,11 +149,11 @@ Spectator.describe "what armor costs in pace" do
 
       game.wear letter
       expect(game.log.lines.last).to eq "You are now wearing chain mail. " \
-                                        "You walk 15% slower and swing a fifth slower now."
+                                        "You walk 15% slower and swing a tenth slower now."
 
       game.take_off Slot::Body
       expect(game.log.lines.last).to eq "You are no longer wearing chain mail. " \
-                                        "You walk 15% faster and swing a fifth faster now."
+                                        "You walk 15% faster and swing a tenth faster now."
     end
 
     it "says what a shield does to a blow" do
@@ -178,7 +180,7 @@ Spectator.describe "what armor costs in pace" do
 
     it "says what leather armor does to a step and a blow" do
       expect(about Kind::LeatherArmor).to contain "medium: steps at a normal pace"
-      expect(about Kind::LeatherArmor).to contain "attacks a tenth slower (+10%)"
+      expect(about Kind::LeatherArmor).to contain "does not slow your attacks"
     end
 
     it "says how much quicker a padded jacket steps" do
@@ -187,7 +189,7 @@ Spectator.describe "what armor costs in pace" do
 
     it "says how much chain mail slows a step and a blow" do
       expect(about Kind::ChainMail).to contain "heavy: steps a twentieth slower (+5%)"
-      expect(about Kind::ChainMail).to contain "attacks a fifth slower (+20%)"
+      expect(about Kind::ChainMail).to contain "attacks a tenth slower (+10%)"
     end
 
     it "says a shield slows a blow and not a step" do
@@ -221,7 +223,7 @@ Spectator.describe "what armor costs in pace" do
       armored.outfit [Item.new(Kind::ChainMail), Item.new(Kind::Shield)]
 
       expect(armored.stride).to eq 105
-      expect(armored.swing).to eq plain.swing + 30
+      expect(armored.swing).to eq plain.swing + 20
     end
 
     it "walks slower in chain mail" do

@@ -44,22 +44,22 @@ Spectator.describe "what a fighter does in a turn" do
   end
 
   describe "the rate" do
-    it "gives a short sword in leather armor 1.43 against armor class 2" do
+    it "gives a short sword in leather armor 1.58 against armor class 2" do
       player = fighter Kind::ShortSword, [Kind::LeatherArmor]
 
-      expect(player.swing).to eq 110
-      expect(player.per_turn 2).to be_close(0.45 * 3.5 * 100 / 110, 1e-9)
+      expect(player.swing).to eq 100
+      expect(player.per_turn 2).to be_close(0.45 * 3.5, 1e-9)
     end
 
     it "gives an unarmored dagger 1.50" do
       expect(fighter(Kind::Dagger).per_turn 2).to be_close(1.5, 1e-9)
     end
 
-    it "gives a mace in chain mail and a shield 1.31" do
+    it "gives a mace in chain mail and a shield 1.40" do
       player = fighter Kind::Mace, [Kind::ChainMail, Kind::Shield]
 
-      expect(player.swing).to eq 155
-      expect(player.per_turn 2).to be_close(0.45 * 4.5 * 100 / 155, 1e-9)
+      expect(player.swing).to eq 145
+      expect(player.per_turn 2).to be_close(0.45 * 4.5 * 100 / 145, 1e-9)
     end
 
     it "rates a weapon in the pack as if it were in the hand" do

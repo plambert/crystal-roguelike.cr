@@ -12,6 +12,9 @@ module Roguelike::Ui
   # A creature the character makes out only as a shape is a shape here too:
   # its species, its hit points and what it is doing all wait for light on it.
   module Detail
+    # What armor that adds nothing to a blow says about it.
+    UNHURRIED = "does not slow your attacks"
+
     # What is written about a thing too far off to make out more of.
     TOO_FAR = "too far off to make out more"
 
@@ -194,7 +197,7 @@ module Roguelike::Ui
 
       found << (where.try(&.body?) ? walking(kind.bulk) : "does not slow a step")
       blow = Costs.blow_drag [item]
-      found << "attacks #{Costs.share blow} slower (+#{percent blow}%)" if blow > 0
+      found << (blow > 0 ? "attacks #{Costs.share blow} slower (+#{percent blow}%)" : UNHURRIED)
       found
     end
 

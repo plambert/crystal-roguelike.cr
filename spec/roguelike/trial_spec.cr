@@ -20,7 +20,7 @@ Spectator.describe Roguelike::Trial do
   describe ".kit" do
     it "reads damage a blow and per hundred energy" do
       expect(Trial.kit).to eq "starting kit hits for 3.5 a blow, " \
-                              "3.18 per 100 energy (swing 110)"
+                              "3.5 per 100 energy (swing 100)"
     end
   end
 
