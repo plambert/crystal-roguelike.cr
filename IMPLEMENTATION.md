@@ -5495,6 +5495,157 @@ holds `Explore`. `Knowledge` gained `#revision` and `#chambers`. `Action` gained
 `spec/roguelike/chambers_spec.cr`, `spec/roguelike/explore_spec.cr` and
 `spec/roguelike/ui/exploring_spec.cr`.
 
+## Thirteen more creatures
+
+Rats, wolves, bears, boars, giant snakes, skeletons, zombies, imps, gelatinous cubes, two golems
+and werewolves, built from what the game already does. Depths are on the one to ten scale the
+deeper floors will use. On five floors a kind deeper than five is never placed.
+
+### The kinds
+
+| kind | glyph | color | size | hit dice | avg | AC | damage | speed | swing | depths | crowd | faction | xp |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| rat | `r` | `#C8A8A0` | small | 1d4+1 | 4 | 0 | 1d3 | 120 | 100 | 1-3 | 2-4 | beast | 2 |
+| giant rat | `r` | `#F090C8` | small | 2d4+2 | 7 | 1 | 1d4 | 115 | 100 | 2-4 | 2-3 | beast | 4 |
+| wolf | `d` | `#B4C4DC` | medium | 2d6 | 7 | 1 | 1d4 | 120 | 100 | 3-6 | 2-3 | beast | 8 |
+| werewolf | `d` | `#FFC048` | medium | 4d8+4 | 22 | 4 | 2d4 | 125 | 100 | 6-9 | floor | beast | 40 |
+| bear | `B` | `#CC8C5C` | large | 4d8+6 | 24 | 3 | 2d6 | 100 | 120 | 5-8 | alone | beast | 30 |
+| boar | `q` | `#E89090` | large | 3d8 | 14 | 3 | 1d6 | 110 | 100 | 3-6 | 1-2 | beast | 14 |
+| giant snake | `S` | `#40D8A8` | large | 4d6+2 | 16 | 3 | 1d8 | 90 | 100 | 4-7 | alone | beast | 20 |
+| skeleton | `Z` | `#F4E0A8` | medium | 2d6+2 | 9 | 3 | 1d6 | 90 | 100 | 2-5 | floor | undead | 8 |
+| zombie | `Z` | `#9CD8A0` | medium | 3d6+4 | 15 | 1 | 1d8 | 70 | 120 | 2-5 | floor | undead | 9 |
+| imp | `i` | `#FF50A0` | small | 2d4+3 | 8 | 3 | 1d4 | 140 | 100 | 4-7 | alone | demon | 10 |
+| gelatinous cube | `C` | `#E4FF94` | large | 6d8+6 | 33 | 0 | 2d6 | 50 | 100 | 5-8 | alone | jelly | 20 |
+| stone golem | `G` | `#C0B4A0` | large | 8d8 | 36 | 6 | 2d8 | 70 | 120 | 6-9 | alone | construct | 45 |
+| iron golem | `G` | `#78B4FF` | large | 8d10 | 44 | 8 | 2d8 | 65 | 130 | 8-10 | alone | construct | 80 |
+
+* AC is the hide before the dexterity modifier. Damage is before the strength modifier. A bear's
+  strength of 18 adds 4, so it mauls for 2d6+4.
+* "Floor" in the crowd column reads the floor's `Density#crowd`.
+* Spawn weights: rat 20 (10 on floor 1), giant rat 15, wolf 12, bear 8, boar 12, skeleton 12,
+  zombie 12, imp 10, gelatinous cube 8, stone golem 10, iron golem 8, werewolf 8, giant snake 10.
+* Every color reads at 6:1 or better against the map ground `#0C0E12`. The lowest is the imp at
+  6.4. Kinds that share a floor sit apart in hue, and the two kinds of each new species sit far
+  apart.
+* `CREATURES.md` has no sheet for the giant snake. It is built as a large, slow, solitary
+  ambusher with a stealth of 16, the conventional giant snake.
+
+### Species and marks
+
+Each new family is a new `Species`, because a species shares one letter. The default kind is what
+a floor file's letter places.
+
+| species | mark | kinds | default |
+| --- | --- | --- | --- |
+| rat | `r` | rat, giant rat | rat |
+| wolf | `d` | wolf, werewolf | wolf |
+| bear | `B` | bear | bear |
+| boar | `q` | boar | boar |
+| snake | `S` | giant snake | giant snake |
+| undead | `Z` | skeleton, zombie | zombie |
+| imp | `i` | imp | imp |
+| cube | `C` | gelatinous cube | gelatinous cube |
+| golem | `G` | stone golem, iron golem | stone golem |
+
+* A werewolf is a kind of wolf so that the generator fills a werewolf's room with wolves and a
+  deep wolf pack can hold a werewolf. Both kinds are beasts, so the band is one faction whichever
+  is placed first.
+* Skeletons and zombies share a species, so a crypt room holds both.
+* `Size` has three members. Tiny creatures are small and huge ones are large.
+
+### Factions
+
+| | goblin, orc | slime, ant, jelly | beast | undead | demon | construct | character |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| goblin, orc | the other one | yes | yes | yes | yes | no | yes |
+| slime, ant, jelly | yes | yes | yes | yes | yes | no | yes |
+| beast | yes | yes | another band | yes | yes | no | yes |
+| undead | yes | yes | yes | no | yes | no | yes |
+| demon | yes | yes | yes | yes | another band | no | yes |
+| construct | no | no | no | no | no | no | yes |
+
+* `Beast`, `Undead`, `Demon` and `Construct` are appended to `Faction`.
+* Beasts and demons are wild. The sheet has most beasts attack their own kind sometimes and imps
+  always. A band never fights itself, so "sometimes" reads as "another band".
+* The undead hold together as goblins and orcs do.
+* Constructs are aloof, as `Dungeon` is. A golem fights the character and nothing else, and no
+  other band fights it. A guardian that ignores the dungeon's wildlife reads as a guardian.
+* The gelatinous cube joins the jellies' faction.
+
+### Decisions
+
+* **Intelligence none means no paths.** Skeletons, zombies, the cube and both golems walk straight
+  at what they are after, as slimes do.
+* **Who runs.** Rats, wolves and imps run when badly hurt. Werewolves, bears, boars, snakes, the
+  undead, the cube and golems never do.
+* **Who sees in the dark.** Wolves, werewolves, the undead, imps and golems have darkvision. Rats,
+  bears, boars, snakes and the cube do not. Darkness is the strongest lever the character has, so
+  it is given away sparingly.
+* **Who opens doors.** Imps and werewolves. No beast, undead or construct does.
+* **Packs.** Wolves and werewolves `surround`, the ant's flanking walk. Their bands are
+  `Sharing::Called`, which labels a howling pack for when `Sharing` is read. Rats swarm without
+  surrounding.
+* **Gear.** A skeleton carries a weapon half the time and readies it, and picks up better ones.
+  The undead draw armor at 20 and coins at 30. An imp draws coins. A gelatinous cube draws coins
+  at 70 and from `Loot::SWALLOWED` at 50, which is the items floating inside it. A snake has
+  swallowed something one time in ten. Rats, wolves, bears, boars and golems carry nothing.
+* **Persistence.** The undead search for 50 and 60 turns and golems for 100, so a mindless thing
+  that lost the character keeps walking to where it saw them.
+* **Verbs.** Rats, wolves and snakes bite, a bear mauls, a boar gores, the undead and imps claw, a
+  cube burns, a golem pounds.
+* **Streams.** `generator` goes to 6, because the new rows change every floor. The golden replay
+  was recorded again from scratch on its seed. Item ids moved, so the old actions no longer named
+  the same items. The combat, loot and notice fixtures were written again, because each lists
+  every kind.
+
+### The matchup
+
+`Matchup::BANDS` gains two rats, two giant rats and two wolves, the smallest bands of each.
+Rows that were there before rolled the same numbers.
+
+```text
+win rate, out of a hundred
+                       D1      D2      D3      D4      D5
+  rat               100.0   100.0   100.0   100.0   100.0
+  giant rat          93.7    99.9   100.0   100.0   100.0
+  wolf               75.9    94.0    99.0    99.4   100.0
+  werewolf            0.2     2.6     6.2    14.4    59.8
+  bear                4.4    17.1    35.8    55.8    96.9
+  boar               30.5    65.8    85.4    90.9    99.8
+  giant snake        11.4    31.1    55.1    68.8    97.0
+  skeleton           72.6    92.3    97.7    98.9    99.9
+  zombie             65.8    88.9    97.8    99.2   100.0
+  imp                48.4    84.1    94.5    97.6   100.0
+  gelatinous cube    16.0    41.4    72.2    87.3    99.8
+  stone golem         0.2     1.4     5.2    11.2    69.0
+  iron golem          0.0     0.2     0.6     2.8    42.2
+  2 rats             95.0    99.7   100.0   100.0   100.0
+  2 giant rats       41.6    80.6    94.8    97.4   100.0
+  2 wolves           15.2    44.0    68.4    80.4    98.3
+```
+
+Read each row at the kind's first floor. Two giant rats on floor 2 are three ants on floor 2. A
+boar on floor 3 is an orc there, and two wolves on floor 3 are a little harder. A giant snake on
+floor 4 is an orc archer. A bear on floor 5 is lost one time in thirty. The golems and the
+werewolf have no kit of their depth to meet. Against the floor 5 kit they are the hardest rows in
+the table, which is where a creature of floor 6 to 10 belongs until deeper kits exist.
+
+The first tuning pass was harder. Two wolves at 2d6+3 and 1d6 won 12% on floor 3, a boar at 3d8+3
+and 1d8 won 59%, and an iron golem at 10d10 and 3d6 won 16% on floor 5.
+
+`Matchup.cell` "is won more often by a stronger kit" no longer asserts that a stronger kit loses
+fewer hit points. A floor 1 character always dies to a werewolf and loses its twelve. A floor 5
+character wins and loses nineteen. The spec now compares the share of hit points lost.
+
+### Left undone
+
+Every system the sheets ask for and the game lacks is in "Asked for, not yet built" below, with
+the creatures that want it. Beyond those:
+
+* The matchup kits stop at floor 5, so the golems and the werewolf are measured against the wrong
+  kit.
+* The proving ground floor file holds none of the new kinds.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
@@ -5536,3 +5687,116 @@ spikes a door or decides whether a fight is worth having, so what they measure i
 Light, stealth, detection range and shutting doors are the levers that move survival most, which
 pulls the game toward stealth. Whether that is wanted is open, and it should be looked at again once
 creatures have more to do than walk at the character and swing.
+
+### Systems the new creatures want
+
+The creature sheets in `plans/CREATURES.md` ask for these, and the creatures were built without
+them. Each names the creatures that want it.
+
+#### Disease
+
+Giant rats and zombies. A landed bite has a chance to infect. An infected character regenerates
+nothing and loses a point of constitution every few hundred turns until the disease runs its
+course or a potion cures it. You can win a fight against rats and still pay for it later, which
+gives a cure a reason to be carried.
+
+#### Poison
+
+Giant snakes, and the giant spider of the sheet. A landed bite adds poison, which takes a hit
+point every few turns and wears off. A second bite adds to it rather than resetting it. Damage
+keeps coming after the fight ends, so a snake is worth killing from range.
+
+#### Acid and corrosion
+
+Gelatinous cubes, and the green slime of the sheet. A cube's hit lowers the condition of a piece
+of worn armor, and a weapon that strikes a cube can lose condition too. `Item#condition` and the
+scroll of repair already exist, so this is a new way to lose it. You fight a cube with a spare
+weapon, or from range.
+
+#### Engulfing and paralysis
+
+Gelatinous cubes. A landed hit can engulf the character: they share the cube's square, cannot
+move, take its damage each turn and can strike only the cube. The cube is slow enough to walk away
+from, which is the point. It is dangerous only once it reaches you.
+
+#### Damage types and resistances
+
+Skeletons, zombies, both golems and imps. A blow carries a type: cut, pierce, crush, fire or holy.
+Each kind halves or doubles some of them. A skeleton shrugs off blades and breaks under a mace, a
+stone golem takes half from blades, the undead take double from holy, and an imp ignores fire. The
+right weapon starts to matter more than the best one, and a mace is worth carrying.
+
+#### Immunity to ordinary weapons
+
+Werewolves, and the golems for weaker weapons. An unblessed weapon of ordinary metal does a
+quarter of its damage to a werewolf. A blessed or silver weapon does full damage. Blessings exist
+already, so this gives them a second use. The fight is decided by what you carry, not by your
+level.
+
+#### Regeneration
+
+Werewolves and imps. No monster regains hit points today except by a shaman's mend. A
+regenerating kind regains one hit point every few turns, in a fight or out of it. Running away and
+coming back stops working against these, so the fight has to be finished.
+
+#### Lycanthropy
+
+Werewolves. A bite can pass it on. Some hundreds of turns later the character turns into a wolf
+now and then: armor falls off, the weapon drops, no item can be used, and speed and a bite take
+their place. Prayer, holy water or a sprig of wolfsbane cures it. It needs polymorph, a player
+form with its own attacks, and that is most of the cost. It is a slow curse that changes how you
+play for a long stretch.
+
+#### Shapeshifting
+
+Werewolves. A werewolf walks as a person, `@` in its own color, and becomes a wolf when it fights
+or is hurt. A person you meet in the dungeon could be one. This is the creature side of polymorph
+and much cheaper than lycanthropy.
+
+#### Calling for help
+
+Werewolves and wolves. A werewolf howls once a fight, and a few wolves come from off screen toward
+it. `Sharing::Called` already labels wolf bands, and a noise system would carry the howl. Kill the
+werewolf first or face its pack.
+
+#### Spells
+
+Imps, whose sheet says magic. `Game#cast_bolt` is the hook and answers false. An imp would throw a
+small fire bolt from a few squares off and blink a few squares away when hit. Imps would harass
+from range rather than trading blows.
+
+#### Ambush
+
+Giant snakes, gelatinous cubes and the sheet's mimic and lurker. A creature in ambush does not
+move and is not drawn until the character is beside it or passes a perception check. A cube is
+nearly invisible in any light. Careful steps and light start to matter for what you cannot see as
+well as for what can see you.
+
+#### Grabbing and constriction
+
+Giant snakes. A landed bite grabs. A grabbed character cannot step away until a strength check
+frees them, and takes the snake's damage each turn it holds on. A snake is then a fight you
+cannot walk out of.
+
+#### Charging
+
+Boars. A boar that runs at the character in a straight line for three squares or more adds to its
+damage on the first blow and can knock the character back a square. Meeting it round a corner
+takes the charge away.
+
+#### Scent
+
+Rats, wolves and bears. A beast follows the character's trail by smell for some turns, with no
+line of sight. Darkness and stealth then work less well against beasts than against goblins.
+
+#### Guarding
+
+Golems, and anything that stands watch. A guardian keeps to its room. It attacks what enters, and
+when the character leaves it walks back to its post instead of hunting. You can see a golem and
+decide to leave it alone.
+
+#### Infighting within a band
+
+Rats, wolves, bears, boars and imps, whose sheets say they attack their own kind sometimes or
+always. Today a band never fights itself. A band of these could split now and then, or turn on a
+badly hurt member. A hungry pack would then thin itself if you wait it out.
