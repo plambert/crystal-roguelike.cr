@@ -22,17 +22,6 @@ What to pick up without being asked becomes an ordered list of rules, such as "g
 cursed item", or "anything better than what I have". The rules are set on the options screen. They
 are part of the game state and are recorded in the replay.
 
-### A modern control configuration
-
-A second control scheme, called modern, beside the classic one, chosen in the options. Movement is
-on `wasd`, with `q` and `e` for north-west and north-east and `z` and `x` for south-west and
-south-east. One action key, `r`, opens a menu of everything that can be done, such as wield, wear
-and take off, read, drink and throw, each with its own memorable key. `f` guesses the action from
-what is around: it opens or closes the door the character faces and lights or puts out the torch
-beside them, and opens the action menu when more than one thing could be meant. In menus the
-selection moves with `wasd` rather than by single-letter choices. It is a different way to drive
-the same actions, and the help screen shows whichever scheme is in use.
-
 ### A tutorial for new players
 
 A guided first run that introduces moving, fighting, picking things up, the pack, doors, stairs
@@ -232,6 +221,16 @@ is not made twice.
 
 ## Completed
 
+### A modern control configuration
+
+A second control scheme, called modern, sits beside the classic one. The first interactive launch
+offers the choice, and the options screen switches schemes while the game runs. Movement is on
+`WASD`, with `Q`, `E`, `Z` and `X` for the diagonals, and the shifted letters walk in that
+direction. `r` opens the full catalog of actions. `f` opens the actions available right now, and a
+second `f` confirms a target. `g` picks up, `.` waits, `Ctrl+X` explores, and `<` and `>` use the
+stairs or route to them. Menus and forms move their selection with the movement keys. `F2` opens
+the catalog in either scheme. The help screen shows the scheme in use.
+
 ### A color theme
 
 The game reads its colors from `theme.json` in its state directory when that file exists, one
@@ -266,6 +265,7 @@ new kind, in letter order.
 the same refusals as `f` for no ranged weapon, an empty quiver or the wrong ammunition. With no
 monster in sight it says "There is nothing to fire at.", and with monsters in sight but none in a
 clear line it says "There is no clear shot." Neither spends a turn.
+It works in both control schemes.
 
 ### The Seen list is sorted by distance
 
