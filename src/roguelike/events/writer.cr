@@ -157,8 +157,14 @@ module Roguelike
       #
       # A floor arrival, a level up and the end of the run always write the
       # numbers after them.
+      #
+      # An `Event::StatChanged` is written and changes nothing else. It
+      # follows the event that moved the number, and that event is the
+      # cause the next stats line names.
       def note(event : Event) : Nil
         @pending << line_for(event)
+        return if event.is_a?(Event::StatChanged)
+
         @cause = event.kind
 
         forced = event.is_a?(Event::Climbed) || event.is_a?(Event::LevelUp) ||

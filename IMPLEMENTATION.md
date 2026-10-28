@@ -5105,6 +5105,7 @@ gzipped. The file is `<log stem>.events.jsonl.gz`, so `run.jsonl` has `run.event
 | `header` | `format` (1 today), `game_version`, and `log`, the id `Submit.log_id` gives the replay log |
 | An event | `turn`, `floor` (the depth), `kind`, the event's own fields, its facts, and `text` last |
 | `stats` | The character's numbers, after any event that moved one |
+| `stat_changed` | One stat that moved, with its old and new values and the cause |
 | `pause` | `pause` and `turn`, written with each pause in the replay log |
 | `resume` | `pause`, `turn` and `game_version`, when a run is carried on from a save |
 | `footer` | `turn` and `outcome`, when the replay log gets a footer |
@@ -5147,6 +5148,37 @@ The writer checks the numbers after every event and again once the action is wri
 written when they differ from the last line, and always after `climbed`, `level_up` and `over`.
 `cause` is the kind of the event that moved them, the action's `t` when no event did, and `start`
 or `resume` for the line that opens a session.
+
+### Stat changes
+
+A `stat_changed` event is in `Game#events` and in the file. It holds `stat`, `old`, `new` and
+`cause`.
+
+```json
+{"turn":41,"floor":1,"kind":"stat_changed","stat":"hp","old":14,"new":11,"cause":"attack"}
+{"turn":7,"floor":1,"kind":"stat_changed","stat":"ac","old":0,"new":2,"cause":"readied"}
+```
+
+| Stats | Values |
+| --- | --- |
+| `hp`, `hp_max`, `experience`, `level`, `gold` | Integers |
+| `strength`, `dexterity`, `constitution`, `intelligence`, `stealth` | Integers |
+| `ac`, `to_hit`, `speed` | Integers. `speed` is `Pace#speed` |
+| `damage` | Melee dice as a string, such as `1d6+1` |
+| `ranged_to_hit`, `ranged_damage` | An integer and dice, or `null` with no ranged weapon and ammunition it shoots |
+
+* **When.** `Game#perform` reads the stats as it starts, after every event it records, and once
+  the action is done. Each stat that differs from the last reading gets one event, in the order of
+  the table. Nothing outside `#perform` records one.
+* **Cause.** The kind of the event just recorded, since the game records an event right after the
+  change it describes. A blow is `attack`, wearing armor is `readied`, a potion or regeneration is
+  `healed`, and a level up is `level_up` for all of level, `hp_max`, `hp` and `experience`. A kill
+  that gains no level gives `slain` for the experience. A change with no event after it, within
+  the action, takes the action's `t`.
+* **Replays.** The readings come from the game's state, so a replay of the log records the same
+  events. They are left out of the save and of `Game#fingerprint`.
+* **The `stats` line stays.** It holds the whole set at once, and its `cause` is never
+  `stat_changed`.
 
 ### When lines are written
 
