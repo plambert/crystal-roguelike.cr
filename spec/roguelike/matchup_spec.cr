@@ -91,12 +91,17 @@ Spectator.describe Roguelike::Trial::Matchup do
       expect(other).not_to eq once
     end
 
+    # The last kit walks in chain mail, so a kind that shoots gets more shots
+    # off before the fight closes. The first kit dies sooner with fewer hit
+    # points to lose. Against a shooter only the win rate is compared.
     it "is won more often by a stronger kit" do
       Matchup.opponents.each do |kind|
         weak = Matchup.cell first, kind, FIGHTS
         strong = Matchup.cell last, kind, FIGHTS
 
         expect(strong.win_rate).to be >= weak.win_rate
+        next if kind.kind.ranged_weapon
+
         expect(strong.mean_damage).to be <= weak.mean_damage
       end
     end

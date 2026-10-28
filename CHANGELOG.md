@@ -8,6 +8,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* Armor has a weight class. Chain mail is heavy, so walking in it takes a quarter longer and each
+  melee blow a fifth of a turn more. A shield adds a tenth of a turn to each blow. Leather armor
+  and the small pieces do not slow you. Creatures in armor are slowed the same way.
+* An armor's description says its class and how much it slows you, and putting it on or taking
+  it off says what changed.
+* The Scores section shows how fast you walk and swing against a normal pace.
+
 ### Fixed
 
 * `F` fires at the nearest monster in the modern control scheme, as it does in the traditional

@@ -63,6 +63,10 @@ module Roguelike::Ui
     # columns before it.
     GOLD = 5
 
+    # Where the blows go on the pacing row. The walking has the columns
+    # before it.
+    BLOW = 11
+
     # How many pack rows there are. One for every letter the pack has.
     MOST_PACK = Inventory::LETTERS.size
 
@@ -87,6 +91,9 @@ module Roguelike::Ui
     # The five scores, under their names.
     getter score_names : Line
     getter scores : Line
+
+    # How fast the character walks and swings, against a normal pace.
+    getter pacing : Line
 
     # One row per equipment slot, in `Slot.listed` order.
     getter slots : Array(Line)
@@ -116,6 +123,7 @@ module Roguelike::Ui
       @numbers = Line.new
       @score_names = Line.new
       @scores = Line.new
+      @pacing = Line.new
       @slots = Slot.listed.map { Line.new }
       @pack = Array.new(MOST_PACK) { Line.new }
 
@@ -135,7 +143,7 @@ module Roguelike::Ui
       @vitals.add @who, @health, @magic, @learning, @fight
 
       @scoring = InfoPanel.section SCORES
-      @scoring.body.add @number_names, @numbers, @score_names, @scores
+      @scoring.body.add @number_names, @numbers, @score_names, @scores, @pacing
 
       @worn = InfoPanel.section WORN
       @slots.each { |row| @worn.body.add row }
@@ -221,6 +229,7 @@ module Roguelike::Ui
       @numbers.put_right game.turn.to_s, Palette.plain
 
       written_scores player
+      written_pacing player
       written_slots game
       written_pack game
 
@@ -280,6 +289,20 @@ module Roguelike::Ui
       left = game.floor.door_health spot[0], spot[1]
       whole = Floor::WOODEN_DOOR
       @threat.show left, whole, "door #{left}/#{whole}"
+    end
+
+    # How fast the character walks and swings, as a share of a normal pace.
+    #
+    # A haste or a slow is in it, and so is what the armor and the weapon
+    # cost. Chain mail reads "Walk 80%".
+    private def written_pacing(player : Player) : Nil
+      speed = player.pace.speed * 100
+
+      @pacing.clear
+      @pacing.put 0, "Walk", Palette.faint
+      @pacing.put GOLD, "#{speed // player.stride}%", Palette.plain
+      @pacing.put BLOW, "Blow", Palette.faint
+      @pacing.put BLOW + 5, "#{speed // player.swing}%", Palette.plain
     end
 
     # The five scores, with their names over them.

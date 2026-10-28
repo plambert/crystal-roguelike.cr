@@ -5495,6 +5495,58 @@ holds `Explore`. `Knowledge` gained `#revision` and `#chambers`. `Action` gained
 `spec/roguelike/chambers_spec.cr`, `spec/roguelike/explore_spec.cr` and
 `spec/roguelike/ui/exploring_spec.cr`.
 
+## Armor and pace
+
+Armor has a weight class, `Bulk`, and the class sets what a step and a melee blow cost. The cost
+goes on the action rather than on the actor's speed. A character in chain mail walks slower and
+swings slower, but reads, drinks, shoots and waits at the normal pace. `Pace` is unchanged, so a
+haste or a slow still reads the same through its accessors.
+
+| Class | Kinds | Step | Melee blow |
+| --- | --- | --- | --- |
+| Light | cap, gloves, boots, leather armor, shield | 100 | +0 |
+| Medium | none yet | 110 | +0 |
+| Heavy | chain mail | 125 | +20 |
+
+A shield adds 10 to a melee blow whatever its class. The pieces worn add up, so chain mail and a
+shield cost 125 a step and 30 on top of the weapon's swing. The numbers are in `Costs`.
+
+### Decisions
+
+* Leather armor is light. The character starts in it, and a medium leather would make every run
+  walk a tenth slower than every normal creature from the first turn. Medium is there for a
+  heavier body armor that does not exist yet.
+* Only melee blows take the blow cost, and battering a door is one. A shot, a throw and a zap do
+  not.
+* Creatures follow the same rule through `Monster#stride` and `Monster#swing`. An orc in chain
+  mail takes four steps in five ticks.
+* The item's description says the class and how much it slows walking and blows.
+* Putting on a piece that slows you says by how much. Taking it off says you move more freely.
+* The Scores section has a row with walking and blow speed as a share of a normal pace. A haste,
+  the armor and the weapon are all in it.
+
+### Measured
+
+`--matchup`, 2000 fights a cell, seed 5000, a level 3 character with a +1 short sword and depth 3
+loot, before the change and after. Win rate out of a hundred.
+
+| Kit | Orc before | Orc after | Orc archer before | Orc archer after |
+| --- | --- | --- | --- | --- |
+| Nothing worn | 52.0 | 52.1 | 34.4 | 34.5 |
+| Leather armor | 63.4 | 63.8 | 45.6 | 45.8 |
+| Chain mail | 75.0 | 64.0 | 59.2 | 37.7 |
+| Chain mail and shield | 85.4 | 74.2 | 73.6 | 51.8 |
+
+Chain mail now matches leather against an orc and loses to it against an archer, which has longer
+to shoot at a slow walker. With a heavy blow cost of 10 rather than 20, chain mail wins 67.2
+against an orc and 41.2 against an archer.
+
+### Files
+
+`Bulk` is in `src/roguelike/item_kind.cr`, and the costs are in `src/roguelike/costs.cr`.
+`Player` and `Monster` gained `#stride`, and `Player` gained `#swing`. The specs are in
+`spec/roguelike/armor_pace_spec.cr`.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

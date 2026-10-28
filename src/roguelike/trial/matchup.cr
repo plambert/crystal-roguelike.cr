@@ -173,11 +173,12 @@ module Roguelike
       # Plays one fight of *kit* against *opponent*, rolled on *rng*.
       #
       # Time runs the way `Game` runs it. The character swings and pays what
-      # its weapon costs. The world then ticks until the character can act
-      # again, and on each tick the monster takes every action it has banked,
-      # each paying what its weapon or its kind's swing costs. A dagger at 75
-      # swings four times in three ticks, and an orc at speed 95 with a swing
-      # of 120 attacks a little under four times in five.
+      # its weapon and its armor cost. The world then ticks until the
+      # character can act again, and on each tick the monster takes every
+      # action it has banked, each paying what its weapon or its kind's swing
+      # costs, with its armor added. A dagger at 75 swings four times in
+      # three ticks, and an orc at speed 95 with a swing of 120 attacks a
+      # little under four times in five.
       #
       # The monster rolls its hit points from its kind's hit dice, as one the
       # generator places does. Each draws its gear from `Loot` at the kit's
@@ -186,7 +187,8 @@ module Roguelike
       # counting the one the fight ends in.
       #
       # A lone kind that shoots starts `RANGE` squares off. The character
-      # spends a turn on each step while it is more than a square away.
+      # pays what a step costs in its armor for each square while it is more
+      # than a square away.
       #
       # Against a band the character swings at one creature until it dies
       # and then the next. Every creature left swings in turn. They stand in
@@ -203,7 +205,7 @@ module Roguelike
           monster
         end
         start = player.hit_points
-        swing = Costs.swing player.wielded
+        swing = player.swing
         shoots = band.size == 1 && band.first.ranged_weapon
         field = Field.new(shoots ? RANGE : 1, ROOM)
         ticks = 0
@@ -211,7 +213,7 @@ module Roguelike
         while ticks < LIMIT
           if field.distance > 1
             field.distance -= 1
-            player.pace.spend Costs::TURN
+            player.pace.spend player.stride
           else
             target = band.first
             blow = Combat.swing rng, player.to_hit, target.armor_class, player.damage
@@ -278,7 +280,7 @@ module Roguelike
           if field.distance < Pursuit::NEAREST && field.room > 0
             field.distance += 1
             field.room -= 1
-            return Costs::TURN
+            return monster.stride
           end
 
           if field.distance > 1
@@ -293,7 +295,7 @@ module Roguelike
 
         if field.distance > 1
           field.distance -= 1
-          return Costs::TURN
+          return monster.stride
         end
 
         blow = Combat.swing rng, monster.to_hit + flanking, player.armor_class, monster.damage

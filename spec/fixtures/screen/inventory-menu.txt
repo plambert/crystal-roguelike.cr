@@ -6,16 +6,16 @@
 ╭───────────────────╮ │ ⟪ a    a dagger                ⟫ │
 │ a dagger          │ │   b    9 arrows                  │
 │ unknown           │ ╰──────────────────────────────────╯
-│ damage 1d4        │ 0 │
-│ swing quick (75)  │ 2 │
-│ thrown 10 squares │   │
+│ damage 1d4        │   │
+│ swing quick (75)  │ 0 │
+│ thrown 10 squares │ 2 │
 │ weight 10         │   │
 ╰───────────────────╯   │
+ ▼ Seen                 │
    nothing              │
  ▼ Look                 │
  Point at the map, or   │
  press x.               │
-                        │
                         │
                         │───────────────────────────────────────────────────────
                         │ a - a dagger

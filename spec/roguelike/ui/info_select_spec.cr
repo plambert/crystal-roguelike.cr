@@ -160,8 +160,8 @@ Spectator.describe "the info panel selection" do
       expect(where run).to eq({"Scores", 0})
       expect(run.play.info_panel.lit).to be run.play.character.number_names
 
-      run.press "Down", "Down", "Down"
-      expect(where run).to eq({"Scores", 3})
+      run.press "Down", "Down", "Down", "Down"
+      expect(where run).to eq({"Scores", 4})
 
       run.press "Down"
       expect(where run).to eq({"Equipment", nil})

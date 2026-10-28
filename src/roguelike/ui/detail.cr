@@ -159,7 +159,19 @@ module Roguelike::Ui
       found = ["armor #{item.armor}"]
       where = item.kind.slot
       found << "worn on the #{where.to_s.downcase}" if where
+      found << walking(item.kind)
+      blow = item.kind.blow_drag
+      found << "blows take #{Costs.share blow} of a turn more" if blow > 0
       found
+    end
+
+    # How much a piece of armor slows walking, with its class.
+    private def self.walking(kind : ItemKind) : String
+      bulk = kind.bulk
+      step = kind.step_drag
+      return "#{bulk.label}: does not slow your walking" if step.zero?
+
+      "#{bulk.label}: walking takes #{Costs.share step} longer"
     end
 
     # How far something burning throws light, and whether it is alight.

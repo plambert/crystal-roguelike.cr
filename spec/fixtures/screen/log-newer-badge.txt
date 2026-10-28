@@ -6,8 +6,9 @@
  2    0               0 │ #....@......
  St Dx Cn In Sl         │ #..........
  10 10 10 10 10         │ #.)........
- ▶ Equipment          2 │ #...|......
- ▶ Pack               5 │  ########+
+ Walk 100%  Blow 100%   │ #...|......
+ ▶ Equipment          2 │  ########+
+ ▶ Pack               5 │
  ▼ Here                 │
    staircase up         │
  ▼ Seen                 │
@@ -16,8 +17,7 @@
    a scroll XIXAXA      │
  ▼ Look                 │
  Point at the map, or   │
- press x.               │
-                        │───────────────────────────────────────────────────────
+ press x.               │───────────────────────────────────────────────────────
                         │ Something number 5 happened.                         │
                         │ Something number 6 happened.                         │
                         │ Something number 7 happened.                         █

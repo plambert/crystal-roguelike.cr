@@ -6,18 +6,18 @@
  2    0               0 │ #....@......
  St Dx Cn In Sl         │ #..........
  10 10 10 10 10         │ #.)........
- ▶ Equipment          2 │ #...|......
- ▶ Pack               5 │  ########+
- ▼ Here                 │
-   staircase up       ╭──────────────────────────────────╮
- ▼ Seen               │  Really leave the dungeon? [yN]  │
-   29 gold pieces     ╰──────────────────────────────────╯
+ Walk 100%  Blow 100%   │ #...|......
+ ▶ Equipment          2 │  ########+
+ ▶ Pack               5 │
+ ▼ Here               ╭──────────────────────────────────╮
+   staircase up       │  Really leave the dungeon? [yN]  │
+ ▼ Seen               ╰──────────────────────────────────╯
+   29 gold pieces       │
    4 darts              │
    a scroll XIXAXA      │
  ▼ Look                 │
  Point at the map, or   │
- press x.               │
-                        │───────────────────────────────────────────────────────
+ press x.               │───────────────────────────────────────────────────────
                         │ You are in a dungeon with a short sword, leather
                         │ armor and a lit torch.
                         │ You carry three spikes and a potion of minor healing.

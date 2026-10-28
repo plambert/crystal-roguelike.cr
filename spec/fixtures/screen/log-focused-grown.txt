@@ -6,18 +6,18 @@
  2    0               0 │ #....@......
  St Dx Cn In Sl         │ #..........
  10 10 10 10 10         │ #.)........
- ▶ Equipment          2 │ #...|......
- ▶ Pack               5 │  ########+
+ Walk 100%  Blow 100%   │ #...|......
+ ▶ Equipment          2 │  ########+
+ ▶ Pack               5 │
  ▼ Here                 │
    staircase up         │
  ▼ Seen                 │
    29 gold pieces       │
    4 darts              │
    a scroll XIXAXA      │
- ▼ Look                 │
- Point at the map, or   │───────────────────────────────────────────────────────
- press x.               │ Something number 6 happened.                         │
-                        │ Something number 7 happened.                         │
+ ▼ Look                 │───────────────────────────────────────────────────────
+ Point at the map, or   │ Something number 6 happened.                         │
+ press x.               │ Something number 7 happened.                         │
                         │ Something number 8 happened.                         │
                         │ Something number 9 happened.                         │
                         │ Something number 10 happened.                        █

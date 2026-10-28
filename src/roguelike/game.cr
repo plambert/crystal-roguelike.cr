@@ -772,7 +772,7 @@ module Roguelike
 
       @player.move_to wanted
       arrived
-      spend_turn
+      spend @player.stride
       landed calm
       spot_items
       Step::Moved
@@ -1871,7 +1871,7 @@ module Roguelike
       jar
 
       wake creature if creature.alive?
-      spend Costs.swing(@player.wielded)
+      spend @player.swing
       blow
     end
 
@@ -2644,7 +2644,7 @@ module Roguelike
       in .wait? then Costs::TURN
       in .step?
         walk_creature creature, wanted
-        Costs::TURN
+        creature.stride
       in .shut?
         creature_shuts creature, wanted
         Costs::TURN
@@ -3945,7 +3945,7 @@ module Roguelike
       end
 
       jar
-      spend Costs.swing(@player.wielded)
+      spend @player.swing
       Step::Struck
     end
 
@@ -6376,6 +6376,7 @@ module Roguelike
     private def ready(slot : Slot, letter : Char, item : Item, line : String) : Bool
       @player.equipment.put slot, letter
       @player.quiver_memory = nil if slot.quiver?
+      line = [line, slowed_by(item)].compact.join ' '
       say line, Event::Readied.new(slot, item.id, name(item))
 
       if item.sticks? && item.reveal_blessing
@@ -6404,10 +6405,41 @@ module Roguelike
 
       @player.equipment.clear slot
       @player.quiver_memory = nil if slot.quiver?
-      say slot.released(name item),
-        Event::Removed.new(slot, item.id, name(item))
+      line = [slot.released(name item), freed_by(item)].compact.join ' '
+      say line, Event::Removed.new(slot, item.id, name(item))
       spend Costs.donning(slot)
       true
+    end
+
+    # What putting *item* on does to walking and to blows. `nil` when it
+    # does neither.
+    private def slowed_by(item : Item) : String?
+      step = item.kind.step_drag
+      blow = item.kind.blow_drag
+      walking = "Walking takes #{Costs.share step} longer in it"
+
+      if step > 0 && blow > 0
+        "#{walking}, and each blow #{Costs.share blow} of a turn more."
+      elsif step > 0
+        "#{walking}."
+      elsif blow > 0
+        "Each blow takes #{Costs.share blow} of a turn more with it."
+      end
+    end
+
+    # What taking *item* off does to walking and to blows. `nil` when it
+    # did neither.
+    private def freed_by(item : Item) : String?
+      step = item.kind.step_drag > 0
+      blow = item.kind.blow_drag > 0
+
+      if step && blow
+        "You walk and swing more freely without it."
+      elsif step
+        "You walk more freely without it."
+      elsif blow
+        "You swing more freely without it."
+      end
     end
 
     # Wields or wears the item *id* by what it is. Answers whether it went on.

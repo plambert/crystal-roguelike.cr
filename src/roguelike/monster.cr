@@ -504,10 +504,17 @@ module Roguelike
 
     # What one of its blows costs, in energy.
     #
-    # What the weapon in its hand costs, or its kind's own swing.
+    # What the weapon in its hand costs, or its kind's own swing, and what
+    # its armor adds.
     def swing : Int32
       weapon = wielded
-      weapon ? Costs.swing(weapon) : kind.swing
+      cost = weapon ? Costs.swing(weapon) : kind.swing
+      cost + Costs.blow_drag(worn)
+    end
+
+    # What one step costs, in energy, in the armor it wears.
+    def stride : Int32
+      Costs.step worn
     end
 
     # Whether it is still alive.

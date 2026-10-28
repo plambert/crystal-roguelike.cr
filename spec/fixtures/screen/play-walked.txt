@@ -6,8 +6,9 @@
  2    0              13 │ #....<..............+
  St Dx Cn In Sl         │ #...................#
  10 10 10 10 10         │ #.)...............(.#
- ▶ Equipment          2 │ #...|..........@....#
- ▶ Pack               5 │  ########+###########
+ Walk 100%  Blow 100%   │ #...|..........@....#
+ ▶ Equipment          2 │  ########+###########
+ ▶ Pack               5 │
  ▼ Here                 │
    stone floor          │
    sconce               │
@@ -16,7 +17,6 @@
  ▼ Look                 │
  Point at the map, or   │
  press x.               │
-                        │
                         │───────────────────────────────────────────────────────
                         │ armor and a lit torch.                               │
                         │ You carry three spikes and a potion of minor healing.█

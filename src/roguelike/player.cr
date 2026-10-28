@@ -161,6 +161,17 @@ module Roguelike
       found
     end
 
+    # What one step costs, in energy, in the armor being worn.
+    def stride : Int32
+      Costs.step worn.map(&.[1])
+    end
+
+    # What one melee blow costs, in energy: the weapon's swing and what the
+    # armor adds.
+    def swing : Int32
+      Costs.swing(wielded) + Costs.blow_drag(worn.map &.[1])
+    end
+
     # Whether what is under *letter* is readied in any slot.
     def readied?(letter : Char) : Bool
       @equipment.readied? letter

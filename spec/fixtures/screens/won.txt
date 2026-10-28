@@ -7,16 +7,16 @@
  0    │                                                           │
  St Dx│  turn 4                                                   │
  10 10│  level 1, 0 experience                                    │
- ▶ Equ│  37 gold                                                  │
- ▶ Pac│                                                           │
- ▼ Her│  You were carrying:                                       │
-   sta│    a torch                                                │
- ▼ See│    a +1 long sword (weapon in hand)                       │
-   orc│    12 arrows                                              │
- ▼ Loo│    a potion of healing                                    │
- Point│                                                           │
- press│  seed 20260915                                            │
-      │  Play again? y starts a new run, n quits.  [yN]           │
+ Walk │  37 gold                                                  │
+ ▶ Equ│                                                           │
+ ▶ Pac│  You were carrying:                                       │
+ ▼ Her│    a torch                                                │
+   sta│    a +1 long sword (weapon in hand)                       │
+ ▼ See│    12 arrows                                              │
+   orc│    a potion of healing                                    │
+ ▼ Loo│                                                           │
+ Point│  seed 20260915                                            │
+ press│  Play again? y starts a new run, n quits.  [yN]           │
       ╰───────────────────────────────────────────────────────────╯─────
                         │ The orc notices you.
                         │ The orc misses you.
