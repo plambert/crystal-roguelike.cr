@@ -52,6 +52,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Pressing a staircase key twice follows its route, just like clicking the staircase twice.
+  Keyboard and mouse share the same route preview, which fades or can be canceled with Escape.
 * Explore is offered only when it can reach something to see or collect.
 * Pausing or interrupting playback, walking, or resting cancels its pending step. Restarting keeps
   one steady pace; autoplay survives saved-pause rewinds, and camera glides do not accelerate

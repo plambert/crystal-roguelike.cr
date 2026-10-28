@@ -84,7 +84,7 @@ Spectator.describe "a drawn route fading" do
     expect(run.at).to eq({2, 1})
   end
 
-  it "leaves the route that > put up behind a held page alone" do
+  it "fades the route drawn by the staircase key" do
     run = hall
     spot = on_screen run, {10, 1}
 
@@ -93,6 +93,7 @@ Spectator.describe "a drawn route fading" do
     run.run_timers
     run.render
 
-    expect(run.map.highlighted? 13, 1).to be_true
+    expect(run.map.highlighted? 13, 1).to be_false
+    expect(run.turn).to eq 0
   end
 end

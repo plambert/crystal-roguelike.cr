@@ -148,6 +148,7 @@ module Roguelike::Ui
     # last square of the route when the way stops short of it. *turn* is when
     # it was worked out.
     private record Pointing,
+      floor : String,
       goal : {Int32, Int32},
       route : Array({Int32, Int32}),
       turn : Int32 do
@@ -1768,14 +1769,7 @@ module Roguelike::Ui
       end
     end
 
-    # Shows where the character remembers the staircase *terrain* is.
-    #
-    # The way there is lit up when they know one. Only the staircase itself
-    # is lit up when they do not: they have seen it across a room and have
-    # not found a way round yet. The camera slides to it when it is off the
-    # window.
-    #
-    # No turn is taken. This answers a question about the map.
+    # Previews or follows the route to the remembered staircase.
     private def point_out(terrain : Terrain, way : String) : Nil
       spot = @game.remembered_stairs terrain
       unless spot
@@ -1783,7 +1777,9 @@ module Roguelike::Ui
         return
       end
 
-      aim_at spot, @game.way_to(spot)
+      walk_toward spot
+      return unless @pointing.try(&.goal) == spot
+
       say "The stairs are here."
       reveal spot
     end
@@ -1791,7 +1787,7 @@ module Roguelike::Ui
     # Points the map at *goal*, along *route*.
     private def aim_at(goal : {Int32, Int32},
                        route : Array({Int32, Int32})) : Nil
-      @pointing = Pointing.new goal, route, @game.turn
+      @pointing = Pointing.new @game.floor.id, goal, route, @game.turn
     end
 
     # Takes the way off the map, and stops it fading.
@@ -1892,6 +1888,12 @@ module Roguelike::Ui
 
       if @menu.showing?
         @menu.cancel
+        return
+      end
+
+      if @pointing
+        stop_gliding
+        stop_pointing
         return
       end
 
@@ -3030,7 +3032,9 @@ module Roguelike::Ui
 
       # A turn passing takes the map's pointer off. The route was worked out
       # over a floor that has since moved.
-      @pointing = nil unless @pointing.try(&.turn) == @game.turn
+      unless @pointing.try(&.turn) == @game.turn && @pointing.try(&.floor) == @game.floor.id
+        @pointing = nil
+      end
       seen = @game.look
       @map.sight = seen
       @map.knowledge = @game.knowledge
@@ -3463,6 +3467,7 @@ module Roguelike::Ui
     private def walk(pointing : Pointing) : Nil
       @pointing = nil
       stop_fading
+      stop_gliding
 
       start_walking @game.travelling(pointing.goal)
     end

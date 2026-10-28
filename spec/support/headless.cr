@@ -112,9 +112,18 @@ module Headless
 
     # Fires the timer armed first. Answers whether there was one.
     def tick : Bool
-      nonce = @armed.shift?
+      fire @armed.first?
+    end
+
+    # Fires the oldest timer with *span*, leaving other timers waiting.
+    def tick(span : Time::Span) : Bool
+      fire armed_for(span).first?
+    end
+
+    private def fire(nonce : UInt64?) : Bool
       return false unless nonce
 
+      @armed.delete nonce
       @waits.delete nonce
       send TermBuf::Input::Events::Timer.new(nonce)
       true

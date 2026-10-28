@@ -144,7 +144,7 @@ Spectator.describe "pointing at a square" do
       expect(run.map.screen_of 197, 1).not_to be_nil
     end
 
-    it "keeps one camera glide chain when a staircase is pointed at again" do
+    it "keeps one camera glide chain when a canceled route is drawn again" do
       run = walking LONG, clock: true
       wait = Play::GLIDE
 
@@ -152,13 +152,14 @@ Spectator.describe "pointing at a square" do
       stale = run.armed_for(wait).first
       before = run.map.camera
 
+      run.press "Escape"
       run.press ">"
       expect(run.armed_for(wait).size).to eq 1
       run.session.send TermBuf::Input::Events::Timer.new(stale)
       expect(run.map.camera).to eq before
       expect(run.armed_for(wait).size).to eq 1
 
-      run.tick
+      run.session.tick wait
       expect(run.map.camera).not_to eq before
       expect(run.armed_for(wait).size).to eq 1
 
@@ -189,6 +190,82 @@ Spectator.describe "pointing at a square" do
       expect(run.said).to eq "There is no staircase down here."
       expect(run.map.highlights).to be_empty
     end
+
+    it "walks to the stairs on the second press without taking them" do
+      run = walking
+      run.press ">"
+      run.press ">"
+
+      expect(run.at).to eq({13, 1})
+      expect(run.game.outcome.playing?).to be_true
+      run.press ">"
+      expect(run.game.outcome.won?).to be_true
+    end
+
+    it "shares the preview with a subsequent click" do
+      run = walking
+      run.press ">"
+      spot = on_screen run, {13, 1}
+      run.click spot[0], spot[1]
+
+      expect(run.at).to eq({13, 1})
+      expect(run.game.outcome.playing?).to be_true
+    end
+
+    it "follows a clicked staircase preview with the key" do
+      run = walking
+      spot = on_screen run, {13, 1}
+      run.click spot[0], spot[1]
+      run.press ">"
+
+      expect(run.at).to eq({13, 1})
+      expect(run.game.outcome.playing?).to be_true
+    end
+
+    it "previews again after the route expires" do
+      run = walking clock: true
+      run.press ">"
+      run.session.tick Play::ROUTE_FADE
+      run.press ">"
+
+      expect(run.at).to eq({1, 1})
+      expect(run.turn).to eq 0
+      expect(run.map.highlighted? 13, 1).to be_true
+    end
+
+    it "previews again after Escape cancels the route" do
+      run = walking
+      run.press ">", "Escape", ">"
+
+      expect(run.at).to eq({1, 1})
+      expect(run.turn).to eq 0
+      expect(run.map.highlighted? 13, 1).to be_true
+    end
+
+    it "does not reuse a preview on another floor at the same turn" do
+      run = walking
+      run.press ">"
+      floor = Playing.daylight Roguelike::Floor.parse("other", HALL)
+      replacement = Game.new(
+        Roguelike::World.new(Playing::SEED, {"other" => floor}),
+        Roguelike::Player.new("other", 1, 1, hit_points: 40))
+      run.play.resume replacement
+      run.press ">"
+
+      expect(run.at).to eq({1, 1})
+      expect(run.turn).to eq 0
+      expect(run.map.highlighted? 13, 1).to be_true
+    end
+
+    it "does not find an unseen staircase through the floor's truth" do
+      run = walking lit: false
+      run.press ">"
+
+      expect(run.at).to eq({1, 1})
+      expect(run.turn).to eq 0
+      expect(run.map.highlights).to be_empty
+      expect(run.said).to eq "There is no staircase down here."
+    end
   end
 
   describe "< away from the staircase" do
@@ -201,6 +278,28 @@ Spectator.describe "pointing at a square" do
 
       expect(run.said).to eq "The stairs are here."
       expect(run.map.highlighted? 1, 1).to be_true
+    end
+
+    it "walks to the way up on the second press without leaving" do
+      run = walking
+      run.game.player.move_to({7, 1})
+      run.play.refresh
+      run.press "<", "<"
+
+      expect(run.at).to eq({1, 1})
+      expect(run.game.outcome.playing?).to be_true
+      expect(run.prompt.asking?).to be_false
+    end
+
+    it "replaces a preview when the other staircase is selected" do
+      run = walking
+      run.game.player.move_to({7, 1})
+      run.play.refresh
+      run.press ">", "<"
+
+      expect(run.at).to eq({7, 1})
+      expect(run.map.highlighted? 1, 1).to be_true
+      expect(run.map.highlighted? 13, 1).to be_false
     end
   end
 
