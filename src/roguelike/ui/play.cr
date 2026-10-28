@@ -72,6 +72,9 @@ module Roguelike::Ui
     # The list of things to choose from, when there is one.
     getter menu : Widgets::Menu
 
+    # The selectable menu adapter used by modern catalogs and item lists.
+    getter selection_menu : Widgets::ValueMenu(ModernChoice)
+
     # The release notes, drawn over the title screen.
     getter news_page : NewsPage
 
@@ -81,6 +84,12 @@ module Roguelike::Ui
     # Pushes the options to whatever runs the game after each change on the
     # options screen. `Session` sets this to apply them to itself.
     property on_options : Proc(Options, Nil) = ->(options : Options) { options.apply; nil }
+
+    # Runs when a catalog command asks to open Help.
+    property on_help : Proc(Nil)? = nil
+
+    # Runs when a catalog command asks to toggle mouse reporting.
+    property on_mouse : Proc(Nil)? = nil
 
     # How many colors the theme editor's picker offers. `Session` sets
     # `Indexed256` on a terminal without 24 bit color.
@@ -148,6 +157,7 @@ module Roguelike::Ui
     # last square of the route when the way stops short of it. *turn* is when
     # it was worked out.
     private record Pointing,
+      floor : String,
       goal : {Int32, Int32},
       route : Array({Int32, Int32}),
       turn : Int32 do
@@ -468,6 +478,8 @@ module Roguelike::Ui
 
       @character = CharacterPane.new
       @examine = ExaminePane.new
+      @character.letterless = modern_controls?
+      @examine.control_scheme = control_scheme
       @nearby = NearbyPane.new
       @info_panel = InfoPanel.new @character.sections + @nearby.sections + [@examine.section]
       @examiner = Examiner.new @map, @examine
@@ -490,11 +502,14 @@ module Roguelike::Ui
       @prompt = Widgets::Prompt.new
       @entry = Widgets::Entry.new
       @menu = Widgets::Menu.new
+      @selection_menu = Widgets::ValueMenu(ModernChoice).new @menu,
+        modern_controls? ? Widgets::Navigation.selectable : Widgets::Navigation.new
       @menu.pointer_style = Palette.pointer_mark
       @news_page = NewsPage.new
       @options_screen = OptionsScreen.new
       @menu.disabled_style = Palette.faint
       @history = HistoryPane.new
+      @history.control_scheme = control_scheme
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
       @tooltip = Tooltip.new
@@ -517,7 +532,10 @@ module Roguelike::Ui
 
     # The bindings that belong to the game rather than to the application.
     def bindings : Widgets::Bindings
-      own = Keys.examining(self).merge Keys.preferring(self)
+      own = Widgets::Bindings.new
+      unless modern_controls?
+        own = Keys.examining(self).merge Keys.preferring(self)
+      end
       found = sections.reduce(own) { |held, section| held.merge section.bindings }
       found.merge unlisted
     end
@@ -525,7 +543,7 @@ module Roguelike::Ui
     # The keys this run answers that the help screen leaves out. A recorded
     # run has none.
     def unlisted : Widgets::Bindings
-      @viewer ? Widgets::Bindings.new : Keys.unlisted(self)
+      @viewer || modern_controls? ? Widgets::Bindings.new : Keys.unlisted(self)
     end
 
     # The keys this run answers, in the groups the help screen shows, less
@@ -535,6 +553,8 @@ module Roguelike::Ui
     # drive it. Every key that would take a turn is gone, because the only
     # actions a recorded run performs are the ones in the file.
     def sections : Array(Keys::Section)
+      return Keys.modern_sections(self) if modern_controls?
+
       if @viewer
         return [
           Keys::Section.new("panels", Keys.panels(self)),
@@ -577,6 +597,12 @@ module Roguelike::Ui
     # rather than typed. A person carrying a character on no longer has to
     # spell it the way they spelled it the first time.
     def show_title : Nil
+      return show_modern_title if modern_controls?
+
+      clear_modern_menu
+      @selection_menu.navigation = Widgets::Navigation.new
+      @menu.on_choose_index = nil
+      @menu.on_highlight_index = nil
       held = saved
       @carrying = {} of Char => String
 
@@ -626,12 +652,9 @@ module Roguelike::Ui
 
     # Opens the release notes over the title screen. Closing them puts the
     # title menu back.
-    private def show_news : Nil
+    private def show_news(after : Proc(Nil)? = nil) : Nil
       @news_page.news = @news
-      @news_page.on_close = -> do
-        show_title
-        nil
-      end
+      @news_page.on_close = after || -> { show_title; nil }
       @news_page.open application
     end
 
@@ -646,16 +669,25 @@ module Roguelike::Ui
       options = Options.current || Options.read(screen.root)
       screen.on_change = @on_options
       screen.on_close = after
+      screen.on_warning = ->(warning : String) { say warning; nil }
 
-      editor = screen.theme_editor
+      configure_theme_editor
+
+      screen.show application, options
+    end
+
+    # Applies the run's theme settings and the return callback to its editor.
+    private def configure_theme_editor(after : Proc(Nil)? = nil) : Nil
+      editor = @options_screen.theme_editor
+      editor.root = @options_screen.root
       editor.depth = @color_depth
+      editor.control_scheme = control_scheme
       editor.on_change = -> { retheme; nil }
+      editor.on_close = after
       editor.confirm = ->(question : String, answered : Proc(Char?, Nil)) do
         ask(question, "yn", default: 'n') { |key| answered.call key }
         nil
       end
-
-      screen.show application, options
     end
 
     # Draws the screen again in the palette as it now stands.
@@ -913,7 +945,16 @@ module Roguelike::Ui
       end
 
       clear_the_character
-      @prompt.ask application, question, keys, default
+      if modern_controls? && keys == "yn"
+        choices = [
+          Widgets::Prompt::Choice.new('y', "Yes"),
+          Widgets::Prompt::Choice.new('n', "No"),
+        ]
+        @prompt.ask application, question, choices, default || 'n',
+          Widgets::Navigation.selectable
+      else
+        @prompt.ask application, question, keys, default
+      end
     end
 
     # Puts *entries* up under *title*. Runs *chosen* with the key pressed.
@@ -1046,6 +1087,10 @@ module Roguelike::Ui
     private def ready_the_menu(about : Hash(Char, Listing)?, chosen : Char? -> Nil,
                                top : Int32? = nil) : Nil
       @listed = about || {} of Char => Listing
+      @menu.on_choose_index = nil
+      @menu.on_highlight_index = nil
+      navigation = modern_controls? ? Widgets::Navigation.selectable : Widgets::Navigation.new
+      @selection_menu.navigation = navigation
       @menu.column_margin = @listed.empty? ? Widgets::Menu::COLUMN_MARGIN : MENU_MARGIN
       @menu.on_highlight = ->(entry : Widgets::Menu::Entry?) do
         listed_detail entry
@@ -1058,6 +1103,19 @@ module Roguelike::Ui
         park_camera_back
         chosen.call key
         nil
+      end
+
+      if modern_controls?
+        @menu.on_choose = nil
+        @menu.on_choose_index = ->(index : Int32?) do
+          key = index.try { |selected| @menu.entries[selected]?.try(&.key) }
+          @listed.clear
+          @tooltip.hide
+          park_camera_back
+          chosen.call key
+          finish_modern_read_choice key
+          nil
+        end
       end
 
       clear_the_character top
@@ -1768,14 +1826,7 @@ module Roguelike::Ui
       end
     end
 
-    # Shows where the character remembers the staircase *terrain* is.
-    #
-    # The way there is lit up when they know one. Only the staircase itself
-    # is lit up when they do not: they have seen it across a room and have
-    # not found a way round yet. The camera slides to it when it is off the
-    # window.
-    #
-    # No turn is taken. This answers a question about the map.
+    # Previews or follows the route to the remembered staircase.
     private def point_out(terrain : Terrain, way : String) : Nil
       spot = @game.remembered_stairs terrain
       unless spot
@@ -1783,7 +1834,9 @@ module Roguelike::Ui
         return
       end
 
-      aim_at spot, @game.way_to(spot)
+      walk_toward spot
+      return unless @pointing.try(&.goal) == spot
+
       say "The stairs are here."
       reveal spot
     end
@@ -1791,7 +1844,7 @@ module Roguelike::Ui
     # Points the map at *goal*, along *route*.
     private def aim_at(goal : {Int32, Int32},
                        route : Array({Int32, Int32})) : Nil
-      @pointing = Pointing.new goal, route, @game.turn
+      @pointing = Pointing.new @game.floor.id, goal, route, @game.turn
     end
 
     # Takes the way off the map, and stops it fading.
@@ -1835,6 +1888,11 @@ module Roguelike::Ui
     # Gives the focus back to the map from another panel, or takes back
     # whatever is waiting when the map has it. `Escape` does this.
     def escape : Nil
+      if @pending || @aiming
+        cancel
+        return
+      end
+
       return cancel if @ring.map?
 
       @ring.focus FocusRing::Panel::Map
@@ -1843,7 +1901,19 @@ module Roguelike::Ui
     # Moves the focus to the next panel, or aims at the next monster while
     # something is being aimed. `Tab` does this.
     def tab : Nil
-      @ring.next unless next_target
+      return if @pending
+      if @aiming
+        next_target
+      else
+        @ring.next
+      end
+    end
+
+    # Moves focus backward unless a pending target owns Tab.
+    def tab_back : Nil
+      return if @pending || @aiming
+
+      @ring.previous
     end
 
     # Moves the focus to the map or the log when a left click lands in it.
@@ -1895,6 +1965,12 @@ module Roguelike::Ui
         return
       end
 
+      if @pointing
+        stop_gliding
+        stop_pointing
+        return
+      end
+
       if @home && !@examiner.cursoring?
         come_home
         return
@@ -1925,6 +2001,13 @@ module Roguelike::Ui
 
     # Asks which of *pile* to pick up.
     private def choose_from(pile : Array(Item)) : Nil
+      if modern_controls?
+        @modern_stack.clear
+        targets = pile.map { |item| CommandTarget.new(item_id: item.id) }
+        show_modern_targets Command::PickUp, targets
+        return
+      end
+
       entries = listed(pile.map_with_index do |item, index|
         Listing.new Widgets::Menu.letter(index), item
       end)
@@ -2158,17 +2241,30 @@ module Roguelike::Ui
       leads = listings.map { |found| Naming.lead lore, found.item }
       field = Math.max leads.max_of?(&.size) || 0, Naming::LEAD
 
-      listings.map_with_index do |found, index|
-        mark = Palette.blessing found.item
-        tail = Play.tail_of found.item, found.slot
+      listings.map do |found|
+        mark, tail = item_menu_marks found.item, found.slot
 
         Widgets::Menu::Entry.new found.key,
-          "#{leads[index].rjust field} #{Naming.listed lore, found.item}",
+          item_menu_text(found.item, field),
           mark: mark.try(&.glyph) || ' ',
           mark_style: mark.try(&.style),
           tail: tail.try(&.glyph),
           tail_style: tail.try(&.style)
       end
+    end
+
+    # Uses the same known item and equipment marks in every item list.
+    private def item_menu_marks(item : Item, slot : Slot? = nil) : {Look?, Look?}
+      actual_slot = slot || letter_for(item.id).try { |letter| @game.slot_of(letter) }
+      {Palette.blessing(item), Play.tail_of(item, actual_slot)}
+    end
+
+    # Includes the count or article without repeating the blessing mark.
+    private def item_menu_text(item : Item, field : Int32 = 0) : String
+      lead = Naming.lead @game.lore, item
+      lead = lead.rjust(field) if field > 0
+      noun = Naming.listed @game.lore, item
+      lead.empty? ? noun : "#{lead} #{noun}"
     end
 
     # The mark at the far edge of a row, or `nil` for a row with none.
@@ -2453,14 +2549,19 @@ module Roguelike::Ui
 
       @examiner.start @game.player.at
       if command.travel?
-        say "Pick a square with the movement keys. Enter goes there, Escape stops."
+        hint = modern_controls? ? "Pick a square with Q W E / A D / Z S X. f or Enter goes there, Escape stops." : "Pick a square with the movement keys. Enter goes there, Escape stops."
+        say hint
         return
       end
 
       wanted = targets.first?
       @examiner.point_at wanted[0], wanted[1] if wanted
 
-      keys = "Aim with the movement keys. Tab picks a monster, Enter looses, Escape stops."
+      keys = if modern_controls?
+               "Aim with Q W E / A D / Z S X. Tab picks a monster, f or Enter looses, Escape stops."
+             else
+               "Aim with the movement keys. Tab picks a monster, Enter looses, Escape stops."
+             end
       if wanted.nil? && shot_at_all?(command) && !@game.monsters_in_sight.empty?
         say "There is no clear shot. #{keys}"
       else
@@ -2756,6 +2857,8 @@ module Roguelike::Ui
       end
 
       choose(title, found) do |key|
+        next if key.nil? && modern_controls?
+
         read_now letter, key ? id_under(key) : nil
         refresh
       end
@@ -2893,11 +2996,17 @@ module Roguelike::Ui
 
     # Asks which of *found* to apply.
     private def choose_target(found : Array(Apply)) : Nil
+      about = applying_about found
       entries = found.each_with_index.map do |target, index|
-        Widgets::Menu::Entry.new Widgets::Menu.letter(index), applying(target)
+        key = Widgets::Menu.letter index
+        if listing = about[key]?
+          listed([listing]).first.copy_with(text: applying(target))
+        else
+          Widgets::Menu::Entry.new key, applying(target)
+        end
       end
 
-      choose("Apply what?", entries, applying_about(found)) do |key|
+      choose("Apply what?", entries, about) do |key|
         next unless key
 
         target = found[Widgets::Menu.index key]?
@@ -2949,12 +3058,14 @@ module Roguelike::Ui
 
       if letter && target.aimed?
         way = Direction.between @game.player.at, {target.x, target.y}
-        return "#{letter} - spike the door #{way.try(&.label) || "beside you"}"
+        item = @game.carried letter
+        name = item ? item_menu_text(item) : "nothing"
+        return "#{name} — spike the door #{way.try(&.label) || "beside you"}"
       end
 
       if letter
-        item = @game.player.inventory[letter]
-        return "#{letter} - #{item ? @game.name(item) : "nothing"}"
+        item = @game.carried letter
+        return item ? item_menu_text(item) : "nothing"
       end
 
       fitting = @game.floor.fixture target.x, target.y
@@ -3030,7 +3141,9 @@ module Roguelike::Ui
 
       # A turn passing takes the map's pointer off. The route was worked out
       # over a floor that has since moved.
-      @pointing = nil unless @pointing.try(&.turn) == @game.turn
+      unless @pointing.try(&.turn) == @game.turn && @pointing.try(&.floor) == @game.floor.id
+        @pointing = nil
+      end
       seen = @game.look
       @map.sight = seen
       @map.knowledge = @game.knowledge
@@ -3176,9 +3289,19 @@ module Roguelike::Ui
         nil
       end
 
-      @placard.show application, Placards.heading(@game.outcome),
-        Placards.ending(@game), Placards::AGAIN_KEYS,
-        default: Placards::AGAIN_DEFAULT, footer: Placards::AGAIN_FOOTER
+      if modern_controls?
+        choices = [
+          Widgets::Prompt::Choice.new('y', "Play again"),
+          Widgets::Prompt::Choice.new('n', "Quit"),
+        ]
+        @placard.show_named application, Placards.heading(@game.outcome),
+          Placards.ending(@game), choices, 'n',
+          footer: "A/D · f choose · Esc=Quit"
+      else
+        @placard.show application, Placards.heading(@game.outcome),
+          Placards.ending(@game), Placards::AGAIN_KEYS,
+          default: Placards::AGAIN_DEFAULT, footer: Placards::AGAIN_FOOTER
+      end
     end
 
     # Lights up the way to wherever the map is pointing.
@@ -3463,6 +3586,7 @@ module Roguelike::Ui
     private def walk(pointing : Pointing) : Nil
       @pointing = nil
       stop_fading
+      stop_gliding
 
       start_walking @game.travelling(pointing.goal)
     end
@@ -3490,6 +3614,7 @@ module Roguelike::Ui
       @news_page.screen_rows = rows
       fit_log columns
 
+      @prompt.refit Rect.new(0, 0, columns, rows)
       @placard.fit_into Rect.new(0, 0, columns, rows)
       @entry.fit_into Rect.new(0, 0, columns, rows)
       @console.try do |pane|
@@ -4013,7 +4138,11 @@ module Roguelike::Ui
       return unless found
 
       @tooltip.hide
-      act_on found[0]
+      if modern_controls?
+        show_item_actions found[1].id
+      else
+        act_on found[0]
+      end
     end
 
     # Answers a click on the Seen row about *spot*, the way a click on

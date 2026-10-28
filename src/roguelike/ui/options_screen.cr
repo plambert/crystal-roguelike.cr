@@ -41,6 +41,11 @@ module Roguelike::Ui
     # What its input column says.
     THEME_HINT = "Enter to edit"
 
+    # The action that reopens the side-by-side controls comparison.
+    CONTROLS_KEY = "compare_controls"
+
+    CONTROLS_LABEL = "Compare"
+
     # The setting that row follows.
     DISPLAY_LAST = "bar_color"
 
@@ -52,6 +57,9 @@ module Roguelike::Ui
 
     # Runs after the screen closes.
     property on_close : Proc(Nil)? = nil
+
+    # Reports a preference that applies but could not be saved.
+    property on_warning : Proc(String, Nil)? = nil
 
     # The form showing, rebuilt each time the screen opens.
     getter form : Widgets::Form
@@ -66,11 +74,14 @@ module Roguelike::Ui
     # the screen.
     getter theme_editor : ThemeEditor
 
+    getter control_setup : ControlSchemeSetup
+
     def initialize(@root : Path = Submit.root, z : Int32 = Widgets::Overlay::Z::DIALOG - 10)
       @options = Options.new
       @form = OptionsScreen.form_for @options, Tester::ANONYMOUS
       @help = Help.new
       @theme_editor = ThemeEditor.new @root
+      @control_setup = ControlSchemeSetup.new @root
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
 
@@ -99,10 +110,28 @@ module Roguelike::Ui
       add @form
 
       @theme_editor.root = @root
+      @theme_editor.control_scheme = options.effective_control_scheme
       @help.sections = [Keys.options_screen(self, app)]
       self.keymap = @help.sections.first.bindings
       fit_into app.tree.screen
       open app
+    end
+
+    # Replaces the screen's bindings without rebuilding its form or moving
+    # the focused row.
+    def rebind_controls(app : Widgets::App) : Nil
+      return unless showing?
+
+      @theme_editor.control_scheme = @options.effective_control_scheme
+      section = Keys.options_screen self, app
+      @help.sections = [section]
+      self.keymap = section.bindings
+      @scope.try &.keymap = section.bindings
+    end
+
+    # Whether the form currently uses modern controls.
+    def modern_controls? : Bool
+      @options.effective_control_scheme.modern?
     end
 
     # The form for *options*, a section for each heading in
@@ -114,7 +143,11 @@ module Roguelike::Ui
       form = Widgets::Form.new actions: false, height: Layout::Sizing.fit
 
       Options::SETTINGS.each do |setting|
-        held = setting.key == "name" ? name : options[setting.key]
+        held = case setting.key
+               when "name"           then name
+               when "control_scheme" then options.effective_control_scheme.to_s.underscore
+               else                       options[setting.key]
+               end
 
         form.section setting.section do |section|
           row setting, held, section
@@ -126,6 +159,12 @@ module Roguelike::Ui
         if setting.key == DISPLAY_LAST
           form.section(setting.section).action THEME_KEY, THEME_LABEL, hint: THEME_HINT,
             help: "Choose the color of each thing the game draws"
+        end
+
+        if setting.key == "control_scheme"
+          form.section(setting.section).action CONTROLS_KEY, CONTROLS_LABEL,
+            hint: "Enter",
+            help: "Review both movement and action-menu layouts"
         end
       end
 
@@ -198,6 +237,21 @@ module Roguelike::Ui
       @form.type context
     end
 
+    # Activates the focused row, while leaving typed text to its input.
+    def activate(context : Widgets::Context) : Nil
+      return if typed? context
+
+      row = focused_row
+      return unless row && row.enabled?
+
+      if row.enter
+        context.consume
+      else
+        row.activate
+        context.consume
+      end
+    end
+
     # Moves the keyboard *step* rows along.
     def step(step : Int32, context : Widgets::Context) : Nil
       @form.step_row step, context unless typed? context
@@ -233,6 +287,12 @@ module Roguelike::Ui
         return
       end
 
+      if event.is_a?(Widgets::Form::Activated) && event.key == CONTROLS_KEY
+        context.consume
+        compare_controls
+        return
+      end
+
       super
     end
 
@@ -250,12 +310,36 @@ module Roguelike::Ui
       end
 
       @options[key] = value
+      Options.current = @options
       if @options.overridden? key
         @options.adopt key
         @form.note key, nil
       end
       @options.write @root
       @on_change.try &.call(@options)
+    end
+
+    private def compare_controls : Nil
+      @control_setup.root = @root
+      @control_setup.on_change = ->(options : Options) do
+        @options = options
+        update_control_scheme_row
+        @on_change.try &.call options
+        nil
+      end
+      app = @app
+      raise "Options screen has no application" unless app
+      @control_setup.show app, @options do |result|
+        if warning = result.error
+          @on_warning.try &.call(warning)
+        end
+        update_control_scheme_row
+      end
+    end
+
+    private def update_control_scheme_row : Nil
+      row = @form.row("control_scheme")
+      row.value = @options.effective_control_scheme.to_s.underscore if row.is_a?(Widgets::Form::ChoiceRow)
     end
   end
 end

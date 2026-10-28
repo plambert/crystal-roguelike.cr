@@ -5,6 +5,8 @@ Spectator.describe Roguelike::Ui::Help do
   alias Keys = Roguelike::Ui::Keys
   alias Direction = Roguelike::Direction
 
+  after_each { Roguelike::Options.current = nil }
+
   # An application over a buffer with the game's keys and the help on it.
   def wired(seed : UInt64, columns : Int32 = 100, rows : Int32 = 40) : {Headless::Session, Help}
     screen = Roguelike::Ui::Screen.new
@@ -26,7 +28,7 @@ Spectator.describe Roguelike::Ui::Help do
 
     expect(help.open?).to be_true
     headers = rows.select(&.header).map(&.keys)
-    expect(headers).to eq(["application", "panels", "map", "info panel", "log", "moving", "time", "getting about", "doors and stairs", "character", "items", "in the inventory", "aiming", "messages", "mouse"])
+    expect(headers).to eq(["application", "panels", "moving", "map", "info panel", "log", "time", "getting about", "doors and stairs", "character", "items", "in the inventory", "aiming", "messages", "mouse"])
     expect(rows[0].keys).to eq("application")
     expect(rows[1].keys).to eq("seed")
     expect(rows[1].description).to eq("4272")
@@ -42,7 +44,7 @@ Spectator.describe Roguelike::Ui::Help do
     expect(panels).to eq(["Tab", "Shift+Tab", "Escape"])
   end
 
-  it "shows the section for the focused panel first" do
+  it "shows the focused panel after the fixed navigation sections" do
     panels = {
       Roguelike::Ui::FocusRing::Panel::Map  => "application",
       Roguelike::Ui::FocusRing::Panel::Info => "info panel",
@@ -53,7 +55,9 @@ Spectator.describe Roguelike::Ui::Help do
       _session, help = wired 1_u64
       help.first = -> { Help.title_for panel }
       help.rebuild
-      expect(help.rows.first.keys).to eq(title)
+      headers = help.rows.select(&.header).map(&.keys)
+      expect(headers.first(3)).to eq ["application", "panels", "moving"]
+      expect(headers[3]).to eq title unless panel.map?
       shown = help.rows.select(&.header).map(&.keys)
       shown.sort!
       known = help.sections.map(&.title)
@@ -67,12 +71,29 @@ Spectator.describe Roguelike::Ui::Help do
 
     session.press "Tab"
     session.press "?"
-    expect(help.rows.first.keys).to eq("info panel")
-    expect(help.rows.select(&.header).map(&.keys)[1]).to eq("panels")
+    expect(help.rows.select(&.header).map(&.keys).first(4))
+      .to eq ["application", "panels", "moving", "info panel"]
     session.press "Escape"
     session.press "Tab"
     session.press "?"
-    expect(help.rows.first.keys).to eq("log")
+    expect(help.rows.select(&.header).map(&.keys).first(4))
+      .to eq ["application", "panels", "moving", "log"]
+  end
+
+  it "keeps movement third for every focused panel in both schemes" do
+    Roguelike::Options::ControlScheme.values.each do |scheme|
+      options = Roguelike::Options.new
+      options.control_scheme = scheme
+      Roguelike::Options.current = options
+      Roguelike::Ui::FocusRing::Panel.values.each do |panel|
+        session, help = wired 1_u64
+        help.first = -> { Help.title_for panel }
+        session.press "?"
+
+        expect(help.rows.select(&.header).map(&.keys).first(3))
+          .to eq ["application", "panels", "moving"]
+      end
+    end
   end
 
   it "puts a blank row before every heading but the first" do

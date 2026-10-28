@@ -21,6 +21,9 @@ module Roguelike::Ui
     # The key of the row that puts every color back.
     RESET_KEY = "reset"
 
+    # The prefix of the action row that resets one color.
+    RESET_COLOR_PREFIX = "reset-color-"
+
     # What that row says.
     RESET_LABEL = "Reset every color"
 
@@ -119,6 +122,13 @@ module Roguelike::Ui
     # How many colors the picker offers.
     property depth : Widgets::Depth = Widgets::Depth::TrueColor
 
+    # The scheme used by this editor's form navigation.
+    property control_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
+
+    def modern_controls? : Bool
+      @control_scheme.modern?
+    end
+
     # The form showing, rebuilt each time the editor opens.
     getter form : Widgets::Form
 
@@ -152,7 +162,7 @@ module Roguelike::Ui
     # Puts the editor up on *app*, showing `Theme.current`.
     def show(app : Widgets::App) : Nil
       remove @form
-      @form = ThemeEditor.form_for Theme.current, @depth
+      @form = ThemeEditor.form_for Theme.current, @depth, modern_controls?
       @form.attach app
       add @form
 
@@ -165,12 +175,16 @@ module Roguelike::Ui
     # The form for *theme*: a section for each group in `Theme::ENTRIES`, a
     # color row for each entry, and the reset row at the end. Each picker
     # offers *depth* colors.
-    def self.form_for(theme : Theme, depth : Widgets::Depth) : Widgets::Form
+    def self.form_for(theme : Theme, depth : Widgets::Depth,
+                      modern : Bool = false) : Widgets::Form
       form = Widgets::Form.new actions: false, depth: depth, height: Layout::Sizing.fit
 
       Theme::ENTRIES.each do |entry|
         form.section entry.group do |section|
           section.color entry.key, entry.label, theme[entry.key]
+          if modern
+            section.action reset_color_key(entry.key), "Reset #{entry.label}"
+          end
         end
       end
 
@@ -226,6 +240,21 @@ module Roguelike::Ui
       @form.step_row step, context unless @form.type context
     end
 
+    # Activates the focused row, while leaving typed color values to the form.
+    def activate(context : Widgets::Context) : Nil
+      return if @form.type context
+
+      row = focused_row
+      return unless row && row.enabled?
+
+      if row.enter
+        context.consume
+      else
+        row.activate
+        context.consume
+      end
+    end
+
     # Moves the keyboard to the first row of the section *step* sections
     # along.
     def leap(step : Int32, context : Widgets::Context) : Nil
@@ -249,11 +278,18 @@ module Roguelike::Ui
       row = focused_row
       return unless row.is_a? Widgets::Form::ColorRow
 
-      color = Theme::DEFAULT[row.key]
-      return if color == Theme.current[row.key]
+      reset_color row.key
+    end
+
+    private def reset_color(key : String) : Nil
+      row = @form.row(key).as?(Widgets::Form::ColorRow)
+      return unless row
+
+      color = Theme::DEFAULT[key]
+      return if color == Theme.current[key]
 
       row.value = color
-      apply Theme.current.with(row.key, color)
+      apply Theme.current.with(key, color)
     end
 
     # Asks first, and on yes puts every color back to its default.
@@ -286,9 +322,19 @@ module Roguelike::Ui
           reset_all
           return
         end
+        if event.key.starts_with? RESET_COLOR_PREFIX
+          context.consume
+          key = event.key[RESET_COLOR_PREFIX.size, event.key.size - RESET_COLOR_PREFIX.size]
+          reset_color key
+          return
+        end
       end
 
       super
+    end
+
+    private def self.reset_color_key(key : String) : String
+      "#{RESET_COLOR_PREFIX}#{key}"
     end
 
     # *color* as the theme keeps it, which is always `Rgb`. A palette index

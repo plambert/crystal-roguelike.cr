@@ -1,10 +1,10 @@
 
   ╭─ Options ────────────────────────╮
+ #│ Control      (•) Traditional   │ │
+ #│ scheme       ( ) Modern        │ │
+ #│ Compare      Enter             │ │
  #│                                │ │
- #│ Input                          │ │
- #│ Mouse        ☑                 │ │
- #│                                │ │
- #│ Game                           █ │
+ #│ Game                           │ │
  #│ Update check ☑                 █ │
  #│ Send runs    ☐                 █ │
   │                                █ │

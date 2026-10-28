@@ -128,16 +128,13 @@ module Roguelike
       "How many fights one --matchup cell holds", range: 1..1_000_000
 
     def run
-      return dumped if dump_terminal_info
-      return listed if saves
-      return told_the_news if whats_new
-      return matched if matchup
-      return played if trial > 0
+      return if run_development_mode
 
       options = arranged_options
       tester_root = arranged_tester
-      news = arrive
-      newer = announced options
+      last_run = WhatsNew::LastRun.new(Submit.root)
+      news = WhatsNew.since last_run.version
+      newer = nil.as(String?)
       sending = Submit.arrange options.autosubmit?, flag_given?(:autosubmit)
 
       Replay::Log.pattern = Replay::Log.pattern_for replay_log
@@ -148,9 +145,16 @@ module Roguelike
       session = Session.open seed, generate: generate,
         console: debug_console, store: save ? Save::Store.default : nil,
         character: character, news: news,
-        size_cap: SizeCap.new(max_columns, max_rows), tester_root: tester_root
+        size_cap: SizeCap.new(max_columns, max_rows), tester_root: tester_root,
+        startup_controls: true,
+        after_controls: -> do
+          newer = announced options
+          last_run.record VERSION if save
+          nil
+        end
 
       exit 1 unless session
+      return if session.startup_canceled?
 
       # These lines run after the terminal is restored. The alternate screen
       # is gone by then. They stay in the scrollback.
@@ -170,6 +174,31 @@ module Roguelike
       puts newer if newer
 
       Submit.flush(submit_url || Submit::ENDPOINT) if sending
+    end
+
+    private def run_development_mode : Bool
+      if dump_terminal_info
+        dumped
+        return true
+      end
+      if saves
+        listed
+        return true
+      end
+      if whats_new
+        told_the_news
+        return true
+      end
+      if matchup
+        matched
+        return true
+      end
+      if trial > 0
+        played
+        return true
+      end
+
+      false
     end
 
     # Reads `options.json` and lays the flags the person typed over it, for
@@ -372,7 +401,9 @@ module Roguelike
         display_options
 
         begin
-          exit 1 unless Session.view found
+          viewed = Session.view found, startup_controls: true
+          exit 1 unless viewed
+          return if viewed.startup_canceled?
         ensure
           found.close
         end

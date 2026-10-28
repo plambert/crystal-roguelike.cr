@@ -42,7 +42,9 @@ module Roguelike
                   store : Save::Store? = nil, character : String? = nil,
                   news : Array(WhatsNew::Section) = [] of WhatsNew::Section,
                   size_cap : SizeCap = SizeCap.new,
-                  tester_root : Path? = nil) : Session?
+                  tester_root : Path? = nil,
+                  startup_controls : Bool = false,
+                  after_controls : Proc(Nil)? = nil) : Session?
       size = TermBuf::SizeDetector.detect
       columns, rows = size_cap.apply size.columns, size.rows
 
@@ -72,7 +74,8 @@ module Roguelike
           playing_flicker = resolve_flicker(options, flicker)
           played = new terminal, Rng.for(seed), playing_flicker, generate, console,
             store, character, previous, news: news, size_cap: size_cap,
-            tester_root: tester_root, mouse: options.mouse?
+            tester_root: tester_root, mouse: options.mouse?,
+            startup_controls: startup_controls, after_controls: after_controls
           ran = played
           played.run
 
@@ -102,7 +105,8 @@ module Roguelike
     #
     # There is no loop around it. A recorded run plays once, and somebody who
     # wants it again runs the command again.
-    def self.view(viewer : Replay::Viewer, flicker : Bool? = nil) : Session?
+    def self.view(viewer : Replay::Viewer, flicker : Bool? = nil,
+                  startup_controls : Bool = false) : Session?
       size = TermBuf::SizeDetector.detect
 
       unless Ui::Screen.fits? size.columns, size.rows
@@ -120,7 +124,7 @@ module Roguelike
         options = display_preferences
         playing_flicker = resolve_flicker(options, flicker)
         played = new terminal, Rng.for(viewer.game.world.seed), playing_flicker,
-          viewer: viewer, mouse: options.mouse?
+          viewer: viewer, mouse: options.mouse?, startup_controls: startup_controls
         ran = played
         played.run
       end
@@ -176,6 +180,9 @@ module Roguelike
     # The list of keys that work here. `F1` and `?` show it.
     getter help : Ui::Help
 
+    # Whether startup was canceled at the scheme chooser.
+    getter? startup_canceled : Bool = false
+
     # The most columns and rows the game draws in.
     getter size_cap : SizeCap
 
@@ -197,6 +204,12 @@ module Roguelike
     # is armed.
     @wavering : UInt64? = nil
 
+    private property control_setup : Ui::ControlSchemeSetup? = nil
+
+    private property bound_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
+
+    private property key_installer : Ui::Keys::Installer = Ui::Keys::Installer.new
+
     def initialize(@terminal : TermBuf::Terminal, @rng : Rng,
                    flicker : Bool = true, generate : Bool = true,
                    console : Bool = false, store : Save::Store? = nil,
@@ -205,7 +218,9 @@ module Roguelike
                    news : Array(WhatsNew::Section) = [] of WhatsNew::Section,
                    @size_cap : SizeCap = SizeCap.new,
                    tester_root : Path? = nil,
-                   mouse : Bool = true)
+                   mouse : Bool = true,
+                   startup_controls : Bool = false,
+                   after_controls : Proc(Nil)? = nil)
       bounds = drawn_in @terminal.size
 
       @play = Ui::Play.new Session.starting(viewer, @rng, generate), console
@@ -243,10 +258,22 @@ module Roguelike
 
       @size_cap.on_change = -> { sized @terminal.size }
       @play.console.try &.console.size_cap = @size_cap
-      Ui::Keys.install(@app, @help, @play, -> { self.mousing = !mousing?; nil }) { @play.confirm_quit }
+      Ui::Keys.install(@app, @help, @play, -> { self.mousing = !mousing?; nil },
+        kitty_keyboard: kitty_keyboard?, installer: @key_installer) { @play.confirm_quit }
+      @bound_scheme = @play.control_scheme
+      @play.on_help = -> do
+        @help.on_close = -> { @play.modern_utility_closed; nil }
+        @help.open @app
+        nil
+      end
+      @play.on_mouse = -> { self.mousing = !mousing?; nil }
 
       self.mousing = mouse
-      @play.on_options = ->(options : Options) { options.apply self; nil }
+      @play.on_options = ->(options : Options) do
+        options.apply self
+        rebind_controls(options)
+        nil
+      end
 
       # The window reports when it gains and loses the focus. `Terminal#close`
       # turns the reports off again.
@@ -260,20 +287,64 @@ module Roguelike
       self.flickering = flicker
 
       # A recorded run is already under way. It asks nobody who is playing.
-      return if viewer
+      # The scheme choice is a UI preference, so it may precede replay viewing.
+      launch = -> do
+        unless viewer
+          after_controls.try &.call
 
-      # `--character` says who is playing, so the title screen and the name
-      # question are both answered already.
-      begin_play = -> do
-        character ? @play.play_as(character) : @play.show_title
+          begin_play = -> do
+            character ? @play.play_as(character) : @play.show_title
+            nil
+          end
+
+          if tester_root
+            @play.ask_the_tester tester_root, begin_play
+          else
+            begin_play.call
+          end
+        end
         nil
       end
 
-      if tester_root
-        @play.ask_the_tester tester_root, begin_play
+      options = Options.current || Options.read(Submit.root)
+      if startup_controls && Ui::ControlSchemeSetup.needed?(options)
+        setup = Ui::ControlSchemeSetup.new
+        @control_setup = setup
+        setup.on_change = ->(changed : Options) { rebind_controls(changed); nil }
+        setup.show @app, options do |result|
+          if result.accepted?
+            if warning = result.error
+              @play.report_warning warning
+            end
+            launch.call
+          else
+            @startup_canceled = true
+            @play.abort_startup
+          end
+        end
       else
-        begin_play.call
+        launch.call
       end
+    end
+
+    # Whether the terminal exposes and currently uses kitty's modifier-aware
+    # keyboard mode.
+    private def kitty_keyboard? : Bool
+      @terminal.capabilities.includes?(TermBuf::Capability::KittyKeyboard) &&
+        @terminal.input.decoder.kitty_keyboard?
+    end
+
+    # Replaces the owned binding sets when the selected profile changes.
+    private def rebind_controls(options : Options) : Nil
+      wanted = options.effective_control_scheme
+      return if wanted == @bound_scheme
+
+      @play.controls_changed
+      Ui::Keys.install(@app, @help, @play,
+        -> { self.mousing = !mousing?; nil }, kitty_keyboard: kitty_keyboard?,
+        installer: @key_installer) { @play.confirm_quit }
+      @play.options_screen.rebind_controls @app
+      @bound_scheme = wanted
     end
 
     # Whether the flames waver.
@@ -432,6 +503,7 @@ module Roguelike
       @play.fit bounds.width, bounds.height
       @cursor.region.bounds = bounds
       @help.screen_rows = bounds.height
+      @control_setup.try(&.picker.refit(bounds))
 
       # The square the pointer was over has moved.
       tell @play.pointer_away

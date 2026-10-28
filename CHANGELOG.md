@@ -31,6 +31,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   bar color and the mouse change while you watch. The update check and sending runs take effect
   at the next start. A setting a flag overrode for this run says so, and changing it on the
   screen keeps your choice.
+* Modern controls are available beside the traditional scheme. The first interactive launch
+  offers the choice, and Options switches schemes live. Modern movement uses `WASD` with `Q`,
+  `E`, `Z` and `X` for diagonals; `r` opens the action catalog, `f` opens available actions, and
+  `g` picks up items. `.` waits. `F2` opens the catalog in either scheme. Space pages messages;
+  `Shift+Space` waits only when kitty keyboard support is active.
 * The game reads its colors from `theme.json` in its state directory when that file exists. The
   file holds one color per line, written as `#rrggbb`. Without the file, or for a color the file
   leaves out, the game uses its own colors.
@@ -43,6 +48,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Action menus list Rest before Wait, and Pick up first in Items. Help keeps Application,
+  Panels and Movement at the top before the focused panel's section.
 * The equipment and pack lists on the left show an item's blessing with the same marks as the
   inventory menu, in place of the words "bls" and "crs". An uncursed item you know about now has
   its mark there too.
@@ -52,6 +59,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Every item menu includes its equipment icon and full stack count or singular article,
+  including the Equip, Remove, Drop, Throw and Apply pickers.
+* The modern play-again screen uses A/D or Left/Right to select its horizontal choices.
+* Pressing a staircase key twice follows its route, just like clicking the staircase twice.
+  Keyboard and mouse share the same route preview, which fades or can be canceled with Escape.
 * Explore is offered only when it can reach something to see or collect.
 * Pausing or interrupting playback, walking, or resting cancels its pending step. Restarting keeps
   one steady pace; autoplay survives saved-pause rewinds, and camera glides do not accelerate
@@ -74,6 +86,16 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Incomplete replay or required-save uploads stay out of the send queue, and a failed final-save
   update leaves the earlier parcel intact.
 * Replay viewing now uses your saved theme and display preferences.
+* Canceling a modern identify or repair follow-up returns to the action menu. A repair scroll stays
+  unread until you choose an item.
+* Modern inventory groups show the full perceived quantity and details for the highlighted item.
+* Apply choices identify the doorway they use, and only spike the selected doorway.
+* Closing a modern catalog utility returns to the catalog and its selection. Color Theme opens
+  directly from the catalog.
+* In modern forms, `f` activates the focused row without stealing text input. The theme editor
+  offers a selectable reset for each color.
+* End-screen choices remain visible at 40×16, with an indicator when summary lines are omitted.
+* Clicking a carried item in the sidebar opens its modern contextual action menu.
 
 ## [0.6.0] - 2026-10-18
 

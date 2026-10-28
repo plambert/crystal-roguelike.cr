@@ -57,12 +57,21 @@ module Roguelike::Ui
     # What is lying on the square.
     getter litter : Widgets::Label
 
+    # The selected profile controls the empty readout hint.
+    getter control_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
+
+    def control_scheme=(scheme : Options::ControlScheme) : Options::ControlScheme
+      @control_scheme = scheme
+      @what.text = empty_hint if @where.text.empty?
+      scheme
+    end
+
     # What a shot at the square would do. Blank when nothing is being aimed.
     getter aim : Widgets::Label
 
     def initialize
       @where = Widgets::Label.new ""
-      @what = Widgets::Label.new NOTHING
+      @what = Widgets::Label.new empty_hint
       @detail = Widgets::Label.new ""
       @doing = Widgets::Label.new ""
       @doing.hidden = true
@@ -257,7 +266,7 @@ module Roguelike::Ui
       # An empty label still takes a row. A blank row under the rule reads as
       # something missing. A hidden label takes no row.
       @where.hidden = true
-      @what.text = NOTHING
+      @what.text = empty_hint
       @what.style = nil
       @detail.text = ""
       @doing.text = ""
@@ -267,6 +276,14 @@ module Roguelike::Ui
       @litter.text = ""
       @litter.hidden = true
       self.aiming = nil
+    end
+
+    private def empty_hint : String
+      if @control_scheme.modern?
+        "Point at the map, or choose Examine from the action catalog."
+      else
+        NOTHING
+      end
     end
   end
 end

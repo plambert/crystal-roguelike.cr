@@ -86,7 +86,8 @@ Spectator.describe Roguelike::Options do
       Options.new.write root
 
       expect(written(root).as_h.keys).to contain_exactly(
-        "motion", "flicker", "bar_color", "mouse", "update_check", "autosubmit")
+        "motion", "flicker", "bar_color", "mouse", "control_scheme",
+        "update_check", "autosubmit")
     end
   end
 

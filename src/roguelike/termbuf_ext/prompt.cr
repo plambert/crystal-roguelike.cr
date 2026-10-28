@@ -1,4 +1,5 @@
 require "termbuf-widgets"
+require "./navigation"
 
 # Extraction candidate: `TermBuf::Widgets::Prompt`, for termbuf-widgets.cr.
 #
@@ -32,6 +33,9 @@ module TermBuf::Widgets
   # behind it answers a key, because the overlay pushes a focus scope and a key
   # nothing in the scope claims stops at the prompt.
   class Prompt < Overlay
+    # A named choice that answers with its existing character value.
+    record Choice, key : Char, label : String, enabled : Bool = true
+
     # The question. Empty while nobody is asking.
     getter question : String = ""
 
@@ -40,6 +44,9 @@ module TermBuf::Widgets
 
     # The key `Enter` answers with. `nil` when `Enter` answers nothing.
     getter default : Char?
+
+    # The navigation contract used for named choices.
+    getter navigation : Navigation = Navigation.new
 
     # What runs when a key answers.
     #
@@ -50,32 +57,43 @@ module TermBuf::Widgets
     # The row the question is drawn on.
     getter line : Widgets::Label
 
+    private getter offered_widget : Widgets::Label
+
+    private getter choices : Array(Choice) = [] of Choice
+    private property choice_index : Int32 = 0
+    private property choice_mode : Bool = false
+
     # What the offered keys are drawn in.
     property keys_style : Style = Style::DEFAULT.bold
 
     def initialize(z : Int32 = Z::DIALOG, style : Style? = nil)
       @line = Label.new ""
-      @offered = Label.new ""
-      @offered.style = @keys_style
+      @offered_widget = Label.new ""
+      @offered_widget.style = @keys_style
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
 
-      @direction = Layout::Direction::Row
-      @gap = 1
+      classic_layout
       @padding = Layout::Padding.new 0, 2, 0, 2
-      @width = Layout::Sizing.fit(min: 20)
-      @height = Layout::Sizing.fit
       @border = Border.rounded
       @style = style
       @floating = Layout::Floating.on nil, Layout::AttachPoint::Center,
         Layout::AttachPoint::Center, z: z
 
-      add @line, @offered
+      add @line, @offered_widget
     end
 
     # Whether a question is up.
     def asking? : Bool
       open?
+    end
+
+    # Keeps a named confirmation inside a resized screen.
+    def refit(screen : Rect) : Nil
+      return unless asking? && @choice_mode
+
+      named_choice_layout screen
+      invalidate_layout
     end
 
     # The keyboard lands here while a question is up.
@@ -98,14 +116,48 @@ module TermBuf::Widgets
         raise ArgumentError.new "default #{default.inspect} is not one of #{keys.inspect}"
       end
 
+      classic_layout
       @question = question
       @keys = keys
       @default = default
+      @choices = [] of Choice
+      @choice_mode = false
+      @navigation = Navigation.new
 
       @line.text = question
-      @offered.text = "[#{offered}]"
-      @offered.style = @keys_style
-      self.keymap = answers
+      @offered_widget.text = "[#{offered}]"
+      @offered_widget.style = @keys_style
+      install_answers answers
+
+      open app
+    end
+
+    # Asks *question* with named choices and injected row navigation.
+    #
+    # *default* selects the initial choice and is still returned to
+    # `#on_answer` when that choice is activated. It is required so the caller
+    # chooses the safe initial answer explicitly. Escape always returns `nil`.
+    def ask(app : App, question : String, choices : Enumerable(Choice),
+            default : Char,
+            navigation : Navigation = Navigation.selectable) : Nil
+      @choices = choices.to_a
+      raise ArgumentError.new "a prompt needs at least one choice" if @choices.empty?
+      unless @choices.any? { |choice| choice.key == default && choice.enabled }
+        raise ArgumentError.new "default #{default.inspect} is not an enabled choice"
+      end
+
+      @question = question
+      @keys = @choices.map(&.key).join
+      @default = default
+      @navigation = navigation
+      @choice_mode = true
+      @choice_index = @choices.index { |choice| choice.key == default } || 0
+
+      named_choice_layout app.tree.screen
+      @line.text = question
+      update_choices
+      @offered_widget.style = @keys_style
+      install_answers choice_answers
 
       open app
     end
@@ -122,6 +174,8 @@ module TermBuf::Widgets
     # The convention is an upper case letter for the default answer. `[yN]`
     # says that `n` happens on `Enter`.
     def offered : String
+      return named_offered if @choice_mode
+
       chosen = @default
       return @keys unless chosen
 
@@ -152,6 +206,96 @@ module TermBuf::Widgets
       map
     end
 
+    # The bindings a named-choice question answers.
+    private def choice_answers : Bindings
+      map = Bindings.new
+
+      @navigation.previous_row.each do |key|
+        map.bind key, "the choice before",
+          ->(_context : Context) { move_choice(-1); nil }
+      end
+      @navigation.next_row.each do |key|
+        map.bind key, "the choice after",
+          ->(_context : Context) { move_choice(1); nil }
+      end
+      @navigation.activate.each do |key|
+        map.bind key, "choose the highlighted answer",
+          ->(_context : Context) { choose_highlighted; nil }
+      end
+      @navigation.cancel.each do |key|
+        map.bind key, "leave the question unanswered",
+          ->(_context : Context) { finish nil; nil }
+      end
+
+      map
+    end
+
+    # Replaces both the widget and its active focus-scope bindings.
+    private def install_answers(bindings : Bindings) : Nil
+      self.keymap = bindings
+      @scope.try &.keymap = bindings
+    end
+
+    # Gives named choices their own wrapped row under the question.
+    private def named_choice_layout(screen : Rect) : Nil
+      maximum_width = Math.max screen.width - 2, 1
+      minimum_width = Math.min 20, maximum_width
+
+      @direction = Layout::Direction::Column
+      @gap = 1
+      @width = Layout::Sizing.fit min: minimum_width, max: maximum_width
+      @height = Layout::Sizing.fit max: Math.max(screen.height, 1)
+      @line.width = Layout::Sizing.fit
+      @line.height = Layout::Sizing.fit max: Math.max(screen.height - 4, 1)
+      @offered_widget.width = Layout::Sizing.fit
+      @offered_widget.height = Layout::Sizing.fit
+    end
+
+    # Restores the original one-line prompt layout.
+    private def classic_layout : Nil
+      @direction = Layout::Direction::Row
+      @gap = 1
+      @width = Layout::Sizing.fit min: 20
+      @height = Layout::Sizing.fit
+      @line.width = Layout::Sizing.fit
+      @line.height = Layout::Sizing.fit
+      @offered_widget.width = Layout::Sizing.fit
+      @offered_widget.height = Layout::Sizing.fit
+    end
+
+    # Moves to the next enabled choice in *direction*.
+    private def move_choice(direction : Int32) : Nil
+      index = @choice_index + direction
+      while index >= 0 && index < @choices.size
+        if @choices[index].enabled
+          @choice_index = index
+          update_choices
+          invalidate_layout
+          return
+        end
+        index += direction
+      end
+    end
+
+    # Answers with the highlighted choice when it is enabled.
+    private def choose_highlighted : Nil
+      choice = @choices[@choice_index]?
+      finish choice.key if choice && choice.enabled
+    end
+
+    # Updates the named choices in the prompt's offered line.
+    private def update_choices : Nil
+      @offered_widget.text = named_offered
+    end
+
+    # The named choices, with the selected one bracketed.
+    private def named_offered : String
+      @choices.map_with_index do |choice, index|
+        label = choice.enabled ? choice.label : "#{choice.label} (unavailable)"
+        index == @choice_index ? "[ #{label} ]" : label
+      end.join("   ")
+    end
+
     # Takes the question down. Runs `#on_answer` with *key*.
     #
     # The keymap goes with it. A closed prompt that kept its bindings would
@@ -161,6 +305,8 @@ module TermBuf::Widgets
       @question = ""
       @keys = ""
       @default = nil
+      @choices = [] of Choice
+      @choice_mode = false
       self.keymap = nil
 
       close
