@@ -599,6 +599,10 @@ module Roguelike::Ui
     def show_title : Nil
       return show_modern_title if modern_controls?
 
+      clear_modern_menu
+      @selection_menu.navigation = Widgets::Navigation.new
+      @menu.on_choose_index = nil
+      @menu.on_highlight_index = nil
       held = saved
       @carrying = {} of Char => String
 

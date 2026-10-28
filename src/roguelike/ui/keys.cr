@@ -203,7 +203,7 @@ module Roguelike::Ui
       notes = [
         {screen.modern_controls? ? "W S Up Down" : "Up Down", "the row above or below"},
         {"Tab Shift+Tab", "the next or the previous row"},
-        {"f Space Enter", "activate a row, turn a toggle, or take the next choice"},
+        {screen.modern_controls? ? "f Space Enter" : "Space Enter", "activate a row, turn a toggle, or take the next choice"},
         {screen.modern_controls? ? "A D Left Right" : "Left Right", "the choice before or after, or step a number"},
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},
@@ -253,7 +253,7 @@ module Roguelike::Ui
       notes = [
         {editor.modern_controls? ? "W S Up Down" : "Up Down", "the row above or below"},
         {"Tab Shift+Tab", "the next or the previous row"},
-        {"f Enter Space", "choose a color, or activate a reset action"},
+        {editor.modern_controls? ? "f Enter Space" : "Enter Space", "choose a color, or activate a reset action"},
         {editor.modern_controls? ? "A D" : "H L", "the first row of the group above or below"},
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},

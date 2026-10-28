@@ -226,4 +226,41 @@ Spectator.describe "modern controls reviewed interaction flows" do
     run.press "f"
     expect(run.play.finished?).to be_true
   end
+
+  it "restores traditional title shortcuts after using the shared catalog" do
+    chosen = options
+    chosen.control_scheme = Options::ControlScheme::Traditional
+    run = Playing.open
+    run.press "F2", "Escape"
+    run.play.show_title
+    run.press "a"
+
+    expect(run.entry.asking?).to be_true
+    expect(run.menu.showing?).to be_false
+    expect(run.game.turn).to eq 0
+  end
+
+  it "keeps empty-target feedback readable at 40 columns" do
+    options
+    floor = Playing.daylight Roguelike::Floor.parse("compact", ["#####", "#...#", "#...#", "#####"])
+    game = Game.new Roguelike::World.new(Playing::SEED, {floor.id => floor}),
+      Roguelike::Player.new(floor.id, 2, 1)
+    run = Playing.open game, 40, 16
+    choose_command run, "Read a scroll"
+
+    expect(run.text).to contain "You have nothing to read."
+    expect(run.text).to contain "Escape goes back."
+    expect(run.turn).to eq 0
+  end
+
+  it "returns from catalog inventory to the catalog that opened it" do
+    run = run_with [Item.new(Kind::Dagger)]
+    choose_command run, "Inventory"
+    expect(run.menu.title).to eq "Inventory"
+    run.press "Escape"
+
+    expect(run.menu.showing?).to be_true
+    expect(run.menu.title).to eq "Action catalog"
+    expect(run.turn).to eq 0
+  end
 end

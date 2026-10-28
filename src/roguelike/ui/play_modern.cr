@@ -213,6 +213,7 @@ module Roguelike::Ui
                                      selected_slot : Slot? = nil) : Nil
       @modern_mode = kind
       @selection_menu.navigation = Widgets::Navigation.selectable
+      @menu.column_margin = 1
       @modern_item_id = selected_item_id
       context = command_context(selected_item_id, selected_slot)
       metadata = if kind.available? || kind.item_actions?
@@ -332,9 +333,11 @@ module Roguelike::Ui
       in .walk?, .pan_map?
         push_modern_frame
         show_modern_directions command
-      in .travel?    then travel
-      in .examine?   then toggle_examine
-      in .inventory? then show_modern_inventory
+      in .travel?  then travel
+      in .examine? then toggle_examine
+      in .inventory?
+        push_modern_frame
+        show_modern_inventory
       in .fire_nearest?
         if status.available?
           fire_at_nearest
@@ -404,6 +407,7 @@ module Roguelike::Ui
                                     reason : String? = nil) : Nil
       @modern_command = command
       @modern_mode = ModernMenuKind::Targets
+      @menu.column_margin = targets.any?(&.item_id) ? MENU_MARGIN : 1
       directions = !targets.empty? && targets.all? { |target| !target.direction.nil? }
       @selection_menu.navigation = directions ? direction_navigation : Widgets::Navigation.selectable
       rows = targets.map do |target|
@@ -411,13 +415,32 @@ module Roguelike::Ui
         value_entry(target_choice(target), target_label(command, target),
           shortcut: direction.try { |found| direction_key(found) })
       end
-      rows << value_entry(ModernChoice.new(ModernChoiceKind::Empty),
-        "#{reason || "No usable target."} Escape goes back.",
-        enabled: false) if rows.empty?
+      if rows.empty?
+        empty_target_lines(reason || "No usable target.").each do |line|
+          rows << value_entry(ModernChoice.new(ModernChoiceKind::Empty), line, enabled: false)
+        end
+        rows << value_entry(ModernChoice.new(ModernChoiceKind::Empty), "Escape goes back.", enabled: false)
+      end
       @selection_menu.on_choose = ->(choice : ModernChoice) { choose_modern_choice choice }
       @selection_menu.on_back = -> { back_modern_menu; nil }
       @selection_menu.on_highlight = ->(choice : ModernChoice?) { show_modern_detail choice; nil }
       @selection_menu.show application, "#{command_label(command)} — choose a target", rows
+    end
+
+    private def empty_target_lines(reason : String) : Array(String)
+      width = Math.max @columns - 12, 8
+      lines = [] of String
+      current = ""
+      reason.split.each do |word|
+        if !current.empty? && current.size + word.size + 1 > width
+          lines << current
+          current = word
+        else
+          current += (current.empty? ? "" : " ") + word
+        end
+      end
+      lines << current unless current.empty?
+      lines
     end
 
     private def show_empty_target(command : Command, reason : String) : Nil
@@ -468,6 +491,7 @@ module Roguelike::Ui
     private def show_modern_directions(command : Command) : Nil
       @modern_command = command
       @modern_mode = ModernMenuKind::Directions
+      @menu.column_margin = 1
       @selection_menu.navigation = direction_navigation
       rows = Direction.values.map do |direction|
         value_entry ModernChoice.new(ModernChoiceKind::Direction, direction: direction),
@@ -739,6 +763,7 @@ module Roguelike::Ui
     private def show_inventory_values : Nil
       wanted_item = @modern_inventory_item
       @modern_mode = ModernMenuKind::Inventory
+      @menu.column_margin = MENU_MARGIN
       @selection_menu.navigation = Widgets::Navigation.selectable
       @modern_inventory_page = @modern_inventory_page.clamp(0, PACK_CLASSES.size)
       held = @game.player.inventory.entries
@@ -837,6 +862,7 @@ module Roguelike::Ui
       push_modern_frame unless @modern_mode.item_actions? || @modern_mode.none?
       @modern_inventory_item = item_id
       @modern_mode = ModernMenuKind::ItemActions
+      @menu.column_margin = MENU_MARGIN
       @selection_menu.navigation = Widgets::Navigation.selectable
       @modern_item_id = item_id
       context = command_context(item_id)
@@ -866,6 +892,7 @@ module Roguelike::Ui
         enabled: false) if rows.empty?
       @modern_stack.clear
       @modern_mode = ModernMenuKind::ItemActions
+      @menu.column_margin = MENU_MARGIN
       @selection_menu.navigation = Widgets::Navigation.selectable
       @selection_menu.on_choose = ->(choice : ModernChoice) { choose_modern_choice choice }
       @selection_menu.on_back = -> { back_modern_menu; nil }

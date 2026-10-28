@@ -42,8 +42,8 @@ module Roguelike::Ui
     # The key `Enter` answers with. `nil` when `Enter` answers nothing.
     getter default : Char? = nil
 
-    @named_choices = [] of Widgets::Prompt::Choice
-    @choice_index : Int32 = 0
+    private property named_choices : Array(Widgets::Prompt::Choice) = [] of Widgets::Prompt::Choice
+    private property choice_index : Int32 = 0
     private property named_lines : Array(String) = [] of String
 
     # What runs when a key answers. The argument is the key, or `nil` when
