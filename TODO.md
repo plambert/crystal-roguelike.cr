@@ -208,6 +208,12 @@ The scroll of darkness makes a burst of permanent magical darkness centered on t
 radius 3. It follows the light and darkness rules above. It destroys permanent light under it,
 suppresses temporary light, and blocks light and sight like a wall.
 
+### Pets
+
+The character can have a pet, a creature that follows the character from floor to floor and fights
+on the character's side. How a player gets one, what kinds there are, how a pet is told what to do,
+and what happens when it dies are to be settled when this is built.
+
 ### Where the game is drifting
 
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
