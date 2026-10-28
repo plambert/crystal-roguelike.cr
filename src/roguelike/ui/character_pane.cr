@@ -49,6 +49,9 @@ module Roguelike::Ui
     PACK_GLYPH = 3
     PACK_NAME  = 5
 
+    # Whether the pack omits its traditional item-letter gutter.
+    property? letterless : Bool = false
+
     # What the bar for the creature being fought is labeled.
     #
     # Two columns, the way `HP`, `MP` and `XP` are. The creature's name will
@@ -330,7 +333,7 @@ module Roguelike::Ui
         look = Palette[item]
         row = @pack[index]
         row.hidden = false
-        row.put 0, letter.to_s, Palette.faint
+        row.put 0, letter.to_s, Palette.faint unless letterless?
         marked row, PACK_MARK, item
         row.put PACK_GLYPH, look.glyph.to_s, look.style
         row.put PACK_NAME, Naming.short(game.lore, item), look.style

@@ -66,8 +66,12 @@ module Roguelike
         # The keys that move the window.
         def self.scrolling(list : List) : Widgets::Bindings
           Widgets::Bindings.build do |map|
-            map.bind TermBuf::Key.parse("Up"), "a row back", ->(_context : Widgets::Context) { list.scroll_by dy: -1 }
-            map.bind TermBuf::Key.parse("Down"), "a row on", ->(_context : Widgets::Context) { list.scroll_by dy: 1 }
+            {"Up", "w"}.each do |key|
+              map.bind TermBuf::Key.parse(key), "a row back", ->(_context : Widgets::Context) { list.scroll_by dy: -1 }
+            end
+            {"Down", "s"}.each do |key|
+              map.bind TermBuf::Key.parse(key), "a row on", ->(_context : Widgets::Context) { list.scroll_by dy: 1 }
+            end
             map.bind TermBuf::Key.parse("PageUp"), "a window back", ->(_context : Widgets::Context) { list.scroll_by dy: -list.page }
             map.bind TermBuf::Key.parse("PageDown"), "a window on", ->(_context : Widgets::Context) { list.scroll_by dy: list.page }
             map.bind TermBuf::Key.parse("Space"), "half a window on", ->(_context : Widgets::Context) { list.scroll_by dy: list.half }
@@ -121,6 +125,9 @@ module Roguelike
       # Answers the title of the section to show first, or `nil` to keep the
       # usual order. It is asked every time the dialog opens.
       property first : Proc(String?)? = nil
+
+      # Runs after the dialog closes.
+      property on_close : Proc(Nil)? = nil
 
       # How many rows the screen has. The owner sets it, and again on a resize.
       property screen_rows : Int32 = 24
@@ -223,6 +230,16 @@ module Roguelike
         end
 
         wrap_descriptions
+      end
+
+      def close_with(result : Int32?) : Nil
+        was_open = open?
+        super
+        return unless was_open
+
+        after = @on_close
+        @on_close = nil
+        after.try &.call
       end
 
       # Splits every description wider than `text_width` over several rows.

@@ -12,6 +12,18 @@ module Roguelike::Ui
   # wrapping. It is opened with `HistoryPane::TOGGLE`, scrolled with the
   # arrows, the page keys and the wheel, and closed with `Escape`.
   class HistoryPane < Widgets::Overlay
+    getter control_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
+
+    property on_close : Proc(Nil)? = nil
+
+    def control_scheme=(scheme : Options::ControlScheme) : Options::ControlScheme
+      @control_scheme = scheme
+      bindings = scrolling
+      self.keymap = bindings
+      @scope.try &.keymap = bindings
+      scheme
+    end
+
     # The key that opens the box, and one of the keys that closes it.
     TOGGLE = "Ctrl+P"
 
@@ -107,6 +119,9 @@ module Roguelike::Ui
       return unless open?
 
       close
+      after = @on_close
+      @on_close = nil
+      after.try &.call
     end
 
     # Puts it up if it is down, and down if it is up.
@@ -174,12 +189,14 @@ module Roguelike::Ui
     # the key that opened the box all close it.
     private def scrolling : Widgets::Bindings
       Widgets::Bindings.build do |map|
-        {"Up", "k"}.each do |key|
+        previous = @control_scheme.modern? ? {"Up", "w"} : {"Up", "k"}
+        previous.each do |key|
           map.bind TermBuf::Key.parse(key), "a line back",
             ->(_context : Widgets::Context) { scroll_by -1; nil }
         end
 
-        {"Down", "j"}.each do |key|
+        following = @control_scheme.modern? ? {"Down", "s"} : {"Down", "j"}
+        following.each do |key|
           map.bind TermBuf::Key.parse(key), "a line on",
             ->(_context : Widgets::Context) { scroll_by 1; nil }
         end
@@ -199,7 +216,8 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("End"), "the newest message",
           ->(_context : Widgets::Context) { scroll_to_end true; nil }
 
-        {"Escape", "q", TOGGLE}.each do |key|
+        closing = @control_scheme.modern? ? {"Escape", TOGGLE} : {"Escape", "q", TOGGLE}
+        closing.each do |key|
           map.bind TermBuf::Key.parse(key), "close the messages",
             ->(_context : Widgets::Context) { hide; nil }
         end

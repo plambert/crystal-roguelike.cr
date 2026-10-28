@@ -204,9 +204,10 @@ module TermBuf::Widgets
     # The bindings and row presentation used by this menu.
     getter navigation : Navigation = Navigation.new
 
-    # Which row is highlighted, or `nil` for an empty list.
+    # Which enabled row is highlighted, or `nil` when none can be chosen.
     def selected_index : Int32?
-      @list.current ? @list.selected : nil
+      current = @list.current
+      current.enabled ? @list.selected : nil if current
     end
 
     # Moves the highlight to *index* and brings it into view.
@@ -452,7 +453,7 @@ module TermBuf::Widgets
       place
 
       @list.on_draw = ->(view : View, _index : Int32, entry : Entry, chosen : Bool, lit : Bool) do
-        draw_entry view, entry, chosen && lit
+        draw_entry view, entry, chosen && lit && entry.enabled
         nil
       end
 

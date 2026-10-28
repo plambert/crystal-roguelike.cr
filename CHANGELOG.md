@@ -31,6 +31,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   bar color and the mouse change while you watch. The update check and sending runs take effect
   at the next start. A setting a flag overrode for this run says so, and changing it on the
   screen keeps your choice.
+* Modern controls are available beside the traditional scheme. The first interactive launch
+  offers the choice, and Options switches schemes live. Modern movement uses `WASD` with `Q`,
+  `E`, `Z` and `X` for diagonals; `r` opens the action catalog, `f` opens available actions, and
+  `.` waits. `F2` opens the catalog in either scheme. Space pages messages; `Shift+Space` waits
+  only when kitty keyboard support is active.
 * The game reads its colors from `theme.json` in its state directory when that file exists. The
   file holds one color per line, written as `#rrggbb`. Without the file, or for a color the file
   leaves out, the game uses its own colors.
@@ -76,6 +81,16 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Incomplete replay or required-save uploads stay out of the send queue, and a failed final-save
   update leaves the earlier parcel intact.
 * Replay viewing now uses your saved theme and display preferences.
+* Canceling a modern identify or repair follow-up returns to the action menu. A repair scroll stays
+  unread until you choose an item.
+* Modern inventory groups show the full perceived quantity and details for the highlighted item.
+* Apply choices identify the doorway they use, and only spike the selected doorway.
+* Closing a modern catalog utility returns to the catalog and its selection. Color Theme opens
+  directly from the catalog.
+* In modern forms, `f` activates the focused row without stealing text input. The theme editor
+  offers a selectable reset for each color.
+* End-screen choices remain visible at 40×16, with an indicator when summary lines are omitted.
+* Clicking a carried item in the sidebar opens its modern contextual action menu.
 
 ## [0.6.0] - 2026-10-18
 

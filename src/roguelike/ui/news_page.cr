@@ -14,9 +14,6 @@ module Roguelike
       # The sections shown, newest first. They are read when the dialog opens.
       property news : Array(WhatsNew::Section) = [] of WhatsNew::Section
 
-      # Runs after the dialog is closed.
-      property on_close : Proc(Nil)? = nil
-
       def initialize
         super 0_u64
         self.title = "what's new"
@@ -29,12 +26,6 @@ module Roguelike
         WhatsNew.lines(@news, WIDTH).each do |line|
           @rows << (line.heading ? Row.new(line.text, header: true) : Row.new(line.text))
         end
-      end
-
-      def close_with(result : Int32?) : Nil
-        was_open = open?
-        super
-        @on_close.try &.call if was_open
       end
     end
   end

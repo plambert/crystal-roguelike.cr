@@ -262,7 +262,11 @@ module Playing
                 store : Roguelike::Save::Store? = nil,
                 news : Array(Roguelike::WhatsNew::Section) = [] of Roguelike::WhatsNew::Section,
                 viewer : Roguelike::Replay::Viewer? = nil,
-                motion : Bool = false) : Run
+                motion : Bool = false,
+                startup_controls : Bool = false,
+                control_options : Roguelike::Options? = nil,
+                options_root : Path? = nil,
+                kitty_keyboard : Bool = false) : Run
     # A spec that builds its own run with `Game.new` has not numbered what is
     # in it. `Game.start`, `Game.dug` and a save read back all call `#enroll`,
     # and a hand-built floor has been through none of the three. `Ui::Play`
@@ -287,9 +291,23 @@ module Playing
     play.app = session.app
     told = [] of String
 
-    session.app.keymap = session.app.keymap
-      .merge(play.bindings)
-      .merge(Roguelike::Ui::Keys.application { play.confirm_quit })
+    help = Roguelike::Ui::Help.new wanted.world.seed
+    installer = Roguelike::Ui::Keys::Installer.new
+    Roguelike::Ui::Keys.install(session.app, help, play,
+      kitty_keyboard: kitty_keyboard, installer: installer) { play.confirm_quit }
+    play.on_help = -> do
+      help.on_close = -> { play.modern_utility_closed; nil }
+      help.open session.app
+      nil
+    end
+    play.on_options = ->(options : Roguelike::Options) do
+      options.apply
+      play.controls_changed
+      Roguelike::Ui::Keys.install(session.app, help, play,
+        kitty_keyboard: kitty_keyboard, installer: installer) { play.confirm_quit }
+      play.options_screen.rebind_controls session.app
+      nil
+    end
     session.app.on_event = ->(event : TermBuf::Event) do
       case event
       when TermBuf::Events::Mouse
@@ -313,9 +331,56 @@ module Playing
     # same.
     session.render
     play.look_at_player
-    play.show_title if title && found.nil?
+    show_startup_controls startup_controls, control_options, options_root,
+      kitty_keyboard, title, found, play, session.app, help, installer
     session.render
 
     Run.new play, session, told
+  end
+
+  private def self.show_startup_controls(startup_controls : Bool,
+                                         control_options : Roguelike::Options?,
+                                         options_root : Path?,
+                                         kitty_keyboard : Bool,
+                                         title : Bool,
+                                         viewer : Roguelike::Replay::Viewer?,
+                                         play : Roguelike::Ui::Play,
+                                         app : TermBuf::Widgets::ObservedApp,
+                                         help : Roguelike::Ui::Help,
+                                         installer : Roguelike::Ui::Keys::Installer) : Nil
+    options = control_options || Roguelike::Options.new
+    unless startup_controls && Roguelike::Ui::ControlSchemeSetup.needed?(options)
+      play.show_title if title && viewer.nil?
+      return
+    end
+
+    Roguelike::Options.current = options
+    setup = Roguelike::Ui::ControlSchemeSetup.new(options_root || Roguelike::Submit.root)
+    setup.on_change = ->(changed : Roguelike::Options) do
+      Roguelike::Options.current = changed
+      play.controls_changed
+      Roguelike::Ui::Keys.install(app, help, play, kitty_keyboard: kitty_keyboard,
+        installer: installer) do
+        play.confirm_quit
+      end
+      nil
+    end
+    setup.show app, options do |result|
+      finish_startup_controls result, title, viewer, play
+    end
+  end
+
+  private def self.finish_startup_controls(result : Roguelike::Ui::ControlSchemeSetup::Result,
+                                           title : Bool,
+                                           viewer : Roguelike::Replay::Viewer?,
+                                           play : Roguelike::Ui::Play) : Nil
+    if result.accepted?
+      if warning = result.error
+        play.report_warning warning
+      end
+      play.show_title if title && viewer.nil?
+    else
+      play.abort_startup
+    end
   end
 end

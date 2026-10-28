@@ -7239,8 +7239,9 @@ module Roguelike
       found << Action::Explore.new if explorable?
     end
 
-    # Whether an explore has anywhere to go.
-    private def explorable? : Bool
+    # Whether an explore has anywhere to go under the current light and
+    # automatic-pickup rules.
+    def explorable? : Bool
       Explore.going? knowledge, @player.at, floor.columns, floor.rows, auto_takes, shining
     end
 
