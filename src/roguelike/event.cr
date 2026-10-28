@@ -15,8 +15,9 @@ module Roguelike
   # An event holds nothing the character cannot know. The line beside it is
   # the bound. An event may carry what its line says. It leaves out what its
   # line leaves out. A creature the character cannot see is named by neither.
-  # Exact hit points are in neither. A potion the character has not made out
-  # gives its appearance in both.
+  # A creature's exact hit points are in neither. The character's own are in
+  # `StatChanged`, since the status line shows them. A potion the character
+  # has not made out gives its appearance in both.
   #
   # An item or a creature is named by its id, which `Game#item` and
   # `Game#monster` read back. An inventory letter and a pile index are not
@@ -74,6 +75,7 @@ module Roguelike
       "restacked"      => Restacked,
       "spilled"        => Spilled,
       "split"          => Split,
+      "stat_changed"   => StatChanged,
       "stats"          => Stats,
       "status_end"     => StatusEnd,
       "status_start"   => StatusStart,
@@ -983,6 +985,66 @@ module Roguelike
       end
     end
 
+    # One of the character's numbers, moved.
+    #
+    # `Game#perform` reads the numbers when it starts, after every event it
+    # records, and once more when the action is done. It records one of these
+    # for each number that differs from the last reading. *cause* is the kind
+    # of the event just recorded, or the action's `t` when no event came
+    # after the change.
+    #
+    # *from* and *to* are an `Int32` for most stats and the dice as a string
+    # for `damage` and `ranged_damage`. The two ranged stats are `nil` unless
+    # a ranged weapon is readied with ammunition it shoots.
+    class StatChanged < Event
+      getter kind : String = "stat_changed"
+
+      # Every stat, in the order a reading holds them.
+      NAMES = {"hp", "hp_max", "experience", "level", "strength", "dexterity",
+               "constitution", "intelligence", "stealth", "gold", "ac",
+               "to_hit", "damage", "ranged_to_hit", "ranged_damage", "pace"}
+
+      alias Value = Int32 | String | Nil
+
+      getter stat : String
+
+      @[JSON::Field(key: "old")]
+      getter from : Value
+
+      @[JSON::Field(key: "new")]
+      getter to : Value
+
+      getter cause : String
+
+      def initialize(@stat : String, @from : Value, @to : Value,
+                     @cause : String)
+      end
+
+      # The numbers *player* has now, in the order of `NAMES`.
+      def self.reading(player : Player) : Array(Value)
+        ranged = Stats.ranged player
+        attributes = player.attributes
+
+        [player.hit_points, player.max_hit_points, player.experience,
+         player.level, attributes.strength, attributes.dexterity,
+         attributes.constitution, attributes.intelligence, attributes.stealth,
+         player.gold, player.armor_class, player.to_hit, player.damage.to_s,
+         ranged.try(&.[0]), ranged.try(&.[1]), player.pace.speed] of Value
+      end
+
+      # One event for each stat that differs between *before* and *after*.
+      def self.between(before : Array(Value), after : Array(Value),
+                       cause : String) : Array(StatChanged)
+        changed = [] of StatChanged
+        NAMES.each_with_index do |name, index|
+          next if before[index] == after[index]
+
+          changed << new(name, before[index], after[index], cause)
+        end
+        changed
+      end
+    end
+
     # The character's numbers, as the game works them out.
     #
     # The game does not put this in `Game#events`. `Events::Writer` writes one
@@ -1017,16 +1079,23 @@ module Roguelike
       # The numbers *player* has now.
       def self.of(player : Player) : Stats
         melee = player.damage
-        weapon = player.ranged_weapon
-        ammunition = player.quivered
-        if weapon && ammunition && ammunition.kind.ranged_weapon == weapon.kind
-          ranged = {player.to_shoot(weapon, ammunition),
-                    player.shot_damage(weapon, ammunition).to_s}
-        end
+        ranged = ranged player
 
         new player.level, player.armor_class, player.max_hit_points,
           player.to_hit, melee.to_s, melee.bonus, ranged.try(&.[0]),
           ranged.try(&.[1]), player.pace.speed, player.attributes
+      end
+
+      # The to-hit and damage dice of a shot, or `nil` unless *player* has
+      # a ranged weapon readied with ammunition it shoots.
+      def self.ranged(player : Player) : {Int32, String}?
+        weapon = player.ranged_weapon
+        ammunition = player.quivered
+        return unless weapon && ammunition
+        return unless ammunition.kind.ranged_weapon == weapon.kind
+
+        {player.to_shoot(weapon, ammunition),
+         player.shot_damage(weapon, ammunition).to_s}
       end
 
       # Whether *other* holds the same numbers, whatever caused either.

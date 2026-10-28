@@ -13,6 +13,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A haste, a slow or a blindness on you gets its own bar in the character pane, below the
   experience bar. The bar shows the effect's name and the turns it has left, empties as it wears
   off, and goes away when it ends. The three bar colors are in the theme editor.
+* The game emits a `stat_changed` event each time one of the character's stats changes. It names
+  the stat, the old and new values, and the cause. It covers hit points, maximum hit points,
+  experience, level, the five attributes, gold, armor class, to-hit, melee and ranged damage
+  dice, ranged to-hit and speed, which it names `pace`. Bots read it in the event stream and the
+  events file holds it.
 
 ### Fixed
 

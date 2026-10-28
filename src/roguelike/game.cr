@@ -441,6 +441,32 @@ module Roguelike
     private def record(event : Event) : Nil
       @events << event
       @recorder.try &.events.try &.note(event)
+      measure event.kind unless event.is_a?(Event::StatChanged)
+    end
+
+    # The character's numbers at the last reading, while `#perform` runs.
+    # `nil` outside it, so nothing else records a `Event::StatChanged`.
+    @[JSON::Field(ignore: true)]
+    @reading : Array(Event::StatChanged::Value)? = nil
+
+    # Records an `Event::StatChanged` for each number that moved since the
+    # last reading. *cause* is an event's kind, or the action whose `t`
+    # names the cause.
+    private def measure(cause : String | Action) : Nil
+      before = @reading
+      return unless before
+
+      now = Event::StatChanged.reading @player
+      return if now == before
+
+      @reading = now
+      named = cause.is_a?(Action) ? verb(cause) : cause
+      Event::StatChanged.between(before, now, named).each { |changed| record changed }
+    end
+
+    # The name *action* has in its own JSON, which is its `t`.
+    private def verb(action : Action) : String
+      JSON.parse(action.to_json)["t"]?.try(&.as_s?) || "action"
     end
 
     # Whether the run is over.
@@ -1904,7 +1930,10 @@ module Roguelike
           fight_facts(nil, creature, weapon, launcher))
 
       gained = @player.gain creature.kind.experience
-      return unless gained > 0
+      unless gained > 0
+        measure "slain"
+        return
+      end
 
       say "Welcome to level #{@player.level}.",
         Event::LevelUp.new(@player.level)
@@ -6710,11 +6739,14 @@ module Roguelike
 
       recording
       @turned = false
+      @reading = Event::StatChanged.reading @player
       before = @player.inventory.signature
       verdict = dispatched action
       restack if @player.inventory.signature != before && !over?
       clear_bearers
       drop_stale_door
+      measure action
+      @reading = nil
 
       # What the action wrote and what the world wrote in answer share one
       # round of the log. A step that picks up three things spends four
