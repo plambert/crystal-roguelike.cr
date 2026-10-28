@@ -28,6 +28,7 @@ module Roguelike::Ui
 end
 
 require "../roguelike"
+require "./ui/commands"
 require "./ui/motion"
 require "./ui/theme"
 require "./ui/palette"
