@@ -143,7 +143,7 @@ module Roguelike
     # What the starting weapon hits for, a blow and every hundred energy.
     def self.kit(seed : UInt64 = FIRST) : String
       player = Game.dug(Rng.new(seed)).player
-      cost = Costs.swing player.wielded
+      cost = player.swing
       average = player.damage.average
 
       "starting kit hits for #{average.round(2)} a blow, " \

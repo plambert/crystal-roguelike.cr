@@ -5914,6 +5914,92 @@ the creatures that want it. Beyond those:
   kit.
 * The proving ground floor file holds none of the new kinds.
 
+## Armor and pace
+
+The class of the body armor worn, `Bulk`, sets what a step costs and what is added to a melee
+blow. The cost goes on the action, not on the actor's speed. Reading, drinking, shooting and
+waiting stay at one turn. `Pace` is unchanged, so a haste or a slow reads the same through its
+accessors.
+
+| Class | Kinds | Step | Melee blow |
+| --- | --- | --- | --- |
+| None | no body armor | 90 | +0 |
+| Light | padded jacket | 95 | +0 |
+| Medium | leather armor | 100 | +0 |
+| Heavy | chain mail | 105 | +10 |
+| Very heavy | none yet, for plate | 110 | +20 |
+
+* A shield adds 10 to a melee blow and nothing to a step.
+* A cap, gloves and boots do not change the class.
+* The blow cost goes on top of the weapon's swing. Chain mail and a shield with a mace cost 145
+  a blow.
+* Leather armor is the baseline for both costs, so a character in the starting kit steps and
+  swings as before armor had a weight.
+* The table is `Costs::PACES`, one row per class.
+
+### Creatures
+
+A creature pays the same costs through the same methods, `Monster#stride` and `Monster#swing`.
+With no body armor on, it walks in its hide, `Kind#hide`, which counts for the step and adds
+nothing to a blow. Body armor it puts on counts instead of the hide.
+
+The hide is a `Bulk` with a default of `Medium`, so a kind that does not name one walks at a
+normal pace. A new kind sets it with `hide: Bulk::None` and the like at the end of its row in
+`Kinds::FACTS`.
+
+| Kind | Hide | Body armor | Base AC | Step |
+| --- | --- | --- | --- | --- |
+| Slimes, ant, jelly | medium | none | unchanged | 100 |
+| Goblin scout | medium | small leather armor, always | 0 to -2 | 100 |
+| Goblin warrior, shaman | medium | what the armor draw gives | unchanged | 95 to 105 |
+| Orc, orc archer | medium | what the armor draw gives | unchanged | 95 to 105 |
+
+The scout's leather is its `Kind#garb`, cut small, so the character cannot wear it. It rolls
+nothing, so the rest of the scout's loot is what it was. Its base AC went down by the leather's
+2, so its armor class is what it was. A goblin or an orc that draws no body armor walks at 100.
+One that draws a padded jacket walks at 95, and one in chain mail at 105.
+
+### Damage per turn
+
+`Combat.per_turn` is what the game shows as "dps": the chance to land, times the mean damage of a
+landed blow, times `Costs::TURN` over the blow's cost with the armor in it. The mean counts every
+total of the dice with `Combat::LEAST` for any below it. `Player#per_turn` reads the same to-hit,
+damage and swing a blow rolls with.
+
+* The target is the creature being fought while its bar shows. Otherwise it is
+  `Combat::REFERENCE`, armor class 2, a goblin warrior or a goblin in leather.
+* A melee weapon's detail box says "1.57 dps against AC 2", or names the creature.
+* The Scores section has a row with the walking pace and the current rate, `Walk 100%     1.57 dps`.
+* An armor's detail box gives its class and what it does to a step and a blow, as "heavy: steps
+  a twentieth slower (+5%)" and "attacks a tenth slower (+10%)".
+* Putting armor on or taking it off says what changed, as "You walk 15% slower and swing a tenth
+  slower now."
+
+### Measured
+
+`--matchup`, 2000 fights a cell, seed 5000, a level 3 character with a +1 short sword and depth 3
+loot. Win rate out of a hundred. The first column is the build before armor had a weight.
+
+| Kit | Orc before | Orc after | Orc archer before | Orc archer after |
+| --- | --- | --- | --- | --- |
+| Nothing | 52.0 | 52.7 | 34.4 | 33.7 |
+| Padded jacket | none | 58.2 | none | 38.3 |
+| Leather armor | 63.4 | 63.7 | 45.6 | 45.6 |
+| Chain mail | 75.0 | 68.1 | 59.2 | 52.1 |
+| Chain mail and shield | 85.4 | 77.8 | 73.6 | 63.0 |
+
+The heavy blow cost was chosen against this table. No value makes leather the better armor
+against an archer while chain mail stays the better one against an orc. The step costs are too
+close for an archer to gain much from a slow walker. At 10 chain mail wins against both, by less
+than it did. At 20 the two tie against both. At 30 leather wins against both.
+
+### Files
+
+`Bulk` is in `src/roguelike/item_kind.cr`. The table and the blow costs are in
+`src/roguelike/costs.cr`. The rate is in `src/roguelike/combat.cr`. `Kind#hide` and `Kind#garb`
+are in `src/roguelike/species.cr`. The specs are `spec/roguelike/armor_pace_spec.cr` and
+`spec/roguelike/damage_rate_spec.cr`.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

@@ -108,8 +108,10 @@ Spectator.describe "wielding and wearing by one key" do
 
     expect(game.don leather.id).to be_true
     expect(game.player.in_slot Slot::Body).to be leather
-    expect(game.log.lines.last(2)).to eq ["You are no longer wearing chain mail.",
-                                          "You are now wearing leather armor."]
+    expect(game.log.lines.last(2)).to eq [
+      "You are no longer wearing chain mail. You walk 15% faster and swing a tenth faster now.",
+      "You are now wearing leather armor. You walk a tenth slower now.",
+    ]
     expect(game.turn - turn).to eq 2 * (Roguelike::Costs::BODY // Roguelike::Pace::TICK)
   end
 

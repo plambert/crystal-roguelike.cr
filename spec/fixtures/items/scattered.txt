@@ -1,23 +1,21 @@
-  7,2   bow
-  4,3   arrow
-  6,4   gloves
-  5,5   short sword
-  7,5   arrow
- 37,5   scroll of identify
- 17,6   dagger
- 12,12  arrow
- 48,14  gloves
- 57,14  iron spike
-  7,16  gold piece
- 12,16  scroll of minor teleport
- 15,17  stone
- 57,18  cap
- 67,19  potion of minor healing
- 61,20  boots
- 56,21  scroll of identify
- 63,21  sling
-  7,22  scroll of identify
- 60,22  stone
- 66,22  gold piece
- 13,23  arrow
- 67,24  short sword
+ 45,4   gold piece
+ 37,5   arrow
+ 13,6   rock
+ 33,6   scroll of item detection
+ 44,7   mace
+ 46,7   potion of minor healing
+ 16,8   torch
+ 37,8   gold piece
+ 30,10  torch
+ 10,12  torch
+  7,15  rock
+ 63,15  torch
+ 12,16  potion of minor healing
+ 55,17  stone
+ 56,17  gold piece
+  8,20  dagger
+ 57,20  rock
+  8,21  stone
+  7,22  sling
+ 58,22  scroll of remove curse
+ 13,23  cap

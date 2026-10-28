@@ -6,16 +6,16 @@
  0    37              0 │
  St Dx Cn In Sl         │
  10 10 10 10 10         │
+ Walk 111%     2.29 dps │
  ▶ Equipment          1 │
- ▶ Pack               4 │
- ▼ Here   ╭─ crystal-roguelike version       · seed 20260915 ─╮
-   stairca│ ⟪ a - new character                             ⟫ │
- ▼ Seen   │   o - options                                     │
-   orc    │   Q - quit                                        │
- ▼ Look   ╰───────────────────────────────────────────────────╯
+ ▶ Pack   ╭─ crystal-roguelike version       · seed 20260915 ─╮
+ ▼ Here   │ ⟪ a - new character                             ⟫ │
+   stairca│   o - options                                     │
+ ▼ Seen   │   Q - quit                                        │
+   orc    ╰───────────────────────────────────────────────────╯
+ ▼ Look                 │
  Point at the map, or   │
  press x.               │
-                        │
                         │
                         │───────────────────────────────────────────────
                         │

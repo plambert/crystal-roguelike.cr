@@ -1,15 +1,15 @@
 1	You drop 3 uncursed iron spikes.
-4	You are no longer wearing uncursed leather armor.
-8	You are now wearing uncursed leather armor.
+4	You are no longer wearing uncursed leather armor. You walk a tenth faster now.
+8	You are now wearing uncursed leather armor. You walk a tenth slower now.
 9	You put out an uncursed torch.
 10	You drop an uncursed potion of minor healing.
 11	You drop an uncursed torch.
 13	Something is lying in the doorway.
-18	You are no longer wearing uncursed leather armor.
+18	You are no longer wearing uncursed leather armor. You walk a tenth faster now.
 21	You are no longer holding an uncursed short sword.
 22	You drop an uncursed short sword.
 22	Something is lying in the doorway.
-26	You are now wearing uncursed leather armor.
+26	You are now wearing uncursed leather armor. You walk a tenth slower now.
 28	You see an uncursed short sword here.
 29	a - an uncursed short sword
 29	Something is lying in the doorway.
@@ -21,16 +21,16 @@
 36	You see 3 uncursed iron spikes here.
 39	You close the door.
 41	You open the door.
-47	You are no longer wearing uncursed leather armor.
-51	You are now wearing uncursed leather armor.
-55	You are no longer wearing uncursed leather armor.
+47	You are no longer wearing uncursed leather armor. You walk a tenth faster now.
+51	You are now wearing uncursed leather armor. You walk a tenth slower now.
+55	You are no longer wearing uncursed leather armor. You walk a tenth faster now.
 56	You drop uncursed leather armor.
 57	a - uncursed leather armor
 62	You close the door.
 63	You open the door.
 64	You close the door.
 65	You open the door.
-68	You are now wearing uncursed leather armor.
+68	You are now wearing uncursed leather armor. You walk a tenth slower now.
 69	You see 3 uncursed iron spikes here.
 70	You see an uncursed short sword here.
 71	b - an uncursed short sword

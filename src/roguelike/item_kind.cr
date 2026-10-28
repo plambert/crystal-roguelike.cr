@@ -66,6 +66,35 @@ module Roguelike
     end
   end
 
+  # How heavy the body armor is, which sets what a step and a melee blow
+  # cost.
+  #
+  # `None` is no body armor. A cap, gloves, boots and a shield do not change
+  # the class. A creature with nothing on its body walks in its hide, which
+  # is a class of its own. The costs are in `Costs::PACES`.
+  enum Bulk
+    None
+    Light
+    Medium
+    Heavy
+    VeryHeavy
+
+    # What the class is called, for a readout.
+    def label : String
+      very_heavy? ? "very heavy" : to_s.downcase
+    end
+
+    # What one step costs in this class, in energy.
+    def step : Int32
+      Costs::PACES[self][0]
+    end
+
+    # What this class adds to one melee blow, in energy.
+    def blow : Int32
+      Costs::PACES[self][1]
+    end
+  end
+
   # How well made an item is, or how badly worn.
   #
   # A condition changes what an item does and what it is called. A damaged
@@ -142,6 +171,7 @@ module Roguelike
     damage : Dice = Dice::NONE,
     armor : Int32 = 0,
     slot : ArmorSlot? = nil,
+    bulk : Bulk = Bulk::None,
     ranged_weapon : ItemKind? = nil,
     charges : Int32 = 0,
     weight : Int32 = 10,
@@ -304,6 +334,9 @@ module Roguelike
     # Drunk to heal a little. The character starts with one.
     MinorHealingPotion
 
+    # Light body armor, quicker to walk in than leather.
+    PaddedJacket
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -337,6 +370,12 @@ module Roguelike
     # Where it is worn. `nil` for anything that is not armor.
     def slot : ArmorSlot?
       facts.slot
+    end
+
+    # How heavy it is as body armor. `None` for anything that is not body
+    # armor.
+    def bulk : Bulk
+      facts.bulk
     end
 
     # What fires it. `nil` for anything that is not ammunition.
@@ -486,12 +525,15 @@ module Roguelike
 
       ItemKind::Cap => ItemFacts.new("cap", "caps", ItemClass::Armor,
         armor: 1, slot: ArmorSlot::Head, weight: 10),
+      ItemKind::PaddedJacket => ItemFacts.new("padded jacket", "padded jackets",
+        ItemClass::Armor, armor: 1, slot: ArmorSlot::Body, bulk: Bulk::Light,
+        weight: 50),
       ItemKind::LeatherArmor => ItemFacts.new("leather armor", "suits of leather armor",
-        ItemClass::Armor, armor: 2, slot: ArmorSlot::Body, weight: 100,
-        uncountable: true),
+        ItemClass::Armor, armor: 2, slot: ArmorSlot::Body, bulk: Bulk::Medium,
+        weight: 100, uncountable: true),
       ItemKind::ChainMail => ItemFacts.new("chain mail", "suits of chain mail",
-        ItemClass::Armor, armor: 4, slot: ArmorSlot::Body, weight: 300,
-        uncountable: true),
+        ItemClass::Armor, armor: 4, slot: ArmorSlot::Body, bulk: Bulk::Heavy,
+        weight: 300, uncountable: true),
       ItemKind::Gloves => ItemFacts.new("gloves", "pairs of gloves", ItemClass::Armor,
         armor: 1, slot: ArmorSlot::Hands, weight: 10, uncountable: true),
       ItemKind::Boots => ItemFacts.new("boots", "pairs of boots", ItemClass::Armor,

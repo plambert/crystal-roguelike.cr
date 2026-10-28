@@ -45,7 +45,7 @@ Spectator.describe "noticing the character" do
     creature = floor.monster(4, 2)
     raise "the room has lost its goblin" unless creature
 
-    player = Player.new floor.id, *Game.entrance(floor)
+    player = Playing.dressed Player.new(floor.id, *Game.entrance(floor))
     player.inventory.add Item.new(Kind::Torch, lit: true) if torch
 
     {Game.new(World.new(SEED, {floor.id => floor}), player), creature}
@@ -72,8 +72,8 @@ Spectator.describe "noticing the character" do
     creature = Monster.new species, HERE[0] + away, HERE[1], "band-one"
     floor.place creature
 
-    player = Player.new floor.id, *HERE,
-      Roguelike::Attributes.new(stealth: stealth)
+    player = Playing.dressed Player.new(floor.id, *HERE,
+      Roguelike::Attributes.new(stealth: stealth))
     player.inventory.add Item.new(Kind::Torch, lit: true) if torch
 
     {Game.new(World.new(SEED, {floor.id => floor}), player), creature}

@@ -12,6 +12,9 @@ module Roguelike::Ui
   # A creature the character makes out only as a shape is a shape here too:
   # its species, its hit points and what it is doing all wait for light on it.
   module Detail
+    # What armor that adds nothing to a blow says about it.
+    UNHURRIED = "does not slow your attacks"
+
     # What is written about a thing too far off to make out more of.
     TOO_FAR = "too far off to make out more"
 
@@ -47,7 +50,7 @@ module Roguelike::Ui
       lines << marked(Palette.slot(slot), slot.note) if slot
       lines << blessing(item)
       lines << marked(Palette.burning, Palette::LIT_WORD) if item.lit?
-      lines.concat facts(item)
+      lines.concat facts(game, item)
       lines << "weight #{item.weight}"
       lines << "cursed: it will not leave a slot" if item.blessing_known? && item.cursed?
 
@@ -112,9 +115,9 @@ module Roguelike::Ui
     end
 
     # The lines about what the item does, which depend on what it is.
-    private def self.facts(item : Item) : Array(String)
+    private def self.facts(game : Game, item : Item) : Array(String)
       case item.kind.item_class
-      when .melee?, .thrown? then hitting item
+      when .melee?, .thrown? then hitting game, item
       when .ranged_weapon?   then shooting item
       when .ammunition?      then shot item
       when .armor?           then worn item
@@ -125,11 +128,40 @@ module Roguelike::Ui
     end
 
     # What a weapon swung by hand does.
-    private def self.hitting(item : Item) : Array(String)
+    #
+    # A melee weapon says what the character would do with it in a turn, in
+    # the armor they have on.
+    private def self.hitting(game : Game, item : Item) : Array(String)
+      melee = item.kind.item_class.melee?
       found = ["damage #{item.damage}"]
-      found << pace(item.kind.item_class.melee? ? "swing" : "throw", item)
+      found << pace(melee ? "swing" : "throw", item)
       found << "thrown #{item.kind.reach} squares" if item.kind.reach > 0
+      found << rate(game, item) if melee
       found
+    end
+
+    # What the character does in one turn holding *item*, as "3.21 dps
+    # against the orc".
+    def self.rate(game : Game, item : Item? = game.player.wielded) : String
+      against, whom = target game
+      "#{dps game.player.per_turn(against, item)} dps against #{whom}"
+    end
+
+    # A damage rate written the way the game writes it, to two places.
+    def self.dps(rate : Float64) : String
+      "%.2f" % rate
+    end
+
+    # The armor class a damage rate is worked out against, and what to call
+    # it.
+    #
+    # The creature being fought, while the bar for it shows. Otherwise
+    # `Combat::REFERENCE`.
+    def self.target(game : Game) : {Int32, String}
+      creature = game.fought
+      return {Combat::REFERENCE, "AC #{Combat::REFERENCE}"} unless creature
+
+      {creature.armor_class, Naming.creature(creature, game.fought_regard)}
     end
 
     # How long one use of *item* takes, as a word and as a number.
@@ -154,12 +186,33 @@ module Roguelike::Ui
       found
     end
 
-    # What a piece of armor does, and where it goes.
+    # What a piece of armor does, where it goes, and what it does to the
+    # pace.
     private def self.worn(item : Item) : Array(String)
+      kind = item.kind
+      where = kind.slot
       found = ["armor #{item.armor}"]
-      where = item.kind.slot
       found << "worn on the #{where.to_s.downcase}" if where
+      return found << "does not change your pace" unless where.try(&.body?) || where.try(&.shield?)
+
+      found << (where.try(&.body?) ? walking(kind.bulk) : "does not slow a step")
+      blow = Costs.blow_drag [item]
+      found << (blow > 0 ? "attacks #{Costs.share blow} slower (+#{percent blow}%)" : UNHURRIED)
       found
+    end
+
+    # What body armor of class *bulk* does to a step, against a normal turn.
+    private def self.walking(bulk : Bulk) : String
+      change = bulk.step - Costs::TURN
+      return "#{bulk.label}: steps at a normal pace" if change.zero?
+
+      word, sign = change > 0 ? {"slower", '+'} : {"quicker", '-'}
+      "#{bulk.label}: steps #{Costs.share change.abs} #{word} (#{sign}#{percent change.abs}%)"
+    end
+
+    # *cost*, in energy, as a share of a turn out of a hundred.
+    private def self.percent(cost : Int32) : Int32
+      cost * 100 // Costs::TURN
     end
 
     # How far something burning throws light, and whether it is alight.

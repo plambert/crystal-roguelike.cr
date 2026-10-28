@@ -7,9 +7,10 @@ module Roguelike
   # a tick in debt, which is paid off before it acts again.
   #
   # Everything costs one tick but getting a suit of armor on or off,
-  # driving a spike, and hitting something. A blow costs what the weapon says, and the table is
-  # here so that changing a number is a change to one place rather than to
-  # `Game`.
+  # driving a spike, hitting something, and walking in anything but leather
+  # armor. A blow costs what the weapon says and what the armor adds. The
+  # tables are here so that changing a number is a change to one place
+  # rather than to `Game`.
   module Costs
     # One turn of the world. Walking, reading, drinking, zapping, opening a
     # door, picking something up, waiting.
@@ -30,6 +31,51 @@ module Roguelike
     # difference is what makes changing armor with something in the room a
     # decision rather than a keystroke.
     BODY = 3 * Pace::TICK
+
+    # What a step costs and what a melee blow gains, by the class of the
+    # body armor worn.
+    #
+    # Leather armor is medium and walks at a normal pace. Less is quicker
+    # and more is slower. The blow cost goes on top of the weapon's swing.
+    # A creature's hide counts for the step and adds nothing to a blow.
+    PACES = {
+      Bulk::None      => {90, 0},
+      Bulk::Light     => {95, 0},
+      Bulk::Medium    => {100, 0},
+      Bulk::Heavy     => {105, 10},
+      Bulk::VeryHeavy => {110, 20},
+    }
+
+    # What a shield adds to a melee blow. It does not slow a step.
+    SHIELD_BLOW = 10
+
+    # What wearing *worn* adds to one melee blow: the body armor's class and
+    # a shield.
+    def self.blow_drag(worn : Enumerable(Item)) : Int32
+      worn.sum do |item|
+        kind = item.kind
+        next SHIELD_BLOW if kind.slot.try &.shield?
+
+        kind.slot.try(&.body?) ? kind.bulk.blow : 0
+      end
+    end
+
+    # The class of the body armor in *worn*. `None` when there is none.
+    def self.body(worn : Enumerable(Item)) : Bulk
+      worn.find(&.kind.slot.try &.body?).try(&.kind.bulk) || Bulk::None
+    end
+
+    # A part of a turn, in words, such as "a quarter" for 25.
+    def self.share(cost : Int32) : String
+      case cost
+      when TURN // 20 then "a twentieth"
+      when TURN // 10 then "a tenth"
+      when TURN // 5  then "a fifth"
+      when TURN // 4  then "a quarter"
+      when TURN // 2  then "a half"
+      else                 "#{cost * 100 // TURN}%"
+      end
+    end
 
     # What one melee blow with *item* costs.
     #

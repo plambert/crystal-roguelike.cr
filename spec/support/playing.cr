@@ -197,6 +197,17 @@ module Playing
     floor
   end
 
+  # *player* in leather armor, so a step costs one turn.
+  #
+  # A character with nothing on walks quicker than a turn a step. A spec that
+  # counts turns by the step dresses the character in this.
+  def self.dressed(player : Roguelike::Player) : Roguelike::Player
+    item = Roguelike::Item.new Roguelike::ItemKind::LeatherArmor
+    letter = player.inventory.add(item) || raise "pack full"
+    player.equipment.put Roguelike::Slot::Body, letter
+    player
+  end
+
   # A game on one open room of *columns* by *rows*. The character starts in
   # the middle.
   #

@@ -55,6 +55,17 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   to the door. He wears chain mail and a shield, swings a long sword, and does not run.
 * Experience levels past 9 need half again as much as the level before, in place of twice as
   much, so you keep gaining levels on the deeper floors.
+* Body armor has a weight class that sets how fast you walk and attack. With nothing on you walk
+  a tenth quicker than a turn a step. Leather armor walks at a normal pace, and chain mail a
+  little slower. Chain mail adds a tenth of a turn to each melee blow. A shield adds a tenth to
+  each blow and does not slow your walking.
+* A padded jacket, a light body armor that is easier to move in than leather and protects less.
+* Creatures in armor are slowed by the same rule. Goblin scouts wear small leather armor.
+* The Scores section shows your walking pace and your melee damage per turn, as "1.57 dps".
+* A weapon's description gives the damage per turn you would do with it in your armor, against
+  the creature you are fighting or against armor class 2.
+* An armor's description says how much it slows your walking and your attacks, and putting it on
+  or taking it off says what changed.
 
 ### Fixed
 

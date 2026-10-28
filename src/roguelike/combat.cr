@@ -141,6 +141,43 @@ module Roguelike
       Math.max damage.roll(rng), LEAST
     end
 
+    # The armor class a damage rate is worked out against when there is no
+    # creature to read one from. A goblin warrior's, or a goblin in leather.
+    REFERENCE = 2
+
+    # The chance that a swing adding *bonus* lands on armor class *against*,
+    # from 0 to 1. It counts the faces `#lands?` lets through.
+    def self.hit_chance(bonus : Int32, against : Int32) : Float64
+      (1..SIDES).count { |roll| lands? roll, bonus, against } / SIDES
+    end
+
+    # What a blow of *dice* takes off when it lands, on average.
+    #
+    # Every total is counted, with `LEAST` for any below it, so a 1d2-1 fist
+    # averages one and not a half.
+    def self.mean_damage(dice : Dice) : Float64
+      totals = {0 => 1_i64}
+      dice.count.times do
+        rolled = Hash(Int32, Int64).new 0_i64
+        totals.each do |total, ways|
+          (1..dice.sides).each { |face| rolled[total + face] += ways }
+        end
+        totals = rolled
+      end
+
+      ways = totals.values.sum
+      totals.sum { |total, count| Math.max(total + dice.bonus, LEAST) * count } / ways
+    end
+
+    # What an attacker does in one turn of the world: the chance to land,
+    # times what a landed blow takes off, times the blows a turn gives.
+    #
+    # *cost* is what one blow costs in energy, with the armor in it. This is
+    # what the game shows as "dps".
+    def self.per_turn(bonus : Int32, against : Int32, dice : Dice, cost : Int32) : Float64
+      hit_chance(bonus, against) * mean_damage(dice) * Costs::TURN / cost
+    end
+
     # What a shooter adds to a shot from *weapon* with *ammunition*.
     #
     # *modifier* is the shooter's dexterity modifier. What each of the two

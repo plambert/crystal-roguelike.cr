@@ -24,8 +24,8 @@ Spectator.describe "regeneration" do
 
     game = Roguelike::Game.new(
       Roguelike::World.new(Playing::SEED, {"hall" => floor}),
-      Roguelike::Player.new("hall", 3, 2,
-        attributes: Roguelike::Attributes.new(constitution: constitution)))
+      Playing.dressed(Roguelike::Player.new("hall", 3, 2,
+        attributes: Roguelike::Attributes.new(constitution: constitution))))
     game.player.hurt down
 
     game

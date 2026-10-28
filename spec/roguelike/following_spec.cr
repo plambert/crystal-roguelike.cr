@@ -44,7 +44,7 @@ Spectator.describe "walking a route" do
     floor = Playing.daylight Roguelike::Floor.parse("run", lines)
 
     Game.new Roguelike::World.new(SEED, {"run" => floor}),
-      Roguelike::Player.new("run", *Game.entrance(floor), hit_points: 40)
+      Playing.dressed(Roguelike::Player.new("run", *Game.entrance(floor), hit_points: 40))
   end
 
   # A game on *lines* with every square of the floor already remembered.

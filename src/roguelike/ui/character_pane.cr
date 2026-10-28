@@ -102,6 +102,9 @@ module Roguelike::Ui
     getter score_names : Line
     getter scores : Line
 
+    # How fast the character walks, and their melee damage rate.
+    getter pacing : Line
+
     # One row per equipment slot, in `Slot.listed` order.
     getter slots : Array(Line)
 
@@ -140,6 +143,7 @@ module Roguelike::Ui
       @numbers = Line.new
       @score_names = Line.new
       @scores = Line.new
+      @pacing = Line.new
       @slots = Slot.listed.map { Line.new }
       @pack = Array.new(MOST_PACK) { Line.new }
 
@@ -164,7 +168,7 @@ module Roguelike::Ui
       @vitals.add @who, @health, @magic, @learning, @lasting, @fight
 
       @scoring = InfoPanel.section SCORES
-      @scoring.body.add @number_names, @numbers, @score_names, @scores
+      @scoring.body.add @number_names, @numbers, @score_names, @scores, @pacing
 
       @worn = InfoPanel.section WORN
       @slots.each { |row| @worn.body.add row }
@@ -254,6 +258,7 @@ module Roguelike::Ui
       @numbers.put_right game.turn.to_s, Palette.plain
 
       written_scores player
+      written_pacing game
       written_slots game
       written_pack game
 
@@ -335,6 +340,22 @@ module Roguelike::Ui
       left = game.floor.door_health spot[0], spot[1]
       whole = Floor::WOODEN_DOOR
       @threat.show left, whole, "door #{left}/#{whole}"
+    end
+
+    # How fast the character walks, as a share of a normal pace, and what
+    # they do in melee in a turn.
+    #
+    # A haste or a slow is in the walking, and so is the body armor. The
+    # damage rate is against the creature being fought, or against
+    # `Combat::REFERENCE`, as the weapon's detail box says.
+    private def written_pacing(game : Game) : Nil
+      player = game.player
+      against, _whom = Detail.target game
+
+      @pacing.clear
+      @pacing.put 0, "Walk", Palette.faint
+      @pacing.put GOLD, "#{player.pace.speed * 100 // player.stride}%", Palette.plain
+      @pacing.put_right "#{Detail.dps player.per_turn(against)} dps", Palette.plain
     end
 
     # The five scores, with their names over them.
