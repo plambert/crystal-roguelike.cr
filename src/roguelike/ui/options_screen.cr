@@ -237,6 +237,21 @@ module Roguelike::Ui
       @form.type context
     end
 
+    # Activates the focused row, while leaving typed text to its input.
+    def activate(context : Widgets::Context) : Nil
+      return if typed? context
+
+      row = focused_row
+      return unless row && row.enabled?
+
+      if row.enter
+        context.consume
+      else
+        row.activate
+        context.consume
+      end
+    end
+
     # Moves the keyboard *step* rows along.
     def step(step : Int32, context : Widgets::Context) : Nil
       @form.step_row step, context unless typed? context

@@ -83,6 +83,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Replay viewing now uses your saved theme and display preferences.
 * Canceling a modern identify or repair follow-up returns to the action menu. A repair scroll stays
   unread until you choose an item.
+* Modern inventory groups show the full perceived quantity and details for the highlighted item.
+* Apply choices identify the doorway they use, and only spike the selected doorway.
+* Closing a modern catalog utility returns to the catalog and its selection. Color Theme opens
+  directly from the catalog.
+* In modern forms, `f` activates the focused row without stealing text input. The theme editor
+  offers a selectable reset for each color.
+* End-screen choices remain visible at 40×16, with an indicator when summary lines are omitted.
+* Clicking a carried item in the sidebar opens its modern contextual action menu.
 
 ## [0.6.0] - 2026-10-18
 

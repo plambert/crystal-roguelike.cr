@@ -90,7 +90,7 @@ Spectator.describe "approved modern controls" do
 
   def menu_labels(menu : Menu) : Array(String)
     entries = menu.pages.empty? ? menu.entries : menu.pages.flat_map(&.[1])
-    entries.map { |entry| entry.text.split(" — ", 2).first }
+    entries.map(&.text.split(" — ", 2).first)
   end
 
   def has_label?(labels : Array(String), fragment : String) : Bool

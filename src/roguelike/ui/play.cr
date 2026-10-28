@@ -648,12 +648,9 @@ module Roguelike::Ui
 
     # Opens the release notes over the title screen. Closing them puts the
     # title menu back.
-    private def show_news : Nil
+    private def show_news(after : Proc(Nil)? = nil) : Nil
       @news_page.news = @news
-      @news_page.on_close = -> do
-        show_title
-        nil
-      end
+      @news_page.on_close = after || -> { show_title; nil }
       @news_page.open application
     end
 
@@ -670,15 +667,23 @@ module Roguelike::Ui
       screen.on_close = after
       screen.on_warning = ->(warning : String) { say warning; nil }
 
-      editor = screen.theme_editor
+      configure_theme_editor
+
+      screen.show application, options
+    end
+
+    # Applies the run's theme settings and the return callback to its editor.
+    private def configure_theme_editor(after : Proc(Nil)? = nil) : Nil
+      editor = @options_screen.theme_editor
+      editor.root = @options_screen.root
       editor.depth = @color_depth
+      editor.control_scheme = control_scheme
       editor.on_change = -> { retheme; nil }
+      editor.on_close = after
       editor.confirm = ->(question : String, answered : Proc(Char?, Nil)) do
         ask(question, "yn", default: 'n') { |key| answered.call key }
         nil
       end
-
-      screen.show application, options
     end
 
     # Draws the screen again in the palette as it now stands.
@@ -3259,7 +3264,7 @@ module Roguelike::Ui
         ]
         @placard.show_named application, Placards.heading(@game.outcome),
           Placards.ending(@game), choices, 'n',
-          footer: "W/S select · f or Enter choose · Escape quits"
+          footer: "W/S · f choose · Esc=Quit"
       else
         @placard.show application, Placards.heading(@game.outcome),
           Placards.ending(@game), Placards::AGAIN_KEYS,
@@ -3577,6 +3582,7 @@ module Roguelike::Ui
       @news_page.screen_rows = rows
       fit_log columns
 
+      @prompt.refit Rect.new(0, 0, columns, rows)
       @placard.fit_into Rect.new(0, 0, columns, rows)
       @entry.fit_into Rect.new(0, 0, columns, rows)
       @console.try do |pane|
@@ -4100,7 +4106,11 @@ module Roguelike::Ui
       return unless found
 
       @tooltip.hide
-      act_on found[0]
+      if modern_controls?
+        show_item_actions found[1].id
+      else
+        act_on found[0]
+      end
     end
 
     # Answers a click on the Seen row about *spot*, the way a click on

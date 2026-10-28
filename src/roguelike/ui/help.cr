@@ -126,6 +126,9 @@ module Roguelike
       # usual order. It is asked every time the dialog opens.
       property first : Proc(String?)? = nil
 
+      # Runs after the dialog closes.
+      property on_close : Proc(Nil)? = nil
+
       # How many rows the screen has. The owner sets it, and again on a resize.
       property screen_rows : Int32 = 24
 
@@ -227,6 +230,16 @@ module Roguelike
         end
 
         wrap_descriptions
+      end
+
+      def close_with(result : Int32?) : Nil
+        was_open = open?
+        super
+        return unless was_open
+
+        after = @on_close
+        @on_close = nil
+        after.try &.call
       end
 
       # Splits every description wider than `text_width` over several rows.

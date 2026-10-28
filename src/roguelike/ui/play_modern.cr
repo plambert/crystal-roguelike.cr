@@ -4,15 +4,17 @@ module Roguelike::Ui
   class Play
     property? kitty_keyboard : Bool = false
 
-    @modern_mode : ModernMenuKind = ModernMenuKind::None
-    @modern_stack = [] of ModernMenuFrame
-    @modern_command : Command? = nil
-    @modern_item_id : Int32? = nil
-    @modern_inventory_item : Int32? = nil
-    @modern_inventory_page : Int32 = 0
-    @modern_inventory_index : Int32? = nil
-    @modern_cancel_frame : ModernMenuFrame? = nil
-    @modern_cancel_stack = [] of ModernMenuFrame
+    private property modern_mode : ModernMenuKind = ModernMenuKind::None
+    private property modern_stack : Array(ModernMenuFrame) = [] of ModernMenuFrame
+    private property modern_command : Command? = nil
+    private property modern_item_id : Int32? = nil
+    private property modern_inventory_item : Int32? = nil
+    private property modern_inventory_page : Int32 = 0
+    private property modern_inventory_index : Int32? = nil
+    private property modern_cancel_frame : ModernMenuFrame? = nil
+    private property modern_cancel_stack : Array(ModernMenuFrame) = [] of ModernMenuFrame
+    private property modern_utility_frame : ModernMenuFrame? = nil
+    private property modern_utility_stack : Array(ModernMenuFrame) = [] of ModernMenuFrame
 
     # The selected input profile. Headless callers without saved options keep
     # the historical bindings.
@@ -118,11 +120,20 @@ module Roguelike::Ui
       end
       return if @pending || @aiming || @examiner.cursoring?
 
-      @modern_stack.clear
-      @modern_inventory_item = nil
-      @modern_inventory_page = 0
-      @modern_inventory_index = nil
       show_inventory_values
+    end
+
+    # Returns a zero-turn catalog overlay to the catalog that opened it.
+    def modern_utility_closed : Nil
+      return if @options_screen.showing? || @options_screen.theme_editor.showing?
+
+      frame = @modern_utility_frame
+      @modern_utility_frame = nil
+      return unless frame
+
+      @modern_stack = @modern_utility_stack.dup
+      @modern_utility_stack.clear
+      restore_modern_frame frame
     end
 
     # The modern action key confirms an active target, otherwise it opens the
@@ -234,6 +245,7 @@ module Roguelike::Ui
       end
       @selection_menu.on_choose = ->(choice : ModernChoice) { choose_modern_choice choice }
       @selection_menu.on_back = -> { back_modern_menu; nil }
+      @selection_menu.on_highlight = ->(choice : ModernChoice?) { show_modern_detail choice; nil }
       @selection_menu.show application, title, pages, 0
     end
 
@@ -282,6 +294,7 @@ module Roguelike::Ui
     end
 
     private def choose_modern_choice(choice : ModernChoice) : Nil
+      @tooltip.hide
       case choice.kind
       in .command?
         command = choice.command
@@ -403,6 +416,7 @@ module Roguelike::Ui
         enabled: false) if rows.empty?
       @selection_menu.on_choose = ->(choice : ModernChoice) { choose_modern_choice choice }
       @selection_menu.on_back = -> { back_modern_menu; nil }
+      @selection_menu.on_highlight = ->(choice : ModernChoice?) { show_modern_detail choice; nil }
       @selection_menu.show application, "#{command_label(command)} — choose a target", rows
     end
 
@@ -421,7 +435,11 @@ module Roguelike::Ui
       if item_id = target.item_id
         item = item_for item_id
         if item
-          return Naming.listed @game.lore, item
+          name = Naming.listed @game.lore, item
+          if (coordinate = target.coordinate) && (command.apply? || command.spike_door?)
+            return "#{name} — #{apply_target_location coordinate}"
+          end
+          return name
         end
         return "Item no longer available"
       end
@@ -433,6 +451,13 @@ module Roguelike::Ui
       end
 
       command_label command
+    end
+
+    private def apply_target_location(coordinate : {Int32, Int32}) : String
+      direction = Direction.values.find do |candidate|
+        candidate.from(@game.player.x, @game.player.y) == coordinate
+      end
+      direction ? "#{direction.label} doorway" : "square #{coordinate[0]}, #{coordinate[1]}"
     end
 
     private def command_label(command : Command) : String
@@ -590,7 +615,11 @@ module Roguelike::Ui
 
     private def apply_modern_target(item_id : Int32?, coordinate : {Int32, Int32}?) : Nil
       target = @game.appliable.find do |candidate|
-        candidate.letter ? candidate.letter.try { |letter| id_under(letter) == item_id } : candidate.aimed? && coordinate == {candidate.x, candidate.y}
+        candidate_item_id = candidate.letter.try { |letter| id_under(letter) }
+        candidate_coordinate = if candidate.aimed? || candidate.letter.nil?
+                                 {candidate.x, candidate.y}
+                               end
+        candidate_item_id == item_id && candidate_coordinate == coordinate
       end
       if target
         @game.perform lighting(target)
@@ -623,6 +652,8 @@ module Roguelike::Ui
 
     private def dispatch_modern(command : Command, item_id : Int32? = nil,
                                 slot : Slot? = nil) : Nil
+      return if dispatch_modern_utility command
+
       clear_modern_menu
       case command
       in .walk?           then show_modern_directions command
@@ -674,6 +705,37 @@ module Roguelike::Ui
       end
     end
 
+    private def dispatch_modern_utility(command : Command) : Bool
+      if command.options?
+        stage_modern_utility
+        show_options(-> { modern_utility_closed; nil })
+      elsif command.theme?
+        stage_modern_utility
+        configure_theme_editor(-> { modern_utility_closed; nil })
+        @options_screen.show_theme_editor application
+      elsif command.help?
+        return false unless @on_help
+
+        stage_modern_utility
+        @on_help.try &.call
+      elsif command.history?
+        stage_modern_utility
+        @history.on_close = -> { modern_utility_closed; nil }
+        @history.show application, @game.log.lines
+      elsif command.whats_new?
+        stage_modern_utility
+        show_news(-> { modern_utility_closed; nil })
+      else
+        return false
+      end
+      true
+    end
+
+    private def stage_modern_utility : Nil
+      @modern_utility_frame = capture_modern_frame
+      @modern_utility_stack = @modern_stack.dup
+    end
+
     private def show_inventory_values : Nil
       wanted_item = @modern_inventory_item
       @modern_mode = ModernMenuKind::Inventory
@@ -698,6 +760,7 @@ module Roguelike::Ui
         @modern_inventory_item = choice.try(&.item_id) if choice.try(&.kind.item?)
         @modern_inventory_page = @menu.page
         @modern_inventory_index = @menu.selected_index
+        show_modern_detail choice
         nil
       end
       @selection_menu.show application, "Inventory", pages, @modern_inventory_page
@@ -709,15 +772,55 @@ module Roguelike::Ui
     end
 
     private def inventory_entries(held : Array({Char, Item}))
-      held.map do |(letter, item)|
-        slot = @game.slot_of letter
-        named = Naming.listed @game.lore, item
-        mark = Palette.blessing(item)
-        tail = Play.tail_of item, slot
-        value_entry ModernChoice.new(ModernChoiceKind::Item, item_id: item.id, slot: slot),
-          named, mark: mark.try(&.glyph), mark_style: mark.try(&.style),
+      listings = held.map do |(letter, item)|
+        Listing.new letter, @game.carried(letter) || item, @game.slot_of(letter)
+      end
+      leads = listings.map { |listing| Naming.lead @game.lore, listing.item }
+      field = Math.max leads.max_of?(&.size) || 0, Naming::LEAD
+
+      listings.map_with_index do |listing, index|
+        mark = Palette.blessing listing.item
+        tail = Play.tail_of listing.item, listing.slot
+        choice = ModernChoice.new(ModernChoiceKind::Item,
+          item_id: listing.item.id, slot: listing.slot)
+        value_entry choice,
+          "#{leads[index].rjust(field)} #{Naming.listed @game.lore, listing.item}",
+          mark: mark.try(&.glyph), mark_style: mark.try(&.style),
           tail: tail.try(&.glyph), tail_style: tail.try(&.style)
       end
+    end
+
+    private def show_modern_detail(choice : ModernChoice?) : Nil
+      item_id = choice.try(&.item_id)
+      item = item_for item_id
+      app = @app
+      unless app
+        @tooltip.hide
+        return
+      end
+
+      details = [] of String
+      if item_id && item
+        letter = letter_for item_id
+        item = @game.carried(letter) || item if letter
+        slot = letter.try { |found| @game.slot_of found }
+        details = Detail.about(@game, item, slot: slot)
+      elsif coordinate = choice.try(&.coordinate)
+        if memory = @game.knowledge[coordinate]
+          details = Detail.about memory.terrain
+          if fixture = memory.fixture
+            details.concat Detail.about fixture
+          end
+        end
+      end
+      if details.empty?
+        @tooltip.hide
+        return
+      end
+
+      list = @menu.list
+      @tooltip.show app, list, details,
+        dx: -1 - @menu.gutter, dy: list.selected - list.scroll_y
     end
 
     private def restore_inventory_selection : Bool
@@ -746,6 +849,7 @@ module Roguelike::Ui
         enabled: false) if rows.empty?
       @selection_menu.on_choose = ->(choice : ModernChoice) { choose_modern_choice choice }
       @selection_menu.on_back = -> { back_modern_menu; nil }
+      @selection_menu.on_highlight = ->(choice : ModernChoice?) { show_modern_detail choice; nil }
       item = item_for item_id
       title = item ? Naming.listed(@game.lore, item) : "Item actions"
       @selection_menu.show application, title, rows
@@ -765,6 +869,7 @@ module Roguelike::Ui
       @selection_menu.navigation = Widgets::Navigation.selectable
       @selection_menu.on_choose = ->(choice : ModernChoice) { choose_modern_choice choice }
       @selection_menu.on_back = -> { back_modern_menu; nil }
+      @selection_menu.on_highlight = ->(_choice : ModernChoice?) { @tooltip.hide; nil }
       @selection_menu.show application, "Equipment actions", rows
     end
 

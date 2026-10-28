@@ -44,6 +44,7 @@ module Roguelike::Ui
 
     @named_choices = [] of Widgets::Prompt::Choice
     @choice_index : Int32 = 0
+    private property named_lines : Array(String) = [] of String
 
     # What runs when a key answers. The argument is the key, or `nil` when
     # the person pressed `Escape`.
@@ -52,6 +53,8 @@ module Roguelike::Ui
     # What the offered keys are drawn in.
     property keys_style : Style = Style::DEFAULT.bold
 
+    private getter instructions : Widgets::Label
+
     def initialize(z : Int32 = Widgets::Overlay::Z::DIALOG)
       @rows = Array.new(MOST_LINES) do
         Widgets::Label.new "", wrap: Layout::Wrap::None
@@ -59,6 +62,8 @@ module Roguelike::Ui
 
       @offered = Widgets::Label.new ""
       @offered.style = @keys_style
+      @instructions = Widgets::Label.new ""
+      @instructions.hidden = true
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
 
@@ -71,7 +76,7 @@ module Roguelike::Ui
         Layout::AttachPoint::Center, z: z
 
       @rows.each { |row| add row }
-      add @offered
+      add @instructions, @offered
     end
 
     # The keyboard lands here. The box holds no control of its own, and focus
@@ -94,6 +99,9 @@ module Roguelike::Ui
              keys : String, default : Char? = nil,
              footer : String = "") : Nil
       @named_choices.clear
+      @named_lines.clear
+      @instructions.text = ""
+      @instructions.hidden = true
       if default && !keys.includes? default
         raise ArgumentError.new "default #{default.inspect} is not one of #{keys.inspect}"
       end
@@ -126,10 +134,12 @@ module Roguelike::Ui
       @keys = @named_choices.map(&.key).join
       @default = default
       @choice_index = @named_choices.index { |choice| choice.key == default } || 0
+      @named_lines = lines.dup
       self.border = Widgets::Border.rounded title: " #{title} "
-      say lines
       self.keymap = named_answers
-      update_named_offering footer
+      @instructions.text = footer
+      @instructions.hidden = footer.empty?
+      @offered.text = offering
       fit_into app.tree.screen
       open app
     end
@@ -165,6 +175,17 @@ module Roguelike::Ui
       widest = Math.max screen.width - 2 * COLUMN_MARGIN, LEAST[0]
       tallest = Math.max screen.height - 2 * ROW_MARGIN, LEAST[1]
 
+      unless @named_choices.empty?
+        line_limit = Math.max screen.height - 8, 1
+        lines = if @named_lines.size > line_limit
+                  shown = @named_lines.first(line_limit - 1)
+                  shown << "… #{@named_lines.size - shown.size} more lines omitted"
+                else
+                  @named_lines.dup
+                end
+        say lines
+      end
+
       self.width = Layout::Sizing.fit min: LEAST[0], max: widest
       self.height = Layout::Sizing.fit min: LEAST[1], max: tallest
     end
@@ -182,7 +203,7 @@ module Roguelike::Ui
     # convention `Widgets::Prompt` follows as well.
     def offering : String
       return @named_choices.map_with_index do |choice, index|
-        index == @choice_index ? "[#{choice.label}]" : choice.label
+        index == @choice_index ? "[ #{choice.label} ]" : choice.label
       end.join("  ") unless @named_choices.empty?
 
       chosen = @default
@@ -239,7 +260,7 @@ module Roguelike::Ui
       while index >= 0 && index < @named_choices.size
         if @named_choices[index].enabled
           @choice_index = index
-          update_named_offering "W/S select · f or Enter choose · Escape quits"
+          update_named_offering "W/S · f choose · Esc=Quit"
           invalidate_layout
           return
         end
@@ -253,8 +274,9 @@ module Roguelike::Ui
     end
 
     private def update_named_offering(footer : String) : Nil
-      prompt = offering
-      @offered.text = footer.empty? ? prompt : "#{footer}  #{prompt}"
+      @instructions.text = footer
+      @instructions.hidden = footer.empty?
+      @offered.text = offering
     end
 
     # Takes the box down. Runs `#on_answer` with *key*.
@@ -266,6 +288,8 @@ module Roguelike::Ui
       @keys = ""
       @default = nil
       @named_choices.clear
+      @named_lines.clear
+      @instructions.hidden = true
       self.keymap = nil
 
       close

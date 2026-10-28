@@ -204,9 +204,11 @@ module Roguelike
     # is armed.
     @wavering : UInt64? = nil
 
-    @control_setup : Ui::ControlSchemeSetup? = nil
+    private property control_setup : Ui::ControlSchemeSetup? = nil
 
-    @bound_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
+    private property bound_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
+
+    private property key_installer : Ui::Keys::Installer = Ui::Keys::Installer.new
 
     def initialize(@terminal : TermBuf::Terminal, @rng : Rng,
                    flicker : Bool = true, generate : Bool = true,
@@ -257,9 +259,13 @@ module Roguelike
       @size_cap.on_change = -> { sized @terminal.size }
       @play.console.try &.console.size_cap = @size_cap
       Ui::Keys.install(@app, @help, @play, -> { self.mousing = !mousing?; nil },
-        kitty_keyboard: kitty_keyboard?) { @play.confirm_quit }
+        kitty_keyboard: kitty_keyboard?, installer: @key_installer) { @play.confirm_quit }
       @bound_scheme = @play.control_scheme
-      @play.on_help = -> { @help.open @app; nil }
+      @play.on_help = -> do
+        @help.on_close = -> { @play.modern_utility_closed; nil }
+        @help.open @app
+        nil
+      end
       @play.on_mouse = -> { self.mousing = !mousing?; nil }
 
       self.mousing = mouse
@@ -335,7 +341,8 @@ module Roguelike
 
       @play.controls_changed
       Ui::Keys.install(@app, @help, @play,
-        -> { self.mousing = !mousing?; nil }, kitty_keyboard: kitty_keyboard?) { @play.confirm_quit }
+        -> { self.mousing = !mousing?; nil }, kitty_keyboard: kitty_keyboard?,
+        installer: @key_installer) { @play.confirm_quit }
       @play.options_screen.rebind_controls @app
       @bound_scheme = wanted
     end
@@ -496,6 +503,7 @@ module Roguelike
       @play.fit bounds.width, bounds.height
       @cursor.region.bounds = bounds
       @help.screen_rows = bounds.height
+      @control_setup.try(&.picker.refit(bounds))
 
       # The square the pointer was over has moved.
       tell @play.pointer_away

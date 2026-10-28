@@ -117,6 +117,7 @@ Spectator.describe "modern controls reviewed interaction flows" do
     run.press "Escape"
 
     expect(run.menu.entries.any? { |entry| entry.text == "new character" }).to be_false
+    expect(run.menu.title).to eq "Action catalog"
     expect(run.game.outcome.playing?).to be_true
     expect(run.turn).to eq 0
   end
@@ -131,6 +132,85 @@ Spectator.describe "modern controls reviewed interaction flows" do
 
     expect(chosen.motion?).to be_false
     expect(run.turn).to eq 0
+  end
+
+  it "keeps the catalog selection under options, theme, history, and help" do
+    notes = Roguelike::WhatsNew.sections "## [0.7.0] - 2026-10-28\n\nReview notes.\n"
+    run = run_with notes: notes
+
+    choose_command run, "Options"
+    run.press "F1", "Escape"
+    expect(run.play.options_screen.showing?).to be_true
+    run.press "Escape"
+    expect(run.menu.title).to eq "Action catalog"
+    expect(run.menu.entries[run.menu.selected_index || 0].text).to start_with "Options"
+
+    run.press "Escape"
+    choose_command run, "Color theme"
+    run.press "F1", "Escape"
+    expect(run.play.options_screen.theme_editor.showing?).to be_true
+    run.press "Escape"
+    expect(run.menu.title).to eq "Action catalog"
+    expect(run.menu.entries[run.menu.selected_index || 0].text).to start_with "Color theme"
+
+    run.press "Escape"
+    choose_command run, "Message history"
+    expect(run.play.history.showing?).to be_true
+    run.press "Escape"
+    expect(run.menu.title).to eq "Action catalog"
+
+    run.press "Escape"
+    choose_command run, "Help"
+    run.press "Escape"
+    expect(run.menu.title).to eq "Action catalog"
+    expect(run.menu.entries[run.menu.selected_index || 0].text).to start_with "Help"
+    expect(run.turn).to eq 0
+  end
+
+  it "remembers the inventory page and highlighted item when reopened" do
+    run = run_with [Item.new(Kind::Dagger), Item.new(Kind::HealingPotion)]
+    run.press "i", "d"
+    expect(run.menu.page_name).to eq "weapons"
+    run.press "Escape", "i"
+
+    expect(run.menu.page_name).to eq "weapons"
+    expect(run.menu.entries.any?(&.text.includes?("dagger"))).to be_true
+    expect(run.play.tooltip.showing?).to be_true
+  end
+
+  it "lets f type into a modern text field" do
+    run = run_with
+    run.play.show_options
+    run.render
+    run.press "End"
+    form = run.play.options_screen.form
+    before = form["name"].to_s
+    expect(run.play.options_screen.focused_row.try(&.key)).to eq "name"
+    run.press "f"
+
+    expect(form["name"]).to eq "#{before}f"
+    expect(run.turn).to eq 0
+  end
+
+  it "resets a selected theme color from its modern action row" do
+    theme = Roguelike::Ui::Theme.current
+    begin
+      Roguelike::Ui::Theme.current = Roguelike::Ui::Theme::DEFAULT.with(
+        "granite", TermBuf::Color.rgb(1, 2, 3))
+      run = run_with
+      run.play.show_options
+      run.play.options_screen.show_theme_editor run.session.app
+      run.render
+      editor = run.play.options_screen.theme_editor
+      run.press "f"
+      expect(editor.picking?).to be_true
+      run.press "Escape"
+      run.press "s", "f"
+
+      expect(Roguelike::Ui::Theme.current.granite).to eq Roguelike::Ui::Theme::DEFAULT.granite
+    ensure
+      Roguelike::Ui::Theme.current = theme
+    end
   end
 
   it "keeps end-screen choices visible at the minimum terminal size" do

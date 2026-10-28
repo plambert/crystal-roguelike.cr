@@ -311,12 +311,32 @@ Spectator.describe "the modern controls" do
 
     it "replaces owned bindings when the Options scheme changes" do
       run = modern carrying([Item.new(Kind::Dagger)])
+      calls = 0
+      caller = TermBuf::Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("Ctrl+K"), "caller binding",
+          ->(_context : TermBuf::Widgets::Context) { calls += 1; nil }
+      end
+      run.session.app.keymap = run.session.app.keymap.merge caller
       run.press "r", "d", "d", "d", "d", "d", "d", "d", "f"
       run.press "End", "Up", "Up", "Up", "Up"
       expect(run.play.options_screen.focused_row.try(&.key)).to eq "control_scheme"
       run.press "Left"
       expect(Options.current.try(&.control_scheme)).to eq Scheme::Traditional
-      run.press "Escape", "w"
+      expect(run.session.app.keymap.bindings.any? do |binding|
+        binding.description == "open the complete action catalog" ||
+          binding.description == "open actions or confirm the target"
+      end).to be_false
+      expect(run.session.app.keymap.bindings.any? do |binding|
+        binding.description == "leave the game"
+      end).to be_true
+      expect(run.session.app.keymap.bindings.any? do |binding|
+        binding.description == "caller binding"
+      end).to be_true
+      run.press "Escape"
+      expect(run.menu.title).to eq "Action catalog"
+      run.press "Escape", "Ctrl+K"
+      expect(calls).to eq 1
+      run.press "w"
       expect(run.menu.title).to eq "Wield or wear what?"
       expect(run.turn).to eq 0
     end

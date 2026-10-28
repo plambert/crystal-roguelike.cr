@@ -37,6 +37,38 @@ module Roguelike::Ui
     record Section, title : String, bindings : Widgets::Bindings,
       notes : Array({String, String}) = [] of {String, String}
 
+    # Keeps caller bindings while replacing the profile-owned sets.
+    class Installer
+      private property app : Widgets::App? = nil
+      private property base : Widgets::Bindings = Widgets::Bindings.new
+      private property owned_sequences : Array(Array(TermBuf::Key)) = [] of Array(TermBuf::Key)
+
+      def install(app : Widgets::App, owned : Widgets::Bindings) : Nil
+        if current = @app
+          if current.same?(app)
+            @base = @base.merge without_owned(app.keymap)
+          else
+            @base = app.keymap
+            @owned_sequences.clear
+          end
+        else
+          @base = app.keymap
+        end
+
+        @app = app
+        @owned_sequences = owned.bindings.map(&.keys)
+        app.keymap = @base.merge owned
+      end
+
+      private def without_owned(bindings : Widgets::Bindings) : Widgets::Bindings
+        kept = Widgets::Bindings.new
+        bindings.bindings.each do |binding|
+          kept.bind binding unless @owned_sequences.includes? binding.keys
+        end
+        kept
+      end
+    end
+
     # Binds the application's own keys on *app*, and every section of *play*,
     # and puts the help screen on `F1` and `?`. Answers the help screen.
     #
@@ -46,7 +78,8 @@ module Roguelike::Ui
     # caller's, because what either means depends on what owns the loop.
     def self.install(app : Widgets::App, help : Help = Help.new, play : Play? = nil,
                      on_mouse : Proc(Nil)? = nil,
-                     kitty_keyboard : Bool = false, &on_quit : -> Nil) : Help
+                     kitty_keyboard : Bool = false,
+                     installer : Installer = Installer.new, &on_quit : -> Nil) : Help
       play.try(&.kitty_keyboard=(kitty_keyboard))
       scheme = play.try(&.control_scheme) ||
                (Options.current || Options.new).effective_control_scheme
@@ -60,9 +93,9 @@ module Roguelike::Ui
 
       help.sections = sections
       help.first = -> { play.try { |game| Help.title_for game.ring.current } } if play
-      all = sections.reduce(Widgets::App.default_keymap) { |bindings, section| bindings.merge section.bindings }
+      all = sections.reduce(Widgets::Bindings.new) { |bindings, section| bindings.merge section.bindings }
       all = all.merge play.unlisted if play
-      app.keymap = all
+      installer.install app, all
       help
     end
 
@@ -145,6 +178,8 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("?"), "show the keys that work here",
           ->(context : Widgets::Context) { screen.show_help app unless screen.typed? context; nil }
         if screen.modern_controls?
+          map.bind TermBuf::Key.parse("f"), "activate the focused row",
+            ->(context : Widgets::Context) { screen.activate context; nil }
           map.bind TermBuf::Key.parse("s"), "the row below",
             ->(context : Widgets::Context) { screen.step 1, context; nil }
           map.bind TermBuf::Key.parse("w"), "the row above",
@@ -168,7 +203,7 @@ module Roguelike::Ui
       notes = [
         {screen.modern_controls? ? "W S Up Down" : "Up Down", "the row above or below"},
         {"Tab Shift+Tab", "the next or the previous row"},
-        {"Space Enter", "turn a toggle, or take the next choice"},
+        {"f Space Enter", "activate a row, turn a toggle, or take the next choice"},
         {screen.modern_controls? ? "A D Left Right" : "Left Right", "the choice before or after, or step a number"},
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},
@@ -191,6 +226,8 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("?"), "show the keys that work here",
           ->(_context : Widgets::Context) { editor.show_help app; nil }
         if editor.modern_controls?
+          map.bind TermBuf::Key.parse("f"), "activate the focused row",
+            ->(context : Widgets::Context) { editor.activate context; nil }
           map.bind TermBuf::Key.parse("s"), "the row below",
             ->(context : Widgets::Context) { editor.step 1, context; nil }
           map.bind TermBuf::Key.parse("w"), "the row above",
@@ -216,7 +253,7 @@ module Roguelike::Ui
       notes = [
         {editor.modern_controls? ? "W S Up Down" : "Up Down", "the row above or below"},
         {"Tab Shift+Tab", "the next or the previous row"},
-        {"Enter Space", "choose a color, or reset every color"},
+        {"f Enter Space", "choose a color, or activate a reset action"},
         {editor.modern_controls? ? "A D" : "H L", "the first row of the group above or below"},
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},

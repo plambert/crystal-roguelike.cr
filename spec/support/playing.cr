@@ -292,14 +292,19 @@ module Playing
     told = [] of String
 
     help = Roguelike::Ui::Help.new wanted.world.seed
+    installer = Roguelike::Ui::Keys::Installer.new
     Roguelike::Ui::Keys.install(session.app, help, play,
-      kitty_keyboard: kitty_keyboard) { play.confirm_quit }
-    play.on_help = -> { help.open session.app; nil }
+      kitty_keyboard: kitty_keyboard, installer: installer) { play.confirm_quit }
+    play.on_help = -> do
+      help.on_close = -> { play.modern_utility_closed; nil }
+      help.open session.app
+      nil
+    end
     play.on_options = ->(options : Roguelike::Options) do
       options.apply
       play.controls_changed
       Roguelike::Ui::Keys.install(session.app, help, play,
-        kitty_keyboard: kitty_keyboard) { play.confirm_quit }
+        kitty_keyboard: kitty_keyboard, installer: installer) { play.confirm_quit }
       play.options_screen.rebind_controls session.app
       nil
     end
@@ -327,7 +332,7 @@ module Playing
     session.render
     play.look_at_player
     show_startup_controls startup_controls, control_options, options_root,
-      kitty_keyboard, title, found, play, session.app, help
+      kitty_keyboard, title, found, play, session.app, help, installer
     session.render
 
     Run.new play, session, told
@@ -341,7 +346,8 @@ module Playing
                                          viewer : Roguelike::Replay::Viewer?,
                                          play : Roguelike::Ui::Play,
                                          app : TermBuf::Widgets::ObservedApp,
-                                         help : Roguelike::Ui::Help) : Nil
+                                         help : Roguelike::Ui::Help,
+                                         installer : Roguelike::Ui::Keys::Installer) : Nil
     options = control_options || Roguelike::Options.new
     unless startup_controls && Roguelike::Ui::ControlSchemeSetup.needed?(options)
       play.show_title if title && viewer.nil?
@@ -353,7 +359,8 @@ module Playing
     setup.on_change = ->(changed : Roguelike::Options) do
       Roguelike::Options.current = changed
       play.controls_changed
-      Roguelike::Ui::Keys.install(app, help, play, kitty_keyboard: kitty_keyboard) do
+      Roguelike::Ui::Keys.install(app, help, play, kitty_keyboard: kitty_keyboard,
+        installer: installer) do
         play.confirm_quit
       end
       nil

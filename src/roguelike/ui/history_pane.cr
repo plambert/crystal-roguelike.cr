@@ -14,6 +14,8 @@ module Roguelike::Ui
   class HistoryPane < Widgets::Overlay
     getter control_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
 
+    property on_close : Proc(Nil)? = nil
+
     def control_scheme=(scheme : Options::ControlScheme) : Options::ControlScheme
       @control_scheme = scheme
       bindings = scrolling
@@ -117,6 +119,9 @@ module Roguelike::Ui
       return unless open?
 
       close
+      after = @on_close
+      @on_close = nil
+      after.try &.call
     end
 
     # Puts it up if it is down, and down if it is up.
