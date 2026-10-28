@@ -272,7 +272,6 @@ module Roguelike
 
     # Armor.
     Cap
-    PaddedJacket
     LeatherArmor
     ChainMail
     Gloves
@@ -334,6 +333,9 @@ module Roguelike
 
     # Drunk to heal a little. The character starts with one.
     MinorHealingPotion
+
+    # Light body armor, quicker to walk in than leather.
+    PaddedJacket
 
     # What this kind is.
     def facts : ItemFacts
