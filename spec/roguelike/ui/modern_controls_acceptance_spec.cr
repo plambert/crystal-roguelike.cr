@@ -140,15 +140,18 @@ Spectator.describe "approved modern controls" do
     ]
   end
 
-  def use_modern_item_action(run : Playing::Run, item : String, action : String) : Nil
+  def use_modern_item_action(run : Playing::Run, item : String, actions : Array(String)) : Nil
     run.press "i"
     select_menu_label run, item
     run.press "f"
+    labels = menu_labels(require_menu(run))
+    action = actions.find { |label| has_label?(labels, label) } ||
+             raise "No item action matches #{actions.inspect}"
     select_menu_label run, action
     run.press "f"
   end
 
-  def recorded_item_actions(scheme : Scheme, modern : Bool) : {Array(String), String, Int32, {Int32, Int32, Int32, Int32}}
+  def recorded_item_actions(scheme : Scheme, modern : Bool) : {Array(String), Bool, Slot?, String, Int32, {Int32, Int32, Int32, Int32}}
     path = Recording.directory / "modern-controls-#{Random.rand UInt32}.jsonl"
 
     game = Recording.recording(path.to_s) do
@@ -157,8 +160,8 @@ Spectator.describe "approved modern controls" do
         hit_points: 2
 
       if modern
-        use_modern_item_action run, "potion", "drink"
-        use_modern_item_action run, "dagger", "wield"
+        use_modern_item_action run, "potion", ["drink"]
+        use_modern_item_action run, "dagger", ["wield", "equip"]
       else
         potion_key = run.game.player.inventory.items.find! do |entry|
           entry[1].kind == ItemKind::HealingPotion
@@ -178,8 +181,14 @@ Spectator.describe "approved modern controls" do
     actions = reading.records.compact_map do |record|
       record.as?(Roguelike::Replay::Act).try(&.action.to_json)
     end
+    wield_recorded = reading.records.compact_map do |record|
+      record.as?(Roguelike::Replay::Act).try(&.action)
+    end.any?(Roguelike::Action::Wield)
+    dagger_key = game.player.inventory.items.find! do |entry|
+      entry[1].kind == ItemKind::Dagger
+    end[0]
 
-    {actions, game.fingerprint, game.turn,
+    {actions, wield_recorded, game.slot_of(dagger_key), game.fingerprint, game.turn,
      {game.blows, game.uses, game.wanders, game.handled}}
   end
 
@@ -365,7 +374,7 @@ Spectator.describe "approved modern controls" do
       expect(run.play.info_panel.at).to eq section
       expect(run.at).to eq start
 
-      run.press "Shift+Tab"
+      run.press "Tab"
       expect(run.play.ring.current).to eq Panel::Log
       run.press "w"
       expect(run.pager.back).to be > 0
@@ -418,6 +427,7 @@ Spectator.describe "approved modern controls" do
       run = recorded_viewer_run
       viewer = run.viewer || raise "The replay viewer was not opened"
       before = run.game.fingerprint
+      viewer_position = viewer.at
 
       run.press "r"
       complete = menu_labels(require_menu(run))
@@ -439,8 +449,20 @@ Spectator.describe "approved modern controls" do
       end
 
       run.press "Escape", "Escape"
-      {"q", "w", "a", "d", "z", "x"}.each { |key| run.press key }
+      run.press "r"
+      select_menu_label run, "examine"
+      run.press "f"
+      expect(run.examiner.cursoring?).to be_true
+      cursor_start = run.examiner.spot
 
+      { {"q", "x"}, {"w", "s"}, {"e", "z"}, {"a", "d"} }.each do |pair|
+        run.press pair[0]
+        expect(run.examiner.spot).not_to eq cursor_start
+        run.press pair[1]
+        expect(run.examiner.spot).to eq cursor_start
+      end
+
+      expect(viewer.at).to eq viewer_position
       expect(run.game.turn).to eq 0
       expect(run.game.fingerprint).to eq before
       viewer.close
@@ -465,10 +487,14 @@ Spectator.describe "approved modern controls" do
       traditional = recorded_item_actions Scheme::Traditional, false
 
       expect(modern[0]).to eq traditional[0]
-      expect(modern[1]).to eq traditional[1]
-      expect(modern[2]).to eq traditional[2]
+      expect(modern[1]).to be_true
+      expect(traditional[1]).to be_true
+      expect(modern[2]).to eq Slot::Melee
+      expect(traditional[2]).to eq Slot::Melee
       expect(modern[3]).to eq traditional[3]
-      expect(modern[2]).to eq 2
+      expect(modern[4]).to eq traditional[4]
+      expect(modern[5]).to eq traditional[5]
+      expect(modern[4]).to eq 2
     end
   end
 end
