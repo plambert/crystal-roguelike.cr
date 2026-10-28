@@ -107,6 +107,8 @@ Spectator.describe "factions" do
                    in .orc?    then Faction::Orc
                    in .ant?    then Faction::Ant
                    in .jelly?  then Faction::Jelly
+                   in .rat?, .wolf?, .bear?, .boar?, .snake?
+                     Faction::Beast
                    end
         expect(kind.faction).to eq expected
       end

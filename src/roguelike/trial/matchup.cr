@@ -133,9 +133,15 @@ module Roguelike
 
       # The rows with more than one creature in them.
       #
-      # Three ants is the smallest band the generator places. Surrounding is
-      # what ants do, so the three stand round the character from the start.
-      BANDS = [Opponent.new(Kind::Ant, 3)]
+      # Each is the smallest band the generator places of that kind. The
+      # creatures stand round the character from the start, which is what
+      # ants and wolves do and what a pack of rats comes to.
+      BANDS = [
+        Opponent.new(Kind::Ant, 3),
+        Opponent.new(Kind::Rat, 2),
+        Opponent.new(Kind::GiantRat, 2),
+        Opponent.new(Kind::Wolf, 2),
+      ]
 
       # Everyone the character is matched against: one row for each kind,
       # then each of `BANDS`.

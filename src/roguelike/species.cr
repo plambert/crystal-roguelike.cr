@@ -336,6 +336,11 @@ module Roguelike
     Orc
     Ant
     Jelly
+    Rat
+    Wolf
+    Bear
+    Boar
+    Snake
 
     # The kind a bare species stands for.
     #
@@ -348,6 +353,11 @@ module Roguelike
       in .orc?    then Kind::Orc
       in .ant?    then Kind::Ant
       in .jelly?  then Kind::Jelly
+      in .rat?    then Kind::Rat
+      in .wolf?   then Kind::Wolf
+      in .bear?   then Kind::Bear
+      in .boar?   then Kind::Boar
+      in .snake?  then Kind::GiantSnake
       end
     end
 
@@ -464,6 +474,13 @@ module Roguelike
     OrcArcher
     Ant
     Jelly
+    Rat
+    GiantRat
+    Wolf
+    Werewolf
+    Bear
+    Boar
+    GiantSnake
 
     # What this kind is. Every method below reads one field of it.
     def facts : KindFacts
@@ -805,6 +822,71 @@ module Roguelike
         depths: 3..5, faction: Faction::Jelly,
         attributes: Attributes.new(strength: 10, dexterity: 6, constitution: 14,
           intelligence: 2, stealth: 4)),
+
+      Kind::Rat => KindFacts.new(Species::Rat, 'r', "rat", "rats",
+        "a gray rat as long as your forearm, never alone and quick to run",
+        hit_dice: Dice.new(1, 4, 1), damage: Dice.new(1, 3), armor: 0,
+        notice: 8, darkvision: false, paths: true, experience: 2,
+        size: Size::Small, persistence: 6, speed: 120, verb: "bites",
+        flees: true, depths: 1..3, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 6, dexterity: 13, constitution: 8,
+          intelligence: 5, stealth: 15)),
+
+      Kind::GiantRat => KindFacts.new(Species::Rat, 'r', "giant rat",
+        "giant rats", "a rat the size of a small dog, with yellow teeth and a filthy bite",
+        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 1,
+        notice: 8, darkvision: false, paths: true, experience: 4,
+        size: Size::Small, persistence: 8, speed: 115, verb: "bites",
+        flees: true, depths: 2..4, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 9, dexterity: 13, constitution: 10,
+          intelligence: 5, stealth: 13)),
+
+      Kind::Wolf => KindFacts.new(Species::Wolf, 'd', "wolf", "wolves",
+        "a lean gray wolf that hunts with its pack and circles to your back",
+        hit_dice: Dice.new(2, 6), damage: Dice.new(1, 4), armor: 1,
+        notice: 11, darkvision: true, paths: true, experience: 8,
+        persistence: 20, speed: 120, verb: "bites",
+        flees: true, surrounds: true, sharing: Sharing::Called,
+        depths: 3..6, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 11, dexterity: 14, constitution: 12,
+          intelligence: 8, stealth: 14)),
+
+      Kind::Werewolf => KindFacts.new(Species::Wolf, 'd', "werewolf", "werewolves",
+        "a wolf too large and too clever to be only a wolf, that leads the pack",
+        hit_dice: Dice.new(4, 8, 4), damage: Dice.new(2, 4), armor: 4,
+        notice: 12, darkvision: true, paths: true, experience: 40,
+        persistence: 40, speed: 125, verb: "bites",
+        opens_doors: true, surrounds: true, sharing: Sharing::Called,
+        depths: 6..9, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 15, dexterity: 14, constitution: 14,
+          intelligence: 10, stealth: 13)),
+
+      Kind::Bear => KindFacts.new(Species::Bear, 'B', "bear", "bears",
+        "a huge brown bear that does not like being woken",
+        hit_dice: Dice.new(4, 8, 6), damage: Dice.new(2, 6), armor: 3,
+        notice: 9, darkvision: false, paths: true, experience: 30,
+        size: Size::Large, persistence: 15, swing: 120, verb: "mauls",
+        alone: true, depths: 5..8, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 18, dexterity: 9, constitution: 16,
+          intelligence: 5, stealth: 8)),
+
+      Kind::Boar => KindFacts.new(Species::Boar, 'q', "boar", "boars",
+        "a bristling wild boar with tusks like knives, that fights until it drops",
+        hit_dice: Dice.new(3, 8), damage: Dice.new(1, 6), armor: 3,
+        notice: 7, darkvision: false, paths: true, experience: 14,
+        size: Size::Large, persistence: 10, speed: 110, verb: "gores",
+        depths: 3..6, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 13, dexterity: 10, constitution: 14,
+          intelligence: 4, stealth: 9)),
+
+      Kind::GiantSnake => KindFacts.new(Species::Snake, 'S', "giant snake",
+        "giant snakes", "a snake as thick as your leg that lies still until you are close",
+        hit_dice: Dice.new(4, 6, 2), damage: Dice.new(1, 8), armor: 3,
+        notice: 8, darkvision: false, paths: true, experience: 20,
+        size: Size::Large, persistence: 8, speed: 90, verb: "bites",
+        alone: true, depths: 4..7, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 14, dexterity: 12, constitution: 14,
+          intelligence: 4, stealth: 16)),
     }
 
     # Every character a floor file may hold for a monster, and the kind it

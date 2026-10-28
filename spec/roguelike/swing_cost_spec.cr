@@ -210,9 +210,14 @@ Spectator.describe "what a blow costs" do
     end
 
     it "costs what its kind says" do
+      slow = {
+        Roguelike::Kind::Orc       => 120,
+        Roguelike::Kind::OrcArcher => 120,
+        Roguelike::Kind::Bear      => 120,
+      }
+
       Roguelike::Kind.each do |kind|
-        cost = kind.species.orc? ? 120 : Costs::TURN
-        expect(kind.swing).to eq cost
+        expect(kind.swing).to eq slow.fetch(kind, Costs::TURN)
       end
     end
 

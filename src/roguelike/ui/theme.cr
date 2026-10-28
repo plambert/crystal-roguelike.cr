@@ -81,6 +81,13 @@ module Roguelike::Ui
     color orc_archer, 0x60E8E8
     color ant, 0xFFA040
     color jelly, 0xC8A0FF
+    color rat, 0xC8A8A0
+    color giant_rat, 0xF090C8
+    color wolf, 0xB4C4DC
+    color werewolf, 0xFFC048
+    color bear, 0xCC8C5C
+    color boar, 0xE89090
+    color giant_snake, 0x40D8A8
     color shape, 0x9A9EA8
 
     color flame, 0xFFB050
@@ -157,6 +164,13 @@ module Roguelike::Ui
       Entry.new("orc_archer", "Creatures", "Orc archer"),
       Entry.new("ant", "Creatures", "Ant"),
       Entry.new("jelly", "Creatures", "Jelly"),
+      Entry.new("rat", "Creatures", "Rat"),
+      Entry.new("giant_rat", "Creatures", "Giant rat"),
+      Entry.new("wolf", "Creatures", "Wolf"),
+      Entry.new("werewolf", "Creatures", "Werewolf"),
+      Entry.new("bear", "Creatures", "Bear"),
+      Entry.new("boar", "Creatures", "Boar"),
+      Entry.new("giant_snake", "Creatures", "Giant snake"),
       Entry.new("shape", "Creatures", "Shape you cannot make out"),
 
       Entry.new("flame", "Light", "Flame"),

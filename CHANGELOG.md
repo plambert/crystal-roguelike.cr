@@ -8,6 +8,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* Rats come in packs from the first floor and giant rats from the second. Wolves hunt in packs of
+  two or three from the third floor and circle round to your back. Boars come from the third
+  floor, giant snakes lie alone from the fourth and bears from the fifth. Werewolves lead wolf
+  packs below the fifth floor.
+* Beasts fight every other band of creatures, other beasts included.
+
 ### Fixed
 
 * `F` fires at the nearest monster in the modern control scheme, as it does in the traditional
