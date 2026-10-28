@@ -117,7 +117,7 @@ Spectator.describe Roguelike::Event::StatChanged do
     expect(reading[0]).to eq(player.hit_points)
     expect(reading[Event::StatChanged::NAMES.index!("ac")]).to eq(player.armor_class)
     expect(reading[Event::StatChanged::NAMES.index!("damage")]).to eq(player.damage.to_s)
-    expect(reading[Event::StatChanged::NAMES.index!("speed")]).to eq(player.pace.speed)
+    expect(reading[Event::StatChanged::NAMES.index!("pace")]).to eq(player.pace.speed)
   end
 
   it "round-trips through JSON as old and new" do

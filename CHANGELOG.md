@@ -13,7 +13,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The game emits a `stat_changed` event each time one of the character's stats changes. It names
   the stat, the old and new values, and the cause. It covers hit points, maximum hit points,
   experience, level, the five attributes, gold, armor class, to-hit, melee and ranged damage
-  dice, ranged to-hit and speed. Bots read it in the event stream and the events file holds it.
+  dice, ranged to-hit and speed, which it names `pace`. Bots read it in the event stream and the
+  events file holds it.
 
 ### Fixed
 

@@ -1002,7 +1002,7 @@ module Roguelike
       # Every stat, in the order a reading holds them.
       NAMES = {"hp", "hp_max", "experience", "level", "strength", "dexterity",
                "constitution", "intelligence", "stealth", "gold", "ac",
-               "to_hit", "damage", "ranged_to_hit", "ranged_damage", "speed"}
+               "to_hit", "damage", "ranged_to_hit", "ranged_damage", "pace"}
 
       alias Value = Int32 | String | Nil
 

@@ -5163,7 +5163,7 @@ A `stat_changed` event is in `Game#events` and in the file. It holds `stat`, `ol
 | --- | --- |
 | `hp`, `hp_max`, `experience`, `level`, `gold` | Integers |
 | `strength`, `dexterity`, `constitution`, `intelligence`, `stealth` | Integers |
-| `ac`, `to_hit`, `speed` | Integers. `speed` is `Pace#speed` |
+| `ac`, `to_hit`, `pace` | Integers. `pace` is `Pace#speed`, as in the `stats` line |
 | `damage` | Melee dice as a string, such as `1d6+1` |
 | `ranged_to_hit`, `ranged_damage` | An integer and dice, or `null` with no ranged weapon and ammunition it shoots |
 
