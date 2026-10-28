@@ -207,6 +207,18 @@ Spectator.describe Roguelike::Ui::OptionsScreen do
       expect(Options.current.try &.bar_color).to eq Options::BarColor::Bands
     end
 
+    it "shows Traditional for an unchosen scheme and saves a changed choice" do
+      run = run_under root
+
+      run.press "O"
+      expect(screen(run).form["control_scheme"]).to eq "traditional"
+      run.press "End", "Up", "Up", "Up", "Right"
+
+      expect(screen(run).form["control_scheme"]).to eq "modern"
+      expect(on_file(root)["control_scheme"].as_s).to eq "modern"
+      expect(Options.current.try(&.control_scheme)).to eq Options::ControlScheme::Modern
+    end
+
     it "hands the options to the run after each change" do
       run = run_under root
       seen = [] of Bool
@@ -234,6 +246,20 @@ Spectator.describe Roguelike::Ui::OptionsScreen do
       run.press "O", "Space", "Escape", "O"
 
       expect(screen(run).form["motion"]).to eq false
+    end
+
+    it "rebinds without rebuilding the form or moving its focused row" do
+      run = run_under root
+      run.press "O", "Down"
+      held_form = screen(run).form
+      held_row = on_row run
+
+      screen(run).rebind_controls run.session.app
+
+      expect(screen(run).form.same? held_form).to be_true
+      expect(on_row run).to eq held_row
+      expect(screen(run).scope.try(&.keymap)).not_to be_nil
+      expect(screen(run).help.sections.first.title).to eq "options"
     end
   end
 
