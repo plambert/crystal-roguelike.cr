@@ -533,6 +533,7 @@ module Roguelike::Ui
     drawn gelatinous_cube : Style = Style::DEFAULT.fg(theme.gelatinous_cube)
     drawn stone_golem : Style = Style::DEFAULT.fg(theme.stone_golem)
     drawn iron_golem : Style = Style::DEFAULT.fg(theme.iron_golem)
+    drawn orc_warlord : Style = Style::DEFAULT.fg(theme.orc_warlord)
 
     drawn monsters : Hash(Kind, Style) = {
       Kind::WhiteSlime     => white_slime,
@@ -559,6 +560,7 @@ module Roguelike::Ui
       Kind::GelatinousCube => gelatinous_cube,
       Kind::StoneGolem     => stone_golem,
       Kind::IronGolem      => iron_golem,
+      Kind::OrcWarlord     => orc_warlord,
     }
 
     # How *kind* draws.

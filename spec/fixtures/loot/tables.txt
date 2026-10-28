@@ -258,3 +258,15 @@ gelatinous cube over 10000 of them
     wand of striking   3.5%
 stone golem over 10000 of them
 iron golem over 10000 of them
+orc warlord over 10000 of them
+  100.0% of the time (100% stated)
+    long sword       100.0%
+  100.0% of the time (100% stated)
+    chain mail       100.0%
+  100.0% of the time (100% stated)
+    shield           100.0%
+  100.0% of the time (100% stated)
+    gold piece       100.0%
+  100.0% of the time (100% stated)
+    torch             64.8%
+    candle            35.2%

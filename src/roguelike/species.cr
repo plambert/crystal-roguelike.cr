@@ -495,6 +495,7 @@ module Roguelike
     GelatinousCube
     StoneGolem
     IronGolem
+    OrcWarlord
 
     # What this kind is. Every method below reads one field of it.
     def facts : KindFacts
@@ -748,21 +749,21 @@ module Roguelike
         hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 4), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 5,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "chills",
-        depths: 1..4, faction: Faction::Slime),
+        depths: 1..5, faction: Faction::Slime),
 
       Kind::RedSlime => KindFacts.new(Species::Slime, 'j', "red slime",
         "red slimes", "a steaming red ooze that scalds what it touches",
         hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 8), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 6,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "scalds",
-        depths: 2..5, faction: Faction::Slime),
+        depths: 2..7, faction: Faction::Slime),
 
       Kind::GreenSlime => KindFacts.new(Species::Slime, 'j', "green slime",
         "green slimes", "a bubbling green acid that eats through leather and skin",
         hit_dice: Dice.new(2, 6, 2), damage: Dice.new(2, 6), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 10,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "eats at",
-        depths: 3..5, faction: Faction::Slime),
+        depths: 3..8, faction: Faction::Slime),
 
       Kind::GoblinScout => KindFacts.new(Species::Goblin, 'g', "goblin scout",
         "goblin scouts", "a wiry goblin with a sling and a dagger, alone and quick on its feet",
@@ -782,7 +783,7 @@ module Roguelike
         notice: 8, darkvision: false, paths: true, experience: 7,
         size: Size::Small, persistence: 6, opens_doors: true, flees: true, wields: true,
         weapon: ItemKind::ShortSword, light: 25,
-        depths: 2..4, faction: Faction::Goblin,
+        depths: 2..6, faction: Faction::Goblin,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 7, stealth: 13)),
 
@@ -792,7 +793,7 @@ module Roguelike
         notice: 9, darkvision: false, paths: true, experience: 12,
         size: Size::Small, persistence: 8, light: 50,
         mends: true, casts: true, opens_doors: true, flees: true, wields: true,
-        depths: 3..5, faction: Faction::Goblin,
+        depths: 3..7, faction: Faction::Goblin,
         attributes: Attributes.new(strength: 7, dexterity: 11, constitution: 9,
           intelligence: 12, stealth: 11)),
 
@@ -801,7 +802,7 @@ module Roguelike
         hit_dice: Dice.new(2, 6, 7), damage: Dice.new(1, 8), armor: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
         size: Size::Medium, persistence: 30, speed: 95, swing: 120,
-        armed: 90, light: 20, depths: 3..5, opens_doors: true,
+        armed: 90, light: 20, depths: 3..10, opens_doors: true,
         flees: true, wields: true, faction: Faction::Orc,
         attributes: Attributes.new(strength: 14, dexterity: 10, constitution: 13,
           intelligence: 10, stealth: 8)),
@@ -811,7 +812,7 @@ module Roguelike
         hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 6), armor: 3,
         notice: 10, darkvision: true, paths: true, experience: 16,
         size: Size::Medium, persistence: 24, speed: 95, swing: 120,
-        light: 10, depths: 4..5, opens_doors: true, flees: true, wields: true,
+        light: 10, depths: 4..10, opens_doors: true, flees: true, wields: true,
         ranged_weapon: ItemKind::Bow, quiver: Dice.new(3, 6),
         faction: Faction::Orc,
         attributes: Attributes.new(strength: 12, dexterity: 14, constitution: 12,
@@ -823,7 +824,7 @@ module Roguelike
         notice: 7, darkvision: false, paths: true, experience: 3,
         size: Size::Small, persistence: 12, speed: 130, verb: "bites",
         sharing: Sharing::Hive, surrounds: true,
-        depths: 2..5, faction: Faction::Ant,
+        depths: 2..7, faction: Faction::Ant,
         attributes: Attributes.new(strength: 10, dexterity: 11, constitution: 8,
           intelligence: 6, stealth: 14)),
 
@@ -833,7 +834,7 @@ module Roguelike
         notice: 4, darkvision: false, paths: false, experience: 6,
         size: Size::Large, persistence: 4, speed: 60, verb: "stings",
         alone: true, splits: true,
-        depths: 3..5, faction: Faction::Jelly,
+        depths: 3..9, faction: Faction::Jelly,
         attributes: Attributes.new(strength: 10, dexterity: 6, constitution: 14,
           intelligence: 2, stealth: 4)),
 
@@ -969,6 +970,15 @@ module Roguelike
         alone: true, depths: 8..10, faction: Faction::Construct,
         attributes: Attributes.new(strength: 20, dexterity: 10, constitution: 20,
           intelligence: 1, stealth: 4)),
+      Kind::OrcWarlord => KindFacts.new(Species::Orc, 'o', "orc warlord",
+        "orc warlords", "a huge orc in black iron who guards the amulet with a sworn band",
+        hit_dice: Dice.new(10, 8, 20), damage: Dice.new(1, 10), armor: 5,
+        notice: 12, darkvision: true, paths: true, experience: 250,
+        size: Size::Large, persistence: 80, speed: 100, swing: 120,
+        weapon: ItemKind::LongSword, light: 100, opens_doors: true, wields: true,
+        depths: World::VAULT..World::VAULT, faction: Faction::Orc,
+        attributes: Attributes.new(strength: 18, dexterity: 12, constitution: 16,
+          intelligence: 12, stealth: 8)),
     }
 
     # Every character a floor file may hold for a monster, and the kind it

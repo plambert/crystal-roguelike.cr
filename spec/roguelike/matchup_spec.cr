@@ -12,8 +12,8 @@ Spectator.describe Roguelike::Trial::Matchup do
   let(:last) { Matchup::KITS.last }
 
   describe "KITS" do
-    it "holds one kit for each of five depths" do
-      expect(Matchup::KITS.map(&.depth)).to eq [1, 2, 3, 4, 5]
+    it "holds one kit for each of ten depths" do
+      expect(Matchup::KITS.map(&.depth)).to eq (1..10).to_a
     end
 
     it "readies every piece of gear" do

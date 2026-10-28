@@ -315,6 +315,10 @@ Spectator.describe "hurt creatures running" do
       expect(species).to eq [Species::Goblin, Species::Orc, Species::Rat, Species::Wolf, Species::Imp]
       expect(runners).not_to contain Kind::Werewolf
     end
+
+    it "is joined by the orc warlord, who holds his ground" do
+      expect(Kind::OrcWarlord.flees?).to be_false
+    end
   end
 
   describe "a goblin warrior running through a doorway" do

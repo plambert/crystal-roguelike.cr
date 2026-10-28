@@ -40,10 +40,19 @@ Spectator.describe Roguelike::Advancement do
       expect(described_class.threshold(1)).to eq 0
     end
 
-    it "doubles at every level" do
-      steps = (2..8).map { |level| described_class.threshold level }
+    it "doubles at every level up to the ninth" do
+      steps = (2..Roguelike::Advancement::DOUBLING).map { |level| described_class.threshold level }
 
       expect(steps.each_cons(2).all? { |pair| pair[1] == pair[0] * 2 }).to be_true
+    end
+
+    it "grows by half at every level after the ninth" do
+      steps = (Roguelike::Advancement::DOUBLING..Roguelike::Advancement::MAX_LEVEL).map do |level|
+        described_class.threshold level
+      end
+
+      expect(steps.each_cons(2).all? { |pair| pair[1] == pair[0] * 3 // 2 }).to be_true
+      expect(described_class.threshold(10)).to eq 3840
     end
 
     it "starts where it says it does" do

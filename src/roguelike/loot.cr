@@ -135,13 +135,13 @@ module Roguelike
     # deeper than the last entry reads the last entry.
     #
     # A minus is never capped. A curse is as bad on floor 1 as anywhere.
-    CEILINGS = [1, 1, 2, 2, 3]
+    CEILINGS = [1, 1, 2, 2, 3, 3, 3, 4, 4, 4]
 
     # How often a monster's ammunition comes out +1, out of a hundred, from
     # floor 1 down. A floor deeper than the last entry reads the last entry.
     #
     # The whole stack comes out +1 or none of it does.
-    FLETCHED = [0, 0, 10, 20, 30]
+    FLETCHED = [0, 0, 10, 20, 30, 35, 40, 45, 50, 50]
 
     # The shallowest floor *kind* turns up on.
     def self.from(kind : ItemKind) : Int32
@@ -241,11 +241,24 @@ module Roguelike
       Species::Golem => Array(Draw).new,
     }
 
+    # What one kind draws for in place of what its species draws for.
+    #
+    # The warlord always wears chain mail and a shield, and carries his
+    # band's pay.
+    OWN = {
+      Kind::OrcWarlord => [
+        Draw.new({ItemKind::ChainMail => 1}, chance: 100),
+        Draw.new({ItemKind::Shield => 1}, chance: 100),
+        Draw.new(COINS, chance: 100, count: 100..200),
+      ],
+    }
+
     # The draws *kind* makes.
     #
     # Its weapon first: the one it always carries, or a roll on `WEAPONS` as
-    # often as `Kind#armed` says. Then what its species draws for. Then a
-    # light, as often as `Kind#light` says.
+    # often as `Kind#armed` says. Then what the kind draws for in `OWN`, or
+    # what its species draws for. Then a light, as often as `Kind#light`
+    # says.
     def self.draws(kind : Kind) : Array(Draw)
       found = [] of Draw
       weapon = kind.weapon
@@ -256,7 +269,7 @@ module Roguelike
         found << Draw.new(WEAPONS, chance: kind.armed)
       end
 
-      found.concat DRAWS[kind.species]
+      found.concat(OWN[kind]? || DRAWS[kind.species])
       found << Draw.new(LIGHTS, chance: kind.light) if kind.light > 0
       found
     end

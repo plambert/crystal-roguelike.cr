@@ -273,7 +273,7 @@ Spectator.describe Roguelike::Generator do
 
   describe "who lives on a floor" do
     # The floors deeper than the first that these examples dig, by depth.
-    DEEP = (1..5).to_h do |depth|
+    DEEP = (1..Roguelike::World::DEEPEST).to_h do |depth|
       {depth, (0...12).map { |index| Generator.floor Rng.new(FIRST + index), depth: depth }}
     end
 
@@ -296,7 +296,7 @@ Spectator.describe Roguelike::Generator do
       end
     end
 
-    it "places every kind that lives on the five floors somewhere on them" do
+    it "places every kind that lives on the ten floors somewhere on them" do
       found = Set(Roguelike::Kind).new
       DEEP.each_value do |floors|
         floors.each { |floor| floor.each_monster { |_column, _row, creature| found << creature.kind } }
@@ -453,6 +453,11 @@ Spectator.describe Roguelike::Generator do
       retried = Generator.new(Rng.new(FIRST), "floor-3", depth: 3, attempt: 2).floor
 
       expect({retried.columns, retried.rows}).to eq({first.columns, first.rows})
+    end
+
+    it "draws the first five floors at the average area and grows the deeper ones" do
+      (1..5).each { |depth| expect(Generator.growth depth).to eq 1.0 }
+      expect(Generator.growth 10).to be_close 1.3, 0.001
     end
 
     it "draws each floor's size on its own" do

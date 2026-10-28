@@ -235,7 +235,49 @@ Spectator.describe "floors of the dungeon" do
       expect(chamber.find Terrain::StairsDown).to be_nil
     end
 
-    it "is under floor 5" do
+    it "is guarded by the orc warlord and his band, searching from the stairs" do
+      game = down Game.dug(Rng.new SEED), World::DEEPEST
+      kinds = [] of Roguelike::Kind
+      bands = Set(String).new
+      game.floor.each_monster do |_column, _row, creature|
+        kinds << creature.kind
+        bands << creature.band
+      end
+
+      expect(kinds.sort).to eq [Roguelike::Kind::Orc, Roguelike::Kind::Orc,
+                                Roguelike::Kind::OrcArcher, Roguelike::Kind::OrcWarlord].sort
+      expect(bands.size).to eq 1
+      band = game.floor.band(bands.first)
+      raise "no band" unless band
+
+      expect(band.awareness.awake?).to be_true
+      expect(band.knowledge(game.floor.id).sightings.has_key? Roguelike::Knowledge::PLAYER).to be_true
+    end
+
+    it "arms the warlord with a long sword, chain mail and a shield" do
+      game = down Game.dug(Rng.new SEED), World::DEEPEST
+      warlord = nil
+      game.floor.each_monster { |_c, _r, creature| warlord = creature if creature.kind.orc_warlord? }
+      raise "no warlord" unless warlord
+
+      expect(warlord.wielded.try &.kind).to eq ItemKind::LongSword
+      expect(warlord.worn.map(&.kind)).to contain ItemKind::ChainMail
+      expect(warlord.worn.map(&.kind)).to contain ItemKind::Shield
+    end
+
+    it "names the warlord once, the first time he is seen" do
+      game = down Game.dug(Rng.new SEED), World::DEEPEST
+      200.times do
+        break if game.heralded? || game.over?
+
+        game.wait
+      end
+
+      expect(game.heralded?).to be_true
+      expect(game.log.lines.count &.includes?("Ulgroth")).to eq 1
+    end
+
+    it "is under floor 10" do
       game = down Game.dug(Rng.new SEED), World::DEEPEST
 
       expect(game.floor.id).to eq World.id(World::VAULT)
