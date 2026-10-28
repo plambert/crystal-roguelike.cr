@@ -111,7 +111,8 @@ Spectator.describe Roguelike::Ui::Tooltip do
 
       expect(run.play.tooltip.written).to eq [
         "a masterwork +1 long sword", "\u2694 weapon in hand", "unknown",
-        "damage 1d8+2", "swing slow (120)", "thrown 8 squares", "weight 40",
+        "damage 1d8+2", "swing slow (120)", "thrown 8 squares",
+        "2.98 dps against AC 2", "weight 40",
       ]
     end
 
@@ -206,7 +207,8 @@ Spectator.describe Roguelike::Ui::Tooltip do
       expect(run.play.tooltip.showing?).to be_true
       expect(run.play.tooltip.written).to eq [
         "a masterwork +1 long sword", "\u2694 weapon in hand", "unknown",
-        "damage 1d8+2", "swing slow (120)", "thrown 8 squares", "weight 40",
+        "damage 1d8+2", "swing slow (120)", "thrown 8 squares",
+        "2.98 dps against AC 2", "weight 40",
       ]
     end
 
@@ -353,7 +355,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
 
       expect(run.play.tooltip.written).to eq [
         "a long sword", "unknown", "damage 1d8", "swing slow (120)",
-        "thrown 8 squares", "weight 40",
+        "thrown 8 squares", "1.69 dps against AC 2", "weight 40",
       ]
     end
 

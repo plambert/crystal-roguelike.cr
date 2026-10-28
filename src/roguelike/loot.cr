@@ -51,6 +51,7 @@ module Roguelike
       ItemKind::Cap          => 30,
       ItemKind::Gloves       => 22,
       ItemKind::Boots        => 22,
+      ItemKind::PaddedJacket => 12,
       ItemKind::LeatherArmor => 18,
       ItemKind::Shield       => 6,
       ItemKind::ChainMail    => 2,
@@ -247,6 +248,7 @@ module Roguelike
     def self.kinds(kind : Kind | Species) : Set(ItemKind)
       found = Set(ItemKind).new
       draws(kind).each { |draw| draw.kinds.each_key { |item| found << item } }
+      as_kind(kind).garb.try { |garb| found << garb }
       ranged_weapon = as_kind(kind).ranged_weapon
       if ranged_weapon
         found << ranged_weapon
@@ -265,11 +267,18 @@ module Roguelike
     #
     # Armor comes out cut for the creature's own size. That rolls nothing.
     #
+    # The body armor a kind always wears, its `Kind#garb`, comes first and
+    # plain. It rolls nothing either, so what else the creature carries is
+    # what it carried before it had any.
+    #
     # The weapon comes first, so `Monster#outfit` readies it before anything
     # else that wants the hand.
     def self.for(kind : Kind | Species, rng : Rng, depth : Int32? = nil) : Array(Item)
       found = [] of Item
       size = kind.size
+
+      garb = as_kind(kind).garb
+      found << Item.new(garb, size: size) if garb
 
       draws(kind).each do |draw|
         taken = one draw, rng, depth, size

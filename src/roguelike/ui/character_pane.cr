@@ -63,10 +63,6 @@ module Roguelike::Ui
     # columns before it.
     GOLD = 5
 
-    # Where the blows go on the pacing row. The walking has the columns
-    # before it.
-    BLOW = 11
-
     # How many pack rows there are. One for every letter the pack has.
     MOST_PACK = Inventory::LETTERS.size
 
@@ -92,7 +88,7 @@ module Roguelike::Ui
     getter score_names : Line
     getter scores : Line
 
-    # How fast the character walks and swings, against a normal pace.
+    # How fast the character walks, and their melee damage rate.
     getter pacing : Line
 
     # One row per equipment slot, in `Slot.listed` order.
@@ -229,7 +225,7 @@ module Roguelike::Ui
       @numbers.put_right game.turn.to_s, Palette.plain
 
       written_scores player
-      written_pacing player
+      written_pacing game
       written_slots game
       written_pack game
 
@@ -291,18 +287,20 @@ module Roguelike::Ui
       @threat.show left, whole, "door #{left}/#{whole}"
     end
 
-    # How fast the character walks and swings, as a share of a normal pace.
+    # How fast the character walks, as a share of a normal pace, and what
+    # they do in melee in a turn.
     #
-    # A haste or a slow is in it, and so is what the armor and the weapon
-    # cost. Chain mail reads "Walk 80%".
-    private def written_pacing(player : Player) : Nil
-      speed = player.pace.speed * 100
+    # A haste or a slow is in the walking, and so is the body armor. The
+    # damage rate is against the creature being fought, or against
+    # `Combat::REFERENCE`, as the weapon's detail box says.
+    private def written_pacing(game : Game) : Nil
+      player = game.player
+      against, _whom = Detail.target game
 
       @pacing.clear
       @pacing.put 0, "Walk", Palette.faint
-      @pacing.put GOLD, "#{speed // player.stride}%", Palette.plain
-      @pacing.put BLOW, "Blow", Palette.faint
-      @pacing.put BLOW + 5, "#{speed // player.swing}%", Palette.plain
+      @pacing.put GOLD, "#{player.pace.speed * 100 // player.stride}%", Palette.plain
+      @pacing.put_right "#{Detail.dps player.per_turn(against)} dps", Palette.plain
     end
 
     # The five scores, with their names over them.

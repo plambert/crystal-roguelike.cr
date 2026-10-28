@@ -306,7 +306,9 @@ module Roguelike
     wields : Bool = false,
     sharing : Sharing = Sharing::Inherited,
     surrounds : Bool = false,
-    splits : Bool = false do
+    splits : Bool = false,
+    hide : Bulk = Bulk::Medium,
+    garb : ItemKind? = nil do
     # Hit points of an average one.
     def hit_points : Int32
       hit_dice.average.round.to_i
@@ -673,6 +675,20 @@ module Roguelike
       facts.splits
     end
 
+    # What its own body counts as, for the cost of a step, when it wears no
+    # body armor. Body armor it puts on counts instead.
+    #
+    # Medium walks at a normal pace, which is what every kind did before
+    # armor had a weight. A hide adds nothing to a blow.
+    def hide : Bulk
+      facts.hide
+    end
+
+    # The body armor it always wears. `nil` for one that draws or has none.
+    def garb : ItemKind?
+      facts.garb
+    end
+
     # Which kind a floor file's *mark* names: the default kind of the species
     # with that letter. `nil` for a character that names none.
     def self.from_mark?(mark : Char) : Kind?
@@ -725,13 +741,13 @@ module Roguelike
 
       Kind::GoblinScout => KindFacts.new(Species::Goblin, 'g', "goblin scout",
         "goblin scouts", "a wiry goblin with a sling and a dagger, alone and quick on its feet",
-        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 0,
+        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: -2,
         notice: 10, darkvision: false, paths: true, experience: 5,
         size: Size::Small, persistence: 8, speed: 110,
         weapon: ItemKind::Dagger, light: 40, alone: true, opens_doors: true,
         flees: true, wields: true,
         ranged_weapon: ItemKind::Sling, quiver: Dice.new(1, 4, 1),
-        depths: 1..2, faction: Faction::Goblin,
+        depths: 1..2, faction: Faction::Goblin, garb: ItemKind::LeatherArmor,
         attributes: Attributes.new(strength: 8, dexterity: 14, constitution: 9,
           intelligence: 8, stealth: 15)),
 

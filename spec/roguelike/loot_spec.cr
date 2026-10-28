@@ -16,10 +16,14 @@ Spectator.describe Roguelike::Loot do
   SEED = 20260912_u64
 
   # Everything *species* comes up with over `ROLLS` creatures.
+  #
+  # The body armor a kind always wears is left out. It is not a draw, and it
+  # would count toward the armor draw.
   def rolled(species : Creature, seed : UInt64 = SEED) : Array(Array(Item))
     rng = Rng.new(seed).derive "loot:#{species}"
+    worn = species.garb ? 1 : 0
 
-    Array.new(ROLLS) { Loot.for species, rng }
+    Array.new(ROLLS) { Loot.for(species, rng)[worn..] }
   end
 
   describe ".for" do

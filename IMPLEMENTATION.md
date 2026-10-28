@@ -5497,55 +5497,82 @@ holds `Explore`. `Knowledge` gained `#revision` and `#chambers`. `Action` gained
 
 ## Armor and pace
 
-Armor has a weight class, `Bulk`, and the class sets what a step and a melee blow cost. The cost
-goes on the action rather than on the actor's speed. A character in chain mail walks slower and
-swings slower, but reads, drinks, shoots and waits at the normal pace. `Pace` is unchanged, so a
-haste or a slow still reads the same through its accessors.
+The class of the body armor worn, `Bulk`, sets what a step costs and what is added to a melee
+blow. The cost goes on the action, not on the actor's speed. Reading, drinking, shooting and
+waiting stay at one turn. `Pace` is unchanged, so a haste or a slow reads the same through its
+accessors.
 
 | Class | Kinds | Step | Melee blow |
 | --- | --- | --- | --- |
-| Light | cap, gloves, boots, leather armor, shield | 100 | +0 |
-| Medium | none yet | 110 | +0 |
-| Heavy | chain mail | 125 | +20 |
+| None | no body armor | 90 | +0 |
+| Light | padded jacket | 95 | +5 |
+| Medium | leather armor | 100 | +10 |
+| Heavy | chain mail | 105 | +20 |
+| Very heavy | none yet, for plate | 110 | +30 |
 
-A shield adds 10 to a melee blow whatever its class. The pieces worn add up, so chain mail and a
-shield cost 125 a step and 30 on top of the weapon's swing. The numbers are in `Costs`.
+* A shield adds 10 to a melee blow and nothing to a step.
+* A cap, gloves and boots do not change the class.
+* The blow cost goes on top of the weapon's swing. Chain mail and a shield with a mace cost 155
+  a blow.
+* The table is `Costs::PACES`, one row per class.
 
-### Decisions
+### Creatures
 
-* Leather armor is light. The character starts in it, and a medium leather would make every run
-  walk a tenth slower than every normal creature from the first turn. Medium is there for a
-  heavier body armor that does not exist yet.
-* Only melee blows take the blow cost, and battering a door is one. A shot, a throw and a zap do
-  not.
-* Creatures follow the same rule through `Monster#stride` and `Monster#swing`. An orc in chain
-  mail takes four steps in five ticks.
-* The item's description says the class and how much it slows walking and blows.
-* Putting on a piece that slows you says by how much. Taking it off says you move more freely.
-* The Scores section has a row with walking and blow speed as a share of a normal pace. A haste,
-  the armor and the weapon are all in it.
+A creature pays the same costs through the same methods, `Monster#stride` and `Monster#swing`.
+With no body armor on, it walks in its hide, `Kind#hide`, which counts for the step and adds
+nothing to a blow. Body armor it puts on counts instead of the hide.
+
+The hide is a `Bulk` with a default of `Medium`, so a kind that does not name one walks at a
+normal pace. A new kind sets it with `hide: Bulk::None` and the like at the end of its row in
+`Kinds::FACTS`.
+
+| Kind | Hide | Body armor | Base AC | Step |
+| --- | --- | --- | --- | --- |
+| Slimes, ant, jelly | medium | none | unchanged | 100 |
+| Goblin scout | medium | small leather armor, always | 0 to -2 | 100 |
+| Goblin warrior, shaman | medium | what the armor draw gives | unchanged | 95 to 105 |
+| Orc, orc archer | medium | what the armor draw gives | unchanged | 95 to 105 |
+
+The scout's leather is its `Kind#garb`, cut small, so the character cannot wear it. It rolls
+nothing, so the rest of the scout's loot is what it was. Its base AC went down by the leather's
+2, so its armor class is what it was. A goblin or an orc that draws no body armor walks at 100.
+One that draws a padded jacket walks at 95, and one in chain mail at 105.
+
+### Damage per turn
+
+`Combat.per_turn` is what the game shows as "dps": the chance to land, times the mean damage of a
+landed blow, times `Costs::TURN` over the blow's cost with the armor in it. The mean counts every
+total of the dice with `Combat::LEAST` for any below it. `Player#per_turn` reads the same to-hit,
+damage and swing a blow rolls with.
+
+* The target is the creature being fought while its bar shows. Otherwise it is
+  `Combat::REFERENCE`, armor class 2, a goblin warrior or a goblin in leather.
+* A melee weapon's detail box says "1.43 dps against AC 2", or names the creature.
+* The Scores section has a row with the walking pace and the current rate, `Walk 100%     1.43 dps`.
+* An armor's detail box gives its class and what it does to a step and a blow, as "heavy: steps
+  a twentieth slower (+5%)" and "attacks a fifth slower (+20%)".
+* Putting armor on or taking it off says what changed, as "You walk 15% slower and swing a fifth
+  slower now."
 
 ### Measured
 
 `--matchup`, 2000 fights a cell, seed 5000, a level 3 character with a +1 short sword and depth 3
-loot, before the change and after. Win rate out of a hundred.
+loot. Win rate out of a hundred. The first column is the build before armor had a weight.
 
 | Kit | Orc before | Orc after | Orc archer before | Orc archer after |
 | --- | --- | --- | --- | --- |
-| Nothing worn | 52.0 | 52.1 | 34.4 | 34.5 |
-| Leather armor | 63.4 | 63.8 | 45.6 | 45.8 |
-| Chain mail | 75.0 | 64.0 | 59.2 | 37.7 |
-| Chain mail and shield | 85.4 | 74.2 | 73.6 | 51.8 |
-
-Chain mail now matches leather against an orc and loses to it against an archer, which has longer
-to shoot at a slow walker. With a heavy blow cost of 10 rather than 20, chain mail wins 67.2
-against an orc and 41.2 against an archer.
+| Nothing | 52.0 | 53.9 | 34.4 | 34.0 |
+| Padded jacket | none | 52.4 | none | 38.2 |
+| Leather armor | 63.4 | 56.4 | 45.6 | 40.4 |
+| Chain mail | 75.0 | 65.6 | 59.2 | 46.4 |
+| Chain mail and shield | 85.4 | 74.0 | 73.6 | 62.0 |
 
 ### Files
 
-`Bulk` is in `src/roguelike/item_kind.cr`, and the costs are in `src/roguelike/costs.cr`.
-`Player` and `Monster` gained `#stride`, and `Player` gained `#swing`. The specs are in
-`spec/roguelike/armor_pace_spec.cr`.
+`Bulk` is in `src/roguelike/item_kind.cr`. The table and the blow costs are in
+`src/roguelike/costs.cr`. The rate is in `src/roguelike/combat.cr`. `Kind#hide` and `Kind#garb`
+are in `src/roguelike/species.cr`. The specs are `spec/roguelike/armor_pace_spec.cr` and
+`spec/roguelike/damage_rate_spec.cr`.
 
 ## Asked for, not yet built
 

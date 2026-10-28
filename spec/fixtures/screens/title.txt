@@ -6,7 +6,7 @@
  0    37              0 │
  St Dx Cn In Sl         │
  10 10 10 10 10         │
- Walk 100%  Blow 83%    │
+ Walk 111%     2.29 dps │
  ▶ Equipment          1 │
  ▶ Pack   ╭─ crystal-roguelike version       · seed 20260915 ─╮
  ▼ Here   │ ⟪ a - new character                             ⟫ │

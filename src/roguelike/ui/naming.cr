@@ -27,6 +27,7 @@ module Roguelike::Ui
     KINDS = {
       ItemKind::ShortSword         => "short swd",
       ItemKind::LongSword          => "long swd",
+      ItemKind::PaddedJacket       => "padded",
       ItemKind::LeatherArmor       => "leather",
       ItemKind::ChainMail          => "chain",
       ItemKind::HealingPotion      => "healing potion",

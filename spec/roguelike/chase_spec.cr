@@ -62,7 +62,7 @@ Spectator.describe "being chased" do
     creature = Monster.new species, at[0], at[1], "band-one"
     floor.place creature
 
-    player = Player.new floor.id, *Game.entrance(floor), hit_points: 500
+    player = Playing.dressed Player.new(floor.id, *Game.entrance(floor), hit_points: 500)
     game = Game.new World.new(SEED, {floor.id => floor}), player
     already_seen game, creature if seen
 
@@ -545,7 +545,7 @@ Spectator.describe "being chased" do
       floor = Playing.daylight Floor.parse("split", SPLIT)
       3.times { |index| floor.place Monster.new(Species::Goblin, 6 + index, 3, "band-one") }
 
-      player = Player.new floor.id, *Game.entrance(floor), hit_points: 500
+      player = Playing.dressed Player.new(floor.id, *Game.entrance(floor), hit_points: 500)
       game = Game.new World.new(SEED, {floor.id => floor}), player
 
       wait game, 20

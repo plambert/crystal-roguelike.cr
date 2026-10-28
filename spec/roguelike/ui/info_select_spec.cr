@@ -308,8 +308,10 @@ Spectator.describe "the info panel selection" do
   end
 
   describe "scrolling" do
+    # The pack is opened so that the panel is taller than the window.
     it "scrolls the panel to show a selection that moved off it" do
       run = focused rows: 16
+      run.play.character.toggle_pack
       look = run.play.examine.section.header
 
       down_to run, "Look"
@@ -322,6 +324,7 @@ Spectator.describe "the info panel selection" do
 
     it "eases the scroll when motion is on" do
       run = focused rows: 16, motion: true, clock: true
+      run.play.character.toggle_pack
       run.run_timers
 
       down_to run, "Look"

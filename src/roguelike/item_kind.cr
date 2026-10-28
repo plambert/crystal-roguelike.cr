@@ -66,36 +66,32 @@ module Roguelike
     end
   end
 
-  # How much a piece of armor gets in the way of whoever wears it.
+  # How heavy the body armor is, which sets what a step and a melee blow
+  # cost.
   #
-  # Light armor costs nothing. Medium and heavy armor make every step cost
-  # more, and heavy armor makes every melee blow cost more as well. The
-  # numbers are in `Costs`.
-  #
-  # Leather armor is light and chain mail is heavy, so the step from one to
-  # the other buys armor with pace. No kind is medium yet.
+  # `None` is no body armor. A cap, gloves, boots and a shield do not change
+  # the class. A creature with nothing on its body walks in its hide, which
+  # is a class of its own. The costs are in `Costs::PACES`.
   enum Bulk
+    None
     Light
     Medium
     Heavy
+    VeryHeavy
 
     # What the class is called, for a readout.
     def label : String
-      to_s.downcase
+      very_heavy? ? "very heavy" : to_s.downcase
     end
 
-    # What it adds to the cost of one step, in energy.
+    # What one step costs in this class, in energy.
     def step : Int32
-      case self
-      in .light?  then 0
-      in .medium? then Costs::MEDIUM_STEP
-      in .heavy?  then Costs::HEAVY_STEP
-      end
+      Costs::PACES[self][0]
     end
 
-    # What it adds to the cost of one melee blow, in energy.
+    # What this class adds to one melee blow, in energy.
     def blow : Int32
-      heavy? ? Costs::HEAVY_BLOW : 0
+      Costs::PACES[self][1]
     end
   end
 
@@ -175,7 +171,7 @@ module Roguelike
     damage : Dice = Dice::NONE,
     armor : Int32 = 0,
     slot : ArmorSlot? = nil,
-    bulk : Bulk = Bulk::Light,
+    bulk : Bulk = Bulk::None,
     ranged_weapon : ItemKind? = nil,
     charges : Int32 = 0,
     weight : Int32 = 10,
@@ -276,6 +272,7 @@ module Roguelike
 
     # Armor.
     Cap
+    PaddedJacket
     LeatherArmor
     ChainMail
     Gloves
@@ -373,23 +370,10 @@ module Roguelike
       facts.slot
     end
 
-    # How much it gets in the way. Light for anything that is not armor.
+    # How heavy it is as body armor. `None` for anything that is not body
+    # armor.
     def bulk : Bulk
       facts.bulk
-    end
-
-    # What wearing it adds to the cost of one step, in energy.
-    def step_drag : Int32
-      bulk.step
-    end
-
-    # What wearing it adds to the cost of one melee blow, in energy.
-    #
-    # Heavy armor and a shield both get in the way of a swing.
-    def blow_drag : Int32
-      found = bulk.blow
-      found += Costs::SHIELD_BLOW if slot.try &.shield?
-      found
     end
 
     # What fires it. `nil` for anything that is not ammunition.
@@ -539,9 +523,12 @@ module Roguelike
 
       ItemKind::Cap => ItemFacts.new("cap", "caps", ItemClass::Armor,
         armor: 1, slot: ArmorSlot::Head, weight: 10),
+      ItemKind::PaddedJacket => ItemFacts.new("padded jacket", "padded jackets",
+        ItemClass::Armor, armor: 1, slot: ArmorSlot::Body, bulk: Bulk::Light,
+        weight: 50),
       ItemKind::LeatherArmor => ItemFacts.new("leather armor", "suits of leather armor",
-        ItemClass::Armor, armor: 2, slot: ArmorSlot::Body, weight: 100,
-        uncountable: true),
+        ItemClass::Armor, armor: 2, slot: ArmorSlot::Body, bulk: Bulk::Medium,
+        weight: 100, uncountable: true),
       ItemKind::ChainMail => ItemFacts.new("chain mail", "suits of chain mail",
         ItemClass::Armor, armor: 4, slot: ArmorSlot::Body, bulk: Bulk::Heavy,
         weight: 300, uncountable: true),

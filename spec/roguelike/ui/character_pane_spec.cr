@@ -88,20 +88,20 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       expect(run.play.character.scores.text).to eq "10" * 5
     end
 
-    it "writes how fast the character walks and swings" do
+    it "writes how fast the character walks and what they do in a turn" do
       run = playing
 
-      expect(run.play.character.pacing.text).to eq "Walk100%Blow125%"
+      expect(run.play.character.pacing.text).to eq "Walk111%0.84 dps"
     end
 
-    it "writes the walking and the blows slower in chain mail" do
+    it "writes the walking slower and the rate lower in chain mail" do
       run = playing
       player = run.game.player
       letter = player.inventory.add(Item.new(Kind::ChainMail)) || raise "pack full"
       player.equipment.put Slot::Body, letter
       run.play.refresh
 
-      expect(run.play.character.pacing.text).to eq "Walk80%Blow100%"
+      expect(run.play.character.pacing.text).to eq "Walk95%0.68 dps"
     end
 
     it "fills the hit point bar from the character" do

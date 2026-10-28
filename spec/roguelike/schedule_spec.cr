@@ -21,7 +21,7 @@ Spectator.describe "the tick loop" do
     floor.ambient = 1
 
     Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"hall" => floor}),
-      Roguelike::Player.new("hall", 3, 3)
+      Playing.dressed(Roguelike::Player.new("hall", 3, 3))
   end
 
   # Puts a creature of *species* at *x*, *y* and answers it.
@@ -214,9 +214,11 @@ Spectator.describe "the tick loop" do
     alias Item = Roguelike::Item
     alias Kind = Roguelike::ItemKind
 
-    # A game with *kind* carried, and its letter.
+    # A game with *kind* carried, and its letter. The body is left bare so a
+    # suit can go on.
     def holding(kind : Kind) : {Roguelike::Game, Char}
       game = bare
+      game.player.equipment.clear Roguelike::Slot::Body
       letter = game.player.inventory.add Item.new(kind)
       raise "no room" unless letter
 

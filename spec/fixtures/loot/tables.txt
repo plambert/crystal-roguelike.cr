@@ -86,12 +86,13 @@ goblin scout over 10000 of them
   100.0% of the time (100% stated)
     dagger           100.0%
    34.1% of the time (35% stated)
-    cap               29.4%
-    gloves            21.9%
-    boots             21.7%
-    leather armor     18.3%
-    shield             6.2%
-    chain mail         2.4%
+    cap               27.1%
+    gloves            19.4%
+    boots             19.2%
+    padded jacket     11.4%
+    leather armor     16.2%
+    shield             4.9%
+    chain mail         1.7%
    60.0% of the time (60% stated)
     gold piece       100.0%
    40.6% of the time (40% stated)
@@ -101,12 +102,13 @@ goblin warrior over 10000 of them
   100.0% of the time (100% stated)
     short sword      100.0%
    34.9% of the time (35% stated)
-    cap               30.4%
-    gloves            22.1%
-    boots             21.6%
-    leather armor     18.0%
-    shield             5.7%
-    chain mail         2.2%
+    cap               25.8%
+    gloves            19.0%
+    boots             19.8%
+    padded jacket     11.2%
+    leather armor     16.7%
+    shield             5.8%
+    chain mail         1.7%
    60.0% of the time (60% stated)
     gold piece       100.0%
    25.0% of the time (25% stated)
@@ -114,12 +116,13 @@ goblin warrior over 10000 of them
     candle            34.7%
 goblin shaman over 10000 of them
    35.4% of the time (35% stated)
-    cap               30.9%
-    gloves            22.1%
-    boots             22.0%
-    leather armor     17.9%
-    shield             5.4%
-    chain mail         1.7%
+    cap               27.0%
+    gloves            20.4%
+    boots             19.2%
+    padded jacket     10.6%
+    leather armor     15.4%
+    shield             5.3%
+    chain mail         2.1%
    60.8% of the time (60% stated)
     gold piece       100.0%
    49.6% of the time (50% stated)
@@ -134,12 +137,13 @@ orc over 10000 of them
     long sword         6.2%
     rapier             1.9%
    54.7% of the time (55% stated)
-    cap               29.5%
-    gloves            23.3%
-    boots             21.0%
-    leather armor     18.0%
-    shield             5.9%
-    chain mail         2.4%
+    cap               26.7%
+    gloves            19.3%
+    boots             19.1%
+    padded jacket     10.7%
+    leather armor     16.4%
+    shield             6.1%
+    chain mail         1.7%
    69.5% of the time (70% stated)
     gold piece       100.0%
    20.0% of the time (20% stated)
@@ -147,12 +151,13 @@ orc over 10000 of them
     candle            35.8%
 orc archer over 10000 of them
    54.3% of the time (55% stated)
-    cap               29.0%
-    gloves            22.8%
-    boots             21.7%
-    leather armor     18.0%
-    shield             6.5%
-    chain mail         2.0%
+    cap               27.4%
+    gloves            19.3%
+    boots             19.9%
+    padded jacket     10.5%
+    leather armor     16.0%
+    shield             5.0%
+    chain mail         1.9%
    69.5% of the time (70% stated)
     gold piece       100.0%
    10.4% of the time (10% stated)

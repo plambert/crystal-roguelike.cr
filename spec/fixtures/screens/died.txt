@@ -7,7 +7,7 @@
  0    37  │                                                  │
  St Dx Cn │  turn 1                                          │
  10 10 10 │  level 1, 0 experience                           │
- Walk 100%│  37 gold                                         │
+ Walk 111%│  37 gold                                         │
  ▶ Equipme│                                                  │
  ▶ Pack   │  You were carrying:                              │
  ▼ Here   │    a torch                                       │

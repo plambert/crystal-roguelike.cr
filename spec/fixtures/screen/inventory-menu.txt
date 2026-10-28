@@ -1,17 +1,17 @@
  —              D1 Lv 1 │#####
  HP        12/12        │#...#
  XP        0/20         │#.@.#
- ▼ Scores             ╭─ Inventory ──────────────────────╮
- AC   Gold         Tur│ ← [all]  weapons   armor   amu → │
-╭───────────────────╮ │ ⟪ a    a dagger                ⟫ │
-│ a dagger          │ │   b    9 arrows                  │
-│ unknown           │ ╰──────────────────────────────────╯
-│ damage 1d4        │   │
-│ swing quick (75)  │ 0 │
-│ thrown 10 squares │ 2 │
-│ weight 10         │   │
-╰───────────────────╯   │
- ▼ Seen                 │
+ ▼ Scores               │#╭─ Inventory ──────────────╮
+ AC   Gold         Turn │#│ ← [all]  weapons   arm → │
+╭───────────────────────╮ │ ⟪ a    a dagger        ⟫ │
+│ a dagger              │ │   b    9 arrows          │
+│ unknown               │ ╰──────────────────────────╯
+│ damage 1d4            │
+│ swing quick (75)      │
+│ thrown 10 squares     │
+│ 1.50 dps against AC 2 │
+│ weight 10             │
+╰───────────────────────╯
    nothing              │
  ▼ Look                 │
  Point at the map, or   │

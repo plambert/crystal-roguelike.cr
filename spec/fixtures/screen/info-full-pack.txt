@@ -1,12 +1,12 @@
  —                          D1 Lv 1 █
  HP              12/12              █  #########
- XP              0/20               █ #..$.|.....
- ▼ Scores                           █ #.........?
+ XP              0/20               █ #....|.....
+ ▼ Scores                           █ #..........
  AC   Gold                     Turn █ #..........
  3    0                           2 █ #....@......
  St Dx Cn In Sl                     █ #..........
- 10 10 10 10 10                     █ #.)........
- Walk 100%  Blow 83%                █ #...|......
+ 10 10 10 10 10                     █ #.[........
+ Walk 100%                 2.75 dps █ #...|......
  ▼ Equipment                        █  ########+
  wpn  +2 long swd                   █
  rng  —                             █
@@ -35,19 +35,19 @@
  p  ) +1 rock                       │
  q  ) +2 dart                       │
  r  [ cap                           │
- s  [ +1 leather                    │
- t  [ +2 chain                      │
- u  [ gloves                        │
- v  [ +1 boots                      │
- w  [ +2 shield                     │
- x  ! swirly potion                 │
- y  ? TEMOV scroll                  │───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- z  ? BLETCH scroll                 │ You are in a dungeon with a short sword, leather armor and a lit torch.
- A  / walnut wand                   │ You carry three spikes and a potion of minor healing. Press ? for the keys.
- B  / iron wand                     │ You are now holding a +2 long sword.
- C  ( torch                         │ You hear something stir.
- D  ( candle                        │ You are now wearing a cap.
- E  ( iron spike                    │
+ s  [ +1 padded                     │
+ t  [ +2 leather                    │
+ u  [ chain                         │
+ v  [ +1 gloves                     │
+ w  [ +2 boots                      │
+ x  [ shield                        │
+ y  ! swirly potion                 │───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ z  ? TEMOV scroll                  │ You are in a dungeon with a short sword, leather armor and a lit torch.
+ A  ? BLETCH scroll                 │ You carry three spikes and a potion of minor healing. Press ? for the keys.
+ B  / walnut wand                   │ You are now holding a +2 long sword.
+ C  / iron wand                     │ You hear something stir.
+ D  ( torch                         │ You are now wearing a cap.
+ E  ( candle                        │
 
 ........................................................................................................................................................................................................
 ........................................................................................................................................................................................................

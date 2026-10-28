@@ -96,6 +96,7 @@ module Roguelike
       ItemKind::Dart => 20,
 
       ItemKind::Cap          => 20,
+      ItemKind::PaddedJacket => 14,
       ItemKind::LeatherArmor => 18,
       ItemKind::ChainMail    => 6,
       ItemKind::Gloves       => 16,

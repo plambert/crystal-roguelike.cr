@@ -512,9 +512,16 @@ module Roguelike
       cost + Costs.blow_drag(worn)
     end
 
-    # What one step costs, in energy, in the armor it wears.
+    # What its body counts as for a step: the body armor it wears, or its
+    # kind's hide when it wears none.
+    def bulk : Bulk
+      body = worn.find &.kind.slot.try(&.body?)
+      body ? body.kind.bulk : kind.hide
+    end
+
+    # What one step costs, in energy.
     def stride : Int32
-      Costs.step worn
+      bulk.step
     end
 
     # Whether it is still alive.

@@ -20,7 +20,7 @@ Spectator.describe "the potion and the two scrolls that change a speed" do
     floor.ambient = 1
 
     Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"hall" => floor}),
-      Roguelike::Player.new("hall", 3, 2)
+      Playing.dressed(Roguelike::Player.new("hall", 3, 2))
   end
 
   # Puts *kind* in the pack and answers its letter.

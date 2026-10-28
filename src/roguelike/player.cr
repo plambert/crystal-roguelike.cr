@@ -161,15 +161,26 @@ module Roguelike
       found
     end
 
-    # What one step costs, in energy, in the armor being worn.
-    def stride : Int32
-      Costs.step worn.map(&.[1])
+    # The class of the body armor being worn. `None` for none.
+    def bulk : Bulk
+      Costs.body worn.map(&.[1])
     end
 
-    # What one melee blow costs, in energy: the weapon's swing and what the
-    # armor adds.
-    def swing : Int32
-      Costs.swing(wielded) + Costs.blow_drag(worn.map &.[1])
+    # What one step costs, in energy, in the body armor being worn.
+    def stride : Int32
+      bulk.step
+    end
+
+    # What one melee blow with *held* costs, in energy: its swing and what
+    # the armor adds. *held* is the wielded weapon unless another is named.
+    def swing(held : Item? = wielded) : Int32
+      Costs.swing(held) + Costs.blow_drag(worn.map &.[1])
+    end
+
+    # What the character does in melee in one turn of the world against
+    # armor class *against*, holding *held*. See `Combat.per_turn`.
+    def per_turn(against : Int32, held : Item? = wielded) : Float64
+      Combat.per_turn to_hit(held), against, damage(held), swing(held)
     end
 
     # Whether what is under *letter* is readied in any slot.
@@ -192,9 +203,10 @@ module Roguelike
     #
     # The dexterity modifier, plus what the wielded weapon adds. Bare hands
     # add the modifier and nothing else.
-    def to_hit : Int32
+    #
+    # *held* is the wielded weapon unless another is named.
+    def to_hit(held : Item? = wielded) : Int32
       bonus = @attributes.modifier Attributes::Which::Dexterity
-      held = wielded
       return bonus unless held && Player.swung?(held)
 
       bonus + held.aim
@@ -213,8 +225,9 @@ module Roguelike
     # The wielded weapon's dice, or `UNARMED` for bare hands, plus the
     # strength modifier. The weapon's own dice already carry its enchantment
     # and its condition.
-    def damage : Dice
-      held = wielded
+    #
+    # *held* is the wielded weapon unless another is named.
+    def damage(held : Item? = wielded) : Dice
       dice = held && Player.swung?(held) ? held.damage : UNARMED
 
       dice.with_bonus @attributes.modifier(Attributes::Which::Strength)

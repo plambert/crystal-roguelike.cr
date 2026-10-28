@@ -35,13 +35,10 @@ Spectator.describe "what armor costs in pace" do
     Game.new Roguelike::World.new(20261028_u64, {"hall" => floor}), player
   end
 
-  # How many squares east the character gets in *ticks* ticks.
-  def walked_in(game : Game, ticks : Int32) : Int32
-    start = game.player.x
-    while game.turn < ticks
-      game.step Roguelike::Direction::East
-    end
-    game.player.x - start
+  # How many turns the character takes to walk *squares* squares east.
+  def turns_for(game : Game, squares : Int32) : Int32
+    squares.times { game.step Roguelike::Direction::East }
+    game.turn
   end
 
   # A hunting orc at the far end of *game*'s hall, wearing *kinds*.
@@ -76,65 +73,69 @@ Spectator.describe "what armor costs in pace" do
   end
 
   describe "the table" do
-    it "slows a step by nothing, a tenth and a quarter" do
-      expect(Bulk::Light.step).to eq 0
-      expect(Bulk::Medium.step).to eq 10
-      expect(Bulk::Heavy.step).to eq 25
+    it "costs a step 90, 95, 100, 105 and 110 by class" do
+      expect(Bulk.values.map &.step).to eq [90, 95, 100, 105, 110]
     end
 
-    it "slows a blow only in heavy armor" do
-      expect(Bulk::Light.blow).to eq 0
-      expect(Bulk::Medium.blow).to eq 0
-      expect(Bulk::Heavy.blow).to eq 20
+    it "adds 0, 5, 10, 20 and 30 to a blow by class" do
+      expect(Bulk.values.map &.blow).to eq [0, 5, 10, 20, 30]
     end
 
-    it "makes chain mail heavy and everything else light" do
-      armor = Kind.values.select &.item_class.armor?
-      heavy = armor.select &.bulk.heavy?
-
-      expect(heavy).to eq [Kind::ChainMail]
-      expect(Kind::LeatherArmor.bulk).to eq Bulk::Light
-      expect(Kind::ShortSword.bulk).to eq Bulk::Light
+    it "classes the body armor and leaves the rest out" do
+      expect(Kind::PaddedJacket.bulk).to eq Bulk::Light
+      expect(Kind::LeatherArmor.bulk).to eq Bulk::Medium
+      expect(Kind::ChainMail.bulk).to eq Bulk::Heavy
+      expect(Kind::PaddedJacket.armor).to be < Kind::LeatherArmor.armor
     end
 
-    it "costs a step in what is worn" do
-      expect(Costs.step([] of Item)).to eq 100
-      expect(Costs.step([Item.new(Kind::LeatherArmor), Item.new(Kind::Cap)])).to eq 100
-      expect(Costs.step([Item.new(Kind::ChainMail)])).to eq 125
-      expect(Costs.step([Item.new(Kind::ChainMail), Item.new(Kind::Shield)])).to eq 125
+    it "reads the class from the body armor alone" do
+      expect(Costs.body([] of Item)).to eq Bulk::None
+      expect(Costs.body([Item.new(Kind::Cap), Item.new(Kind::Shield)])).to eq Bulk::None
+      expect(Costs.body([Item.new(Kind::Cap), Item.new(Kind::ChainMail)])).to eq Bulk::Heavy
     end
 
-    it "adds to a blow for chain mail and for a shield" do
-      expect(Costs.blow_drag([Item.new(Kind::LeatherArmor)])).to eq 0
+    it "adds the body armor's blow cost and a shield's" do
+      expect(Costs.blow_drag([Item.new(Kind::Cap), Item.new(Kind::Boots)])).to eq 0
       expect(Costs.blow_drag([Item.new(Kind::Shield)])).to eq 10
-      expect(Costs.blow_drag([Item.new(Kind::ChainMail)])).to eq 20
+      expect(Costs.blow_drag([Item.new(Kind::LeatherArmor)])).to eq 10
       expect(Costs.blow_drag([Item.new(Kind::ChainMail), Item.new(Kind::Shield)])).to eq 30
     end
 
     it "words a part of a turn" do
+      expect(Costs.share 5).to eq "a twentieth"
       expect(Costs.share 10).to eq "a tenth"
       expect(Costs.share 20).to eq "a fifth"
-      expect(Costs.share 25).to eq "a quarter"
-      expect(Costs.share 35).to eq "35 in a hundred"
+      expect(Costs.share 35).to eq "35%"
     end
   end
 
   describe "the character" do
-    it "walks a square a turn in light armor" do
-      game = hall [Kind::LeatherArmor, Kind::Cap, Kind::Shield]
+    it "walks twenty squares in eighteen turns in nothing" do
+      game = hall [Kind::Cap, Kind::Shield]
+
+      expect(game.player.stride).to eq 90
+      expect(turns_for game, 20).to eq 18
+    end
+
+    it "walks a square a turn in leather armor" do
+      game = hall [Kind::LeatherArmor]
 
       expect(game.player.stride).to eq 100
-      expect(walked_in game, 20).to eq 20
+      expect(turns_for game, 20).to eq 20
     end
 
-    it "walks four squares in five turns in heavy armor" do
+    it "walks slower in chain mail" do
       game = hall [Kind::ChainMail]
 
-      expect(game.player.stride).to eq 125
-      expect(walked_in game, 20).to eq 16
+      expect(game.player.stride).to eq 105
+      expect(turns_for game, 20).to eq 21
     end
 
-    it "swings slower in chain mail and with a shield" do
+    it "steps 95 in a padded jacket" do
+      expect(hall([Kind::PaddedJacket]).player.stride).to eq 95
+    end
+
+    it "swings slower in body armor and with a shield" do
       expect(hall.player.swing).to eq Costs::BARE
       expect(hall([Kind::Shield]).player.swing).to eq Costs::BARE + 10
       expect(hall([Kind::ChainMail, Kind::Shield]).player.swing).to eq Costs::BARE + 30
@@ -145,14 +146,12 @@ Spectator.describe "what armor costs in pace" do
       letter = game.player.inventory.add(Item.new(Kind::ChainMail)) || raise "pack full"
 
       game.wear letter
-      expect(game.log.lines.last).to eq "You are now wearing chain mail. Walking takes a " \
-                                        "quarter longer in it, and each blow a fifth of a turn more."
-      expect(game.player.stride).to eq 125
+      expect(game.log.lines.last).to eq "You are now wearing chain mail. " \
+                                        "You walk 15% slower and swing a fifth slower now."
 
       game.take_off Slot::Body
       expect(game.log.lines.last).to eq "You are no longer wearing chain mail. " \
-                                        "You walk and swing more freely without it."
-      expect(game.player.stride).to eq 100
+                                        "You walk 15% faster and swing a fifth faster now."
     end
 
     it "says what a shield does to a blow" do
@@ -160,37 +159,44 @@ Spectator.describe "what armor costs in pace" do
       letter = game.player.inventory.add(Item.new(Kind::Shield)) || raise "pack full"
 
       game.wear letter
-      expect(game.log.lines.last).to eq "You are now wearing a shield. " \
-                                        "Each blow takes a tenth of a turn more with it."
+      expect(game.log.lines.last).to eq "You are now wearing a shield. You swing a tenth slower now."
     end
 
-    it "says nothing more about light armor" do
+    it "says nothing more about a cap" do
       game = hall
-      letter = game.player.inventory.add(Item.new(Kind::LeatherArmor)) || raise "pack full"
+      letter = game.player.inventory.add(Item.new(Kind::Cap)) || raise "pack full"
 
       game.wear letter
-      expect(game.log.lines.last).to eq "You are now wearing leather armor."
+      expect(game.log.lines.last).to eq "You are now wearing a cap."
     end
   end
 
   describe "the description" do
-    it "says light armor does not slow walking" do
-      expect(Roguelike::Ui::Detail.about hall, Item.new(Kind::LeatherArmor))
-        .to contain "light: does not slow your walking"
+    def about(kind : Kind) : Array(String)
+      Roguelike::Ui::Detail.about hall, Item.new(kind)
     end
 
-    it "says how much chain mail slows walking and blows" do
-      lines = Roguelike::Ui::Detail.about hall, Item.new(Kind::ChainMail)
-
-      expect(lines).to contain "heavy: walking takes a quarter longer"
-      expect(lines).to contain "blows take a fifth of a turn more"
+    it "says what leather armor does to a step and a blow" do
+      expect(about Kind::LeatherArmor).to contain "medium: steps at a normal pace"
+      expect(about Kind::LeatherArmor).to contain "attacks a tenth slower (+10%)"
     end
 
-    it "says how much a shield slows a blow" do
-      lines = Roguelike::Ui::Detail.about hall, Item.new(Kind::Shield)
+    it "says how much quicker a padded jacket steps" do
+      expect(about Kind::PaddedJacket).to contain "light: steps a twentieth quicker (-5%)"
+    end
 
-      expect(lines).to contain "light: does not slow your walking"
-      expect(lines).to contain "blows take a tenth of a turn more"
+    it "says how much chain mail slows a step and a blow" do
+      expect(about Kind::ChainMail).to contain "heavy: steps a twentieth slower (+5%)"
+      expect(about Kind::ChainMail).to contain "attacks a fifth slower (+20%)"
+    end
+
+    it "says a shield slows a blow and not a step" do
+      expect(about Kind::Shield).to contain "does not slow a step"
+      expect(about Kind::Shield).to contain "attacks a tenth slower (+10%)"
+    end
+
+    it "says a cap does not change the pace" do
+      expect(about Kind::Cap).to contain "does not change your pace"
     end
   end
 
@@ -202,13 +208,19 @@ Spectator.describe "what armor costs in pace" do
       Kinds.override = nil
     end
 
-    it "costs its steps and blows by the same rule" do
+    it "walks in its hide when it wears no body armor" do
+      Roguelike::Kind.each do |kind|
+        expect(kind.hide).to eq Bulk::Medium
+        expect(Monster.new(kind, 1, 1, "band").stride).to eq 100
+      end
+    end
+
+    it "costs its steps and blows by the same rule as the character" do
       plain = Monster.new Roguelike::Kind::Orc, 1, 1, "band"
       armored = Monster.new Roguelike::Kind::Orc, 1, 1, "band"
       armored.outfit [Item.new(Kind::ChainMail), Item.new(Kind::Shield)]
 
-      expect(plain.stride).to eq 100
-      expect(armored.stride).to eq 125
+      expect(armored.stride).to eq 105
       expect(armored.swing).to eq plain.swing + 30
     end
 
@@ -220,7 +232,21 @@ Spectator.describe "what armor costs in pace" do
       mailed = steps_of heavy, orc(heavy, [Kind::ChainMail])
 
       expect(bare).to eq 20
-      expect(mailed).to eq 16
+      expect(mailed).to eq 19
+    end
+  end
+
+  describe "a goblin scout" do
+    it "wears small leather armor and keeps its armor class" do
+      kind = Roguelike::Kind::GoblinScout
+      scout = Monster.new kind, 1, 1, "band"
+      scout.outfit Roguelike::Loot.for(kind, Roguelike::Rng.new(7_u64), 1)
+      body = scout.in_slot(Slot::Body) || raise "no body armor"
+
+      expect(body.kind).to eq Kind::LeatherArmor
+      expect(body.size).to eq Roguelike::Size::Small
+      expect(body.fits? Player::SIZE).to be_false
+      expect(scout.stride).to eq 100
     end
   end
 end

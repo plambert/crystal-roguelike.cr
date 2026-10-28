@@ -6374,9 +6374,10 @@ module Roguelike
     # A cursed item announces itself as it goes on. That is the moment the
     # character finds out, and `#take_off` will refuse to let it go again.
     private def ready(slot : Slot, letter : Char, item : Item, line : String) : Bool
+      was = pacing
       @player.equipment.put slot, letter
       @player.quiver_memory = nil if slot.quiver?
-      line = [line, slowed_by(item)].compact.join ' '
+      line = [line, repaced(was)].compact.join ' ' if slot.armor?
       say line, Event::Readied.new(slot, item.id, name(item))
 
       if item.sticks? && item.reveal_blessing
@@ -6403,43 +6404,37 @@ module Roguelike
         return false
       end
 
+      was = pacing
       @player.equipment.clear slot
       @player.quiver_memory = nil if slot.quiver?
-      line = [slot.released(name item), freed_by(item)].compact.join ' '
+      line = slot.released(name item)
+      line = [line, repaced(was)].compact.join ' ' if slot.armor?
       say line, Event::Removed.new(slot, item.id, name(item))
       spend Costs.donning(slot)
       true
     end
 
-    # What putting *item* on does to walking and to blows. `nil` when it
-    # does neither.
-    private def slowed_by(item : Item) : String?
-      step = item.kind.step_drag
-      blow = item.kind.blow_drag
-      walking = "Walking takes #{Costs.share step} longer in it"
-
-      if step > 0 && blow > 0
-        "#{walking}, and each blow #{Costs.share blow} of a turn more."
-      elsif step > 0
-        "#{walking}."
-      elsif blow > 0
-        "Each blow takes #{Costs.share blow} of a turn more with it."
-      end
+    # What a step and a melee blow cost the character now.
+    private def pacing : {Int32, Int32}
+      {@player.stride, @player.swing}
     end
 
-    # What taking *item* off does to walking and to blows. `nil` when it
-    # did neither.
-    private def freed_by(item : Item) : String?
-      step = item.kind.step_drag > 0
-      blow = item.kind.blow_drag > 0
+    # What changed in walking and swinging since *was*, which `#pacing`
+    # answered before. `nil` when nothing did.
+    #
+    # Each change is a part of a turn, so chain mail over leather reads "You
+    # walk a twentieth slower and swing a tenth slower now."
+    private def repaced(was : {Int32, Int32}) : String?
+      changes = [] of String
+      {"walk", "swing"}.each_with_index do |verb, index|
+        change = pacing[index] - was[index]
+        next if change.zero?
 
-      if step && blow
-        "You walk and swing more freely without it."
-      elsif step
-        "You walk more freely without it."
-      elsif blow
-        "You swing more freely without it."
+        changes << "#{verb} #{Costs.share change.abs} #{change > 0 ? "slower" : "faster"}"
       end
+      return if changes.empty?
+
+      "You #{changes.join " and "} now."
     end
 
     # Wields or wears the item *id* by what it is. Answers whether it went on.
