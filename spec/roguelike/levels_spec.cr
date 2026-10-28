@@ -272,7 +272,7 @@ Spectator.describe "floors of the dungeon" do
       end
 
       expect(game.heralded?).to be_true
-      expect(game.log.lines.count &.includes?("Ulgrath")).to eq 1
+      expect(game.log.lines.count &.includes?("Ulgroth")).to eq 1
     end
 
     it "is under floor 10" do

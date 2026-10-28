@@ -17,7 +17,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   they are drawn larger, up to a third larger on floor 10.
 * Gold piles below floor 5 are larger. Items on floors 8 to 10 can be up to +4, and orc archers
   carry more +1 arrows the deeper they live.
-* Ulgrath, the orc warlord, guards the amulet with two orcs and an orc archer. The chamber is now
+* Ulgroth, the orc warlord, guards the amulet with two orcs and an orc archer. The chamber is now
   a landing behind a shut door and a long pillared hall. His band hears you on the stairs and comes
   to the door. He wears chain mail and a shield, swings a long sword, and does not run.
 * Experience levels past 9 need half again as much as the level before, in place of twice as

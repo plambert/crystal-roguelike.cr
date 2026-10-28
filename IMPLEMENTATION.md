@@ -4070,7 +4070,7 @@ floor 10 on the new curve. The old curve stopped at level 10 or 11.
   notice 12 with darkvision, patience 80, 250 experience. He opens doors, wields, and does not run.
 * `Loot::OWN` gives a kind draws in place of its species' draws. The warlord always carries a long
   sword, chain mail, a shield, 100 to 200 gold and a light.
-* `Game#herald` writes "Ulgrath, the orc warlord, comes to meet you. He guards the amulet, and his
+* `Game#herald` writes "Ulgroth, the orc warlord, comes to meet you. He guards the amulet, and his
   band is at his back." the first tick the character sees him. `Game#heralded?` holds that it was
   said, and a save holds it. It runs on the tick, after the bands notice, so it lands in the same
   place in the log in a replay.

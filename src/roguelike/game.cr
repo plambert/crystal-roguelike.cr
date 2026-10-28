@@ -3625,7 +3625,7 @@ module Roguelike
     end
 
     # What the log says the first time the character sees the orc warlord.
-    HERALD = "Ulgrath, the orc warlord, comes to meet you. " \
+    HERALD = "Ulgroth, the orc warlord, comes to meet you. " \
              "He guards the amulet, and his band is at his back."
 
     # Says who the warlord is, the first time the character sees him.
