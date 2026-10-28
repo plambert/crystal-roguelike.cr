@@ -8,6 +8,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* A haste, a slow or a blindness on you gets its own bar in the character pane, below the
+  experience bar. The bar shows the effect's name and the turns it has left, empties as it wears
+  off, and goes away when it ends. The three bar colors are in the theme editor.
+
 ### Fixed
 
 * `F` fires at the nearest monster in the modern control scheme, as it does in the traditional

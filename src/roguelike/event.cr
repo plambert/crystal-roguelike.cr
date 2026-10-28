@@ -628,7 +628,7 @@ module Roguelike
     #
     # *who* is `nil` for the character. *again* true means it was already
     # running and was extended. How long it lasts is not here. The character
-    # is told no number.
+    # pane reads that from the timer itself.
     class StatusStart < Event
       getter kind : String = "status_start"
 

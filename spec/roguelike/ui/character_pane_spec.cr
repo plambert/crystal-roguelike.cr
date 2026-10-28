@@ -306,6 +306,90 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     end
   end
 
+  describe "the temporary effects" do
+    alias Status = Roguelike::Event::Status
+
+    # The bar for *status*.
+    def effect_bar(run : Playing::Run, status : Status) : Roguelike::Ui::Meter
+      run.play.character.effects[Roguelike::Lasting::ORDER.index!(status)]
+    end
+
+    it "shows no effect rows while nothing is running" do
+      run = playing
+
+      expect(run.play.character.lasting.hidden?).to be_true
+      expect(run.play.character.effects.all?(&.hidden?)).to be_true
+    end
+
+    it "writes the name and the turns left inside a full bar" do
+      run = playing
+      run.game.player.pace.hurry 20
+      run.play.refresh
+
+      bar = effect_bar run, Status::Hurried
+      expect(bar.hidden?).to be_false
+      expect(bar.reading).to eq "haste 20"
+      expect(bar.percent).to eq 100
+    end
+
+    it "shrinks the bar as the effect wears off" do
+      run = playing
+      run.game.player.blind 10
+      run.play.refresh
+      4.times { run.press "." }
+
+      bar = effect_bar run, Status::Blind
+      left = run.game.player.blinded
+      expect(left).to be < 10
+      expect(bar.reading).to eq "blind #{left}"
+      expect(bar.most).to eq 10
+      expect(bar.percent).to eq 100 * left // 10
+    end
+
+    it "takes the row away when the effect ends" do
+      run = playing
+      run.game.player.blind 2
+      run.play.refresh
+      4.times { run.press "." }
+
+      expect(run.game.player.blind?).to be_false
+      expect(effect_bar(run, Status::Blind).hidden?).to be_true
+      expect(run.play.character.lasting.hidden?).to be_true
+    end
+
+    it "fills the bar again when the effect is made longer" do
+      run = playing
+      pace = run.game.player.pace
+      pace.drag 10
+      run.play.refresh
+      pace.pass
+      pace.pass
+      run.play.refresh
+      expect(effect_bar(run, Status::Dragging).percent).to eq 80
+
+      pace.drag 10
+      run.play.refresh
+      expect(effect_bar(run, Status::Dragging).percent).to eq 100
+      expect(effect_bar(run, Status::Dragging).reading).to eq "slow 18"
+    end
+
+    it "gives each running effect its own row below the experience bar" do
+      run = playing
+      player = run.game.player
+      player.pace.hurry 30
+      player.blind 5
+      run.play.refresh
+      run.render
+
+      learning = run.play.character.learning.rect.y
+      haste = info_row run, learning + 1
+      blind = info_row run, learning + 2
+      expect(haste).to contain "haste 30"
+      expect(blind).to contain "blind 5"
+      expect(effect_bar(run, Status::Dragging).hidden?).to be_true
+    end
+  end
+
   describe "on the screen" do
     it "scrolls to the three readouts at the shortest terminal there is" do
       run = playing rows: Roguelike::Ui::Screen::MINIMUM_ROWS
