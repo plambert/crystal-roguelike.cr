@@ -613,6 +613,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.show_action_catalog; nil }
         map.bind TermBuf::Key.parse("f"), "open actions or confirm the target",
           ->(_context : Widgets::Context) { play.modern_available_action; nil }
+        map.bind TermBuf::Key.parse("F"), "fire at the nearest monster",
+          ->(_context : Widgets::Context) { play.modern_fire_at_nearest; nil }
         map.bind TermBuf::Key.parse("i"), "open inventory",
           ->(_context : Widgets::Context) { play.show_modern_inventory; nil }
         map.bind TermBuf::Key.parse("g"), "pick up what is here",
