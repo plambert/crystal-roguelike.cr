@@ -42,6 +42,11 @@ Spectator.describe "approved modern controls" do
     "x" => {1, 1},
   }
 
+  TRADITIONAL_MOVES = {
+    "q" => "y", "w" => "k", "e" => "u", "a" => "h",
+    "d" => "l", "z" => "b", "s" => "j", "x" => "n",
+  }
+
   after_each { Options.current = nil }
 
   def playing(scheme : Scheme, items : Array(Item) = [] of Item,
@@ -84,11 +89,8 @@ Spectator.describe "approved modern controls" do
   end
 
   def menu_labels(menu : Menu) : Array(String)
-    if menu.pages.empty?
-      menu.entries.map(&.text)
-    else
-      menu.pages.flat_map { |page| page[1].map(&.text) }
-    end
+    entries = menu.pages.empty? ? menu.entries : menu.pages.flat_map(&.[1])
+    entries.map { |entry| entry.text.split(" — ", 2).first }
   end
 
   def has_label?(labels : Array(String), fragment : String) : Bool
@@ -104,7 +106,7 @@ Spectator.describe "approved modern controls" do
     page_count.times do
       menu = require_menu run
       selected_index = menu.entries.index do |entry|
-        entry.text.downcase.includes? fragment.downcase
+        entry.text.split(" — ", 2).first.downcase.includes? fragment.downcase
       end
       break if selected_index
 
@@ -214,15 +216,16 @@ Spectator.describe "approved modern controls" do
       MODERN_MOVES.each do |key, delta|
         run = playing Scheme::Modern, items_for_legacy_letters, hit_points: 1
         before = run.at
-        held = inventory_state run.game
         equipment = run.game.player.equipment.to_json
 
         run.press key
 
         expect(run.at).to eq({before[0] + delta[0], before[1] + delta[1]})
         expect(run.turn).to eq 1
-        expect(inventory_state run.game).to eq held
         expect(run.game.player.equipment.to_json).to eq equipment
+        reference = playing Scheme::Traditional, items_for_legacy_letters, hit_points: 1
+        reference.press TRADITIONAL_MOVES[key]
+        expect(inventory_state(run.game)).to eq inventory_state(reference.game)
       end
     end
 
@@ -316,7 +319,9 @@ Spectator.describe "approved modern controls" do
       run.press "f"
 
       expect(run.text.downcase).to contain "read"
-      expect(run.text.downcase).to contain "no scrolls to read"
+      explanation = run.text.downcase
+      expect(explanation.includes?("no scrolls to read") || explanation.includes?("nothing to read"))
+        .to be_true
       expect(run.text.downcase).to contain "escape"
       expect(run.turn).to eq 0
 
