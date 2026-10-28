@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-28
+
+Modern controls add spatial movement and action menus beside the traditional scheme, with saved
+display preferences, editable colors, and more reliable exploring, replays and uploads.
+
 ### Security
 
 * Uploads replace local save and replay paths with logical names, and the consent prompt explains
@@ -989,7 +994,8 @@ First release. A seeded roguelike played in the terminal, built over 26 phases r
   `--debug-console` opens a console for commands that change the running game, and a tag builds
   binaries for linux-x86_64, linux-aarch64 and macos-aarch64.
 
-[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.3...v0.5.0
 [0.4.3]: https://github.com/plambert/crystal-roguelike.cr/compare/v0.4.2...v0.4.3

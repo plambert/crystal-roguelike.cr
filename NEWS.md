@@ -3,6 +3,18 @@
 What changed in each release, for the people playing it. The full record, including build and
 packaging changes, is in [CHANGELOG.md](CHANGELOG.md).
 
+## [0.7.0] - 2026-10-28
+
+You can choose modern movement and action menus or keep traditional controls, and tune the display
+while you play.
+
+* You choose a control scheme on first launch and can switch it in Options without restarting.
+* Modern controls give you WASD movement, action menus, and item lists without letter shortcuts.
+* Options remembers your display preferences, and you can preview and save your own color theme.
+* Item lists show equipment icons and full quantities, and learned item names appear in the log.
+* Staircase previews work the same by keyboard and mouse, and exploring avoids unreachable targets.
+* Sending runs keeps local file paths private, and replay viewing uses your saved display settings.
+
 ## [0.6.0] - 2026-10-18
 
 The game asks for your tester name, and every run you send carries a full record of what
