@@ -212,7 +212,7 @@ Spectator.describe Roguelike::Ui::OptionsScreen do
 
       run.press "O"
       expect(screen(run).form["control_scheme"]).to eq "traditional"
-      run.press "End", "Up", "Up", "Up", "Right"
+      run.press "End", "Up", "Up", "Up", "Up", "Right"
 
       expect(screen(run).form["control_scheme"]).to eq "modern"
       expect(on_file(root)["control_scheme"].as_s).to eq "modern"

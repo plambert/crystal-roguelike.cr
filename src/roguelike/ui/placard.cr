@@ -42,6 +42,9 @@ module Roguelike::Ui
     # The key `Enter` answers with. `nil` when `Enter` answers nothing.
     getter default : Char? = nil
 
+    @named_choices = [] of Widgets::Prompt::Choice
+    @choice_index : Int32 = 0
+
     # What runs when a key answers. The argument is the key, or `nil` when
     # the person pressed `Escape`.
     property on_answer : Proc(Char?, Nil)? = nil
@@ -90,6 +93,7 @@ module Roguelike::Ui
     def show(app : Widgets::App, title : String, lines : Array(String),
              keys : String, default : Char? = nil,
              footer : String = "") : Nil
+      @named_choices.clear
       if default && !keys.includes? default
         raise ArgumentError.new "default #{default.inspect} is not one of #{keys.inspect}"
       end
@@ -104,6 +108,29 @@ module Roguelike::Ui
       self.keymap = answers
       fit_into app.tree.screen
 
+      open app
+    end
+
+    # Shows selectable named outcomes, answering with each choice's existing
+    # character value. Escape takes the safe default.
+    def show_named(app : Widgets::App, title : String, lines : Array(String),
+                   choices : Enumerable(Widgets::Prompt::Choice), default : Char,
+                   footer : String = "") : Nil
+      @named_choices = choices.to_a
+      raise ArgumentError.new "a placard needs at least one choice" if @named_choices.empty?
+      unless @named_choices.any? { |choice| choice.key == default && choice.enabled }
+        raise ArgumentError.new "default #{default.inspect} is not an enabled choice"
+      end
+
+      @heading = title
+      @keys = @named_choices.map(&.key).join
+      @default = default
+      @choice_index = @named_choices.index { |choice| choice.key == default } || 0
+      self.border = Widgets::Border.rounded title: " #{title} "
+      say lines
+      self.keymap = named_answers
+      update_named_offering footer
+      fit_into app.tree.screen
       open app
     end
 
@@ -154,6 +181,10 @@ module Roguelike::Ui
     # `[Yn]` says that `y` is what `Enter` answers with, which is the
     # convention `Widgets::Prompt` follows as well.
     def offering : String
+      return @named_choices.map_with_index do |choice, index|
+        index == @choice_index ? "[#{choice.label}]" : choice.label
+      end.join("  ") unless @named_choices.empty?
+
       chosen = @default
       return "[#{@keys}]" unless chosen
 
@@ -185,6 +216,47 @@ module Roguelike::Ui
       map
     end
 
+    private def named_answers : Widgets::Bindings
+      map = Widgets::Bindings.new
+      navigation = Widgets::Navigation.selectable
+      navigation.previous_row.each do |key|
+        map.bind key, "the choice before", ->(_context : Widgets::Context) { move_choice(-1); nil }
+      end
+      navigation.next_row.each do |key|
+        map.bind key, "the choice after", ->(_context : Widgets::Context) { move_choice(1); nil }
+      end
+      navigation.activate.each do |key|
+        map.bind key, "choose the highlighted outcome",
+          ->(_context : Widgets::Context) { choose_highlighted; nil }
+      end
+      map.bind TermBuf::Key.parse("Escape"), "choose the safe outcome",
+        ->(_context : Widgets::Context) { finish @default; nil }
+      map
+    end
+
+    private def move_choice(step : Int32) : Nil
+      index = @choice_index + step
+      while index >= 0 && index < @named_choices.size
+        if @named_choices[index].enabled
+          @choice_index = index
+          update_named_offering "W/S select · f or Enter choose · Escape quits"
+          invalidate_layout
+          return
+        end
+        index += step
+      end
+    end
+
+    private def choose_highlighted : Nil
+      choice = @named_choices[@choice_index]?
+      finish choice.key if choice && choice.enabled
+    end
+
+    private def update_named_offering(footer : String) : Nil
+      prompt = offering
+      @offered.text = footer.empty? ? prompt : "#{footer}  #{prompt}"
+    end
+
     # Takes the box down. Runs `#on_answer` with *key*.
     #
     # The keymap goes with it. A closed box that kept its bindings would
@@ -193,6 +265,7 @@ module Roguelike::Ui
     private def finish(key : Char?) : Nil
       @keys = ""
       @default = nil
+      @named_choices.clear
       self.keymap = nil
 
       close

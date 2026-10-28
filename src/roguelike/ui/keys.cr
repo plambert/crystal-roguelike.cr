@@ -45,17 +45,24 @@ module Roguelike::Ui
     # leave, and *on_mouse* when they turn the mouse on or off. Each is the
     # caller's, because what either means depends on what owns the loop.
     def self.install(app : Widgets::App, help : Help = Help.new, play : Play? = nil,
-                     on_mouse : Proc(Nil)? = nil, &on_quit : -> Nil) : Help
-      own = application(&on_quit).merge(helping(help, app))
-      own = own.merge(Keys.examining(play)).merge(Keys.preferring(play)) if play
+                     on_mouse : Proc(Nil)? = nil,
+                     kitty_keyboard : Bool = false, &on_quit : -> Nil) : Help
+      play.try(&.kitty_keyboard=(kitty_keyboard))
+      scheme = play.try(&.control_scheme) ||
+               (Options.current || Options.new).effective_control_scheme
+      own = application(scheme, play, &on_quit).merge(helping(help, app))
+      if play && scheme.traditional?
+        own = own.merge(Keys.examining(play)).merge(Keys.preferring(play))
+      end
       sections = [Section.new("application", own)]
       sections.concat play.sections if play
       sections << Section.new("mouse", mousing(&on_mouse)) if on_mouse
 
       help.sections = sections
       help.first = -> { play.try { |game| Help.title_for game.ring.current } } if play
-      sections.each { |section| app.keymap = app.keymap.merge section.bindings }
-      app.keymap = app.keymap.merge play.unlisted if play
+      all = sections.reduce(Widgets::App.default_keymap) { |bindings, section| bindings.merge section.bindings }
+      all = all.merge play.unlisted if play
+      app.keymap = all
       help
     end
 
@@ -83,10 +90,17 @@ module Roguelike::Ui
     end
 
     # What the application answers after every widget declines a key.
-    def self.application(&on_quit : -> Nil) : Widgets::Bindings
+    def self.application(scheme : Options::ControlScheme = Options::ControlScheme::Traditional,
+                         play : Play? = nil, &on_quit : -> Nil) : Widgets::Bindings
       Widgets::Bindings.build do |map|
-        map.bind TermBuf::Key.parse("Q"), "leave the game",
-          ->(_context : Widgets::Context) { on_quit.call; nil }
+        if scheme.traditional?
+          map.bind TermBuf::Key.parse("Q"), "leave the game",
+            ->(_context : Widgets::Context) { on_quit.call; nil }
+        end
+        if play
+          map.bind TermBuf::Key.parse("F2"), "open the action catalog",
+            ->(_context : Widgets::Context) { play.show_action_catalog; nil }
+        end
       end
     end
 
@@ -130,21 +144,32 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { screen.show_help app; nil }
         map.bind TermBuf::Key.parse("?"), "show the keys that work here",
           ->(context : Widgets::Context) { screen.show_help app unless screen.typed? context; nil }
-        map.bind TermBuf::Key.parse("j"), "the row below",
-          ->(context : Widgets::Context) { screen.step 1, context; nil }
-        map.bind TermBuf::Key.parse("k"), "the row above",
-          ->(context : Widgets::Context) { screen.step(-1, context); nil }
-        map.bind TermBuf::Key.parse("h"), "the choice before, or a step down",
-          ->(context : Widgets::Context) { screen.turn(-1, context); nil }
-        map.bind TermBuf::Key.parse("l"), "the choice after, or a step up",
-          ->(context : Widgets::Context) { screen.turn 1, context; nil }
+        if screen.modern_controls?
+          map.bind TermBuf::Key.parse("s"), "the row below",
+            ->(context : Widgets::Context) { screen.step 1, context; nil }
+          map.bind TermBuf::Key.parse("w"), "the row above",
+            ->(context : Widgets::Context) { screen.step(-1, context); nil }
+          map.bind TermBuf::Key.parse("a"), "the choice before, or a step down",
+            ->(context : Widgets::Context) { screen.turn(-1, context); nil }
+          map.bind TermBuf::Key.parse("d"), "the choice after, or a step up",
+            ->(context : Widgets::Context) { screen.turn 1, context; nil }
+        else
+          map.bind TermBuf::Key.parse("j"), "the row below",
+            ->(context : Widgets::Context) { screen.step 1, context; nil }
+          map.bind TermBuf::Key.parse("k"), "the row above",
+            ->(context : Widgets::Context) { screen.step(-1, context); nil }
+          map.bind TermBuf::Key.parse("h"), "the choice before, or a step down",
+            ->(context : Widgets::Context) { screen.turn(-1, context); nil }
+          map.bind TermBuf::Key.parse("l"), "the choice after, or a step up",
+            ->(context : Widgets::Context) { screen.turn 1, context; nil }
+        end
       end
 
       notes = [
-        {"Up Down", "the row above or below"},
+        {screen.modern_controls? ? "W S Up Down" : "Up Down", "the row above or below"},
         {"Tab Shift+Tab", "the next or the previous row"},
         {"Space Enter", "turn a toggle, or take the next choice"},
-        {"Left Right", "the choice before or after, or step a number"},
+        {screen.modern_controls? ? "A D Left Right" : "Left Right", "the choice before or after, or step a number"},
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},
       ]
@@ -165,22 +190,34 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { editor.show_help app; nil }
         map.bind TermBuf::Key.parse("?"), "show the keys that work here",
           ->(_context : Widgets::Context) { editor.show_help app; nil }
-        map.bind TermBuf::Key.parse("j"), "the row below",
-          ->(context : Widgets::Context) { editor.step 1, context; nil }
-        map.bind TermBuf::Key.parse("k"), "the row above",
-          ->(context : Widgets::Context) { editor.step(-1, context); nil }
-        map.bind TermBuf::Key.parse("h"), "the first row of the group above",
-          ->(context : Widgets::Context) { editor.leap(-1, context); nil }
-        map.bind TermBuf::Key.parse("l"), "the first row of the group below",
-          ->(context : Widgets::Context) { editor.leap 1, context; nil }
-        map.bind TermBuf::Key.parse("r"), "put this color back to the game's own",
-          ->(_context : Widgets::Context) { editor.reset_row; nil }
+        if editor.modern_controls?
+          map.bind TermBuf::Key.parse("s"), "the row below",
+            ->(context : Widgets::Context) { editor.step 1, context; nil }
+          map.bind TermBuf::Key.parse("w"), "the row above",
+            ->(context : Widgets::Context) { editor.step(-1, context); nil }
+          map.bind TermBuf::Key.parse("a"), "the first row of the group above",
+            ->(context : Widgets::Context) { editor.leap(-1, context); nil }
+          map.bind TermBuf::Key.parse("d"), "the first row of the group below",
+            ->(context : Widgets::Context) { editor.leap 1, context; nil }
+        else
+          map.bind TermBuf::Key.parse("j"), "the row below",
+            ->(context : Widgets::Context) { editor.step 1, context; nil }
+          map.bind TermBuf::Key.parse("k"), "the row above",
+            ->(context : Widgets::Context) { editor.step(-1, context); nil }
+          map.bind TermBuf::Key.parse("h"), "the first row of the group above",
+            ->(context : Widgets::Context) { editor.leap(-1, context); nil }
+          map.bind TermBuf::Key.parse("l"), "the first row of the group below",
+            ->(context : Widgets::Context) { editor.leap 1, context; nil }
+          map.bind TermBuf::Key.parse("r"), "put this color back to the game's own",
+            ->(_context : Widgets::Context) { editor.reset_row; nil }
+        end
       end
 
       notes = [
-        {"Up Down", "the row above or below"},
+        {editor.modern_controls? ? "W S Up Down" : "Up Down", "the row above or below"},
         {"Tab Shift+Tab", "the next or the previous row"},
         {"Enter Space", "choose a color, or reset every color"},
+        {editor.modern_controls? ? "A D" : "H L", "the first row of the group above or below"},
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},
       ]
@@ -200,7 +237,7 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("Tab"), "focus the next panel, or aim at the next monster",
           ->(_context : Widgets::Context) { play.tab; nil }
         map.bind TermBuf::Key.parse("Shift+Tab"), "focus the previous panel",
-          ->(_context : Widgets::Context) { play.ring.previous; nil }
+          ->(_context : Widgets::Context) { play.tab_back; nil }
         map.bind TermBuf::Key.parse("Escape"), "back to the map, or stop what is waiting",
           ->(_context : Widgets::Context) { play.escape; nil }
       end
@@ -250,6 +287,16 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.right; nil }
         map.bind TermBuf::Key.parse("Enter"), "do what a click on the selection does",
           ->(_context : Widgets::Context) { play.enter; nil }
+        if play.modern_controls?
+          map.bind TermBuf::Key.parse("w"), "select the row above",
+            ->(_context : Widgets::Context) { play.up; nil }
+          map.bind TermBuf::Key.parse("s"), "select the row below",
+            ->(_context : Widgets::Context) { play.down; nil }
+          map.bind TermBuf::Key.parse("a"), "close the section or go back",
+            ->(_context : Widgets::Context) { play.left; nil }
+          map.bind TermBuf::Key.parse("d"), "open the section or enter its rows",
+            ->(_context : Widgets::Context) { play.right; nil }
+        end
       end
 
       scrolling(play, "the info panel", "the top of the panel", "the bottom of the panel").merge own
@@ -297,7 +344,11 @@ module Roguelike::Ui
     def self.timing(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("."), "wait a turn",
-          ->(_context : Widgets::Context) { play.wait; nil }
+          ->(_context : Widgets::Context) { play.live_wait; nil }
+        if play.kitty_keyboard?
+          map.bind TermBuf::Key.parse("Shift+Space"), "wait a turn",
+            ->(_context : Widgets::Context) { play.live_wait; nil }
+        end
         map.bind TermBuf::Key.parse("G"), "run until something stops you",
           ->(_context : Widgets::Context) { play.start_running; nil }
         map.bind TermBuf::Key.parse("R"), "rest until you are healed",
@@ -455,6 +506,111 @@ module Roguelike::Ui
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse(ConsolePane::TOGGLE), "open the debug console",
           ->(_context : Widgets::Context) { play.toggle_console; nil }
+      end
+    end
+
+    # Modern controls, with movement confined to the map and navigation
+    # delegated to the focused information or message panel.
+    def self.modern_sections(play : Play) : Array(Section)
+      if play.viewer
+        return [
+          Section.new("panels", Keys.panels(play)),
+          Section.new("map", Keys.map_panel(play)),
+          Section.new("info panel", Keys.info_panel(play)),
+          Section.new("log", Keys.log_panel(play)),
+          Section.new("moving", modern_moving(play, viewer: true)),
+          Section.new("actions", modern_viewer_actions(play)),
+          Section.new("playing the run", Keys.viewing(play)),
+        ]
+      end
+
+      sections = [
+        Section.new("panels", Keys.panels(play)),
+        Section.new("map", Keys.map_panel(play)),
+        Section.new("info panel", Keys.info_panel(play)),
+        Section.new("log", Keys.log_panel(play)),
+        Section.new("moving", modern_moving(play),
+          [{"Shift+Q W E A D Z S X", "walk in that direction"}]),
+        Section.new("actions", modern_actions(play)),
+        Section.new("time", modern_timing(play)),
+        Section.new("doors and stairs", modern_stairs(play)),
+      ]
+      sections << Section.new("debug", Keys.debugging(play)) if play.console
+      sections
+    end
+
+    private def self.modern_moving(play : Play, viewer : Bool = false) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        Controls.moves(Options::ControlScheme::Modern).each do |key, direction|
+          map.bind TermBuf::Key.parse(key), "move #{direction.label}",
+            ->(_context : Widgets::Context) do
+              if viewer
+                play.view_move direction
+              else
+                play.modern_move direction
+              end
+              nil
+            end
+          next if viewer
+
+          shifted_keys(key).each do |shifted|
+            map.bind shifted, "walk #{direction.label}",
+              ->(_context : Widgets::Context) { play.modern_walk(direction); nil }
+          end
+        end
+      end
+    end
+
+    private def self.shifted_keys(key : String) : Array(TermBuf::Key)
+      letter = key[0].upcase.to_s
+      [
+        TermBuf::Key.parse_one(letter),
+        TermBuf::Key.parse_one("Shift+#{key}"),
+        TermBuf::Key.parse_one("Shift+#{letter}"),
+      ]
+    end
+
+    private def self.modern_actions(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("r"), "open the complete action catalog",
+          ->(_context : Widgets::Context) { play.show_action_catalog; nil }
+        map.bind TermBuf::Key.parse("f"), "open actions or confirm the target",
+          ->(_context : Widgets::Context) { play.modern_available_action; nil }
+        map.bind TermBuf::Key.parse("i"), "open inventory",
+          ->(_context : Widgets::Context) { play.show_modern_inventory; nil }
+        map.bind TermBuf::Key.parse("Ctrl+X"), "explore until interrupted",
+          ->(_context : Widgets::Context) { play.modern_explore; nil }
+      end
+    end
+
+    private def self.modern_viewer_actions(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("r"), "open the replay action catalog",
+          ->(_context : Widgets::Context) { play.show_action_catalog; nil }
+        map.bind TermBuf::Key.parse("f"), "open currently available replay actions",
+          ->(_context : Widgets::Context) { play.show_available_actions; nil }
+        map.bind TermBuf::Key.parse("i"), "browse the read-only inventory",
+          ->(_context : Widgets::Context) { play.show_modern_inventory; nil }
+      end
+    end
+
+    private def self.modern_timing(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse("."), "wait a turn",
+          ->(_context : Widgets::Context) { play.live_wait; nil }
+        if play.kitty_keyboard?
+          map.bind TermBuf::Key.parse("Shift+Space"), "wait a turn",
+            ->(_context : Widgets::Context) { play.live_wait; nil }
+        end
+      end
+    end
+
+    private def self.modern_stairs(play : Play) : Widgets::Bindings
+      Widgets::Bindings.build do |map|
+        map.bind TermBuf::Key.parse(">"), "use or route to the stairs down",
+          ->(_context : Widgets::Context) { play.modern_stair_down; nil }
+        map.bind TermBuf::Key.parse("<"), "use or route to the stairs up",
+          ->(_context : Widgets::Context) { play.modern_stair_up; nil }
       end
     end
 

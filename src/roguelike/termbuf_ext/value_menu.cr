@@ -31,6 +31,18 @@ module TermBuf::Widgets
     def initialize(@menu : Menu = Menu.new,
                    @navigation : Navigation = Navigation.selectable)
       @menu.navigation = @navigation
+      own_callbacks
+    end
+
+    # Takes ownership of the shared menu's value callbacks after another
+    # adapter has used it.
+    def claim : Nil
+      @menu.on_choose = nil
+      @menu.on_highlight = nil
+      own_callbacks
+    end
+
+    private def own_callbacks : Nil
       @menu.on_choose_index = ->(index : Int32?) do
         if index
           entry = @value_pages[@menu.page]?.try(&.[index])
@@ -73,8 +85,32 @@ module TermBuf::Widgets
       @menu.restore_selection index, page: page
     end
 
+    # Restores the row carrying *value*, keeping its semantic identity across
+    # a rebuilt list.
+    def restore_value(value : T, page : Int32? = nil) : Bool
+      pages = @value_pages
+      if wanted_page = page
+        index = pages[wanted_page]?.try { |entries| entries.index { |entry| entry.value == value } }
+        if index
+          @menu.restore_selection index, page: wanted_page
+          return true
+        end
+      else
+        pages.each_with_index do |entries, page_index|
+          index = entries.index { |entry| entry.value == value }
+          next unless index
+
+          @menu.restore_selection index, page: page_index
+          return true
+        end
+      end
+
+      false
+    end
+
     # Shows *entries* under *title*.
     def show(app : App, title : String?, entries : Enumerable(Entry(T))) : Nil
+      claim
       @value_pages = [entries.to_a]
       rows = @value_pages[0].map { |entry| menu_entry(entry) }
       @menu.show app, title, rows
@@ -83,6 +119,7 @@ module TermBuf::Widgets
     # Shows *pages* under *title*, opening on *page*.
     def show(app : App, title : String?, pages : Array({String, Array(Entry(T))}),
              page : Int32) : Nil
+      claim
       @value_pages = pages.map(&.[1])
       rows = pages.map do |name, entries|
         {name, entries.map { |entry| menu_entry(entry) }}
@@ -93,6 +130,16 @@ module TermBuf::Widgets
     # Takes the menu down without a choice.
     def cancel : Nil
       @menu.cancel
+    end
+
+    # Builds a row for this adapter's value type.
+    def entry(value : T, text : String, enabled : Bool = true,
+              mark : Char? = nil, mark_style : Style? = nil,
+              tail : Char? = nil, tail_style : Style? = nil,
+              shortcut : Char? = nil,
+              disabled_reason : String? = nil) : Entry(T)
+      Entry(T).new value, text, enabled, mark, mark_style, tail, tail_style,
+        shortcut, disabled_reason
     end
 
     private def value_at(index : Int32?) : T?

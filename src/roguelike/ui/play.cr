@@ -72,6 +72,9 @@ module Roguelike::Ui
     # The list of things to choose from, when there is one.
     getter menu : Widgets::Menu
 
+    # The selectable menu adapter used by modern catalogs and item lists.
+    getter selection_menu : Widgets::ValueMenu(ModernChoice)
+
     # The release notes, drawn over the title screen.
     getter news_page : NewsPage
 
@@ -81,6 +84,12 @@ module Roguelike::Ui
     # Pushes the options to whatever runs the game after each change on the
     # options screen. `Session` sets this to apply them to itself.
     property on_options : Proc(Options, Nil) = ->(options : Options) { options.apply; nil }
+
+    # Runs when a catalog command asks to open Help.
+    property on_help : Proc(Nil)? = nil
+
+    # Runs when a catalog command asks to toggle mouse reporting.
+    property on_mouse : Proc(Nil)? = nil
 
     # How many colors the theme editor's picker offers. `Session` sets
     # `Indexed256` on a terminal without 24 bit color.
@@ -469,6 +478,8 @@ module Roguelike::Ui
 
       @character = CharacterPane.new
       @examine = ExaminePane.new
+      @character.letterless = modern_controls?
+      @examine.control_scheme = control_scheme
       @nearby = NearbyPane.new
       @info_panel = InfoPanel.new @character.sections + @nearby.sections + [@examine.section]
       @examiner = Examiner.new @map, @examine
@@ -491,11 +502,14 @@ module Roguelike::Ui
       @prompt = Widgets::Prompt.new
       @entry = Widgets::Entry.new
       @menu = Widgets::Menu.new
+      @selection_menu = Widgets::ValueMenu(ModernChoice).new @menu,
+        modern_controls? ? Widgets::Navigation.selectable : Widgets::Navigation.new
       @menu.pointer_style = Palette.pointer_mark
       @news_page = NewsPage.new
       @options_screen = OptionsScreen.new
       @menu.disabled_style = Palette.faint
       @history = HistoryPane.new
+      @history.control_scheme = control_scheme
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
       @tooltip = Tooltip.new
@@ -518,7 +532,10 @@ module Roguelike::Ui
 
     # The bindings that belong to the game rather than to the application.
     def bindings : Widgets::Bindings
-      own = Keys.examining(self).merge Keys.preferring(self)
+      own = Widgets::Bindings.new
+      unless modern_controls?
+        own = Keys.examining(self).merge Keys.preferring(self)
+      end
       found = sections.reduce(own) { |held, section| held.merge section.bindings }
       found.merge unlisted
     end
@@ -526,7 +543,7 @@ module Roguelike::Ui
     # The keys this run answers that the help screen leaves out. A recorded
     # run has none.
     def unlisted : Widgets::Bindings
-      @viewer ? Widgets::Bindings.new : Keys.unlisted(self)
+      @viewer || modern_controls? ? Widgets::Bindings.new : Keys.unlisted(self)
     end
 
     # The keys this run answers, in the groups the help screen shows, less
@@ -536,6 +553,8 @@ module Roguelike::Ui
     # drive it. Every key that would take a turn is gone, because the only
     # actions a recorded run performs are the ones in the file.
     def sections : Array(Keys::Section)
+      return Keys.modern_sections(self) if modern_controls?
+
       if @viewer
         return [
           Keys::Section.new("panels", Keys.panels(self)),
@@ -578,6 +597,8 @@ module Roguelike::Ui
     # rather than typed. A person carrying a character on no longer has to
     # spell it the way they spelled it the first time.
     def show_title : Nil
+      return show_modern_title if modern_controls?
+
       held = saved
       @carrying = {} of Char => String
 
@@ -647,6 +668,7 @@ module Roguelike::Ui
       options = Options.current || Options.read(screen.root)
       screen.on_change = @on_options
       screen.on_close = after
+      screen.on_warning = ->(warning : String) { say warning; nil }
 
       editor = screen.theme_editor
       editor.depth = @color_depth
@@ -914,7 +936,16 @@ module Roguelike::Ui
       end
 
       clear_the_character
-      @prompt.ask application, question, keys, default
+      if modern_controls? && keys == "yn"
+        choices = [
+          Widgets::Prompt::Choice.new('y', "Yes"),
+          Widgets::Prompt::Choice.new('n', "No"),
+        ]
+        @prompt.ask application, question, choices, default || 'n',
+          Widgets::Navigation.selectable
+      else
+        @prompt.ask application, question, keys, default
+      end
     end
 
     # Puts *entries* up under *title*. Runs *chosen* with the key pressed.
@@ -1047,6 +1078,10 @@ module Roguelike::Ui
     private def ready_the_menu(about : Hash(Char, Listing)?, chosen : Char? -> Nil,
                                top : Int32? = nil) : Nil
       @listed = about || {} of Char => Listing
+      @menu.on_choose_index = nil
+      @menu.on_highlight_index = nil
+      navigation = modern_controls? ? Widgets::Navigation.selectable : Widgets::Navigation.new
+      @selection_menu.navigation = navigation
       @menu.column_margin = @listed.empty? ? Widgets::Menu::COLUMN_MARGIN : MENU_MARGIN
       @menu.on_highlight = ->(entry : Widgets::Menu::Entry?) do
         listed_detail entry
@@ -1059,6 +1094,19 @@ module Roguelike::Ui
         park_camera_back
         chosen.call key
         nil
+      end
+
+      if modern_controls?
+        @menu.on_choose = nil
+        @menu.on_choose_index = ->(index : Int32?) do
+          key = index.try { |selected| @menu.entries[selected]?.try(&.key) }
+          @listed.clear
+          @tooltip.hide
+          park_camera_back
+          chosen.call key
+          finish_modern_read_choice key
+          nil
+        end
       end
 
       clear_the_character top
@@ -1831,6 +1879,11 @@ module Roguelike::Ui
     # Gives the focus back to the map from another panel, or takes back
     # whatever is waiting when the map has it. `Escape` does this.
     def escape : Nil
+      if @pending || @aiming
+        cancel
+        return
+      end
+
       return cancel if @ring.map?
 
       @ring.focus FocusRing::Panel::Map
@@ -1839,7 +1892,19 @@ module Roguelike::Ui
     # Moves the focus to the next panel, or aims at the next monster while
     # something is being aimed. `Tab` does this.
     def tab : Nil
-      @ring.next unless next_target
+      return if @pending
+      if @aiming
+        next_target
+      else
+        @ring.next
+      end
+    end
+
+    # Moves focus backward unless a pending target owns Tab.
+    def tab_back : Nil
+      return if @pending || @aiming
+
+      @ring.previous
     end
 
     # Moves the focus to the map or the log when a left click lands in it.
@@ -2455,14 +2520,19 @@ module Roguelike::Ui
 
       @examiner.start @game.player.at
       if command.travel?
-        say "Pick a square with the movement keys. Enter goes there, Escape stops."
+        hint = modern_controls? ? "Pick a square with Q W E / A D / Z S X. f or Enter goes there, Escape stops." : "Pick a square with the movement keys. Enter goes there, Escape stops."
+        say hint
         return
       end
 
       wanted = targets.first?
       @examiner.point_at wanted[0], wanted[1] if wanted
 
-      keys = "Aim with the movement keys. Tab picks a monster, Enter looses, Escape stops."
+      keys = if modern_controls?
+               "Aim with Q W E / A D / Z S X. Tab picks a monster, f or Enter looses, Escape stops."
+             else
+               "Aim with the movement keys. Tab picks a monster, Enter looses, Escape stops."
+             end
       if wanted.nil? && shot_at_all?(command) && !@game.monsters_in_sight.empty?
         say "There is no clear shot. #{keys}"
       else
@@ -2758,6 +2828,8 @@ module Roguelike::Ui
       end
 
       choose(title, found) do |key|
+        next if key.nil? && modern_controls?
+
         read_now letter, key ? id_under(key) : nil
         refresh
       end
@@ -3180,9 +3252,19 @@ module Roguelike::Ui
         nil
       end
 
-      @placard.show application, Placards.heading(@game.outcome),
-        Placards.ending(@game), Placards::AGAIN_KEYS,
-        default: Placards::AGAIN_DEFAULT, footer: Placards::AGAIN_FOOTER
+      if modern_controls?
+        choices = [
+          Widgets::Prompt::Choice.new('y', "Play again"),
+          Widgets::Prompt::Choice.new('n', "Quit"),
+        ]
+        @placard.show_named application, Placards.heading(@game.outcome),
+          Placards.ending(@game), choices, 'n',
+          footer: "W/S select · f or Enter choose · Escape quits"
+      else
+        @placard.show application, Placards.heading(@game.outcome),
+          Placards.ending(@game), Placards::AGAIN_KEYS,
+          default: Placards::AGAIN_DEFAULT, footer: Placards::AGAIN_FOOTER
+      end
     end
 
     # Lights up the way to wherever the map is pointing.

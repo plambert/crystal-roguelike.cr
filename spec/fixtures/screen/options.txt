@@ -1,8 +1,8 @@
 
   ╭─ Options ────────────────────────╮
- #│ Mouse        ☑                 │ │
  #│ Control      (•) Traditional   │ │
  #│ scheme       ( ) Modern        │ │
+ #│ Compare      Enter             │ │
  #│                                │ │
  #│ Game                           │ │
  #│ Update check ☑                 █ │

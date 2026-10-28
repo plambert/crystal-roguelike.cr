@@ -263,6 +263,7 @@ module Roguelike::Ui
     # Currently available commands for a context.
     def self.available(context : CommandContext) : Array(CommandMetadata)
       metadata = all context.viewing, context.debug
+      metadata.reject! { |entry| GAMEPLAY.includes?(entry.id) } if context.game.over?
       candidates = if context.selected_item_id
                      metadata.select { |entry| ITEM_ACTIONS.includes?(entry.id) }
                    elsif context.selected_slot
@@ -585,10 +586,7 @@ module Roguelike::Ui
 
     private def self.explore_available?(query : Snapshot) : Bool
       game = query.game
-      return false if game.over?
-
-      Roguelike::Explore.going? query.knowledge, game.player.at,
-        game.floor.columns, game.floor.rows
+      !game.over? && game.explorable?
     end
 
     private def self.rest_available?(query : Snapshot) : Bool

@@ -119,6 +119,13 @@ module Roguelike::Ui
     # How many colors the picker offers.
     property depth : Widgets::Depth = Widgets::Depth::TrueColor
 
+    # The scheme used by this editor's form navigation.
+    property control_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
+
+    def modern_controls? : Bool
+      @control_scheme.modern?
+    end
+
     # The form showing, rebuilt each time the editor opens.
     getter form : Widgets::Form
 
