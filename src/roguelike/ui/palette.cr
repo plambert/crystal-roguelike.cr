@@ -502,6 +502,7 @@ module Roguelike::Ui
     drawn orc_archer : Style = Style::DEFAULT.fg(theme.orc_archer)
     drawn ant : Style = Style::DEFAULT.fg(theme.ant)
     drawn jelly : Style = Style::DEFAULT.fg(theme.jelly)
+    drawn orc_warlord : Style = Style::DEFAULT.fg(theme.orc_warlord)
 
     drawn monsters : Hash(Kind, Style) = {
       Kind::WhiteSlime    => white_slime,
@@ -515,6 +516,7 @@ module Roguelike::Ui
       Kind::OrcArcher     => orc_archer,
       Kind::Ant           => ant,
       Kind::Jelly         => jelly,
+      Kind::OrcWarlord    => orc_warlord,
     }
 
     # How *kind* draws.

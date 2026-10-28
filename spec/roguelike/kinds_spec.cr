@@ -124,7 +124,7 @@ Spectator.describe Roguelike::Kind do
     end
 
     it "answers only the kinds that appear at a depth" do
-      (1..5).each do |depth|
+      (1..Roguelike::World::DEEPEST).each do |depth|
         Roguelike::Spawns.weights(depth).each_key do |kind|
           expect(kind.appears_at? depth).to be_true
         end
@@ -132,7 +132,7 @@ Spectator.describe Roguelike::Kind do
     end
 
     it "has something to place at every depth" do
-      (1..5).each { |depth| expect(Roguelike::Spawns.weights depth).not_to be_empty }
+      (1..Roguelike::World::DEEPEST).each { |depth| expect(Roguelike::Spawns.weights depth).not_to be_empty }
     end
 
     it "keeps to a species and to company when asked" do

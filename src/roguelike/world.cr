@@ -13,7 +13,7 @@ module Roguelike
     include JSON::Serializable
 
     # How many floors of dungeon there are.
-    DEEPEST = 5
+    DEEPEST = 10
 
     # The depth of the chamber under the last floor. It holds the amulet.
     VAULT = DEEPEST + 1

@@ -66,7 +66,7 @@ module Roguelike
         end
       end
 
-      # One kit for each depth, from the first to the fifth.
+      # One kit for each depth, from the first to the tenth.
       #
       # Level 1 is what the game starts a character with. Each later kit adds
       # what a character would plausibly have found and earned by going one
@@ -94,6 +94,45 @@ module Roguelike
           Gear.new(ItemKind::ChainMail, 1),
           Gear.new(ItemKind::Cap),
           Gear.new(ItemKind::Shield),
+        ]),
+        Kit.new(6, 7, [
+          Gear.new(ItemKind::LongSword, 2),
+          Gear.new(ItemKind::ChainMail, 1),
+          Gear.new(ItemKind::Cap),
+          Gear.new(ItemKind::Shield),
+          Gear.new(ItemKind::Gloves),
+        ]),
+        Kit.new(7, 8, [
+          Gear.new(ItemKind::LongSword, 2),
+          Gear.new(ItemKind::ChainMail, 2),
+          Gear.new(ItemKind::Cap),
+          Gear.new(ItemKind::Shield),
+          Gear.new(ItemKind::Gloves),
+          Gear.new(ItemKind::Boots),
+        ]),
+        Kit.new(8, 9, [
+          Gear.new(ItemKind::LongSword, 3),
+          Gear.new(ItemKind::ChainMail, 2),
+          Gear.new(ItemKind::Cap, 1),
+          Gear.new(ItemKind::Shield),
+          Gear.new(ItemKind::Gloves),
+          Gear.new(ItemKind::Boots),
+        ]),
+        Kit.new(9, 10, [
+          Gear.new(ItemKind::LongSword, 3),
+          Gear.new(ItemKind::ChainMail, 3),
+          Gear.new(ItemKind::Cap, 1),
+          Gear.new(ItemKind::Shield, 1),
+          Gear.new(ItemKind::Gloves),
+          Gear.new(ItemKind::Boots),
+        ]),
+        Kit.new(10, 11, [
+          Gear.new(ItemKind::LongSword, 4),
+          Gear.new(ItemKind::ChainMail, 3),
+          Gear.new(ItemKind::Cap, 1),
+          Gear.new(ItemKind::Shield, 1),
+          Gear.new(ItemKind::Gloves, 1),
+          Gear.new(ItemKind::Boots),
         ]),
       ]
 
@@ -135,7 +174,8 @@ module Roguelike
       #
       # Three ants is the smallest band the generator places. Surrounding is
       # what ants do, so the three stand round the character from the start.
-      BANDS = [Opponent.new(Kind::Ant, 3)]
+      # Three orcs is a middling room on the deepest floors.
+      BANDS = [Opponent.new(Kind::Ant, 3), Opponent.new(Kind::Orc, 3)]
 
       # Everyone the character is matched against: one row for each kind,
       # then each of `BANDS`.

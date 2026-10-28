@@ -175,6 +175,9 @@ module Roguelike
     @[JSON::Field(converter: Roguelike::Sorted(Set(Int32)))]
     getter sighted : Set(Int32) = Set(Int32).new
 
+    # Whether the character has seen the orc warlord. `#herald` says so once.
+    getter? heralded : Bool = false
+
     # What killed the character. `nil` while they are alive.
     #
     # The label rather than the creature. The end screen names what killed
@@ -566,6 +569,9 @@ module Roguelike
     # How much gold one pile holds.
     PURSE = 5..40
 
+    # How much more the largest pile holds for each floor below floor 5.
+    PURSE_GROWTH = 8
+
     # How deep *ground* counts as for what lives and lies on it.
     #
     # A floor outside the dungeon's numbering, such as the proving ground,
@@ -598,7 +604,7 @@ module Roguelike
 
       (squares.size * LITTER // 100).times do
         spot = squares.sample stream
-        item = stream.rand(4).zero? ? gold(stream) : Items.random(stream, deep)
+        item = stream.rand(4).zero? ? gold(stream, deep) : Items.random(stream, deep)
         cut item, sizes, ground, spot
         ground.drop spot[0], spot[1], item
         supply rng, ground, spot, item
@@ -688,7 +694,8 @@ module Roguelike
     #
     # Every roll is on the run's root generator and a stream named after
     # the floor, so a floor comes out the same whichever floors were dug
-    # before it. The chamber under the last floor is built rather than dug.
+    # before it. The chamber under the last floor is built rather than dug,
+    # and its garrison is awake and coming to the staircase.
     def dig(depth : Int32) : Floor
       found = @world.at depth
       return found if found
@@ -696,13 +703,13 @@ module Roguelike
       root = (@root ||= Rng.new @world.seed)
       id = World.id depth
 
-      ground = if depth >= World::VAULT
-                 @world.add Generator.chamber(id)
-               else
-                 @world.add Generator.floor(root, id, depth)
-               end
-
-      unless depth >= World::VAULT
+      if depth >= World::VAULT
+        ground = @world.add Generator.chamber(id)
+        Generator.garrison root, ground
+        equip root, ground
+        rouse ground
+      else
+        ground = @world.add Generator.floor(root, id, depth)
         scatter root, ground
         equip root, ground
       end
@@ -711,9 +718,26 @@ module Roguelike
       ground
     end
 
-    # One pile of gold.
-    private def gold(rng : Rng) : Item
-      Item.new ItemKind::Gold, count: rng.rand(PURSE)
+    # Sets the garrison of the chamber *ground* searching for the character
+    # from the up staircase.
+    #
+    # The band knows its own chamber, door and landing included. It heard
+    # the character on the stairs, walks there, and hunts once it sees them.
+    private def rouse(ground : Floor) : Nil
+      band = ground.band Generator.garrison_band(ground)
+      stairs = ground.find Terrain::StairsUp
+      return unless band && stairs
+
+      knowledge = band.knowledge ground.id
+      ground.each { |column, row, _tile| knowledge.touch ground, column, row, @turn }
+      band.awareness = Awareness::Alert
+      knowledge.saw Knowledge::PLAYER, stairs[0], stairs[1], @turn
+    end
+
+    # One pile of gold, for the floor at *depth*.
+    private def gold(rng : Rng, depth : Int32) : Item
+      most = PURSE.end + PURSE_GROWTH * Math.max(depth - 5, 0)
+      Item.new ItemKind::Gold, count: rng.rand(PURSE.begin..most)
     end
 
     # Where a character arriving on *floor* stands.
@@ -3185,6 +3209,7 @@ module Roguelike
       fields = creatures_cast seen, noticed
       spotted = spotting seen, fields
       creatures_notice seen, noticed, spotted
+      herald seen
       creatures_look fields, noticed, spotted
       creatures_act
       creatures_split unless over?
@@ -3597,6 +3622,22 @@ module Roguelike
       end
 
       found
+    end
+
+    # What the log says the first time the character sees the orc warlord.
+    HERALD = "Ulgrath, the orc warlord, comes to meet you. " \
+             "He guards the amulet, and his band is at his back."
+
+    # Says who the warlord is, the first time the character sees him.
+    private def herald(seen : Vision) : Nil
+      return if @heralded
+
+      floor.each_monster do |column, row, creature|
+        next unless creature.kind.orc_warlord? && seen.shows?(floor, column, row)
+
+        @heralded = true
+        return say HERALD, Event::Noticed.new(creature.id, creature.label)
+      end
     end
 
     # Says that a band has woken up.

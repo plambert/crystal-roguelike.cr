@@ -81,6 +81,7 @@ module Roguelike::Ui
     color orc_archer, 0x60E8E8
     color ant, 0xFFA040
     color jelly, 0xC8A0FF
+    color orc_warlord, 0xFFC080
     color shape, 0x9A9EA8
 
     color flame, 0xFFB050
@@ -157,6 +158,7 @@ module Roguelike::Ui
       Entry.new("orc_archer", "Creatures", "Orc archer"),
       Entry.new("ant", "Creatures", "Ant"),
       Entry.new("jelly", "Creatures", "Jelly"),
+      Entry.new("orc_warlord", "Creatures", "Orc warlord"),
       Entry.new("shape", "Creatures", "Shape you cannot make out"),
 
       Entry.new("flame", "Light", "Flame"),

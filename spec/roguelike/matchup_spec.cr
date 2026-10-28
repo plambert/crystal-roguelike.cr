@@ -12,8 +12,8 @@ Spectator.describe Roguelike::Trial::Matchup do
   let(:last) { Matchup::KITS.last }
 
   describe "KITS" do
-    it "holds one kit for each of five depths" do
-      expect(Matchup::KITS.map(&.depth)).to eq [1, 2, 3, 4, 5]
+    it "holds one kit for each of ten depths" do
+      expect(Matchup::KITS.map(&.depth)).to eq (1..10).to_a
     end
 
     it "readies every piece of gear" do
@@ -97,6 +97,11 @@ Spectator.describe Roguelike::Trial::Matchup do
         strong = Matchup.cell last, kind, FIGHTS
 
         expect(strong.win_rate).to be >= weak.win_rate
+
+        # A kit that wins no fight loses every hit point it has, and that
+        # can be fewer than a stronger kit loses winning.
+        next if weak.wins.zero?
+
         expect(strong.mean_damage).to be <= weak.mean_damage
       end
     end

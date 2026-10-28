@@ -10,8 +10,7 @@ module Roguelike
   module Advancement
     # The highest level a character reaches.
     #
-    # The threshold doubles at every level, so the number at level 20 is
-    # five million.
+    # The number at level 20 is about two hundred and twenty thousand.
     MAX_LEVEL = 20
 
     # Hit points at level one, before constitution.
@@ -27,6 +26,13 @@ module Roguelike
 
     # Experience needed to reach level two.
     FIRST_THRESHOLD = 20
+
+    # The last level whose threshold is double the one before.
+    #
+    # Each level after it needs half as much again as the one before. A
+    # character clears the first five floors at about level 9, and the
+    # slower rise keeps levels coming on the five floors below them.
+    DOUBLING = 9
 
     # Ticks one hit point of regeneration takes at average constitution.
     REGENERATION = 20
@@ -67,12 +73,13 @@ module Roguelike
     # Experience needed to reach *level*.
     #
     # Zero at level one, which is where a character starts. It doubles at
-    # every level after that.
+    # every level after that up to `DOUBLING`, and grows by half after that.
     def self.threshold(level : Int32) : Int32
       return 0 if level <= 1
       return threshold(MAX_LEVEL) if level > MAX_LEVEL
+      return FIRST_THRESHOLD << (level - 2) if level <= DOUBLING
 
-      FIRST_THRESHOLD << (level - 2)
+      threshold(level - 1) * 3 // 2
     end
 
     # The level *experience* points reach.

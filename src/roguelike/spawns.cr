@@ -27,10 +27,14 @@ module Roguelike
     # Every creature the generator may put on a floor.
     #
     # Slimes and goblins are common. Orcs appear from floor 3, and the orc
-    # archer joins them from floor 4, so orcs grow commoner the deeper the
-    # floor. Floor 1 holds white and blue slimes and goblin scouts. Ants come
+    # archer joins them from floor 4. The slimes, goblins, ants and jellies
+    # give out between floors 5 and 9, so the orcs hold the deepest floors
+    # alone. Floor 1 holds white and blue slimes and goblin scouts. Ants come
     # in bands of three to five from floor 2. A jelly comes alone from floor
     # 3. Goblin scouts are rarer on floor 1 than on floor 2.
+    #
+    # The orc warlord appears only in the amulet chamber, which is built
+    # rather than dug, so its row is never rolled.
     TABLE = [
       Row.new(Kind::WhiteSlime, 40),
       Row.new(Kind::BlueSlime, 20),
@@ -43,6 +47,7 @@ module Roguelike
       Row.new(Kind::OrcArcher, 10),
       Row.new(Kind::Ant, 20, crowd: 3..5),
       Row.new(Kind::Jelly, 10),
+      Row.new(Kind::OrcWarlord, 1),
     ]
 
     # How often a room holds a creature, and how many it holds.
@@ -59,6 +64,11 @@ module Roguelike
       Density.new(50, 1..2),
       Density.new(50, 1..3),
       Density.new(55, 1..3),
+      Density.new(55, 2..3),
+      Density.new(60, 2..3),
+      Density.new(60, 2..4),
+      Density.new(60, 3..5),
+      Density.new(60, 3..5),
     ]
 
     # What each kind is worth on the floor at *depth*.

@@ -180,3 +180,15 @@ violet jelly over 10000 of them
     scroll of haste monster   1.6%
     wand of light      7.1%
     wand of striking   3.3%
+orc warlord over 10000 of them
+  100.0% of the time (100% stated)
+    long sword       100.0%
+  100.0% of the time (100% stated)
+    chain mail       100.0%
+  100.0% of the time (100% stated)
+    shield           100.0%
+  100.0% of the time (100% stated)
+    gold piece       100.0%
+  100.0% of the time (100% stated)
+    torch             64.8%
+    candle            35.2%

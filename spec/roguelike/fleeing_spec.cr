@@ -309,7 +309,15 @@ Spectator.describe "hurt creatures running" do
     end
 
     it "is one of the species that do not, as only goblins and orcs run" do
-      Kind.each { |kind| expect(kind.flees?).to eq(kind.species.goblin? || kind.species.orc?) }
+      Kind.each do |kind|
+        next if kind.orc_warlord?
+
+        expect(kind.flees?).to eq(kind.species.goblin? || kind.species.orc?)
+      end
+    end
+
+    it "is joined by the orc warlord, who holds his ground" do
+      expect(Kind::OrcWarlord.flees?).to be_false
     end
   end
 

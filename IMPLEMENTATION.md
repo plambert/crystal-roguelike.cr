@@ -3974,6 +3974,162 @@ into a weaker scout on floors 1 and 2 and the current goblin from floor 2.
 * The trial bot explores badly, so the deepest-floor numbers are a floor for comparison between
   builds rather than a measure of the game.
 
+## Ten floors and the warlord
+
+### What was built
+
+* `World::DEEPEST` is 10. The amulet chamber is `floor-11`, `World::VAULT`.
+* Floors 1 to 4 dig, stock and spawn exactly as they did. Floor 5 gains goblin warriors and blue
+  slimes, because their depths now reach it. Below floor 5 the shallow kinds give out one by one,
+  and floors 9 and 10 hold orcs and orc archers alone, with jellies on floor 9.
+* `Generator.growth` draws a floor below `Generator::GROWN`, floor 5, larger by `GROWTH`, 6 in 100,
+  for each floor below it. Floor 10 is drawn 1.3 times `AREA`. The size stream is untouched, so a
+  seed's floors 1 to 5 keep their sizes.
+* `Spawns::DENSITY` gains rows for floors 6 to 10.
+* `Loot::CEILINGS` and `Loot::FLETCHED` gain rows for floors 6 to 10. `Game::PURSE_GROWTH` adds 8
+  to the largest gold pile for each floor below floor 5.
+* `Advancement::DOUBLING` is 9. Thresholds double up to level 9 and grow by half after it: 3,840 for
+  level 10, 5,760 for 11, 8,640 for 12, 12,960 for 13 and 221,433 for 20. Levels 1 to 9 are as they
+  were.
+* `Trial::Matchup::KITS` gains kits for floors 6 to 10, at levels 7 to 11. `BANDS` gains three orcs.
+
+### Depths and weights
+
+| kind | depths before | depths now | weight |
+|---|---|---|---|
+| white slime | 1..3 | 1..3 | 40 |
+| blue slime | 1..4 | 1..5 | 20 |
+| red slime | 2..5 | 2..7 | 20 |
+| green slime | 3..5 | 3..8 | 15 |
+| goblin scout | 1..2 | 1..2 | 30, and 10 on floor 1 |
+| goblin warrior | 2..4 | 2..6 | 45 |
+| goblin shaman | 3..5 | 3..7 | 15 |
+| orc | 3..5 | 3..10 | 15 |
+| orc archer | 4..5 | 4..10 | 10 |
+| giant ant | 2..5 | 2..7 | 20 |
+| violet jelly | 3..5 | 3..9 | 10 |
+| orc warlord | | 11 | 1, never rolled |
+
+| floor | inhabited | crowd | plus ceiling | +1 arrows | largest gold pile |
+|---|---|---|---|---|---|
+| 1 | 40 | 1..2 | +1 | 0 | 40 |
+| 2 | 45 | 1..2 | +1 | 0 | 40 |
+| 3 | 50 | 1..2 | +2 | 10 | 40 |
+| 4 | 50 | 1..3 | +2 | 20 | 40 |
+| 5 | 55 | 1..3 | +3 | 30 | 40 |
+| 6 | 55 | 2..3 | +3 | 35 | 48 |
+| 7 | 60 | 2..3 | +3 | 40 | 56 |
+| 8 | 60 | 2..4 | +4 | 45 | 64 |
+| 9 | 60 | 3..5 | +4 | 50 | 72 |
+| 10 | 60 | 3..5 | +4 | 50 | 80 |
+
+Twenty seeds from 1000, each floor dug and stocked:
+
+| floor | area | creatures | experience on the floor | most common |
+|---|---|---|---|---|
+| 1 | 18,409 | 74.8 | 285 | white slime, blue slime, goblin scout |
+| 2 | 18,880 | 113.1 | 526 | ant, goblin warrior, white slime |
+| 3 | 20,539 | 143.6 | 872 | ant, goblin warrior, white slime |
+| 4 | 20,395 | 163.8 | 1,242 | goblin warrior, ant, red slime |
+| 5 | 20,506 | 203.6 | 1,572 | goblin warrior, ant, blue slime |
+| 6 | 17,811 | 206.9 | 1,621 | goblin warrior, ant, red slime |
+| 7 | 22,607 | 293.0 | 2,515 | ant, red slime, orc |
+| 8 | 25,057 | 298.2 | 3,703 | orc, green slime, orc archer |
+| 9 | 25,081 | 375.0 | 5,280 | orc, orc archer, jelly |
+| 10 | 20,685 | 403.0 | 5,966 | orc, orc archer |
+
+Floor 5 held 217 creatures and 1,734 experience before. Floor 6 is smaller than floor 5 in this
+sample because the size draw is per seed and floor, and the growth is too small to hide that.
+
+Ten winning saves from playtesting reached the amulet at level 6 to 9, with 535 to 4,911
+experience against about 4,500 on the first five floors. The ten floors now hold about 23,600. A
+character who kills a third to a half of that earns 7,900 to 11,800 and reaches level 11 or 12 by
+floor 10 on the new curve. The old curve stopped at level 10 or 11.
+
+### The amulet chamber
+
+* `Generator.chamber` builds a 49 by 17 floor. A 7 by 5 landing at the west end holds the up
+  staircase. A shut door east of it opens into a 35 by 13 hall of stone floor with two rows of
+  four granite pillars, eight lit sconces and the amulet at the middle of the east wall. The landing
+  has one lit sconce. It still rolls nothing.
+* `Generator.garrison` puts the warlord two squares west of the amulet, an orc on either side of
+  him and an orc archer behind them. All four are one band, `floor-11-warlord`. Each rolls hit
+  points on a stream named after the chamber and its square.
+* `Game#dig` builds the chamber, garrisons it, equips the four from `Loot` and rouses the band.
+  `Game#rouse` gives the band the whole chamber in its memory, sets it `Alert`, and writes a
+  sighting of the character on the up staircase at the turn the chamber was dug. The band walks to
+  the landing, opens the door and hunts once it sees the character. A band that never saw the
+  landing has no route to it and stops at the door, which is why it is given the chamber.
+* The warlord follows his band's patience of 80 turns, so a character who goes back up and returns
+  soon finds them by the stairs. Nothing on the chamber ticks while the character is on floor 10.
+
+### The warlord
+
+* `Kind::OrcWarlord`, species orc, faction orc, size large, glyph `o` in `#FFC080` at 12:1 against
+  the ground. 10d8+20 hit points, hide 5, strength 18, dexterity 12, constitution 16, speed 100,
+  notice 12 with darkvision, patience 80, 250 experience. He opens doors, wields, and does not run.
+* `Loot::OWN` gives a kind draws in place of its species' draws. The warlord always carries a long
+  sword, chain mail, a shield, 100 to 200 gold and a light.
+* `Game#herald` writes "Ulgrath, the orc warlord, comes to meet you. He guards the amulet, and his
+  band is at his back." the first tick the character sees him. `Game#heralded?` holds that it was
+  said, and a save holds it. It runs on the tick, after the bands notice, so it lands in the same
+  place in the log in a replay.
+
+### Measures
+
+`--matchup` win rate, out of a hundred, for the new rows and the new kits:
+
+| opponent | D5 | D6 | D7 | D8 | D9 | D10 |
+|---|---|---|---|---|---|---|
+| orc | 98.0 | 99.8 | 100 | 100 | 100 | 100 |
+| orc archer | 97.0 | 99.7 | 100 | 100 | 100 | 100 |
+| 3 orcs | 27.2 | 55.5 | 90.8 | 99.1 | 99.8 | 100 |
+| orc warlord | 1.9 | 8.8 | 33.5 | 66.8 | 74.9 | 91.2 |
+
+The warlord alone costs the D10 kit 20 of its 52 hit points on average, over 62 ticks.
+
+`--trial 200` from seed 5000 is the same before and after, at 1500 turns and at 20000 turns with the
+cautious bot, because the bot reaches floor 2 at most and floors 1 to 4 did not change. At 1500
+turns 44 runs die and none get past floor 2. At 20000 turns 101 die and 22 reach floor 2.
+
+A cautious bot started on the up staircase of each floor with that floor's matchup kit and two
+potions of healing, 40 seeds from 7000, at most 3000 turns:
+
+| floor | kit | died before | died now | killed by, now |
+|---|---|---|---|---|
+| 1 | D1 | 5 | 5 | goblin scout 4, white slime 1 |
+| 2 | D2 | 19 | 19 | goblin warrior 11, ant 5 |
+| 3 | D3 | 17 | 17 | orc 7, goblin warrior 4 |
+| 4 | D4 | 26 | 26 | goblin warrior 10, orc archer 5 |
+| 5 | D5 | 13 | 11 | goblin warrior 5, orc archer 4 |
+| 6 | D6 | | 11 | orc 4, orc archer 4, goblin warrior 3 |
+| 7 | D7 | | 2 | orc 2 |
+| 8 | D8 | | 6 | orc archer 5, orc 1 |
+| 9 | D9 | | 11 | orc 7, orc archer 4 |
+| 10 | D10 | | 6 | orc 4, orc archer 2 |
+| chamber | D10 | 0, 40 won | 9, 31 won | orc 5, orc warlord 4 |
+
+The bot never retreats up the stairs and never fights in the doorway, so the chamber number is the
+pessimistic end. Before this change the chamber was floor 6, empty, and was played with the D5 kit.
+
+### Saves
+
+* `Kind::OrcWarlord` is appended to `Kind`. No `Species` or `Faction` was added.
+* A save from five floors deep that already holds `floor-6` holds the old chamber there. Its
+  amulet still wins the run, and the floor is named "Floor 6". A save that has not been to floor 6
+  digs a dungeon floor there and goes on to floor 10.
+* `golden.jsonl` and `golden-sha256.jsonl` were recorded again, because the save gained
+  `heralded`.
+
+### Left undone
+
+* The deep floors reuse the five-floor roster, so their danger comes from more and larger orc
+  bands. New kinds for floors 6 to 10 come from the creatures branch.
+* The warlord has no ability of his own. A charge, a war cry that hastes the band, or rallying a
+  fleeing orc would each need a rule the game does not have.
+* The band does not keep to the hall. Once it has lost the character it goes back to sleep where it
+  stands.
+
 ## Kinds of creature
 
 `Kind` is a species and a variant of it. `Kinds::FACTS` holds one `KindFacts` per kind. `Species`
@@ -3986,14 +4142,15 @@ stands for. The default kinds carry the numbers the three species had before, so
 | kind | glyph | colour | size | hit dice | avg | AC | damage | speed | dark | light | weapon | depths | alone | xp |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | white slime | `j` | `#EEEEEE` | medium | 2d4+1 | 6 | 0 | 1d4 | 80 | no | 0 | none | 1-3 | no | 3 |
-| blue slime | `j` | `#5CB8FF` | medium | 2d6+4 | 11 | 0 | 1d4 | 80 | no | 0 | none | 1-4 | no | 5 |
-| red slime | `j` | `#FF5C5C` | medium | 2d4+1 | 6 | 0 | 1d8 | 80 | no | 0 | none | 2-5 | no | 6 |
-| green slime | `j` | `#5CF05C` | medium | 2d6+2 | 9 | 0 | 2d6 | 80 | no | 0 | none | 3-5 | no | 10 |
+| blue slime | `j` | `#5CB8FF` | medium | 2d6+4 | 11 | 0 | 1d4 | 80 | no | 0 | none | 1-5 | no | 5 |
+| red slime | `j` | `#FF5C5C` | medium | 2d4+1 | 6 | 0 | 1d8 | 80 | no | 0 | none | 2-7 | no | 6 |
+| green slime | `j` | `#5CF05C` | medium | 2d6+2 | 9 | 0 | 2d6 | 80 | no | 0 | none | 3-8 | no | 10 |
 | goblin scout | `g` | `#FFE040` | small | 2d4+2 | 7 | 0 | 1d4 | 110 | no | 40 | dagger, sling | 1-2 | yes | 5 |
-| goblin warrior | `g` | `#A8E040` | small | 2d4+4 | 9 | 2 | 1d6 | 100 | no | 25 | short sword | 2-4 | no | 7 |
-| goblin shaman | `g` | `#FF70FF` | small | 2d4+2 | 7 | 1 | 1d3 | 100 | no | 50 | none | 3-5 | no | 12 |
-| orc | `o` | `#FF6850` | medium | 2d6+7 | 14 | 4 | 1d8 | 95 | yes | 20 | 90% drawn | 3-5 | no | 14 |
-| orc archer | `o` | `#60E8E8` | medium | 2d6+4 | 11 | 3 | 1d6 | 95 | yes | 10 | bow | 4-5 | no | 16 |
+| goblin warrior | `g` | `#A8E040` | small | 2d4+4 | 9 | 2 | 1d6 | 100 | no | 25 | short sword | 2-6 | no | 7 |
+| goblin shaman | `g` | `#FF70FF` | small | 2d4+2 | 7 | 1 | 1d3 | 100 | no | 50 | none | 3-7 | no | 12 |
+| orc | `o` | `#FF6850` | medium | 2d6+7 | 14 | 4 | 1d8 | 95 | yes | 20 | 90% drawn | 3-10 | no | 14 |
+| orc archer | `o` | `#60E8E8` | medium | 2d6+4 | 11 | 3 | 1d6 | 95 | yes | 10 | bow | 4-10 | no | 16 |
+| orc warlord | `o` | `#FFC080` | large | 10d8+20 | 65 | 5 | 1d10 | 100 | yes | 100 | long sword | 11 | no | 250 |
 
 AC is the hide before the dexterity modifier. Light is the chance, out of a hundred, of carrying a
 lit torch or candle. The spawn weights are 40, 20, 20 and 15 for the slimes, 30, 45 and 15 for the
@@ -4234,7 +4391,8 @@ second reason added there.
 * The shape is picked by weight, as columns to rows: 1:1 30, 3:2 25, 2:1 20, 2:3 10, 3:1 10, 1:2 5.
   A floor three times taller than wide is left out, because the window is wider than it is tall.
 * No floor is narrower than 32 or shorter than 20.
-* The amulet chamber keeps its fixed 31 by 11.
+* Floors below floor 5 are drawn larger by `Generator::GROWTH` for each floor below it. The amulet
+  chamber is built at a fixed 49 by 17.
 
 ### Layouts
 
@@ -4749,8 +4907,8 @@ target.
 
 | kind | glyph | colour | contrast | hit dice | avg | AC | damage | speed | depths | crowd | xp |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| giant ant | `a` | `#FFA040` | 9.5:1 | 1d4+1 | 4 | 2 | 1d3 | 130 | 2-5 | 3-5 | 3 |
-| violet jelly | `J` | `#C8A0FF` | 9.1:1 | 3d4 | 8 | 0 | 1d6 | 60 | 3-5 | alone | 6 |
+| giant ant | `a` | `#FFA040` | 9.5:1 | 1d4+1 | 4 | 2 | 1d3 | 130 | 2-7 | 3-5 | 3 |
+| violet jelly | `J` | `#C8A0FF` | 9.1:1 | 3d4 | 8 | 0 | 1d6 | 60 | 3-9 | alone | 6 |
 
 * Contrast is against the map ground `#0C0E12`. Both clear the 6:1 every other kind meets.
 * Spawn weights: ant 20, jelly 10.

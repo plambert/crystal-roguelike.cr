@@ -102,6 +102,13 @@ module Roguelike
     # narrower.
     BELL = 4
 
+    # How much larger a floor below `GROWN` is drawn, for each floor below
+    # it, as a share of its area. Floor 10 is drawn a third larger.
+    GROWTH = 0.06
+
+    # The deepest floor drawn at `AREA` itself.
+    GROWN = 5
+
     # The shapes a floor comes in, as columns to rows, by weight.
     #
     # The squarer shapes are commoner. A floor three times as tall as it is
@@ -267,7 +274,7 @@ module Roguelike
     def self.size(rng : Rng, id : String) : {Int32, Int32}
       stream = rng.derive("#{DOMAIN}:#{id}").derive "size"
       mean = (0...BELL).sum { stream.rand } / BELL
-      area = AREA * 2.0 ** ((mean * 2 - 1) * SPREAD)
+      area = AREA * 2.0 ** ((mean * 2 - 1) * SPREAD) * growth(World.depth(id) || 1)
 
       shape = Items.pick stream, SHAPES
       columns = Math.sqrt(area * shape[0] / shape[1]).round.to_i
@@ -276,34 +283,92 @@ module Roguelike
       {Math.max(columns, SMALLEST[0]), Math.max(rows, SMALLEST[1])}
     end
 
+    # How much larger *depth* is drawn than `AREA`, as a factor.
+    def self.growth(depth : Int32) : Float64
+      1.0 + GROWTH * Math.max(depth - GROWN, 0)
+    end
+
     # How wide the chamber under the last floor is.
-    CHAMBER_COLUMNS = 31
+    CHAMBER_COLUMNS = 49
 
     # How tall it is.
-    CHAMBER_ROWS = 11
+    CHAMBER_ROWS = 17
+
+    # The small room the up staircase is in, west of the hall.
+    LANDING = Area.new 3, 6, 7, 5
+
+    # The hall the amulet is in.
+    HALL = Area.new 11, 2, 35, 13
+
+    # The columns of the hall that hold a pillar, on the third row in from
+    # the north wall and the third in from the south.
+    PILLARS = {17, 23, 29, 35}
 
     # The chamber under the last floor, called *id*.
     #
-    # One room of dressed stone with the up staircase at the west end and
-    # the amulet at the east end, lit by four sconces. Nothing lives there.
-    # It rolls nothing, so it is the same chamber on every seed.
+    # A small landing holds the up staircase. A shut door leads east from it
+    # into a long hall of dressed stone, lit by eight sconces, with two rows of
+    # pillars and the amulet at the east end. It rolls nothing, so it is the
+    # same chamber on every seed. `.garrison` puts the warlord and his band
+    # in it.
     def self.chamber(id : String = World.id(World::VAULT)) : Floor
       floor = Floor.solid id, CHAMBER_COLUMNS, CHAMBER_ROWS
-      room = Area.new 3, 2, CHAMBER_COLUMNS - 6, CHAMBER_ROWS - 4
-      room.each { |column, row| floor.set column, row, Terrain::StoneFloor }
+      {LANDING, HALL}.each do |room|
+        room.each { |column, row| floor.set column, row, Terrain::StoneFloor }
+      end
 
-      middle = room.middle[1]
-      floor.set room.x, middle, Terrain::StairsUp
-      floor.drop room.right, middle, Item.new(ItemKind::Amulet)
+      middle = HALL.middle[1]
+      floor.set LANDING.x, middle, Terrain::StairsUp
+      floor.set LANDING.right + 1, middle, Terrain::ClosedDoor
+      floor.drop HALL.right, middle, Item.new(ItemKind::Amulet)
 
-      {room.x + 4, room.right - 4}.each do |column|
-        floor.set_fixture column, room.y,
+      PILLARS.each do |column|
+        floor.set column, HALL.y + 3, Terrain::Granite
+        floor.set column, HALL.bottom - 3, Terrain::Granite
+      end
+
+      floor.set_fixture LANDING.x + 3, LANDING.y,
+        Fixture.new(FixtureKind::Sconce, true, Direction::North)
+      {HALL.x + 2, HALL.x + 12, HALL.x + 22, HALL.right - 2}.each do |column|
+        floor.set_fixture column, HALL.y,
           Fixture.new(FixtureKind::Sconce, true, Direction::North)
-        floor.set_fixture column, room.bottom,
+        floor.set_fixture column, HALL.bottom,
           Fixture.new(FixtureKind::Sconce, true, Direction::South)
       end
 
       floor
+    end
+
+    # Where the warlord and his band stand in the chamber, and what each is.
+    #
+    # The warlord stands two squares west of the amulet. Two orcs flank him
+    # and an archer stands behind him, in front of the pillars.
+    GARRISON = {
+      {Kind::OrcWarlord, {HALL.right - 2, HALL.middle[1]}},
+      {Kind::Orc, {HALL.right - 3, HALL.middle[1] - 2}},
+      {Kind::Orc, {HALL.right - 3, HALL.middle[1] + 2}},
+      {Kind::OrcArcher, {HALL.right - 1, HALL.middle[1] - 4}},
+    }
+
+    # What the band in the chamber is called.
+    def self.garrison_band(floor : Floor) : String
+      "#{floor.id}-warlord"
+    end
+
+    # Puts the warlord and his band in *floor*, rolling hit points on *rng*.
+    #
+    # Each rolls on a stream named after the floor and the square it stands
+    # on. All of them are one band.
+    def self.garrison(rng : Rng, floor : Floor) : Nil
+      band = garrison_band floor
+
+      GARRISON.each do |kind, spot|
+        stream = rng.derive("#{DOMAIN}:#{floor.id}").derive "garrison:#{spot[0]},#{spot[1]}"
+        health = kind.hit_dice.roll stream
+
+        floor.place Monster.new(kind, spot[0], spot[1], band,
+          hit_points: health, max_hit_points: health)
+      end
     end
 
     # The floor being dug.
