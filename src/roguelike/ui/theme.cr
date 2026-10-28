@@ -126,6 +126,9 @@ module Roguelike::Ui
     color red, 0xD32F2F
     color empty, 0x33363C
     color empty_text, 0x8A909C
+    color haste_bar, 0x40C4FF
+    color slow_bar, 0xB39DDB
+    color blind_bar, 0xBDBDBD
 
     # Every color in display order, with its heading and its label.
     ENTRIES = [
@@ -202,6 +205,9 @@ module Roguelike::Ui
       Entry.new("red", "Bars", "Red"),
       Entry.new("empty", "Bars", "Empty part"),
       Entry.new("empty_text", "Bars", "Text on the empty part"),
+      Entry.new("haste_bar", "Bars", "Haste"),
+      Entry.new("slow_bar", "Bars", "Slow"),
+      Entry.new("blind_bar", "Bars", "Blindness"),
     ]
 
     # The game's own colors.

@@ -59,6 +59,16 @@ module Roguelike::Ui
     # the label says who the bar is about instead.
     THREAT_LABEL = "vs"
 
+    # What each temporary effect is called inside its bar.
+    #
+    # The bar has no label outside it, so it lines up with the bars above
+    # and the name goes in front of the count.
+    LASTING_NAMES = {
+      Event::Status::Hurried  => "haste",
+      Event::Status::Dragging => "slow",
+      Event::Status::Blind    => "blind",
+    }
+
     # Where the gold starts on the number rows. The armor class has the
     # columns before it.
     GOLD = 5
@@ -76,6 +86,10 @@ module Roguelike::Ui
 
     # The bar for the creature the character is fighting.
     getter threat : Meter
+
+    # One bar per temporary effect, in `Lasting::ORDER`. A bar is hidden
+    # while its effect is not running.
+    getter effects : Array(Meter)
 
     # Armor class, gold and the turn, under their names.
     #
@@ -100,6 +114,16 @@ module Roguelike::Ui
     # The row of the bar for the creature being fought. Hidden while there
     # is no fight.
     getter fight : Widgets::Panel
+
+    # The rows of the temporary effects. Hidden while there are none.
+    getter lasting : Widgets::Panel
+
+    # The most turns each running effect has had left since it began.
+    #
+    # The game keeps only the turns left, so the pane keeps the full mark
+    # the bar shrinks from. A longer reading, as when a second potion adds
+    # to a haste, sets a new mark.
+    @longest = {} of Event::Status => Int32
 
     # The three sections, in the order they are stacked.
     getter scoring : Widgets::Section
@@ -126,13 +150,18 @@ module Roguelike::Ui
       @fight = CharacterPane.block @threat
       @fight.hidden = true
 
+      @effects = Lasting::ORDER.map { |status| Meter.new "", levels: Palette.lasting(status) }
+      @effects.each(&.hidden = true)
+      @lasting = CharacterPane.block @effects.map(&.as(Widgets::Widget))
+      @lasting.hidden = true
+
       # The panel gives the vitals the same side columns as a section body.
       @vitals = Widgets::Panel.new(
         direction: Layout::Direction::Column,
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fit,
         padding: Layout::Padding.symmetric(horizontal: 1))
-      @vitals.add @who, @health, @magic, @learning, @fight
+      @vitals.add @who, @health, @magic, @learning, @lasting, @fight
 
       @scoring = InfoPanel.section SCORES
       @scoring.body.add @number_names, @numbers, @score_names, @scores
@@ -165,6 +194,9 @@ module Roguelike::Ui
       @magic.retheme Palette.magic
       @learning.retheme Palette.learning
       @threat.retheme Palette.threat
+      Lasting::ORDER.each_with_index do |status, index|
+        @effects[index].retheme Palette.lasting(status)
+      end
     end
 
     # The three sections, top first.
@@ -208,6 +240,7 @@ module Roguelike::Ui
       @health.show player.hit_points, player.max_hit_points
       @magic.show 0, 0
       learned player
+      lasted player
       fought game
 
       @number_names.clear
@@ -244,6 +277,28 @@ module Roguelike::Ui
 
       @learning.show player.experience - here, span,
         "#{player.experience}/#{player.experience + wanted}"
+    end
+
+    # One bar for each temporary effect on the character.
+    #
+    # The bar is the turns left over the most it has had, so it is full when
+    # the effect begins and empties as it wears off. A bar goes away when
+    # its effect ends.
+    private def lasted(player : Player) : Nil
+      running = player.lasting
+      @longest.select! { |status, _| running.any?(&.status.==(status)) }
+      @lasting.hidden = running.empty?
+
+      Lasting::ORDER.each_with_index do |status, index|
+        bar = @effects[index]
+        found = running.find(&.status.==(status))
+        bar.hidden = found.nil?
+        next unless found
+
+        most = Math.max found.left, @longest[status]? || 0
+        @longest[status] = most
+        bar.show found.left, most, "#{LASTING_NAMES[status]} #{found.left}"
+      end
     end
 
     # The bar for the creature the character is fighting.

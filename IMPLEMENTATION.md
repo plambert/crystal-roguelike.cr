@@ -5495,6 +5495,27 @@ holds `Explore`. `Knowledge` gained `#revision` and `#chambers`. `Action` gained
 `spec/roguelike/chambers_spec.cr`, `spec/roguelike/explore_spec.cr` and
 `spec/roguelike/ui/exploring_spec.cr`.
 
+## Temporary effects in the character pane
+
+A haste, a slow and a blindness each get a bar under the experience bar while they run. The bar
+reads like the experience bar, with the effect's name and the turns left written over the fill.
+
+* **One reading.** `Lasting.on` reads the timers where the game keeps them, `Pace#hasted`,
+  `Pace#slowed` and `Player#blinded`, and answers one `Lasting` per running effect in
+  `Lasting::ORDER`. `Player#lasting` is that reading. Nothing in the game reads it, so it changes
+  no outcome.
+* **Turns.** A haste and a slow count ticks and a blindness counts turns. `Game#tick` advances the
+  turn and wears all three down, so a tick is a turn and the number on the bar is in turns.
+* **The full mark.** The game keeps only the turns left. `CharacterPane` keeps the most each running
+  effect has had left and draws the bar as a share of it. A longer reading sets a new mark, so a
+  second potion of haste fills the bar again. The mark is dropped when the effect ends. A run loaded
+  mid-effect starts its bars full.
+* **Rows.** `CharacterPane#effects` has one `Meter` per status, each hidden while its effect is not
+  running, inside a panel that is hidden while none are. The label column is blank, so the bars line
+  up with the ones above.
+* **Colors.** `haste_bar`, `slow_bar` and `blind_bar` are theme colors in the Bars group. Each is
+  light, so `Palette.readable_on` puts dark text on it, and each is far from `empty`.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

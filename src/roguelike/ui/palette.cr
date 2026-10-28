@@ -278,6 +278,24 @@ module Roguelike::Ui
     # with being early in a level.
     drawn learning : Array({Int32, TermBuf::Color}) = [{100, light_green}, {0, light_green}]
 
+    # The bars for a haste, a slow and a blindness, each one color.
+    #
+    # The bar runs down as the effect wears off, and its color says which
+    # effect it is. Each is light enough that dark text reads on it, and far
+    # from `empty` so the end of the fill is plain to see.
+    drawn haste : Array({Int32, TermBuf::Color}) = [{100, theme.haste_bar}, {0, theme.haste_bar}]
+    drawn slow : Array({Int32, TermBuf::Color}) = [{100, theme.slow_bar}, {0, theme.slow_bar}]
+    drawn blindness : Array({Int32, TermBuf::Color}) = [{100, theme.blind_bar}, {0, theme.blind_bar}]
+
+    # The bar colors for each temporary effect.
+    def self.lasting(status : Event::Status) : Array({Int32, TermBuf::Color})
+      case status
+      in .hurried?  then haste
+      in .dragging? then slow
+      in .blind?    then blindness
+      end
+    end
+
     # What a bar of *levels* is drawn in at *percent* full.
     #
     # At or above the first level it is the first color. Between two levels

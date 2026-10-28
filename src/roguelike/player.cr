@@ -313,6 +313,11 @@ module Roguelike
       true
     end
 
+    # The temporary effects on the character, with the turns each has left.
+    def lasting : Array(Lasting)
+      Lasting.on self
+    end
+
     # Passes one turn of being unable to see. Answers whether sight came
     # back on this one.
     def blink : Bool

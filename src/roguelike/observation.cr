@@ -82,8 +82,8 @@ module Roguelike
 
     # Something working on the character that they have been told about.
     #
-    # How long each lasts is not here. Nothing on the screen says it. The
-    # character is told a thing started and told again when it wears off.
+    # How long each lasts is not here. The character pane shows it as a bar,
+    # and the messages say when a thing starts and when it wears off.
     enum Status
       # They cannot see.
       Blind
