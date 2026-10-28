@@ -111,6 +111,28 @@ Spectator.describe TermBuf::Widgets::Menu do
     expect(run.chosen_keys).to eq ['c']
   end
 
+  it "does not activate a child callback installed by the parent's answer" do
+    run = opened [Entry.new('a', "parent")]
+    child_indices = [] of Int32?
+    run.menu.on_choose_index = nil
+    run.menu.on_choose = ->(key : Char?) do
+      if key
+        run.menu.on_choose = nil
+        run.menu.on_choose_index = ->(index : Int32?) { child_indices << index; nil }
+        run.menu.show run.session.app, "Child", [Entry.new('b', "child")]
+      end
+      nil
+    end
+
+    run.session.press "f"
+
+    expect(run.menu.showing?).to be_true
+    expect(run.menu.title).to eq "Child"
+    expect(child_indices).to be_empty
+    run.session.press "f"
+    expect(child_indices).to eq [0]
+  end
+
   it "rebinds a showing menu without losing page, row, or scroll" do
     menu = Widgets::Menu.new
     menu.max_rows = 2

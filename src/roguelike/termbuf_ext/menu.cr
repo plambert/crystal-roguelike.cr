@@ -823,12 +823,14 @@ module TermBuf::Widgets
     # answer again on the next press of the same key, before the next frame
     # rebuilt the focus ring.
     private def finish(index : Int32?) : Nil
+      key = index ? @entries[index]?.try(&.key) : nil
+      chosen = @on_choose
+      indexed = @on_choose_index
       self.keymap = nil
       close
 
-      key = index ? @entries[index]?.try(&.key) : nil
-      @on_choose.try &.call(key)
-      @on_choose_index.try &.call(index)
+      chosen.try &.call(key)
+      indexed.try &.call(index)
     end
   end
 end

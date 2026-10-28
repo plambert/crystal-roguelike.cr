@@ -26,7 +26,7 @@ module TermBuf::Widgets
     # What runs when the highlighted value changes.
     property on_highlight : Proc(T?, Nil)? = nil
 
-    @value_pages : Array(Array(Entry(T))) = [] of Array(Entry(T))
+    private getter value_pages : Array(Array(Entry(T))) = [] of Array(Entry(T))
 
     def initialize(@menu : Menu = Menu.new,
                    @navigation : Navigation = Navigation.selectable)

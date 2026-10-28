@@ -57,9 +57,9 @@ module TermBuf::Widgets
     # The row the question is drawn on.
     getter line : Widgets::Label
 
-    @choices : Array(Choice) = [] of Choice
-    @choice_index : Int32 = 0
-    @choice_mode : Bool = false
+    private getter choices : Array(Choice) = [] of Choice
+    private getter choice_index : Int32 = 0
+    private getter choice_mode : Bool = false
 
     # What the offered keys are drawn in.
     property keys_style : Style = Style::DEFAULT.bold
