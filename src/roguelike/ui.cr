@@ -29,6 +29,7 @@ end
 
 require "../roguelike"
 require "./ui/motion"
+require "./ui/controls"
 require "./ui/theme"
 require "./ui/palette"
 require "./ui/line"
@@ -60,3 +61,4 @@ require "./ui/news_page"
 require "./ui/options"
 require "./ui/theme_editor"
 require "./ui/options_screen"
+require "./ui/control_scheme_picker"

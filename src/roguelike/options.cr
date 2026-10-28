@@ -28,6 +28,34 @@ module Roguelike
       Bands
     end
 
+    # The movement and interaction keys the person uses.
+    enum ControlScheme
+      # The existing command letters and hjkl movement.
+      Traditional
+
+      # Spatial movement and discoverable action menus.
+      Modern
+    end
+
+    # Reads a saved scheme without rejecting the other options when it is
+    # absent, null, or unrecognized.
+    module ControlSchemeValue
+      def self.from_json(pull : JSON::PullParser) : ControlScheme?
+        return if pull.read_null?
+
+        value = JSON.parse(pull.read_raw).as_s?
+        value.try { |text| Roguelike::Options.parse_control_scheme text }
+      end
+
+      def self.to_json(value : ControlScheme?, json : JSON::Builder) : Nil
+        if scheme = value
+          json.string scheme.to_s.underscore
+        else
+          json.null
+        end
+      end
+    end
+
     # One preference the options screen offers.
     record Setting,
       key : String,
@@ -61,6 +89,9 @@ module Roguelike
         :choice, [{"gradient", "Gradient"}, {"bands", "Bands"}]),
       Setting.new("mouse", "Input", "Mouse",
         "Report the mouse at the start of a run. Off lets you select text", :toggle),
+      Setting.new("control_scheme", "Input", "Control scheme",
+        "Choose traditional command keys or modern spatial controls", :choice,
+        [{"traditional", "Traditional"}, {"modern", "Modern"}]),
       Setting.new("update_check", "Game", "Update check",
         "Say when a newer release is out, checking once a day", :toggle),
       Setting.new("autosubmit", "Game", "Send runs",
@@ -79,6 +110,9 @@ module Roguelike
     property bar_color : BarColor = BarColor::Gradient
 
     property? mouse : Bool = true
+
+    @[JSON::Field(converter: Roguelike::Options::ControlSchemeValue, emit_null: true)]
+    property control_scheme : ControlScheme? = nil
 
     property? update_check : Bool = true
 
@@ -154,14 +188,34 @@ module Roguelike
 
     # What a setting holds, as the options screen shows it. A choice is the
     # value of one of its `Setting#choices`.
-    alias Value = Bool | Int32 | String
+    alias Value = Bool | Int32 | String | ControlScheme?
+
+    # Parses the values written by the options form and JSON file.
+    def self.parse_control_scheme(value : String) : ControlScheme?
+      case value
+      when "traditional" then ControlScheme::Traditional
+      when "modern"      then ControlScheme::Modern
+      end
+    end
+
+    # The profile to use before a person has chosen one.
+    def effective_control_scheme : ControlScheme
+      @control_scheme || ControlScheme::Traditional
+    end
+
+    # Whether a recognized scheme is saved.
+    def control_scheme_chosen? : Bool
+      !@control_scheme.nil?
+    end
 
     # What *key* holds. Raises `KeyError` for a key that is no property.
     def [](key : String) : Value
       {% for ivar in @type.instance_vars %}
         {% unless ivar.name == "overridden" %}
           if key == {{ ivar.name.stringify }}
-            {% if ivar.type < ::Enum %}
+            {% if ivar.name == "control_scheme" %}
+              return @{{ ivar.name }}.try &.to_s.underscore
+            {% elsif ivar.type < ::Enum %}
               return @{{ ivar.name }}.to_s.underscore
             {% else %}
               return @{{ ivar.name }}
@@ -179,7 +233,19 @@ module Roguelike
       {% for ivar in @type.instance_vars %}
         {% unless ivar.name == "overridden" %}
           if key == {{ ivar.name.stringify }}
-            {% if ivar.type < ::Enum %}
+            {% if ivar.name == "control_scheme" %}
+              if value.nil?
+                @{{ ivar.name }} = nil
+              elsif value.is_a?(String)
+                scheme = Options.parse_control_scheme value
+                raise ArgumentError.new "unknown control scheme #{value.inspect}" unless scheme
+                @{{ ivar.name }} = scheme
+              elsif value.is_a?(ControlScheme)
+                @{{ ivar.name }} = value
+              else
+                raise ArgumentError.new "#{key} holds a control scheme or nil"
+              end
+            {% elsif ivar.type < ::Enum %}
               raise ArgumentError.new "#{key} holds a choice" unless value.is_a? String
               @{{ ivar.name }} = {{ ivar.type }}.parse value
             {% else %}

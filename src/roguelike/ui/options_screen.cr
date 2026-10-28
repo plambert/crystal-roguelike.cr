@@ -105,6 +105,17 @@ module Roguelike::Ui
       open app
     end
 
+    # Replaces the screen's bindings without rebuilding its form or moving
+    # the focused row.
+    def rebind_controls(app : Widgets::App) : Nil
+      return unless showing?
+
+      section = Keys.options_screen self, app
+      @help.sections = [section]
+      self.keymap = section.bindings
+      @scope.try &.keymap = section.bindings
+    end
+
     # The form for *options*, a section for each heading in
     # `Options::SETTINGS`, with *name* in the tester's row. The row that
     # opens the theme editor ends the Display section.
@@ -114,7 +125,11 @@ module Roguelike::Ui
       form = Widgets::Form.new actions: false, height: Layout::Sizing.fit
 
       Options::SETTINGS.each do |setting|
-        held = setting.key == "name" ? name : options[setting.key]
+        held = case setting.key
+               when "name"           then name
+               when "control_scheme" then options.effective_control_scheme.to_s.underscore
+               else                       options[setting.key]
+               end
 
         form.section setting.section do |section|
           row setting, held, section
