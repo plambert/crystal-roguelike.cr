@@ -89,6 +89,9 @@ module Roguelike
     flag tester_name : String?, "--tester-name",
       "Use this name to label your uploaded runs"
 
+    flag explore : String?, "--explore",
+      "Set how X explores for this run, as in reach=2,gold=off,stop=attacked+stairs"
+
     # A development tool. It is off unless this is passed, so a normal run has
     # neither the box nor the key that opens it.
     #
@@ -208,9 +211,13 @@ module Roguelike
         motion: typed(:motion, motion),
         flicker: typed(:flicker, flicker),
         update_check: typed(:update_check, update_check),
-        autosubmit: typed(:autosubmit, autosubmit)
+        autosubmit: typed(:autosubmit, autosubmit),
+        explore: explore
       Options.current = found
       found
+    rescue error : ArgumentError
+      STDERR.puts "--explore: #{error.message}"
+      exit 1
     end
 
     # *value* when the flag *name* was typed, and `nil` when it was not.

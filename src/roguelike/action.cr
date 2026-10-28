@@ -14,7 +14,7 @@ module Roguelike
   # to a replay line and read back from it. The names are the bot
   # protocol's verbs, where this game has that verb.
   #
-  # The game and the protocol differ in six ways. The game is what this type
+  # The game and the protocol differ in seven ways. The game is what this type
   # follows.
   #
   # * The protocol's `remove` names an item. `Game#take_off` names a slot. One
@@ -32,6 +32,8 @@ module Roguelike
   #   holds one line per step.
   # * The protocol has no `visit`. It is a `travel` to a square the last
   #   explore stop saw an item on, and `v` repeats it.
+  # * The protocol has no `configure`. It changes how `explore` behaves
+  #   and takes no turn.
   #
   # An item is named by `Item#id`. An id names one item for as long as it is
   # in the run, it comes from the seed, and a save round-trips it. An
@@ -46,30 +48,31 @@ module Roguelike
     include JSON::Serializable
 
     use_json_discriminator "t", {
-      "move"    => Move,
-      "melee"   => MeleeAttack,
-      "wait"    => Wait,
-      "open"    => Open,
-      "close"   => Close,
-      "break"   => Break,
-      "pickup"  => PickUp,
-      "drop"    => Drop,
-      "wield"   => Wield,
-      "wear"    => Wear,
-      "remove"  => Remove,
-      "quaff"   => Quaff,
-      "read"    => Read,
-      "zap"     => Zap,
-      "apply"   => Apply,
-      "fire"    => Fire,
-      "throw"   => Throw,
-      "descend" => Descend,
-      "ascend"  => Ascend,
-      "choose"  => Choose,
-      "aim"     => Aim,
-      "explore" => Explore,
-      "travel"  => Travel,
-      "visit"   => Visit,
+      "move"      => Move,
+      "melee"     => MeleeAttack,
+      "wait"      => Wait,
+      "open"      => Open,
+      "close"     => Close,
+      "break"     => Break,
+      "pickup"    => PickUp,
+      "drop"      => Drop,
+      "wield"     => Wield,
+      "wear"      => Wear,
+      "remove"    => Remove,
+      "quaff"     => Quaff,
+      "read"      => Read,
+      "zap"       => Zap,
+      "apply"     => Apply,
+      "fire"      => Fire,
+      "throw"     => Throw,
+      "descend"   => Descend,
+      "ascend"    => Ascend,
+      "choose"    => Choose,
+      "aim"       => Aim,
+      "explore"   => Explore,
+      "travel"    => Travel,
+      "visit"     => Visit,
+      "configure" => Configure,
     }
 
     # How a direction is written in JSON.
@@ -420,6 +423,23 @@ module Roguelike
       getter target : {Int32, Int32}
 
       def initialize(@target : {Int32, Int32})
+      end
+    end
+
+    # Changing how the run's explore behaves. No turn passes.
+    #
+    # *explore* replaces `Game#explore_settings` whole, and a field it leaves
+    # out takes its default. `nil` leaves the settings as they are. A number
+    # out of its range refuses the action. `Game#legal` never offers this.
+    # The options screen sends it during play, a new character sends it
+    # when `options.json` holds other settings, and a bot sends it whenever
+    # it likes. The replay log records it, so a replay explores the same way.
+    class Configure < Action
+      getter t : String = "configure"
+
+      getter explore : Roguelike::Explore::Settings?
+
+      def initialize(@explore : Roguelike::Explore::Settings? = nil)
       end
     end
 

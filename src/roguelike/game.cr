@@ -345,6 +345,13 @@ module Roguelike
     @[JSON::Field(ignore_serialize: Roguelike::Fingerprint.streaming?)]
     @sightings : Array({Int32, Int32})? = nil
 
+    # How this run explores, or `nil` for the defaults.
+    #
+    # `Action::Configure` sets it. It is `nil` rather than the defaults, so
+    # a save and a fingerprint hold it only when it differs from them, and a
+    # save written before it existed loads.
+    @explore_settings : Explore::Settings? = nil
+
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
                    @log : MessageLog = MessageLog.new,
@@ -924,6 +931,11 @@ module Roguelike
       walk
     end
 
+    # How this run explores. `Action::Configure` changes it.
+    def explore_settings : Explore::Settings
+      @explore_settings || Explore::Settings.new
+    end
+
     # An explore, ready to be stepped. `X` does this.
     #
     # The character looks first. What they can see now is what the first
@@ -1006,7 +1018,7 @@ module Roguelike
       #
       # An explore and a travel go through their own actions, so a replay
       # holds what the person asked for and plans each step again.
-      before = Watch.on self, walk.seen
+      before = watching walk
       taken = perform(stepping(walk, direction)).step.as(Step)
 
       # A route walked into a shut door opens it. Opening takes the turn and
@@ -1116,11 +1128,14 @@ module Roguelike
     # Looks after a step of *walk*, and settles whether it goes on.
     #
     # Only an explore or a travel stops for an item coming into sight.
+    #
+    # An explore stops for what `#explore_settings` turns on.
     private def settle(walk : Walk, before : Watch, along : Bool, doors : Bool) : Nil
       spotted = walk.planned? ? @spotted : NOTHING_SPOTTED
       walk.seen = glance walk
       walk.halt = stopped_by before, walk.seen, along: along, doors: doors,
-        planned: walk.planned?, spotted: !spotted.empty?
+        planned: walk.planned?, spotted: !spotted.empty?,
+        stops: walk.exploring? ? explore_settings : nil
       explain walk, before, spotted
     end
 
@@ -1192,6 +1207,10 @@ module Roguelike
         say "You stop. You have been here already.", Event::Stopped.new(Halt::Spent)
       when Halt::Hurt
         say "You stop. You have been hurt.", Event::Stopped.new(Halt::Hurt)
+      when Halt::Attacked
+        say "You stop. You are under attack.", Event::Stopped.new(Halt::Attacked)
+      when Halt::Stairs
+        say "You stop. You have found the stairs down.", Event::Stopped.new(Halt::Stairs)
       when Halt::Item
         came_into_sight spotted, walk.seen
       when Halt::Creature
@@ -1255,7 +1274,8 @@ module Roguelike
       return held[1] if held && held[0] == key
 
       route = if goal.nil?
-                Explore.route known, @player.at, floor.columns, floor.rows, auto_takes, shining
+                Explore.route known, @player.at, floor.columns, floor.rows, auto_takes, shining,
+                  explore_settings
               elsif goal == @player.at
                 Route::NOWHERE
               else
@@ -1438,15 +1458,30 @@ module Roguelike
     # `MessageLog#written` is the count rather than `#size`. A full log drops
     # its oldest line for every new one, so its size stops growing after two
     # hundred messages and says nothing about what a step wrote.
+    #
+    # *assailed* is how many attacks the character had taken, and *stairs*
+    # whether they knew where the stairs down were.
     private record Watch,
       health : Int32,
       written : Int32,
       last : String?,
-      seen : Array(Monster) do
-      def self.on(game : Game, seen : Vision) : Watch
+      seen : Array(Monster),
+      assailed : Int32 = 0,
+      stairs : Bool = false do
+      def self.on(game : Game, seen : Vision, assailed : Int32 = 0,
+                  stairs : Bool = false) : Watch
         new game.player.hit_points, game.log.written, game.log.said?,
-          game.monsters_in_sight(seen)
+          game.monsters_in_sight(seen), assailed, stairs
       end
+    end
+
+    # What a step of *walk* is about to begin with.
+    #
+    # Whether the character knows where the stairs down are is asked only
+    # for an explore that stops for them.
+    private def watching(walk : Walk) : Watch
+      stairs = walk.exploring? && explore_settings.stop_stairs? && down_known?
+      Watch.on self, walk.seen, @assailed, stairs
     end
 
     # What stopped the walk on this step. `nil` when nothing did.
@@ -1465,10 +1500,15 @@ module Roguelike
     # *planned* says whether the walk is an explore or a travel. Those stop
     # for an item when it comes into sight, which *spotted* says one has,
     # and not when they step onto one.
+    #
+    # *stops* is the explore settings for a step of an explore, and says
+    # which of these stop it. Every other walk stops for all of them.
     private def stopped_by(before : Watch, seen : Vision, along : Bool,
                            doors : Bool = true, planned : Bool = false,
-                           spotted : Bool = false) : Halt?
+                           spotted : Bool = false,
+                           stops : Explore::Settings? = nil) : Halt?
       return Halt::Over if @outcome.over?
+      return struck(before, stops) || noticed(before, seen, spotted, stops) if stops
       return Halt::Hurt if @player.hit_points < before.health
       return Halt::Creature if arrived_in_sight? before.seen, seen
       return Halt::Item if spotted
@@ -1477,6 +1517,27 @@ module Roguelike
       return Halt::Branch if along && ways(@player.at).size > CORRIDOR
 
       nil
+    end
+
+    # Whether a blow stops a step of an explore under *stops*. A wound
+    # comes first, and an attack that missed after it.
+    private def struck(before : Watch, stops : Explore::Settings) : Halt?
+      attacked = stops.stop_attacked? && @assailed != before.assailed
+      return Halt::Hurt if @player.hit_points < before.health && (stops.stop_hurt? || attacked)
+
+      Halt::Attacked if attacked
+    end
+
+    # Whether something seen or said stops a step of an explore under
+    # *stops*. An explore steps neither through a doorway nor off a
+    # corridor in a way that stops it, so neither is asked about.
+    private def noticed(before : Watch, seen : Vision, spotted : Bool,
+                        stops : Explore::Settings) : Halt?
+      return Halt::Creature if stops.stop_creature? && arrived_in_sight?(before.seen, seen)
+      return Halt::Item if stops.stop_item? && spotted
+      return Halt::Stairs if stops.stop_stairs? && !before.stairs && down_known?
+
+      Halt::Told if stops.stop_message? && told?(before, planned: true)
     end
 
     # Whether the step wrote anything worth stopping for.
@@ -1500,6 +1561,14 @@ module Roguelike
       return false if fresh > 0 && fresh == excused
 
       fresh != 0 || @log.said? != before.last
+    end
+
+    # Whether the character knows where the stairs down on this floor are.
+    private def down_known? : Bool
+      spot = floor.find Terrain::StairsDown
+      return false unless spot
+
+      knowledge[spot].try(&.terrain.stairs_down?) || false
     end
 
     # Whether any creature in sight now was out of sight before.
@@ -6746,7 +6815,7 @@ module Roguelike
 
     # The rule for *action*.
     #
-    # There are five groups and one verb of its own. Each group calls a
+    # There are five groups and two verbs of their own. Each group calls a
     # `case` that covers its own verbs and nothing else. Crystal folds a
     # union of every subclass back
     # into the parent. One `case` over the whole of `Action` cannot be
@@ -6770,9 +6839,25 @@ module Roguelike
         answering action
       when Action::Explore, Action::Travel, Action::Visit
         heading_off action
+      when Action::Configure
+        configuring action
       else
         raise ArgumentError.new "#{action.class} has no rule"
       end
+    end
+
+    # Takes the settings *action* carries. No turn passes.
+    #
+    # A number out of its range refuses it. The way explore planned last is
+    # forgotten, since it was planned under the settings before.
+    private def configuring(action : Action::Configure) : Verdict
+      settings = action.explore
+      return Verdict.done unless settings
+      return Verdict.refused unless settings.valid?
+
+      @explore_settings = settings.default? ? nil : settings
+      @plan = nil
+      Verdict.done
     end
 
     # Where this run is being written down, or `nil` when nothing records it.
@@ -7242,7 +7327,8 @@ module Roguelike
     # Whether an explore has anywhere to go under the current light and
     # automatic-pickup rules.
     def explorable? : Bool
-      Explore.going? knowledge, @player.at, floor.columns, floor.rows, auto_takes, shining
+      Explore.going? knowledge, @player.at, floor.columns, floor.rows, auto_takes, shining,
+        explore_settings
     end
 
     # Which squares light falls on, for `Explore`. `nil` when the character

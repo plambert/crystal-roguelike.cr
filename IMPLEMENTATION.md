@@ -5495,6 +5495,63 @@ holds `Explore`. `Knowledge` gained `#revision` and `#chambers`. `Action` gained
 `spec/roguelike/chambers_spec.cr`, `spec/roguelike/explore_spec.cr` and
 `spec/roguelike/ui/exploring_spec.cr`.
 
+### Explore settings
+
+`Explore::Settings` holds the parts of explore a player or a bot can change. The defaults are the
+rules above.
+
+| Key | Default | Range | What it does |
+| --- | --- | --- | --- |
+| `reach` | 4 | 0 to 24 | `REACH`. Zero ranks every frontier square by distance alone |
+| `pocket` | 16 | 1 to 16 | The most of `Chambers#behind` that tells two squares apart |
+| `gold` | on | | Walk to gold the character remembers |
+| `pickup` | on | | Walk to what `Game#auto_takes` takes |
+| `unread` | on | | Walk to an item too far off to read, once nothing is left to see |
+| `rooms` | on | | The room rule. A partly seen room is swept before it is left |
+| `passages` | on | | The passage rule. A passage is followed to its end |
+| `stop_creature` | on | | A creature coming into view stops the walk |
+| `stop_hurt` | on | | Losing hit points stops the walk |
+| `stop_attacked` | off | | An attack, hit or miss, stops the walk. `Halt::Attacked` |
+| `stop_item` | on | | An item not seen before coming into sight stops the walk |
+| `stop_message` | on | | A line in the log stops the walk |
+| `stop_stairs` | off | | The stairs down coming into knowledge stops the walk. `Halt::Stairs` |
+
+The first seven change which squares `Explore.route` and `Explore.going?` pick. The stops change
+only where `Game#stride` ends a walk of `X`. A travel and a visit keep every stop.
+
+`Game#explore_settings` holds them. `Action::Configure`, written
+`{"t":"configure","explore":{...}}`, replaces them whole. A field the line leaves out takes its
+default. It takes no turn, a number out of range refuses it, and `Game#legal` never offers it.
+
+`Explore::Settings.parse` reads the text form, `key=value` pairs split by commas. `stop=` names
+the stops to keep, joined by `+`, and turns the rest off. `--explore` takes this form.
+
+### Decisions about the settings
+
+* **Game state, not a preference.** The route settings change which squares a replayed `explore`
+  line walks to, so the run holds them and a recorded action changes them. That is the reasoning
+  of the pickup filter. The stops do not reach `#perform`, since a replay holds one line per step
+  whatever stopped the walk. They are kept with the route settings anyway, so a save carries the
+  whole of how its character explores and a bot changes everything in one action.
+* **`options.json` holds the defaults.** `Options#explore` is what a new character starts with.
+  `Ui::Play` sends it as a `configure` when the character enters the dungeon. A character carried
+  on keeps its own, unless `--explore` was typed.
+* **A page of its own.** The options screen has one "Explore" row that opens a second
+  `OptionsScreen` with the thirteen rows. On one page the form grew taller than the box, and the
+  shard's help line shrank to one row, which hid the note naming a flag.
+* **Play edits the character.** During play the page shows and changes the character's settings,
+  each change one `configure`. From the title screen it edits `options.json`. A change in play does
+  not write the file.
+* **Nothing moves for the defaults.** `Game#explore_settings` is `nil` while it holds the
+  defaults, so a save and a fingerprint are as they were. The golden replay verifies unchanged.
+* **The plan is forgotten.** A `configure` clears `Game#planned_route`'s cache, whose key holds
+  nothing the settings change.
+* **The cap stays 16.** `Chambers#behind` counts to `Chambers::BEHIND` and caches the count with
+  the cut. A smaller `pocket` is a `min` in `Explore.smallest`. A larger one would need a count
+  per setting.
+* **The protocol is unchanged.** The bot's headless server reads any `Action` by its `t`, so it
+  passes `configure` through. No observation field was added. A bot knows what it sent.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

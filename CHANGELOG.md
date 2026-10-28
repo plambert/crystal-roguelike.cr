@@ -8,6 +8,20 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Added
+
+* An "Explore" row on the options screen opens the settings for `X`. They set how far a small
+  pocket may be and still come first, how large a pocket may be, and whether `X` walks to gold, to
+  what automatic pickup takes, and to items too far off to read. They also say whether it
+  finishes a room or a corridor before it leaves. Each thing that stops a walk can be turned off.
+  Two new stops can be turned on: a creature attacking you, hit or miss, and finding the stairs
+  down. The defaults are the explore you know.
+* During play these settings change your character and are kept in the save and the replay. From
+  the title screen they set what a new character starts with, in `options.json`.
+* `--explore` sets them for one run, as in `--explore reach=2,gold=off,stop=attacked+stairs`, and
+  leaves the file unchanged. It also applies to a character you carry on.
+* A bot can change them at any point in a run with the `configure` action, which takes no turn.
+
 ### Fixed
 
 * `F` fires at the nearest monster in the modern control scheme, as it does in the traditional

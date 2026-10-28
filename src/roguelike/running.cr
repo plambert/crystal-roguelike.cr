@@ -68,6 +68,14 @@ module Roguelike
     # anything by the light there is. No pile worth taking or item left to
     # read is left to walk to either. Only an explore answers this.
     Dark
+
+    # Something attacked the character, hit or miss. Only an explore answers
+    # this, and only when its settings ask for it.
+    Attacked
+
+    # The stairs down came into the character's knowledge. Only an explore
+    # answers this, and only when its settings ask for it.
+    Stairs
   end
 
   # What one walk did.

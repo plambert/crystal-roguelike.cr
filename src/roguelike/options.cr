@@ -13,6 +13,10 @@ module Roguelike
   # interactive game sets it, so the bot, the trial harness and the specs run
   # on the defaults the code already has. Options are not game state. No
   # replay or fingerprint reads them.
+  #
+  # `explore` is the explore settings a new character starts with. The run
+  # holds its own in `Game#explore_settings`, and `Action::Configure` puts
+  # these there, so the replay records them as an action.
   class Options
     include JSON::Serializable
 
@@ -96,9 +100,40 @@ module Roguelike
         "Say when a newer release is out, checking once a day", :toggle),
       Setting.new("autosubmit", "Game", "Send runs",
         "Send each run's replay log to the developer when the game exits", :toggle),
+      Setting.new("explore.reach", "Where to walk", "Reach",
+        "Steps a pocket may be off and still come first. 0 goes by distance",
+        :number, range: Explore::Settings::RANGES["reach"]),
+      Setting.new("explore.pocket", "Where to walk", "Pocket size",
+        "The most unseen squares a pocket holds. More is open ground",
+        :number, range: Explore::Settings::RANGES["pocket"]),
+      Setting.new("explore.gold", "Where to walk", "Gold",
+        "Walk to gold you remember before the next unseen square", :toggle),
+      Setting.new("explore.pickup", "Where to walk", "Pickups",
+        "Walk to what automatic pickup takes, such as your ammunition", :toggle),
+      Setting.new("explore.unread", "Where to walk", "Far items",
+        "With nothing left to see, walk to items too far off to read", :toggle),
+      Setting.new("explore.rooms", "Where to walk", "Rooms",
+        "See the whole of a room before leaving it", :toggle),
+      Setting.new("explore.passages", "Where to walk", "Corridors",
+        "Follow a corridor to its end once you are in it", :toggle),
+      Setting.new("explore.stop_creature", "When to stop", "Monsters",
+        "Stop when a creature comes into view", :toggle),
+      Setting.new("explore.stop_hurt", "When to stop", "Hurt",
+        "Stop when you lose hit points", :toggle),
+      Setting.new("explore.stop_attacked", "When to stop", "Attacked",
+        "Stop when a creature attacks you, hit or miss", :toggle),
+      Setting.new("explore.stop_item", "When to stop", "New items",
+        "Stop when an item you have not seen comes into sight", :toggle),
+      Setting.new("explore.stop_message", "When to stop", "Messages",
+        "Stop when a message is written", :toggle),
+      Setting.new("explore.stop_stairs", "When to stop", "Stairs down",
+        "Stop when you find the stairs down", :toggle),
       Setting.new("name", "Tester", "Name",
         "The name that labels your uploaded runs", :text),
     ]
+
+    # What starts the key of an explore setting.
+    EXPLORE = "explore."
 
     # The options this process runs under, or `nil` when there are none.
     class_property current : Options? = nil
@@ -118,6 +153,9 @@ module Roguelike
 
     property? autosubmit : Bool = TEST_BUILD
 
+    # The explore settings a new character starts with.
+    property explore : Explore::Settings = Explore::Settings.new
+
     # The file's value of each key a flag set for this run.
     #
     # `#write` saves these in place of the flag's value, so a flag never
@@ -135,8 +173,12 @@ module Roguelike
 
     # The options on file under *root*. The defaults when there is no file or
     # it does not read.
+    #
+    # Explore settings with a number out of range read as the defaults.
     def self.read(root : Path) : Options
-      from_json File.read(path root)
+      found = from_json File.read(path root)
+      found.explore = Explore::Settings.new unless found.explore.valid?
+      found
     rescue File::Error | JSON::ParseException | JSON::SerializableError
       new
     end
@@ -146,13 +188,27 @@ module Roguelike
     # Each argument is the value of a flag the person typed, or `nil` for a
     # flag they did not. A typed flag wins for this run and the file is left
     # alone.
+    #
+    # *explore* is the text of `--explore`, read over the file's explore
+    # settings by `Explore::Settings.parse`. It raises `ArgumentError` when
+    # that does not read.
     def self.arrange(root : Path, motion : Bool? = nil, flicker : Bool? = nil,
-                     update_check : Bool? = nil, autosubmit : Bool? = nil) : Options
+                     update_check : Bool? = nil, autosubmit : Bool? = nil,
+                     explore : String? = nil) : Options
       options = arrange_display root, motion: motion, flicker: flicker
       options.set_flag "update_check", update_check
       options.set_flag "autosubmit", autosubmit
+      options.explore_flag explore
 
       options
+    end
+
+    protected def explore_flag(text : String?) : Nil
+      return unless text
+
+      parsed = Explore::Settings.parse text, @explore
+      override "explore", JSON.parse(@explore.to_json)
+      @explore = parsed
     end
 
     # The display preferences for one run, from the file and any flags typed.
@@ -210,8 +266,10 @@ module Roguelike
 
     # What *key* holds. Raises `KeyError` for a key that is no property.
     def [](key : String) : Value
+      return @explore[key.lchop EXPLORE] if key.starts_with? EXPLORE
+
       {% for ivar in @type.instance_vars %}
-        {% unless ivar.name == "overridden" %}
+        {% unless ivar.name == "overridden" || ivar.name == "explore" %}
           if key == {{ ivar.name.stringify }}
             {% if ivar.name == "control_scheme" %}
               return @{{ ivar.name }}.try &.to_s.underscore
@@ -230,8 +288,14 @@ module Roguelike
     # Sets what *key* holds. Raises `KeyError` for a key that is no property,
     # and `ArgumentError` for a value of the wrong kind.
     def []=(key : String, value : Value) : Value
+      if key.starts_with? EXPLORE
+        raise ArgumentError.new "#{key} holds a number or a toggle" unless value.is_a?(Bool | Int32)
+
+        return @explore[key.lchop EXPLORE] = value
+      end
+
       {% for ivar in @type.instance_vars %}
-        {% unless ivar.name == "overridden" %}
+        {% unless ivar.name == "overridden" || ivar.name == "explore" %}
           if key == {{ ivar.name.stringify }}
             {% if ivar.name == "control_scheme" %}
               if value.nil?
@@ -262,8 +326,11 @@ module Roguelike
 
     # The flag that set *key* for this run, as it was typed, or `nil` when no
     # flag did.
+    #
+    # Every explore setting reports `--explore` when that flag was typed.
     def flag(key : String) : String?
       return unless overridden? key
+      return "--explore" if key.starts_with? EXPLORE
 
       held = self[key]
       "--#{held == false ? "no-" : ""}#{key.tr "_", "-"}"
@@ -276,13 +343,16 @@ module Roguelike
 
     # Whether a flag set *key* for this run.
     def overridden?(key : String) : Bool
-      @overridden.has_key? key
+      @overridden.has_key?(key.starts_with?(EXPLORE) ? "explore" : key)
     end
 
     # Makes the current value of *key* the person's own, so `#write` saves
     # it. The options screen calls this when a row changes.
+    #
+    # An explore setting adopts every explore setting, since `--explore`
+    # set them as one.
     def adopt(key : String) : Nil
-      @overridden.delete key
+      @overridden.delete(key.starts_with?(EXPLORE) ? "explore" : key)
     end
 
     # Writes the whole file under *root*. A key a flag set holds the file's

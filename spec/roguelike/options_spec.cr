@@ -87,7 +87,7 @@ Spectator.describe Roguelike::Options do
 
       expect(written(root).as_h.keys).to contain_exactly(
         "motion", "flicker", "bar_color", "mouse", "control_scheme",
-        "update_check", "autosubmit")
+        "update_check", "autosubmit", "explore")
     end
   end
 
@@ -160,8 +160,15 @@ Spectator.describe Roguelike::Options do
 
     it "names a property for every setting except the tester's name" do
       keys = Options::SETTINGS.map(&.key) - ["name"]
+      plain = keys.reject(&.starts_with? Options::EXPLORE) + ["explore"]
 
-      expect(keys).to contain_exactly(*JSON.parse(Options.new.to_json).as_h.keys)
+      expect(plain).to contain_exactly(*JSON.parse(Options.new.to_json).as_h.keys)
+    end
+
+    it "names every explore setting once" do
+      keys = Options::SETTINGS.map(&.key).select(&.starts_with? Options::EXPLORE)
+
+      expect(keys.map(&.lchop Options::EXPLORE)).to contain_exactly(*Roguelike::Explore::Settings.keys)
     end
 
     it "offers a choice for every bar color" do
