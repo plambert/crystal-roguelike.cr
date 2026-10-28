@@ -1,4 +1,5 @@
 require "termbuf-widgets"
+require "./navigation"
 
 # Extraction candidate: `TermBuf::Widgets::Menu`, for termbuf-widgets.cr.
 #
@@ -54,7 +55,8 @@ module TermBuf::Widgets
     # list of items puts the slot there.
     record Entry, key : Char, text : String, enabled : Bool = true,
       mark : Char? = nil, mark_style : Style? = nil,
-      tail : Char? = nil, tail_style : Style? = nil
+      tail : Char? = nil, tail_style : Style? = nil,
+      shortcut : Char? = nil, disabled_reason : String? = nil
 
     # The letters a menu hands out when the caller has none of its own.
     LETTERS = ('a'..'z').to_a + ('A'..'Z').to_a
@@ -116,10 +118,16 @@ module TermBuf::Widgets
     # can read it.
     GUTTER = 6
 
+    # How many cells the pointer and the mark take when shortcuts are hidden.
+    PLAIN_GUTTER = 4
+
     # Which of those cells each piece is drawn in.
     POINT = 0
     KEY   = 2
     MARK  = 4
+
+    # The mark's column when the shortcut gutter is hidden.
+    PLAIN_MARK = 2
 
     # What goes in the mark cell for a row with no mark of its own.
     SEPARATOR = '-'
@@ -165,12 +173,21 @@ module TermBuf::Widgets
     # The argument is the key. It is `nil` when the person pressed `Escape`.
     property on_choose : Proc(Char?, Nil)? = nil
 
+    # What runs when a row is picked, with its index. `nil` means Escape.
+    #
+    # This does not use `Entry#key`, so a value-based list can have any number
+    # of rows without manufacturing shortcut identities.
+    property on_choose_index : Proc(Int32?, Nil)? = nil
+
     # What runs when the highlight moves, with the row it is on now.
     #
     # The arrows move it, and so does the pointer crossing a row. It runs once
     # when the menu goes up, with the first row. A caller hangs a box of
     # detail off it.
     property on_highlight : Proc(Entry?, Nil)? = nil
+
+    # What runs when the highlight moves, with its row index.
+    property on_highlight_index : Proc(Int32?, Nil)? = nil
 
     # The rows, in the order they are drawn.
     getter entries : Array(Entry) = [] of Entry
@@ -183,6 +200,35 @@ module TermBuf::Widgets
 
     # Which page is showing.
     getter page : Int32 = 0
+
+    # The bindings and row presentation used by this menu.
+    getter navigation : Navigation = Navigation.new
+
+    # Which row is highlighted, or `nil` for an empty list.
+    def selected_index : Int32?
+      @list.current ? @list.selected : nil
+    end
+
+    # Moves the highlight to *index* and brings it into view.
+    def select_index(index : Int32) : Nil
+      @list.select index
+    end
+
+    # Replaces the navigation contract without replacing the menu's state.
+    #
+    # The current page, selected row, and scroll positions remain in place.
+    # The open focus scope receives the new bindings immediately.
+    def navigation=(navigation : Navigation) : Navigation
+      @navigation = navigation
+      if showing?
+        if app = self.app
+          fit_into app.tree.screen, app.tree.policy
+        end
+        @offset = @offset.clamp 0, hidden
+        rebind
+      end
+      navigation
+    end
 
     # The row of page names along the top.
     getter tabs : Tabs
@@ -412,6 +458,10 @@ module TermBuf::Widgets
 
       @list.on_select = ->(_index : Int32) { highlighted; nil }
 
+      # The menu scope owns every navigation key, including the list's usual
+      # arrows, so a live navigation replacement can remove stale bindings.
+      @list.keymap = nil
+
       # Clicking a row does what typing its letter does. The pointer has
       # already put the highlight on it.
       @list.on_click = -> { pick_highlighted; nil }
@@ -477,6 +527,14 @@ module TermBuf::Widgets
       highlighted
     end
 
+    # Restores a row and, when supplied, a page before it.
+    def restore_selection(index : Int32, page : Int32? = nil) : Nil
+      if target_page = page
+        turn_to target_page if !@pages.empty? && target_page != @page
+      end
+      select_index index
+    end
+
     # Puts the box in the middle of the screen, or at the top of it.
     private def place(top : Bool = false) : Nil
       point = top ? Layout::AttachPoint::CenterTop : Layout::AttachPoint::Center
@@ -522,7 +580,13 @@ module TermBuf::Widgets
 
     # Tells `#on_highlight` which row the highlight is on now.
     private def highlighted : Nil
+      @on_highlight_index.try &.call(selected_index)
       @on_highlight.try &.call @list.current
+    end
+
+    # The row gutter under the current presentation.
+    private def row_gutter : Int32
+      @navigation.display_shortcuts ? GUTTER : PLAIN_GUTTER
     end
 
     # How many cells there are between the left edge of the rows and the left
@@ -549,7 +613,7 @@ module TermBuf::Widgets
     # that slides to keep the page showing in view.
     private def fit_into(screen : Rect, policy : Unicode::WidthPolicy) : Nil
       rows = measured
-      widest_row = rows.max_of? { |found| GUTTER + Menu.cells(found.text, policy) } || 0
+      widest_row = rows.max_of? { |found| row_gutter + Menu.cells(found.text, policy) } || 0
       widest_row += TAIL if rows.any? &.tail
       widest_row += MIRROR
       widest_row = Math.max widest_row, Math.min(@tabs.wanted, @tabs_width) unless @tabs.hidden?
@@ -636,30 +700,60 @@ module TermBuf::Widgets
     private def choices : Bindings
       map = Bindings.new
 
-      @entries.each do |found|
-        next unless found.enabled
+      if @navigation.row_shortcuts
+        @entries.each_with_index do |found, index|
+          next unless found.enabled
+          next unless key = shortcut_for(found)
 
-        map.bind Key.character(found.key), found.text,
-          ->(_context : Context) { finish found.key; nil }
+          map.bind Key.character(key), found.text,
+            ->(_context : Context) { finish index; nil }
+        end
       end
 
-      map.bind Key.named(Key::Name::Escape), "leave the menu",
-        ->(_context : Context) { finish nil; nil }
-      map.bind Key.named(Key::Name::Enter), "pick the highlighted row",
+      bind_keys map, @navigation.previous_row, "the row before",
+        ->(_context : Context) { select_index @list.selected - 1; nil }
+      bind_keys map, @navigation.next_row, "the row after",
+        ->(_context : Context) { select_index @list.selected + 1; nil }
+      bind_keys map, @navigation.activate, "pick the highlighted row",
         ->(_context : Context) { pick_highlighted; nil }
-      if @pages.empty?
-        map.bind Key.named(Key::Name::Left), "the rows sideways, back",
-          ->(_context : Context) { scroll_by -1; nil }
-        map.bind Key.named(Key::Name::Right), "the rows sideways, on",
-          ->(_context : Context) { scroll_by 1; nil }
-      else
-        map.bind Key.named(Key::Name::Left), "the page before",
-          ->(_context : Context) { turn_to @page - 1; nil }
-        map.bind Key.named(Key::Name::Right), "the page after",
-          ->(_context : Context) { turn_to @page + 1; nil }
+      bind_keys map, @navigation.cancel, "leave the menu",
+        ->(_context : Context) { finish nil; nil }
+      bind_keys map, @navigation.page_up, "a window back",
+        ->(_context : Context) { select_index @list.selected - @list.page; nil }
+      bind_keys map, @navigation.page_down, "a window on",
+        ->(_context : Context) { select_index @list.selected + @list.page; nil }
+      bind_keys map, @navigation.first_row, "the first row",
+        ->(_context : Context) { select_index 0; nil }
+      bind_keys map, @navigation.last_row, "the last row",
+        ->(_context : Context) { select_index @entries.size - 1; nil }
+
+      @navigation.previous_tab.each do |key|
+        if key.name == Key::Name::Left
+          map.bind key, "the rows sideways, back",
+            ->(_context : Context) { @pages.empty? ? scroll_by(-1) : turn_to(@page - 1); nil }
+        elsif !@pages.empty?
+          map.bind key, "the page before",
+            ->(_context : Context) { turn_to @page - 1; nil }
+        end
+      end
+
+      @navigation.next_tab.each do |key|
+        if key.name == Key::Name::Right
+          map.bind key, "the rows sideways, on",
+            ->(_context : Context) { @pages.empty? ? scroll_by(1) : turn_to(@page + 1); nil }
+        elsif !@pages.empty?
+          map.bind key, "the page after",
+            ->(_context : Context) { turn_to @page + 1; nil }
+        end
       end
 
       map
+    end
+
+    # Adds each key in *keys* to the menu's scope.
+    private def bind_keys(map : Bindings, keys : Array(Key), description : String,
+                          action : Proc(Context, Nil)) : Nil
+      keys.each { |key| map.bind key, description, action }
     end
 
     # Picks whatever the highlight is on.
@@ -667,10 +761,10 @@ module TermBuf::Widgets
       found = @list.current
       return unless found && found.enabled
 
-      finish found.key
+      finish @list.selected
     end
 
-    # Draws one row as `\u27EA a - what it is        \u27EB`.
+    # Draws a row with an optional shortcut gutter.
     #
     # The text is written first. Everything else is written over it. A row
     # scrolled sideways slides its text under the gutter and under the marks
@@ -681,14 +775,26 @@ module TermBuf::Widgets
     private def draw_entry(view : View, entry : Entry, lit : Bool) : Nil
       plain = entry.enabled ? Style::DEFAULT : @disabled_style
 
-      view.write GUTTER - @offset, 0, entry.text, lit ? plain.reverse : plain
+      gutter = row_gutter
+      view.write gutter - @offset, 0, entry.text, lit ? plain.reverse : plain
 
-      view.write 0, 0, " " * GUTTER, plain
+      view.write 0, 0, " " * gutter, plain
       mark = entry.mark || SEPARATOR
-      view.write KEY, 0, entry.key.to_s, entry.enabled ? @key_style : plain
-      view.write MARK, 0, mark.to_s, entry.mark_style || plain
+      if @navigation.display_shortcuts
+        shortcut = shortcut_for(entry)
+        view.write KEY, 0, shortcut ? shortcut.to_s : " ",
+          shortcut && entry.enabled ? @key_style : plain
+        view.write MARK, 0, mark.to_s, entry.mark_style || plain
+      else
+        view.write PLAIN_MARK, 0, mark.to_s, entry.mark_style || plain
+      end
 
       draw_marks view, entry, lit, plain
+    end
+
+    # The row's explicit shortcut, or its legacy key when it has one.
+    private def shortcut_for(entry : Entry) : Char?
+      entry.shortcut || (entry.key == '\0' ? nil : entry.key)
     end
 
     # Draws the pointer, the mark facing it, and the row's own tail.
@@ -700,13 +806,13 @@ module TermBuf::Widgets
       view.write POINT, 0, near ? near.to_s : " ", @pointer_style
 
       edge = view.width - 1
-      return if edge < GUTTER
+      return if edge < row_gutter
 
       view.write edge, 0, far ? far.to_s : " ", @pointer_style
 
       tail = entry.tail
       return unless tail
-      return if edge - MIRROR < GUTTER
+      return if edge - MIRROR < row_gutter
 
       view.write edge - MIRROR, 0, tail.to_s, entry.tail_style || plain
     end
@@ -716,11 +822,13 @@ module TermBuf::Widgets
     # The keymap goes with it. A closed menu that kept its bindings would
     # answer again on the next press of the same key, before the next frame
     # rebuilt the focus ring.
-    private def finish(key : Char?) : Nil
+    private def finish(index : Int32?) : Nil
       self.keymap = nil
       close
 
+      key = index ? @entries[index]?.try(&.key) : nil
       @on_choose.try &.call(key)
+      @on_choose_index.try &.call(index)
     end
   end
 end
