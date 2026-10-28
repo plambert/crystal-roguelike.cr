@@ -88,6 +88,14 @@ module TermBuf::Widgets
       open?
     end
 
+    # Keeps a named confirmation inside a resized screen.
+    def refit(screen : Rect) : Nil
+      return unless asking? && @choice_mode
+
+      named_choice_layout screen
+      invalidate_layout
+    end
+
     # The keyboard lands here while a question is up.
     #
     # The prompt holds no control of its own. Focus has to land somewhere

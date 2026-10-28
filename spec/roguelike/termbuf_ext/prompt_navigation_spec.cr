@@ -118,4 +118,17 @@ Spectator.describe TermBuf::Widgets::Prompt do
       expect(run.answers).to eq ['n']
     end
   end
+
+  it "preserves the selected answer when a wide prompt is resized" do
+    run = asked "Leave the dungeon by this staircase?", 80, 24
+    run.session.press "w"
+    run.session.resize 40, 16
+    run.prompt.refit run.session.app.tree.screen
+
+    expect(readable(run)).to contain "[ Yes ]"
+    expect(readable(run)).to contain "No"
+    expect(run.prompt.rect.right).to be <= 40
+    expect(run.prompt.rect.bottom).to be <= 16
+    expect(run.answers).to be_empty
+  end
 end
