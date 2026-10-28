@@ -45,7 +45,7 @@ Spectator.describe Roguelike::Floor do
     end
 
     it "refuses a character nothing is written as" do
-      expect { described_class.parse "bad", "##\n#Z" }
+      expect { described_class.parse "bad", "##\n#Y" }
         .to raise_error ArgumentError, /no terrain/
     end
 

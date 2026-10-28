@@ -214,6 +214,7 @@ Spectator.describe "what a blow costs" do
         Roguelike::Kind::Orc       => 120,
         Roguelike::Kind::OrcArcher => 120,
         Roguelike::Kind::Bear      => 120,
+        Roguelike::Kind::Zombie    => 120,
       }
 
       Roguelike::Kind.each do |kind|

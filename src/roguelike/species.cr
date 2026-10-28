@@ -341,6 +341,7 @@ module Roguelike
     Bear
     Boar
     Snake
+    Undead
 
     # The kind a bare species stands for.
     #
@@ -358,6 +359,7 @@ module Roguelike
       in .bear?   then Kind::Bear
       in .boar?   then Kind::Boar
       in .snake?  then Kind::GiantSnake
+      in .undead? then Kind::Zombie
       end
     end
 
@@ -481,6 +483,8 @@ module Roguelike
     Bear
     Boar
     GiantSnake
+    Skeleton
+    Zombie
 
     # What this kind is. Every method below reads one field of it.
     def facts : KindFacts
@@ -887,6 +891,24 @@ module Roguelike
         alone: true, depths: 4..7, faction: Faction::Beast,
         attributes: Attributes.new(strength: 14, dexterity: 12, constitution: 14,
           intelligence: 4, stealth: 16)),
+
+      Kind::Skeleton => KindFacts.new(Species::Undead, 'Z', "skeleton",
+        "skeletons", "a rattling skeleton that walks without a mind and often carries an old blade",
+        hit_dice: Dice.new(2, 6, 2), damage: Dice.new(1, 6), armor: 3,
+        notice: 6, darkvision: true, paths: false, experience: 8,
+        persistence: 50, speed: 90, verb: "claws",
+        armed: 50, wields: true, depths: 2..5, faction: Faction::Undead,
+        attributes: Attributes.new(strength: 11, dexterity: 11, constitution: 10,
+          intelligence: 3, stealth: 10)),
+
+      Kind::Zombie => KindFacts.new(Species::Undead, 'Z', "zombie", "zombies",
+        "a shambling corpse that is slow, hard to stop and never gives up",
+        hit_dice: Dice.new(3, 6, 4), damage: Dice.new(1, 8), armor: 1,
+        notice: 5, darkvision: true, paths: false, experience: 9,
+        persistence: 60, speed: 70, swing: 120, verb: "claws",
+        depths: 2..5, faction: Faction::Undead,
+        attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 16,
+          intelligence: 2, stealth: 6)),
     }
 
     # Every character a floor file may hold for a monster, and the kind it

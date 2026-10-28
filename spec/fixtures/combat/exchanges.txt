@@ -8,93 +8,93 @@
   7 bear            you d8  +0 vs 2 miss    it d17 -1 vs 0 hit 11
   8 boar            you d12 +0 vs 3 miss    it d8  +0 vs 0 miss
   9 giant snake     you d11 +0 vs 4 miss    it d13 +1 vs 0 hit  4
- 10 white slime     you d7  +0 vs 0 miss    it d12 -3 vs 0 miss
- 11 goblin warrior  you d4  +0 vs 3 miss    it d9  +1 vs 0 hit  6
- 12 orc             you d9  +0 vs 4 miss    it d1  +0 vs 0 miss
- 13 giant ant       you d2  +0 vs 2 miss    it d15 +0 vs 0 hit  1
- 14 violet jelly    you d18 +0 vs 0 hit  1  it d20 -2 vs 0 hit  3
- 15 rat             you d7  +0 vs 1 miss    it d15 +1 vs 0 hit  1
- 16 wolf            you d13 +0 vs 3 hit  1  it d9  +2 vs 0 hit  4
- 17 bear            you d6  +0 vs 2 miss    it d9  -1 vs 0 miss
- 18 boar            you d13 +0 vs 3 hit  2  it d6  +0 vs 0 miss
- 19 giant snake     you d8  +0 vs 4 miss    it d18 +1 vs 0 hit  9
- 20 white slime     you d15 +0 vs 0 hit  2  it d2  -3 vs 0 miss
- 21 goblin warrior  you d5  +0 vs 3 miss    it d20 +1 vs 0 hit  3
- 22 orc             you d14 +0 vs 4 hit  2  it d5  +0 vs 0 miss
- 23 giant ant       you d5  +0 vs 2 miss    it d6  +0 vs 0 miss
- 24 violet jelly    you d5  +0 vs 0 miss    it d3  -2 vs 0 miss
- 25 rat             you d17 +0 vs 1 hit  1  it d5  +1 vs 0 miss
- 26 wolf            you d6  +0 vs 3 miss    it d14 +2 vs 0 hit  3
- 27 bear            you d6  +0 vs 2 miss    it d10 -1 vs 0 miss
- 28 boar            you d20 +0 vs 3 hit  2  it d16 +0 vs 0 hit  3
- 29 giant snake     you d18 +0 vs 4 hit  2  it d8  +1 vs 0 miss
- 30 white slime     you d4  +0 vs 0 miss    it d17 -3 vs 0 hit  1
- 31 goblin warrior  you d5  +0 vs 3 miss    it d10 +1 vs 0 hit  2
- 32 orc             you d1  +0 vs 4 miss    it d1  +0 vs 0 miss
- 33 giant ant       you d19 +0 vs 2 hit  1  it d15 +0 vs 0 hit  3
- 34 violet jelly    you d17 +0 vs 0 hit  2  it d1  -2 vs 0 miss
- 35 rat             you d2  +0 vs 1 miss    it d2  +1 vs 0 miss
- 36 wolf            you d7  +0 vs 3 miss    it d5  +2 vs 0 miss
- 37 bear            you d10 +0 vs 2 miss    it d5  -1 vs 0 miss
- 38 boar            you d5  +0 vs 3 miss    it d9  +0 vs 0 miss
- 39 giant snake     you d15 +0 vs 4 hit  2  it d10 +1 vs 0 hit  6
- 40 white slime     you d11 +0 vs 0 hit  1  it d14 -3 vs 0 hit  3
- 41 goblin warrior  you d7  +0 vs 3 miss    it d10 +1 vs 0 hit  1
- 42 orc             you d3  +0 vs 4 miss    it d17 +0 vs 0 hit  8
- 43 giant ant       you d17 +0 vs 2 hit  2  it d15 +0 vs 0 hit  2
- 44 violet jelly    you d4  +0 vs 0 miss    it d8  -2 vs 0 miss
- 45 rat             you d16 +0 vs 1 hit  1  it d6  +1 vs 0 miss
- 46 wolf            you d9  +0 vs 3 miss    it d19 +2 vs 0 hit  4
- 47 bear            you d17 +0 vs 2 hit  1  it d2  -1 vs 0 miss
- 48 boar            you d18 +0 vs 3 hit  1  it d14 +0 vs 0 hit  7
- 49 giant snake     you d12 +0 vs 4 miss    it d5  +1 vs 0 miss
- 50 white slime     you d1  +0 vs 0 miss    it d17 -3 vs 0 hit  3
- 51 goblin warrior  you d16 +0 vs 3 hit  1  it d9  +1 vs 0 hit  4
- 52 orc             you d4  +0 vs 4 miss    it d20 +0 vs 0 hit  3
- 53 giant ant       you d8  +0 vs 2 miss    it d12 +0 vs 0 hit  2
- 54 violet jelly    you d1  +0 vs 0 miss    it d2  -2 vs 0 miss
- 55 rat             you d17 +0 vs 1 hit  3  it d9  +1 vs 0 hit  1
- 56 wolf            you d2  +0 vs 3 miss    it d6  +2 vs 0 miss
- 57 bear            you d18 +0 vs 2 hit  4  it d12 -1 vs 0 hit 15
- 58 boar            you d12 +0 vs 3 miss    it d14 +0 vs 0 hit  5
- 59 giant snake     you d15 +0 vs 4 hit  2  it d7  +1 vs 0 miss
- 60 white slime     you d20 +0 vs 0 hit  3  it d8  -3 vs 0 miss
- 61 goblin warrior  you d5  +0 vs 3 miss    it d17 +1 vs 0 hit  1
- 62 orc             you d3  +0 vs 4 miss    it d9  +0 vs 0 miss
- 63 giant ant       you d6  +0 vs 2 miss    it d11 +0 vs 0 hit  1
- 64 violet jelly    you d15 +0 vs 0 hit  4  it d4  -2 vs 0 miss
- 65 rat             you d18 +0 vs 1 hit  5  it d16 +1 vs 0 hit  1
- 66 wolf            you d9  +0 vs 3 miss    it d2  +2 vs 0 miss
- 67 bear            you d14 +0 vs 2 hit  6  it d5  -1 vs 0 miss
- 68 boar            you d19 +0 vs 3 hit  4  it d1  +0 vs 0 miss
- 69 giant snake     you d19 +0 vs 4 hit  5  it d13 +1 vs 0 hit  3
- 70 white slime     you d15 +0 vs 0 hit  5  it d13 -3 vs 0 hit  1
- 71 goblin warrior  you d13 +0 vs 3 hit  5  it d4  +1 vs 0 miss
- 72 orc             you d8  +0 vs 4 miss    it d8  +0 vs 0 miss
- 73 giant ant       you d9  +0 vs 2 miss    it d18 +0 vs 0 hit  3
- 74 violet jelly    you d4  +0 vs 0 miss    it d19 -2 vs 0 hit  5
- 75 rat             you d12 +0 vs 1 hit  4  it d15 +1 vs 0 hit  1
- 76 wolf            you d9  +0 vs 3 miss    it d12 +2 vs 0 hit  4
- 77 bear            you d2  +0 vs 2 miss    it d10 -1 vs 0 miss
- 78 boar            you d2  +0 vs 3 miss    it d5  +0 vs 0 miss
- 79 giant snake     you d19 +0 vs 4 hit  3  it d10 +1 vs 0 hit 10
- 80 white slime     you d7  +0 vs 0 miss    it d4  -3 vs 0 miss
- 81 goblin warrior  you d14 +0 vs 3 hit  2  it d14 +1 vs 0 hit  5
- 82 orc             you d12 +0 vs 4 miss    it d20 +0 vs 0 hit  8
- 83 giant ant       you d7  +0 vs 2 miss    it d17 +0 vs 0 hit  2
- 84 violet jelly    you d8  +0 vs 0 miss    it d14 -2 vs 0 hit  2
- 85 rat             you d13 +0 vs 1 hit  2  it d20 +1 vs 0 hit  1
- 86 wolf            you d17 +0 vs 3 hit  2  it d13 +2 vs 0 hit  3
- 87 bear            you d16 +0 vs 2 hit  1  it d4  -1 vs 0 miss
- 88 boar            you d4  +0 vs 3 miss    it d8  +0 vs 0 miss
- 89 giant snake     you d10 +0 vs 4 miss    it d15 +1 vs 0 hit  7
- 90 white slime     you d19 +0 vs 0 hit  4  it d10 -3 vs 0 miss
- 91 goblin warrior  you d5  +0 vs 3 miss    it d13 +1 vs 0 hit  3
- 92 orc             you d14 +0 vs 4 hit  4  it d20 +0 vs 0 hit 10
- 93 giant ant       you d19 +0 vs 2 hit  3  it d13 +0 vs 0 hit  1
- 94 violet jelly    you d3  +0 vs 0 miss    it d10 -2 vs 0 miss
- 95 rat             you d4  +0 vs 1 miss    it d17 +1 vs 0 hit  1
- 96 wolf            you d10 +0 vs 3 miss    it d14 +2 vs 0 hit  1
- 97 bear            you d19 +0 vs 2 hit  1  it d3  -1 vs 0 miss
- 98 boar            you d7  +0 vs 3 miss    it d14 +0 vs 0 hit  5
- 99 giant snake     you d17 +0 vs 4 hit  4  it d15 +1 vs 0 hit  6
+ 10 zombie          you d7  +0 vs 0 miss    it d12 -2 vs 0 hit 10
+ 11 white slime     you d9  +0 vs 0 miss    it d6  -3 vs 0 miss
+ 12 goblin warrior  you d9  +0 vs 3 miss    it d1  +1 vs 0 miss
+ 13 orc             you d2  +0 vs 4 miss    it d15 +0 vs 0 hit 10
+ 14 giant ant       you d18 +0 vs 2 hit  1  it d20 +0 vs 0 hit  3
+ 15 violet jelly    you d7  +0 vs 0 miss    it d15 -2 vs 0 hit  5
+ 16 rat             you d13 +0 vs 1 hit  1  it d9  +1 vs 0 hit  1
+ 17 wolf            you d6  +0 vs 3 miss    it d9  +2 vs 0 hit  1
+ 18 bear            you d2  +0 vs 2 miss    it d6  -1 vs 0 miss
+ 19 boar            you d8  +0 vs 3 miss    it d18 +0 vs 0 hit  4
+ 20 giant snake     you d15 +0 vs 4 hit  2  it d2  +1 vs 0 miss
+ 21 zombie          you d5  +0 vs 0 miss    it d20 -2 vs 0 hit  9
+ 22 white slime     you d14 +0 vs 0 hit  2  it d5  -3 vs 0 miss
+ 23 goblin warrior  you d5  +0 vs 3 miss    it d6  +1 vs 0 miss
+ 24 orc             you d5  +0 vs 4 miss    it d3  +0 vs 0 miss
+ 25 giant ant       you d17 +0 vs 2 hit  1  it d5  +0 vs 0 miss
+ 26 violet jelly    you d6  +0 vs 0 miss    it d14 -2 vs 0 hit  3
+ 27 rat             you d6  +0 vs 1 miss    it d10 +1 vs 0 hit  1
+ 28 wolf            you d14 +0 vs 3 hit  2  it d10 +2 vs 0 hit  2
+ 29 bear            you d18 +0 vs 2 hit  2  it d4  -1 vs 0 miss
+ 30 boar            you d17 +0 vs 3 hit  1  it d5  +0 vs 0 miss
+ 31 giant snake     you d10 +0 vs 4 miss    it d2  +1 vs 0 miss
+ 32 zombie          you d1  +0 vs 0 miss    it d1  -2 vs 0 miss
+ 33 white slime     you d19 +0 vs 0 hit  1  it d15 -3 vs 0 hit  2
+ 34 goblin warrior  you d17 +0 vs 3 hit  2  it d1  +1 vs 0 miss
+ 35 orc             you d2  +0 vs 4 miss    it d2  +0 vs 0 miss
+ 36 giant ant       you d7  +0 vs 2 miss    it d5  +0 vs 0 miss
+ 37 violet jelly    you d10 +0 vs 0 hit  1  it d5  -2 vs 0 miss
+ 38 rat             you d9  +0 vs 1 miss    it d15 +1 vs 0 hit  1
+ 39 wolf            you d10 +0 vs 3 miss    it d4  +2 vs 0 miss
+ 40 bear            you d11 +0 vs 2 miss    it d19 -1 vs 0 hit 10
+ 41 boar            you d7  +0 vs 3 miss    it d10 +0 vs 0 hit  2
+ 42 giant snake     you d3  +0 vs 4 miss    it d17 +1 vs 0 hit  8
+ 43 zombie          you d17 +0 vs 0 hit  2  it d15 -2 vs 0 hit  6
+ 44 white slime     you d4  +0 vs 0 miss    it d8  -3 vs 0 miss
+ 45 goblin warrior  you d16 +0 vs 3 hit  1  it d6  +1 vs 0 miss
+ 46 orc             you d9  +0 vs 4 miss    it d19 +0 vs 0 hit 10
+ 47 giant ant       you d17 +0 vs 2 hit  1  it d2  +0 vs 0 miss
+ 48 violet jelly    you d18 +0 vs 0 hit  1  it d14 -2 vs 0 hit  6
+ 49 rat             you d12 +0 vs 1 hit  1  it d1  +1 vs 0 miss
+ 50 wolf            you d17 +0 vs 3 hit  6  it d16 +2 vs 0 hit  1
+ 51 bear            you d9  +0 vs 2 miss    it d12 -1 vs 0 hit 14
+ 52 boar            you d5  +0 vs 3 miss    it d8  +0 vs 0 miss
+ 53 giant snake     you d12 +0 vs 4 miss    it d8  +1 vs 0 miss
+ 54 zombie          you d1  +0 vs 0 miss    it d2  -2 vs 0 miss
+ 55 white slime     you d17 +0 vs 0 hit  3  it d9  -3 vs 0 miss
+ 56 goblin warrior  you d10 +0 vs 3 miss    it d2  +1 vs 0 miss
+ 57 orc             you d6  +0 vs 4 miss    it d18 +0 vs 0 hit  6
+ 58 giant ant       you d12 +0 vs 2 hit  6  it d17 +0 vs 0 hit  1
+ 59 violet jelly    you d14 +0 vs 0 hit  4  it d15 -2 vs 0 hit  2
+ 60 rat             you d7  +0 vs 1 miss    it d20 +1 vs 0 hit  1
+ 61 wolf            you d8  +0 vs 3 miss    it d5  +2 vs 0 miss
+ 62 bear            you d17 +0 vs 2 hit  1  it d3  -1 vs 0 miss
+ 63 boar            you d9  +0 vs 3 miss    it d6  +0 vs 0 miss
+ 64 giant snake     you d11 +0 vs 4 miss    it d3  +1 vs 0 miss
+ 65 zombie          you d15 +0 vs 0 hit  4  it d4  -2 vs 0 miss
+ 66 white slime     you d18 +0 vs 0 hit  5  it d16 -3 vs 0 hit  3
+ 67 goblin warrior  you d9  +0 vs 3 miss    it d2  +1 vs 0 miss
+ 68 orc             you d14 +0 vs 4 hit  6  it d5  +0 vs 0 miss
+ 69 giant ant       you d19 +0 vs 2 hit  4  it d1  +0 vs 0 miss
+ 70 violet jelly    you d19 +0 vs 0 hit  5  it d13 -2 vs 0 hit  3
+ 71 rat             you d15 +0 vs 1 hit  5  it d13 +1 vs 0 hit  1
+ 72 wolf            you d13 +0 vs 3 hit  5  it d4  +2 vs 0 miss
+ 73 bear            you d8  +0 vs 2 miss    it d8  -1 vs 0 miss
+ 74 boar            you d9  +0 vs 3 miss    it d18 +0 vs 0 hit  4
+ 75 giant snake     you d4  +0 vs 4 miss    it d19 +1 vs 0 hit  3
+ 76 zombie          you d12 +0 vs 0 hit  4  it d15 -2 vs 0 hit  9
+ 77 white slime     you d9  +0 vs 0 miss    it d12 -3 vs 0 miss
+ 78 goblin warrior  you d20 +0 vs 3 hit  4  it d10 +1 vs 0 hit  6
+ 79 orc             you d5  +0 vs 4 miss    it d19 +0 vs 0 hit  3
+ 80 giant ant       you d10 +0 vs 2 miss    it d8  +0 vs 0 miss
+ 81 violet jelly    you d7  +0 vs 0 miss    it d4  -2 vs 0 miss
+ 82 rat             you d14 +0 vs 1 hit  2  it d14 +1 vs 0 hit  1
+ 83 wolf            you d12 +0 vs 3 miss    it d20 +2 vs 0 hit  2
+ 84 bear            you d7  +0 vs 2 miss    it d17 -1 vs 0 hit 15
+ 85 boar            you d14 +0 vs 3 hit  2  it d13 +0 vs 0 hit  3
+ 86 giant snake     you d20 +0 vs 4 hit  2  it d17 +1 vs 0 hit  6
+ 87 zombie          you d13 +0 vs 0 hit  1  it d16 -2 vs 0 hit  3
+ 88 white slime     you d4  +0 vs 0 miss    it d4  -3 vs 0 miss
+ 89 goblin warrior  you d8  +0 vs 3 miss    it d10 +1 vs 0 hit  5
+ 90 orc             you d17 +0 vs 4 hit  5  it d12 +0 vs 0 hit  4
+ 91 giant ant       you d5  +0 vs 2 miss    it d13 +0 vs 0 hit  3
+ 92 violet jelly    you d14 +0 vs 0 hit  4  it d20 -2 vs 0 hit  2
+ 93 rat             you d19 +0 vs 1 hit  3  it d13 +1 vs 0 hit  1
+ 94 wolf            you d3  +0 vs 3 miss    it d10 +2 vs 0 hit  4
+ 95 bear            you d17 +0 vs 2 hit  6  it d10 -1 vs 0 miss
+ 96 boar            you d14 +0 vs 3 hit  1  it d19 +0 vs 0 hit  2
+ 97 giant snake     you d3  +0 vs 4 miss    it d7  +1 vs 0 miss
+ 98 zombie          you d14 +0 vs 0 hit  4  it d17 -2 vs 0 hit  6
+ 99 white slime     you d15 +0 vs 0 hit  4  it d14 -3 vs 0 hit  2

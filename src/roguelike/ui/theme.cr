@@ -88,6 +88,8 @@ module Roguelike::Ui
     color bear, 0xCC8C5C
     color boar, 0xE89090
     color giant_snake, 0x40D8A8
+    color skeleton, 0xF4E0A8
+    color zombie, 0x9CD8A0
     color shape, 0x9A9EA8
 
     color flame, 0xFFB050
@@ -171,6 +173,8 @@ module Roguelike::Ui
       Entry.new("bear", "Creatures", "Bear"),
       Entry.new("boar", "Creatures", "Boar"),
       Entry.new("giant_snake", "Creatures", "Giant snake"),
+      Entry.new("skeleton", "Creatures", "Skeleton"),
+      Entry.new("zombie", "Creatures", "Zombie"),
       Entry.new("shape", "Creatures", "Shape you cannot make out"),
 
       Entry.new("flame", "Light", "Flame"),

@@ -223,6 +223,11 @@ module Roguelike
       Species::Snake => [
         Draw.new(SWALLOWED, chance: 10),
       ],
+
+      Species::Undead => [
+        Draw.new(ARMOR, chance: 20),
+        Draw.new(COINS, chance: 30, count: 2..15),
+      ],
     }
 
     # The draws *kind* makes.

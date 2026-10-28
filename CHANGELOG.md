@@ -15,6 +15,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   floor, giant snakes lie alone from the fourth and bears from the fifth. Werewolves lead wolf
   packs below the fifth floor.
 * Beasts fight every other band of creatures, other beasts included.
+* Skeletons and zombies share rooms from the second floor. They walk straight at you, never run
+  and go on looking for you a long time. A skeleton often carries an old weapon and fights with it.
+* The undead fight every band of creatures that is not undead.
 
 ### Fixed
 

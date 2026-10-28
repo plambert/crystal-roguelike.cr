@@ -509,6 +509,8 @@ module Roguelike::Ui
     drawn bear : Style = Style::DEFAULT.fg(theme.bear)
     drawn boar : Style = Style::DEFAULT.fg(theme.boar)
     drawn giant_snake : Style = Style::DEFAULT.fg(theme.giant_snake)
+    drawn skeleton : Style = Style::DEFAULT.fg(theme.skeleton)
+    drawn zombie : Style = Style::DEFAULT.fg(theme.zombie)
 
     drawn monsters : Hash(Kind, Style) = {
       Kind::WhiteSlime    => white_slime,
@@ -529,6 +531,8 @@ module Roguelike::Ui
       Kind::Bear          => bear,
       Kind::Boar          => boar,
       Kind::GiantSnake    => giant_snake,
+      Kind::Skeleton      => skeleton,
+      Kind::Zombie        => zombie,
     }
 
     # How *kind* draws.

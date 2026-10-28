@@ -32,9 +32,10 @@ module Roguelike
     # in bands of three to five from floor 2. A jelly comes alone from floor
     # 3. Goblin scouts are rarer on floor 1 than on floor 2.
     #
-    # Rats come in packs from floor 1 and giant rats from floor 2. Wolves and
-    # boars come from floor 3, giant snakes from floor 4 and bears from floor
-    # 5. Werewolves live below floor 5.
+    # Rats come in packs from floor 1 and giant rats from floor 2. Skeletons
+    # and zombies share rooms from floor 2. Wolves and boars come from floor
+    # 3, giant snakes from floor 4 and bears from floor 5. Werewolves live
+    # below floor 5.
     TABLE = [
       Row.new(Kind::WhiteSlime, 40),
       Row.new(Kind::BlueSlime, 20),
@@ -54,6 +55,8 @@ module Roguelike
       Row.new(Kind::Bear, 8),
       Row.new(Kind::Boar, 12, crowd: 1..2),
       Row.new(Kind::GiantSnake, 10),
+      Row.new(Kind::Skeleton, 12),
+      Row.new(Kind::Zombie, 12),
     ]
 
     # How often a room holds a creature, and how many it holds.
