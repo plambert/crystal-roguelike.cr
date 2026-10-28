@@ -34,8 +34,8 @@ module Roguelike
     #
     # Rats come in packs from floor 1 and giant rats from floor 2. Skeletons
     # and zombies share rooms from floor 2. Wolves and boars come from floor
-    # 3, giant snakes from floor 4 and bears from floor 5. Werewolves live
-    # below floor 5.
+    # 3, imps and giant snakes from floor 4, and bears and gelatinous cubes
+    # from floor 5. Golems and werewolves live below floor 5.
     TABLE = [
       Row.new(Kind::WhiteSlime, 40),
       Row.new(Kind::BlueSlime, 20),
@@ -57,6 +57,10 @@ module Roguelike
       Row.new(Kind::GiantSnake, 10),
       Row.new(Kind::Skeleton, 12),
       Row.new(Kind::Zombie, 12),
+      Row.new(Kind::Imp, 10),
+      Row.new(Kind::GelatinousCube, 8),
+      Row.new(Kind::StoneGolem, 10),
+      Row.new(Kind::IronGolem, 8),
     ]
 
     # How often a room holds a creature, and how many it holds.

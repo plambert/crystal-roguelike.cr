@@ -90,6 +90,10 @@ module Roguelike::Ui
     color giant_snake, 0x40D8A8
     color skeleton, 0xF4E0A8
     color zombie, 0x9CD8A0
+    color imp, 0xFF50A0
+    color gelatinous_cube, 0xE4FF94
+    color stone_golem, 0xC0B4A0
+    color iron_golem, 0x78B4FF
     color shape, 0x9A9EA8
 
     color flame, 0xFFB050
@@ -175,6 +179,10 @@ module Roguelike::Ui
       Entry.new("giant_snake", "Creatures", "Giant snake"),
       Entry.new("skeleton", "Creatures", "Skeleton"),
       Entry.new("zombie", "Creatures", "Zombie"),
+      Entry.new("imp", "Creatures", "Imp"),
+      Entry.new("gelatinous_cube", "Creatures", "Gelatinous cube"),
+      Entry.new("stone_golem", "Creatures", "Stone golem"),
+      Entry.new("iron_golem", "Creatures", "Iron golem"),
       Entry.new("shape", "Creatures", "Shape you cannot make out"),
 
       Entry.new("flame", "Light", "Flame"),

@@ -342,6 +342,9 @@ module Roguelike
     Boar
     Snake
     Undead
+    Imp
+    Cube
+    Golem
 
     # The kind a bare species stands for.
     #
@@ -360,6 +363,9 @@ module Roguelike
       in .boar?   then Kind::Boar
       in .snake?  then Kind::GiantSnake
       in .undead? then Kind::Zombie
+      in .imp?    then Kind::Imp
+      in .cube?   then Kind::GelatinousCube
+      in .golem?  then Kind::StoneGolem
       end
     end
 
@@ -485,6 +491,10 @@ module Roguelike
     GiantSnake
     Skeleton
     Zombie
+    Imp
+    GelatinousCube
+    StoneGolem
+    IronGolem
 
     # What this kind is. Every method below reads one field of it.
     def facts : KindFacts
@@ -909,6 +919,43 @@ module Roguelike
         depths: 2..5, faction: Faction::Undead,
         attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 16,
           intelligence: 2, stealth: 6)),
+
+      Kind::Imp => KindFacts.new(Species::Imp, 'i', "imp", "imps",
+        "a tiny red devil with leathery wings, quick, spiteful and hard to hit",
+        hit_dice: Dice.new(2, 4, 3), damage: Dice.new(1, 4), armor: 3,
+        notice: 10, darkvision: true, paths: true, experience: 10,
+        size: Size::Small, persistence: 12, speed: 140, verb: "claws",
+        opens_doors: true, flees: true, alone: true,
+        depths: 4..7, faction: Faction::Demon,
+        attributes: Attributes.new(strength: 8, dexterity: 17, constitution: 10,
+          intelligence: 12, stealth: 15)),
+
+      Kind::GelatinousCube => KindFacts.new(Species::Cube, 'C', "gelatinous cube",
+        "gelatinous cubes", "a clear quivering block that fills the passage, with old things floating inside it",
+        hit_dice: Dice.new(6, 8, 6), damage: Dice.new(2, 6), armor: 0,
+        notice: 4, darkvision: false, paths: false, experience: 20,
+        size: Size::Large, persistence: 10, speed: 50, verb: "burns",
+        alone: true, depths: 5..8, faction: Faction::Jelly,
+        attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 18,
+          intelligence: 1, stealth: 16)),
+
+      Kind::StoneGolem => KindFacts.new(Species::Golem, 'G', "stone golem",
+        "stone golems", "a slow giant of carved stone that guards this place and nothing else",
+        hit_dice: Dice.new(8, 8), damage: Dice.new(2, 8), armor: 6,
+        notice: 5, darkvision: true, paths: false, experience: 45,
+        size: Size::Large, persistence: 100, speed: 70, swing: 120, verb: "pounds",
+        alone: true, depths: 6..9, faction: Faction::Construct,
+        attributes: Attributes.new(strength: 18, dexterity: 10, constitution: 18,
+          intelligence: 1, stealth: 6)),
+
+      Kind::IronGolem => KindFacts.new(Species::Golem, 'G', "iron golem",
+        "iron golems", "a towering figure of black iron that walks with a sound like a forge",
+        hit_dice: Dice.new(8, 10), damage: Dice.new(2, 8), armor: 8,
+        notice: 5, darkvision: true, paths: false, experience: 80,
+        size: Size::Large, persistence: 100, speed: 65, swing: 130, verb: "pounds",
+        alone: true, depths: 8..10, faction: Faction::Construct,
+        attributes: Attributes.new(strength: 20, dexterity: 10, constitution: 20,
+          intelligence: 1, stealth: 4)),
     }
 
     # Every character a floor file may hold for a monster, and the kind it

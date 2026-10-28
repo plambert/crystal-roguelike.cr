@@ -18,6 +18,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Skeletons and zombies share rooms from the second floor. They walk straight at you, never run
   and go on looking for you a long time. A skeleton often carries an old weapon and fights with it.
 * The undead fight every band of creatures that is not undead.
+* Imps come alone from the fourth floor. They are fast and hard to hit, open doors, run when hurt
+  and fight every other band of creatures.
+* Gelatinous cubes come from the fifth floor. They are slow and tough, and often hold coins and
+  potions.
+* Stone and iron golems guard the floors below the fifth. A golem fights only you, and no other
+  creature fights it.
 
 ### Fixed
 

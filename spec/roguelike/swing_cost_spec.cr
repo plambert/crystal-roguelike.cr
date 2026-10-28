@@ -211,10 +211,12 @@ Spectator.describe "what a blow costs" do
 
     it "costs what its kind says" do
       slow = {
-        Roguelike::Kind::Orc       => 120,
-        Roguelike::Kind::OrcArcher => 120,
-        Roguelike::Kind::Bear      => 120,
-        Roguelike::Kind::Zombie    => 120,
+        Roguelike::Kind::Orc        => 120,
+        Roguelike::Kind::OrcArcher  => 120,
+        Roguelike::Kind::Bear       => 120,
+        Roguelike::Kind::Zombie     => 120,
+        Roguelike::Kind::StoneGolem => 120,
+        Roguelike::Kind::IronGolem  => 130,
       }
 
       Roguelike::Kind.each do |kind|

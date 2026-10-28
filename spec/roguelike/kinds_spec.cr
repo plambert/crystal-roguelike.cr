@@ -100,7 +100,8 @@ Spectator.describe Roguelike::Kind do
 
     it "sends out alone only the kinds that live alone" do
       expect(Kind.values.select &.alone?).to eq [
-        Kind::GoblinScout, Kind::Jelly, Kind::Bear, Kind::GiantSnake,
+        Kind::GoblinScout, Kind::Jelly, Kind::Bear, Kind::GiantSnake, Kind::Imp,
+        Kind::GelatinousCube, Kind::StoneGolem, Kind::IronGolem,
       ]
     end
 

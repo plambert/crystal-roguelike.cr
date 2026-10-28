@@ -110,6 +110,9 @@ Spectator.describe "factions" do
                    in .rat?, .wolf?, .bear?, .boar?, .snake?
                      Faction::Beast
                    in .undead? then Faction::Undead
+                   in .imp?    then Faction::Demon
+                   in .cube?   then Faction::Jelly
+                   in .golem?  then Faction::Construct
                    end
         expect(kind.faction).to eq expected
       end
