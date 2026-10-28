@@ -296,13 +296,14 @@ Spectator.describe Roguelike::Generator do
       end
     end
 
-    it "places every kind somewhere on the five floors" do
+    it "places every kind that lives on the five floors somewhere on them" do
       found = Set(Roguelike::Kind).new
       DEEP.each_value do |floors|
         floors.each { |floor| floor.each_monster { |_column, _row, creature| found << creature.kind } }
       end
+      expected = Roguelike::Kind.values.select { |kind| DEEP.keys.any? { |depth| kind.appears_at? depth } }
 
-      expect(found).to eq Roguelike::Kind.values.to_set
+      expect(found).to eq expected.to_set
     end
 
     it "puts a scout in a room by itself" do

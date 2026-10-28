@@ -29,6 +29,20 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `--explore` sets them for one run, as in `--explore reach=2,gold=off,stop=attacked+stairs`, and
   leaves the file unchanged. It also applies to a character you carry on.
 * A bot can change them at any point in a run with the `configure` action, which takes no turn.
+* Rats come in packs from the first floor and giant rats from the second. Wolves hunt in packs of
+  two or three from the third floor and circle round to your back. Boars come from the third
+  floor, giant snakes lie alone from the fourth and bears from the fifth. Werewolves lead wolf
+  packs below the fifth floor.
+* Beasts fight every other band of creatures, other beasts included.
+* Skeletons and zombies share rooms from the second floor. They walk straight at you, never run
+  and go on looking for you a long time. A skeleton often carries an old weapon and fights with it.
+* The undead fight every band of creatures that is not undead.
+* Imps come alone from the fourth floor. They are fast and hard to hit, open doors, run when hurt
+  and fight every other band of creatures.
+* Gelatinous cubes come from the fifth floor. They are slow and tough, and often hold coins and
+  potions.
+* Stone and iron golems guard the floors below the fifth. A golem fights only you, and no other
+  creature fights it.
 
 ### Fixed
 

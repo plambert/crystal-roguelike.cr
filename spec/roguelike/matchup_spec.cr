@@ -97,7 +97,20 @@ Spectator.describe Roguelike::Trial::Matchup do
         strong = Matchup.cell last, kind, FIGHTS
 
         expect(strong.win_rate).to be >= weak.win_rate
-        expect(strong.mean_damage).to be <= weak.mean_damage
+      end
+    end
+
+    # A weak kit that always dies loses all it has, which can be fewer hit
+    # points than a strong kit loses winning. The share lost is what falls.
+    it "costs a stronger kit a smaller share of its hit points" do
+      weakest = first.character.max_hit_points
+      strongest = last.character.max_hit_points
+
+      Matchup.opponents.each do |kind|
+        weak = Matchup.cell first, kind, FIGHTS
+        strong = Matchup.cell last, kind, FIGHTS
+
+        expect(strong.mean_damage / strongest).to be <= weak.mean_damage / weakest
       end
     end
   end

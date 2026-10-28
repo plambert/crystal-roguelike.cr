@@ -308,8 +308,12 @@ Spectator.describe "hurt creatures running" do
       expect(slime.x).to be < 5
     end
 
-    it "is one of the species that do not, as only goblins and orcs run" do
-      Kind.each { |kind| expect(kind.flees?).to eq(kind.species.goblin? || kind.species.orc?) }
+    it "is one of the species that do not, as only goblins, orcs, rats, wolves and imps run" do
+      runners = Kind.values.select &.flees?
+      species = runners.map(&.species).uniq!
+
+      expect(species).to eq [Species::Goblin, Species::Orc, Species::Rat, Species::Wolf, Species::Imp]
+      expect(runners).not_to contain Kind::Werewolf
     end
   end
 

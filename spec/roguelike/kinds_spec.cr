@@ -98,8 +98,11 @@ Spectator.describe Roguelike::Kind do
       end
     end
 
-    it "sends a goblin scout and a jelly out alone, and nothing else" do
-      expect(Kind.values.select &.alone?).to eq [Kind::GoblinScout, Kind::Jelly]
+    it "sends out alone only the kinds that live alone" do
+      expect(Kind.values.select &.alone?).to eq [
+        Kind::GoblinScout, Kind::Jelly, Kind::Bear, Kind::GiantSnake, Kind::Imp,
+        Kind::GelatinousCube, Kind::StoneGolem, Kind::IronGolem,
+      ]
     end
 
     it "gives a goblin scout worse armor than a warrior" do

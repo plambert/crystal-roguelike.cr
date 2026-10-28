@@ -520,19 +520,45 @@ module Roguelike::Ui
     drawn orc_archer : Style = Style::DEFAULT.fg(theme.orc_archer)
     drawn ant : Style = Style::DEFAULT.fg(theme.ant)
     drawn jelly : Style = Style::DEFAULT.fg(theme.jelly)
+    drawn rat : Style = Style::DEFAULT.fg(theme.rat)
+    drawn giant_rat : Style = Style::DEFAULT.fg(theme.giant_rat)
+    drawn wolf : Style = Style::DEFAULT.fg(theme.wolf)
+    drawn werewolf : Style = Style::DEFAULT.fg(theme.werewolf)
+    drawn bear : Style = Style::DEFAULT.fg(theme.bear)
+    drawn boar : Style = Style::DEFAULT.fg(theme.boar)
+    drawn giant_snake : Style = Style::DEFAULT.fg(theme.giant_snake)
+    drawn skeleton : Style = Style::DEFAULT.fg(theme.skeleton)
+    drawn zombie : Style = Style::DEFAULT.fg(theme.zombie)
+    drawn imp : Style = Style::DEFAULT.fg(theme.imp)
+    drawn gelatinous_cube : Style = Style::DEFAULT.fg(theme.gelatinous_cube)
+    drawn stone_golem : Style = Style::DEFAULT.fg(theme.stone_golem)
+    drawn iron_golem : Style = Style::DEFAULT.fg(theme.iron_golem)
 
     drawn monsters : Hash(Kind, Style) = {
-      Kind::WhiteSlime    => white_slime,
-      Kind::BlueSlime     => blue_slime,
-      Kind::RedSlime      => red_slime,
-      Kind::GreenSlime    => green_slime,
-      Kind::GoblinScout   => goblin_scout,
-      Kind::GoblinWarrior => goblin_warrior,
-      Kind::GoblinShaman  => goblin_shaman,
-      Kind::Orc           => orc,
-      Kind::OrcArcher     => orc_archer,
-      Kind::Ant           => ant,
-      Kind::Jelly         => jelly,
+      Kind::WhiteSlime     => white_slime,
+      Kind::BlueSlime      => blue_slime,
+      Kind::RedSlime       => red_slime,
+      Kind::GreenSlime     => green_slime,
+      Kind::GoblinScout    => goblin_scout,
+      Kind::GoblinWarrior  => goblin_warrior,
+      Kind::GoblinShaman   => goblin_shaman,
+      Kind::Orc            => orc,
+      Kind::OrcArcher      => orc_archer,
+      Kind::Ant            => ant,
+      Kind::Jelly          => jelly,
+      Kind::Rat            => rat,
+      Kind::GiantRat       => giant_rat,
+      Kind::Wolf           => wolf,
+      Kind::Werewolf       => werewolf,
+      Kind::Bear           => bear,
+      Kind::Boar           => boar,
+      Kind::GiantSnake     => giant_snake,
+      Kind::Skeleton       => skeleton,
+      Kind::Zombie         => zombie,
+      Kind::Imp            => imp,
+      Kind::GelatinousCube => gelatinous_cube,
+      Kind::StoneGolem     => stone_golem,
+      Kind::IronGolem      => iron_golem,
     }
 
     # How *kind* draws.

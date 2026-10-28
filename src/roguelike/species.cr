@@ -4,10 +4,11 @@ require "../roguelike"
 module Roguelike
   # Who fights whom.
   #
-  # Every faction is hostile to the character. Goblins and orcs are hostile
-  # to each other and to slimes. Slimes, ants and jellies are hostile to
-  # everything, another band of their own kind included. Members of one band
-  # never fight each other.
+  # Every faction is hostile to the character. Goblins, orcs and the undead
+  # are hostile to every faction but their own. Slimes, ants, jellies,
+  # beasts and demons are hostile to everything, another band of their own
+  # kind included. Constructs fight the character and nothing else, and
+  # nothing else fights them. Members of one band never fight each other.
   #
   # A member is never removed and never reordered. A save file holds the
   # member name.
@@ -21,12 +22,16 @@ module Roguelike
     Slime
     Ant
     Jelly
+    Beast
+    Undead
+    Demon
+    Construct
 
     # Whether a band of this faction fights a band of *other*.
     #
     # Answers for two different bands. One band never fights itself.
     def hostile?(other : Faction) : Bool
-      return false if dungeon? || other.dungeon?
+      return false if aloof? || other.aloof?
       return true if wild? || other.wild?
 
       self != other
@@ -34,7 +39,12 @@ module Roguelike
 
     # Whether this faction fights every other band, its own kind included.
     def wild? : Bool
-      slime? || ant? || jelly?
+      slime? || ant? || jelly? || beast? || demon?
+    end
+
+    # Whether this faction fights the character and no other creature.
+    def aloof? : Bool
+      dungeon? || construct?
     end
 
     # What this faction is called.
@@ -326,6 +336,15 @@ module Roguelike
     Orc
     Ant
     Jelly
+    Rat
+    Wolf
+    Bear
+    Boar
+    Snake
+    Undead
+    Imp
+    Cube
+    Golem
 
     # The kind a bare species stands for.
     #
@@ -338,6 +357,15 @@ module Roguelike
       in .orc?    then Kind::Orc
       in .ant?    then Kind::Ant
       in .jelly?  then Kind::Jelly
+      in .rat?    then Kind::Rat
+      in .wolf?   then Kind::Wolf
+      in .bear?   then Kind::Bear
+      in .boar?   then Kind::Boar
+      in .snake?  then Kind::GiantSnake
+      in .undead? then Kind::Zombie
+      in .imp?    then Kind::Imp
+      in .cube?   then Kind::GelatinousCube
+      in .golem?  then Kind::StoneGolem
       end
     end
 
@@ -454,6 +482,19 @@ module Roguelike
     OrcArcher
     Ant
     Jelly
+    Rat
+    GiantRat
+    Wolf
+    Werewolf
+    Bear
+    Boar
+    GiantSnake
+    Skeleton
+    Zombie
+    Imp
+    GelatinousCube
+    StoneGolem
+    IronGolem
 
     # What this kind is. Every method below reads one field of it.
     def facts : KindFacts
@@ -795,6 +836,139 @@ module Roguelike
         depths: 3..5, faction: Faction::Jelly,
         attributes: Attributes.new(strength: 10, dexterity: 6, constitution: 14,
           intelligence: 2, stealth: 4)),
+
+      # Hide, once body armor sets the step cost: none, a step of 90.
+      Kind::Rat => KindFacts.new(Species::Rat, 'r', "rat", "rats",
+        "a gray rat as long as your forearm, never alone and quick to run",
+        hit_dice: Dice.new(1, 4, 1), damage: Dice.new(1, 3), armor: 0,
+        notice: 8, darkvision: false, paths: true, experience: 2,
+        size: Size::Small, persistence: 6, speed: 120, verb: "bites",
+        flees: true, depths: 1..3, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 6, dexterity: 13, constitution: 8,
+          intelligence: 5, stealth: 15)),
+
+      # Hide, once body armor sets the step cost: none, a step of 90.
+      Kind::GiantRat => KindFacts.new(Species::Rat, 'r', "giant rat",
+        "giant rats", "a rat the size of a small dog, with yellow teeth and a filthy bite",
+        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 1,
+        notice: 8, darkvision: false, paths: true, experience: 4,
+        size: Size::Small, persistence: 8, speed: 115, verb: "bites",
+        flees: true, depths: 2..4, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 9, dexterity: 13, constitution: 10,
+          intelligence: 5, stealth: 13)),
+
+      # Hide, once body armor sets the step cost: none, a step of 90.
+      Kind::Wolf => KindFacts.new(Species::Wolf, 'd', "wolf", "wolves",
+        "a lean gray wolf that hunts with its pack and circles to your back",
+        hit_dice: Dice.new(2, 6), damage: Dice.new(1, 4), armor: 1,
+        notice: 11, darkvision: true, paths: true, experience: 8,
+        persistence: 20, speed: 120, verb: "bites",
+        flees: true, surrounds: true, sharing: Sharing::Called,
+        depths: 3..6, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 11, dexterity: 14, constitution: 12,
+          intelligence: 8, stealth: 14)),
+
+      # Hide, once body armor sets the step cost: light, a step of 95.
+      Kind::Werewolf => KindFacts.new(Species::Wolf, 'd', "werewolf", "werewolves",
+        "a wolf too large and too clever to be only a wolf, that leads the pack",
+        hit_dice: Dice.new(4, 8, 4), damage: Dice.new(2, 4), armor: 4,
+        notice: 12, darkvision: true, paths: true, experience: 40,
+        persistence: 40, speed: 125, verb: "bites",
+        opens_doors: true, surrounds: true, sharing: Sharing::Called,
+        depths: 6..9, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 15, dexterity: 14, constitution: 14,
+          intelligence: 10, stealth: 13)),
+
+      # Hide, once body armor sets the step cost: heavy, a step of 105.
+      Kind::Bear => KindFacts.new(Species::Bear, 'B', "bear", "bears",
+        "a huge brown bear that does not like being woken",
+        hit_dice: Dice.new(4, 8, 6), damage: Dice.new(2, 6), armor: 3,
+        notice: 9, darkvision: false, paths: true, experience: 30,
+        size: Size::Large, persistence: 15, swing: 120, verb: "mauls",
+        alone: true, depths: 5..8, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 18, dexterity: 9, constitution: 16,
+          intelligence: 5, stealth: 8)),
+
+      # Hide, once body armor sets the step cost: medium, a step of 100.
+      Kind::Boar => KindFacts.new(Species::Boar, 'q', "boar", "boars",
+        "a bristling wild boar with tusks like knives, that fights until it drops",
+        hit_dice: Dice.new(3, 8), damage: Dice.new(1, 6), armor: 3,
+        notice: 7, darkvision: false, paths: true, experience: 14,
+        size: Size::Large, persistence: 10, speed: 110, verb: "gores",
+        depths: 3..6, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 13, dexterity: 10, constitution: 14,
+          intelligence: 4, stealth: 9)),
+
+      # Hide, once body armor sets the step cost: light, a step of 95.
+      Kind::GiantSnake => KindFacts.new(Species::Snake, 'S', "giant snake",
+        "giant snakes", "a snake as thick as your leg that lies still until you are close",
+        hit_dice: Dice.new(4, 6, 2), damage: Dice.new(1, 8), armor: 3,
+        notice: 8, darkvision: false, paths: true, experience: 20,
+        size: Size::Large, persistence: 8, speed: 90, verb: "bites",
+        alone: true, depths: 4..7, faction: Faction::Beast,
+        attributes: Attributes.new(strength: 14, dexterity: 12, constitution: 14,
+          intelligence: 4, stealth: 16)),
+
+      # Hide, once body armor sets the step cost: light, a step of 95.
+      Kind::Skeleton => KindFacts.new(Species::Undead, 'Z', "skeleton",
+        "skeletons", "a rattling skeleton that walks without a mind and often carries an old blade",
+        hit_dice: Dice.new(2, 6, 2), damage: Dice.new(1, 6), armor: 3,
+        notice: 6, darkvision: true, paths: false, experience: 8,
+        persistence: 50, speed: 90, verb: "claws",
+        armed: 50, wields: true, depths: 2..5, faction: Faction::Undead,
+        attributes: Attributes.new(strength: 11, dexterity: 11, constitution: 10,
+          intelligence: 3, stealth: 10)),
+
+      # Hide, once body armor sets the step cost: heavy, a step of 105.
+      Kind::Zombie => KindFacts.new(Species::Undead, 'Z', "zombie", "zombies",
+        "a shambling corpse that is slow, hard to stop and never gives up",
+        hit_dice: Dice.new(3, 6, 4), damage: Dice.new(1, 8), armor: 1,
+        notice: 5, darkvision: true, paths: false, experience: 9,
+        persistence: 60, speed: 70, swing: 120, verb: "claws",
+        depths: 2..5, faction: Faction::Undead,
+        attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 16,
+          intelligence: 2, stealth: 6)),
+
+      # Hide, once body armor sets the step cost: none, a step of 90.
+      Kind::Imp => KindFacts.new(Species::Imp, 'i', "imp", "imps",
+        "a tiny red devil with leathery wings, quick, spiteful and hard to hit",
+        hit_dice: Dice.new(2, 4, 3), damage: Dice.new(1, 4), armor: 3,
+        notice: 10, darkvision: true, paths: true, experience: 10,
+        size: Size::Small, persistence: 12, speed: 140, verb: "claws",
+        opens_doors: true, flees: true, alone: true,
+        depths: 4..7, faction: Faction::Demon,
+        attributes: Attributes.new(strength: 8, dexterity: 17, constitution: 10,
+          intelligence: 12, stealth: 15)),
+
+      # Hide, once body armor sets the step cost: very heavy, a step of 110.
+      Kind::GelatinousCube => KindFacts.new(Species::Cube, 'C', "gelatinous cube",
+        "gelatinous cubes", "a clear quivering block that fills the passage, with old things floating inside it",
+        hit_dice: Dice.new(6, 8, 6), damage: Dice.new(2, 6), armor: 0,
+        notice: 4, darkvision: false, paths: false, experience: 20,
+        size: Size::Large, persistence: 10, speed: 50, verb: "burns",
+        alone: true, depths: 5..8, faction: Faction::Jelly,
+        attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 18,
+          intelligence: 1, stealth: 16)),
+
+      # Hide, once body armor sets the step cost: very heavy, a step of 110.
+      Kind::StoneGolem => KindFacts.new(Species::Golem, 'G', "stone golem",
+        "stone golems", "a slow giant of carved stone that guards this place and nothing else",
+        hit_dice: Dice.new(8, 8), damage: Dice.new(2, 8), armor: 6,
+        notice: 5, darkvision: true, paths: false, experience: 45,
+        size: Size::Large, persistence: 100, speed: 70, swing: 120, verb: "pounds",
+        alone: true, depths: 6..9, faction: Faction::Construct,
+        attributes: Attributes.new(strength: 18, dexterity: 10, constitution: 18,
+          intelligence: 1, stealth: 6)),
+
+      # Hide, once body armor sets the step cost: very heavy, a step of 110.
+      Kind::IronGolem => KindFacts.new(Species::Golem, 'G', "iron golem",
+        "iron golems", "a towering figure of black iron that walks with a sound like a forge",
+        hit_dice: Dice.new(8, 10), damage: Dice.new(2, 8), armor: 8,
+        notice: 5, darkvision: true, paths: false, experience: 80,
+        size: Size::Large, persistence: 100, speed: 65, swing: 130, verb: "pounds",
+        alone: true, depths: 8..10, faction: Faction::Construct,
+        attributes: Attributes.new(strength: 20, dexterity: 10, constitution: 20,
+          intelligence: 1, stealth: 4)),
     }
 
     # Every character a floor file may hold for a monster, and the kind it

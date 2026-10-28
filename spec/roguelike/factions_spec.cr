@@ -107,6 +107,12 @@ Spectator.describe "factions" do
                    in .orc?    then Faction::Orc
                    in .ant?    then Faction::Ant
                    in .jelly?  then Faction::Jelly
+                   in .rat?, .wolf?, .bear?, .boar?, .snake?
+                     Faction::Beast
+                   in .undead? then Faction::Undead
+                   in .imp?    then Faction::Demon
+                   in .cube?   then Faction::Jelly
+                   in .golem?  then Faction::Construct
                    end
         expect(kind.faction).to eq expected
       end
@@ -118,6 +124,28 @@ Spectator.describe "factions" do
           expect(wild.hostile? other).to be_true
           expect(other.hostile? wild).to be_true
         end
+      end
+    end
+
+    it "sets beasts and demons against everything, their own kind included" do
+      {Faction::Beast, Faction::Demon}.each do |wild|
+        expect(wild.wild?).to be_true
+        expect(wild.hostile? wild).to be_true
+        expect(wild.hostile? Faction::Undead).to be_true
+        expect(Faction::Goblin.hostile? wild).to be_true
+      end
+    end
+
+    it "sets the undead against every faction but their own" do
+      expect(Faction::Undead.hostile? Faction::Undead).to be_false
+      expect(Faction::Undead.hostile? Faction::Orc).to be_true
+      expect(Faction::Slime.hostile? Faction::Undead).to be_true
+    end
+
+    it "keeps constructs out of every fight between creatures" do
+      Faction.each do |other|
+        expect(Faction::Construct.hostile? other).to be_false
+        expect(other.hostile? Faction::Construct).to be_false
       end
     end
 

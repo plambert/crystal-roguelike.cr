@@ -81,6 +81,19 @@ module Roguelike::Ui
     color orc_archer, 0x60E8E8
     color ant, 0xFFA040
     color jelly, 0xC8A0FF
+    color rat, 0xC8A8A0
+    color giant_rat, 0xF090C8
+    color wolf, 0xB4C4DC
+    color werewolf, 0xFFC048
+    color bear, 0xCC8C5C
+    color boar, 0xE89090
+    color giant_snake, 0x40D8A8
+    color skeleton, 0xF4E0A8
+    color zombie, 0x9CD8A0
+    color imp, 0xFF50A0
+    color gelatinous_cube, 0xE4FF94
+    color stone_golem, 0xC0B4A0
+    color iron_golem, 0x78B4FF
     color shape, 0x9A9EA8
 
     color flame, 0xFFB050
@@ -160,6 +173,19 @@ module Roguelike::Ui
       Entry.new("orc_archer", "Creatures", "Orc archer"),
       Entry.new("ant", "Creatures", "Ant"),
       Entry.new("jelly", "Creatures", "Jelly"),
+      Entry.new("rat", "Creatures", "Rat"),
+      Entry.new("giant_rat", "Creatures", "Giant rat"),
+      Entry.new("wolf", "Creatures", "Wolf"),
+      Entry.new("werewolf", "Creatures", "Werewolf"),
+      Entry.new("bear", "Creatures", "Bear"),
+      Entry.new("boar", "Creatures", "Boar"),
+      Entry.new("giant_snake", "Creatures", "Giant snake"),
+      Entry.new("skeleton", "Creatures", "Skeleton"),
+      Entry.new("zombie", "Creatures", "Zombie"),
+      Entry.new("imp", "Creatures", "Imp"),
+      Entry.new("gelatinous_cube", "Creatures", "Gelatinous cube"),
+      Entry.new("stone_golem", "Creatures", "Stone golem"),
+      Entry.new("iron_golem", "Creatures", "Iron golem"),
       Entry.new("shape", "Creatures", "Shape you cannot make out"),
 
       Entry.new("flame", "Light", "Flame"),
