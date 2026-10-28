@@ -342,7 +342,7 @@ Spectator.describe "the modern controls" do
       end
       run.session.app.keymap = run.session.app.keymap.merge caller
       run.press "r", "d", "d", "d", "d", "d", "d", "d", "f"
-      run.press "End", "Up", "Up", "Up", "Up"
+      run.press "End", "Up", "Up", "Up", "Up", "Up"
       expect(run.play.options_screen.focused_row.try(&.key)).to eq "control_scheme"
       run.press "Left"
       expect(Options.current.try(&.control_scheme)).to eq Scheme::Traditional

@@ -1,12 +1,12 @@
 
   ╭─ Options ────────────────────────╮
- #│ Control      (•) Traditional   │ │
  #│ scheme       ( ) Modern        │ │
  #│ Compare      Enter             │ │
  #│                                │ │
  #│ Game                           │ │
- #│ Update check ☑                 █ │
+ #│ Update check ☑                 │ │
  #│ Send runs    ☐                 █ │
+ #│ Explore      Enter to edit     █ │
   │                                █ │
   │ Tester                         █ │
 ──│ Name         anonymous         █ │──

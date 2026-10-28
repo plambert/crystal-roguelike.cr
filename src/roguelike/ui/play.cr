@@ -664,16 +664,42 @@ module Roguelike::Ui
     # The interactive game sets `Options.current`. Anything else reads the
     # file each time, so a spec names its own state directory and its own
     # options.
-    def show_options(after : Proc(Nil)? = nil) : Nil
+    #
+    # *from_title* says the title screen opened it. Otherwise, while a run
+    # is being played, the Explore rows change the run's own settings.
+    def show_options(after : Proc(Nil)? = nil, from_title : Bool = false) : Nil
       screen = @options_screen
       options = Options.current || Options.read(screen.root)
       screen.on_change = @on_options
       screen.on_close = after
       screen.on_warning = ->(warning : String) { say warning; nil }
+      screen.on_explore = ->(settings : Explore::Settings) { configure settings; nil }
 
       configure_theme_editor
 
-      screen.show application, options
+      playing = !from_title && @viewer.nil? && !@game.over?
+      screen.show application, options, (@game.explore_settings if playing)
+    end
+
+    # Sends *settings* to the run as its explore settings.
+    def configure(settings : Explore::Settings) : Nil
+      return if @viewer || @game.over?
+      return if settings == @game.explore_settings
+
+      @game.perform Action::Configure.new(settings)
+    end
+
+    # Gives the run the explore settings in the options.
+    #
+    # A new character, *fresh*, takes them from `options.json` and
+    # `--explore`. A character carried on keeps the settings in its save
+    # unless `--explore` was typed.
+    private def starting_explore(fresh : Bool) : Nil
+      options = Options.current
+      return unless options
+      return unless fresh || options.overridden?("explore")
+
+      configure options.explore
     end
 
     # Applies the run's theme settings and the return callback to its editor.
@@ -712,7 +738,7 @@ module Roguelike::Ui
     private def chose_at_title(key : Char?) : Nil
       return @finished = true if key.nil? || key == Placards::QUIT_KEY
       return show_news if key == Placards::WHATS_NEW_KEY
-      return show_options(-> { show_title; nil }) if key == Placards::OPTIONS_KEY
+      return show_options(-> { show_title; nil }, from_title: true) if key == Placards::OPTIONS_KEY
 
       name = @carrying[key]?
       return ask_the_name unless name
@@ -822,12 +848,14 @@ module Roguelike::Ui
 
       found = held.carried store.path(name)
       resume found
+      starting_explore fresh: false
       say "Welcome back, #{found.player.name}. Turn #{found.turn}."
     end
 
     # Names the dug character and starts the run.
     private def start_as(name : String) : Nil
       @game.player.name = name
+      starting_explore fresh: true
       say "#{name} enters the dungeon."
       keep
     end

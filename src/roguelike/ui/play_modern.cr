@@ -214,7 +214,7 @@ module Roguelike::Ui
       case choice.kind
       in .title_new?       then ask_the_name
       in .title_character? then answered_the_name(choice.character || "")
-      in .title_options?   then show_options(-> { show_title; nil })
+      in .title_options?   then show_options(-> { show_title; nil }, from_title: true)
       in .title_news?      then show_news
       in .title_quit?      then @finished = true
       in .command?, .item?, .target?, .direction?, .empty?, .more_actions?

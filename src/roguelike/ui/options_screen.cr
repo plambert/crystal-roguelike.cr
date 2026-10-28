@@ -13,8 +13,15 @@ module Roguelike::Ui
   # pushes them to the session. There is no OK and no Cancel. `Escape`
   # closes the screen and gives the keyboard back.
   #
-  # Nothing here is game state. The screen spends no turn and writes nothing
-  # to the replay log.
+  # The explore settings are on a page of their own, which the "Explore"
+  # row opens over this one. That page is another `OptionsScreen`, showing
+  # only the settings under `Options::EXPLORE`.
+  #
+  # Nothing here is game state, except the explore settings during play. The
+  # screen spends no turn. From the title screen the explore page sets what a
+  # new character starts with, in `options.json`. During play it shows the
+  # character's own settings, and each change goes to `#on_explore`, which
+  # sends it to the run as an `Action::Configure` the replay log records.
   class OptionsScreen < Widgets::Overlay
     # What the border says.
     TITLE = "Options"
@@ -49,6 +56,24 @@ module Roguelike::Ui
     # The setting that row follows.
     DISPLAY_LAST = "bar_color"
 
+    # The key of the row that opens the explore page.
+    EXPLORE_KEY = "explore"
+
+    # What the explore page's border says.
+    EXPLORE_TITLE = "Explore"
+
+    # The setting the explore row follows.
+    GAME_LAST = "autosubmit"
+
+    # Which settings a screen shows.
+    enum Page
+      # Every setting but the explore settings, and a row that opens them.
+      Main
+
+      # The explore settings alone.
+      Explore
+    end
+
     # The state directory the files are written under.
     property root : Path
 
@@ -60,6 +85,14 @@ module Roguelike::Ui
 
     # Reports a preference that applies but could not be saved.
     property on_warning : Proc(String, Nil)? = nil
+
+    # Runs after each change to an Explore row during play, with the
+    # character's explore settings as they now stand.
+    property on_explore : Proc(Explore::Settings, Nil)? = nil
+
+    # The character's explore settings, which the Explore rows edit during
+    # play. `nil` on the title screen, where they edit the options.
+    getter explore : Explore::Settings? = nil
 
     # The form showing, rebuilt each time the screen opens.
     getter form : Widgets::Form
@@ -76,9 +109,16 @@ module Roguelike::Ui
 
     getter control_setup : ControlSchemeSetup
 
-    def initialize(@root : Path = Submit.root, z : Int32 = Widgets::Overlay::Z::DIALOG - 10)
+    # Which settings this screen shows.
+    getter page : Page
+
+    # The explore page, which the "Explore" row opens. Built the first time.
+    @explore_page : OptionsScreen? = nil
+
+    def initialize(@root : Path = Submit.root, z : Int32 = Widgets::Overlay::Z::DIALOG - 10,
+                   @page : Page = Page::Main)
       @options = Options.new
-      @form = OptionsScreen.form_for @options, Tester::ANONYMOUS
+      @form = OptionsScreen.form_for @options, Tester::ANONYMOUS, page: @page
       @help = Help.new
       @theme_editor = ThemeEditor.new @root
       @control_setup = ControlSchemeSetup.new @root
@@ -87,7 +127,8 @@ module Roguelike::Ui
 
       @direction = Layout::Direction::Column
       @padding = Layout::Padding.new 0, 1, 0, 1
-      @border = Widgets::Border.rounded title: " #{TITLE} "
+      title = @page.explore? ? EXPLORE_TITLE : TITLE
+      @border = Widgets::Border.rounded title: " #{title} "
       @floating = Layout::Floating.on nil, Layout::AttachPoint::Center,
         Layout::AttachPoint::Center, z: z
       add @form
@@ -102,10 +143,15 @@ module Roguelike::Ui
     #
     # The tester name is read from the state directory, since it is kept in
     # `tester.json` rather than with the options.
-    def show(app : Widgets::App, options : Options) : Nil
+    #
+    # *explore* is the character's explore settings during play, and `nil`
+    # on the title screen.
+    def show(app : Widgets::App, options : Options,
+             explore : Explore::Settings? = nil) : Nil
       @options = options
+      @explore = explore
       remove @form
-      @form = OptionsScreen.form_for options, Options.name(@root)
+      @form = OptionsScreen.form_for options, Options.name(@root), explore, @page
       @form.attach app
       add @form
 
@@ -127,6 +173,7 @@ module Roguelike::Ui
       @help.sections = [section]
       self.keymap = section.bindings
       @scope.try &.keymap = section.bindings
+      @explore_page.try &.rebind_controls(app)
     end
 
     # Whether the form currently uses modern controls.
@@ -135,30 +182,44 @@ module Roguelike::Ui
     end
 
     # The form for *options*, a section for each heading in
-    # `Options::SETTINGS`, with *name* in the tester's row. The row that
-    # opens the theme editor ends the Display section.
+    # `Options::SETTINGS` that *page* shows, with *name* in the tester's
+    # row. The row that opens the theme editor ends the Display section, and
+    # the row that opens the explore page ends the Game section.
     #
-    # A key a flag set for this run carries a note naming the flag.
-    def self.form_for(options : Options, name : String) : Widgets::Form
+    # A key a flag set for this run carries a note naming the flag. The
+    # explore rows show *explore* when it is given.
+    def self.form_for(options : Options, name : String,
+                      explore : Explore::Settings? = nil,
+                      page : Page = Page::Main) : Widgets::Form
       form = Widgets::Form.new actions: false, height: Layout::Sizing.fit
 
       Options::SETTINGS.each do |setting|
+        exploring = setting.key.starts_with? Options::EXPLORE
+        next if exploring != page.explore?
+
+        playing = explore if exploring
         held = case setting.key
                when "name"           then name
                when "control_scheme" then options.effective_control_scheme.to_s.underscore
-               else                       options[setting.key]
+               else
+                 playing ? playing[setting.key.lchop Options::EXPLORE] : options[setting.key]
                end
 
         form.section setting.section do |section|
           row setting, held, section
         end
 
-        flag = options.flag setting.key
+        flag = options.flag setting.key unless playing
         form.note setting.key, "Set by #{flag} for this run" if flag
 
         if setting.key == DISPLAY_LAST
           form.section(setting.section).action THEME_KEY, THEME_LABEL, hint: THEME_HINT,
             help: "Choose the color of each thing the game draws"
+        end
+
+        if setting.key == GAME_LAST
+          form.section(setting.section).action EXPLORE_KEY, EXPLORE_TITLE, hint: THEME_HINT,
+            help: "Choose where X walks and what stops it"
         end
 
         if setting.key == "control_scheme"
@@ -202,6 +263,29 @@ module Roguelike::Ui
     def refit(screen : Rect) : Nil
       fit_into screen if showing?
       @theme_editor.refit screen
+      @explore_page.try &.refit(screen)
+    end
+
+    # Puts the explore page up over the screen. It edits the same options,
+    # and the character's settings during play.
+    def show_explore_page(app : Widgets::App) : Nil
+      found = @explore_page ||= OptionsScreen.new(@root, z: Widgets::Overlay::Z::DIALOG - 5,
+        page: Page::Explore)
+      found.root = @root
+      found.on_change = @on_change
+      found.on_warning = @on_warning
+      found.on_close = nil
+      found.on_explore = ->(settings : Explore::Settings) do
+        @explore = settings
+        @on_explore.try &.call(settings)
+        nil
+      end
+      found.show app, @options, @explore
+    end
+
+    # The explore page, once it has been opened.
+    def explore_page : OptionsScreen?
+      @explore_page
     end
 
     # Puts the theme editor up over the screen.
@@ -214,6 +298,7 @@ module Roguelike::Ui
       return unless open?
 
       @theme_editor.dismiss
+      @explore_page.try &.dismiss
       @help.close_with nil if @help.open?
       self.keymap = nil
       close
@@ -287,6 +372,13 @@ module Roguelike::Ui
         return
       end
 
+      if event.is_a?(Widgets::Form::Activated) && event.key == EXPLORE_KEY
+        context.consume
+        app = @app
+        show_explore_page app if app
+        return
+      end
+
       if event.is_a?(Widgets::Form::Activated) && event.key == CONTROLS_KEY
         context.consume
         compare_controls
@@ -306,6 +398,14 @@ module Roguelike::Ui
 
       if key == "name"
         Options.rename @root, value.to_s
+        return
+      end
+
+      settings = @explore
+      if settings && key.starts_with?(Options::EXPLORE) && value.is_a?(Bool | Int32)
+        settings[key.lchop Options::EXPLORE] = value
+        @explore = settings
+        @on_explore.try &.call(settings)
         return
       end
 
