@@ -47,7 +47,7 @@ Spectator.describe Roguelike::Replay::Backfill do
       raise "#{step.failure}" if step.failure
     end
 
-    lines = File.read_lines source
+    lines = Recording.ours File.read_lines(source)
     footer = JSON.parse(lines.pop).as_h
     footer["state"] = JSON::Any.new(cursor.game.fingerprint like: reading.header.state)
     footer["turn"] = JSON::Any.new(cursor.game.turn.to_i64)

@@ -95,6 +95,17 @@ module Recording
     CANONICAL
   end
 
+  # *lines* of a recorded run, with each recorded game version made this
+  # build's. The build after `+g` and every fingerprint stay as recorded.
+  #
+  # A backfill takes only a run this version recorded. A copy of a fixture
+  # from an earlier release passes through here before it is backfilled.
+  def self.ours(lines : Array(String)) : Array(String)
+    lines.map do |line|
+      line.sub(/"game_version":"[^"+]*/, %("game_version":"#{Roguelike::VERSION}))
+    end
+  end
+
   # Writes *lines* to a file of its own under `.directory`, and answers it.
   def self.file(lines : Array(String), name : String = "edited") : Path
     where = directory / "#{name}-#{Random.rand UInt32}.jsonl"
