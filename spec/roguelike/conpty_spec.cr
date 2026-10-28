@@ -4,6 +4,9 @@ require "../spec_helper"
 # terminal for: Windows Terminal and WezTerm host it in the same kind of
 # console. A run is begun, walked, and left, with nothing saved and no window
 # opened.
+#
+# The game keeps its state in a fresh directory. A saved Traditional scheme
+# and `--tester-name` skip the first-launch questions, so the title comes first.
 {% skip_file unless flag?(:win32) %}
 
 require "file_utils"
@@ -34,12 +37,26 @@ private module BuiltGame
 end
 
 private def playing(&)
-  console = TermBuf::Input::PseudoConsole.new BuiltGame.path.to_s,
-    ["--seed", "42", "--no-save", "--no-update-check", "--no-autosubmit"], 120, 40
+  state = Path[File.tempname "roguelike-conpty-state", nil]
+  options = Roguelike::Options.new
+  options.control_scheme = Roguelike::Options::ControlScheme::Traditional
+  options.write state / "roguelike"
+
+  # The child inherits the environment when it starts.
+  held = ENV["XDG_STATE_HOME"]?
+  ENV["XDG_STATE_HOME"] = state.to_s
+  console = begin
+    TermBuf::Input::PseudoConsole.new BuiltGame.path.to_s,
+      ["--seed", "42", "--no-save", "--no-update-check", "--no-autosubmit",
+       "--tester-name", "ci"], 120, 40
+  ensure
+    ENV["XDG_STATE_HOME"] = held
+  end
   begin
     yield console
   ensure
     console.close
+    FileUtils.rm_rf state.to_s
   end
 end
 
