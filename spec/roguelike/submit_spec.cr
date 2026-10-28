@@ -595,13 +595,18 @@ Spectator.describe Roguelike::Submit do
     end
 
     it "removes local paths from copies without changing a resumed run" do
-      where = root
+      # The long form, so the game and the checks see one spelling of it.
+      where = Path[File.realpath(root)]
       logs = where / "logs"
       Dir.mkdir_p logs
       store = Save::Store.under where / "store"
       Log.pattern = logs.to_s
       Log.always = nil
       Submit.outbox = nil
+
+      # The directory as it appears inside JSON. Windows backslashes are
+      # doubled there.
+      local = where.to_s.to_json[1..-2]
 
       begin
         game = Game.dug Roguelike::Rng.new(Recording::SEED)
@@ -622,8 +627,8 @@ Spectator.describe Roguelike::Submit do
         source_log = File.read log
         source_save = File.read save
         source_events = File.read events
-        expect(source_log).to contain(where.to_s)
-        expect(source_save).to contain(where.to_s)
+        expect(source_log).to contain(local)
+        expect(source_save).to contain(local)
 
         meta = Submit::Meta.of game, Submit.log_id(log), true
         parcel = Submit::Parcel.pack where / "parcel", meta, 1, log, save, events
@@ -635,14 +640,14 @@ Spectator.describe Roguelike::Submit do
         uploaded_log = unpack parcel.directory / "replay.jsonl.gz"
         uploaded_save = unpack parcel.directory / "save.json.gz"
         uploaded_events = unpack parcel.directory / "events.jsonl.gz"
-        expect(uploaded_log).not_to contain(where.to_s)
-        expect(uploaded_save).not_to contain(where.to_s)
-        expect(uploaded_events).not_to contain(where.to_s)
+        expect(uploaded_log).not_to contain(local)
+        expect(uploaded_save).not_to contain(local)
+        expect(uploaded_events).not_to contain(local)
 
         replay_path = parcel.directory / "replay.jsonl.gz"
         reading = Replay::Reading.read replay_path
         expect(reading.header.run).not_to be_nil
-        expect(reading.header.run).not_to contain(where.to_s)
+        expect(reading.header.run).not_to contain(local)
         expect(reading.header.run).not_to contain("\"carried\":")
         expect(reading.header.continued.try(&.save)).to eq("save.json")
         expect(reading.header.continued.try(&.log)).to eq("replay.jsonl")
@@ -650,7 +655,7 @@ Spectator.describe Roguelike::Submit do
 
         uploaded_held = Save::Held.from_json uploaded_save
         expect(uploaded_held.replay.try(&.log)).to eq("replay.jsonl")
-        expect(uploaded_held.game.to_json).not_to contain(where.to_s)
+        expect(uploaded_held.game.to_json).not_to contain(local)
         expect(uploaded_held.game.to_json).not_to contain("\"carried\":")
         source_held = Save::Held.from_json source_save
         expect(uploaded_held.game.fingerprint).to eq(source_held.game.fingerprint)

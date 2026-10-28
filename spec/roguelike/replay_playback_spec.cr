@@ -23,7 +23,7 @@ Spectator.describe Roguelike::Replay::PlaybackCursor do
   def tailed(state : String? = nil, incomplete_footer : Bool = false) : Path
     source = Recording.read Recording.golden
     cursor = played source
-    lines = File.read_lines Recording.golden
+    lines = Recording.ours File.read_lines(Recording.golden)
 
     if incomplete_footer
       lines.pop
