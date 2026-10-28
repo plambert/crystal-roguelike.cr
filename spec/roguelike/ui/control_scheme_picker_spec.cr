@@ -16,6 +16,23 @@ Spectator.describe Roguelike::Ui::ControlSchemePicker do
     {session, picker}
   end
 
+  def expect_hints_readable(drawn : String) : Nil
+    [
+      "Command keys",
+      "Item letters",
+      "r all, f avail",
+      "w/s items",
+      "Ctrl+X explore",
+      "Shift+dir walk",
+      "In play: i inventory · Tab panels",
+      "Tab/Shift+Tab cards",
+      "a/d or arrows select",
+      "f/Enter confirm · Esc cancel",
+    ].each do |hint|
+      expect(drawn).to contain hint
+    end
+  end
+
   after_each { Options.current = nil }
 
   it "highlights Modern by default and follows the bootstrap keys" do
@@ -64,11 +81,11 @@ Spectator.describe Roguelike::Ui::ControlSchemePicker do
       expect(drawn).to contain "Traditional"
       expect(drawn).to contain "Modern"
       expect(drawn).to contain "Selected"
-      expect(drawn).to contain "r all"
-      expect(drawn).to contain "Shift+dir walk"
+      expect_hints_readable drawn
       expect(drawn.lines.any? { |line| line.includes?("y k u") && line.includes?("q w e") })
         .to be_true
       expect(session.rows.all?(&.size.<= columns)).to be_true
+      expect(session.rows.size).to eq rows
     end
   end
 
@@ -81,8 +98,10 @@ Spectator.describe Roguelike::Ui::ControlSchemePicker do
     drawn = session.text
     expect(drawn).to contain "Traditional"
     expect(drawn).to contain "Modern"
+    expect_hints_readable drawn
     expect(drawn.lines.any? { |line| line.includes?("y k u") && line.includes?("q w e") })
       .to be_true
+    expect(session.rows.size).to eq 16
   end
 
   it "does not persist a choice or mutate the current options" do

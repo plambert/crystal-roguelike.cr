@@ -4,10 +4,10 @@ module Roguelike::Ui
   # A side-by-side choice of the movement and interaction profiles.
   class ControlSchemePicker < Widgets::Overlay
     # Cells left clear to the left and right of the box.
-    COLUMN_MARGIN = 2
+    COLUMN_MARGIN = 0
 
     # Rows left clear above and below it.
-    ROW_MARGIN = 1
+    ROW_MARGIN = 0
 
     # The widest the box grows.
     WIDTH = 72
@@ -36,6 +36,15 @@ module Roguelike::Ui
                 in .modern?      then ["q w e", "a @ d", "z s x"]
                 end
         lines.each do |line|
+          add Widgets::Label.new line, wrap: Layout::Wrap::None,
+            align: TermBuf::Unicode::Align::Center
+        end
+
+        details = case @scheme
+                  in .traditional? then ["Command keys", "Item letters"]
+                  in .modern?      then ["r all, f avail", "w/s items", "Ctrl+X explore", "Shift+dir walk"]
+                  end
+        details.each do |line|
           add Widgets::Label.new line, wrap: Layout::Wrap::None,
             align: TermBuf::Unicode::Align::Center
         end
@@ -82,12 +91,10 @@ module Roguelike::Ui
         Layout::AttachPoint::Center, z: z
 
       add @cards
-      add Widgets::Label.new "r all  f available  i inventory",
+      add Widgets::Label.new "In play: i inventory · Tab panels",
         wrap: Layout::Wrap::None
-      add Widgets::Label.new "Ctrl+X explore  Shift+dir walk",
-        wrap: Layout::Wrap::None
-      add Widgets::Label.new "Tab/Shift+Tab cards · a/d/arrows choose",
-        wrap: Layout::Wrap::Words
+      add Widgets::Label.new "Tab/Shift+Tab cards", wrap: Layout::Wrap::None
+      add Widgets::Label.new "a/d or arrows select", wrap: Layout::Wrap::None
       add Widgets::Label.new "f/Enter confirm · Esc cancel",
         wrap: Layout::Wrap::None
       self.keymap = bindings
