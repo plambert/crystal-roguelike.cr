@@ -8,6 +8,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ## [Unreleased]
 
+### Fixed
+
+* `F` fires at the nearest monster in the modern control scheme, as it does in the traditional
+  one.
+
 ## [0.7.0] - 2026-10-28
 
 Modern controls add spatial movement and action menus beside the traditional scheme, with saved

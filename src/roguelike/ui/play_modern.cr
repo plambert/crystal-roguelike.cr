@@ -157,6 +157,14 @@ module Roguelike::Ui
       pick_up
     end
 
+    # `F` fires at the nearest monster in sight, as in the traditional
+    # scheme. Pressed while aiming, it puts the cursor away.
+    def modern_fire_at_nearest : Nil
+      return if @viewer || @pending || @examiner.cursoring?
+
+      fire_at_nearest
+    end
+
     def modern_stair_up : Nil
       return if @pending || @aiming || @examiner.cursoring?
 

@@ -292,6 +292,30 @@ Spectator.describe "the modern controls" do
       expect(modern_run.game.fingerprint).to eq traditional.game.fingerprint
     end
 
+    it "fires at the nearest monster on F, as the traditional scheme does" do
+      traditional = archer
+      traditional.press "F"
+
+      modern_run = archer
+      modernize modern_run
+      before = modern_run.turn
+      modern_run.press "F"
+
+      expect(modern_run.turn).to be > before
+      expect(modern_run.play.aiming).to be_nil
+      expect(modern_run.game.turn).to eq traditional.game.turn
+      expect(modern_run.game.fingerprint).to eq traditional.game.fingerprint
+    end
+
+    it "refuses F with nothing readied and spends no turn" do
+      run = modern carrying([Item.new(Kind::Arrow, count: 5)])
+      run.press "F"
+
+      expect(run.said).to contain "nothing readied"
+      expect(run.turn).to eq 0
+      expect(run.play.aiming).to be_nil
+    end
+
     it "does not offer item actions while browsing a replay" do
       reading = Roguelike::Replay::Reading.read Recording.golden
       viewer = Viewer.new reading
