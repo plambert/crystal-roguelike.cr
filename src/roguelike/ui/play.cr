@@ -2001,6 +2001,13 @@ module Roguelike::Ui
 
     # Asks which of *pile* to pick up.
     private def choose_from(pile : Array(Item)) : Nil
+      if modern_controls?
+        @modern_stack.clear
+        targets = pile.map { |item| CommandTarget.new(item_id: item.id) }
+        show_modern_targets Command::PickUp, targets
+        return
+      end
+
       entries = listed(pile.map_with_index do |item, index|
         Listing.new Widgets::Menu.letter(index), item
       end)
@@ -2234,17 +2241,30 @@ module Roguelike::Ui
       leads = listings.map { |found| Naming.lead lore, found.item }
       field = Math.max leads.max_of?(&.size) || 0, Naming::LEAD
 
-      listings.map_with_index do |found, index|
-        mark = Palette.blessing found.item
-        tail = Play.tail_of found.item, found.slot
+      listings.map do |found|
+        mark, tail = item_menu_marks found.item, found.slot
 
         Widgets::Menu::Entry.new found.key,
-          "#{leads[index].rjust field} #{Naming.listed lore, found.item}",
+          item_menu_text(found.item, field),
           mark: mark.try(&.glyph) || ' ',
           mark_style: mark.try(&.style),
           tail: tail.try(&.glyph),
           tail_style: tail.try(&.style)
       end
+    end
+
+    # Uses the same known item and equipment marks in every item list.
+    private def item_menu_marks(item : Item, slot : Slot? = nil) : {Look?, Look?}
+      actual_slot = slot || letter_for(item.id).try { |letter| @game.slot_of(letter) }
+      {Palette.blessing(item), Play.tail_of(item, actual_slot)}
+    end
+
+    # Includes the count or article without repeating the blessing mark.
+    private def item_menu_text(item : Item, field : Int32 = 0) : String
+      lead = Naming.lead @game.lore, item
+      lead = lead.rjust(field) if field > 0
+      noun = Naming.listed @game.lore, item
+      lead.empty? ? noun : "#{lead} #{noun}"
     end
 
     # The mark at the far edge of a row, or `nil` for a row with none.
@@ -2976,11 +2996,17 @@ module Roguelike::Ui
 
     # Asks which of *found* to apply.
     private def choose_target(found : Array(Apply)) : Nil
+      about = applying_about found
       entries = found.each_with_index.map do |target, index|
-        Widgets::Menu::Entry.new Widgets::Menu.letter(index), applying(target)
+        key = Widgets::Menu.letter index
+        if listing = about[key]?
+          listed([listing]).first.copy_with(text: applying(target))
+        else
+          Widgets::Menu::Entry.new key, applying(target)
+        end
       end
 
-      choose("Apply what?", entries, applying_about(found)) do |key|
+      choose("Apply what?", entries, about) do |key|
         next unless key
 
         target = found[Widgets::Menu.index key]?
@@ -3032,12 +3058,14 @@ module Roguelike::Ui
 
       if letter && target.aimed?
         way = Direction.between @game.player.at, {target.x, target.y}
-        return "#{letter} - spike the door #{way.try(&.label) || "beside you"}"
+        item = @game.carried letter
+        name = item ? item_menu_text(item) : "nothing"
+        return "#{name} — spike the door #{way.try(&.label) || "beside you"}"
       end
 
       if letter
-        item = @game.player.inventory[letter]
-        return "#{letter} - #{item ? @game.name(item) : "nothing"}"
+        item = @game.carried letter
+        return item ? item_menu_text(item) : "nothing"
       end
 
       fitting = @game.floor.fixture target.x, target.y
@@ -3268,7 +3296,7 @@ module Roguelike::Ui
         ]
         @placard.show_named application, Placards.heading(@game.outcome),
           Placards.ending(@game), choices, 'n',
-          footer: "W/S · f choose · Esc=Quit"
+          footer: "A/D · f choose · Esc=Quit"
       else
         @placard.show application, Placards.heading(@game.outcome),
           Placards.ending(@game), Placards::AGAIN_KEYS,

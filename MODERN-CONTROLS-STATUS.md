@@ -55,13 +55,18 @@ temporary directory before launching.
 ## Controls
 
 The agreed controls are spatial movement, Shift+direction walking, Ctrl+X explore, `r` for
-all commands, `f` for available commands, `i` for inventory, and Tab/Shift+Tab for panels.
+all commands, `f` for available commands, `g` for pickup, `i` for inventory, and Tab/Shift+Tab
+for panels.
 `.` waits in both schemes, plain Space pages messages, and Shift+Space waits only with
 kitty keyboard support. Both schemes keep `<` and `>` for shared staircase navigation.
 
 In lists, use `w/s` to select, `a/d` for tabs, `f` or Enter to activate, and Escape to go
 back. Text fields retain normal typing. Traditional dedicated keys and item letters remain
 available under the Traditional scheme.
+
+The horizontal play-again choices use `a/d` or Left/Right. Item pickers share equipment,
+blessing, and quantity formatting. Rest precedes Wait in Time, Pick up leads Items when
+available, and help begins with Application, Panels, then Movement before other sections.
 
 ## Compatibility notes
 
@@ -76,7 +81,7 @@ available under the Traditional scheme.
 
 ## Latest validation
 
-This integration worktree passes formatting, ameba, all 4,176 specs, `shards build`, and
+This integration worktree passes formatting, ameba, all 4,186 specs, `shards build`, and
 Markdown checks. Both golden replay fixtures verify with the built executable. A real
 pseudo-terminal smoke run of this executable passes at 80x24 and 40x16, covering first-launch
 choice, saved preference, inventory, both catalogs, confirmation, and exit.

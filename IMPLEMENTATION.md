@@ -41,10 +41,13 @@ actually been run rather than reasoned about.
 | Armor class | Higher is better. It is what is worn plus the dexterity modifier, floored at zero |
 | Control schemes | Traditional is the headless default. Interactive startup offers a first-run choice; Options switches schemes live |
 | Modern movement | `WASD` plus `Q`, `E`, `Z`, `X`; `.` waits. `Shift+Space` waits only with kitty keyboard support |
-| Modern actions | `r` opens the full catalog, `f` opens available or contextual actions, and `F2` opens the catalog in either scheme |
+| Modern actions | `r` opens the full catalog, `f` opens available or contextual actions, `g` picks up, and `F2` opens the catalog in either scheme |
 | Modern menus | Rows are selectable and letterless. Escape restores the parent after canceling a pre-use scroll follow-up |
 | Modern confirmations | Named choices use safe defaults. Escape cancels; completed actions return to the map unless a model follow-up remains |
 | Modern inventory | List perceived group quantities, retain the page and item on reopen, and show only known details |
+| Item menu rows | Shared naming and decoration include the perceived group count or article, blessing mark and current equipment icon in every picker |
+| Help order | Application, Panels and Movement always precede the focused panel's section |
+| Horizontal outcome choices | Modern play-again choices use A/D and Left/Right, with Quit selected by default |
 | Catalog utilities | Escape returns to the source catalog and selection. Color Theme opens directly; time-taking actions return to the map |
 | Modern forms | `f` activates a row unless its input accepts that key. Resetting one theme color is a selectable action |
 | Compact end screen | Keep both named choices and safe Quit visible at 40×16; mark omitted summary lines |

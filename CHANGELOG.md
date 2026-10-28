@@ -34,8 +34,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Modern controls are available beside the traditional scheme. The first interactive launch
   offers the choice, and Options switches schemes live. Modern movement uses `WASD` with `Q`,
   `E`, `Z` and `X` for diagonals; `r` opens the action catalog, `f` opens available actions, and
-  `.` waits. `F2` opens the catalog in either scheme. Space pages messages; `Shift+Space` waits
-  only when kitty keyboard support is active.
+  `g` picks up items. `.` waits. `F2` opens the catalog in either scheme. Space pages messages;
+  `Shift+Space` waits only when kitty keyboard support is active.
 * The game reads its colors from `theme.json` in its state directory when that file exists. The
   file holds one color per line, written as `#rrggbb`. Without the file, or for a color the file
   leaves out, the game uses its own colors.
@@ -48,6 +48,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* Action menus list Rest before Wait, and Pick up first in Items. Help keeps Application,
+  Panels and Movement at the top before the focused panel's section.
 * The equipment and pack lists on the left show an item's blessing with the same marks as the
   inventory menu, in place of the words "bls" and "crs". An uncursed item you know about now has
   its mark there too.
@@ -57,6 +59,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Fixed
 
+* Every item menu includes its equipment icon and full stack count or singular article,
+  including the Equip, Remove, Drop, Throw and Apply pickers.
+* The modern play-again screen uses A/D or Left/Right to select its horizontal choices.
 * Pressing a staircase key twice follows its route, just like clicking the staircase twice.
   Keyboard and mouse share the same route preview, which fades or can be canceled with Escape.
 * Explore is offered only when it can reach something to see or collect.

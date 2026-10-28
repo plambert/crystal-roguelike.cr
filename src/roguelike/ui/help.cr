@@ -196,12 +196,10 @@ module Roguelike
         end
       end
 
-      # The sections with the one titled *first* leading, then "panels",
-      # then the rest in their usual order.
+      # Keeps the navigation sections first, then the focused panel.
       def self.ordered(sections : Array(Keys::Section), first : String?) : Array(Keys::Section)
-        return sections unless first && sections.any? { |section| section.title == first }
-
-        lead = [first, "panels"].uniq
+        lead = ["application", "panels", "moving"]
+        lead << first if first && !lead.includes?(first)
         head = lead.compact_map { |title| sections.find { |section| section.title == title } }
         head + sections.reject { |section| lead.includes? section.title }
       end

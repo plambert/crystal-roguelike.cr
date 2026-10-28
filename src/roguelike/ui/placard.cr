@@ -240,10 +240,10 @@ module Roguelike::Ui
     private def named_answers : Widgets::Bindings
       map = Widgets::Bindings.new
       navigation = Widgets::Navigation.selectable
-      navigation.previous_row.each do |key|
+      navigation.previous_tab.each do |key|
         map.bind key, "the choice before", ->(_context : Widgets::Context) { move_choice(-1); nil }
       end
-      navigation.next_row.each do |key|
+      navigation.next_tab.each do |key|
         map.bind key, "the choice after", ->(_context : Widgets::Context) { move_choice(1); nil }
       end
       navigation.activate.each do |key|
@@ -260,7 +260,7 @@ module Roguelike::Ui
       while index >= 0 && index < @named_choices.size
         if @named_choices[index].enabled
           @choice_index = index
-          update_named_offering "W/S · f choose · Esc=Quit"
+          update_named_offering "A/D · f choose · Esc=Quit"
           invalidate_layout
           return
         end

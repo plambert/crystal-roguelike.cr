@@ -151,6 +151,12 @@ module Roguelike::Ui
       explore
     end
 
+    def modern_pick_up : Nil
+      return if @viewer || @pending || @aiming || @examiner.cursoring?
+
+      pick_up
+    end
+
     def modern_stair_up : Nil
       return if @pending || @aiming || @examiner.cursoring?
 
@@ -290,6 +296,13 @@ module Roguelike::Ui
                             tail_style : Style? = nil,
                             shortcut : Char? = nil,
                             reason : String? = nil)
+      if (choice.kind.item? || choice.kind.target?) && (item = item_for(choice.item_id))
+        blessing, equipment = item_menu_marks item, choice.slot
+        mark ||= blessing.try(&.glyph)
+        mark_style ||= blessing.try(&.style)
+        tail ||= equipment.try(&.glyph)
+        tail_style ||= equipment.try(&.style)
+      end
       @selection_menu.entry choice, text, enabled, mark, mark_style, tail,
         tail_style, shortcut, disabled_reason: reason
     end
@@ -458,7 +471,7 @@ module Roguelike::Ui
       if item_id = target.item_id
         item = item_for item_id
         if item
-          name = Naming.listed @game.lore, item
+          name = item_menu_text item
           if (coordinate = target.coordinate) && (command.apply? || command.spike_door?)
             return "#{name} — #{apply_target_location coordinate}"
           end
@@ -803,15 +816,11 @@ module Roguelike::Ui
       leads = listings.map { |listing| Naming.lead @game.lore, listing.item }
       field = Math.max leads.max_of?(&.size) || 0, Naming::LEAD
 
-      listings.map_with_index do |listing, index|
-        mark = Palette.blessing listing.item
-        tail = Play.tail_of listing.item, listing.slot
+      listings.map do |listing|
         choice = ModernChoice.new(ModernChoiceKind::Item,
           item_id: listing.item.id, slot: listing.slot)
         value_entry choice,
-          "#{leads[index].rjust(field)} #{Naming.listed @game.lore, listing.item}",
-          mark: mark.try(&.glyph), mark_style: mark.try(&.style),
-          tail: tail.try(&.glyph), tail_style: tail.try(&.style)
+          item_menu_text(listing.item, field)
       end
     end
 
@@ -877,7 +886,7 @@ module Roguelike::Ui
       @selection_menu.on_back = -> { back_modern_menu; nil }
       @selection_menu.on_highlight = ->(choice : ModernChoice?) { show_modern_detail choice; nil }
       item = item_for item_id
-      title = item ? Naming.listed(@game.lore, item) : "Item actions"
+      title = item ? item_menu_text(item) : "Item actions"
       @selection_menu.show application, title, rows
     end
 
@@ -995,8 +1004,8 @@ module Roguelike::Ui
     private def item_for(item_id : Int32?) : Item?
       return unless item_id
 
-      @game.player.inventory.each_item do |_letter, item|
-        return item if item.id == item_id
+      if letter = letter_for item_id
+        return @game.carried letter
       end
       @game.here.find { |item| item.id == item_id }
     end

@@ -615,6 +615,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.modern_available_action; nil }
         map.bind TermBuf::Key.parse("i"), "open inventory",
           ->(_context : Widgets::Context) { play.show_modern_inventory; nil }
+        map.bind TermBuf::Key.parse("g"), "pick up what is here",
+          ->(_context : Widgets::Context) { play.modern_pick_up; nil }
         map.bind TermBuf::Key.parse("Ctrl+X"), "explore until interrupted",
           ->(_context : Widgets::Context) { play.modern_explore; nil }
       end

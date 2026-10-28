@@ -29,8 +29,10 @@ Spectator.describe "modern controls reviewed interaction flows" do
 
   def run_with(items : Array(Item) = [] of Item,
                rows : Array(String) = ["#####", "#...#", "#...#", "#...#", "#####"],
-               notes : Array(Roguelike::WhatsNew::Section) = [] of Roguelike::WhatsNew::Section) : Playing::Run
-    options
+               notes : Array(Roguelike::WhatsNew::Section) = [] of Roguelike::WhatsNew::Section,
+               scheme : Options::ControlScheme = Options::ControlScheme::Modern) : Playing::Run
+    chosen = options
+    chosen.control_scheme = scheme
     floor = Playing.daylight Roguelike::Floor.parse("review", rows)
     player = Roguelike::Player.new("review", 2, 2, hit_points: 40)
     items.each { |item| player.inventory.add item }
@@ -62,6 +64,125 @@ Spectator.describe "modern controls reviewed interaction flows" do
     run.press "f"
   end
 
+  def fully_equipped : Playing::Run
+    run = run_with [
+      Item.new(Kind::Dagger, blessing: Roguelike::Blessing::Blessed, blessing_known: true),
+      Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 5), Item.new(Kind::Cap),
+      Item.new(Kind::LeatherArmor), Item.new(Kind::Gloves), Item.new(Kind::Boots),
+      Item.new(Kind::Shield), Item.new(Kind::Dagger, enchantment: 2),
+      Item.new(Kind::Torch, lit: true),
+    ]
+    run.game.player.inventory.each do |letter, item|
+      next unless item.enchantment == 0
+      if slot = Roguelike::Slot.for(item)
+        run.game.player.equipment.put slot, letter
+      end
+    end
+    run.play.refresh
+    run
+  end
+
+  it "uses the current equipment and blessing marks in every item target list" do
+    {"Equip" => Command::Equip, "Remove equipment" => Command::Remove,
+     "Drop" => Command::Drop, "Throw" => Command::Throw}.each do |label, command|
+      run = fully_equipped
+      targets = Commands.targets command, Context.new(run.game)
+      choose_command run, label
+
+      expect(run.menu.entries.size).to eq targets.size
+      run.menu.entries.zip(targets).each do |entry, target|
+        item = run.game.player.inventory.items.find { |held| held[1].id == target.item_id }
+        held = item || raise "No carried item for target"
+        slot = run.game.slot_of held[0]
+        expected_tail = Roguelike::Ui::Play.tail_of held[1], slot
+        expected_mark = Roguelike::Ui::Palette.blessing held[1]
+        expect(entry.tail).to eq expected_tail.try(&.glyph)
+        expect(entry.tail_style).to eq expected_tail.try(&.style)
+        expect(entry.mark).to eq expected_mark.try(&.glyph)
+        expect(entry.mark_style).to eq expected_mark.try(&.style)
+      end
+      expect(run.turn).to eq 0
+    end
+  end
+
+  it "includes equipment marks in the traditional Apply menu" do
+    run = run_with [Item.new(Kind::Torch, lit: true), Item.new(Kind::Candle)],
+      scheme: Options::ControlScheme::Traditional
+    torch = run.game.player.inventory.entries.find(&.[1].kind.torch?)
+    letter = (torch || raise "No torch")[0]
+    run.game.player.equipment.put Roguelike::Slot::Melee, letter
+    run.play.refresh
+    run.press "a"
+
+    entry = run.menu.entries.find(&.text.includes?("torch")) || raise "No torch row"
+    icon = Roguelike::Ui::Palette.slot Roguelike::Slot::Melee
+    expect(entry.tail).to eq icon.glyph
+    expect(entry.tail_style).to eq icon.style
+    expect(run.turn).to eq 0
+  end
+
+  it "picks up a single item with g without asking for a target" do
+    run = run_with
+    run.game.floor.drop 2, 2, Item.new(Kind::Dagger)
+    run.game.enroll
+    run.play.refresh
+    run.press "g"
+
+    expect(run.game.here).to be_empty
+    expect(run.game.player.inventory.size).to eq 1
+    expect(run.menu.showing?).to be_false
+    expect(run.turn).to eq 1
+  end
+
+  it "uses a value-based floor picker for g even with more than 52 items" do
+    run = run_with
+    60.times { |enchantment| run.game.floor.drop 2, 2, Item.new(Kind::Dagger, enchantment: enchantment) }
+    run.game.enroll
+    run.play.refresh
+    run.press "g"
+
+    expect(run.menu.entries.size).to eq 60
+    expect(run.turn).to eq 0
+    run.press "End", "f"
+    expect(run.game.player.inventory.entries.first[1].enchantment).to eq 59
+    expect(run.game.here.size).to eq 59
+    expect(run.turn).to eq 1
+  end
+
+  it "does not let g pick up items through an inventory menu" do
+    run = run_with [Item.new(Kind::Dagger)]
+    run.game.floor.drop 2, 2, Item.new(Kind::HealingPotion)
+    run.game.enroll
+    run.play.refresh
+    run.press "i", "g"
+
+    expect(run.menu.showing?).to be_true
+    expect(run.game.here.size).to eq 1
+    expect(run.turn).to eq 0
+  end
+
+  it "uses horizontal keys for the modern play-again choices" do
+    [{40, 16}, {80, 24}].each do |columns, rows|
+      options
+      run = Playing.open Game.start(Roguelike::Rng.new(Playing::SEED)), columns, rows
+      run.game.perform Roguelike::Action::Ascend.new
+      run.play.refresh
+      expect(run.text).to contain "A/D"
+      expect(run.placard.offering).to contain "[ Quit ]"
+      run.press "a"
+      expect(run.placard.offering).to contain "[ Play again ]"
+      run.press "d"
+      expect(run.placard.offering).to contain "[ Quit ]"
+      run.press "Left"
+      expect(run.placard.offering).to contain "[ Play again ]"
+      run.press "Right", "w", "s"
+      expect(run.placard.offering).to contain "[ Quit ]"
+      run.press "f"
+      expect(run.play.finished?).to be_true
+      expect(run.play.again?).to be_false
+    end
+  end
+
   it "shows the complete quantity of a perceived inventory group" do
     run = run_with [
       Item.new(Kind::Arrow, count: 4, blessing: Roguelike::Blessing::Cursed),
@@ -81,6 +202,55 @@ Spectator.describe "modern controls reviewed interaction flows" do
     expect(run.play.tooltip.showing?).to be_true
     expect(run.text).to contain "weight"
     expect(run.turn).to eq 0
+  end
+
+  it "includes the count or singular article in item target names" do
+    {1, 3}.each do |count|
+      run = run_with [Item.new(Kind::MinorHealingPotion, count: count)]
+      run.game.lore.learn Kind::MinorHealingPotion
+      choose_command run, "Drink a potion"
+
+      expected = count == 1 ? "a potion of minor healing" : "3 potions of minor healing"
+      expect(run.menu.entries.first.text).to eq expected
+      expect(run.turn).to eq 0
+    end
+  end
+
+  it "counts all hidden stacks in an item target group" do
+    run = run_with [
+      Item.new(Kind::MinorHealingPotion, count: 2, blessing: Roguelike::Blessing::Blessed),
+      Item.new(Kind::MinorHealingPotion, count: 5),
+    ]
+    run.game.lore.learn Kind::MinorHealingPotion
+    choose_command run, "Drink a potion"
+
+    expect(run.menu.entries.size).to eq 1
+    expect(run.menu.entries.first.text).to eq "7 potions of minor healing"
+    expect(run.turn).to eq 0
+  end
+
+  it "keeps rest and pickup first in their categories when available" do
+    run = run_with
+    run.game.player.hurt(run.game.player.hit_points - 1)
+    run.game.floor.drop 2, 2, Item.new(Kind::Dagger)
+    run.game.enroll
+    run.play.refresh
+
+    {"r", "f"}.each do |key|
+      run.press key
+      time = run.menu.pages.find { |page| page[0] == "Time" } || raise "No Time category"
+      items = run.menu.pages.find { |page| page[0] == "Items" } || raise "No Items category"
+      expect(time[1].map(&.text.split(" — ", 2).first)).to eq ["Rest", "Wait"]
+      expect(items[1].first.text).to start_with "Pick up"
+      run.press "Escape"
+    end
+
+    empty = run_with
+    empty.press "f"
+    time = empty.menu.pages.find { |page| page[0] == "Time" } || raise "No Time category"
+    items = empty.menu.pages.find { |page| page[0] == "Items" } || raise "No Items category"
+    expect(time[1].map(&.text.split(" — ", 2).first)).to eq ["Wait"]
+    expect(items[1].first.text).to start_with "Inventory"
   end
 
   it "spikes the selected doorway rather than the first doorway" do
