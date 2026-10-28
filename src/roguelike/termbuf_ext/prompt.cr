@@ -57,31 +57,30 @@ module TermBuf::Widgets
     # The row the question is drawn on.
     getter line : Widgets::Label
 
+    private getter offered_widget : Widgets::Label
+
     private getter choices : Array(Choice) = [] of Choice
-    private getter choice_index : Int32 = 0
-    private getter choice_mode : Bool = false
+    private property choice_index : Int32 = 0
+    private property choice_mode : Bool = false
 
     # What the offered keys are drawn in.
     property keys_style : Style = Style::DEFAULT.bold
 
     def initialize(z : Int32 = Z::DIALOG, style : Style? = nil)
       @line = Label.new ""
-      @offered = Label.new ""
-      @offered.style = @keys_style
+      @offered_widget = Label.new ""
+      @offered_widget.style = @keys_style
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
 
-      @direction = Layout::Direction::Row
-      @gap = 1
+      classic_layout
       @padding = Layout::Padding.new 0, 2, 0, 2
-      @width = Layout::Sizing.fit(min: 20)
-      @height = Layout::Sizing.fit
       @border = Border.rounded
       @style = style
       @floating = Layout::Floating.on nil, Layout::AttachPoint::Center,
         Layout::AttachPoint::Center, z: z
 
-      add @line, @offered
+      add @line, @offered_widget
     end
 
     # Whether a question is up.
@@ -109,6 +108,7 @@ module TermBuf::Widgets
         raise ArgumentError.new "default #{default.inspect} is not one of #{keys.inspect}"
       end
 
+      classic_layout
       @question = question
       @keys = keys
       @default = default
@@ -117,8 +117,8 @@ module TermBuf::Widgets
       @navigation = Navigation.new
 
       @line.text = question
-      @offered.text = "[#{offered}]"
-      @offered.style = @keys_style
+      @offered_widget.text = "[#{offered}]"
+      @offered_widget.style = @keys_style
       install_answers answers
 
       open app
@@ -134,7 +134,7 @@ module TermBuf::Widgets
             navigation : Navigation = Navigation.selectable) : Nil
       @choices = choices.to_a
       raise ArgumentError.new "a prompt needs at least one choice" if @choices.empty?
-      if default && !@choices.any? { |choice| choice.key == default && choice.enabled }
+      unless @choices.any? { |choice| choice.key == default && choice.enabled }
         raise ArgumentError.new "default #{default.inspect} is not an enabled choice"
       end
 
@@ -145,9 +145,10 @@ module TermBuf::Widgets
       @choice_mode = true
       @choice_index = @choices.index { |choice| choice.key == default } || 0
 
+      named_choice_layout app.tree.screen
       @line.text = question
       update_choices
-      @offered.style = @keys_style
+      @offered_widget.style = @keys_style
       install_answers choice_answers
 
       open app
@@ -227,6 +228,33 @@ module TermBuf::Widgets
       @scope.try &.keymap = bindings
     end
 
+    # Gives named choices their own wrapped row under the question.
+    private def named_choice_layout(screen : Rect) : Nil
+      maximum_width = Math.max screen.width - 2, 1
+      minimum_width = Math.min 20, maximum_width
+
+      @direction = Layout::Direction::Column
+      @gap = 1
+      @width = Layout::Sizing.fit min: minimum_width, max: maximum_width
+      @height = Layout::Sizing.fit max: Math.max(screen.height, 1)
+      @line.width = Layout::Sizing.fit
+      @line.height = Layout::Sizing.fit max: Math.max(screen.height - 4, 1)
+      @offered_widget.width = Layout::Sizing.fit
+      @offered_widget.height = Layout::Sizing.fit
+    end
+
+    # Restores the original one-line prompt layout.
+    private def classic_layout : Nil
+      @direction = Layout::Direction::Row
+      @gap = 1
+      @width = Layout::Sizing.fit min: 20
+      @height = Layout::Sizing.fit
+      @line.width = Layout::Sizing.fit
+      @line.height = Layout::Sizing.fit
+      @offered_widget.width = Layout::Sizing.fit
+      @offered_widget.height = Layout::Sizing.fit
+    end
+
     # Moves to the next enabled choice in *direction*.
     private def move_choice(direction : Int32) : Nil
       index = @choice_index + direction
@@ -249,7 +277,7 @@ module TermBuf::Widgets
 
     # Updates the named choices in the prompt's offered line.
     private def update_choices : Nil
-      @offered.text = named_offered
+      @offered_widget.text = named_offered
     end
 
     # The named choices, with the selected one bracketed.
