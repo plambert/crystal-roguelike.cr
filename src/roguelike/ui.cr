@@ -3,6 +3,7 @@ require "./termbuf_ext/cell_grid"
 require "./termbuf_ext/eased_scroll"
 require "./termbuf_ext/entry"
 require "./termbuf_ext/menu"
+require "./termbuf_ext/navigation"
 require "./termbuf_ext/observed_app"
 require "./termbuf_ext/pager"
 require "./termbuf_ext/prompt"
@@ -14,6 +15,7 @@ require "./termbuf_ext/sampled_scroll"
 require "./termbuf_ext/section"
 require "./termbuf_ext/terminal_info"
 require "./termbuf_ext/tint"
+require "./termbuf_ext/value_menu"
 
 # Everything drawn on the screen.
 #

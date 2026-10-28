@@ -1,4 +1,5 @@
 require "termbuf-widgets"
+require "./navigation"
 
 # Extraction candidate: `TermBuf::Widgets::Prompt`, for termbuf-widgets.cr.
 #
@@ -32,6 +33,9 @@ module TermBuf::Widgets
   # behind it answers a key, because the overlay pushes a focus scope and a key
   # nothing in the scope claims stops at the prompt.
   class Prompt < Overlay
+    # A named choice that answers with its existing character value.
+    record Choice, key : Char, label : String, enabled : Bool = true
+
     # The question. Empty while nobody is asking.
     getter question : String = ""
 
@@ -41,6 +45,9 @@ module TermBuf::Widgets
     # The key `Enter` answers with. `nil` when `Enter` answers nothing.
     getter default : Char?
 
+    # The navigation contract used for named choices.
+    getter navigation : Navigation = Navigation.new
+
     # What runs when a key answers.
     #
     # The argument is the key. It is `nil` when the person canceled with
@@ -49,6 +56,10 @@ module TermBuf::Widgets
 
     # The row the question is drawn on.
     getter line : Widgets::Label
+
+    @choices : Array(Choice) = [] of Choice
+    @choice_index : Int32 = 0
+    @choice_mode : Bool = false
 
     # What the offered keys are drawn in.
     property keys_style : Style = Style::DEFAULT.bold
@@ -101,11 +112,43 @@ module TermBuf::Widgets
       @question = question
       @keys = keys
       @default = default
+      @choices = [] of Choice
+      @choice_mode = false
+      @navigation = Navigation.new
 
       @line.text = question
       @offered.text = "[#{offered}]"
       @offered.style = @keys_style
-      self.keymap = answers
+      install_answers answers
+
+      open app
+    end
+
+    # Asks *question* with named choices and injected row navigation.
+    #
+    # *default* selects the initial choice and is still returned to
+    # `#on_answer` when that choice is activated. It is required so the caller
+    # chooses the safe initial answer explicitly. Escape always returns `nil`.
+    def ask(app : App, question : String, choices : Enumerable(Choice),
+            default : Char,
+            navigation : Navigation = Navigation.selectable) : Nil
+      @choices = choices.to_a
+      raise ArgumentError.new "a prompt needs at least one choice" if @choices.empty?
+      if default && !@choices.any? { |choice| choice.key == default && choice.enabled }
+        raise ArgumentError.new "default #{default.inspect} is not an enabled choice"
+      end
+
+      @question = question
+      @keys = @choices.map(&.key).join
+      @default = default
+      @navigation = navigation
+      @choice_mode = true
+      @choice_index = @choices.index { |choice| choice.key == default } || 0
+
+      @line.text = question
+      update_choices
+      @offered.style = @keys_style
+      install_answers choice_answers
 
       open app
     end
@@ -122,6 +165,8 @@ module TermBuf::Widgets
     # The convention is an upper case letter for the default answer. `[yN]`
     # says that `n` happens on `Enter`.
     def offered : String
+      return named_offered if @choice_mode
+
       chosen = @default
       return @keys unless chosen
 
@@ -152,6 +197,69 @@ module TermBuf::Widgets
       map
     end
 
+    # The bindings a named-choice question answers.
+    private def choice_answers : Bindings
+      map = Bindings.new
+
+      @navigation.previous_row.each do |key|
+        map.bind key, "the choice before",
+          ->(_context : Context) { move_choice(-1); nil }
+      end
+      @navigation.next_row.each do |key|
+        map.bind key, "the choice after",
+          ->(_context : Context) { move_choice(1); nil }
+      end
+      @navigation.activate.each do |key|
+        map.bind key, "choose the highlighted answer",
+          ->(_context : Context) { choose_highlighted; nil }
+      end
+      @navigation.cancel.each do |key|
+        map.bind key, "leave the question unanswered",
+          ->(_context : Context) { finish nil; nil }
+      end
+
+      map
+    end
+
+    # Replaces both the widget and its active focus-scope bindings.
+    private def install_answers(bindings : Bindings) : Nil
+      self.keymap = bindings
+      @scope.try &.keymap = bindings
+    end
+
+    # Moves to the next enabled choice in *direction*.
+    private def move_choice(direction : Int32) : Nil
+      index = @choice_index + direction
+      while index >= 0 && index < @choices.size
+        if @choices[index].enabled
+          @choice_index = index
+          update_choices
+          invalidate_layout
+          return
+        end
+        index += direction
+      end
+    end
+
+    # Answers with the highlighted choice when it is enabled.
+    private def choose_highlighted : Nil
+      choice = @choices[@choice_index]?
+      finish choice.key if choice && choice.enabled
+    end
+
+    # Updates the named choices in the prompt's offered line.
+    private def update_choices : Nil
+      @offered.text = named_offered
+    end
+
+    # The named choices, with the selected one bracketed.
+    private def named_offered : String
+      @choices.map_with_index do |choice, index|
+        label = choice.enabled ? choice.label : "#{choice.label} (unavailable)"
+        index == @choice_index ? "[ #{label} ]" : label
+      end.join("   ")
+    end
+
     # Takes the question down. Runs `#on_answer` with *key*.
     #
     # The keymap goes with it. A closed prompt that kept its bindings would
@@ -161,6 +269,8 @@ module TermBuf::Widgets
       @question = ""
       @keys = ""
       @default = nil
+      @choices = [] of Choice
+      @choice_mode = false
       self.keymap = nil
 
       close
