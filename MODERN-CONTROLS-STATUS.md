@@ -20,6 +20,8 @@ as a complete control scheme in this checkout yet. No changes have been merged i
 * A typed command catalog with stable categories, complete and available projections,
   semantic targets, and read-only viewer restrictions.
 * A regression preventing the key that opens a child menu from activating that child.
+* Compact comparison and named confirmation layouts that keep instructions and safe
+  choices visible at 40x16, including confirmation selection after resizing.
 
 ## Remaining integration and validation
 
@@ -36,6 +38,6 @@ kitty keyboard support. Both schemes keep `<` and `>` for shared staircase navig
 
 ## Latest validation
 
-The integrated foundations pass formatting, ameba, all 4,127 specs, `shards build`, and
+The integrated foundations pass formatting, ameba, all 4,130 specs, `shards build`, and
 the explicit changelog Markdown check. The completed interface will be validated again
 after integration. There are no questions requiring a user decision at this stage.
