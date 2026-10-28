@@ -10,7 +10,8 @@ Spectator.describe TermBuf::Widgets::Prompt do
     session : Headless::Session,
     answers : Array(Char?)
 
-  def asked : Asked
+  def asked(question : String = "Really leave?", columns : Int32 = 50,
+            rows : Int32 = 5) : Asked
     prompt = Widgets::Prompt.new
     answers = [] of Char?
     prompt.on_answer = ->(key : Char?) { answers << key; nil }
@@ -19,13 +20,17 @@ Spectator.describe TermBuf::Widgets::Prompt do
       width: Widgets::Layout::Sizing.grow,
       height: Widgets::Layout::Sizing.grow)
     root.add prompt
-    session = Headless.open root, 50, 5
-    prompt.ask session.app, "Really leave?",
+    session = Headless.open root, columns, rows
+    prompt.ask session.app, question,
       [Choice.new('y', "Yes"), Choice.new('n', "No")],
       default: 'n', navigation: Navigation.selectable
     session.render
 
     Asked.new prompt, session, answers
+  end
+
+  def readable(run : Asked) : String
+    run.session.rows.join(' ').gsub(/[╭╮╰╯─│]/, " ").gsub(/\s+/, " ")
   end
 
   it "offers named choices with the safe default selected" do
@@ -66,5 +71,51 @@ Spectator.describe TermBuf::Widgets::Prompt do
     canceled = asked
     canceled.session.press "Escape"
     expect(canceled.answers).to eq [nil]
+  end
+
+  it "shows both answers inside a 40 by 16 screen for a long exit question" do
+    run = asked "Leave the dungeon by this staircase?", 40, 16
+    screen = readable(run)
+
+    expect(screen).to contain "Leave the dungeon"
+    expect(screen).to contain "Yes"
+    expect(screen).to contain "[ No ]"
+    expect(run.prompt.rect.x).to be >= 0
+    expect(run.prompt.rect.y).to be >= 0
+    expect(run.prompt.rect.x + run.prompt.rect.width).to be <= 40
+    expect(run.prompt.rect.y + run.prompt.rect.height).to be <= 16
+
+    run.session.press "w"
+    expect(run.prompt.offered).to contain "[ Yes ]"
+    run.session.press "s"
+    expect(run.prompt.offered).to contain "[ No ]"
+    run.session.press "f"
+    expect(run.answers).to eq ['n']
+
+    canceled = asked "Leave the dungeon by this staircase?", 40, 16
+    canceled.session.press "Escape"
+    expect(canceled.answers).to eq [nil]
+  end
+
+  it "wraps a longer question and keeps answers visible at compact and wide sizes" do
+    question = "Are you sure you want to leave the dungeon by this staircase? " \
+               "This ends the expedition and abandons every item you are carrying."
+
+    [{40, 16}, {80, 24}].each do |columns, rows|
+      run = asked question, columns, rows
+      screen = readable(run)
+
+      expect(screen).to contain "Are you sure you want"
+      expect(screen).to contain "every item you are carrying."
+      expect(screen).to contain "Yes"
+      expect(screen).to contain "[ No ]"
+      expect(run.prompt.rect.x + run.prompt.rect.width).to be <= columns
+      expect(run.prompt.rect.y + run.prompt.rect.height).to be <= rows
+
+      run.session.press "w"
+      run.session.press "s"
+      run.session.press "f"
+      expect(run.answers).to eq ['n']
+    end
   end
 end
