@@ -4,10 +4,11 @@ require "../roguelike"
 module Roguelike
   # Who fights whom.
   #
-  # Every faction is hostile to the character. Goblins and orcs are hostile
-  # to each other and to slimes. Slimes, ants and jellies are hostile to
-  # everything, another band of their own kind included. Members of one band
-  # never fight each other.
+  # Every faction is hostile to the character. Goblins, orcs and the undead
+  # are hostile to every faction but their own. Slimes, ants, jellies,
+  # beasts and demons are hostile to everything, another band of their own
+  # kind included. Constructs fight the character and nothing else, and
+  # nothing else fights them. Members of one band never fight each other.
   #
   # A member is never removed and never reordered. A save file holds the
   # member name.
@@ -21,12 +22,16 @@ module Roguelike
     Slime
     Ant
     Jelly
+    Beast
+    Undead
+    Demon
+    Construct
 
     # Whether a band of this faction fights a band of *other*.
     #
     # Answers for two different bands. One band never fights itself.
     def hostile?(other : Faction) : Bool
-      return false if dungeon? || other.dungeon?
+      return false if aloof? || other.aloof?
       return true if wild? || other.wild?
 
       self != other
@@ -34,7 +39,12 @@ module Roguelike
 
     # Whether this faction fights every other band, its own kind included.
     def wild? : Bool
-      slime? || ant? || jelly?
+      slime? || ant? || jelly? || beast? || demon?
+    end
+
+    # Whether this faction fights the character and no other creature.
+    def aloof? : Bool
+      dungeon? || construct?
     end
 
     # What this faction is called.

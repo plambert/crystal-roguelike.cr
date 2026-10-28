@@ -121,6 +121,28 @@ Spectator.describe "factions" do
       end
     end
 
+    it "sets beasts and demons against everything, their own kind included" do
+      {Faction::Beast, Faction::Demon}.each do |wild|
+        expect(wild.wild?).to be_true
+        expect(wild.hostile? wild).to be_true
+        expect(wild.hostile? Faction::Undead).to be_true
+        expect(Faction::Goblin.hostile? wild).to be_true
+      end
+    end
+
+    it "sets the undead against every faction but their own" do
+      expect(Faction::Undead.hostile? Faction::Undead).to be_false
+      expect(Faction::Undead.hostile? Faction::Orc).to be_true
+      expect(Faction::Slime.hostile? Faction::Undead).to be_true
+    end
+
+    it "keeps constructs out of every fight between creatures" do
+      Faction.each do |other|
+        expect(Faction::Construct.hostile? other).to be_false
+        expect(other.hostile? Faction::Construct).to be_false
+      end
+    end
+
     it "gives a placed band its first member's faction" do
       game, _placed = game_on HALL, [{Kind::Orc, {9, 2}, "orcs"}]
 
