@@ -837,6 +837,7 @@ module Roguelike
         attributes: Attributes.new(strength: 10, dexterity: 6, constitution: 14,
           intelligence: 2, stealth: 4)),
 
+      # Hide, once body armor sets the step cost: none, a step of 90.
       Kind::Rat => KindFacts.new(Species::Rat, 'r', "rat", "rats",
         "a gray rat as long as your forearm, never alone and quick to run",
         hit_dice: Dice.new(1, 4, 1), damage: Dice.new(1, 3), armor: 0,
@@ -846,6 +847,7 @@ module Roguelike
         attributes: Attributes.new(strength: 6, dexterity: 13, constitution: 8,
           intelligence: 5, stealth: 15)),
 
+      # Hide, once body armor sets the step cost: none, a step of 90.
       Kind::GiantRat => KindFacts.new(Species::Rat, 'r', "giant rat",
         "giant rats", "a rat the size of a small dog, with yellow teeth and a filthy bite",
         hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 1,
@@ -855,6 +857,7 @@ module Roguelike
         attributes: Attributes.new(strength: 9, dexterity: 13, constitution: 10,
           intelligence: 5, stealth: 13)),
 
+      # Hide, once body armor sets the step cost: none, a step of 90.
       Kind::Wolf => KindFacts.new(Species::Wolf, 'd', "wolf", "wolves",
         "a lean gray wolf that hunts with its pack and circles to your back",
         hit_dice: Dice.new(2, 6), damage: Dice.new(1, 4), armor: 1,
@@ -865,6 +868,7 @@ module Roguelike
         attributes: Attributes.new(strength: 11, dexterity: 14, constitution: 12,
           intelligence: 8, stealth: 14)),
 
+      # Hide, once body armor sets the step cost: light, a step of 95.
       Kind::Werewolf => KindFacts.new(Species::Wolf, 'd', "werewolf", "werewolves",
         "a wolf too large and too clever to be only a wolf, that leads the pack",
         hit_dice: Dice.new(4, 8, 4), damage: Dice.new(2, 4), armor: 4,
@@ -875,6 +879,7 @@ module Roguelike
         attributes: Attributes.new(strength: 15, dexterity: 14, constitution: 14,
           intelligence: 10, stealth: 13)),
 
+      # Hide, once body armor sets the step cost: heavy, a step of 105.
       Kind::Bear => KindFacts.new(Species::Bear, 'B', "bear", "bears",
         "a huge brown bear that does not like being woken",
         hit_dice: Dice.new(4, 8, 6), damage: Dice.new(2, 6), armor: 3,
@@ -884,6 +889,7 @@ module Roguelike
         attributes: Attributes.new(strength: 18, dexterity: 9, constitution: 16,
           intelligence: 5, stealth: 8)),
 
+      # Hide, once body armor sets the step cost: medium, a step of 100.
       Kind::Boar => KindFacts.new(Species::Boar, 'q', "boar", "boars",
         "a bristling wild boar with tusks like knives, that fights until it drops",
         hit_dice: Dice.new(3, 8), damage: Dice.new(1, 6), armor: 3,
@@ -893,6 +899,7 @@ module Roguelike
         attributes: Attributes.new(strength: 13, dexterity: 10, constitution: 14,
           intelligence: 4, stealth: 9)),
 
+      # Hide, once body armor sets the step cost: light, a step of 95.
       Kind::GiantSnake => KindFacts.new(Species::Snake, 'S', "giant snake",
         "giant snakes", "a snake as thick as your leg that lies still until you are close",
         hit_dice: Dice.new(4, 6, 2), damage: Dice.new(1, 8), armor: 3,
@@ -902,6 +909,7 @@ module Roguelike
         attributes: Attributes.new(strength: 14, dexterity: 12, constitution: 14,
           intelligence: 4, stealth: 16)),
 
+      # Hide, once body armor sets the step cost: light, a step of 95.
       Kind::Skeleton => KindFacts.new(Species::Undead, 'Z', "skeleton",
         "skeletons", "a rattling skeleton that walks without a mind and often carries an old blade",
         hit_dice: Dice.new(2, 6, 2), damage: Dice.new(1, 6), armor: 3,
@@ -911,6 +919,7 @@ module Roguelike
         attributes: Attributes.new(strength: 11, dexterity: 11, constitution: 10,
           intelligence: 3, stealth: 10)),
 
+      # Hide, once body armor sets the step cost: heavy, a step of 105.
       Kind::Zombie => KindFacts.new(Species::Undead, 'Z', "zombie", "zombies",
         "a shambling corpse that is slow, hard to stop and never gives up",
         hit_dice: Dice.new(3, 6, 4), damage: Dice.new(1, 8), armor: 1,
@@ -920,6 +929,7 @@ module Roguelike
         attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 16,
           intelligence: 2, stealth: 6)),
 
+      # Hide, once body armor sets the step cost: none, a step of 90.
       Kind::Imp => KindFacts.new(Species::Imp, 'i', "imp", "imps",
         "a tiny red devil with leathery wings, quick, spiteful and hard to hit",
         hit_dice: Dice.new(2, 4, 3), damage: Dice.new(1, 4), armor: 3,
@@ -930,6 +940,7 @@ module Roguelike
         attributes: Attributes.new(strength: 8, dexterity: 17, constitution: 10,
           intelligence: 12, stealth: 15)),
 
+      # Hide, once body armor sets the step cost: very heavy, a step of 110.
       Kind::GelatinousCube => KindFacts.new(Species::Cube, 'C', "gelatinous cube",
         "gelatinous cubes", "a clear quivering block that fills the passage, with old things floating inside it",
         hit_dice: Dice.new(6, 8, 6), damage: Dice.new(2, 6), armor: 0,
@@ -939,6 +950,7 @@ module Roguelike
         attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 18,
           intelligence: 1, stealth: 16)),
 
+      # Hide, once body armor sets the step cost: very heavy, a step of 110.
       Kind::StoneGolem => KindFacts.new(Species::Golem, 'G', "stone golem",
         "stone golems", "a slow giant of carved stone that guards this place and nothing else",
         hit_dice: Dice.new(8, 8), damage: Dice.new(2, 8), armor: 6,
@@ -948,6 +960,7 @@ module Roguelike
         attributes: Attributes.new(strength: 18, dexterity: 10, constitution: 18,
           intelligence: 1, stealth: 6)),
 
+      # Hide, once body armor sets the step cost: very heavy, a step of 110.
       Kind::IronGolem => KindFacts.new(Species::Golem, 'G', "iron golem",
         "iron golems", "a towering figure of black iron that walks with a sound like a forge",
         hit_dice: Dice.new(8, 10), damage: Dice.new(2, 8), armor: 8,
