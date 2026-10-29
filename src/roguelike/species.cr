@@ -890,7 +890,7 @@ module Roguelike
         notice: 12, darkvision: true, paths: true, experience: 40,
         persistence: 40, speed: 125, verb: "bites",
         opens_doors: true, surrounds: true, sharing: Sharing::Called,
-        depths: 6..9, faction: Faction::Beast, hide: Bulk::Light,
+        depths: 6..10, faction: Faction::Beast, hide: Bulk::Light,
         attributes: Attributes.new(strength: 15, dexterity: 14, constitution: 14,
           intelligence: 10, stealth: 13)),
 
@@ -963,7 +963,7 @@ module Roguelike
         hit_dice: Dice.new(8, 8), damage: Dice.new(2, 8), armor: 6,
         notice: 5, darkvision: true, paths: false, experience: 45,
         size: Size::Large, persistence: 100, speed: 75, swing: 120, verb: "pounds",
-        alone: true, depths: 6..9, faction: Faction::Construct, hide: Bulk::VeryHeavy,
+        alone: true, depths: 6..10, faction: Faction::Construct, hide: Bulk::VeryHeavy,
         attributes: Attributes.new(strength: 18, dexterity: 10, constitution: 18,
           intelligence: 1, stealth: 6)),
 

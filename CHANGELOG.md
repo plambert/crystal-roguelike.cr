@@ -32,7 +32,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Rats come in packs from the first floor and giant rats from the second. Wolves hunt in packs of
   two or three from the third floor and circle round to your back. Boars come from the third
   floor, giant snakes lie alone from the fourth and bears from the fifth. Werewolves lead wolf
-  packs below the fifth floor.
+  packs from the sixth floor down to the tenth.
 * Beasts fight every other band of creatures, other beasts included.
 * Skeletons and zombies share rooms from the second floor. They walk straight at you, never run
   and go on looking for you a long time. A skeleton often carries an old weapon and fights with it.
@@ -41,8 +41,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   and fight every other band of creatures.
 * Gelatinous cubes come from the fifth floor. They are slow and tough, and often hold coins and
   potions.
-* Stone and iron golems guard the floors below the fifth. A golem fights only you, and no other
-  creature fights it.
+* Stone and iron golems guard the floors below the fifth, and stone golems go down to the
+  tenth. A golem fights only you, and no other creature fights it.
 * The dungeon is ten floors deep, and the amulet chamber lies under floor 10. Floors 1 to 4 are
   as before, and floor 5 gains goblin warriors and blue slimes. Below floor 5 the slimes, goblins,
   ants and jellies give out one by one, and floors 9 and 10 belong to the orcs.
