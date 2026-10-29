@@ -498,6 +498,7 @@ module Roguelike
     StoneGolem
     IronGolem
     OrcWarlord
+    GoblinSkirmisher
 
     # What this kind is. Every method below reads one field of it.
     def facts : KindFacts
@@ -983,6 +984,17 @@ module Roguelike
         depths: World::VAULT..World::VAULT, faction: Faction::Orc,
         attributes: Attributes.new(strength: 18, dexterity: 12, constitution: 16,
           intelligence: 12, stealth: 8)),
+
+      # Labeled "goblin warrior". `Loot::GARBS` rolls what it wears.
+      Kind::GoblinSkirmisher => KindFacts.new(Species::Goblin, 'g', "goblin warrior",
+        "goblin warriors", "a wiry goblin with a dagger, quick to close and quick to stab, and easy to hurt",
+        hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 4), armor: -2,
+        notice: 9, darkvision: false, paths: true, experience: 5,
+        size: Size::Small, persistence: 8, speed: 110,
+        weapon: ItemKind::Dagger, light: 30, opens_doors: true, flees: true, wields: true,
+        depths: 1..4, faction: Faction::Goblin,
+        attributes: Attributes.new(strength: 11, dexterity: 15, constitution: 8,
+          intelligence: 7, stealth: 14)),
     }
 
     # Every character a floor file may hold for a monster, and the kind it

@@ -152,10 +152,10 @@ Spectator.describe "floors of the dungeon" do
   end
 
   describe Spawns do
-    it "puts white and blue slimes, goblin scouts and rats on floor 1, and nothing else" do
+    it "puts white and blue slimes, goblin scouts and warriors and rats on floor 1, and nothing else" do
       expect(Spawns.weights(1).keys.to_set).to eq Set{
         Roguelike::Kind::WhiteSlime, Roguelike::Kind::BlueSlime,
-        Roguelike::Kind::GoblinScout, Roguelike::Kind::Rat,
+        Roguelike::Kind::GoblinScout, Roguelike::Kind::Rat, Roguelike::Kind::GoblinSkirmisher,
       }
     end
 

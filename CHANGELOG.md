@@ -61,6 +61,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   each blow and does not slow your walking.
 * A padded jacket, a light body armor that is easier to move in than leather and protects less.
 * Creatures in armor are slowed by the same rule. Goblin scouts wear small leather armor.
+* A new goblin warrior comes alone or in pairs on the first four floors. It has a dagger, strikes
+  quickly and dies quickly. Most wear small leather armor, some a masterwork suit, and a few a
+  padded jacket, which makes them quicker still.
 * A creature's own hide counts as its body armor when it wears none. Rats, wolves and imps walk
   a tenth quicker than a turn a step. Bears and zombies walk a little slower, and gelatinous cubes
   and golems slower still.

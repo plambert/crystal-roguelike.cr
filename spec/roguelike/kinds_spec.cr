@@ -144,7 +144,7 @@ Spectator.describe Roguelike::Kind do
     it "keeps to a species and to company when asked" do
       found = Roguelike::Spawns.weights 2, Species::Goblin, alone: false
 
-      expect(found.keys).to eq [Kind::GoblinWarrior]
+      expect(found.keys).to eq [Kind::GoblinWarrior, Kind::GoblinSkirmisher]
     end
 
     it "makes goblin scouts rarer on floor 1 than on floor 2" do

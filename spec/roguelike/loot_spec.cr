@@ -21,7 +21,7 @@ Spectator.describe Roguelike::Loot do
   # would count toward the armor draw.
   def rolled(species : Creature, seed : UInt64 = SEED) : Array(Array(Item))
     rng = Rng.new(seed).derive "loot:#{species}"
-    worn = species.garb ? 1 : 0
+    worn = species.garb || Loot::GARBS.has_key?(species) ? 1 : 0
 
     Array.new(ROLLS) { Loot.for(species, rng)[worn..] }
   end

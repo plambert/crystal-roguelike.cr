@@ -254,6 +254,19 @@ module Roguelike
       ],
     }
 
+    # The body armor a kind rolls for when it is placed, with the weight of
+    # each piece. A kind here has no `Kind#garb`.
+    #
+    # A goblin warrior is most often in small leather, sometimes in
+    # masterwork leather, and now and then in a padded jacket.
+    GARBS = {
+      Kind::GoblinSkirmisher => [
+        { {ItemKind::LeatherArmor, Condition::Plain}, 80 },
+        { {ItemKind::LeatherArmor, Condition::Masterwork}, 15 },
+        { {ItemKind::PaddedJacket, Condition::Plain}, 5 },
+      ],
+    }
+
     # The draws *kind* makes.
     #
     # Its weapon first: the one it always carries, or a roll on `WEAPONS` as
@@ -287,6 +300,7 @@ module Roguelike
       found = Set(ItemKind).new
       draws(kind).each { |draw| draw.kinds.each_key { |item| found << item } }
       as_kind(kind).garb.try { |garb| found << garb }
+      GARBS[as_kind(kind)]?.try &.each { |(garb, _), _| found << garb }
       ranged_weapon = as_kind(kind).ranged_weapon
       if ranged_weapon
         found << ranged_weapon
@@ -307,7 +321,8 @@ module Roguelike
     #
     # The body armor a kind always wears, its `Kind#garb`, comes first and
     # plain. It rolls nothing either, so what else the creature carries is
-    # what it carried before it had any.
+    # what it carried before it had any. A kind in `GARBS` rolls its body
+    # armor there instead, before anything else.
     #
     # The weapon comes first, so `Monster#outfit` readies it before anything
     # else that wants the hand.
@@ -317,6 +332,10 @@ module Roguelike
 
       garb = as_kind(kind).garb
       found << Item.new(garb, size: size) if garb
+      GARBS[as_kind(kind)]?.try do |garbs|
+        piece, condition = Items.pick rng, garbs
+        found << Item.new(piece, condition: condition, size: size)
+      end
 
       draws(kind).each do |draw|
         taken = one draw, rng, depth, size

@@ -95,6 +95,7 @@ module Roguelike::Ui
     color stone_golem, 0xC0B4A0
     color iron_golem, 0x78B4FF
     color orc_warlord, 0xFFC080
+    color goblin_skirmisher, 0x7C8CFF
     color shape, 0x9A9EA8
 
     color flame, 0xFFB050
@@ -188,6 +189,7 @@ module Roguelike::Ui
       Entry.new("stone_golem", "Creatures", "Stone golem"),
       Entry.new("iron_golem", "Creatures", "Iron golem"),
       Entry.new("orc_warlord", "Creatures", "Orc warlord"),
+      Entry.new("goblin_skirmisher", "Creatures", "Goblin warrior"),
       Entry.new("shape", "Creatures", "Shape you cannot make out"),
 
       Entry.new("flame", "Light", "Flame"),
