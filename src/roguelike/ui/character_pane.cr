@@ -59,6 +59,10 @@ module Roguelike::Ui
     # the label says who the bar is about instead.
     THREAT_LABEL = "vs"
 
+    # What the noise bar is labeled. A note, where the other bars have two
+    # letters. The word goes inside the bar with the count.
+    NOISE_LABEL = "♪"
+
     # Where the gold starts on the number rows. The armor class has the
     # columns before it.
     GOLD = 5
@@ -76,6 +80,12 @@ module Roguelike::Ui
 
     # The bar for the creature the character is fighting.
     getter threat : Meter
+
+    # How far the character's recent noise carries.
+    getter noise : Meter
+
+    # The row of the noise bar. Hidden while the character is quiet.
+    getter noisy : Widgets::Panel
 
     # Armor class, gold and the turn, under their names.
     #
@@ -112,6 +122,7 @@ module Roguelike::Ui
       @magic = Meter.new "MP", levels: Palette.magic
       @learning = Meter.new "XP", levels: Palette.learning
       @threat = Meter.new THREAT_LABEL, levels: Palette.threat
+      @noise = Meter.new NOISE_LABEL, levels: Palette.noise
       @number_names = Line.new
       @numbers = Line.new
       @score_names = Line.new
@@ -133,6 +144,10 @@ module Roguelike::Ui
         height: Layout::Sizing.fit,
         padding: Layout::Padding.symmetric(horizontal: 1))
       @vitals.add @who, @health, @magic, @learning, @fight
+
+      @noisy = CharacterPane.block @noise
+      @noisy.hidden = true
+      @vitals.add @noisy
 
       @scoring = InfoPanel.section SCORES
       @scoring.body.add @number_names, @numbers, @score_names, @scores
@@ -165,6 +180,7 @@ module Roguelike::Ui
       @magic.retheme Palette.magic
       @learning.retheme Palette.learning
       @threat.retheme Palette.threat
+      @noise.retheme Palette.noise
     end
 
     # The three sections, top first.
@@ -209,6 +225,7 @@ module Roguelike::Ui
       @magic.show 0, 0
       learned player
       fought game
+      heard game
 
       @number_names.clear
       @number_names.put 0, "AC", Palette.faint
@@ -280,6 +297,16 @@ module Roguelike::Ui
       left = game.floor.door_health spot[0], spot[1]
       whole = Floor::WOODEN_DOOR
       @threat.show left, whole, "door #{left}/#{whole}"
+    end
+
+    # The noise bar: how many squares the character's recent noise carries.
+    #
+    # It is out of the loudest sound there is, and it falls as turns pass.
+    # The row is hidden at zero.
+    private def heard(game : Game) : Nil
+      carried = game.noise
+      @noisy.hidden = carried.zero?
+      @noise.show carried, Noise::LOUDEST, "noise #{carried}"
     end
 
     # The five scores, with their names over them.

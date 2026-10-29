@@ -1871,6 +1871,7 @@ module Roguelike
       jar
 
       wake creature if creature.alive?
+      make_noise Noise::Sound.new(@player.at, :blow, character: @player.at)
       spend Costs.swing(@player.wielded)
       blow
     end
@@ -2164,6 +2165,7 @@ module Roguelike
         @sighted << missile.id
         floor.drop spot[0], spot[1], missile
       end
+      make_noise Noise::Sound.new(spot, :landing, character: spot)
       spend cost
     end
 
@@ -2759,6 +2761,8 @@ module Roguelike
       end
 
       floor.drop spot[0], spot[1], one if wear one
+      make_noise Noise::Sound.new(spot, :landing, character: @player.at,
+        creature: creature)
       Costs.loose weapon
     end
 
@@ -2988,6 +2992,8 @@ module Roguelike
             fight_facts(creature, nil, held, dice: dice, blow: blow))
       end
 
+      make_noise Noise::Sound.new(@player.at, :blow, character: @player.at,
+        creature: creature)
       blow
     end
 
@@ -3075,6 +3081,7 @@ module Roguelike
         fell creature, victim, shown
       end
 
+      make_noise Noise::Sound.new(victim.at, :blow, creature: creature)
       blow
     end
 
@@ -3085,7 +3092,7 @@ module Roguelike
 
       band.knowledge(floor.id).saw Knowledge.creature(attacker.id),
         attacker.x, attacker.y, @turn
-      band.awareness = Awareness::Hunting if band.awareness.asleep?
+      band.awareness = Awareness::Hunting unless band.awake?
     end
 
     # Takes *victim*, killed by *killer*, off the floor.
@@ -3187,6 +3194,7 @@ module Roguelike
       creatures_notice seen, noticed, spotted
       creatures_look fields, noticed, spotted
       creatures_act
+      creatures_stir
       creatures_split unless over?
     end
 
@@ -3341,7 +3349,7 @@ module Roguelike
         knowledge = band.knowledge floor.id
 
         if creature || found
-          woke = band.awareness.asleep?
+          woke = !band.awake?
           band.awareness = Awareness::Hunting
           knowledge.saw Knowledge::PLAYER, @player.x, @player.y, @turn if creature
           found.try &.each do |other|
@@ -3625,7 +3633,7 @@ module Roguelike
       return unless band
 
       band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
-      return unless band.awareness.asleep?
+      return if band.awake?
 
       band.awareness = Awareness::Hunting
       say "The #{creature.label} notices you.",
@@ -3864,9 +3872,6 @@ module Roguelike
     # nothing in the hand.
     BARE_DOOR = "You need a weapon to break the door down."
 
-    # How many squares from a door the crash of it breaking carries.
-    NOISE_REACH = 6
-
     # Whether the shut door one step *direction* will not open for the
     # character.
     def stuck?(direction : Direction) : Bool
@@ -3935,6 +3940,7 @@ module Roguelike
       damage = Combat.damage exchange, @player.damage
       left = floor.batter spot[0], spot[1], damage
 
+      make_noise Noise::Sound.new(spot, :door_struck, character: @player.at)
       if left.zero?
         record Event::DoorStruck.new(spot, damage)
         smash spot
@@ -3967,30 +3973,7 @@ module Roguelike
       @forcing = nil
       handled spot
       say "The door breaks!", Event::DoorBroken.new(spot)
-      alarm spot
-    end
-
-    # Tells every band with a member within `NOISE_REACH` of *spot* where
-    # the character is.
-    #
-    # This stands in for the crash of a door until the game has a noise
-    # system. A band asleep wakes and searches, the way a hunting band does
-    # once it loses sight of its quarry.
-    private def alarm(spot : {Int32, Int32}) : Nil
-      heard = Set(String).new
-      floor.each_monster do |column, row, creature|
-        next unless Math.max((column - spot[0]).abs, (row - spot[1]).abs) <= NOISE_REACH
-
-        heard << creature.band
-      end
-
-      heard.each do |id|
-        band = floor.band id
-        next unless band
-
-        band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
-        band.awareness = Awareness::Alert if band.awareness.asleep?
-      end
+      make_noise Noise::Sound.new(spot, :door_broken, character: @player.at)
     end
 
     # Gives up the door target once it no longer stands.
@@ -6305,13 +6288,15 @@ module Roguelike
       spot = shot.at
       struck = floor.monster spot[0], spot[1]
 
-      unless struck
+      if struck
+        hit struck, "bolt", @player.to_zap, item.kind.power, item
+      else
         say "The bolt strikes the #{floor.terrain(spot[0], spot[1]).label}.",
           Event::BoltStopped.new(spot, floor.terrain(spot[0], spot[1]).label)
-        return
       end
 
-      hit struck, "bolt", @player.to_zap, item.kind.power, item
+      # After the hit, so the creature struck wakes hunting and says so.
+      make_noise Noise::Sound.new(spot, :bolt, character: @player.at)
     end
 
     # ------------------------------------------------------------ equipment
@@ -6706,6 +6691,8 @@ module Roguelike
       @events.clear
       @recorder.try &.events.try &.drop
       @flights.clear
+      @echoes.clear
+      @overheard.clear
       return Verdict.refused if over?
 
       recording

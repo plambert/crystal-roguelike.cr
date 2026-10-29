@@ -2,21 +2,21 @@
  HP        0/12         │#..o....#
  XP        0/20         │#..@...>#
  vs      orc 14/14      │#########
- ▼ Scores ╭─ You died ───────────────────────────────────────╮
- AC   Gold│  Killed by an orc.                               │
- 0    37  │                                                  │
- St Dx Cn │  turn 1                                          │
- 10 10 10 │  level 1, 0 experience                           │
- ▶ Equipme│  37 gold                                         │
- ▶ Pack   │                                                  │
- ▼ Here   │  You were carrying:                              │
-   stairca│    a torch                                       │
- ▼ Seen   │    a +1 long sword (weapon in hand)              │
-   orc    │    12 arrows                                     │
- ▼ Look   │    a potion of healing                           │
- Point at │                                                  │
- press x. │  seed 20260915                                   │
-          │  Play again? y starts a new run, n quits.  [yN]  │
+ ♪        ╭─ You died ───────────────────────────────────────╮
+ ▼ Scores │  Killed by an orc.                               │
+ AC   Gold│                                                  │
+ 0    37  │  turn 1                                          │
+ St Dx Cn │  level 1, 0 experience                           │
+ 10 10 10 │  37 gold                                         │
+ ▶ Equipme│                                                  │
+ ▶ Pack   │  You were carrying:                              │
+ ▼ Here   │    a torch                                       │
+   stairca│    a +1 long sword (weapon in hand)              │
+ ▼ Seen   │    12 arrows                                     │
+   orc    │    a potion of healing                           │
+ ▼ Look   │                                                  │
+ Point at │  seed 20260915                                   │
+ press x. │  Play again? y starts a new run, n quits.  [yN]  │
           ╰──────────────────────────────────────────────────╯──────────
                         │ You miss the orc.
                         │ The orc notices you.

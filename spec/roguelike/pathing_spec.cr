@@ -67,6 +67,13 @@ Spectator.describe "creatures pathing around each other" do
     goblin
   end
 
+  # Puts the plug's band back to sleep. It hears the fight beside it, and a
+  # plug that walked off would leave the corridor open.
+  def hush(game : Game) : Nil
+    band = game.floor.band "band-asleep"
+    band.awareness = Awareness::Asleep if band
+  end
+
   describe "a corridor with a creature standing in it" do
     # The plug is in the top corridor, and the two goblins behind it can
     # only reach the character by the bottom one.
@@ -77,6 +84,7 @@ Spectator.describe "creatures pathing around each other" do
       furthest = members.map &.x
       20.times do
         game.wait
+        hush game
         members.each_with_index { |member, index| furthest[index] = {furthest[index], member.x}.min }
       end
 

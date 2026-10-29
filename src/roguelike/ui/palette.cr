@@ -278,6 +278,10 @@ module Roguelike::Ui
     # with being early in a level.
     drawn learning : Array({Int32, TermBuf::Color}) = [{100, light_green}, {0, light_green}]
 
+    # The noise bar, which is one color however full it is. Dark text on it
+    # is about 7 to 1, and it is about 4.5 to 1 against the empty part.
+    drawn noise : Array({Int32, TermBuf::Color}) = [{100, theme.noise_bar}, {0, theme.noise_bar}]
+
     # What a bar of *levels* is drawn in at *percent* full.
     #
     # At or above the first level it is the first color. Between two levels
@@ -662,5 +666,6 @@ module Roguelike::Ui
 
       Look.new look.glyph, shade.bg(ground)
     end
+
   end
 end
