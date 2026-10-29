@@ -43,11 +43,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   potions.
 * Stone and iron golems guard the floors below the fifth. A golem fights only you, and no other
   creature fights it.
-* The dungeon is ten floors deep, and the amulet chamber lies under floor 10. Floors 1 to 4 are
-  as before, and floor 5 gains goblin warriors and blue slimes. Below floor 5 the slimes, goblins,
-  ants and jellies give out one by one, and floors 9 and 10 belong to the orcs.
-* Floors below floor 5 have more rooms with creatures in them and more creatures to a room, and
-  they are drawn larger, up to a third larger on floor 10.
+* The dungeon is ten floors deep, and the amulet chamber lies under floor 10. Below floor 5 the
+  slimes, goblins, ants and shallow beasts give out one by one. Orcs grow commoner with depth.
+  Werewolves and stone golems hold floors 6 to 9, and orcs and iron golems hold floor 10.
+* From floor 5 down, rooms hold more creatures, and from floor 7 down more rooms hold any. Floors
+  below floor 5 are drawn larger, up to a third larger on floor 10.
 * Gold piles below floor 5 are larger. Items on floors 8 to 10 can be up to +4, and orc archers
   carry more +1 arrows the deeper they live.
 * Ulgroth, the orc warlord, guards the amulet with two orcs and an orc archer. The chamber is now
