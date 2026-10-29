@@ -26,18 +26,19 @@ module Roguelike
 
     # Every creature the generator may put on a floor.
     #
-    # Floor 1 holds white and blue slimes, rat packs and goblin scouts.
-    # Goblin scouts and rats are rarer on floor 1 than below it. Ants come in
+    # Floor 1 holds white and blue slimes, rat packs, goblin scouts and a
+    # few goblin warriors. Goblin scouts, goblin warriors and rats are rarer
+    # on floor 1 than below it. Ants come in
     # bands of three to five from floor 2. Giant rats, skeletons and zombies
     # join them on floor 2. Orcs, wolves, boars and a lone jelly come from
     # floor 3, the orc archer, imps and giant snakes from floor 4, and bears
     # and gelatinous cubes from floor 5.
     #
     # The slimes, goblins, ants and the shallow beasts give out between
-    # floors 5 and 9. Werewolves and stone golems hold floors 6 to 9, and
-    # iron golems floors 8 to 10. Floor 10 holds orcs, orc archers and iron
-    # golems. The iron golem's weight is high so that floor 10 is not left
-    # to the orcs alone.
+    # floors 5 and 9. Werewolves and stone golems hold floors 6 to 10, and
+    # iron golems floors 8 to 10. Floor 10 holds orcs, orc archers,
+    # werewolves and both golems. The iron golem's weight is high so that
+    # floor 10 is not left to the orcs alone.
     #
     # The orc warlord appears only in the amulet chamber, which is built
     # rather than dug, so its row is never rolled.
