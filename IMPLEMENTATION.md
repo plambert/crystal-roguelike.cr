@@ -5561,6 +5561,38 @@ How far a sound got is the furthest square the spread reached, so a swing in a s
 reads lower than the same swing in a hall. The bar is one color, `noise_bar`, a violet that keeps
 dark text at about 7 to 1 and stands about 4.5 to 1 off the empty part.
 
+### The tint
+
+For the action after the character makes a sound, the map tints every square it reached that the
+character can see or remembers. A square nobody has seen stays blank, so the tint draws no ground
+the character does not know. The next action takes the tint off.
+
+* The tint has `Palette::NOISE_STEPS`, four, shades mixed from `noise_far` at the edge to
+  `noise_near` at the source. Both are dark violets, so light glyphs keep their contrast on them.
+* A glyph with less than `Palette::NOISE_CONTRAST`, 4.5 to 1, on its shade is lifted toward
+  `noise_text` in quarters until it has that much. `Palette.contrast` is the WCAG ratio.
+* With motion on, the tint spreads out as a ring along the distance map, one step of distance every
+  `Play::RIPPLE`, 30 ms, which is two missile frames. The squares at the front draw on `noise_wave`,
+  a brighter violet, and the squares behind it take their shade. The whole tint holds once the ring
+  has reached as far as the sound did. With motion off, or with no clock, it is drawn whole at once.
+* A missile is one glyph moving along a line. The ring is a background across many squares,
+  following the distance contours, with no glyph of its own, so the two do not look alike.
+
+### The mark for a sound heard
+
+A sound the character hears and cannot see the source of is marked on the map with `♪`,
+`Palette::HEARD`, in `heard_mark`, a bright cyan. The mark goes on the last square in sight along
+the line from the character toward the sound, or on the square beside the character in that
+direction when nothing further is in sight. The character never learns the source square, so the
+mark gives a direction and no more. It stays until the next action. With motion on it blinks
+`Play::HEARD_BLINKS`, four, times at `Play::BLINK` and then holds lit. With motion off it is drawn
+once and holds still.
+
+The mark was to be the ear, U+1F442. termbuf measures it as two columns, and a map square is one
+column, so the grid drew nothing in its place. The note is one column and matches the bar label.
+
+The six colors are in the theme editor: five under Map and `noise_bar` under Bars.
+
 ### Decisions
 
 * **One noise wakes a band, slowly.** A sleeping band that hears anything stirs, then searches. It

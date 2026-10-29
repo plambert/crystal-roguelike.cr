@@ -124,6 +124,27 @@ module Roguelike::Ui
     # person aiming has to see where the line runs and where it ends.
     getter flight : Hash({Int32, Int32}, TermBuf::Color) = {} of {Int32, Int32} => TermBuf::Color
 
+    # The squares the character's last noise reached, each with how far the
+    # sound had traveled there and the step of the tint it draws at.
+    #
+    # Only a square the character can see or remembers is tinted. A tint on
+    # a blank square would draw the shape of ground nobody has seen.
+    getter echo : Hash({Int32, Int32}, {Int32, Int32}) = {} of {Int32, Int32} => {Int32, Int32}
+
+    # How far out the tint is drawn while it spreads. `nil` draws all of it.
+    #
+    # The squares at the front draw on `Palette.noise_wave`, so the tint
+    # moves out as a ring along the distance map.
+    property echo_front : Int32? = nil
+
+    # Where sounds heard from out of sight are marked. `Game` puts each on a
+    # square in sight or on the square beside the character, so a mark
+    # draws no ground the character does not know.
+    getter heard : Set({Int32, Int32}) = Set({Int32, Int32}).new
+
+    # Whether those marks are drawn now. A blink turns this off and on.
+    getter? heard_lit : Bool = true
+
     # How many drawings of the window an idle pane keeps.
     #
     # The flames go round these in order. Eight shifts of `Flicker::HOLD`
@@ -154,8 +175,10 @@ module Roguelike::Ui
       @grid.background = Palette.ground_style
       @grid.on_draw = ->(view : TermBuf::View, x : Int32, y : Int32, tile : Tile) do
         look = looked_at x, y, tile
+        look = Palette.heard_mark if @heard_lit && @heard.includes?({x, y})
 
         style = look.style
+        style = echoed x, y, look, style
         style = style.bg Palette.offered if @highlights.includes?({x, y})
 
         aimed = @flight[{x, y}]?
@@ -171,6 +194,62 @@ module Roguelike::Ui
         nil
       end
       @grid.on_frame = ->(view : TermBuf::View) { replayed view }
+    end
+
+    # *style* tinted for the character's noise, when it reached *x*, *y*
+    # and the spreading tint has got there.
+    private def echoed(x : Int32, y : Int32, look : Look, style : Style) : Style
+      found = @echo[{x, y}]?
+      return style unless found
+      return style if look == Palette.unseen
+
+      front = @echo_front
+      return style if front && found[0] > front
+      return Palette.heard style, Palette::NOISE_WAVE if front && found[0] == front
+
+      Palette.heard style, found[1]
+    end
+
+    # Marks *spots* as where sounds out of sight were heard.
+    def overhear(spots : Enumerable({Int32, Int32})) : Nil
+      @heard.clear
+      spots.each { |spot| @heard << spot }
+      @heard_lit = true
+      forget_frames
+    end
+
+    # Shows the marks or hides them, for a blink.
+    def heard_lit=(lit : Bool) : Bool
+      forget_frames
+      @heard_lit = lit
+    end
+
+    # Tints the squares *echoes* reached. Where two reached the same square,
+    # it keeps the nearer distance and the brighter step.
+    def hear(echoes : Enumerable(Noise::Echo)) : Nil
+      @echo.clear
+      echoes.each do |echo|
+        echo.reach.each do |spot, away|
+          step = Palette.noise_step away, echo.loudness
+          held = @echo[spot]?
+          @echo[spot] = held ? {Math.min(held[0], away), Math.max(held[1], step)} : {away, step}
+        end
+      end
+      forget_frames
+    end
+
+    # Takes the tint off.
+    def clear_echo : Nil
+      return if @echo.empty?
+
+      @echo.clear
+      @echo_front = nil
+      forget_frames
+    end
+
+    # How far the furthest tinted square is from where the sound began.
+    def echo_reach : Int32
+      @echo.max_of?(&.[1][0]) || 0
     end
 
     # Takes the ground from the palette as it now stands, and drops every

@@ -15,9 +15,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   sound. Noise goes around walls and is muffled by shut doors. A thrown rock draws creatures to
   where it lands.
 * You hear fighting and other noise from out of sight, with the direction it came from, once
-  every ten turns for each kind of sound.
+  every ten turns for each kind of sound. A blinking note on the map points toward it.
 * A noise bar, marked with a note, shows how far your recent noise carried and falls as turns
-  pass. Its color is in the theme editor.
+  pass. For one turn after you make a noise, the map tints the squares it reached, brightest at
+  the source. A ring spreads out from you first unless motion is off. The colors are in the
+  theme editor.
 
 ### Changed
 

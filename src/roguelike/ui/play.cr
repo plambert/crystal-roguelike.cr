@@ -3159,6 +3159,7 @@ module Roguelike::Ui
       offer_directions
       show_route
       show_aim
+      show_noise
       refresh_log
       land
 
