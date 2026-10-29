@@ -61,6 +61,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   each blow and does not slow your walking.
 * A padded jacket, a light body armor that is easier to move in than leather and protects less.
 * Creatures in armor are slowed by the same rule. Goblin scouts wear small leather armor.
+* A creature's own hide counts as its body armor when it wears none. Rats, wolves and imps walk
+  a tenth quicker than a turn a step. Bears and zombies walk a little slower, and gelatinous cubes
+  and golems slower still.
 * The Scores section shows your walking pace and your melee damage per turn, as "1.57 dps".
 * A weapon's description gives the damage per turn you would do with it in your armor, against
   the creature you are fighting or against armor class 2.
