@@ -3979,9 +3979,10 @@ into a weaker scout on floors 1 and 2 and the current goblin from floor 2.
 ### What was built
 
 * `World::DEEPEST` is 10. The amulet chamber is `floor-11`, `World::VAULT`.
-* Floors 1 to 4 dig, stock and spawn exactly as they did. Floor 5 gains goblin warriors and blue
-  slimes, because their depths now reach it. Below floor 5 the shallow kinds give out one by one,
-  and floors 9 and 10 hold orcs and orc archers alone, with jellies on floor 9.
+* Floors 1 to 4 dig and stock as they did. Their creatures are the shallow end of the full roster,
+  described under "The full roster on ten floors" below. Below floor 5 the shallow kinds give out
+  one by one. Werewolves and stone golems hold floors 6 to 9, and floor 10 holds orcs, orc archers
+  and iron golems.
 * `Generator.growth` draws a floor below `Generator::GROWN`, floor 5, larger by `GROWTH`, 6 in 100,
   for each floor below it. Floor 10 is drawn 1.3 times `AREA`. The size stream is untouched, so a
   seed's floors 1 to 5 keep their sizes.
@@ -4016,14 +4017,15 @@ into a weaker scout on floors 1 and 2 and the current goblin from floor 2.
 | 2 | 45 | 1..2 | +1 | 0 | 40 |
 | 3 | 50 | 1..2 | +2 | 10 | 40 |
 | 4 | 50 | 1..3 | +2 | 20 | 40 |
-| 5 | 55 | 1..3 | +3 | 30 | 40 |
+| 5 | 55 | 2..3 | +3 | 30 | 40 |
 | 6 | 55 | 2..3 | +3 | 35 | 48 |
-| 7 | 60 | 2..3 | +3 | 40 | 56 |
-| 8 | 60 | 2..4 | +4 | 45 | 64 |
+| 7 | 65 | 2..4 | +3 | 40 | 56 |
+| 8 | 65 | 2..4 | +4 | 45 | 64 |
 | 9 | 60 | 3..5 | +4 | 50 | 72 |
-| 10 | 60 | 3..5 | +4 | 50 | 80 |
+| 10 | 65 | 3..5 | +4 | 50 | 80 |
 
-Twenty seeds from 1000, each floor dug and stocked:
+Twenty seeds from 1000, each floor dug and stocked, before the full roster. The section on the
+full roster below has the numbers as the game stands:
 
 | floor | area | creatures | experience on the floor | most common |
 |---|---|---|---|---|
@@ -4045,6 +4047,72 @@ Ten winning saves from playtesting reached the amulet at level 6 to 9, with 535 
 experience against about 4,500 on the first five floors. The ten floors now hold about 23,600. A
 character who kills a third to a half of that earns 7,900 to 11,800 and reaches level 11 or 12 by
 floor 10 on the new curve. The old curve stopped at level 10 or 11.
+
+### The full roster on ten floors
+
+The thirteen kinds from the creatures branch fill floors 1 to 10. Their depths and stats are that
+branch's. This pass changed only the density table and one weight.
+
+| kind | depths | weight |
+|---|---|---|
+| rat | 1..3 | 20, and 10 on floor 1, crowd 2..4 |
+| giant rat | 2..4 | 15, crowd 2..3 |
+| skeleton, zombie | 2..5 | 12 each |
+| wolf | 3..6 | 12, crowd 2..3 |
+| boar | 3..6 | 12, crowd 1..2 |
+| imp | 4..7 | 10 |
+| giant snake | 4..7 | 10 |
+| bear | 5..8 | 8 |
+| gelatinous cube | 5..8 | 8 |
+| werewolf | 6..9 | 8 |
+| stone golem | 6..9 | 10 |
+| iron golem | 8..10 | 24, raised from 8 |
+
+* `Spawns::DENSITY` changed on floor 5 from 55 in 100 rooms with 1..3 creatures to 55 with 2..3, on
+  floor 7 from 60 with 2..3 to 65 with 2..4, on floor 8 from 60 to 65, and on floor 10 from 60 to
+  65. Floors 1 to 4 are untouched.
+* The iron golem's weight is 24, so about half the inhabited rooms on floor 10 hold a lone golem.
+  A golem is `alone`, so a higher weight puts fewer creatures on floors 8 to 10, not more.
+* No draw moved. The tables changed only numbers a draw is compared against, so no stream version
+  was raised.
+
+Twenty seeds from 1000, each floor dug and stocked:
+
+| floor | creatures | experience on the floor | most common |
+|---|---|---|---|
+| 1 | 83.6 | 286 | white slime, blue slime, rat |
+| 2 | 125.2 | 562 | ant, goblin warrior, white slime |
+| 3 | 156.2 | 936 | ant, goblin warrior, white slime |
+| 4 | 159.7 | 1,252 | ant, goblin warrior, red slime |
+| 5 | 217.3 | 1,902 | goblin warrior, ant, red slime |
+| 6 | 179.4 | 1,976 | goblin warrior, ant, red slime |
+| 7 | 287.3 | 3,620 | ant, red slime, green slime |
+| 8 | 235.0 | 6,130 | green slime, orc, orc archer |
+| 9 | 262.3 | 7,853 | orc, orc archer, werewolf |
+| 10 | 274.8 | 7,561 | orc, orc archer, iron golem |
+
+`script/floor-trial.cr` starts the cautious bot on the up staircase of each floor with that floor's
+matchup kit and two potions of healing. Eighty seeds from 7000, at most 3000 turns, deaths out of
+80. "Orcs only" is the run when this branch first merged, at 40 seeds and doubled. "Full roster" is
+main with the thirteen new kinds and the armor step costs. "Tuned" is after this pass:
+
+| floor | orcs only | full roster | tuned | killed most by, tuned |
+|---|---|---|---|---|
+| 1 | 10 | 15 | 15 | goblin scout 9 |
+| 2 | 38 | 41 | 41 | goblin warrior 14, zombie 9 |
+| 3 | 34 | 42 | 42 | wolf 9, orc 8, goblin warrior 8 |
+| 4 | 52 | 55 | 55 | goblin warrior 16, orc archer 10 |
+| 5 | 22 | 24 | 40 | orc archer 13, goblin warrior 7 |
+| 6 | 22 | 45 | 44 | werewolf 16, goblin warrior 12 |
+| 7 | 4 | 24 | 39 | werewolf 26, orc archer 6 |
+| 8 | 12 | 27 | 31 | werewolf 18, iron golem 7 |
+| 9 | 22 | 42 | 42 | werewolf 24, iron golem 9 |
+| 10 | 12 | 17 | 19 | iron golem 8, orc 6 |
+| chamber | 18 | 23 | 23 | orc warlord 11, orc 9 |
+
+Floors 5 and 7 were the dips and now sit with their neighbors. Floor 10 stays low. Raising its
+density to 70 rooms in 100 with 4..6 creatures moved it by nothing measurable, because the D10 kit
+outfights orcs in any number the bot meets them in.
 
 ### The amulet chamber
 
@@ -4123,8 +4191,9 @@ pessimistic end. Before this change the chamber was floor 6, empty, and was play
 
 ### Left undone
 
-* The deep floors reuse the five-floor roster, so their danger comes from more and larger orc
-  bands. New kinds for floors 6 to 10 come from the creatures branch.
+* Floor 10 is the least deadly floor below floor 1 for a bot with the matching kit. Its roster is
+  orcs, orc archers and iron golems, and the werewolves that make floors 6 to 9 deadly end at
+  floor 9.
 * The warlord has no ability of his own. A charge, a war cry that hastes the band, or rallying a
   fleeing orc would each need a rule the game does not have.
 * The band does not keep to the hall. Once it has lost the character it goes back to sleep where it

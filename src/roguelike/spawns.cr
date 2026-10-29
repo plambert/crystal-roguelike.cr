@@ -26,17 +26,18 @@ module Roguelike
 
     # Every creature the generator may put on a floor.
     #
-    # Slimes and goblins are common. Orcs appear from floor 3, and the orc
-    # archer joins them from floor 4. The slimes, goblins, ants and jellies
-    # give out between floors 5 and 9, so the orcs hold the deepest floors
-    # alone. Floor 1 holds white and blue slimes and goblin scouts. Ants come
-    # in bands of three to five from floor 2. A jelly comes alone from floor
-    # 3. Goblin scouts are rarer on floor 1 than on floor 2.
+    # Floor 1 holds white and blue slimes, rat packs and goblin scouts.
+    # Goblin scouts and rats are rarer on floor 1 than below it. Ants come in
+    # bands of three to five from floor 2. Giant rats, skeletons and zombies
+    # join them on floor 2. Orcs, wolves, boars and a lone jelly come from
+    # floor 3, the orc archer, imps and giant snakes from floor 4, and bears
+    # and gelatinous cubes from floor 5.
     #
-    # Rats come in packs from floor 1 and giant rats from floor 2. Skeletons
-    # and zombies share rooms from floor 2. Wolves and boars come from floor
-    # 3, imps and giant snakes from floor 4, and bears and gelatinous cubes
-    # from floor 5. Golems and werewolves live below floor 5.
+    # The slimes, goblins, ants and the shallow beasts give out between
+    # floors 5 and 9. Werewolves and stone golems hold floors 6 to 9, and
+    # iron golems floors 8 to 10. Floor 10 holds orcs, orc archers and iron
+    # golems. The iron golem's weight is high so that floor 10 is not left
+    # to the orcs alone.
     #
     # The orc warlord appears only in the amulet chamber, which is built
     # rather than dug, so its row is never rolled.
@@ -64,7 +65,7 @@ module Roguelike
       Row.new(Kind::Imp, 10),
       Row.new(Kind::GelatinousCube, 8),
       Row.new(Kind::StoneGolem, 10),
-      Row.new(Kind::IronGolem, 8),
+      Row.new(Kind::IronGolem, 24),
       Row.new(Kind::OrcWarlord, 1),
     ]
 
@@ -81,12 +82,12 @@ module Roguelike
       Density.new(45, 1..2),
       Density.new(50, 1..2),
       Density.new(50, 1..3),
-      Density.new(55, 1..3),
       Density.new(55, 2..3),
-      Density.new(60, 2..3),
-      Density.new(60, 2..4),
+      Density.new(55, 2..3),
+      Density.new(65, 2..4),
+      Density.new(65, 2..4),
       Density.new(60, 3..5),
-      Density.new(60, 3..5),
+      Density.new(65, 3..5),
     ]
 
     # What each kind is worth on the floor at *depth*.
