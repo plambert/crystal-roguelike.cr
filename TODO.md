@@ -34,11 +34,11 @@ A mana pool that comes back over time, two starting spells to choose between at 
 spellbooks found on the floor that each teach one more. The first two spells are a lock that holds
 a door shut for a while and a blinding that stops a creature seeing for a few turns.
 
-### Sound and noise
+### Shouting and footsteps make noise
 
-Fighting, breaking, shouting and some spells make noise that wakes and draws creatures within a
-range, and a quiet player goes unnoticed for longer. Creatures calling out to each other has an
-effect only once this exists.
+Creatures that shout and a character who walks make noise, as fighting does. A quiet player then
+goes unnoticed for longer. Creatures calling out to each other, as in the band communication item
+below, has an effect only once shouting makes noise.
 
 ### Band communication and languages
 
@@ -187,6 +187,17 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### Sound and noise
+
+Fighting, missiles, wand bolts, doors struck and broken, and shattering make noise. Noise goes
+around walls and is muffled by shut doors. A sleeping creature that hears it stirs, stands still
+for a turn, and then searches toward the sound. An awake creature heads for the sound. A thrown
+rock draws creatures to where it lands. The character hears noise from out of sight, with its
+direction, once every ten turns for each kind of sound, and a blinking note on the map points
+toward it. A noise bar in the character pane shows how far the character's recent noise carried and
+falls as turns pass. For one turn after the character makes noise, the map tints the squares it
+reached, brightest at the source.
 
 ### Armor weight slows the character
 
