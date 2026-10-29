@@ -69,6 +69,11 @@ module Roguelike::Ui
     color flight, 0x2E3652
     color impact, 0x6A2E2E
     color missile, 0xF2E6C0
+    color noise_near, 0x3A2860
+    color noise_far, 0x1A1530
+    color noise_text, 0xF0E8FF
+    color noise_wave, 0x6A48B0
+    color heard_mark, 0x60F0FF
 
     color white_slime, 0xEEEEEE
     color blue_slime, 0x5CB8FF
@@ -143,6 +148,7 @@ module Roguelike::Ui
     color haste_bar, 0x40C4FF
     color slow_bar, 0xB39DDB
     color blind_bar, 0xBDBDBD
+    color noise_bar, 0xC080FF
 
     # Every color in display order, with its heading and its label.
     ENTRIES = [
@@ -162,6 +168,11 @@ module Roguelike::Ui
       Entry.new("flight", "Map", "Path of a shot"),
       Entry.new("impact", "Map", "Where a shot stops"),
       Entry.new("missile", "Map", "Thing in flight"),
+      Entry.new("noise_near", "Map", "Your noise, close by"),
+      Entry.new("noise_far", "Map", "Your noise, at its edge"),
+      Entry.new("noise_text", "Map", "Text in your noise"),
+      Entry.new("noise_wave", "Map", "Edge of your spreading noise"),
+      Entry.new("heard_mark", "Map", "Sound heard out of sight"),
 
       Entry.new("white_slime", "Creatures", "White slime"),
       Entry.new("blue_slime", "Creatures", "Blue slime"),
@@ -236,6 +247,7 @@ module Roguelike::Ui
       Entry.new("haste_bar", "Bars", "Haste"),
       Entry.new("slow_bar", "Bars", "Slow"),
       Entry.new("blind_bar", "Bars", "Blindness"),
+      Entry.new("noise_bar", "Bars", "Noise"),
     ]
 
     # The game's own colors.

@@ -66,6 +66,21 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   the creature you are fighting or against armor class 2.
 * An armor's description says how much it slows your walking and your attacks, and putting it on
   or taking it off says what changed.
+* Fighting, missiles, wand bolts and breaking doors make noise. A sleeping creature that hears it
+  stirs, stands still for a turn, then searches toward the sound. Awake creatures head for the
+  sound. Noise goes around walls and is muffled by shut doors. A thrown rock draws creatures to
+  where it lands.
+* You hear fighting and other noise from out of sight, with the direction it came from, once
+  every ten turns for each kind of sound. A blinking note on the map points toward it.
+* A noise bar, marked with a note, shows how far your recent noise carried and falls as turns
+  pass. For one turn after you make a noise, the map tints the squares it reached, brightest at
+  the source. A ring spreads out from you first unless motion is off. The colors are in the
+  theme editor.
+
+### Changed
+
+* Breaking a door down is heard along the floor's corridors rather than in a fixed square around
+  the door, and each swing at the door can be heard too.
 
 ### Fixed
 

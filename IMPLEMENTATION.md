@@ -4440,10 +4440,9 @@ second reason added there.
 * **Bare hands are refused.** With nothing swung in hand, a step into a stuck door writes
   `Game::BARE_DOOR` and asks nothing. `Action::Break` refuses the same way. No turn passes. Fists
   roll 1d2, so a door would take eight swings or more, and a person would not choose that.
-* **The crash stands in for noise.** When a door breaks, every band with a member within
-  `Game::NOISE_REACH`, six squares, of the door records a sighting of the character through
-  `Knowledge#saw`. A band asleep becomes alert and walks to the sighting, the way a hunting band
-  does once it loses sight of the character. A noise system would replace this.
+* **The crash is a noise.** Each swing at the door and the door giving way are sounds, made through
+  the noise system in "Sound and noise". A band that hears one writes down where the character is
+  and wakes.
 * **Creatures do not break doors.** A goblin held by a spike waits behind the door the way it did
   before. Breaking doors for creatures would need a rule for when a band decides a door is worth
   the noise. `creature_opens` is unchanged, because a broken door is passable and never reaches it.
@@ -6068,6 +6067,123 @@ than it did. At 20 the two tie against both. At 30 leather wins against both.
 `src/roguelike/costs.cr`. The rate is in `src/roguelike/combat.cr`. `Kind#hide` and `Kind#garb`
 are in `src/roguelike/species.cr`. The specs are `spec/roguelike/armor_pace_spec.cr` and
 `spec/roguelike/damage_rate_spec.cr`.
+
+## Sound and noise
+
+Fighting, missiles, wand bolts and doors make sounds. A sound wakes the bands it reaches and tells
+them where to look. Every creature hears the same way for now.
+
+### What was built
+
+* `Noise` in `src/roguelike/noise.cr` holds the rule and no state. `Noise.spread` floods out from a
+  sound's square over the `Floor` as it is, not over anyone's belief. It answers a `Descent`, so a
+  sound's reach reads like any other distance map.
+* A step costs one square of travel, a diagonal one included. A wall stops the sound. A shut door
+  lets it through and costs `Noise::MUFFLE`, three squares, on top of the step onto the door. The
+  flood stops at the sound's loudness, so the work is bounded by a box twice the loudness across.
+* `Noise::Sound` is one sound: where it came from, its source, where hearers then believe the
+  character is, and the creature that made it. `Game#make_noise` in `src/roguelike/hearing.cr` makes
+  one. It replaces the door-crash stand-in and `Game::NOISE_REACH`.
+* A band hears a sound when one of its members stands on a square the spread reached. It writes a
+  sighting of the character, and of the maker when it is hostile to the maker.
+* A band asleep wakes in two steps. It becomes `Awareness::Stirring` and takes no step for the rest
+  of that tick and the whole tick after. `Game#creatures_stir` then makes it `Alert`, and it
+  searches toward the sound's square through its own `Knowledge`, as a hunting band does once it
+  loses sight of its quarry. It hunts only if it sees the character. A stirring creature the
+  character can see is said to stir, with `Event::Stirred`. Being hit, or noticing the character,
+  takes a stirring band straight to `Hunting`.
+* A sighting from this turn is kept over what was heard. A band that can see the character goes on
+  believing its eyes.
+* The character hears what creatures do out of sight. `Game#overheard` holds each such sound of the
+  last action, with the square the map marks it on. "You hear fighting to the east." is one line
+  for each kind of sound in `Noise::QUIET`, ten turns, so a fight round a corner is not a line a
+  swing. `Event::Heard` carries what was heard and the direction. The line comes only when the
+  character had no part in the sound and cannot see where it came from.
+
+### The sources
+
+| Source | Loudness | Made by | Where hearers look |
+| --- | --- | --- | --- |
+| `Blow` | 8 | A swing, hit or miss, by anyone | The character's square, or the fight |
+| `Landing` | 5 | A missile the character throws or shoots, where it stops | Where it landed |
+| `Landing` | 5 | A creature's shot at the character | The character's square |
+| `Bolt` | 6 | A wand bolt, where it strikes | The character's square |
+| `DoorStruck` | 10 | A swing at a stuck door | The character's square |
+| `DoorBroken` | 14 | The door giving way | The character's square |
+| `Shatter` | 7 | Nothing yet. A potion breaking | |
+| `Shout` | 16 | Nothing yet. A shout or a call | |
+
+The constants are `Noise::BLOW`, `LANDING`, `BOLT`, `DOOR_STRUCK`, `DOOR_BROKEN`, `SHATTER` and
+`SHOUT`, all in squares of travel. `Noise::LOUDEST` is the largest of them. A thrown rock draws a
+band to where it landed, which is a way to send a band somewhere else.
+
+### The noise bar
+
+The character pane has a bar labeled `♪` under the bar for the creature being fought. It reads
+"noise 8" and shows how many squares the character's recent noise traveled, out of
+`Noise::LOUDEST`. Each sound the character makes raises it to how far that sound got, when that is
+higher than the bar. It falls `Noise::FADE`, one square, a turn. The row is hidden at zero.
+
+`Noise::DECAY` picks how the bar comes down, at build time:
+
+| `Noise::Decay` | What the bar shows |
+| --- | --- |
+| `Fall` | The loudest it reached, less one square for each turn since. The build ships with this. |
+| `LastAction` | How far the loudest sound of the character's last action got. Zero after a quiet one. |
+
+How far a sound got is the furthest square the spread reached, so a swing in a small closed room
+reads lower than the same swing in a hall. The bar is one color, `noise_bar`, a violet that keeps
+dark text at about 7 to 1 and stands about 4.5 to 1 off the empty part.
+
+### The tint
+
+For the action after the character makes a sound, the map tints every square it reached that the
+character can see or remembers. A square nobody has seen stays blank, so the tint draws no ground
+the character does not know. The next action takes the tint off.
+
+* The tint has `Palette::NOISE_STEPS`, four, shades mixed from `noise_far` at the edge to
+  `noise_near` at the source. Both are dark violets, so light glyphs keep their contrast on them.
+* A glyph with less than `Palette::NOISE_CONTRAST`, 4.5 to 1, on its shade is lifted toward
+  `noise_text` in quarters until it has that much. `Palette.contrast` is the WCAG ratio.
+* With motion on, the tint spreads out as a ring along the distance map, one step of distance every
+  `Play::RIPPLE`, 30 ms, which is two missile frames. The squares at the front draw on `noise_wave`,
+  a brighter violet, and the squares behind it take their shade. The whole tint holds once the ring
+  has reached as far as the sound did. With motion off, or with no clock, it is drawn whole at once.
+* A missile is one glyph moving along a line. The ring is a background across many squares,
+  following the distance contours, with no glyph of its own, so the two do not look alike.
+
+### The mark for a sound heard
+
+A sound the character hears and cannot see the source of is marked on the map with `♪`,
+`Palette::HEARD`, in `heard_mark`, a bright cyan. The mark goes on the last square in sight along
+the line from the character toward the sound, or on the square beside the character in that
+direction when nothing further is in sight. The character never learns the source square, so the
+mark gives a direction and no more. It stays until the next action. With motion on it blinks
+`Play::HEARD_BLINKS`, four, times at `Play::BLINK` and then holds lit. With motion off it is drawn
+once and holds still.
+
+The mark was to be the ear, U+1F442. termbuf measures it as two columns, and a map square is one
+column, so the grid drew nothing in its place. The note is one column and matches the bar label.
+
+The six colors are in the theme editor: five under Map and `noise_bar` under Bars.
+
+### Decisions
+
+* **One noise wakes a band, slowly.** A sleeping band that hears anything stirs, then searches. It
+  does not need a second sound.
+* **The truth, not belief.** A sound travels through the floor as it is. Nobody has to have seen a
+  corridor for a sound to come down it.
+* **No state in a save.** The bar, the turn each band began to stir, and the turn of each
+  overheard line are not written out. A run loaded from a save starts quiet, and a band that was
+  stirring searches on the next tick. None of it is in the fingerprint.
+* **Footsteps are silent.** Walking makes no sound, so stealth still works through sight alone.
+
+### Left undone
+
+* Hearing per species. `Noise.hears?` is the one place that compares, so a keen-eared species can
+  be given a bonus there.
+* Shouting and potions breaking. Both have a loudness and nothing makes them.
+* Creatures calling out to each other through sound. Band sharing is still `Hive` at any range.
 
 ## Asked for, not yet built
 

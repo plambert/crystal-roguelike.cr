@@ -69,6 +69,10 @@ module Roguelike::Ui
       Event::Status::Blind    => "blind",
     }
 
+    # What the noise bar is labeled. A note, where the other bars have two
+    # letters. The word goes inside the bar with the count.
+    NOISE_LABEL = "♪"
+
     # Where the gold starts on the number rows. The armor class has the
     # columns before it.
     GOLD = 5
@@ -90,6 +94,12 @@ module Roguelike::Ui
     # One bar per temporary effect, in `Lasting::ORDER`. A bar is hidden
     # while its effect is not running.
     getter effects : Array(Meter)
+
+    # How far the character's recent noise carries.
+    getter noise : Meter
+
+    # The row of the noise bar. Hidden while the character is quiet.
+    getter noisy : Widgets::Panel
 
     # Armor class, gold and the turn, under their names.
     #
@@ -139,6 +149,7 @@ module Roguelike::Ui
       @magic = Meter.new "MP", levels: Palette.magic
       @learning = Meter.new "XP", levels: Palette.learning
       @threat = Meter.new THREAT_LABEL, levels: Palette.threat
+      @noise = Meter.new NOISE_LABEL, levels: Palette.noise
       @number_names = Line.new
       @numbers = Line.new
       @score_names = Line.new
@@ -159,13 +170,16 @@ module Roguelike::Ui
       @lasting = CharacterPane.block @effects.map(&.as(Widgets::Widget))
       @lasting.hidden = true
 
+      @noisy = CharacterPane.block @noise
+      @noisy.hidden = true
+
       # The panel gives the vitals the same side columns as a section body.
       @vitals = Widgets::Panel.new(
         direction: Layout::Direction::Column,
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fit,
         padding: Layout::Padding.symmetric(horizontal: 1))
-      @vitals.add @who, @health, @magic, @learning, @lasting, @fight
+      @vitals.add @who, @health, @magic, @learning, @lasting, @noisy, @fight
 
       @scoring = InfoPanel.section SCORES
       @scoring.body.add @number_names, @numbers, @score_names, @scores, @pacing
@@ -201,6 +215,8 @@ module Roguelike::Ui
       Lasting::ORDER.each_with_index do |status, index|
         @effects[index].retheme Palette.lasting(status)
       end
+
+      @noise.retheme Palette.noise
     end
 
     # The three sections, top first.
@@ -246,6 +262,7 @@ module Roguelike::Ui
       learned player
       lasted player
       fought game
+      heard game
 
       @number_names.clear
       @number_names.put 0, "AC", Palette.faint
@@ -356,6 +373,16 @@ module Roguelike::Ui
       @pacing.put 0, "Walk", Palette.faint
       @pacing.put GOLD, "#{player.pace.speed * 100 // player.stride}%", Palette.plain
       @pacing.put_right "#{Detail.dps player.per_turn(against)} dps", Palette.plain
+    end
+
+    # The noise bar: how many squares the character's recent noise carries.
+    #
+    # It is out of the loudest sound there is, and it falls as turns pass.
+    # The row is hidden at zero.
+    private def heard(game : Game) : Nil
+      carried = game.noise
+      @noisy.hidden = carried.zero?
+      @noise.show carried, Noise::LOUDEST, "noise #{carried}"
     end
 
     # The five scores, with their names over them.

@@ -296,6 +296,10 @@ module Roguelike::Ui
       end
     end
 
+    # The noise bar, which is one color however full it is. Dark text on it
+    # is about 7 to 1, and it is about 4.5 to 1 against the empty part.
+    drawn noise : Array({Int32, TermBuf::Color}) = [{100, theme.noise_bar}, {0, theme.noise_bar}]
+
     # What a bar of *levels* is drawn in at *percent* full.
     #
     # At or above the first level it is the first color. Between two levels
@@ -339,6 +343,27 @@ module Roguelike::Ui
         (one[0] + (other[0] - one[0]) * held).round.to_i,
         (one[1] + (other[1] - one[1]) * held).round.to_i,
         (one[2] + (other[2] - one[2]) * held).round.to_i)
+    end
+
+    # How bright *color* looks, from 0 for black to 1 for white, the way
+    # WCAG measures it. A color the terminal picks counts as black.
+    def self.luminance(color : TermBuf::Color) : Float64
+      return 0.0 unless color.rgb?
+
+      red, green, blue = color.channels.map do |channel|
+        part = channel / 255.0
+        part <= 0.03928 ? part / 12.92 : ((part + 0.055) / 1.055) ** 2.4
+      end
+
+      0.2126 * red + 0.7152 * green + 0.0722 * blue
+    end
+
+    # How far apart *one* and *other* are in brightness, as WCAG gives it.
+    # 1 is no contrast and 21 is black on white.
+    def self.contrast(one : TermBuf::Color, other : TermBuf::Color) : Float64
+      first = luminance one
+      second = luminance other
+      (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05)
     end
 
     # Black or white, whichever reads better on *color*.
@@ -707,6 +732,76 @@ module Roguelike::Ui
       shade = tint[shade, 0] if tint
 
       Look.new look.glyph, shade.bg(ground)
+    end
+
+    # ---------------------------------------------------------------- noise
+
+    # How many shades the tint of the character's noise has, from the edge
+    # of where it reached to the square it came from.
+    NOISE_STEPS = 4
+
+    # The least contrast a glyph keeps on the tint. A glyph that would have
+    # less is lifted toward `noise_text` until it has this much.
+    NOISE_CONTRAST = 4.5
+
+    # The tint at each step, the edge first.
+    drawn noise_tints : Array(TermBuf::Color) = Palette.noise_ramp(theme)
+
+    # The tint at each step for *theme*, mixed from its edge color to its
+    # near color.
+    def self.noise_ramp(theme : Theme) : Array(TermBuf::Color)
+      (0...NOISE_STEPS).map do |step|
+        mix theme.noise_far, theme.noise_near, step / (NOISE_STEPS - 1).to_f
+      end
+    end
+
+    # The step `.heard` takes for the front of a spreading tint.
+    NOISE_WAVE = NOISE_STEPS
+
+    # What the front of a spreading tint is drawn on. Brighter than any step
+    # of the tint, so the ring reads as moving out over it.
+    drawn noise_wave : TermBuf::Color = theme.noise_wave
+
+    # What a glyph is lifted toward on the tint.
+    drawn noise_text : TermBuf::Color = theme.noise_text
+
+    # The tinted styles worked out so far, by base style and step.
+    drawn noise_styles : Hash({Style, Int32}, Style) = {} of {Style, Int32} => Style
+
+    # Which step of the tint a square *away* squares along a sound of
+    # *loudness* draws at. The source is the top step.
+    def self.noise_step(away : Int32, loudness : Int32) : Int32
+      return NOISE_STEPS - 1 if loudness <= 0
+
+      ((loudness - away) * NOISE_STEPS // (loudness + 1)).clamp 0, NOISE_STEPS - 1
+    end
+
+    # What marks a sound heard from out of sight, on the last square in
+    # sight toward it. The same note the noise bar is labeled with.
+    HEARD = '♪'
+
+    # How that mark is drawn.
+    drawn heard_mark : Look = Look.new(HEARD, Style::DEFAULT.fg(theme.heard_mark).bold)
+
+    # *style* on the tint at *step*, or on the front of a spreading tint at
+    # `NOISE_WAVE`.
+    #
+    # The glyph keeps its own color where that reads on the tint. Where it
+    # does not, it moves toward `noise_text` in quarters until it does.
+    def self.heard(style : Style, step : Int32) : Style
+      wanted = step.clamp 0, NOISE_WAVE
+      noise_styles[{style, wanted}] ||= begin
+        ground = wanted == NOISE_WAVE ? noise_wave : noise_tints[wanted]
+        color = style.foreground
+        lifted = color.rgb? ? color : noise_text
+        4.times do |quarter|
+          break if contrast(lifted, ground) >= NOISE_CONTRAST
+
+          lifted = mix color.rgb? ? color : noise_text, noise_text, (quarter + 1) / 4.0
+        end
+
+        style.fg(lifted).bg(ground)
+      end
     end
   end
 end

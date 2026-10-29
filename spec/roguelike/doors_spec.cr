@@ -346,13 +346,13 @@ Spectator.describe "creatures and doors" do
       expect(game.door_target).to be_nil
     end
 
-    it "tells a band near the door where the character is" do
+    it "tells a band near the door where the character is with one swing" do
       game = barred
       goblin = Monster.new Species::Goblin, 2, 3, "band-two"
       game.floor.place goblin
       game.enroll
 
-      broken game
+      game.break_down Direction::West
 
       band = game.floor.band "band-two"
       expect(band.try &.awake?).to be_true

@@ -112,18 +112,23 @@ module Roguelike
     # It can see something it is hostile to.
     Hunting
 
+    # It has heard something and is waking. It takes no step this turn and
+    # searches toward the sound after that.
+    Stirring
+
     # Whether it acts at all.
     def awake? : Bool
-      !asleep?
+      alert? || hunting?
     end
 
     # What this is called, for a readout. *you* says the band knows where
     # the character is.
     def label(you : Bool = true) : String
       case self
-      in .asleep?  then "asleep"
-      in .alert?   then you ? "looking for you" : "searching"
-      in .hunting? then you ? "hunting you" : "hunting"
+      in .asleep?   then "asleep"
+      in .alert?    then you ? "looking for you" : "searching"
+      in .hunting?  then you ? "hunting you" : "hunting"
+      in .stirring? then "stirring"
       end
     end
   end
@@ -156,7 +161,8 @@ module Roguelike
     #
     # A band that has noticed nothing takes no turn. `Game#creatures_notice`
     # is the only method that writes this, apart from being hit, which wakes a
-    # band whatever it had noticed, and the crash of a door broken nearby.
+    # band whatever it had noticed, and `Game#make_noise` and
+    # `Game#creatures_stir`, which wake a band that hears a sound in two steps.
     property awareness : Awareness
 
     def initialize(@id : String, @faction : Faction = Faction::Dungeon,

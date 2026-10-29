@@ -49,6 +49,7 @@ module Roguelike
       "grasped"        => Grasped,
       "ground"         => Ground,
       "healed"         => Healed,
+      "heard"          => Heard,
       "identified"     => Identified,
       "identified_all" => IdentifiedAll,
       "interrupted"    => Interrupted,
@@ -77,6 +78,7 @@ module Roguelike
       "split"          => Split,
       "stat_changed"   => StatChanged,
       "stats"          => Stats,
+      "stirred"        => Stirred,
       "status_end"     => StatusEnd,
       "status_start"   => StatusStart,
       "stopped"        => Stopped,
@@ -1118,6 +1120,29 @@ module Roguelike
       getter kind : String = "waited"
 
       def initialize
+      end
+    end
+
+    # The character heard *what*, made by something out of sight. *way* is
+    # the direction it came from, or `nil` when it came from close by.
+    class Heard < Event
+      getter kind : String = "heard"
+
+      getter what : String
+      getter way : String?
+
+      def initialize(@what : String, @way : String? = nil)
+      end
+    end
+
+    # A creature the character can see heard something and began to wake.
+    class Stirred < Event
+      getter kind : String = "stirred"
+
+      getter creature : Int32
+      getter species : String
+
+      def initialize(@creature : Int32, @species : String)
       end
     end
   end
