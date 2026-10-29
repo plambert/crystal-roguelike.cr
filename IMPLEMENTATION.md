@@ -5951,7 +5951,9 @@ normal pace. A new kind sets it with `hide: Bulk::None` and the like at the end 
 | --- | --- | --- | --- | --- |
 | Slimes, ant, jelly | medium | none | unchanged | 100 |
 | Goblin scout | medium | small leather armor, always | 0 to -2 | 100 |
-| Goblin warrior, shaman | medium | what the armor draw gives | unchanged | 95 to 105 |
+| Goblin fighter | medium | small chain mail, always | -2 | 105 |
+| Goblin warrior | medium | small leather, masterwork leather or a padded jacket, by roll | -2 | 95 or 100 |
+| Goblin shaman | medium | what the armor draw gives | unchanged | 95 to 105 |
 | Orc, orc archer | medium | what the armor draw gives | unchanged | 95 to 105 |
 
 The scout's leather is its `Kind#garb`, cut small, so the character cannot wear it. It rolls
@@ -5999,6 +6001,96 @@ than it did. At 20 the two tie against both. At 30 leather wins against both.
 `src/roguelike/costs.cr`. The rate is in `src/roguelike/combat.cr`. `Kind#hide` and `Kind#garb`
 are in `src/roguelike/species.cr`. The specs are `spec/roguelike/armor_pace_spec.cr` and
 `spec/roguelike/damage_rate_spec.cr`.
+
+## Hides, and three goblins
+
+The thirteen creatures added before body armor had a weight carry their hides now. The goblin
+warrior became the goblin fighter, and a new goblin warrior was added.
+
+### Hides
+
+| Hide | Step | Kinds |
+| --- | --- | --- |
+| None | 90 | rat, giant rat, wolf, imp |
+| Light | 95 | werewolf, giant snake, skeleton |
+| Medium | 100 | boar |
+| Heavy | 105 | bear, zombie |
+| Very heavy | 110 | gelatinous cube, stone golem, iron golem |
+
+* A walking pace is species speed over the step. The very heavy kinds lost about a tenth of their
+  pace, and the cube fell to under half of the character's. The cube went from speed 50 to 55,
+  the stone golem from 70 to 75 and the iron golem from 65 to 70. Their pace is close to what it
+  was, at 0.50, 0.68 and 0.64 squares a turn. The zombie stays at 70, which is 0.67.
+* The matchup charges no step cost, because closing range spends a flat turn. Only the three
+  kinds whose speed moved changed there, by two to four points at their own depths. The
+  stone golem went from 86.0 to 83.2 at floor 6, and the iron golem from 97.7 to 97.3 at floor 8.
+* The werewolf and the stone golem now go down to floor 10, which held only orcs and iron golems.
+
+### The goblin fighter
+
+* The member stays `Kind::GoblinWarrior`, so a save and a replay still load. Only the label moved,
+  to "goblin fighter". The theme key is still `goblin_warrior`, so a saved theme keeps its color.
+* It wears small chain mail as its `Kind#garb` and carries a mace, 1d6+1 at a swing of 125. Chain
+  mail adds 10 to the blow, so a blow costs 135.
+* Base armor went from 2 to -2. Chain mail adds 4, so its armor class is what it was.
+* Hit dice went from 2d4+4 to 2d4+6. At 2d4+4 it won 68.7 on floor 1 against the old warrior's
+  62.3. At 2d4+7 it won 55.0. At 2d4+6 it is as dangerous as the old warrior, and a fight lasts a
+  sixth longer.
+* No existing weapon needed a new kind. The mace is small enough for a goblin, because weapons
+  have no size.
+
+### The goblin warrior
+
+* `Kind::GoblinSkirmisher`, appended at the end of `Kind`. It is labeled "goblin warrior" and
+  drawn in `#7C8CFF`, at 6.5:1 against the ground. The nearest color on its floors is the violet
+  jelly's.
+* It is the scout without the sling. It carries a dagger, swings at 75, moves at 110, has 2d4+1
+  hit points, and goes about in company on floors 1 to 4.
+* `Loot::GARBS` rolls its body armor when it is placed, first, on its own loot stream. It wears
+  small leather 80 times in a hundred, masterwork small leather 15 times, and a padded jacket 5
+  times. Masterwork is `Condition::Masterwork`, which already adds 1 to an armor's rating and puts
+  "masterwork" in its name, so no +1 enchantment was needed.
+
+### Side by side
+
+`--matchup`, 2000 fights a cell, seed 5000. Two warriors stand on opposite sides from the first
+swing, as the matchup's bands do.
+
+| | scout | fighter | warrior | 2 warriors |
+| --- | --- | --- | --- | --- |
+| Win rate, floor 1 | 63.1 | 60.0 | 82.2 | 26.5 |
+| Win rate, floor 2 | 88.1 | 85.1 | 95.9 | 60.0 |
+| Win rate, floor 4 | 97.3 | 96.6 | 98.9 | 77.7 |
+| Turns, floor 1 | 10.4 | 7.0 | 4.5 | 4.9 |
+| Hit points lost, floor 1 | 8.6 | 8.1 | 5.1 | 10.5 |
+
+One warrior is the easiest of the three. Two are the menace, as deadly as three ants.
+
+### Floor 1
+
+Its weight is 30, and 2 on floor 1. The scout's floor 1 weight went from 10 to 6, so the goblins
+on floor 1 are rarer than before. `--trial 400`, release:
+
+| | seed 5000 before | seed 5000 after | seed 6000 before | seed 6000 after |
+| --- | --- | --- | --- | --- |
+| Died | 81 | 92 | 82 | 81 |
+| Survived floor 1 | 80.8% | 77.8% | 79.5% | 79.8% |
+| Killed by a scout | 44 | 31 | 49 | 26 |
+| Killed by a warrior | none | 16 | none | 12 |
+
+With the warrior at 5 and the scout at 7, seed 5000 lost 103 runs and 74.8% survived floor 1.
+Over both seeds deaths went from 163 to 173 in 800 runs. Rats killed 31 on seed 5000 against 16
+before with no change to rats, which is how much one seed moves when the generator does.
+
+### Streams and fixtures
+
+* `generator` goes to 8, because the new row changes what each spawn roll places.
+* `loot` stays at 7. The fighter makes the same draws in the same order. Its weapon draw names a
+  mace in place of a short sword, and its garb rolls nothing. The warrior's armor roll is a new
+  draw on the new kind's own stream, so no existing creature's draws moved.
+* The golden replay was recorded again from its seed. The loot fixture was written again.
+* "One seed plays the same fights twice" moved from seed 5057 to 5029, the first seed from 5000
+  on where a creature kills another in 400 turns.
 
 ## Asked for, not yet built
 
