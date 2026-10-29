@@ -47,39 +47,6 @@ share like that. Other creatures share with band members who speak a common lang
 within range or were seen recently, and call out to the rest. Languages are per creature, with
 properties such as silent, sight-based or sound-based, and a clever goblin might speak Orc.
 
-### Temporary effects show their time remaining
-
-Each temporary buff or debuff on the character, such as haste or blindness, gets its own row in the
-character pane below the XP row. The row is a bar that shrinks as the effect runs down, with the
-effect's name and the number of turns remaining written over it, the way the XP bar carries its
-number. The row goes away when the effect ends.
-
-### Settings for explore
-
-The constants that `X` uses become settings, such as its distances and thresholds, and its parts can
-be turned on and off. A player could turn off every search for items and keep the search for gold.
-A player could also have explore stop only when a monster attacks, when the stairs down are found,
-or both. Players can then shape how exploring behaves, and the bots can run the same algorithm
-with different settings at different points in a run. The strategy bot drives its sweep with the
-game's own explore and spends most of its decision budget there, so settings it can change in the
-middle of a run matter to it.
-
-### Events for every change to a character stat
-
-The game emits one kind of event whenever a stat of the character changes. The event carries the
-stat's name, its old value, its new value, and the cause, which is the action or effect that
-changed it. It covers the stored stats, which are hit points, maximum hit points, experience,
-level, the six attributes and gold. It also covers the computed stats, which are armor class,
-to-hit, melee damage dice, ranged damage dice, and speed if it varies. Computed stats are compared
-after each action, and the event fires only when the value differs.
-
-A question such as "when did this run first reach armor class 10, and what was it wearing" now
-needs a probe that replays the run and reads the observation on each turn. With these events in
-the stream, the bots can record the first turn each threshold was met, and the final values, in
-every batch row. A replay then carries the whole history of armor class and hit points, so the
-replay viewer can show them too. The headless protocol already streams events, so this adds an
-event kind and a comparison after each action, and the protocol does not change.
-
 ## Considered
 
 ### Sorting the pack
@@ -105,12 +72,6 @@ Where the terminal draws images, the health and other bars move by a pixel rathe
 
 The trial bots shut doors and back away when hurt, but neither spikes a door or decides whether a
 fight is worth having, so what the trials measure is still narrow.
-
-### Armor weight slows the character
-
-Heavier armor makes movement slower, and the heaviest armor slows attacks as well. A shield slows
-attacks somewhat too. The gain in armor class then costs something a player can feel, and leather
-armor is a choice rather than a stop on the way to chain mail.
 
 ### A safety map for fleeing creatures
 
@@ -226,6 +187,58 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### Armor weight slows the character
+
+Body armor has a weight class that sets how fast the character walks and attacks. With nothing on,
+the character walks a tenth quicker than a turn a step. Leather armor walks at a normal pace, and
+chain mail a little slower. Chain mail adds a tenth of a turn to each melee blow. A shield adds a
+tenth to each blow and does not slow walking. Creatures in armor follow the same rule. A padded
+jacket is a light armor that protects less than leather and is easier to move in. The Scores
+section shows the walking pace and the melee damage per turn. A weapon's description gives the
+damage per turn in the character's armor, and an armor's description says how much it slows
+walking and attacks.
+
+### Settings for explore
+
+An "Explore" row on the options screen opens the settings for `X`. They set how far a small pocket
+may be and still come first, how large a pocket may be, and whether `X` walks to gold, to what
+automatic pickup takes, and to items too far off to read. They also say whether `X` finishes a room
+or a corridor before it leaves. Each thing that stops a walk can be turned off. Two stops can be
+turned on, a creature attacking the character and finding the stairs down. During play the settings
+belong to the character and are kept in the save and the replay. From the title screen they set
+what a new character starts with. `--explore` sets them for one run, and a bot can change them at
+any point with the `configure` action, which takes no turn. The defaults are the explore that
+existed before.
+
+### Events for every change to a character stat
+
+The game emits a `stat_changed` event each time one of the character's stats changes. It names the
+stat, the old and new values, and the cause. It covers hit points, maximum hit points, experience,
+level, the attributes, gold, armor class, to-hit, melee and ranged damage dice, ranged to-hit and
+speed, which it calls `pace`. Bots read the events in the stream, and the events file holds them.
+
+### Temporary effects show their time remaining
+
+A haste, a slow or a blindness on the character gets its own bar in the character pane, below the
+experience bar. The bar shows the effect's name and the turns it has left, empties as the effect
+wears off, and goes away when it ends. The three bar colors are in the theme editor.
+
+### Ten floors, new creatures and Ulgroth
+
+The dungeon is ten floors deep, and the amulet chamber lies under floor 10. Below floor 5 the
+slimes, goblins, ants and shallow beasts give out one by one. Floors below floor 5 are drawn
+larger, rooms hold more creatures, and gold piles are larger. Items on floors 8 to 10 can be up to
++4. Experience levels past 9 need half again as much as the level before, so the character keeps
+gaining levels on the deeper floors.
+
+Thirteen new creatures arrive in four new factions. Beasts are rats, wolves, boars, snakes, bears
+and werewolves, and they fight every other band, other beasts included. Undead are skeletons and
+zombies, and they fight every band that is not undead. Imps are fast, hard to hit and run when
+hurt. Gelatinous cubes are slow and tough. Stone and iron golems guard the lower floors and fight
+only the character. Ulgroth, the orc warlord, guards the amulet with two orcs and an orc archer.
+The chamber is a landing behind a shut door and a long pillared hall, and his band hears the
+character on the stairs and comes to the door.
 
 ### A modern control configuration
 
