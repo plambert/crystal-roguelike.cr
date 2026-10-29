@@ -70,6 +70,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * An armor's description says how much it slows your walking and your attacks, and putting it on
   or taking it off says what changed.
 
+### Changed
+
+* The goblin warrior is now the goblin fighter, a stocky goblin in small chain mail with a mace.
+  It strikes more slowly than the warrior did and takes longer to kill, and is about as dangerous.
+
 ### Fixed
 
 * `F` fires at the nearest monster in the modern control scheme, as it does in the traditional

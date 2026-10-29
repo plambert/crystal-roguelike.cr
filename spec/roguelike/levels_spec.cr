@@ -214,9 +214,10 @@ Spectator.describe "floors of the dungeon" do
 
     it "arms nothing on floor 1 with what is held back" do
       rng = Rng.new SEED
+      goblins = Species::Goblin.kinds.select &.appears_at?(1)
 
-      ROLLS.times do
-        Loot.for(Species::Goblin, rng, 1).each do |item|
+      ROLLS.times do |roll|
+        Loot.for(goblins[roll % goblins.size], rng, 1).each do |item|
           expect(Loot.allowed? item.kind, 1).to be_true
           expect(item.enchantment).to be <= 1
         end

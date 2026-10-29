@@ -281,7 +281,7 @@ Spectator.describe "exploring and travelling" do
       expect(went.halt).to eq Halt::Creature
       expect(went.steps).to be > 0
       expect(game.monsters_in_sight.map &.species).to eq [Species::Goblin]
-      expect(game.log.last?).to eq "You stop. A goblin warrior comes into view."
+      expect(game.log.last?).to eq "You stop. A goblin fighter comes into view."
     end
 
     it "walks over something lying in sight without stopping" do

@@ -793,13 +793,14 @@ module Roguelike
         attributes: Attributes.new(strength: 8, dexterity: 14, constitution: 9,
           intelligence: 8, stealth: 15)),
 
-      Kind::GoblinWarrior => KindFacts.new(Species::Goblin, 'g', "goblin warrior",
-        "goblin warriors", "a small green thing with a short sword",
-        hit_dice: Dice.new(2, 4, 4), damage: Dice.new(1, 6), armor: 2,
+      # The member keeps its old name so that saves and replays still load.
+      Kind::GoblinWarrior => KindFacts.new(Species::Goblin, 'g', "goblin fighter",
+        "goblin fighters", "a stocky goblin in chain mail with a mace, slow to strike and slow to fall",
+        hit_dice: Dice.new(2, 4, 6), damage: Dice.new(1, 6), armor: -2,
         notice: 8, darkvision: false, paths: true, experience: 7,
         size: Size::Small, persistence: 6, opens_doors: true, flees: true, wields: true,
-        weapon: ItemKind::ShortSword, light: 25,
-        depths: 2..6, faction: Faction::Goblin,
+        weapon: ItemKind::Mace, light: 25,
+        depths: 2..6, faction: Faction::Goblin, garb: ItemKind::ChainMail,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 7, stealth: 13)),
 

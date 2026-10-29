@@ -107,7 +107,11 @@ Spectator.describe Roguelike::Combat do
     end
 
     it "adds a monster's hide and dexterity to its armor class" do
-      expect(Monster.new(Species::Goblin, 0, 0, "band").armor_class).to eq 3
+      fighter = Monster.new Species::Goblin, 0, 0, "band"
+      fighter.outfit [Roguelike::Item.new(Roguelike::ItemKind::ChainMail, size: Roguelike::Size::Small)]
+
+      expect(Monster.new(Species::Goblin, 0, 0, "band").armor_class).to eq 0
+      expect(fighter.armor_class).to eq 3
       expect(Monster.new(Species::Orc, 0, 0, "band").armor_class).to eq 4
     end
 

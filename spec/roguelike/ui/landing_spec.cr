@@ -144,11 +144,11 @@ Spectator.describe "showing a shot once it has landed" do
   end
 
   # What the log says about the arrow and the goblin, once the shot is over.
-  LANDED = /arrow (hits|misses) the goblin warrior/
+  LANDED = /arrow (hits|misses) the goblin fighter/
 
   # The goblin's bar on the sidebar. The sidebar clips the name and the
   # count to the bar's width.
-  FOUGHT = /vs .*warrior \d+\//
+  FOUGHT = /vs .*fighter \d+\//
 
   describe "the character's arrow" do
     it "is said to hit or miss only once it has landed" do

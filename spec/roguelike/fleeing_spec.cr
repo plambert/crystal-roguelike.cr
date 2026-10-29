@@ -88,7 +88,7 @@ Spectator.describe "hurt creatures running" do
     turns.times { game.wait }
   end
 
-  describe "a goblin warrior with 9 hit points" do
+  describe "a goblin fighter with 11 hit points" do
     it "runs below a quarter of them" do
       game, goblin = hunted HALL, Kind::GoblinWarrior, {5, 2}, 2, {1, 2}
 
@@ -103,7 +103,7 @@ Spectator.describe "hurt creatures running" do
 
       game.wait
 
-      expect(game.log.lines).to contain "The goblin warrior flees!"
+      expect(game.log.lines).to contain "The goblin fighter flees!"
     end
 
     it "says nothing when the character cannot see it turn" do
@@ -112,7 +112,7 @@ Spectator.describe "hurt creatures running" do
       game.wait
 
       expect(goblin.fleeing?).to be_true
-      expect(game.log.lines).not_to contain "The goblin warrior flees!"
+      expect(game.log.lines).not_to contain "The goblin fighter flees!"
     end
 
     it "does not run at a quarter" do
@@ -137,11 +137,11 @@ Spectator.describe "hurt creatures running" do
     it "turns back above a half" do
       game, goblin = hunted HALL, Kind::GoblinWarrior, {9, 2}, 2, {1, 2}
       game.wait
-      goblin.heal 3
+      goblin.heal 4
 
       game.wait
 
-      expect(goblin.hit_points).to eq 5
+      expect(goblin.hit_points).to eq 6
       expect(goblin.fleeing?).to be false
     end
 
@@ -210,7 +210,7 @@ Spectator.describe "hurt creatures running" do
     end
   end
 
-  describe "a goblin warrior with nowhere to run" do
+  describe "a goblin fighter with nowhere to run" do
     it "fights" do
       game, goblin = hunted DEAD_END, Kind::GoblinWarrior, {3, 1}, 2, {2, 1}
 
@@ -218,7 +218,7 @@ Spectator.describe "hurt creatures running" do
 
       expect(goblin.fleeing?).to be_true
       expect(goblin.at).to eq({3, 1})
-      swung = game.log.lines.select { |line| line =~ /The goblin warrior (hits|misses) you/ }
+      swung = game.log.lines.select { |line| line =~ /The goblin fighter (hits|misses) you/ }
       expect(swung).not_to be_empty
     end
 
@@ -228,12 +228,12 @@ Spectator.describe "hurt creatures running" do
       pass game, 4
 
       expect(goblin.at).to eq({10, 1})
-      swung = game.log.lines.select { |line| line =~ /The goblin warrior (hits|misses) you/ }
+      swung = game.log.lines.select { |line| line =~ /The goblin fighter (hits|misses) you/ }
       expect(swung).not_to be_empty
     end
   end
 
-  describe "a goblin warrior in a room with a door" do
+  describe "a goblin fighter in a room with a door" do
     # The east corner is nine steps from the character. The door is six, but
     # the corridor past it runs on to twenty-one.
     it "runs for the door rather than the corner" do
@@ -321,14 +321,14 @@ Spectator.describe "hurt creatures running" do
     end
   end
 
-  describe "a goblin warrior running through a doorway" do
+  describe "a goblin fighter running through a doorway" do
     it "shuts the door behind it" do
       game, _goblin = hunted DOORWAY, Kind::GoblinWarrior, {5, 1}, 2, {2, 1}
 
       pass game, 3
 
       expect(game.floor.terrain(5, 1)).to eq Terrain::ClosedDoor
-      expect(game.log.lines).to contain "The goblin warrior shuts the door."
+      expect(game.log.lines).to contain "The goblin fighter shuts the door."
     end
 
     it "leaves the door open while the character is in the way" do

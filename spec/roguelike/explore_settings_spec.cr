@@ -270,7 +270,7 @@ Spectator.describe Roguelike::Explore::Settings do
       went = game.explore
 
       expect(went.halt).not_to eq Halt::Creature
-      expect(game.log.lines).not_to contain "You stop. A goblin warrior comes into view."
+      expect(game.log.lines).not_to contain "You stop. A goblin fighter comes into view."
     end
 
     it "stops when attacked with that stop on, though the blow misses" do

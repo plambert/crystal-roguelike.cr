@@ -168,7 +168,7 @@ module Roguelike::Ui
       Entry.new("red_slime", "Creatures", "Red slime"),
       Entry.new("green_slime", "Creatures", "Green slime"),
       Entry.new("goblin_scout", "Creatures", "Goblin scout"),
-      Entry.new("goblin_warrior", "Creatures", "Goblin warrior"),
+      Entry.new("goblin_warrior", "Creatures", "Goblin fighter"),
       Entry.new("goblin_shaman", "Creatures", "Goblin shaman"),
       Entry.new("orc", "Creatures", "Orc"),
       Entry.new("orc_archer", "Creatures", "Orc archer"),

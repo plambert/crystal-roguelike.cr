@@ -386,8 +386,8 @@ Spectator.describe Roguelike::Ui::Tooltip do
       point_at run, rows_of(run.nearby.seen).first
 
       expect(run.play.tooltip.written).to eq [
-        "goblin warrior", "a small green thing with a short sword",
-        "hit points 9/9", "asleep",
+        "goblin fighter", Roguelike::Kind::GoblinWarrior.description,
+        "hit points 11/11", "asleep",
       ]
     end
 
@@ -419,7 +419,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
       run = hall
 
       expect(in_sight run).to contain Size::Small.label
-      expect(in_sight run).not_to contain "goblin warrior"
+      expect(in_sight run).not_to contain "goblin fighter"
     end
 
     it "reads as its size in the readout" do
@@ -447,7 +447,7 @@ Spectator.describe Roguelike::Ui::Tooltip do
       point_at run, rows_of(run.nearby.seen).first
       written = run.play.tooltip.written
 
-      expect(written.any?(&.includes? "goblin warrior")).to be_false
+      expect(written.any?(&.includes? "goblin fighter")).to be_false
       expect(written.any?(&.includes? "hit points")).to be_false
     end
 
@@ -456,12 +456,12 @@ Spectator.describe Roguelike::Ui::Tooltip do
 
       point_at run, rows_of(run.nearby.seen).first
 
-      expect(in_sight run).to contain "goblin warrior"
-      expect(run.play.tooltip.written.first).to eq "goblin warrior"
+      expect(in_sight run).to contain "goblin fighter"
+      expect(run.play.tooltip.written.first).to eq "goblin fighter"
 
       run.hover_map 7, 1
 
-      expect(run.examine.what.text).to eq "goblin warrior"
+      expect(run.examine.what.text).to eq "goblin fighter"
     end
   end
 end

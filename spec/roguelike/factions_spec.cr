@@ -180,7 +180,7 @@ Spectator.describe "factions" do
 
       20.times { game.wait }
 
-      told = game.log.lines.select &.includes?("the goblin warrior")
+      told = game.log.lines.select &.includes?("the goblin fighter")
       expect(told.any? &.starts_with?("The orc ")).to be_true
     end
   end
