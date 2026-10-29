@@ -212,9 +212,16 @@ Spectator.describe "what armor costs in pace" do
 
     it "walks in its hide when it wears no body armor" do
       Roguelike::Kind.each do |kind|
-        expect(kind.hide).to eq Bulk::Medium
-        expect(Monster.new(kind, 1, 1, "band").stride).to eq 100
+        expect(Monster.new(kind, 1, 1, "band").stride).to eq kind.hide.step
       end
+    end
+
+    it "gives the quick beasts no hide and the slow kinds a heavy one" do
+      expect(Roguelike::Kind::Rat.hide).to eq Bulk::None
+      expect(Roguelike::Kind::Wolf.hide).to eq Bulk::None
+      expect(Roguelike::Kind::Zombie.hide).to eq Bulk::Heavy
+      expect(Roguelike::Kind::StoneGolem.hide).to eq Bulk::VeryHeavy
+      expect(Roguelike::Kind::Orc.hide).to eq Bulk::Medium
     end
 
     it "costs its steps and blows by the same rule as the character" do

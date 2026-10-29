@@ -292,7 +292,7 @@ Spectator.describe "aiming" do
       run.press "f"
       6.times { run.press "l" }
 
-      expect(run.examine.aim.text).to contain "goblin warrior is in the way"
+      expect(run.examine.aim.text).to contain "goblin fighter is in the way"
     end
 
     it "takes the line off when the cursor comes off the map" do

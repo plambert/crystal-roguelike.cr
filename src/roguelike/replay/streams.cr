@@ -33,7 +33,7 @@ module Roguelike
       # The stream the name suggestion draws from is not here. It names
       # nobody and nothing in the run.
       VERSIONS = {
-        "generator"  => 7,
+        "generator"  => 8,
         "litter"     => 4,
         "loot"       => 7,
         "ammunition" => 2,

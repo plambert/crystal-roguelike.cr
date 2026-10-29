@@ -152,10 +152,10 @@ Spectator.describe "floors of the dungeon" do
   end
 
   describe Spawns do
-    it "puts white and blue slimes, goblin scouts and rats on floor 1, and nothing else" do
+    it "puts white and blue slimes, goblin scouts and warriors and rats on floor 1, and nothing else" do
       expect(Spawns.weights(1).keys.to_set).to eq Set{
         Roguelike::Kind::WhiteSlime, Roguelike::Kind::BlueSlime,
-        Roguelike::Kind::GoblinScout, Roguelike::Kind::Rat,
+        Roguelike::Kind::GoblinScout, Roguelike::Kind::Rat, Roguelike::Kind::GoblinSkirmisher,
       }
     end
 
@@ -214,9 +214,10 @@ Spectator.describe "floors of the dungeon" do
 
     it "arms nothing on floor 1 with what is held back" do
       rng = Rng.new SEED
+      goblins = Species::Goblin.kinds.select &.appears_at?(1)
 
-      ROLLS.times do
-        Loot.for(Species::Goblin, rng, 1).each do |item|
+      ROLLS.times do |roll|
+        Loot.for(goblins[roll % goblins.size], rng, 1).each do |item|
           expect(Loot.allowed? item.kind, 1).to be_true
           expect(item.enchantment).to be <= 1
         end

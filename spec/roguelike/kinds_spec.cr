@@ -73,7 +73,7 @@ Spectator.describe Roguelike::Kind do
       expect(Species::Orc.default).to eq Kind::Orc
 
       expect(Kind::WhiteSlime.hit_points).to eq 6
-      expect(Kind::GoblinWarrior.hit_points).to eq 9
+      expect(Kind::GoblinWarrior.hit_points).to eq 11
       expect(Kind::Orc.hit_points).to eq 14
     end
 
@@ -105,11 +105,14 @@ Spectator.describe Roguelike::Kind do
       ]
     end
 
-    it "gives a goblin scout worse armor than a warrior" do
-      scout = Monster.new Kind::GoblinScout, 0, 0, "band"
-      warrior = Monster.new Kind::GoblinWarrior, 0, 0, "band"
+    it "gives a goblin scout in its garb worse armor than a fighter in its own" do
+      scout, fighter = {Kind::GoblinScout, Kind::GoblinWarrior}.map do |kind|
+        Monster.new(kind, 0, 0, "band").tap do |goblin|
+          kind.garb.try { |garb| goblin.outfit [Roguelike::Item.new(garb, size: kind.size)] }
+        end
+      end
 
-      expect(scout.armor_class).to be < warrior.armor_class
+      expect(scout.armor_class).to be < fighter.armor_class
     end
 
     it "lets only the shaman mend and cast" do
@@ -141,7 +144,7 @@ Spectator.describe Roguelike::Kind do
     it "keeps to a species and to company when asked" do
       found = Roguelike::Spawns.weights 2, Species::Goblin, alone: false
 
-      expect(found.keys).to eq [Kind::GoblinWarrior]
+      expect(found.keys).to eq [Kind::GoblinWarrior, Kind::GoblinSkirmisher]
     end
 
     it "makes goblin scouts rarer on floor 1 than on floor 2" do
@@ -275,7 +278,7 @@ Spectator.describe Roguelike::Kind do
 
       game.wait
 
-      expect(game.log.lines).to contain "The goblin shaman mends the goblin warrior."
+      expect(game.log.lines).to contain "The goblin shaman mends the goblin fighter."
     end
 
     it "mends the same amount from the same seed" do

@@ -668,7 +668,7 @@ Spectator.describe "drinking, reading and zapping" do
 
       game.zap 'a', EAST
 
-      said = game.log.lines.find(&.includes? "goblin warrior").to_s
+      said = game.log.lines.find(&.includes? "goblin fighter").to_s
       expect(said).to match /bolt (hits|misses) the goblin/
     end
 
@@ -678,7 +678,7 @@ Spectator.describe "drinking, reading and zapping" do
 
       40.times { game.zap 'a', EAST }
 
-      expect(game.log.lines).to contain "You kill the goblin warrior."
+      expect(game.log.lines).to contain "You kill the goblin fighter."
     end
 
     it "leaves nothing on the floor" do
@@ -771,8 +771,8 @@ Spectator.describe "drinking, reading and zapping" do
       end
 
       expect(plain.blows).to eq drinking.blows
-      expect(plain.log.lines.select(&.includes? "goblin warrior"))
-        .to eq drinking.log.lines.select(&.includes? "goblin warrior")
+      expect(plain.log.lines.select(&.includes? "goblin fighter"))
+        .to eq drinking.log.lines.select(&.includes? "goblin fighter")
     end
 
     it "counts every use" do

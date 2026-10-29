@@ -182,6 +182,7 @@ module Roguelike
         Opponent.new(Kind::GiantRat, 2),
         Opponent.new(Kind::Wolf, 2),
         Opponent.new(Kind::Orc, 3),
+        Opponent.new(Kind::GoblinSkirmisher, 2),
       ]
 
       # Everyone the character is matched against: one row for each kind,

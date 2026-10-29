@@ -504,6 +504,7 @@ module Roguelike
     StoneGolem
     IronGolem
     OrcWarlord
+    GoblinSkirmisher
 
     # What this kind is. Every method below reads one field of it.
     def facts : KindFacts
@@ -799,13 +800,14 @@ module Roguelike
         attributes: Attributes.new(strength: 8, dexterity: 14, constitution: 9,
           intelligence: 8, stealth: 15)),
 
-      Kind::GoblinWarrior => KindFacts.new(Species::Goblin, 'g', "goblin warrior",
-        "goblin warriors", "a small green thing with a short sword",
-        hit_dice: Dice.new(2, 4, 4), damage: Dice.new(1, 6), armor: 2,
+      # The member keeps its old name so that saves and replays still load.
+      Kind::GoblinWarrior => KindFacts.new(Species::Goblin, 'g', "goblin fighter",
+        "goblin fighters", "a stocky goblin in chain mail with a mace, slow to strike and slow to fall",
+        hit_dice: Dice.new(2, 4, 6), damage: Dice.new(1, 6), armor: -2,
         notice: 8, darkvision: false, paths: true, experience: 7,
         size: Size::Small, persistence: 6, opens_doors: true, flees: true, wields: true,
-        weapon: ItemKind::ShortSword, light: 25,
-        depths: 2..6, faction: Faction::Goblin,
+        weapon: ItemKind::Mace, light: 25,
+        depths: 2..6, faction: Faction::Goblin, garb: ItemKind::ChainMail,
         attributes: Attributes.new(strength: 10, dexterity: 13, constitution: 10,
           intelligence: 7, stealth: 13)),
 
@@ -860,136 +862,123 @@ module Roguelike
         attributes: Attributes.new(strength: 10, dexterity: 6, constitution: 14,
           intelligence: 2, stealth: 4)),
 
-      # Hide, once body armor sets the step cost: none, a step of 90.
       Kind::Rat => KindFacts.new(Species::Rat, 'r', "rat", "rats",
         "a gray rat as long as your forearm, never alone and quick to run",
         hit_dice: Dice.new(1, 4, 1), damage: Dice.new(1, 3), armor: 0,
         notice: 8, darkvision: false, paths: true, experience: 2,
         size: Size::Small, persistence: 6, speed: 120, verb: "bites",
-        flees: true, depths: 1..3, faction: Faction::Beast,
+        flees: true, depths: 1..3, faction: Faction::Beast, hide: Bulk::None,
         attributes: Attributes.new(strength: 6, dexterity: 13, constitution: 8,
           intelligence: 5, stealth: 15)),
 
-      # Hide, once body armor sets the step cost: none, a step of 90.
       Kind::GiantRat => KindFacts.new(Species::Rat, 'r', "giant rat",
         "giant rats", "a rat the size of a small dog, with yellow teeth and a filthy bite",
         hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 1,
         notice: 8, darkvision: false, paths: true, experience: 4,
         size: Size::Small, persistence: 8, speed: 115, verb: "bites",
-        flees: true, depths: 2..4, faction: Faction::Beast,
+        flees: true, depths: 2..4, faction: Faction::Beast, hide: Bulk::None,
         attributes: Attributes.new(strength: 9, dexterity: 13, constitution: 10,
           intelligence: 5, stealth: 13)),
 
-      # Hide, once body armor sets the step cost: none, a step of 90.
       Kind::Wolf => KindFacts.new(Species::Wolf, 'd', "wolf", "wolves",
         "a lean gray wolf that hunts with its pack and circles to your back",
         hit_dice: Dice.new(2, 6), damage: Dice.new(1, 4), armor: 1,
         notice: 11, darkvision: true, paths: true, experience: 8,
         persistence: 20, speed: 120, verb: "bites",
         flees: true, surrounds: true, sharing: Sharing::Called,
-        depths: 3..6, faction: Faction::Beast,
+        depths: 3..6, faction: Faction::Beast, hide: Bulk::None,
         attributes: Attributes.new(strength: 11, dexterity: 14, constitution: 12,
           intelligence: 8, stealth: 14)),
 
-      # Hide, once body armor sets the step cost: light, a step of 95.
       Kind::Werewolf => KindFacts.new(Species::Wolf, 'd', "werewolf", "werewolves",
         "a wolf too large and too clever to be only a wolf, that leads the pack",
         hit_dice: Dice.new(4, 8, 4), damage: Dice.new(2, 4), armor: 4,
         notice: 12, darkvision: true, paths: true, experience: 40,
         persistence: 40, speed: 125, verb: "bites",
         opens_doors: true, surrounds: true, sharing: Sharing::Called,
-        depths: 6..9, faction: Faction::Beast,
+        depths: 6..10, faction: Faction::Beast, hide: Bulk::Light,
         attributes: Attributes.new(strength: 15, dexterity: 14, constitution: 14,
           intelligence: 10, stealth: 13)),
 
-      # Hide, once body armor sets the step cost: heavy, a step of 105.
       Kind::Bear => KindFacts.new(Species::Bear, 'B', "bear", "bears",
         "a huge brown bear that does not like being woken",
         hit_dice: Dice.new(4, 8, 6), damage: Dice.new(2, 6), armor: 3,
         notice: 9, darkvision: false, paths: true, experience: 30,
         size: Size::Large, persistence: 15, swing: 120, verb: "mauls",
-        alone: true, depths: 5..8, faction: Faction::Beast,
+        alone: true, depths: 5..8, faction: Faction::Beast, hide: Bulk::Heavy,
         attributes: Attributes.new(strength: 18, dexterity: 9, constitution: 16,
           intelligence: 5, stealth: 8)),
 
-      # Hide, once body armor sets the step cost: medium, a step of 100.
       Kind::Boar => KindFacts.new(Species::Boar, 'q', "boar", "boars",
         "a bristling wild boar with tusks like knives, that fights until it drops",
         hit_dice: Dice.new(3, 8), damage: Dice.new(1, 6), armor: 3,
         notice: 7, darkvision: false, paths: true, experience: 14,
         size: Size::Large, persistence: 10, speed: 110, verb: "gores",
-        depths: 3..6, faction: Faction::Beast,
+        depths: 3..6, faction: Faction::Beast, hide: Bulk::Medium,
         attributes: Attributes.new(strength: 13, dexterity: 10, constitution: 14,
           intelligence: 4, stealth: 9)),
 
-      # Hide, once body armor sets the step cost: light, a step of 95.
       Kind::GiantSnake => KindFacts.new(Species::Snake, 'S', "giant snake",
         "giant snakes", "a snake as thick as your leg that lies still until you are close",
         hit_dice: Dice.new(4, 6, 2), damage: Dice.new(1, 8), armor: 3,
         notice: 8, darkvision: false, paths: true, experience: 20,
         size: Size::Large, persistence: 8, speed: 90, verb: "bites",
-        alone: true, depths: 4..7, faction: Faction::Beast,
+        alone: true, depths: 4..7, faction: Faction::Beast, hide: Bulk::Light,
         attributes: Attributes.new(strength: 14, dexterity: 12, constitution: 14,
           intelligence: 4, stealth: 16)),
 
-      # Hide, once body armor sets the step cost: light, a step of 95.
       Kind::Skeleton => KindFacts.new(Species::Undead, 'Z', "skeleton",
         "skeletons", "a rattling skeleton that walks without a mind and often carries an old blade",
         hit_dice: Dice.new(2, 6, 2), damage: Dice.new(1, 6), armor: 3,
         notice: 6, darkvision: true, paths: false, experience: 8,
         persistence: 50, speed: 90, verb: "claws",
-        armed: 50, wields: true, depths: 2..5, faction: Faction::Undead,
+        armed: 50, wields: true, depths: 2..5, faction: Faction::Undead, hide: Bulk::Light,
         attributes: Attributes.new(strength: 11, dexterity: 11, constitution: 10,
           intelligence: 3, stealth: 10)),
 
-      # Hide, once body armor sets the step cost: heavy, a step of 105.
       Kind::Zombie => KindFacts.new(Species::Undead, 'Z', "zombie", "zombies",
         "a shambling corpse that is slow, hard to stop and never gives up",
         hit_dice: Dice.new(3, 6, 4), damage: Dice.new(1, 8), armor: 1,
         notice: 5, darkvision: true, paths: false, experience: 9,
         persistence: 60, speed: 70, swing: 120, verb: "claws",
-        depths: 2..5, faction: Faction::Undead,
+        depths: 2..5, faction: Faction::Undead, hide: Bulk::Heavy,
         attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 16,
           intelligence: 2, stealth: 6)),
 
-      # Hide, once body armor sets the step cost: none, a step of 90.
       Kind::Imp => KindFacts.new(Species::Imp, 'i', "imp", "imps",
         "a tiny red devil with leathery wings, quick, spiteful and hard to hit",
         hit_dice: Dice.new(2, 4, 3), damage: Dice.new(1, 4), armor: 3,
         notice: 10, darkvision: true, paths: true, experience: 10,
         size: Size::Small, persistence: 12, speed: 140, verb: "claws",
         opens_doors: true, flees: true, alone: true,
-        depths: 4..7, faction: Faction::Demon,
+        depths: 4..7, faction: Faction::Demon, hide: Bulk::None,
         attributes: Attributes.new(strength: 8, dexterity: 17, constitution: 10,
           intelligence: 12, stealth: 15)),
 
-      # Hide, once body armor sets the step cost: very heavy, a step of 110.
       Kind::GelatinousCube => KindFacts.new(Species::Cube, 'C', "gelatinous cube",
         "gelatinous cubes", "a clear quivering block that fills the passage, with old things floating inside it",
         hit_dice: Dice.new(6, 8, 6), damage: Dice.new(2, 6), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 20,
-        size: Size::Large, persistence: 10, speed: 50, verb: "burns",
-        alone: true, depths: 5..8, faction: Faction::Jelly,
+        size: Size::Large, persistence: 10, speed: 55, verb: "burns",
+        alone: true, depths: 5..8, faction: Faction::Jelly, hide: Bulk::VeryHeavy,
         attributes: Attributes.new(strength: 14, dexterity: 6, constitution: 18,
           intelligence: 1, stealth: 16)),
 
-      # Hide, once body armor sets the step cost: very heavy, a step of 110.
       Kind::StoneGolem => KindFacts.new(Species::Golem, 'G', "stone golem",
         "stone golems", "a slow giant of carved stone that guards this place and nothing else",
         hit_dice: Dice.new(8, 8), damage: Dice.new(2, 8), armor: 6,
         notice: 5, darkvision: true, paths: false, experience: 45,
-        size: Size::Large, persistence: 100, speed: 70, swing: 120, verb: "pounds",
-        alone: true, depths: 6..9, faction: Faction::Construct,
+        size: Size::Large, persistence: 100, speed: 75, swing: 120, verb: "pounds",
+        alone: true, depths: 6..10, faction: Faction::Construct, hide: Bulk::VeryHeavy,
         attributes: Attributes.new(strength: 18, dexterity: 10, constitution: 18,
           intelligence: 1, stealth: 6)),
 
-      # Hide, once body armor sets the step cost: very heavy, a step of 110.
       Kind::IronGolem => KindFacts.new(Species::Golem, 'G', "iron golem",
         "iron golems", "a towering figure of black iron that walks with a sound like a forge",
         hit_dice: Dice.new(8, 10), damage: Dice.new(2, 8), armor: 8,
         notice: 5, darkvision: true, paths: false, experience: 80,
-        size: Size::Large, persistence: 100, speed: 65, swing: 130, verb: "pounds",
-        alone: true, depths: 8..10, faction: Faction::Construct,
+        size: Size::Large, persistence: 100, speed: 70, swing: 130, verb: "pounds",
+        alone: true, depths: 8..10, faction: Faction::Construct, hide: Bulk::VeryHeavy,
         attributes: Attributes.new(strength: 20, dexterity: 10, constitution: 20,
           intelligence: 1, stealth: 4)),
       Kind::OrcWarlord => KindFacts.new(Species::Orc, 'o', "orc warlord",
@@ -1001,6 +990,17 @@ module Roguelike
         depths: World::VAULT..World::VAULT, faction: Faction::Orc,
         attributes: Attributes.new(strength: 18, dexterity: 12, constitution: 16,
           intelligence: 12, stealth: 8)),
+
+      # Labeled "goblin warrior". `Loot::GARBS` rolls what it wears.
+      Kind::GoblinSkirmisher => KindFacts.new(Species::Goblin, 'g', "goblin warrior",
+        "goblin warriors", "a wiry goblin with a dagger, quick to close and quick to stab, and easy to hurt",
+        hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 4), armor: -2,
+        notice: 9, darkvision: false, paths: true, experience: 5,
+        size: Size::Small, persistence: 8, speed: 110,
+        weapon: ItemKind::Dagger, light: 30, opens_doors: true, flees: true, wields: true,
+        depths: 1..4, faction: Faction::Goblin,
+        attributes: Attributes.new(strength: 11, dexterity: 15, constitution: 8,
+          intelligence: 7, stealth: 14)),
     }
 
     # Every character a floor file may hold for a monster, and the kind it

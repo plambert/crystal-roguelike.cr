@@ -32,7 +32,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Rats come in packs from the first floor and giant rats from the second. Wolves hunt in packs of
   two or three from the third floor and circle round to your back. Boars come from the third
   floor, giant snakes lie alone from the fourth and bears from the fifth. Werewolves lead wolf
-  packs below the fifth floor.
+  packs from the sixth floor down to the tenth.
 * Beasts fight every other band of creatures, other beasts included.
 * Skeletons and zombies share rooms from the second floor. They walk straight at you, never run
   and go on looking for you a long time. A skeleton often carries an old weapon and fights with it.
@@ -41,11 +41,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   and fight every other band of creatures.
 * Gelatinous cubes come from the fifth floor. They are slow and tough, and often hold coins and
   potions.
-* Stone and iron golems guard the floors below the fifth. A golem fights only you, and no other
-  creature fights it.
+* Stone and iron golems guard the floors below the fifth, and stone golems go down to the
+  tenth. A golem fights only you, and no other creature fights it.
 * The dungeon is ten floors deep, and the amulet chamber lies under floor 10. Below floor 5 the
   slimes, goblins, ants and shallow beasts give out one by one. Orcs grow commoner with depth.
-  Werewolves and stone golems hold floors 6 to 9, and orcs and iron golems hold floor 10.
+  Werewolves and stone golems hold floors 6 to 10, and iron golems floors 8 to 10.
 * From floor 5 down, rooms hold more creatures, and from floor 7 down more rooms hold any. Floors
   below floor 5 are drawn larger, up to a third larger on floor 10.
 * Gold piles below floor 5 are larger. Items on floors 8 to 10 can be up to +4, and orc archers
@@ -61,6 +61,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   each blow and does not slow your walking.
 * A padded jacket, a light body armor that is easier to move in than leather and protects less.
 * Creatures in armor are slowed by the same rule. Goblin scouts wear small leather armor.
+* A new goblin warrior comes alone or in pairs on the first four floors. It has a dagger, strikes
+  quickly and dies quickly. Most wear small leather armor, some a masterwork suit, and a few a
+  padded jacket, which makes them quicker still.
+* A creature's own hide counts as its body armor when it wears none. Rats, wolves and imps walk
+  a tenth quicker than a turn a step. Bears and zombies walk a little slower, and gelatinous cubes
+  and golems slower still.
 * The Scores section shows your walking pace and your melee damage per turn, as "1.57 dps".
 * A weapon's description gives the damage per turn you would do with it in your armor, against
   the creature you are fighting or against armor class 2.
@@ -81,6 +87,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * Breaking a door down is heard along the floor's corridors rather than in a fixed square around
   the door, and each swing at the door can be heard too.
+* The goblin warrior is now the goblin fighter, a stocky goblin in small chain mail with a mace.
+  It strikes more slowly than the warrior did and takes longer to kill, and is about as dangerous.
 
 ### Fixed
 

@@ -119,7 +119,7 @@ Spectator.describe "monsters on the screen" do
 
       run.hover 3, 1
 
-      expect(run.examine.what.text).to eq "goblin warrior"
+      expect(run.examine.what.text).to eq "goblin fighter"
       expect(run.examine.detail.text).to eq Species::Goblin.description
     end
 
@@ -138,7 +138,7 @@ Spectator.describe "monsters on the screen" do
 
       run.hover 3, 1
 
-      expect(run.examine.what.text).to eq "goblin warrior"
+      expect(run.examine.what.text).to eq "goblin fighter"
       expect(run.examine.litter.text).to contain "long sword"
     end
 

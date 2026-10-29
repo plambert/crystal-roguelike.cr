@@ -160,7 +160,7 @@ Spectator.describe "the creature last fought" do
       game.attack creature
 
       expect(game.fought_regard).to eq Regard::Everything
-      expect(Naming.creature creature, game.fought_regard).to eq "goblin warrior"
+      expect(Naming.creature creature, game.fought_regard).to eq "goblin fighter"
     end
 
     it "names a creature that is only a shape by its size" do
@@ -305,7 +305,7 @@ Spectator.describe "the creature last fought" do
 
       expect(run.play.character.fight.hidden?).to be_false
       expect(run.play.character.threat.reading)
-        .to eq "goblin warrior #{creature.hit_points}/#{creature.max_hit_points}"
+        .to eq "goblin fighter #{creature.hit_points}/#{creature.max_hit_points}"
     end
 
     it "draws the bar against the creature's hit points" do

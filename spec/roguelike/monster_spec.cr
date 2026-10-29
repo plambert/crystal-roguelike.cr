@@ -17,7 +17,7 @@ Spectator.describe Roguelike::Monster do
     expect(goblin.hit_points).to eq Species::Goblin.hit_points
     expect(goblin.max_hit_points).to eq Species::Goblin.hit_points
     expect(goblin.attributes.to_a).to eq Species::Goblin.attributes.to_a
-    expect(goblin.label).to eq "goblin warrior"
+    expect(goblin.label).to eq "goblin fighter"
   end
 
   it "takes statistics of its own when it is given them" do

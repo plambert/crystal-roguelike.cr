@@ -46,7 +46,7 @@ module Roguelike
       Row.new(Kind::BlueSlime, 20),
       Row.new(Kind::RedSlime, 20),
       Row.new(Kind::GreenSlime, 15),
-      Row.new(Kind::GoblinScout, 30, first_floor: 10),
+      Row.new(Kind::GoblinScout, 30, first_floor: 6),
       Row.new(Kind::GoblinWarrior, 45),
       Row.new(Kind::GoblinShaman, 15),
       Row.new(Kind::Orc, 15),
@@ -67,6 +67,7 @@ module Roguelike
       Row.new(Kind::StoneGolem, 10),
       Row.new(Kind::IronGolem, 24),
       Row.new(Kind::OrcWarlord, 1),
+      Row.new(Kind::GoblinSkirmisher, 30, first_floor: 2),
     ]
 
     # How often a room holds a creature, and how many it holds.

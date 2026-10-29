@@ -142,7 +142,7 @@ module Roguelike
     end
 
     # The armor class a damage rate is worked out against when there is no
-    # creature to read one from. A goblin warrior's, or a goblin in leather.
+    # creature to read one from. A goblin in small leather armor.
     REFERENCE = 2
 
     # The chance that a swing adding *bonus* lands on armor class *against*,
