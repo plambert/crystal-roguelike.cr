@@ -3981,8 +3981,8 @@ into a weaker scout on floors 1 and 2 and the current goblin from floor 2.
 * `World::DEEPEST` is 10. The amulet chamber is `floor-11`, `World::VAULT`.
 * Floors 1 to 4 dig and stock as they did. Their creatures are the shallow end of the full roster,
   described under "The full roster on ten floors" below. Below floor 5 the shallow kinds give out
-  one by one. Werewolves and stone golems hold floors 6 to 9, and floor 10 holds orcs, orc archers
-  and iron golems.
+  one by one. Werewolves and stone golems hold floors 6 to 10, and floor 10 holds orcs, orc archers,
+  werewolves and both golems.
 * `Generator.growth` draws a floor below `Generator::GROWN`, floor 5, larger by `GROWTH`, 6 in 100,
   for each floor below it. Floor 10 is drawn 1.3 times `AREA`. The size stream is untouched, so a
   seed's floors 1 to 5 keep their sizes.
@@ -4064,8 +4064,8 @@ branch's. This pass changed only the density table and one weight.
 | giant snake | 4..7 | 10 |
 | bear | 5..8 | 8 |
 | gelatinous cube | 5..8 | 8 |
-| werewolf | 6..9 | 8 |
-| stone golem | 6..9 | 10 |
+| werewolf | 6..10 | 8 |
+| stone golem | 6..10 | 10 |
 | iron golem | 8..10 | 24, raised from 8 |
 
 * `Spawns::DENSITY` changed on floor 5 from 55 in 100 rooms with 1..3 creatures to 55 with 2..3, on
@@ -4191,9 +4191,9 @@ pessimistic end. Before this change the chamber was floor 6, empty, and was play
 
 ### Left undone
 
-* Floor 10 is the least deadly floor below floor 1 for a bot with the matching kit. Its roster is
-  orcs, orc archers and iron golems, and the werewolves that make floors 6 to 9 deadly end at
-  floor 9.
+* Floor 10 was the least deadly floor below floor 1 for a bot with the matching kit, when its
+  roster was orcs, orc archers and iron golems. Werewolves and stone golems now reach floor 10,
+  and floor 10 has not been measured again since.
 * The warlord has no ability of his own. A charge, a war cry that hastes the band, or rallying a
   fleeing orc would each need a rule the game does not have.
 * The band does not keep to the hall. Once it has lost the character it goes back to sleep where it
