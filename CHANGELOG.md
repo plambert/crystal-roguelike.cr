@@ -94,6 +94,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * `F` fires at the nearest monster in the modern control scheme, as it does in the traditional
   one.
+* Menus laid out across the screen, such as save and quit, now move with the left and right
+  arrows and `a` and `d`. `w`, `s` and the up and down arrows still move them. The control
+  scheme chooser also takes `h` and `l`.
 
 ## [0.7.0] - 2026-10-28
 

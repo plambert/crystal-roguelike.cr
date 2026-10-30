@@ -378,6 +378,46 @@ Spectator.describe "the modern controls" do
     end
   end
 
+  describe "save and quit" do
+    it "moves between the answers with the horizontal keys and keeps w/s" do
+      run = modern
+      run.play.confirm_quit
+      run.render
+      prompt = run.play.prompt
+
+      expect(run.text).to contain "Really leave the dungeon?"
+      expect(prompt.offered).to contain "[ No ]"
+
+      run.press "Left"
+      expect(prompt.offered).to contain "[ Yes ]"
+      run.press "Right"
+      expect(prompt.offered).to contain "[ No ]"
+      run.press "a"
+      expect(prompt.offered).to contain "[ Yes ]"
+      run.press "d"
+      expect(prompt.offered).to contain "[ No ]"
+      run.press "w"
+      expect(prompt.offered).to contain "[ Yes ]"
+      run.press "s"
+      expect(prompt.offered).to contain "[ No ]"
+
+      expect(prompt.asking?).to be_true
+      expect(run.play.finished?).to be_false
+    end
+
+    it "leaves after moving to Yes with a and confirming with f" do
+      run = modern
+      run.play.confirm_quit
+      run.render
+
+      run.press "a"
+      run.press "f"
+
+      expect(run.play.prompt.asking?).to be_false
+      expect(run.play.finished?).to be_true
+    end
+  end
+
   describe "startup chooser" do
     def state : Path
       root = Path[File.tempname "modern-controls", nil]

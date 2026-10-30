@@ -207,14 +207,17 @@ module TermBuf::Widgets
     end
 
     # The bindings a named-choice question answers.
+    #
+    # The choices sit side by side, so the horizontal keys move between them.
+    # The row keys move too, for people who learned them first.
     private def choice_answers : Bindings
       map = Bindings.new
 
-      @navigation.previous_row.each do |key|
+      (@navigation.previous_tab + @navigation.previous_row).uniq.each do |key|
         map.bind key, "the choice before",
           ->(_context : Context) { move_choice(-1); nil }
       end
-      @navigation.next_row.each do |key|
+      (@navigation.next_tab + @navigation.next_row).uniq.each do |key|
         map.bind key, "the choice after",
           ->(_context : Context) { move_choice(1); nil }
       end

@@ -94,7 +94,7 @@ module Roguelike::Ui
       add Widgets::Label.new "In play: i inventory · Tab panels",
         wrap: Layout::Wrap::None
       add Widgets::Label.new "Tab/Shift+Tab cards", wrap: Layout::Wrap::None
-      add Widgets::Label.new "a/d or arrows select", wrap: Layout::Wrap::None
+      add Widgets::Label.new "a/d, h/l or arrows select", wrap: Layout::Wrap::None
       add Widgets::Label.new "f/Enter confirm · Esc cancel",
         wrap: Layout::Wrap::None
       self.keymap = bindings
@@ -140,14 +140,14 @@ module Roguelike::Ui
 
     private def bindings : Widgets::Bindings
       Widgets::Bindings.build do |map|
-        map.bind TermBuf::Key.parse("a"), "choose Traditional",
-          ->(_context : Widgets::Context) { highlight Options::ControlScheme::Traditional; nil }
-        map.bind TermBuf::Key.parse("Left"), "choose Traditional",
-          ->(_context : Widgets::Context) { highlight Options::ControlScheme::Traditional; nil }
-        map.bind TermBuf::Key.parse("d"), "choose Modern",
-          ->(_context : Widgets::Context) { highlight Options::ControlScheme::Modern; nil }
-        map.bind TermBuf::Key.parse("Right"), "choose Modern",
-          ->(_context : Widgets::Context) { highlight Options::ControlScheme::Modern; nil }
+        {"Left", "a", "h"}.each do |key|
+          map.bind TermBuf::Key.parse(key), "choose Traditional",
+            ->(_context : Widgets::Context) { highlight Options::ControlScheme::Traditional; nil }
+        end
+        {"Right", "d", "l"}.each do |key|
+          map.bind TermBuf::Key.parse(key), "choose Modern",
+            ->(_context : Widgets::Context) { highlight Options::ControlScheme::Modern; nil }
+        end
         {"Tab", "Shift+Tab"}.each do |key|
           map.bind TermBuf::Key.parse(key), "change selected scheme",
             ->(_context : Widgets::Context) { cycle; nil }
