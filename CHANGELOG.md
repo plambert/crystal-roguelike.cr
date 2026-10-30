@@ -94,6 +94,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * `F` fires at the nearest monster in the modern control scheme, as it does in the traditional
   one.
+* A scroll of identify you have not yet named is read when nothing you carry has anything left to
+  learn. It is used up and you learn what it is. Before, it was refused and stayed unknown.
 
 ## [0.7.0] - 2026-10-28
 

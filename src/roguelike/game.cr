@@ -4885,8 +4885,8 @@ module Roguelike
     # works on. Every other scroll ignores it.
     #
     # A scroll is words on paper. Somebody standing in the dark cannot make
-    # them out, and the scroll is not spent finding that out. A scroll of
-    # identify is not spent when there is nothing left to learn about what
+    # them out, and the scroll is not spent finding that out. A known scroll
+    # of identify is not spent when there is nothing left to learn about what
     # the character carries.
     def read(letter : Char, choice : Char? = nil) : Bool
       complaint = cannot_read
@@ -4950,16 +4950,21 @@ module Roguelike
     # What a scroll of identify says when there is nothing left to learn.
     NOTHING_UNKNOWN = "There is nothing you do not know about what you carry."
 
-    # Whether the scroll under *letter* is a scroll of identify with nothing
-    # left to learn.
+    # Whether the scroll under *letter* is a known scroll of identify with
+    # nothing left to learn.
     #
+    # A scroll whose kind is unknown is read, because reading it names it.
     # This holds whatever the blessing on the scroll. The character cannot
     # see the blessing, so a refusal that depended on it would give it away.
     def nothing_to_identify?(letter : Char) : Bool
+      item = @player.inventory[letter]
+      return false unless item && @lore.known?(item.kind)
+
       effect_of(letter).identify? && identifiable(letter).empty?
     end
 
-    # Refuses a scroll of identify with nothing left to learn, and says so.
+    # Refuses a known scroll of identify with nothing left to learn, and says
+    # so.
     # Answers whether it refused.
     private def refused_identify?(letter : Char) : Bool
       return false unless nothing_to_identify? letter
@@ -7583,8 +7588,8 @@ module Roguelike
     #
     # A scroll that names a carried item before it is read is offered once
     # per item it could name. It is offered once with nothing named where
-    # there is nothing it could work on. A scroll of identify with nothing
-    # left to learn is not offered, because reading it is refused.
+    # there is nothing it could work on. A known scroll of identify with
+    # nothing left to learn is not offered, because reading it is refused.
     # `Ui::Play` offers the same list.
     private def legal_reading(found : Array(Action), letter : Char,
                               item : Item) : Nil

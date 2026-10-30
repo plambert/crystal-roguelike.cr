@@ -2826,8 +2826,8 @@ module Roguelike::Ui
     #
     # Only what has something left to learn is offered, and each row says
     # what that is. With nothing to offer the scroll goes to `Game`, which
-    # refuses it and keeps it. Backing out of the menu leaves the scroll
-    # unread.
+    # refuses a known scroll and keeps it, and reads an unknown one. Backing
+    # out of the menu leaves the scroll unread.
     private def identify_with(letter : Char) : Nil
       found = @game.identifiable letter
       if found.empty?
