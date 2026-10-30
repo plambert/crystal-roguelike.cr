@@ -164,14 +164,25 @@ Spectator.describe "quaffing, reading and zapping" do
       expect(run.game.player.inventory.has? 'a').to be_false
     end
 
-    it "keeps a scroll of identify when there is nothing left to name" do
+    it "keeps a known scroll of identify when there is nothing left to name" do
       run = carrying [Item.new Kind::IdentifyScroll]
+      run.game.lore.learn Kind::IdentifyScroll
 
       run.press "r", "a"
 
       expect(run.menu.showing?).to be_false
       expect(run.game.player.inventory.has? 'a').to be_true
       expect(run.log).to contain "There is nothing you do not know about what you carry."
+    end
+
+    it "reads an unknown scroll of identify when there is nothing left to name" do
+      run = carrying [Item.new Kind::IdentifyScroll]
+
+      run.press "r", "a"
+
+      expect(run.menu.showing?).to be_false
+      expect(run.game.player.inventory.has? 'a').to be_false
+      expect(run.game.lore.known? Kind::IdentifyScroll).to be_true
     end
 
     it "says on each row what a scroll of identify would learn" do

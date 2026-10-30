@@ -532,8 +532,9 @@ Spectator.describe "drinking, reading and zapping" do
       expect(game.identifiable('a').map(&.[0])).to eq ['c']
     end
 
-    it "is refused, and kept, when there is nothing left to learn" do
+    it "is refused, and kept, when known and there is nothing left to learn" do
       game = carrying [Item.new(Kind::IdentifyScroll), Item.new(Kind::Dagger, blessing_known: true)]
+      game.lore.learn Kind::IdentifyScroll
       game.enroll
       turn = game.turn
 
@@ -544,8 +545,25 @@ Spectator.describe "drinking, reading and zapping" do
       expect(game.legal.select(Roguelike::Action::Read)).to be_empty
     end
 
+    it "is read and named when unknown and there is nothing left to learn" do
+      game = carrying [Item.new(Kind::IdentifyScroll), Item.new(Kind::Dagger, blessing_known: true)]
+      game.enroll
+      turn = game.turn
+      look = game.lore.unknown_name(Kind::IdentifyScroll)
+      expect(look).not_to be_nil
+
+      expect(game.legal.select(Roguelike::Action::Read).size).to eq 1
+      expect(game.read 'a').to be_true
+      expect(game.player.inventory.has? 'a').to be_false
+      expect(game.turn).to be > turn
+      expect(game.lore.known? Kind::IdentifyScroll).to be_true
+      expect(game.log.lines).to contain "You learn that #{look} is a scroll of identify."
+      expect(game.log.lines).not_to contain "There is nothing you do not know about what you carry."
+    end
+
     it "is refused by the action, which spends nothing" do
       game = carrying [Item.new(Kind::IdentifyScroll)]
+      game.lore.learn Kind::IdentifyScroll
       game.enroll
       turn = game.turn
 
@@ -556,16 +574,18 @@ Spectator.describe "drinking, reading and zapping" do
       expect(game.player.inventory.has? 'a').to be_true
     end
 
-    it "is refused when blessed and there is nothing left to learn" do
+    it "is refused when blessed, known and there is nothing left to learn" do
       game = carrying [Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Blessed)]
+      game.lore.learn Kind::IdentifyScroll
 
       expect(game.read 'a').to be_false
       expect(game.player.inventory.has? 'a').to be_true
     end
 
     # A refusal that depended on the hidden curse would give the curse away.
-    it "is refused when cursed and there is nothing left to learn" do
+    it "is refused when cursed, known and there is nothing left to learn" do
       game = carrying [Item.new(Kind::IdentifyScroll, blessing: Roguelike::Blessing::Cursed)]
+      game.lore.learn Kind::IdentifyScroll
 
       expect(game.read 'a').to be_false
       expect(game.player.inventory.has? 'a').to be_true
