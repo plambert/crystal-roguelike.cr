@@ -366,6 +366,9 @@ module Playing
     end
 
     Roguelike::Options.current = options
+
+    # `Submit.root` is under the suite's own state directory, which the spec
+    # helper sets up, so the default never reaches the player's options.
     setup = Roguelike::Ui::ControlSchemeSetup.new(options_root || Roguelike::Submit.root)
     setup.on_change = ->(changed : Roguelike::Options) do
       Roguelike::Options.current = changed

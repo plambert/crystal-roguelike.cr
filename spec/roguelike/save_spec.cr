@@ -21,6 +21,16 @@ Spectator.describe Roguelike::Save do
     Playing.store
   end
 
+  # Runs the block with `XDG_STATE_HOME` set to *value*, or unset when it is
+  # nil, then puts back the suite's own state directory.
+  def with_state_home(value : String?, &)
+    held = ENV["XDG_STATE_HOME"]?
+    ENV["XDG_STATE_HOME"] = value
+    yield
+  ensure
+    ENV["XDG_STATE_HOME"] = held
+  end
+
   # The character *name* in *kept*, or a failure saying there is none.
   def held(kept : Save::Store, name : String = "Sparky") : Save::Held
     found = kept.held name
@@ -97,41 +107,35 @@ Spectator.describe Roguelike::Save do
 
   describe ".state_home" do
     it "uses XDG_STATE_HOME when it is set" do
-      ENV["XDG_STATE_HOME"] = SOMEWHERE
-
-      expect(Save.state_home).to eq SOMEWHERE
-    ensure
-      ENV.delete "XDG_STATE_HOME"
+      with_state_home SOMEWHERE do
+        expect(Save.state_home).to eq SOMEWHERE
+      end
     end
 
     # The specification says to ignore a relative value rather than resolve
     # it against whatever directory the game happened to start in.
     it "ignores a relative XDG_STATE_HOME" do
-      ENV["XDG_STATE_HOME"] = "state"
-
-      expect(Save.state_home).to eq DEFAULT_STATE_HOME
-    ensure
-      ENV.delete "XDG_STATE_HOME"
+      with_state_home "state" do
+        expect(Save.state_home).to eq DEFAULT_STATE_HOME
+      end
     end
 
     it "falls back to the platform's own place" do
-      ENV.delete "XDG_STATE_HOME"
-
-      expect(Save.state_home).to eq DEFAULT_STATE_HOME
+      with_state_home nil do
+        expect(Save.state_home).to eq DEFAULT_STATE_HOME
+      end
     end
   end
 
   describe Save::Store do
     describe ".default" do
       it "puts the three directories under the state directory" do
-        ENV["XDG_STATE_HOME"] = SOMEWHERE
-
-        kept = Save::Store.default
-        expect(kept.directory).to eq Path[SOMEWHERE, "roguelike", "saves"]
-        expect(kept.deaths).to eq Path[SOMEWHERE, "roguelike", "deaths"]
-        expect(kept.wins).to eq Path[SOMEWHERE, "roguelike", "wins"]
-      ensure
-        ENV.delete "XDG_STATE_HOME"
+        with_state_home SOMEWHERE do
+          kept = Save::Store.default
+          expect(kept.directory).to eq Path[SOMEWHERE, "roguelike", "saves"]
+          expect(kept.deaths).to eq Path[SOMEWHERE, "roguelike", "deaths"]
+          expect(kept.wins).to eq Path[SOMEWHERE, "roguelike", "wins"]
+        end
       end
     end
 
