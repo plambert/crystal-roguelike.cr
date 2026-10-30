@@ -26,7 +26,7 @@ Spectator.describe Roguelike::Ui::ControlSchemePicker do
       "Shift+dir walk",
       "In play: i inventory · Tab panels",
       "Tab/Shift+Tab cards",
-      "a/d or arrows select",
+      "a/d, h/l or arrows select",
       "f/Enter confirm · Esc cancel",
     ].each do |hint|
       expect(drawn).to contain hint
@@ -44,6 +44,15 @@ Spectator.describe Roguelike::Ui::ControlSchemePicker do
     session.press "Shift+Tab"
     expect(picker.selected).to eq ControlScheme::Modern
     session.press "Left d a Right"
+    expect(picker.selected).to eq ControlScheme::Modern
+  end
+
+  it "follows h and l as well as the arrows and a/d" do
+    session, picker = open_picker
+
+    session.press "h"
+    expect(picker.selected).to eq ControlScheme::Traditional
+    session.press "l"
     expect(picker.selected).to eq ControlScheme::Modern
   end
 

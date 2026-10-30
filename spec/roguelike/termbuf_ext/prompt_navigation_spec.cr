@@ -54,6 +54,39 @@ Spectator.describe TermBuf::Widgets::Prompt do
     expect(run.prompt.offered).to contain "[ No ]"
   end
 
+  it "moves across the side-by-side choices with a/d and the left and right arrows" do
+    run = asked
+
+    run.session.press "Left"
+    expect(run.prompt.offered).to contain "[ Yes ]"
+    run.session.press "Right"
+    expect(run.prompt.offered).to contain "[ No ]"
+    run.session.press "a"
+    expect(run.prompt.offered).to contain "[ Yes ]"
+    run.session.press "d"
+    expect(run.prompt.offered).to contain "[ No ]"
+    expect(run.answers).to be_empty
+  end
+
+  it "moves across the choices with the left and right arrows under the plain navigation" do
+    prompt = Widgets::Prompt.new
+    root = Widgets::Panel.new(
+      width: Widgets::Layout::Sizing.grow,
+      height: Widgets::Layout::Sizing.grow)
+    root.add prompt
+    session = Headless.open root, 50, 5
+    prompt.ask session.app, "Really leave?",
+      [Choice.new('y', "Yes"), Choice.new('n', "No")],
+      default: 'n', navigation: Navigation.new
+
+    session.press "Left"
+    expect(prompt.offered).to contain "[ Yes ]"
+    session.press "Right"
+    expect(prompt.offered).to contain "[ No ]"
+    session.press "Up"
+    expect(prompt.offered).to contain "[ Yes ]"
+  end
+
   it "confirms the selected safe choice with f or Enter" do
     run = asked
     run.session.press "Enter"

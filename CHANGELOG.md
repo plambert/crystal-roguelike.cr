@@ -96,6 +96,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   one.
 * A scroll of identify you have not yet named is read when nothing you carry has anything left to
   learn. It is used up and you learn what it is. Before, it was refused and stayed unknown.
+* Menus laid out across the screen, such as save and quit, now move with the left and right
+  arrows and `a` and `d`. `w`, `s` and the up and down arrows still move them. The control
+  scheme chooser also takes `h` and `l`.
 
 ## [0.7.0] - 2026-10-28
 
