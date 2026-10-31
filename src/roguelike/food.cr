@@ -182,9 +182,11 @@ module Roguelike
       ItemKind::Mushroom   => 6,
     }
 
-    # How many food items a floor starts with, per thousand squares of open
-    # floor.
-    PER_THOUSAND = 5
+    # How many food items a floor starts with, per ten thousand squares of
+    # open floor. A floor of 8000 squares, which is about the mean, holds
+    # four, and about 2800 points of satiety between them. Every floor holds
+    # one at least.
+    PER_TEN_THOUSAND = 5
 
     # What a corpse of each size feeds, eaten where it lies.
     CORPSE_SATIETY = {

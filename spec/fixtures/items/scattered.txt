@@ -6,9 +6,7 @@
  44,7   mace
  46,7   potion of minor healing
  16,8   torch
- 35,8   wedge of cheese
  37,8   gold piece
- 30,9   turnip
  30,10  torch
  10,12  torch
   7,15  rock

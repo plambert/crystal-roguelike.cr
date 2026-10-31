@@ -15,7 +15,7 @@ module Roguelike
       ground.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
       return if squares.empty?
 
-      (squares.size * Food::PER_THOUSAND // 1000).times do
+      Math.max(squares.size * Food::PER_TEN_THOUSAND // 10_000, 1).times do
         spot = squares.sample stream
         kind = Items.pick stream, Food::LITTER
         keeps = Food.facts(kind).keeps
