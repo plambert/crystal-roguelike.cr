@@ -147,7 +147,7 @@ Spectator.describe "Roguelike::Ui::Palette.rebuild" do
   end
 
   it "changes what reads a changed color and nothing else" do
-    expect(changed_by "red").to eq %w[cursed_word health red threat]
+    expect(changed_by "red").to eq %w[cursed_word failing health red threat]
     expect(changed_by "granite").to eq %w[granite looks]
     expect(changed_by "shadow").to eq %w[ramp shadow]
     expect(changed_by "ground").to eq %w[ground ground_style spotlit unseen]

@@ -234,13 +234,15 @@ Spectator.describe Roguelike::Floor do
     end
 
     # A broken door is made in play, by breaking a door down. The door specs
+    # try it. A fountain is put down by the generator, and the fountain specs
     # try it.
     it "has one of every terrain in it, so nothing goes untried" do
       seen = Set(Terrain).new
       shipped.each { |_column, _row, tile| seen << tile.terrain }
 
-      expect(seen.size).to eq Terrain.values.size - 1
+      expect(seen.size).to eq Terrain.values.size - 2
       expect(seen).not_to contain Terrain::BrokenDoor
+      expect(seen).not_to contain Terrain::Fountain
     end
 
     it "is walled all the way round" do

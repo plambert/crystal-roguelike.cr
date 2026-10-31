@@ -1414,6 +1414,64 @@ module Roguelike::Ui
       end
     end
 
+    # Fills the waterskin at the fountain underfoot, a turn for each unit,
+    # until it is full or something stops it.
+    #
+    # It runs on the rest timer, so a key pressed part way through stops it
+    # and a creature coming into view stops it.
+    def fill_skin : Nil
+      if @pending
+        @pending = nil
+        refresh
+        return
+      end
+
+      complaint = @game.cannot_refill
+      return say complaint if complaint
+
+      found = @game.filling
+      halt = found.halt
+      return start_resting found unless halt
+
+      say Play.refused_fill halt
+    end
+
+    # What a fill that never started says.
+    def self.refused_fill(halt : Halt) : String
+      case halt
+      when .in_sight? then "You cannot fill your waterskin with a creature in sight."
+      when .filled?   then "Your waterskin is full."
+      else                 "You cannot fill your waterskin now."
+      end
+    end
+
+    # Drinks from the fountain underfoot. No turn passes.
+    def drink_fountain : Nil
+      complaint = @game.cannot_drink_fountain
+      return say complaint if complaint
+
+      @game.perform Action::Quench.new
+      refresh
+    end
+
+    # Drinks from the fountain underfoot when thirsty, then fills the skin.
+    # `U` does this in the traditional controls.
+    def use_fountain : Nil
+      return say "There is no fountain here." unless @game.at_fountain?
+
+      drank = @game.cannot_drink_fountain.nil?
+      @game.perform Action::Quench.new if drank
+
+      complaint = @game.cannot_refill
+      if complaint.nil?
+        fill_skin
+      elsif drank
+        refresh
+      else
+        say complaint
+      end
+    end
+
     # Starts *rest* and takes its first turn.
     #
     # The keyboard goes to `#interrupt` while the rest goes on, the way it
@@ -1485,9 +1543,14 @@ module Roguelike::Ui
     # for, which bounds how long a keypress waits on a slow floor.
     private def inhale(rest : Game::Rest) : Bool
       player = @game.player
-      size = Play.breath_size @breaths,
-        player.max_hit_points - player.hit_points,
-        player.regeneration
+      size = if rest.filling?
+               Play.breath_size @breaths,
+                 Sustenance::WATER_MAX - player.sustenance.water, BREATH_SHARE
+             else
+               Play.breath_size @breaths,
+                 player.max_hit_points - player.hit_points,
+                 player.regeneration
+             end
       @breaths += 1
 
       started = Time.instant

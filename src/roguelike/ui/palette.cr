@@ -61,6 +61,7 @@ module Roguelike::Ui
     drawn dirt : Style = Style::DEFAULT.fg(theme.dirt)
     drawn wood : Style = Style::DEFAULT.fg(theme.wood)
     drawn stairs : Style = Style::DEFAULT.fg(theme.stairs)
+    drawn fountain : Style = Style::DEFAULT.fg(theme.fountain)
     drawn iron : Style = Style::DEFAULT.fg(theme.iron)
     drawn hero : Style = Style::DEFAULT.fg(theme.hero).bold
 
@@ -287,12 +288,23 @@ module Roguelike::Ui
     drawn slow : Array({Int32, TermBuf::Color}) = [{100, theme.slow_bar}, {0, theme.slow_bar}]
     drawn blindness : Array({Int32, TermBuf::Color}) = [{100, theme.blind_bar}, {0, theme.blind_bar}]
 
+    # The bars for a stage of hunger or thirst, from the health bar's colors.
+    #
+    # Each is one color. It goes from yellow to red as the stage gets worse,
+    # the way the health bar does as it empties.
+    drawn wanting : Array({Int32, TermBuf::Color}) = [{100, yellow}, {0, yellow}]
+    drawn lacking : Array({Int32, TermBuf::Color}) = [{100, orange}, {0, orange}]
+    drawn failing : Array({Int32, TermBuf::Color}) = [{100, red}, {0, red}]
+
     # The bar colors for each temporary effect.
     def self.lasting(status : Event::Status) : Array({Int32, TermBuf::Color})
       case status
-      in .hurried?  then haste
-      in .dragging? then slow
-      in .blind?    then blindness
+      in .hurried?                           then haste
+      in .dragging?                          then slow
+      in .blind?                             then blindness
+      in .hungry?, .thirsty?                 then wanting
+      in .famished?, .parched?, .dehydrated? then lacking
+      in .starving?, .dying_of_thirst?       then failing
       end
     end
 
@@ -614,6 +626,7 @@ module Roguelike::Ui
       Terrain::BrokenDoor => Look.new('/', wood),
       Terrain::StairsUp   => Look.new('<', stairs),
       Terrain::StairsDown => Look.new('>', stairs),
+      Terrain::Fountain   => Look.new('{', fountain),
     }
 
     # How *terrain* draws.

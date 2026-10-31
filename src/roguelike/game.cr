@@ -20,6 +20,9 @@ module Roguelike
     # Something is in the way. No turn was taken.
     Blocked
 
+    # The character drew water at a fountain and stayed where they were.
+    Drew
+
     # Whether a turn was taken.
     def turn? : Bool
       !blocked?
@@ -28,7 +31,7 @@ module Roguelike
     # Whether the character spent the turn on the square ahead and stayed
     # where they were.
     def stayed? : Bool
-      opened? || struck?
+      opened? || struck? || drew?
     end
   end
 
@@ -1036,8 +1039,8 @@ module Roguelike
     # can kill the character, and the run ends there. `#wait` takes no turn
     # once they are dead, for the same reason.
     def stride(walk : Walk) : Bool
-      return false if over?
-      return false if walk.over?
+      early = before_stepping walk
+      return early unless early.nil?
 
       direction = heading walk
       return false unless direction
@@ -1095,6 +1098,26 @@ module Roguelike
       !walk.over?
     ensure
       clear_step
+    end
+
+    # What a stride of *walk* comes to before any step. `false` when the
+    # walk cannot go on, whether it goes on after a turn at a fountain, and
+    # `nil` when it is to step.
+    private def before_stepping(walk : Walk) : Bool?
+      return false if over? || walk.over?
+      return drawing_on walk if walk.exploring? && drawing_water?
+
+      nil
+    end
+
+    # Takes one turn of an explore *walk* at the fountain underfoot, filling
+    # the skin. Answers whether the walk goes on.
+    private def drawing_on(walk : Walk) : Bool
+      before = watching walk
+      perform Action::Explore.new
+      settle walk, before, along: false, doors: false
+
+      !walk.over?
     end
 
     # What the character can see after a step of *walk*.
@@ -1325,7 +1348,7 @@ module Roguelike
 
       route = if goal.nil?
                 Explore.route known, @player.at, floor.columns, floor.rows, auto_takes, shining,
-                  explore_settings
+                  explore_settings, wells
               elsif goal == @player.at
                 Route::NOWHERE
               else
@@ -1783,7 +1806,10 @@ module Roguelike
       # What could be seen before the turn being taken.
       property seen : Vision
 
-      def initialize(@seen : Vision)
+      # Whether each turn fills the waterskin rather than waits.
+      getter? filling : Bool
+
+      def initialize(@seen : Vision, @filling : Bool = false)
       end
 
       # Whether it has stopped.
@@ -1843,7 +1869,11 @@ module Roguelike
       end
 
       before = Watch.on self, rest.seen
-      perform Action::Wait.new
+      verdict = perform(rest.filling? ? Action::Refill.new : Action::Wait.new)
+      if verdict.refused?
+        rest.halt = Halt::Blocked
+        return false
+      end
 
       rest.turns += 1
       rest.seen = sight
@@ -1851,9 +1881,13 @@ module Roguelike
       # The character does not move, so the two reasons about the square
       # stepped onto cannot hold. Full health is asked about last, because a
       # turn that both healed the character and brought news is worth
-      # reporting as the news.
-      rest.halt = stopped_by(before, rest.seen, along: false, doors: false) ||
-                  rested_enough
+      # reporting as the news. A full skin is asked about first, because the
+      # turn that fills it says so.
+      rest.halt = if rest.filling?
+                    filled_enough || stopped_by(before, rest.seen, along: false, doors: false)
+                  else
+                    stopped_by(before, rest.seen, along: false, doors: false) || rested_enough
+                  end
 
       !rest.over?
     end
@@ -1877,6 +1911,162 @@ module Roguelike
       end
 
       found
+    end
+
+    # ------------------------------------------------------------ fountains
+
+    # Whether the character stands on a fountain.
+    def at_fountain? : Bool
+      standing_on.fountain?
+    end
+
+    # Whether the waterskin holds all it can.
+    def skin_full? : Bool
+      @player.sustenance.water >= Sustenance::WATER_MAX
+    end
+
+    # Why the waterskin cannot be filled here. `nil` when it can.
+    def cannot_refill : String?
+      return "There is no fountain here." unless at_fountain?
+      return "Your waterskin is full." if skin_full?
+
+      nil
+    end
+
+    # Why the character cannot drink from a fountain here. `nil` when they
+    # can.
+    def cannot_drink_fountain : String?
+      return "There is no fountain here." unless at_fountain?
+      return "You are not thirsty." if @player.sustenance.quenched?
+
+      nil
+    end
+
+    # Whether the character wants fountain water. The skin is not full,
+    # and it is dry or thirst has set in.
+    def water_wanted? : Bool
+      return false if skin_full?
+
+      sustenance = @player.sustenance
+      sustenance.water.zero? || sustenance.thirst_stage >= ThirstStage::Thirsty
+    end
+
+    # Whether an explore fills the skin at the fountain underfoot rather
+    # than walking on.
+    #
+    # It tops up any skin below full. `#water_wanted?` decides only whether
+    # an explore walks to a fountain, so a fill it starts goes on to full.
+    def drawing_water? : Bool
+      at_fountain? && !skin_full?
+    end
+
+    # The fountains the character knows on this floor, when an explore
+    # should walk to one.
+    private def wells : Array({Int32, Int32})
+      return [] of {Int32, Int32} unless water_wanted?
+
+      knowledge.where Terrain::Fountain
+    end
+
+    # Puts one unit of fountain water into the skin. Answers whether any
+    # went in.
+    #
+    # It takes a turn. No line is written until the skin is full, so a fill
+    # of several turns is not stopped by its own words.
+    def refill : Bool
+      complaint = cannot_refill
+      if complaint
+        reason = at_fountain? ? Event::Refused::Reason::SkinFull : Event::Refused::Reason::NoFountain
+        say complaint, Event::Refused.new(reason)
+        return false
+      end
+
+      added = @player.sustenance.refill 1
+      event = Event::Refilled.new added, @player.sustenance.water
+      if skin_full?
+        say "Your waterskin is full.", event
+      else
+        record event
+      end
+      spend_turn
+      true
+    end
+
+    # Drinks from the fountain underfoot until the character is no longer
+    # thirsty. Answers whether they drank. No turn passes.
+    def drink_fountain : Bool
+      complaint = cannot_drink_fountain
+      if complaint
+        reason = at_fountain? ? Event::Refused::Reason::NotThirsty : Event::Refused::Reason::NoFountain
+        say complaint, Event::Refused.new(reason)
+        return false
+      end
+
+      units = @player.sustenance.quench 1
+      say "You drink from the fountain.", Event::Drank.new(units, "fountain")
+      true
+    end
+
+    # A fill of the waterskin, ready to be taken a turn at a time.
+    #
+    # It is a rest whose turns each put a unit into the skin. It stops when
+    # the skin is full and for everything that stops a rest but a wound
+    # healed.
+    def filling : Rest
+      rest = Rest.new sight, filling: true
+      rest.halt = refusing_fill rest.seen
+
+      rest
+    end
+
+    # Why a fill cannot start. `nil` when it can.
+    private def refusing_fill(seen : Vision) : Halt?
+      return Halt::Over if over?
+      return Halt::Blocked unless at_fountain?
+      return Halt::Filled if skin_full?
+      return Halt::InSight unless monsters_in_sight(seen).empty?
+
+      nil
+    end
+
+    # `Halt::Filled` once the skin is full.
+    private def filled_enough : Halt?
+      Halt::Filled if skin_full?
+    end
+
+    # Fills the skin until something stops it. Answers the fill.
+    def fill : Rest
+      found = filling
+      while linger found
+      end
+
+      found
+    end
+
+    # The rule for drawing water at a fountain.
+    private def drawing(action : Action::Refill | Action::Quench) : Verdict
+      case action
+      in Action::Refill
+        clear_step
+        Verdict.done(refill ? Step::Drew : Step::Blocked)
+      in Action::Quench
+        drink_fountain
+        Verdict.done
+      end
+    end
+
+    # One turn of an explore spent filling the skin at the fountain
+    # underfoot. A thirsty character drinks from it first, which is free.
+    #
+    # The lines this writes do not stop the explore, so it goes on once the
+    # skin is full.
+    private def explore_refill : Verdict
+      clear_step
+      wrote = @log.written
+      drink_fountain if cannot_drink_fountain.nil?
+      filled = refill
+      @overlooked += @log.written - wrote
+      Verdict.done(filled ? Step::Drew : Step::Blocked)
     end
 
     # ------------------------------------------------------------- fighting
@@ -3291,6 +3481,7 @@ module Roguelike
       handle_items
       blink
       regenerate
+      sustain
       creatures_recover
       act_on_the_floor unless over?
 
@@ -3424,6 +3615,11 @@ module Roguelike
       return if gained.zero?
 
       record Event::Healed.new(gained)
+    end
+
+    # Passes one turn of hunger and thirst.
+    private def sustain : Nil
+      @player.sustenance.tick
     end
 
     # Counts a haste and a slow down one tick, on everything that has one.
@@ -4866,6 +5062,7 @@ module Roguelike
       use letter, ItemClass::Potion, "drink" do |item|
         say "You drink #{name item}.",
           with_facts(Event::Used.new(item.id, name(item), :drink), item_facts(item))
+        @player.sustenance.quench 1
       end
     end
 
@@ -6933,6 +7130,8 @@ module Roguelike
         heading_off action
       when Action::Configure
         configuring action
+      when Action::Refill, Action::Quench
+        drawing action
       else
         raise ArgumentError.new "#{action.class} has no rule"
       end
@@ -7167,6 +7366,8 @@ module Roguelike
     # brought into sight.
     private def heading_off(action : Action::Explore | Action::Travel | Action::Visit) : Verdict
       goal = action.is_a?(Action::Explore) ? nil : action.target
+      return explore_refill if goal.nil? && drawing_water?
+
       if action.is_a?(Action::Visit)
         forget_emptied
       else
@@ -7413,14 +7614,18 @@ module Roguelike
       end
       found << Action::Descend.new if standing_on.stairs_down?
       found << Action::Ascend.new if standing_on.stairs_up?
+      found << Action::Refill.new if cannot_refill.nil?
+      found << Action::Quench.new if cannot_drink_fountain.nil?
       found << Action::Explore.new if explorable?
     end
 
     # Whether an explore has anywhere to go under the current light and
     # automatic-pickup rules.
     def explorable? : Bool
+      return true if drawing_water?
+
       Explore.going? knowledge, @player.at, floor.columns, floor.rows, auto_takes, shining,
-        explore_settings
+        explore_settings, wells
     end
 
     # Which squares light falls on, for `Explore`. `nil` when the character

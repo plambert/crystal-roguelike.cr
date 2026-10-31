@@ -39,6 +39,7 @@ module Roguelike
       "door"           => Door,
       "door_broken"    => DoorBroken,
       "door_struck"    => DoorStruck,
+      "drank"          => Drank,
       "dropped"        => Dropped,
       "fizzled"        => Fizzled,
       "fled"           => Fled,
@@ -65,6 +66,7 @@ module Roguelike
       "picked_up"      => PickedUp,
       "pile"           => Pile,
       "readied"        => Readied,
+      "refilled"       => Refilled,
       "rearmed"        => Rearmed,
       "refused"        => Refused,
       "removed"        => Removed,
@@ -382,6 +384,15 @@ module Roguelike
 
         # Nothing carried has anything left for a scroll of identify to name.
         NothingUnknown
+
+        # There is no fountain underfoot.
+        NoFountain
+
+        # The waterskin is already full.
+        SkinFull
+
+        # The character is not thirsty enough to drink.
+        NotThirsty
       end
 
       getter kind : String = "refused"
@@ -626,6 +637,17 @@ module Roguelike
 
       # Unable to see.
       Blind
+
+      # The hunger stages, mildest first.
+      Hungry
+      Famished
+      Starving
+
+      # The thirst stages, mildest first.
+      Thirsty
+      Parched
+      Dehydrated
+      DyingOfThirst
     end
 
     # A status that started.
@@ -1132,6 +1154,30 @@ module Roguelike
       getter way : String?
 
       def initialize(@what : String, @way : String? = nil)
+      end
+    end
+
+    # The character drank water. *units* is how much it took, and *source*
+    # is where it came from: `skin`, `fountain` or `potion`.
+    class Drank < Event
+      getter kind : String = "drank"
+
+      getter units : Int32
+      getter source : String
+
+      def initialize(@units : Int32, @source : String)
+      end
+    end
+
+    # Water from a fountain put into the waterskin. *units* is how much went
+    # in, and *water* is what the skin holds after.
+    class Refilled < Event
+      getter kind : String = "refilled"
+
+      getter units : Int32
+      getter water : Int32
+
+      def initialize(@units : Int32, @water : Int32)
       end
     end
 

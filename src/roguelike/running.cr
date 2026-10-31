@@ -76,6 +76,9 @@ module Roguelike
     # The stairs down came into the character's knowledge. Only an explore
     # answers this, and only when its settings ask for it.
     Stairs
+
+    # The waterskin is full.
+    Filled
   end
 
   # What one walk did.
