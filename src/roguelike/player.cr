@@ -84,6 +84,12 @@ module Roguelike
     @[JSON::Field(converter: Roguelike::Sorted(Hash(String, Roguelike::Knowledge)))]
     getter memory : Hash(String, Knowledge)
 
+    # Hunger, thirst and the waterskin.
+    #
+    # It has a default, so a save written before this field existed loads
+    # with the character fed, quenched and the skin full.
+    getter sustenance : Sustenance = Sustenance.new
+
     def initialize(@floor : String, @x : Int32, @y : Int32,
                    @attributes : Attributes = Attributes.new,
                    @level : Int32 = 1,

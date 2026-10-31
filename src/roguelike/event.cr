@@ -626,6 +626,17 @@ module Roguelike
 
       # Unable to see.
       Blind
+
+      # The hunger stages, mildest first.
+      Hungry
+      Famished
+      Starving
+
+      # The thirst stages, mildest first.
+      Thirsty
+      Parched
+      Dehydrated
+      DyingOfThirst
     end
 
     # A status that started.

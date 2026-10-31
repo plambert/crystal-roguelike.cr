@@ -3291,6 +3291,7 @@ module Roguelike
       handle_items
       blink
       regenerate
+      sustain
       creatures_recover
       act_on_the_floor unless over?
 
@@ -3424,6 +3425,11 @@ module Roguelike
       return if gained.zero?
 
       record Event::Healed.new(gained)
+    end
+
+    # Passes one turn of hunger and thirst.
+    private def sustain : Nil
+      @player.sustenance.tick
     end
 
     # Counts a haste and a slow down one tick, on everything that has one.
