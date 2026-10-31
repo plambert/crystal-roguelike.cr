@@ -148,7 +148,7 @@ module Roguelike
       options = Options.current || Options.arrange_display(root)
       Options.current = options
       options.apply
-      Ui::Theme.current = Ui::Theme.read root
+      Ui::Theme.current, Ui::Theme.current_name = Ui::Theme.load root
       Ui::Palette.rebuild
       options
     end

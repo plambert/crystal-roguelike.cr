@@ -349,7 +349,7 @@ module Roguelike::Ui
     # Draws with *theme* from now on and writes it.
     private def apply(theme : Theme) : Nil
       Theme.current = theme
-      theme.write @root
+      theme.write @root, Theme.current_name
       Palette.rebuild
       @on_change.try &.call
     end

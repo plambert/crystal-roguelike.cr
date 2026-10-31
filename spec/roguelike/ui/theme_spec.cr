@@ -62,6 +62,62 @@ Spectator.describe Roguelike::Ui::Theme do
     end
   end
 
+  describe "a name" do
+    it "writes the name first and reads it back" do
+      changed = Theme::DEFAULT.with "granite", TermBuf::Color.rgb(0x12, 0x34, 0x56)
+      changed.write root, "Moss"
+
+      expect(File.read_lines(Theme.path root)[1]).to eq %(  "name": "Moss",)
+      expect(Theme.load root).to eq({changed, "Moss"})
+    end
+
+    it "reads a file with no name as a theme with no name" do
+      File.write Theme.path(root), %({"granite": "#010203"})
+
+      expect(Theme.load(root)[1]).to be_nil
+      expect(Theme.read(root).granite).to eq TermBuf::Color.rgb(1, 2, 3)
+    end
+
+    it "writes the same text with no name as the plain JSON" do
+      expect(Theme::DEFAULT.to_named_json).to eq "#{Theme::DEFAULT.to_pretty_json}\n"
+    end
+  end
+
+  describe "reading pasted text" do
+    it "takes the colors and the name" do
+      theme, name = Theme.parse %({"name": " Moss ", "granite": "#010203"})
+
+      expect(name).to eq "Moss"
+      expect(theme).to eq Theme::DEFAULT.with("granite", TermBuf::Color.rgb(1, 2, 3))
+    end
+
+    it "takes text with its line breaks flattened" do
+      text = Theme::DEFAULT.with("hero", TermBuf::Color.rgb(9, 9, 9)).to_named_json("Moss").gsub('\n', ' ')
+
+      expect(Theme.parse(text)[0].hero).to eq TermBuf::Color.rgb(9, 9, 9)
+    end
+
+    it "ignores a key that is not a color" do
+      theme, name = Theme.parse %({"granite": "#010203", "sparkle": "#ffffff", "version": 2})
+
+      expect(name).to be_nil
+      expect(theme.granite).to eq TermBuf::Color.rgb(1, 2, 3)
+    end
+
+    it "names every bad color and keeps none of the colors" do
+      expect { Theme.parse %({"granite": "#010203", "hero": "white", "ground": 12}) }
+        .to raise_error(Theme::Unreadable, "These colors are not #rrggbb: hero, ground.")
+    end
+
+    it "refuses text that is not JSON" do
+      expect { Theme.parse %({"granite": ) }.to raise_error(Theme::Unreadable, /not JSON/)
+    end
+
+    it "refuses JSON that is not an object" do
+      expect { Theme.parse %(["#010203"]) }.to raise_error(Theme::Unreadable, "This is not a JSON object.")
+    end
+  end
+
   describe "#rrggbb" do
     it "writes a color in lower case" do
       expect(Theme::Hex.to_hex TermBuf::Color.rgb(0xA0, 0x0B, 0xFF)).to eq "#a00bff"
