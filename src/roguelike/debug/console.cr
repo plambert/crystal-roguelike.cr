@@ -228,8 +228,9 @@ module Roguelike::Debug
 
     # Makes what *words* name and puts it in the pack.
     #
-    # Gold is counted rather than carried, so it goes to the purse. Anything
-    # else lands underfoot when every inventory letter is taken.
+    # Gold is counted rather than carried, so it goes to the purse. Food goes
+    # in the food bag. Anything else lands underfoot when every inventory
+    # letter is taken.
     def spawn(game : Game, words : Array(String)) : Nil
       made = Debug.item words
       return say made if made.is_a? String
@@ -240,6 +241,8 @@ module Roguelike::Debug
       end
 
       made.enroll game.next_id
+      return spawn_food(game, made) if made.food?
+
       letter = game.player.inventory.add made
       unless letter
         game.floor.drop game.player.x, game.player.y, made
@@ -247,6 +250,16 @@ module Roguelike::Debug
       end
 
       say "#{letter} - #{game.name made}"
+    end
+
+    # Puts *made* in the food bag, or underfoot when the bag has no room for
+    # it. A corpse always goes underfoot.
+    private def spawn_food(game : Game, made : Item) : Nil
+      held = game.player.food_bag.add made
+      return say "#{game.name made} is in the food bag." if held
+
+      game.floor.drop game.player.x, game.player.y, made
+      say "#{game.name made} is underfoot."
     end
 
     # Learns one carried item, or every kind of one class.

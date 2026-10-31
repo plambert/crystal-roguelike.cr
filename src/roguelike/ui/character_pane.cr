@@ -74,6 +74,11 @@ module Roguelike::Ui
       Event::Status::Parched       => "parched",
       Event::Status::Dehydrated    => "dehydrated",
       Event::Status::DyingOfThirst => "dying of thirst",
+      Event::Status::WellFed       => "fed",
+      Event::Status::Refreshed     => "fruit",
+      Event::Status::SteadyAim     => "aim",
+      Event::Status::SteadyHand    => "hand",
+      Event::Status::Sick          => "sick",
     }
 
     # What the noise bar is labeled. A note, where the other bars have two

@@ -48,7 +48,7 @@ module Roguelike::Ui
       kind = item.kind
 
       lines << marked(Palette.slot(slot), slot.note) if slot
-      lines << blessing(item)
+      lines << blessing(item) unless item.food?
       lines << marked(Palette.burning, Palette::LIT_WORD) if item.lit?
       lines.concat facts(game, item)
       lines << "weight #{item.weight}"
@@ -123,7 +123,51 @@ module Roguelike::Ui
       when .armor?           then worn item
       when .light?           then burning item
       when .wand?            then charged item
+      when .food?            then eaten item
       else                        [] of String
+      end
+    end
+
+    # What a food is like to eat: how filling, what it does, and how fresh.
+    private def self.eaten(item : Item) : Array(String)
+      return ["nothing eats this"] unless item.edible?
+
+      lines = [filling(item.nourishment), item.category.label]
+      item.category.buff.try { |status| lines << buffing(status) }
+      lines << freshness(item)
+      lines << "eat it here or cut it into meat" if item.corpse?
+      lines
+    end
+
+    # How filling *points* of satiety are, in words.
+    private def self.filling(points : Int32) : String
+      case points
+      when 1200.. then "a full meal"
+      when 600..  then "a meal"
+      when 300..  then "a light meal"
+      else             "a snack"
+      end
+    end
+
+    # What eating a fresh one of a family with the buff *status* does.
+    private def self.buffing(status : Event::Status) : String
+      case status
+      when .well_fed?    then "fresh, it quickens you for a while"
+      when .refreshed?   then "fresh, it slows your thirst for a while"
+      when .steady_aim?  then "fresh, it steadies your aim for a while"
+      when .steady_hand? then "fresh, it steadies your hand for a while"
+      else                    "fresh, it does you good"
+      end
+    end
+
+    # How fresh *item* is, and what that means for eating it.
+    private def self.freshness(item : Item) : String
+      return "it keeps" unless item.food_facts.spoils?
+
+      case item.freshness
+      in .fresh?  then "fresh"
+      in .stale?  then "stale: it feeds half as much"
+      in .rotten? then "rotten: eating it will make you sick"
       end
     end
 

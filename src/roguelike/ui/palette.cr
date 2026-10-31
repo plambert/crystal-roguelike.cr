@@ -293,7 +293,9 @@ module Roguelike::Ui
     drawn hunger : Array({Int32, TermBuf::Color}) = [{100, theme.hunger_bar}, {0, theme.hunger_bar}]
     drawn thirst : Array({Int32, TermBuf::Color}) = [{100, theme.thirst_bar}, {0, theme.thirst_bar}]
 
-    # The bar colors for each temporary effect.
+    # The bar colors for each temporary effect. A buff from food takes the
+    # experience bar's green and being sick takes the slow bar's color, so
+    # each reads as well as those do.
     def self.lasting(status : Event::Status) : Array({Int32, TermBuf::Color})
       case status
       in .hurried?                                             then haste
@@ -301,6 +303,8 @@ module Roguelike::Ui
       in .blind?                                               then blindness
       in .hungry?, .famished?, .starving?                      then hunger
       in .thirsty?, .parched?, .dehydrated?, .dying_of_thirst? then thirst
+      in .well_fed?, .refreshed?, .steady_aim?, .steady_hand?  then learning
+      in .sick?                                                then slow
       end
     end
 
@@ -397,6 +401,7 @@ module Roguelike::Ui
       ItemClass::Tool         => Look.new('(', tool),
       ItemClass::Treasure     => Look.new('$', coin),
       ItemClass::Amulet       => Look.new('"', coin),
+      ItemClass::Food         => Look.new('%', tool),
     }
 
     # How *item* is drawn where it lies.

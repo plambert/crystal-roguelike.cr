@@ -52,6 +52,7 @@ module Roguelike::Ui
     FillSkin
     DrinkFountain
     DrinkWater
+    FoodBag
   end
 
   # The stable catalog grouping for a command.
@@ -164,66 +165,68 @@ module Roguelike::Ui
         "Use a carried light, fixture, or spike.", 17),
       CommandMetadata.new(Command::Throw, "Throw", CommandCategory::Items,
         "Choose a carried item and aim it.", 18),
+      CommandMetadata.new(Command::FoodBag, "Food bag", CommandCategory::Items,
+        "Eat, drop or sort food, or eat or cut up a corpse here.", 19),
       CommandMetadata.new(Command::OpenDoor, "Open door", CommandCategory::Environment,
-        "Open a known shut door beside you.", 19),
+        "Open a known shut door beside you.", 20),
       CommandMetadata.new(Command::CloseDoor, "Close door", CommandCategory::Environment,
-        "Close a known open door beside you.", 20),
+        "Close a known open door beside you.", 21),
       CommandMetadata.new(Command::SpikeDoor, "Spike door", CommandCategory::Environment,
-        "Drive a carried spike into a known shut door.", 21),
+        "Drive a carried spike into a known shut door.", 22),
       CommandMetadata.new(Command::BreakDoor, "Break door", CommandCategory::Environment,
-        "Break a known door that is stuck shut.", 22),
+        "Break a known door that is stuck shut.", 23),
       CommandMetadata.new(Command::FillSkin, "Fill the waterskin", CommandCategory::Environment,
-        "Fill the waterskin at the fountain here, one turn for each unit.", 23),
+        "Fill the waterskin at the fountain here, one turn for each unit.", 24),
       CommandMetadata.new(Command::DrinkFountain, "Drink from the fountain", CommandCategory::Environment,
-        "Drink from the fountain here until you are not thirsty.", 24),
+        "Drink from the fountain here until you are not thirsty.", 25),
       CommandMetadata.new(Command::Fire, "Fire", CommandCategory::Combat,
-        "Aim the readied ranged weapon.", 25),
+        "Aim the readied ranged weapon.", 26),
       CommandMetadata.new(Command::FireNearest, "Fire at nearest enemy", CommandCategory::Combat,
-        "Fire at the nearest visible enemy with a clear shot.", 26),
+        "Fire at the nearest visible enemy with a clear shot.", 27),
       CommandMetadata.new(Command::Examine, "Examine", CommandCategory::View,
-        "Read what is known about a square.", 27),
+        "Read what is known about a square.", 28),
       CommandMetadata.new(Command::PanMap, "Pan map", CommandCategory::View,
-        "Move the map view without taking a turn.", 28),
+        "Move the map view without taking a turn.", 29),
       CommandMetadata.new(Command::Recenter, "Recenter map", CommandCategory::View,
-        "Center the map on the character.", 29),
+        "Center the map on the character.", 30),
       CommandMetadata.new(Command::History, "Message history", CommandCategory::View,
-        "Browse the message history.", 30),
+        "Browse the message history.", 31),
       CommandMetadata.new(Command::FocusNext, "Next panel", CommandCategory::View,
-        "Focus the next visible panel.", 31),
+        "Focus the next visible panel.", 32),
       CommandMetadata.new(Command::FocusPrevious, "Previous panel", CommandCategory::View,
-        "Focus the previous visible panel.", 32),
+        "Focus the previous visible panel.", 33),
       CommandMetadata.new(Command::FocusMap, "Focus map", CommandCategory::View,
-        "Focus the map panel.", 33),
+        "Focus the map panel.", 34),
       CommandMetadata.new(Command::FocusInfo, "Focus information", CommandCategory::View,
-        "Focus the information panel.", 34),
+        "Focus the information panel.", 35),
       CommandMetadata.new(Command::FocusLog, "Focus messages", CommandCategory::View,
-        "Focus the message panel.", 35),
+        "Focus the message panel.", 36),
       CommandMetadata.new(Command::Options, "Options", CommandCategory::System,
-        "Change application options.", 36),
+        "Change application options.", 37),
       CommandMetadata.new(Command::Theme, "Color theme", CommandCategory::System,
-        "Change the color theme.", 37),
+        "Change the color theme.", 38),
       CommandMetadata.new(Command::ToggleMouse, "Toggle mouse", CommandCategory::System,
-        "Turn mouse reporting on or off.", 38),
+        "Turn mouse reporting on or off.", 39),
       CommandMetadata.new(Command::Help, "Help", CommandCategory::System,
-        "Read help for the current controls.", 39),
+        "Read help for the current controls.", 40),
       CommandMetadata.new(Command::WhatsNew, "What is new", CommandCategory::System,
-        "Read the release notes.", 40),
+        "Read the release notes.", 41),
       CommandMetadata.new(Command::SaveQuit, "Save and quit", CommandCategory::System,
-        "Save the run and leave the game.", 41),
+        "Save the run and leave the game.", 42),
       CommandMetadata.new(Command::DebugConsole, "Debug console", CommandCategory::System,
-        "Open the debug console.", 42),
+        "Open the debug console.", 43),
       CommandMetadata.new(Command::ReplayToggle, "Play or pause", CommandCategory::Replay,
-        "Start or pause replay playback.", 43),
+        "Start or pause replay playback.", 44),
       CommandMetadata.new(Command::ReplayForward, "Step forward", CommandCategory::Replay,
-        "Advance one recorded action.", 44),
+        "Advance one recorded action.", 45),
       CommandMetadata.new(Command::ReplayBack, "Step backward", CommandCategory::Replay,
-        "Go back one recorded action.", 45),
+        "Go back one recorded action.", 46),
       CommandMetadata.new(Command::ReplayFaster, "Increase replay speed", CommandCategory::Replay,
-        "Increase replay playback speed.", 46),
+        "Increase replay playback speed.", 47),
       CommandMetadata.new(Command::ReplaySlower, "Decrease replay speed", CommandCategory::Replay,
-        "Decrease replay playback speed.", 47),
+        "Decrease replay playback speed.", 48),
       CommandMetadata.new(Command::ReplayGoTo, "Go to replay turn", CommandCategory::Replay,
-        "Choose a turn in the recording.", 48),
+        "Choose a turn in the recording.", 49),
     ] of CommandMetadata
 
     private ITEM_ACTIONS = {
@@ -238,7 +241,7 @@ module Roguelike::Ui
       Command::Drink, Command::DrinkWater, Command::Read, Command::Zap,
       Command::Apply, Command::Throw, Command::OpenDoor, Command::CloseDoor,
       Command::SpikeDoor, Command::BreakDoor, Command::Fire,
-      Command::FireNearest, Command::FillSkin, Command::DrinkFountain,
+      Command::FireNearest, Command::FillSkin, Command::DrinkFountain, Command::FoodBag,
     }
 
     private REPLAY = {
@@ -345,6 +348,7 @@ module Roguelike::Ui
                   in .fire?                        then !query.game.cannot_fire
                   in .fire_nearest?                then !query.game.cannot_fire && !candidates.empty?
                   in .fill_skin?, .drink_fountain? then fountain_available?(command, query)
+                  in .food_bag?                    then !query.game.over? && query.game.food_at_hand?
                   in .inventory?, .pan_map?, .recenter?, .history?,
                      .focus_next?, .focus_previous?, .focus_map?, .focus_info?,
                      .focus_log?, .options?, .theme?, .toggle_mouse?, .help?,
@@ -380,7 +384,7 @@ module Roguelike::Ui
          .options?, .theme?, .toggle_mouse?, .help?, .whats_new?, .save_quit?,
          .replay_toggle?, .replay_forward?, .replay_back?, .replay_faster?,
          .replay_slower?, .replay_go_to?, .debug_console?, .fill_skin?,
-         .drink_fountain?
+         .drink_fountain?, .food_bag?
         [] of CommandTarget
       end
     end
@@ -433,7 +437,7 @@ module Roguelike::Ui
          .focus_log?, .options?, .theme?, .toggle_mouse?, .help?, .whats_new?,
          .save_quit?, .replay_toggle?, .replay_forward?, .replay_back?,
          .replay_faster?, .replay_slower?, .replay_go_to?, .debug_console?,
-         .fill_skin?, .drink_fountain? then false
+         .fill_skin?, .drink_fountain?, .food_bag? then false
       end
     end
 
@@ -648,6 +652,7 @@ module Roguelike::Ui
         query.game.cannot_refill || "You cannot fill your waterskin now."
       in .drink_fountain?
         query.game.cannot_drink_fountain || "You cannot drink from a fountain now."
+      in .food_bag? then "Your food bag is empty and there is nothing here to eat."
       in .inventory?, .pan_map?, .recenter?, .history?, .focus_next?,
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
          .theme?, .toggle_mouse?, .help?, .whats_new?, .save_quit?,

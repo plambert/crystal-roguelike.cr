@@ -150,6 +150,7 @@ module Roguelike
                  identified : Bool = false,
                  regard : Regard = Regard::Everything) : String
       return item.kind.label if item.kind.proper?
+      return Lore.food_name(item) if item.food? && regard.everything?
 
       composed_noun item, blessing, identified, regard
     end
@@ -215,8 +216,34 @@ module Roguelike
       when .potion? then plural ? "potions" : "potion"
       when .wand?   then plural ? "wands" : "wand"
       when .scroll? then plural ? "scrolls" : "scroll"
-      else               plural ? kind.plural : kind.label
+      else               food_noun item, plural
       end
+    end
+
+    # What a food is called, made out whole: no blessing, and how fresh it
+    # is in place of a condition.
+    def self.food_name(item : Item) : String
+      (food_words(item) << food_noun(item, item.count > 1)).join ' '
+    end
+
+    # The words before a food's name: how fresh it is and whether it has
+    # been bitten. None for anything that is not food.
+    def self.food_words(item : Item) : Array(String)
+      found = [] of String
+      return found unless item.food?
+
+      item.freshness.label.try { |word| found << word }
+      found << "partly eaten" if item.bitten?
+      found
+    end
+
+    # What *item* is called, without any word before it. A corpse names the
+    # creature it was.
+    def self.food_noun(item : Item, plural : Bool) : String
+      kind = item.kind
+      noun = plural ? kind.plural : kind.label
+      creature = item.creature
+      creature ? "#{creature.label} #{noun}" : noun
     end
 
     # `+1`, `-2`, and so on.

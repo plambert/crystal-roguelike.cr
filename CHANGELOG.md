@@ -10,6 +10,27 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Food. Fourteen kinds lie about the floors in five families: grain, meat, fruit, nuts and
+  cheese, and roots and herbs. Food you pick up goes in a food bag that holds weight 40, takes
+  no pack letter and costs no pace. If the bag has no room, the food stays on the floor.
+  Automatic pickup and `X` take food when the bag has room. You start with two rations.
+* Food goes stale and then rotten as it ages, except rations, which keep. Stale food feeds half as
+  much. Rotten food stays in the bag, and eating it makes you sick for a while: every blow and
+  shot lands less often.
+* Eating fresh food gives a buff for 300 turns by family. Meat makes you quicker, fruit eases
+  thirst, nuts and cheese steady your aim, and roots and herbs steady your hand. Grain feeds the
+  most and gives no buff. A buff does not stack with itself. Stale food gives half the buff.
+* Eating stops when you are full. Food you could not finish stays in the bag, partly eaten. If
+  you are too full to eat at all, you are told so and no turn passes.
+* Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
+  bones, or bones alone for a skeleton. A fresh corpse can be eaten where it lies or cut into
+  fresh meat for the bag, and it rots away about 300 turns after death.
+* A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
+  and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
+  it by weight, type, value, name or freshness. Pick a row to eat it, cut it up or drop it. Press
+  `e` to open it, or pick the food bag row at the end of the inventory. With modern controls it
+  is in the inventory and in the action catalog under Items.
+* Food buffs and being sick each get a bar in the character pane, as a haste does.
 * Fountains. About three floors in five below the first have one, drawn as `{` in a room. Floor 1
   and the amulet chamber have none, and a run often goes two or three floors in a row without
   one. The fountain color is in the theme editor and reads at 4.5 to 1 in every built-in theme.

@@ -40,6 +40,7 @@ Spectator.describe "entity ids" do
     game.player.inventory.each_item do |_letter, item|
       found << {item.id, item.kind.to_s}
     end
+    game.player.food_bag.items.each { |item| found << {item.id, item.kind.to_s} }
 
     found
   end

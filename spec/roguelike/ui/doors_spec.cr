@@ -476,9 +476,16 @@ Spectator.describe "doors, stairs and leaving" do
     # corridor has to be killed before the walk goes on, and how many swings
     # that takes is rolled. The floor is cleared of them so the spec says what
     # it is about.
+    # Food on the way is left out. Picking it up takes a turn of its own.
     def crossing : Playing::Run
       run = Playing.open
       run.clear_monsters
+      ground = run.game.floor
+      food = [] of {Int32, Int32, Roguelike::Item}
+      ground.each_pile do |column, row, pile|
+        pile.each { |item| food << {column, row, item} if item.food? }
+      end
+      food.each { |column, row, item| ground.take column, row, item }
       run
     end
 

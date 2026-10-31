@@ -203,7 +203,7 @@ Spectator.describe "the menu on an inventory letter" do
       run.press "i"
 
       expect(run.menu.showing?).to be_true
-      expect(run.menu.pages.size).to eq 9
+      expect(run.menu.pages.size).to eq 10
       expect(run.menu.tabs.hidden?).to be_false
     end
 
@@ -240,7 +240,7 @@ Spectator.describe "the menu on an inventory letter" do
       expect(run.menu.entries.map &.key).to eq ['b']
 
       run.press "Left", "Left", "Left", "Left", "Left"
-      expect(run.menu.page_name).to eq "treasure"
+      expect(run.menu.page_name).to eq "food"
 
       run.press "Right"
       expect(run.menu.page_name).to eq "all"

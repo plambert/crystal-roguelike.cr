@@ -66,6 +66,16 @@ module Roguelike
     # inventory's own.
     getter equipment : Equipment
 
+    # What the character carries to eat, apart from the pack.
+    #
+    # It has a default, so a save written before the bag existed loads with
+    # an empty one.
+    getter food_bag : FoodBag = FoodBag.new
+
+    # The buffs and the debuffs from what the character ate. The default
+    # lets an older save load with none.
+    getter buffs : Array(Buff) = [] of Buff
+
     # Gold pieces. Counted rather than carried, so they take no letter.
     getter gold : Int32
 
@@ -212,7 +222,8 @@ module Roguelike
     #
     # *held* is the wielded weapon unless another is named.
     def to_hit(held : Item? = wielded) : Int32
-      bonus = @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty
+      bonus = @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty +
+              fed_melee
       return bonus unless held && Player.swung?(held)
 
       bonus + held.aim
@@ -244,8 +255,8 @@ module Roguelike
     # The dexterity modifier, plus what each of the two adds. A masterwork
     # bow and a bent arrow both count, and so does a blessing on either.
     def to_shoot(weapon : Item, ammunition : Item) : Int32
-      Combat.aim @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty,
-        weapon, ammunition
+      Combat.aim @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty +
+                 fed_aim, weapon, ammunition
     end
 
     # What a shot of *ammunition* from *weapon* hits for.
@@ -259,7 +270,8 @@ module Roguelike
 
     # What the character adds to a throw of *item*.
     def to_throw(item : Item) : Int32
-      @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty + item.aim
+      @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty + fed_aim +
+        item.aim
     end
 
     # What *item* hits for when it is thrown.
@@ -347,6 +359,61 @@ module Roguelike
     # The temporary effects on the character, with the turns each has left.
     def lasting : Array(Lasting)
       Lasting.on self
+    end
+
+    # How strong the buff *status* is. Zero while it is not running.
+    def buff_power(status : Event::Status) : Int32
+      @buffs.find(&.status.==(status)).try(&.power) || 0
+    end
+
+    # Offers the buff *status* at *power* for *turns*.
+    #
+    # Buffs do not stack. A stronger one replaces a weaker one, an equal one
+    # refreshes the timer, and a weaker one does nothing.
+    def buff(status : Event::Status, power : Int32, turns : Int32) : Buff::Taken
+      index = @buffs.index &.status.==(status)
+      held = index ? @buffs[index] : nil
+      taken = if held.nil?
+                Buff::Taken::Started
+              elsif power > held.power
+                Buff::Taken::Stronger
+              elsif power == held.power
+                Buff::Taken::Renewed
+              else
+                Buff::Taken::Weaker
+              end
+      return taken if taken.weaker?
+
+      fresh = Buff.new status, power, turns
+      index ? (@buffs[index] = fresh) : (@buffs << fresh)
+      repace
+      taken
+    end
+
+    # Counts every buff down one turn. Answers the ones that ran out.
+    def pass_buffs : Array(Event::Status)
+      ended = @buffs.select(&.pass).map &.status
+      return ended if ended.empty?
+
+      @buffs.reject! &.left.zero?
+      repace
+      ended
+    end
+
+    # Sets what food adds to the character's speed.
+    private def repace : Nil
+      @pace.boost = buff_power(Event::Status::WellFed)
+    end
+
+    # What food adds to a swing landing, less what being sick takes off.
+    def fed_melee : Int32
+      buff_power(Event::Status::SteadyHand) - buff_power(Event::Status::Sick)
+    end
+
+    # What food adds to a shot or a throw landing, less what being sick
+    # takes off.
+    def fed_aim : Int32
+      buff_power(Event::Status::SteadyAim) - buff_power(Event::Status::Sick)
     end
 
     # Passes one turn of being unable to see. Answers whether sight came

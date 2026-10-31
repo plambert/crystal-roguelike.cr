@@ -28,6 +28,9 @@ module Roguelike
     # Worn about the neck. The one amulet there is ends the run.
     Amulet
 
+    # Eaten. It goes in the food bag rather than the pack, and it spoils.
+    Food
+
     # Whether a `+N` means anything on this class.
     def enchantable? : Bool
       melee? || ranged_weapon? || ammunition? || thrown? || armor?
@@ -40,7 +43,7 @@ module Roguelike
     # interchangeable. Tools stack because one spike is the same as another.
     # Wands do not, because two wands have different charges left.
     def stacks? : Bool
-      ammunition? || thrown? || potion? || scroll? || tool? || treasure?
+      ammunition? || thrown? || potion? || scroll? || tool? || treasure? || food?
     end
 
     # Whether a character has to find out what one of these is.
@@ -337,6 +340,28 @@ module Roguelike
     # Light body armor, quicker to walk in than leather.
     PaddedJacket
 
+    # Food. `Food::FACTS` holds what each one feeds and how fast it spoils.
+    Ration
+    Bread
+    Oatcake
+    FreshMeat
+    DriedMeat
+    Sausage
+    Apple
+    DriedFruit
+    Berries
+    Nuts
+    Cheese
+    Turnip
+    Herbs
+    Mushroom
+
+    # What a dead creature leaves. A corpse is eaten or cut up where it
+    # lies. Rotten flesh and bones have no use yet.
+    Corpse
+    RottenFlesh
+    Bones
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -602,6 +627,33 @@ module Roguelike
       ItemKind::HasteScroll => ItemFacts.new("scroll of haste monster",
         "scrolls of haste monster", ItemClass::Scroll, weight: 5,
         effect: Effect::HasteOther, power: Dice.new(4, 6, 20)),
+      ItemKind::Ration => ItemFacts.new("ration", "rations", ItemClass::Food, weight: 4),
+      ItemKind::Bread  => ItemFacts.new("loaf of bread", "loaves of bread", ItemClass::Food,
+        weight: 3),
+      ItemKind::Oatcake   => ItemFacts.new("oatcake", "oatcakes", ItemClass::Food, weight: 2),
+      ItemKind::FreshMeat => ItemFacts.new("piece of fresh meat", "pieces of fresh meat",
+        ItemClass::Food, weight: 4),
+      ItemKind::DriedMeat => ItemFacts.new("strip of dried meat", "strips of dried meat",
+        ItemClass::Food, weight: 2),
+      ItemKind::Sausage    => ItemFacts.new("sausage", "sausages", ItemClass::Food, weight: 3),
+      ItemKind::Apple      => ItemFacts.new("apple", "apples", ItemClass::Food, weight: 2),
+      ItemKind::DriedFruit => ItemFacts.new("handful of dried fruit",
+        "handfuls of dried fruit", ItemClass::Food, weight: 1),
+      ItemKind::Berries => ItemFacts.new("handful of berries", "handfuls of berries",
+        ItemClass::Food, weight: 1),
+      ItemKind::Nuts => ItemFacts.new("handful of nuts", "handfuls of nuts",
+        ItemClass::Food, weight: 1),
+      ItemKind::Cheese => ItemFacts.new("wedge of cheese", "wedges of cheese",
+        ItemClass::Food, weight: 2),
+      ItemKind::Turnip => ItemFacts.new("turnip", "turnips", ItemClass::Food, weight: 3),
+      ItemKind::Herbs  => ItemFacts.new("bunch of herbs", "bunches of herbs",
+        ItemClass::Food, weight: 1),
+      ItemKind::Mushroom    => ItemFacts.new("mushroom", "mushrooms", ItemClass::Food, weight: 1),
+      ItemKind::Corpse      => ItemFacts.new("corpse", "corpses", ItemClass::Food, weight: 150),
+      ItemKind::RottenFlesh => ItemFacts.new("lump of rotten flesh", "lumps of rotten flesh",
+        ItemClass::Food, weight: 4),
+      ItemKind::Bones => ItemFacts.new("pile of bones", "piles of bones", ItemClass::Food,
+        weight: 3),
       ItemKind::Amulet => ItemFacts.new("The Mighty Amulet of MacGuffin",
         "The Mighty Amulet of MacGuffin", ItemClass::Amulet, weight: 5,
         proper: true),

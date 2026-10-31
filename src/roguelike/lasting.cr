@@ -17,19 +17,22 @@ module Roguelike
       Event::Status::Hungry, Event::Status::Famished, Event::Status::Starving,
       Event::Status::Thirsty, Event::Status::Parched, Event::Status::Dehydrated,
       Event::Status::DyingOfThirst,
+      Event::Status::WellFed, Event::Status::Refreshed, Event::Status::SteadyAim,
+      Event::Status::SteadyHand, Event::Status::Sick,
     ]
 
     # What runs on *player* now, in `ORDER`.
     #
-    # A haste and a slow count ticks, and a blindness counts turns. One turn
-    # is one tick, so all three read in turns.
+    # A haste and a slow count ticks, and a blindness and a buff from food
+    # count turns. One turn is one tick, so all of them read in turns.
     def self.on(player : Player) : Array(Lasting)
       found = [] of Lasting
       found << new(:hurried, player.pace.hasted) if player.pace.hurried?
       found << new(:dragging, player.pace.slowed) if player.pace.dragging?
       found << new(:blind, player.blinded) if player.blind?
       player.sustenance.statuses.each { |status| found << new(status) }
-      found
+      player.buffs.each { |held| found << new(held.status, held.left) }
+      found.sort_by! { |held| ORDER.index(held.status) || ORDER.size }
     end
   end
 end
