@@ -6,6 +6,8 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
   alias Palette = Roguelike::Ui::Palette
   alias Depth = TermBuf::Widgets::Depth
   alias Color = TermBuf::Color
+  alias Editor = Roguelike::Ui::ThemeEditor
+  alias Library = Roguelike::Ui::ThemeLibrary
 
   # A state directory of the spec's own, so nothing reaches the person's.
   def state : Path
@@ -30,7 +32,19 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
 
   # Moves the keyboard down to the row filed under *key*.
   def go_to(run : Playing::Run, key : String) : Nil
-    Theme::ENTRIES.index!(&.key.==(key)).times { run.press "Down" }
+    keys = editor(run).form.rows.map &.key
+    editor(run).form.rows.size.times do
+      at = keys.index(editor(run).focused_row.try &.key) || 0
+      wanted = keys.index!(key)
+      break if at == wanted
+      run.press(at < wanted ? "Down" : "Up")
+    end
+    expect(editor(run).focused_row.try &.key).to eq key
+  end
+
+  # What the status line under the preview says.
+  def status(run : Playing::Run) : String
+    editor(run).status.text
   end
 
   # Opens the picker on the row with the keyboard and types *hex* into it.
@@ -60,6 +74,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
     Options.current = nil
     Roguelike::Tester.current = nil
     Theme.current = Theme::DEFAULT
+    Theme.current_name = nil
     Palette.rebuild
     FileUtils.rm_rf root.to_s
   end
@@ -71,7 +86,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
     expect(editor(run).showing?).to be_true
     expect(run.play.options_screen.showing?).to be_true
     expect(run.text).to contain "Color theme"
-    expect(editor(run).focused_row.try &.key).to eq "granite"
+    expect(editor(run).focused_row.try &.key).to eq Editor::COPY_KEY
     expect(editor(run).form.app).to be run.session.app
   end
 
@@ -80,9 +95,10 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
     open_editor run
 
     form = editor(run).form
-    expect(form.sections.compact_map(&.name)).to eq Theme::ENTRIES.map(&.group).uniq! + ["Reset"]
-    expect(form.rows.map(&.key)).to eq Theme::ENTRIES.map(&.key) + [Roguelike::Ui::ThemeEditor::RESET_KEY]
-    expect(form.rows.first.label).to eq "Granite"
+    expect(form.sections.compact_map(&.name)).to eq ["Share"] + Theme::ENTRIES.map(&.group).uniq! + ["Reset"]
+    expect(form.rows.map(&.key)).to eq [Editor::COPY_KEY, Editor::NAME_KEY, Editor::SAVE_KEY, Editor::PASTE_KEY] +
+                                       Theme::ENTRIES.map(&.key) + [Editor::RESET_KEY]
+    expect(form.row("granite").try &.label).to eq "Granite"
   end
 
   describe "a change" do
@@ -176,6 +192,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
     it "moves with j and k, and between groups with h and l" do
       run = run_under root
       open_editor run
+      go_to run, "granite"
 
       run.press "j"
       expect(editor(run).focused_row.try &.key).to eq "sandstone"
@@ -205,6 +222,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
     it "puts the color back with Escape in the picker and keeps the editor up" do
       run = run_under root
       open_editor run
+      go_to run, "granite"
 
       run.press "Enter", "Right", "Escape"
       expect(editor(run).showing?).to be_true
@@ -221,6 +239,144 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
       expect(run.play.options_screen.showing?).to be_true
       expect(run.play.options_screen.focused_row.try &.key).to eq "theme"
       expect(run.text).to contain "Options"
+    end
+  end
+
+  describe "sharing" do
+    let(moss) { Theme::DEFAULT.with("ground", red).with("hero", Color.rgb(0x010203)) }
+
+    it "copies the theme in use to the clipboard as JSON with its name" do
+      run = run_under root
+      copied = [] of String
+      run.session.app.copy = ->(text : String) { copied << text; nil }
+      open_editor run
+      go_to run, "hero"
+      pick run, "ff0000"
+
+      go_to run, Editor::COPY_KEY
+      run.press "Enter"
+
+      expect(copied.size).to eq 1
+      expect(Theme.parse copied.first).to eq({Theme.current, Editor::UNNAMED})
+      expect(status run).to eq "Copied My theme to the clipboard."
+      expect(run.text).to contain "Copied My theme to the clipboard."
+    end
+
+    it "says so when there is no clipboard" do
+      run = run_under root
+      run.session.app.copy = nil
+      open_editor run
+      run.press "Enter"
+
+      expect(status run).to contain "no clipboard"
+    end
+
+    it "saves under the typed name with Enter in the name row" do
+      run = run_under root
+      open_editor run
+      go_to run, "ground"
+      pick run, "ff0000"
+
+      go_to run, Editor::NAME_KEY
+      run.press "Ctrl+U"
+      run.type "Red sky"
+      run.press "Enter"
+
+      expect(Library.read Library.directory(root) / "red-sky.json")
+        .to eq Library::Named.new("Red sky", Theme.current)
+      expect(on_file(root)["name"]).to eq "Red sky"
+      expect(Theme.current_name).to eq "Red sky"
+      expect(status run).to contain "Saved Red sky"
+    end
+
+    it "saves under the name in the name row from the save row" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::SAVE_KEY
+      run.press "Enter"
+
+      expect(Library.saved(root).map &.name).to eq [Editor::UNNAMED]
+    end
+
+    it "takes r and ? as letters in a text row" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::NAME_KEY
+      run.press "Ctrl+U"
+      run.type "r?"
+
+      expect(editor(run).form[Editor::NAME_KEY]).to eq "r?"
+      expect(editor(run).help.open?).to be_false
+    end
+
+    it "uses a pasted theme, saves it under its name and empties the row" do
+      run = run_under root
+      open_editor run
+      before = edge_cell run
+      go_to run, Editor::PASTE_KEY
+      run.paste moss.to_named_json("Moss")
+
+      expect(Theme.current).to eq moss
+      expect(Theme.current_name).to eq "Moss"
+      expect(editor(run).form["ground"]).to eq red
+      expect(editor(run).form[Editor::PASTE_KEY]).to eq ""
+      expect(editor(run).form[Editor::NAME_KEY]).to eq "Moss"
+      expect(Library.saved root).to eq [Library::Named.new("Moss", moss)]
+      expect(on_file(root)["ground"]).to eq "#ff0000"
+      expect(edge_cell run).not_to eq before
+      expect(status run).to contain "Using Moss"
+    end
+
+    it "uses a pasted theme with no name and saves no file" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::PASTE_KEY
+      run.paste %({"ground": "#ff0000", "sparkle": "#ffffff"})
+
+      expect(Theme.current).to eq Theme::DEFAULT.with("ground", red)
+      expect(Library.saved root).to be_empty
+      expect(status run).to contain "Type a name and save it"
+    end
+
+    it "uses a theme typed into the paste row on Enter" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::PASTE_KEY
+      run.type %({"ground": "#ff0000"})
+      run.press "Enter"
+
+      expect(Theme.current.ground).to eq red
+    end
+
+    it "names the bad colors of a pasted theme and changes nothing" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::PASTE_KEY
+      run.paste %({"name": "Bad", "ground": "#ff0000", "hero": "white"})
+
+      expect(Theme.current).to eq Theme::DEFAULT
+      expect(Library.saved root).to be_empty
+      expect(File.exists? Theme.path(root)).to be_false
+      expect(status run).to eq "These colors are not #rrggbb: hero. Nothing was changed."
+    end
+
+    it "says so for pasted text that is not JSON and changes nothing" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::PASTE_KEY
+      run.paste "a lovely theme"
+
+      expect(Theme.current).to eq Theme::DEFAULT
+      expect(status run).to contain "not JSON"
+    end
+
+    it "ignores a paste into any other row" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::NAME_KEY
+      run.paste moss.to_named_json("Moss")
+
+      expect(Theme.current).to eq Theme::DEFAULT
     end
   end
 

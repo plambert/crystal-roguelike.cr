@@ -91,6 +91,13 @@ module Playing
       @session.render
     end
 
+    # Pastes *text* at whatever has the keyboard, the way a terminal with
+    # bracketed paste delivers it.
+    def paste(text : String) : Nil
+      @session.send TermBuf::Events::Paste.new(text, true)
+      @session.render
+    end
+
     # Where the cell *x*, *y* of the map pane is in the buffer.
     #
     # The map pane does not start at the buffer's origin. The info panel and

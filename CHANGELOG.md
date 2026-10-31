@@ -10,6 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* The color theme editor has a Share section. It copies the theme you are using to the clipboard
+  as JSON, and saves it under a name you type as a file in the `themes` folder of the state
+  directory. Paste a theme into its Paste theme row to use it at once. A pasted theme that has a
+  name is saved in the `themes` folder too. A paste with a color that is not `#rrggbb`, or text
+  that is not JSON, says what is wrong and changes nothing.
 * A haste, a slow or a blindness on you gets its own bar in the character pane, below the
   experience bar. The bar shows the effect's name and the turns it has left, empties as it wears
   off, and goes away when it ends. The three bar colors are in the theme editor.

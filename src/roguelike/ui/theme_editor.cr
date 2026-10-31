@@ -6,8 +6,11 @@ module Roguelike::Ui
   #
   # It is a second modal overlay over the options screen, with a border
   # titled `Color theme`. A preview sits at the top, drawn in the theme as it
-  # stands. Under it is a `Widgets::Form` built from `Theme::ENTRIES`, one
-  # section per group and one color row per entry. `Enter` on a row opens the
+  # stands, and a status line under it says what the last action did. Under
+  # those is a `Widgets::Form`. Its "Share" section copies the theme to the
+  # clipboard, saves it as a named file in `themes/`, and takes a pasted
+  # theme. After it come the colors from `Theme::ENTRIES`, one section per
+  # group and one color row per entry. `Enter` on a color row opens the
   # picker.
   #
   # Every change applies as it is made. The editor sets the color on
@@ -29,6 +32,21 @@ module Roguelike::Ui
 
     # What is asked before every color goes back.
     QUESTION = "Put every color back?"
+
+    # The key of the row that copies the theme to the clipboard.
+    COPY_KEY = "copy"
+
+    # The key of the row holding the name the theme is saved under.
+    NAME_KEY = "save-name"
+
+    # The key of the row that saves the theme.
+    SAVE_KEY = "save"
+
+    # The key of the row a theme is pasted into.
+    PASTE_KEY = "paste"
+
+    # The name a theme with none is saved under.
+    UNNAMED = "My theme"
 
     # Cells left clear to the left and right of the box.
     COLUMN_MARGIN = 2
@@ -138,8 +156,18 @@ module Roguelike::Ui
     # The list of keys `?` and `F1` show over the editor.
     getter help : Help
 
+    # What the last action did, under the preview. Hidden while empty.
+    getter status : Widgets::Label
+
+    # The application the editor is up on.
+    @app : Widgets::App? = nil
+
     def initialize(@root : Path = Submit.root, z : Int32 = Widgets::Overlay::Z::DIALOG - 5)
       @preview = Preview.new
+      @status = Widgets::Label.new
+      @status.hidden = true
+      @status.width = Layout::Sizing.grow
+      @status.height = Layout::Sizing.fit min: 1
       @form = ThemeEditor.form_for Theme.current, @depth
       @help = Help.new
 
@@ -151,7 +179,7 @@ module Roguelike::Ui
       @border = Widgets::Border.rounded title: " #{TITLE} "
       @floating = Layout::Floating.on nil, Layout::AttachPoint::Center,
         Layout::AttachPoint::Center, z: z
-      add @preview, @form
+      add @preview, @status, @form
     end
 
     # Whether the editor is up.
@@ -161,8 +189,10 @@ module Roguelike::Ui
 
     # Puts the editor up on *app*, showing `Theme.current`.
     def show(app : Widgets::App) : Nil
+      @app = app
+      tell ""
       remove @form
-      @form = ThemeEditor.form_for Theme.current, @depth, modern_controls?
+      @form = ThemeEditor.form_for Theme.current, @depth, modern_controls?, ThemeEditor.save_name
       @form.attach app
       add @form
 
@@ -172,12 +202,20 @@ module Roguelike::Ui
       open app
     end
 
-    # The form for *theme*: a section for each group in `Theme::ENTRIES`, a
-    # color row for each entry, and the reset row at the end. Each picker
-    # offers *depth* colors.
+    # The form for *theme*: the share section, a section for each group in
+    # `Theme::ENTRIES` with a color row for each entry, and the reset row at
+    # the end. Each picker offers *depth* colors. The name row starts at
+    # *name*.
     def self.form_for(theme : Theme, depth : Widgets::Depth,
-                      modern : Bool = false) : Widgets::Form
+                      modern : Bool = false, name : String = UNNAMED) : Widgets::Form
       form = Widgets::Form.new actions: false, depth: depth, height: Layout::Sizing.fit
+
+      form.section "Share" do |section|
+        section.action COPY_KEY, "Copy theme", "to the clipboard"
+        section.text NAME_KEY, "Save as", name
+        section.action SAVE_KEY, "Save theme", "to a file"
+        section.text PASTE_KEY, "Paste theme", "", placeholder: "paste JSON here"
+      end
 
       Theme::ENTRIES.each do |entry|
         form.section entry.group do |section|
@@ -292,6 +330,77 @@ module Roguelike::Ui
       apply Theme.current.with(key, color)
     end
 
+    # The name the theme in use is saved under unless another is typed.
+    def self.save_name : String
+      Theme.current_name || UNNAMED
+    end
+
+    # Says *text* on the status line. Empty text hides the line.
+    def tell(text : String) : Nil
+      @status.text = text
+      @status.hidden = text.empty?
+    end
+
+    # Puts the theme in use on the clipboard as JSON, under the name in the
+    # name row.
+    def copy : Nil
+      copier = @app.try &.copy
+      return tell "This terminal gives the game no clipboard. Save writes a file instead." unless copier
+
+      name = typed_name || ThemeEditor.save_name
+      copier.call Theme.current.to_named_json(name)
+      tell "Copied #{name} to the clipboard."
+    end
+
+    # Saves the theme in use under the name in the name row.
+    def save : Nil
+      name = typed_name
+      return tell "Type a name to save the theme under." unless name
+
+      path = ThemeLibrary.save @root, name, Theme.current
+      Theme.current_name = name
+      Theme.current.write @root, name
+      tell "Saved #{name} as #{path}."
+    rescue error : File::Error | ArgumentError
+      tell "The theme was not saved: #{error.message}"
+    end
+
+    # Reads *text* as a theme and draws with it. A theme that names itself
+    # is saved under that name too. Text that does not read changes nothing.
+    def import(text : String) : Nil
+      theme, name = Theme.parse text
+    rescue error : Theme::Unreadable
+      tell "#{error.message} Nothing was changed."
+    else
+      use theme, name
+      unless name
+        return tell "Using the pasted theme. Type a name and save it to keep it."
+      end
+
+      begin
+        ThemeLibrary.save @root, name, theme
+        tell "Using #{name}, saved in the themes folder."
+      rescue error : File::Error | ArgumentError
+        tell "Using #{name}. It was not saved: #{error.message}"
+      end
+    end
+
+    # Draws with *theme*, called *name*, and shows its colors in the rows.
+    def use(theme : Theme, name : String?) : Nil
+      Theme.current_name = name
+      @form.rows.each do |row|
+        row.value = theme[row.key] if row.is_a? Widgets::Form::ColorRow
+      end
+      @form[NAME_KEY] = ThemeEditor.save_name
+      apply theme
+    end
+
+    # The name in the name row, or `nil` when it cannot name a file.
+    private def typed_name : String?
+      typed = @form[NAME_KEY].as?(String).try &.strip
+      typed if typed && ThemeLibrary.file_name(typed)
+    end
+
     # Asks first, and on yes puts every color back to its default.
     def reset_all : Nil
       asked = @confirm
@@ -308,29 +417,64 @@ module Roguelike::Ui
       @form.reachable.first?.try &.target
     end
 
-    # Takes each change and each press the form reports.
+    # Takes each change and each press the form reports, a line handed
+    # over in a text row, and a paste into the paste row.
     def handle(event : TermBuf::Event, context : Widgets::Context) : Nil
       case event
+      when TermBuf::Events::Paste
+        pasted event
+      when Widgets::Field::Accepted
+        accepted event
       when Widgets::Form::Changed
         context.consume
         color = event.value
         apply Theme.current.with(event.key, ThemeEditor.stored(color)) if color.is_a? TermBuf::Color
         return
       when Widgets::Form::Activated
-        if event.key == RESET_KEY
+        if activated event.key
           context.consume
-          reset_all
-          return
-        end
-        if event.key.starts_with? RESET_COLOR_PREFIX
-          context.consume
-          key = event.key[RESET_COLOR_PREFIX.size, event.key.size - RESET_COLOR_PREFIX.size]
-          reset_color key
           return
         end
       end
 
       super
+    end
+
+    # Reads a paste into the paste row as a theme. The paste is left
+    # unclaimed, so a paste notice still hears that it is over.
+    private def pasted(event : TermBuf::Events::Paste) : Nil
+      return unless focused_row.try(&.key) == PASTE_KEY
+
+      @form[PASTE_KEY] = ""
+      import event.text
+    end
+
+    # Saves on `Enter` in the name row, and reads the paste row as a theme
+    # on `Enter` there.
+    private def accepted(event : Widgets::Field::Accepted) : Nil
+      case focused_row.try &.key
+      when NAME_KEY
+        save
+      when PASTE_KEY
+        text = event.text.presence || @form[PASTE_KEY].as?(String) || ""
+        @form[PASTE_KEY] = ""
+        import text unless text.blank?
+      end
+    end
+
+    # Does what the action row filed under *key* does, and answers whether
+    # it was one of the editor's.
+    private def activated(key : String) : Bool
+      case key
+      when COPY_KEY  then copy
+      when SAVE_KEY  then save
+      when RESET_KEY then reset_all
+      when .starts_with?(RESET_COLOR_PREFIX)
+        reset_color key[RESET_COLOR_PREFIX.size..]
+      else
+        return false
+      end
+      true
     end
 
     private def self.reset_color_key(key : String) : String
@@ -355,10 +499,7 @@ module Roguelike::Ui
     end
 
     private def reset_everything : Nil
-      @form.rows.each do |row|
-        row.value = Theme::DEFAULT[row.key] if row.is_a? Widgets::Form::ColorRow
-      end
-      apply Theme::DEFAULT
+      use Theme::DEFAULT, nil
     end
   end
 end

@@ -216,7 +216,8 @@ module Roguelike::Ui
     #
     # The form binds the arrows, `Tab`, `Home`, `End`, the page keys and
     # `Enter`, and a color row opens its picker on `Enter` and `Space`. The
-    # bindings here add the letters and `Escape`.
+    # bindings here add the letters and `Escape`. A letter typed in a text
+    # row goes into the row.
     def self.theme_editor(editor : ThemeEditor, app : Widgets::App) : Section
       bindings = Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("Escape"), "back to the options",
@@ -224,7 +225,7 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("F1"), "show the keys that work here",
           ->(_context : Widgets::Context) { editor.show_help app; nil }
         map.bind TermBuf::Key.parse("?"), "show the keys that work here",
-          ->(_context : Widgets::Context) { editor.show_help app; nil }
+          ->(context : Widgets::Context) { editor.show_help app unless editor.form.type context; nil }
         if editor.modern_controls?
           map.bind TermBuf::Key.parse("f"), "activate the focused row",
             ->(context : Widgets::Context) { editor.activate context; nil }
@@ -246,7 +247,7 @@ module Roguelike::Ui
           map.bind TermBuf::Key.parse("l"), "the first row of the group below",
             ->(context : Widgets::Context) { editor.leap 1, context; nil }
           map.bind TermBuf::Key.parse("r"), "put this color back to the game's own",
-            ->(_context : Widgets::Context) { editor.reset_row; nil }
+            ->(context : Widgets::Context) { editor.reset_row unless editor.form.type context; nil }
         end
       end
 
@@ -257,6 +258,8 @@ module Roguelike::Ui
         {editor.modern_controls? ? "A D" : "H L", "the first row of the group above or below"},
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},
+        {"Enter", "in Save as, save the theme under that name"},
+        {"Paste", "in Paste theme, use the pasted theme and save it if it has a name"},
       ]
 
       Section.new "color theme", bindings, notes
