@@ -22,9 +22,9 @@ module Roguelike
       # Each part of the game and the version of its draw sequence.
       #
       # `generator` covers the rooms, the cuts between them, the corridors,
-      # the doors, the sconces, the creatures and the staircases. Those are
-      # separate streams and one algorithm. `sizes` is who each piece of armor
-      # lying about is cut for. `lore` is the appearances a run rolls for its
+      # the doors, the sconces, the creatures, the staircases and the
+      # fountains. Those are separate streams and one algorithm. `sizes` is
+      # who each piece of armor lying about is cut for. `lore` is the appearances a run rolls for its
       # potions, its scrolls and its wands. `combat`, `handling`, `use`,
       # `wander`, `mend`, `split` and `brawl` are the counters on the run.
       # `stray` is where a monster's shot that missed comes down, keyed by the
@@ -33,7 +33,7 @@ module Roguelike
       # The stream the name suggestion draws from is not here. It names
       # nobody and nothing in the run.
       VERSIONS = {
-        "generator"  => 8,
+        "generator"  => 9,
         "litter"     => 4,
         "loot"       => 7,
         "ammunition" => 2,
