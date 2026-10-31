@@ -178,8 +178,9 @@ module Roguelike
       end
 
       game = bot.game
+      killer = game.killer || game.perished.try(&.label)
       Played.new seed, game.turn, game.player.level, game.player.gold,
-        bot.reached, game.outcome, game.killer, game.deepest, game.depth,
+        bot.reached, game.outcome, killer, game.deepest, game.depth,
         game.felled
     end
 

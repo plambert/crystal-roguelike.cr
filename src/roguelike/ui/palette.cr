@@ -288,23 +288,19 @@ module Roguelike::Ui
     drawn slow : Array({Int32, TermBuf::Color}) = [{100, theme.slow_bar}, {0, theme.slow_bar}]
     drawn blindness : Array({Int32, TermBuf::Color}) = [{100, theme.blind_bar}, {0, theme.blind_bar}]
 
-    # The bars for a stage of hunger or thirst, from the health bar's colors.
-    #
-    # Each is one color. It goes from yellow to red as the stage gets worse,
-    # the way the health bar does as it empties.
-    drawn wanting : Array({Int32, TermBuf::Color}) = [{100, yellow}, {0, yellow}]
-    drawn lacking : Array({Int32, TermBuf::Color}) = [{100, orange}, {0, orange}]
-    drawn failing : Array({Int32, TermBuf::Color}) = [{100, red}, {0, red}]
+    # The bars for the stages of hunger and of thirst, one color for each
+    # ladder. The stage's name inside the bar says how bad it is.
+    drawn hunger : Array({Int32, TermBuf::Color}) = [{100, theme.hunger_bar}, {0, theme.hunger_bar}]
+    drawn thirst : Array({Int32, TermBuf::Color}) = [{100, theme.thirst_bar}, {0, theme.thirst_bar}]
 
     # The bar colors for each temporary effect.
     def self.lasting(status : Event::Status) : Array({Int32, TermBuf::Color})
       case status
-      in .hurried?                           then haste
-      in .dragging?                          then slow
-      in .blind?                             then blindness
-      in .hungry?, .thirsty?                 then wanting
-      in .famished?, .parched?, .dehydrated? then lacking
-      in .starving?, .dying_of_thirst?       then failing
+      in .hurried?                                             then haste
+      in .dragging?                                            then slow
+      in .blind?                                               then blindness
+      in .hungry?, .famished?, .starving?                      then hunger
+      in .thirsty?, .parched?, .dehydrated?, .dying_of_thirst? then thirst
       end
     end
 

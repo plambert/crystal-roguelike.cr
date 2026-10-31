@@ -6,9 +6,18 @@ module Roguelike
   # Each effect keeps its own timer where the game counts it down. This is a
   # reading of those timers, so a pane can list them without knowing where
   # each one lives.
-  record Lasting, status : Event::Status, left : Int32 do
+  #
+  # *left* is `nil` for an effect with no timer. A stage of hunger or thirst
+  # lasts until the character eats or drinks, and the pane shows no count
+  # for it.
+  record Lasting, status : Event::Status, left : Int32? = nil do
     # Every status a reading can name, in the order a pane lists them.
-    ORDER = [Event::Status::Hurried, Event::Status::Dragging, Event::Status::Blind]
+    ORDER = [
+      Event::Status::Hurried, Event::Status::Dragging, Event::Status::Blind,
+      Event::Status::Hungry, Event::Status::Famished, Event::Status::Starving,
+      Event::Status::Thirsty, Event::Status::Parched, Event::Status::Dehydrated,
+      Event::Status::DyingOfThirst,
+    ]
 
     # What runs on *player* now, in `ORDER`.
     #
@@ -19,6 +28,7 @@ module Roguelike
       found << new(:hurried, player.pace.hasted) if player.pace.hurried?
       found << new(:dragging, player.pace.slowed) if player.pace.dragging?
       found << new(:blind, player.blinded) if player.blind?
+      player.sustenance.statuses.each { |status| found << new(status) }
       found
     end
   end

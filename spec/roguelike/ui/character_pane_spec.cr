@@ -389,7 +389,32 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       expect(effect_bar(run, Status::Dragging).reading).to eq "slow 18"
     end
 
-    it "gives each running effect its own row below the experience bar" do
+    it "names a hunger or thirst stage in a full bar with no count" do
+      run = playing
+      sustenance = run.game.player.sustenance
+      sustenance.water = 0
+      sustenance.thirst = Roguelike::Sustenance::PARCHED
+      sustenance.hunger = Roguelike::Sustenance::HUNGRY
+      run.play.refresh
+
+      parched = effect_bar run, Status::Parched
+      expect(parched.hidden?).to be_false
+      expect(parched.reading).to eq "parched"
+      expect(parched.percent).to eq 100
+      expect(effect_bar(run, Status::Hungry).reading).to eq "hungry"
+      expect(effect_bar(run, Status::Thirsty).hidden?).to be_true
+    end
+
+    it "shows what is in the waterskin" do
+      run = playing
+      run.game.player.sustenance.water = 7
+      run.play.refresh
+      run.render
+
+      expect(info_row run, run.play.character.water.rect.y).to contain "water 7/10"
+    end
+
+    it "gives each running effect its own row below the water bar" do
       run = playing
       player = run.game.player
       player.pace.hurry 30
@@ -397,9 +422,9 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       run.play.refresh
       run.render
 
-      learning = run.play.character.learning.rect.y
-      haste = info_row run, learning + 1
-      blind = info_row run, learning + 2
+      water = run.play.character.water.rect.y
+      haste = info_row run, water + 1
+      blind = info_row run, water + 2
       expect(haste).to contain "haste 30"
       expect(blind).to contain "blind 5"
       expect(effect_bar(run, Status::Dragging).hidden?).to be_true

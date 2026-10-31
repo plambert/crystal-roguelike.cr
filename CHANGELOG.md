@@ -106,6 +106,26 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   pass. For one turn after you make a noise, the map tints the squares it reached, brightest at
   the source. A ring spreads out from you first unless motion is off. The colors are in the
   theme editor.
+* You get hungry and thirsty. Hunger builds every turn. A waterskin of 10 units starts full, and
+  you sip from it as you go. When it runs dry, thirst builds. Each one passes through stages that
+  get worse. Hunger goes from hungry to famished to starving. Thirst goes from thirsty to parched,
+  dehydrated and dying of thirst. Each stage has its own penalty in place of the one before it.
+  The first stage slows natural healing. The next takes 1 off to hit, and famished also takes 1
+  off melee and thrown damage. The third takes 10 off pace. The last stops healing and takes hit
+  points away. Thirst kills about 6000 turns after the skin runs dry. Hunger kills at about 9000
+  turns without food.
+* The character pane names each hunger and thirst stage in its own bar, with no count, and shows
+  the waterskin as `water 7/10`. The two bar colors are in the theme editor, and each reads at
+  4.5 to 1 in every built-in theme.
+* `D` drinks one unit from the waterskin, and `Ctrl+D` does it under modern controls. The action
+  catalog lists it as Drink water. A drink quenches your thirst. You cannot drink when you are
+  not thirsty, and that costs no turn.
+* A death from hunger or thirst has its own line on the end screen.
+* A new explore setting, Drink when thirsty, is on by default. With it on, `X` drinks from the
+  skin when thirst sets in and walks on. With it off, or with an empty skin, `X` stops there.
+  `X` does not stop when the skin runs dry.
+* Bots get `drank`, `hunger_stage` and `thirst_stage` events, and a `drink` action. The `over`
+  event names the cause of a death from hunger or thirst.
 
 ### Changed
 

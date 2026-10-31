@@ -1,24 +1,24 @@
  —              D1 Lv 1 │#########
  HP        0/12         │#..o....#
  XP        0/20         │#..@...>#
- ♪        noise 4       │#########
- vs      o╭─ You died ───────────────────────────────────────╮
- ▼ Scores │  Killed by an orc.                               │
- AC   Gold│                                                  │
- 0    37  │  turn 1                                          │
- St Dx Cn │  level 1, 0 experience                           │
- 10 10 10 │  37 gold                                         │
- Walk 111%│                                                  │
- ▶ Equipme│  You were carrying:                              │
- ▶ Pack   │    a torch                                       │
- ▼ Here   │    a +1 long sword (weapon in hand)              │
-   stairca│    12 arrows                                     │
- ▼ Seen   │    a potion of healing                           │
-   orc    │                                                  │
- ▼ Look   │  seed 20260915                                   │
- Point at │  Play again? y starts a new run, n quits.  [yN]  │
- press x. ╰──────────────────────────────────────────────────╯──────────
-                        │ You miss the orc.
+ water 10/10            │#########
+ ♪        ╭─ You died ───────────────────────────────────────╮
+ vs      o│  Killed by an orc.                               │
+ ▼ Scores │                                                  │
+ AC   Gold│  turn 1                                          │
+ 0    37  │  level 1, 0 experience                           │
+ St Dx Cn │  37 gold                                         │
+ 10 10 10 │                                                  │
+ Walk 111%│  You were carrying:                              │
+ ▶ Equipme│    a torch                                       │
+ ▶ Pack   │    a +1 long sword (weapon in hand)              │
+ ▼ Here   │    12 arrows                                     │
+   stairca│    a potion of healing                           │
+ ▼ Seen   │                                                  │
+   orc    │  seed 20260915                                   │
+ ▼ Look   │  Play again? y starts a new run, n quits.  [yN]  │
+ Point at ╰──────────────────────────────────────────────────╯──────────
+ press x.               │ You miss the orc.
                         │ The orc notices you.
                         │ The orc hits you for 8.
                         │ You die...

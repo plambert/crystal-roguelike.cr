@@ -1,23 +1,23 @@
  —              D1 Lv 1 │#########
  HP        12/12        │#....o..#
  XP        0/20         │#..<...@#
- vs      orc 14/14      │#########
- ▼ Sco╭─ You win ─────────────────────────────────────────────────╮
- AC   │  You climbed down and out of the dungeon with your life.  │
- 0    │                                                           │
- St Dx│  turn 4                                                   │
- 10 10│  level 1, 0 experience                                    │
- Walk │  37 gold                                                  │
- ▶ Equ│                                                           │
- ▶ Pac│  You were carrying:                                       │
- ▼ Her│    a torch                                                │
-   sta│    a +1 long sword (weapon in hand)                       │
- ▼ See│    12 arrows                                              │
-   orc│    a potion of healing                                    │
- ▼ Loo│                                                           │
- Point│  seed 20260915                                            │
- press│  Play again? y starts a new run, n quits.  [yN]           │
-      ╰───────────────────────────────────────────────────────────╯─────
+ water 10/10            │#########
+ vs   ╭─ You win ─────────────────────────────────────────────────╮
+ ▼ Sco│  You climbed down and out of the dungeon with your life.  │
+ AC   │                                                           │
+ 0    │  turn 4                                                   │
+ St Dx│  level 1, 0 experience                                    │
+ 10 10│  37 gold                                                  │
+ Walk │                                                           │
+ ▶ Equ│  You were carrying:                                       │
+ ▶ Pac│    a torch                                                │
+ ▼ Her│    a +1 long sword (weapon in hand)                       │
+   sta│    12 arrows                                              │
+ ▼ See│    a potion of healing                                    │
+   orc│                                                           │
+ ▼ Loo│  seed 20260915                                            │
+ Point│  Play again? y starts a new run, n quits.  [yN]           │
+ press╰───────────────────────────────────────────────────────────╯─────
                         │ The orc notices you.
                         │ The orc misses you.
                         │ There is a staircase leading down here.

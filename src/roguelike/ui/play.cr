@@ -1383,6 +1383,20 @@ module Roguelike::Ui
       refresh
     end
 
+    # Drinks one unit from the waterskin. `D` does this, and `Ctrl+D` under
+    # modern controls.
+    def drink_water : Nil
+      return if @viewer
+      if @pending
+        @pending = nil
+        refresh
+        return
+      end
+
+      @game.perform Action::Drink.new
+      refresh
+    end
+
     # Rests turn after turn until the character is healed. `R` does this.
     #
     # A command waiting for a direction takes the key back instead, the way a

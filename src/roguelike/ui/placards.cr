@@ -139,6 +139,9 @@ module Roguelike::Ui
           "You climbed down and out of the dungeon with your life."
         end
       in .died?
+        perished = game.perished
+        return perished.ending if perished
+
         killer = game.killer
         killer ? "Killed by #{Lore.article killer} #{killer}." : "You were killed."
       in .left?

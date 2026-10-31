@@ -51,6 +51,14 @@ module Roguelike
         end
       end
 
+      # What the log says as the character dies.
+      def line : String
+        case self
+        in .hunger? then "You starve to death..."
+        in .thirst? then "You die of thirst..."
+        end
+      end
+
       # What a trial report counts the death under.
       def label : String
         case self
@@ -103,6 +111,16 @@ module Roguelike
     # Turns since the last unit was sipped from the skin.
     getter sipped : Int32 = 0
 
+    # Hit points the last `#tick` wasted away. The save leaves it out,
+    # because `Game` reads it on the turn it was set.
+    @[JSON::Field(ignore: true)]
+    getter wasted : Int32 = 0
+
+    # What the last `#tick` wasted hit points away for. `nil` when it took
+    # none.
+    @[JSON::Field(ignore: true)]
+    getter wasted_by : Death? = nil
+
     def initialize(@hunger : Int32 = 0, @thirst : Int32 = 0,
                    @water : Int32 = WATER_MAX, @sipped : Int32 = 0)
     end
@@ -150,8 +168,15 @@ module Roguelike
     # for a food that makes thirst build at half rate.
     def tick(thirst : Bool = true) : Nil
       @hunger += 1
-      return unless thirst
+      @wasted = 0
+      @wasted_by = nil
+      parch if thirst
 
+      waste Death::Hunger if hunger_stage.starving? && due?(@hunger, STARVING, STARVING_EVERY)
+    end
+
+    # One turn of thirst, or one sip from the skin.
+    private def parch : Nil
       if quenched? && @water > 0
         @sipped += 1
         return if @sipped < SIP
@@ -162,6 +187,19 @@ module Roguelike
       end
 
       @thirst += 1
+      waste Death::Thirst if thirst_stage.dying? && due?(@thirst, DYING, DYING_EVERY)
+    end
+
+    # Whether *count* has gone a whole number of *every* turns past *start*.
+    private def due?(count : Int32, start : Int32, every : Int32) : Bool
+      count > start && ((count - start) % every).zero?
+    end
+
+    # Wastes one hit point away for *death*. Thirst is named first when both
+    # take one on the same turn.
+    private def waste(death : Death) : Nil
+      @wasted += 1
+      @wasted_by ||= death
     end
 
     # How hungry the character is now.
@@ -185,6 +223,77 @@ module Roguelike
       when ...DYING      then ThirstStage::Dehydrated
       else                    ThirstStage::Dying
       end
+    end
+
+    # The status *stage* shows, or `nil` for none.
+    def self.status(stage : HungerStage) : Event::Status?
+      case stage
+      in .satiated?, .fed? then nil
+      in .hungry?          then Event::Status::Hungry
+      in .famished?        then Event::Status::Famished
+      in .starving?        then Event::Status::Starving
+      end
+    end
+
+    # :ditto:
+    def self.status(stage : ThirstStage) : Event::Status?
+      case stage
+      in .quenched?, .fine? then nil
+      in .thirsty?          then Event::Status::Thirsty
+      in .parched?          then Event::Status::Parched
+      in .dehydrated?       then Event::Status::Dehydrated
+      in .dying?            then Event::Status::DyingOfThirst
+      end
+    end
+
+    # The status the hunger stage shows, or `nil` for none.
+    def hunger_status : Event::Status?
+      Sustenance.status hunger_stage
+    end
+
+    # The status the thirst stage shows, or `nil` for none.
+    def thirst_status : Event::Status?
+      Sustenance.status thirst_stage
+    end
+
+    # The statuses hunger and thirst show now, hunger first.
+    def statuses : Array(Event::Status)
+      [hunger_status, thirst_status].compact
+    end
+
+    # Whether natural regeneration takes twice as long.
+    #
+    # Each ladder's later stage takes the place of its earlier one, so only
+    # the first stage of each slows it.
+    def slow_regeneration? : Bool
+      hunger_stage.hungry? || thirst_stage.thirsty?
+    end
+
+    # Whether natural regeneration runs at all. It stops while the character
+    # wastes away.
+    def regenerates? : Bool
+      !hunger_stage.starving? && !thirst_stage.dying?
+    end
+
+    # What hunger and thirst take off every roll to hit.
+    def to_hit_penalty : Int32
+      found = 0
+      found += 1 if hunger_stage.famished?
+      found += 1 if thirst_stage.parched?
+      found
+    end
+
+    # What hunger takes off melee and thrown damage.
+    def damage_penalty : Int32
+      hunger_stage.famished? ? 1 : 0
+    end
+
+    # What hunger and thirst take off pace.
+    def slowing : Int32
+      found = 0
+      found += SLOWING if hunger_stage.starving?
+      found += SLOWING if thirst_stage.dehydrated?
+      found
     end
 
     # Whether the character can eat no more.

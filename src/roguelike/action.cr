@@ -75,6 +75,7 @@ module Roguelike
       "configure" => Configure,
       "refill"    => Refill,
       "quench"    => Quench,
+      "drink"     => Drink,
     }
 
     # How a direction is written in JSON.
@@ -274,6 +275,14 @@ module Roguelike
       getter item : Int32
 
       def initialize(@item : Int32)
+      end
+    end
+
+    # Drinking one unit of water from the waterskin.
+    class Drink < Action
+      getter t : String = "drink"
+
+      def initialize
       end
     end
 

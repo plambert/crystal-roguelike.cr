@@ -462,6 +462,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.drop; nil }
         map.bind TermBuf::Key.parse("q"), "drink a potion",
           ->(_context : Widgets::Context) { play.quaff; nil }
+        map.bind TermBuf::Key.parse("D"), "drink from your waterskin",
+          ->(_context : Widgets::Context) { play.drink_water; nil }
         map.bind TermBuf::Key.parse("r"), "read a scroll",
           ->(_context : Widgets::Context) { play.read; nil }
         map.bind TermBuf::Key.parse("z"), "zap a wand",
@@ -626,6 +628,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.modern_pick_up; nil }
         map.bind TermBuf::Key.parse("Ctrl+X"), "explore until interrupted",
           ->(_context : Widgets::Context) { play.modern_explore; nil }
+        map.bind TermBuf::Key.parse("Ctrl+D"), "drink from your waterskin",
+          ->(_context : Widgets::Context) { play.drink_water; nil }
       end
     end
 

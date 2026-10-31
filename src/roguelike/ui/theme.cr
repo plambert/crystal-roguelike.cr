@@ -153,6 +153,8 @@ module Roguelike::Ui
     color slow_bar, 0xB39DDB
     color blind_bar, 0xBDBDBD
     color noise_bar, 0xC080FF
+    color hunger_bar, 0xE4A860
+    color thirst_bar, 0x90B8FF
 
     # Every color in display order, with its heading and its label.
     ENTRIES = [
@@ -254,6 +256,8 @@ module Roguelike::Ui
       Entry.new("slow_bar", "Bars", "Slow"),
       Entry.new("blind_bar", "Bars", "Blindness"),
       Entry.new("noise_bar", "Bars", "Noise"),
+      Entry.new("hunger_bar", "Bars", "Hunger"),
+      Entry.new("thirst_bar", "Bars", "Thirst"),
     ]
 
     # The game's own colors.
