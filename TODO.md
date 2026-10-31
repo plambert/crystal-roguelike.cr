@@ -175,6 +175,70 @@ The character can have a pet, a creature that follows the character from floor t
 on the character's side. How a player gets one, what kinds there are, how a pet is told what to do,
 and what happens when it dies are to be settled when this is built.
 
+### Item values in gold pieces
+
+Every item has a value in gold pieces. The player sees the value worked out from what the player
+knows about the item, so an item with an unknown enchantment or blessing shows the value of what is
+known and the value changes as the item is learned. Sorting the pack by value, in the item above,
+waits for this.
+
+A positive enchantment is a large and non-linear boost. The bonus for +3 is double the bonus for
++1, and the bonus for +5 is double that again. The even values lie on the same curve, so the bonus
+doubles with every two points, and +2 and +4 are worth about 1.4 and 2.8 times the bonus for +1. A
+negative enchantment makes an item effectively worthless. A masterwork item gets the bonus of half a
+point of enchantment on the same curve. This holds for armor too, since masterwork armor is
+expected to gain a boon from blessings later, even though the game has none yet.
+
+A blessed item is worth significantly more, by how much extra use or how many extra points the
+blessing gives it. A cursed item that is purely negative is worthless. A cursed item that is still
+usable is worth very little. A damaged item loses more value than the loss in its stats would
+suggest.
+
+### A crafting pouch and crafting materials
+
+Crafting materials are small things found in the dungeon. They are fungi scraped from walls, very
+rare cave flowers, and other very small items. They do not go in the pack. They go in a crafting
+pouch, which is a separate store with very little room at first. Without the pouch the character
+cannot carry them. The pouch comes from an NPC, as in the quests item below.
+
+Later, samples of copper, tin, iron, gold and platinum ore are crafting materials too. A sample is
+very large and heavy, so it does not fit in the pouch. It needs a cart pulled behind the character,
+as in the carts item below, and a cart holds only two or perhaps three samples. The gold ore that
+the mining item above produces is the first such sample.
+
+### NPCs with quests
+
+Non-player characters give the character quests. A simple quest asks for a named weapon or armor
+piece, which is placed one to three floors deeper than the NPC. A complex quest asks for the
+crafting components of one recipe, which the character gathers over several floors. The NPC who sets
+the first complex quest gives the character the crafting pouch, as in the crafting item above. Which
+NPCs there are, where they stand, and how a quest is accepted and paid are to be settled when this
+is built.
+
+### Magic staves
+
+A magic staff casts one particular spell using the character's mana pool, so it waits for the mana
+pool in the Spells item. Each staff has a cooldown that is long, and that varies from one staff to
+the next. A blessed staff casts either its normal spell or a much more advanced version of it. The
+advanced cast costs more mana and sets a longer cooldown.
+
+### Sledges, carts and cart trains
+
+The character can pull a sledge, a cart or a cart train. It starts on the square next to the
+character and follows behind, and a train spans several squares. A sledge, a cart and a cart train
+can be reversed. When the character moves onto a square that the cart holds, the character and the
+cart change places. A cart carries the valuable items found in the dungeon, and the ore samples of
+the crafting item above. A cart makes a lot of noise, as in the sound and noise item, and makes more
+when it is full of small items.
+
+### Wagons and draft animals
+
+A wagon, or a train of wagons, is pulled by one or more draft animals instead of by the character,
+so it can be some distance from the character. The character can release a wagon, and it stays
+where it is until the character comes back for it. A wagon with a trained draft animal comes to the
+character when the character calls. A wagon carries what a cart does, and it is as noisy. A draft
+animal is a kind of pet, as in the pets item. This item follows the carts item and builds on it.
+
 ### Where the game is drifting
 
 Light, stealth, detection range and shutting doors move survival most, which pulls play toward
