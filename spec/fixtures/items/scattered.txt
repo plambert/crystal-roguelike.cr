@@ -1,4 +1,5 @@
  45,4   gold piece
+ 20,5   handful of nuts
  37,5   arrow
  13,6   rock
  33,6   scroll of item detection

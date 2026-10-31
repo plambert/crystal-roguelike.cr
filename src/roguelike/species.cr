@@ -324,7 +324,8 @@ module Roguelike
     surrounds : Bool = false,
     splits : Bool = false,
     hide : Bulk = Bulk::Medium,
-    garb : ItemKind? = nil do
+    garb : ItemKind? = nil,
+    remains : Remains? = nil do
     # Hit points of an average one.
     def hit_points : Int32
       hit_dice.average.round.to_i
@@ -374,6 +375,20 @@ module Roguelike
       in .imp?    then Kind::Imp
       in .cube?   then Kind::GelatinousCube
       in .golem?  then Kind::StoneGolem
+      end
+    end
+
+    # What one of these leaves where it dies.
+    #
+    # Beasts, goblins, orcs and ants leave a corpse. Slimes, jellies,
+    # constructs and imps leave nothing. The undead leave rotten flesh and
+    # bones. `Kind#remains` lets a kind say otherwise, and a skeleton does.
+    def remains : Remains
+      case self
+      in .slime?, .jelly?, .imp?, .cube?, .golem? then Remains::Nothing
+      in .goblin?, .orc?, .ant?                   then Remains::Corpse
+      in .rat?, .wolf?, .bear?, .boar?, .snake?   then Remains::Corpse
+      in .undead?                                 then Remains::FleshAndBones
       end
     end
 
@@ -514,6 +529,12 @@ module Roguelike
     # The family it belongs to.
     def species : Species
       facts.species
+    end
+
+    # What one of these leaves where it dies. Its species decides, unless
+    # the kind says otherwise.
+    def remains : Remains
+      facts.remains || species.remains
     end
 
     # The character it draws as. Every kind of a species shares the letter.
@@ -933,6 +954,7 @@ module Roguelike
         notice: 6, darkvision: true, paths: false, experience: 8,
         persistence: 50, speed: 90, verb: "claws",
         armed: 50, wields: true, depths: 2..5, faction: Faction::Undead, hide: Bulk::Light,
+        remains: Remains::Bones,
         attributes: Attributes.new(strength: 11, dexterity: 11, constitution: 10,
           intelligence: 3, stealth: 10)),
 

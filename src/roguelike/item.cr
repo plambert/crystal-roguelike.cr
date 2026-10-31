@@ -72,6 +72,17 @@ module Roguelike
     # holds the field only when it is set.
     @dropped : Bool? = nil
 
+    # How many turns old a food that spoils is. `nil` for anything else. A
+    # stack shares one age, so food of two ages never stacks.
+    @age : Int32? = nil
+
+    # How much of one food has been eaten, in points of satiety. `nil` for
+    # one nobody has bitten.
+    @eaten : Int32? = nil
+
+    # What a corpse was. `nil` for anything that is not a corpse.
+    @creature : Kind? = nil
+
     def initialize(@kind : ItemKind,
                    @enchantment : Int32 = 0,
                    @condition : Condition = Condition::Plain,
@@ -81,8 +92,12 @@ module Roguelike
                    @blessing_known : Bool = false,
                    lit : Bool = false,
                    @handling : Int32 = 0,
-                   size : Size = Size::Medium)
+                   size : Size = Size::Medium,
+                   age : Int32 = 0,
+                   creature : Kind? = nil)
       @lit = @kind.light? && lit
+      @age = age if Food.facts?(@kind).try &.spoils?
+      @creature = creature if @kind.corpse?
       @size = size if @kind.item_class.armor? && !size.medium?
       @count = @kind.stacks? ? Math.max(count, 1) : 1
       @charges = charges || (@kind.charges > 0 ? @kind.charges : nil)
@@ -289,8 +304,11 @@ module Roguelike
       Math.max @kind.armor + @enchantment + @condition.modifier, 0
     end
 
-    # Who a piece of armor is cut for. Medium for anything that is not armor.
+    # Who a piece of armor is cut for, or how big a corpse is. Medium for
+    # anything else.
     def size : Size
+      return body if corpse?
+
       @size || Size::Medium
     end
 
@@ -311,7 +329,127 @@ module Roguelike
 
     # How much the whole stack weighs.
     def weight : Int32
-      @kind.facts.weight * @count
+      unit_weight * @count
+    end
+
+    # How much one of the stack weighs.
+    def unit_weight : Int32
+      return Food::CORPSE_WEIGHT[size] if @kind.corpse?
+
+      @kind.facts.weight
+    end
+
+    # ----------------------------------------------------------------- food
+
+    # Whether this is food, or what is left of a creature.
+    def food? : Bool
+      @kind.item_class.food?
+    end
+
+    # Whether this is a corpse.
+    def corpse? : Bool
+      @kind.corpse?
+    end
+
+    # What a corpse was. `nil` for anything else.
+    def creature : Kind?
+      @creature
+    end
+
+    # The food facts of this kind. Only food has them.
+    def food_facts : FoodFacts
+      Food.facts @kind
+    end
+
+    # Which family this food belongs to.
+    def category : FoodCategory
+      food_facts.category
+    end
+
+    # How many turns old this food is. Zero for food that never spoils.
+    def age : Int32
+      @age || 0
+    end
+
+    # How fresh this food is.
+    def freshness : Freshness
+      return Freshness::Fresh unless food?
+
+      food_facts.freshness age
+    end
+
+    # Ages this food one turn. Answers whether its freshness changed.
+    def ripen : Bool
+      held = @age
+      return false unless held
+
+      before = freshness
+      @age = held + 1
+      freshness != before
+    end
+
+    # Whether anything eats this.
+    def edible? : Bool
+      food? && !category.refuse?
+    end
+
+    # How much one whole one feeds, fresh.
+    def full_satiety : Int32
+      return Food::CORPSE_SATIETY[size] if corpse?
+
+      food_facts.satiety
+    end
+
+    # How much of one has been eaten, in points of satiety.
+    def eaten : Int32
+      @eaten || 0
+    end
+
+    # Whether somebody has bitten one of these.
+    def bitten? : Bool
+      eaten > 0
+    end
+
+    # How much is left of one, fresh.
+    def satiety : Int32
+      Math.max full_satiety - eaten, 0
+    end
+
+    # How much the first one feeds now, as fresh as it is.
+    def nourishment : Int32
+      satiety * freshness.worth // 100
+    end
+
+    # Marks *points* of satiety as eaten, at full freshness.
+    protected def eat_raw(points : Int32) : Nil
+      total = eaten + points
+      @eaten = total > 0 ? total : nil
+    end
+
+    # Takes *points* of what `#nourishment` offers off one of these. Answers
+    # whether anything is left of it.
+    def bite(points : Int32) : Bool
+      worth = freshness.worth
+      eat_raw (points * 100 + worth - 1) // worth
+      satiety > 0
+    end
+
+    # Whether the food parts of this and *other* match: the same age, the
+    # same bites, the same creature. A corpse matches nothing.
+    private def same_meal?(other : Item) : Bool
+      return false if corpse? || other.corpse?
+
+      meal_matches? other
+    end
+
+    # Whether this and *other* have the same age, bites and creature.
+    protected def meal_matches?(other : Item) : Bool
+      age == other.age && eaten == other.eaten && @creature == other.creature
+    end
+
+    # How big the creature a corpse was is. Medium for anything else.
+    private def body : Size
+      @creature.try(&.size) || Size::Medium
     end
 
     # Whether this item and *other* are one and the same thing.
@@ -327,6 +465,8 @@ module Roguelike
     # item rather than a property of the item, and two stacks that merge take
     # the larger through `#merge`.
     def stacks_with?(other : Item) : Bool
+      return false unless same_meal? other
+
       @kind.stacks? && @kind == other.kind &&
         @enchantment == other.enchantment && @condition == other.condition &&
         @blessing == other.blessing && @blessing_known == other.blessing_known? &&
@@ -356,6 +496,8 @@ module Roguelike
     # takes its own arrows back off the floor whatever the flight did to
     # them.
     def looks_like?(other : Item, *, any_condition : Bool = false) : Bool
+      return false unless same_meal? other
+
       @kind.stacks? && @kind == other.kind &&
         @enchantment == other.enchantment &&
         (any_condition || @condition == other.condition) &&
@@ -375,6 +517,7 @@ module Roguelike
     # cursed thing, and a cursed stack says nothing about what else is
     # cursed. A kind that does not stack matches nothing either.
     def might_be?(other : Item) : Bool
+      return false unless same_meal? other
       return false unless @kind.stacks? && @kind == other.kind
       return false if known_cursed? || other.known_cursed?
 
@@ -417,7 +560,8 @@ module Roguelike
     # happens.
     def with_count(count : Int32, id : Int32 = @id) : Item
       found = Item.new @kind, @enchantment, @condition, count, @charges,
-        @blessing, @blessing_known, @lit, @handling, size
+        @blessing, @blessing_known, @lit, @handling, size, age, @creature
+      found.eat_raw @eaten || 0
       found.enroll id
       found.set_down if dropped?
       found
@@ -466,12 +610,12 @@ module Roguelike
         @condition == other.condition && @count == other.count &&
         @charges == other.charges && @blessing == other.blessing &&
         @blessing_known == other.blessing_known? && @lit == other.lit? &&
-        size == other.size
+        size == other.size && meal_matches?(other)
     end
 
     def hash(hasher)
       {@kind, @enchantment, @condition, @count, @charges,
-       @blessing, @blessing_known, @lit, size}.hash hasher
+       @blessing, @blessing_known, @lit, size, age, eaten, @creature}.hash hasher
     end
 
     def to_s(io : IO) : Nil
@@ -483,6 +627,9 @@ module Roguelike
       io << ' ' << @enchantment if @enchantment < 0
       io << " lit" if @lit
       io << ' ' << size unless size.medium?
+      io << " age " << age if @age
+      io << " eaten " << eaten if @eaten
+      io << ' ' << @creature if @creature
       io << ')'
     end
   end

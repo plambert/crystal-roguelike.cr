@@ -28,11 +28,15 @@ module Roguelike
 
     use_json_discriminator "kind", {
       "anointed"       => Anointed,
+      "ate"            => Ate,
       "attack"         => Attack,
       "blessing_known" => BlessingKnown,
       "blocked"        => Blocked,
       "climbed"        => Climbed,
       "bolt_stopped"   => BoltStopped,
+      "butchered"      => Butchered,
+      "corpse_left"    => CorpseLeft,
+      "corpse_rotted"  => CorpseRotted,
       "cracked"        => Cracked,
       "destroyed"      => Destroyed,
       "detected"       => Detected,
@@ -43,6 +47,7 @@ module Roguelike
       "dropped"        => Dropped,
       "fizzled"        => Fizzled,
       "fled"           => Fled,
+      "food_spoiled"   => FoodSpoiled,
       "flanked"        => Flanked,
       "floor_lit"      => FloorLit,
       "floor_mapped"   => FloorMapped,
@@ -425,6 +430,22 @@ module Roguelike
 
         # The waterskin holds no water.
         SkinEmpty
+
+        # The food bag has no room for it.
+        BagFull
+
+        # Nothing eats it.
+        NotEdible
+
+        # The character is too full to eat.
+        Full
+
+        # It is too big for the food bag. A corpse is eaten or cut up where
+        # it lies.
+        TooBig
+
+        # The corpse has gone too far to cut up.
+        TooOld
       end
 
       getter kind : String = "refused"
@@ -680,6 +701,21 @@ module Roguelike
       Parched
       Dehydrated
       DyingOfThirst
+
+      # Fed on meat, and quicker for it.
+      WellFed
+
+      # Fed on fruit. Thirst builds at half rate.
+      Refreshed
+
+      # Fed on nuts or cheese. A shot or a throw lands more often.
+      SteadyAim
+
+      # Fed on roots or herbs. A swing lands more often.
+      SteadyHand
+
+      # Sick from rotten food. Every blow and shot lands less often.
+      Sick
     end
 
     # A status that started.
@@ -1221,6 +1257,74 @@ module Roguelike
       getter species : String
 
       def initialize(@creature : Int32, @species : String)
+      end
+    end
+
+    # Food the character ate.
+    #
+    # *taken* is the points of satiety the character took. *whole* false
+    # leaves the rest of the item in the bag, or on the floor for a corpse.
+    class Ate < Event
+      getter kind : String = "ate"
+
+      getter item : Int32
+      getter name : String
+      getter taken : Int32
+      getter? whole : Bool
+
+      def initialize(@item : Int32, @name : String, @taken : Int32,
+                     @whole : Bool)
+      end
+    end
+
+    # A corpse the character cut into meat. *pieces* are the ids that went
+    # into the food bag. *left* are the ones that did not fit and lie on the
+    # floor.
+    class Butchered < Event
+      getter kind : String = "butchered"
+
+      getter item : Int32
+      getter name : String
+      getter pieces : Array(Int32)
+      getter left : Array(Int32)
+
+      def initialize(@item : Int32, @name : String, @pieces : Array(Int32),
+                     @left : Array(Int32))
+      end
+    end
+
+    # What a creature the character saw die left where it fell.
+    class CorpseLeft < Event
+      getter kind : String = "corpse_left"
+
+      getter creature : Int32
+      getter items : Array(Int32)
+      getter at : {Int32, Int32}
+
+      def initialize(@creature : Int32, @items : Array(Int32), @at : {Int32, Int32})
+      end
+    end
+
+    # A corpse on the floor rotted away. The id names nothing afterward.
+    class CorpseRotted < Event
+      getter kind : String = "corpse_rotted"
+
+      getter item : Int32
+      getter at : {Int32, Int32}
+
+      def initialize(@item : Int32, @at : {Int32, Int32})
+      end
+    end
+
+    # Food in the bag that went stale or rotten.
+    class FoodSpoiled < Event
+      getter kind : String = "food_spoiled"
+
+      getter item : Int32
+      getter name : String
+      getter freshness : Freshness
+
+      def initialize(@item : Int32, @name : String, @freshness : Freshness)
       end
     end
   end

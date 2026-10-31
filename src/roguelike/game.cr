@@ -559,6 +559,7 @@ module Roguelike
       game.scatter rng
       game.equip rng
       game.enroll
+      game.stock rng
       # Two lines rather than one. The log pane is four rows of about eighty
       # columns, and one sentence saying all of this wraps onto two of them.
       #
@@ -610,7 +611,12 @@ module Roguelike
         blessing_known: true)
       player.inventory.add Item.new(ItemKind::MinorHealingPotion,
         blessing_known: true)
+      player.food_bag.add Item.new(ItemKind::Ration, count: RATIONS,
+        blessing_known: true)
     end
+
+    # How many rations the character starts with in the food bag.
+    RATIONS = 2
 
     # A new run on *rng*, played on floor 1 dug from the same seed.
     #
@@ -776,6 +782,7 @@ module Roguelike
       end
 
       enroll
+      stock root, ground unless depth >= World::VAULT
       ground
     end
 
@@ -1252,6 +1259,7 @@ module Roguelike
     # the dark is seen there for the first time. Gold is left out, because a
     # walk picks it up on the way. Torches are left out, because they lie on
     # every floor and stopping for each would stop the walk again and again.
+    # Remains are left out for the same reason.
     private def unsighted(seen : Vision) : Array(Spotted)
       here = @player.at
       found = [] of Spotted
@@ -1276,8 +1284,11 @@ module Roguelike
     end
 
     # Whether *item* coming into sight goes by without stopping a walk.
+    #
+    # What a creature left is one of them. Every fight leaves some, and the
+    # walk after a fight would stop for it at once.
     private def unremarkable?(item : Item) : Bool
-      item.kind.gold? || item.kind.torch?
+      item.kind.gold? || item.kind.torch? || item.corpse? || (item.food? && !item.edible?)
     end
 
     # What the character is told when the explore or travel *walk* stops.
@@ -2248,6 +2259,7 @@ module Roguelike
       creature.drop_everything.each do |item|
         floor.drop creature.x, creature.y, item
       end
+      leave_remains creature, true
       forget_dead creature
       say "You kill the #{creature.label}.",
         with_facts(Event::Slain.new(creature.id, creature.label),
@@ -3456,6 +3468,7 @@ module Roguelike
       victim.drop_everything.each do |item|
         floor.drop victim.x, victim.y, item
       end
+      leave_remains victim, shown
       forget_dead victim
       @felled += 1
       return unless shown
@@ -3518,6 +3531,7 @@ module Roguelike
     private def tick : Nil
       @turn += 1
       wear_off
+      keep_food
       handle_items
       blink
       regenerate
@@ -3665,7 +3679,7 @@ module Roguelike
     # end the run.
     private def sustain : Nil
       sustenance = @player.sustenance
-      sustenance.tick
+      sustenance.tick thirst: !thirst_held?
       restage
 
       @player.hurt sustenance.wasted if sustenance.wasted > 0
@@ -4993,6 +5007,7 @@ module Roguelike
     # and leaves the item where it was.
     def pick_up(item : Item) : Bool
       return false unless floor.take @player.x, @player.y, item
+      return bag(item) if item.food?
 
       @pack_moves += 1
       if item.kind.item_class.treasure?
@@ -5090,6 +5105,13 @@ module Roguelike
       here.select { |item| takes.call item }.each do |item|
         break if over? || @assailed != calm
         next unless floor.take @player.x, @player.y, item
+
+        if item.food?
+          wrote = @log.written
+          bag item
+          @overlooked += @log.written - wrote
+          next
+        end
 
         letter = @player.inventory.add item
         unless letter
@@ -7156,6 +7178,7 @@ module Roguelike
       end
 
       @player.inventory.each_item { |_letter, carried| yield carried }
+      @player.food_bag.items.each { |carried| yield carried }
     end
 
     # ------------------------------------------------------- one entry point
@@ -7286,6 +7309,8 @@ module Roguelike
         drawing action
       when Action::Drink
         drink_from_skin
+      when Action::Eat, Action::Cut
+        feeding action
       else
         raise ArgumentError.new "#{action.class} has no rule"
       end
@@ -7422,7 +7447,13 @@ module Roguelike
         taking action
       in Action::Drop
         letter = letter_of action.item
-        return Verdict.refused unless letter
+        unless letter
+          food = @player.food_bag[action.item]
+          return Verdict.refused unless food
+
+          drop_food food
+          return Verdict.done
+        end
 
         drop letter
         Verdict.done
@@ -7755,6 +7786,7 @@ module Roguelike
       legal_floor found
       legal_carried found, seen
       legal_readied found
+      legal_food found
       found
     end
 
@@ -7859,10 +7891,15 @@ module Roguelike
                else
                  ->(item : Item) { quiver.try(&.call(item)) || held.any?(&.might_be?(item)) }
                end
-      return unless wanted
-      return ->(item : Item) { !item.dropped? && wanted.call(item) } unless pack.full?
+      return ->(item : Item) { bag_takes? item } unless wanted
 
-      ->(item : Item) { !item.dropped? && wanted.call(item) && pack.room_for?(item) }
+      ->(item : Item) do
+        if item.food?
+          bag_takes? item
+        else
+          !item.dropped? && wanted.call(item) && (!pack.full? || pack.room_for?(item))
+        end
+      end
     end
 
     # Which items the quiver takes back off the floor. `nil` when the quiver
@@ -7906,8 +7943,8 @@ module Roguelike
     # What the square underfoot and the sconces beside it offer.
     private def legal_floor(found : Array(Action)) : Nil
       pile = here
-      found << Action::PickUp.new if pile.size == 1
-      pile.each { |item| found << Action::PickUp.new item.id }
+      found << Action::PickUp.new if pile.size == 1 && !pile.first.corpse?
+      pile.each { |item| found << Action::PickUp.new item.id unless item.corpse? }
 
       appliable.each do |target|
         letter = target.letter

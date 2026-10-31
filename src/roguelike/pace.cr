@@ -58,6 +58,9 @@ module Roguelike
     # Ticks left on a slow.
     getter slowed : Int32 = 0
 
+    # What food adds to the speed. A save holds it only while it is set.
+    @boost : Int32? = nil
+
     # A new pace at *base*, with one action already paid for.
     #
     # An actor starts ready. One that started empty would lose a tick to its
@@ -67,11 +70,22 @@ module Roguelike
 
     # What this actor gains in a tick as it stands, with *less* taken off.
     def speed(less : Int32 = 0) : Int32
-      found = @base - less
+      found = @base - less + boost
       found += HASTE if hurried?
       found -= SLOW if dragging?
 
       found.clamp LEAST, MOST
+    end
+
+    # What food adds to the speed.
+    def boost : Int32
+      @boost || 0
+    end
+
+    # Sets what food adds to the speed.
+    def boost=(amount : Int32) : Int32
+      @boost = amount.zero? ? nil : amount
+      amount
     end
 
     # Whether an action has been paid for.

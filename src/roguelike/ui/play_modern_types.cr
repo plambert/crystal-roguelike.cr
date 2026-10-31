@@ -13,6 +13,7 @@ module Roguelike::Ui
     TitleOptions
     TitleNews
     TitleQuit
+    FoodBag
   end
 
   record ModernChoice,

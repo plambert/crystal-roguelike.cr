@@ -28,7 +28,7 @@ module Roguelike
       # potions, its scrolls and its wands. `combat`, `handling`, `use`,
       # `wander`, `mend`, `split` and `brawl` are the counters on the run.
       # `stray` is where a monster's shot that missed comes down, keyed by the
-      # `combat` counter.
+      # `combat` counter. `pantry` is the food lying about each floor.
       #
       # The stream the name suggestion draws from is not here. It names
       # nobody and nothing in the run.
@@ -47,6 +47,7 @@ module Roguelike
         "stray"      => 1,
         "split"      => 1,
         "brawl"      => 1,
+        "pantry"     => 1,
       }
 
       # This build's table, as a header holds it.

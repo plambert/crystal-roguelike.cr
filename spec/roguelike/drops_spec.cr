@@ -72,7 +72,7 @@ Spectator.describe "what a monster leaves behind" do
 
       kill game
 
-      expect(game.floor.items(*BESIDE).empty?).to be_true
+      expect(game.floor.items(*BESIDE).reject(&.food?).empty?).to be_true
     end
 
     it "takes what it carried off it" do

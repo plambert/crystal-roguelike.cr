@@ -123,7 +123,7 @@ Spectator.describe "reading a scroll of blessing" do
 
     run.press "i"
 
-    expect(run.menu.entries.size).to eq 1
+    expect(run.menu.entries.map(&.key)).to eq ['a', Roguelike::Ui::Play::FOOD_BAG_KEY]
     expect(run.menu.entries.first.text).to contain "15"
   end
 end

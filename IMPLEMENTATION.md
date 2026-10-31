@@ -6462,6 +6462,121 @@ Default is unchanged and misses 4.5 on seven pairs. Raising `faint`, `vacant`, `
 `dirt` and `empty_text` would fix it, and would change every player's colors and the screen
 fixtures. That is left open.
 
+## Food, the food bag and corpses
+
+Food is an item class of its own. It lives in a food bag on the character, apart from the pack, and
+it ages. `Sustenance#eat` on the `hunger-thirst` branch is what eating feeds.
+
+### Kinds
+
+`Food::FACTS` holds one `FoodFacts` per kind: the family, the satiety, the turns it keeps, and a
+value for the sort. Satiety is in the points `Sustenance#eat` takes. Food that keeps for *k* turns
+is stale from *k* and rotten from 2*k*. A keep of zero never spoils.
+
+| Kind | Family | Satiety | Weight | Keeps | Value |
+|---|---|---|---|---|---|
+| ration | grain | 1500 | 4 | never | 12 |
+| loaf of bread | grain | 1200 | 3 | 1500 | 6 |
+| oatcake | grain | 800 | 2 | 4000 | 5 |
+| piece of fresh meat | meat | 900 | 4 | 300 | 8 |
+| strip of dried meat | meat | 700 | 2 | 5000 | 10 |
+| sausage | meat | 800 | 3 | 1500 | 8 |
+| apple | fruit | 400 | 2 | 2000 | 3 |
+| handful of dried fruit | fruit | 500 | 1 | 6000 | 6 |
+| handful of berries | fruit | 250 | 1 | 600 | 2 |
+| handful of nuts | nuts and cheese | 500 | 1 | 8000 | 5 |
+| wedge of cheese | nuts and cheese | 700 | 2 | 3000 | 7 |
+| turnip | roots and herbs | 500 | 3 | 4000 | 2 |
+| bunch of herbs | roots and herbs | 150 | 1 | 800 | 4 |
+| mushroom | roots and herbs | 300 | 1 | 1200 | 3 |
+| corpse | meat | by size | by size | 150 | 0 |
+| lump of rotten flesh | refuse | none | 4 | never | 0 |
+| pile of bones | refuse | none | 3 | never | 0 |
+
+A corpse feeds 400, 1000 or 1600 for a small, medium or large creature, and cuts into 1, 2 or 4
+pieces of fresh meat. It weighs 50, 150 or 400, so it never fits in the bag.
+
+### Freshness and stacks
+
+* **Age.** `Item` holds an age for food that spoils, and nothing for anything else. `Game#tick`
+  ages the bag and the food lying on the floor the character is on. Other floors wait for the
+  character, the way their creatures do.
+* **Worth.** Fresh food feeds whole, stale food half, and rotten food a quarter. Eating rotten food
+  makes the character sick.
+* **Stacks.** Two foods stack only at the same age and the same bites. A stack shares one age, so
+  food picked up at different times sits apart. A corpse never stacks.
+* **Bites.** `Item#eaten` counts the satiety taken out of one, in fresh points. `Item#bite` takes
+  the points eating offered and works back to fresh points, so a stale item that loses 100 points
+  loses 200 fresh ones.
+* **Event.** `food_spoiled` fires once for a bag stack on the turn it goes stale and once on the
+  turn it goes rotten. The line beside it does not stop a walk.
+
+### The food bag
+
+`FoodBag` is a list of stacks with a weight limit of 40 and no letters. The pack's letters are left
+alone, so an item id still names one thing in both. `Game#each_bearer` walks the bag after the pack,
+so bag food has ids. A save writes the bag under the player, and an older save loads an empty one.
+
+* **Pickup.** `Game#pick_up` sends food to the bag. A stack that does not fit stays on the floor
+  with a `bag_full` refusal, and a corpse with `too_big`. Automatic pickup takes food that has not
+  rotted, is not refuse, was not put down, and fits. Explore walks to it under its pickup setting.
+* **Drop.** `Action::Drop` takes a bag id as well as a pack id.
+* **Sorts.** `FoodBag#sorted` orders by weight, by family, by value, by name and by freshness.
+  Weight and value put the most first. Freshness puts fresh first, and within a stage what turns
+  soonest.
+
+### Eating, buffs and cutting
+
+* **Actions.** `Action::Eat` names a bag stack or a corpse underfoot. `Action::Cut` names a fresh
+  corpse underfoot. Each takes one turn. `Game#legal` offers both, and a drop for each bag stack.
+* **Full.** Eating offers the item's worth to `Sustenance#eat`. What it takes comes off one item.
+  Anything left goes back in the bag as a partly eaten item, or stays on the corpse. Nothing taken
+  says the character is full, and no turn passes.
+* **Buffs.** `Player#buffs` holds `Buff` values, one per status, each with a power and turns left.
+  A stronger offer replaces a weaker one, an equal one resets the timer, and a weaker one does
+  nothing. Fresh food gives the full power for 300 turns and stale food half, rounded down, so stale
+  nuts give no aim buff. Rotten food gives `Sick` instead.
+
+| Status | Family | Effect |
+|---|---|---|
+| `WellFed` | meat | +5 speed through `Pace#boost` |
+| `Refreshed` | fruit | thirst holds still every other turn, through `Sustenance#tick(thirst:)` |
+| `SteadyAim` | nuts and cheese | +1 to a shot or a throw landing |
+| `SteadyHand` | roots and herbs | +1 to a swing landing |
+| `Sick` | rotten food | -1 to a swing, a shot or a throw landing |
+
+* **Readout.** `Lasting.on` lists each buff, so it gets a bar in the character pane. A buff bar
+  takes the experience bar's green and the sick bar takes the slow bar's color. Both are colors the
+  themes already check for contrast, so no theme gained a color.
+
+### Corpses
+
+`Species#remains` says what a creature leaves, and `KindFacts#remains` lets a kind say otherwise.
+Beasts, goblins, orcs, ants and the warlord leave a corpse. Slimes, jellies, constructs and imps
+leave nothing. The undead leave rotten flesh and bones, and the skeleton overrides that with bones
+alone. `corpse_left` fires when the character saw the creature die. A corpse is stale at 150 turns
+and rots away at 300, with `corpse_rotted` when the character can see the square. A stale corpse can
+still be eaten, and only a fresh one can be cut up.
+
+### Floor food
+
+`Game#stock` puts food about each floor on a stream of its own, `pantry:<floor id>`, after the
+litter, the ammunition and the monsters' loot. The litter falls where it always fell, so the
+`litter` stream keeps its version and `pantry` is a new part at version 1. The food is numbered
+after everything else on the floor has its id, so no other id moves for it, and a replay that names
+an item by id still names the same one. Each food comes out somewhere between new and just short of
+stale. Fresh meat is not on the table, because it comes from corpses.
+
+Remains do not stop a walk when they come into sight. Every fight leaves some, and the walk after
+it would stop at once.
+
+* **Rate.** Five per ten thousand open squares, and one at least. The mean floor is about 8000
+  squares, which gives about four foods and 2800 points of satiety. Over 40 seeds a floor held
+  between 1 and 17. Corpses add to that, and are worth most to a character who is hungry when
+  something dies.
+* **Weights.** bread 12; ration, dried meat and apple 10; oatcake, nuts and turnip 8; sausage,
+  dried fruit, berries, cheese, herbs and mushroom 6.
+
 ## Fountains
 
 A fountain is a square of terrain that gives water. It is the main way to fill the waterskin.
