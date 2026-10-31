@@ -32,11 +32,17 @@ Spectator.describe "food, the food bag and corpses" do
 
   HERE = {1, 1}
 
-  # A game in a lit hall, with *bag* in the food bag.
-  def hall(bag : Array(Item) = [] of Item) : Game
+  # How hungry the character in `#hall` is: hungry, and a long way from
+  # starving.
+  HUNGER = 2000
+
+  # A game in a lit hall, with *bag* in the food bag and a character
+  # *hunger* turns from their last meal.
+  def hall(bag : Array(Item) = [] of Item, hunger : Int32 = HUNGER) : Game
     floor = Floor.parse "hall", HALL
     Playing.daylight floor
     player = Player.new floor.id, *HERE
+    player.sustenance.hunger = hunger
     bag.each { |item| player.food_bag.add item }
     game = Game.new World.new(SEED, {floor.id => floor}), player,
       lore: Lore.roll(Rng.new SEED)
@@ -291,6 +297,49 @@ Spectator.describe "food, the food bag and corpses" do
       expect(game.events.any?(Event::Ate)).to be_true
       expect(game.player.buff_power(Event::Status::SteadyAim)).to eq Food::AIM
       expect(game.turn).to eq 1
+    end
+
+    it "takes what it took off the character's hunger" do
+      game = hall [food(ItemKind::Apple)]
+      game.perform Action::Eat.new(game.player.food_bag.items.first.id)
+
+      expect(game.player.sustenance.hunger).to eq HUNGER - Food.facts(ItemKind::Apple).satiety + 1
+    end
+
+    it "keeps what is left of a food eaten by a character near full" do
+      game = hall [food(ItemKind::Ration, 2)], hunger: 100
+      game.perform Action::Eat.new(game.player.food_bag.items.first.id)
+
+      bag = game.player.food_bag.items
+      expect(bag.map(&.count)).to eq [1, 1]
+      expect(bag.last.eaten).to eq 100
+      expect(game.player.sustenance.full?).to be_false
+      expect(game.events.select(Event::Ate).first.as(Event::Ate).whole?).to be_false
+    end
+
+    it "eats nothing and spends no turn when the character is full" do
+      game = hall [food(ItemKind::Ration)], hunger: 0
+      game.perform Action::Eat.new(game.player.food_bag.items.first.id)
+
+      expect(game.player.food_bag.items.first.bitten?).to be_false
+      expect(game.turn).to eq 0
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.full? })
+        .to be_true
+    end
+
+    it "halves how fast thirst builds while the fruit buff runs" do
+      plain = hall
+      fed = hall
+      [plain, fed].each do |game|
+        game.player.sustenance.water = 0
+        game.player.sustenance.thirst = 1
+      end
+      fed.player.buff Event::Status::Refreshed, 1, Food::BUFF_TURNS
+      waits plain, 20
+      waits fed, 20
+
+      expect(plain.player.sustenance.thirst).to eq 21
+      expect(fed.player.sustenance.thirst).to eq 11
     end
 
     it "makes the character sick on rotten food" do

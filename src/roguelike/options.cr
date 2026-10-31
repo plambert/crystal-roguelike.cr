@@ -128,6 +128,8 @@ module Roguelike
         "Stop when a message is written", :toggle),
       Setting.new("explore.stop_stairs", "When to stop", "Stairs down",
         "Stop when you find the stairs down", :toggle),
+      Setting.new("explore.drink", "When to stop", "Drink when thirsty",
+        "Drink from your waterskin when thirst sets in. Off stops instead", :toggle),
       Setting.new("name", "Tester", "Name",
         "The name that labels your uploaded runs", :text),
     ]

@@ -64,14 +64,21 @@ module Roguelike::Ui
     # The bar has no label outside it, so it lines up with the bars above
     # and the name goes in front of the count.
     LASTING_NAMES = {
-      Event::Status::Hurried    => "haste",
-      Event::Status::Dragging   => "slow",
-      Event::Status::Blind      => "blind",
-      Event::Status::WellFed    => "fed",
-      Event::Status::Refreshed  => "fruit",
-      Event::Status::SteadyAim  => "aim",
-      Event::Status::SteadyHand => "hand",
-      Event::Status::Sick       => "sick",
+      Event::Status::Hurried       => "haste",
+      Event::Status::Dragging      => "slow",
+      Event::Status::Blind         => "blind",
+      Event::Status::Hungry        => "hungry",
+      Event::Status::Famished      => "famished",
+      Event::Status::Starving      => "starving",
+      Event::Status::Thirsty       => "thirsty",
+      Event::Status::Parched       => "parched",
+      Event::Status::Dehydrated    => "dehydrated",
+      Event::Status::DyingOfThirst => "dying of thirst",
+      Event::Status::WellFed       => "fed",
+      Event::Status::Refreshed     => "fruit",
+      Event::Status::SteadyAim     => "aim",
+      Event::Status::SteadyHand    => "hand",
+      Event::Status::Sick          => "sick",
     }
 
     # What the noise bar is labeled. A note, where the other bars have two
@@ -92,6 +99,12 @@ module Roguelike::Ui
     getter health : Meter
     getter magic : Meter
     getter learning : Meter
+
+    # How much water is in the skin, as text.
+    #
+    # A line rather than a bar. Text on the empty part of a bar does not
+    # read at 4.5 to 1 in every theme.
+    getter water : Line
 
     # The bar for the creature the character is fighting.
     getter threat : Meter
@@ -153,6 +166,7 @@ module Roguelike::Ui
       @health = Meter.new "HP", levels: Palette.health
       @magic = Meter.new "MP", levels: Palette.magic
       @learning = Meter.new "XP", levels: Palette.learning
+      @water = Line.new
       @threat = Meter.new THREAT_LABEL, levels: Palette.threat
       @noise = Meter.new NOISE_LABEL, levels: Palette.noise
       @number_names = Line.new
@@ -184,7 +198,7 @@ module Roguelike::Ui
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fit,
         padding: Layout::Padding.symmetric(horizontal: 1))
-      @vitals.add @who, @health, @magic, @learning, @lasting, @noisy, @fight
+      @vitals.add @who, @health, @magic, @learning, @water, @lasting, @noisy, @fight
 
       @scoring = InfoPanel.section SCORES
       @scoring.body.add @number_names, @numbers, @score_names, @scores, @pacing
@@ -265,6 +279,7 @@ module Roguelike::Ui
       @health.show player.hit_points, player.max_hit_points
       @magic.show 0, 0
       learned player
+      watered player
       lasted player
       fought game
       heard game
@@ -306,11 +321,19 @@ module Roguelike::Ui
         "#{player.experience}/#{player.experience + wanted}"
     end
 
+    # The water line: how many units are in the skin, out of how many it
+    # holds.
+    private def watered(player : Player) : Nil
+      @water.clear
+      @water.put 0, "water #{player.sustenance.water}/#{Sustenance::WATER_MAX}", Palette.plain
+    end
+
     # One bar for each temporary effect on the character.
     #
     # The bar is the turns left over the most it has had, so it is full when
     # the effect begins and empties as it wears off. A bar goes away when
-    # its effect ends.
+    # its effect ends. An effect with no timer has a full bar and its name
+    # alone.
     private def lasted(player : Player) : Nil
       running = player.lasting
       @longest.select! { |status, _| running.any?(&.status.==(status)) }
@@ -322,9 +345,12 @@ module Roguelike::Ui
         bar.hidden = found.nil?
         next unless found
 
-        most = Math.max found.left, @longest[status]? || 0
+        left = found.left
+        next bar.show(1, 1, LASTING_NAMES[status]) unless left
+
+        most = Math.max left, @longest[status]? || 0
         @longest[status] = most
-        bar.show found.left, most, "#{LASTING_NAMES[status]} #{found.left}"
+        bar.show left, most, "#{LASTING_NAMES[status]} #{left}"
       end
     end
 
@@ -376,7 +402,7 @@ module Roguelike::Ui
 
       @pacing.clear
       @pacing.put 0, "Walk", Palette.faint
-      @pacing.put GOLD, "#{player.pace.speed * 100 // player.stride}%", Palette.plain
+      @pacing.put GOLD, "#{player.speed * 100 // player.stride}%", Palette.plain
       @pacing.put_right "#{Detail.dps player.per_turn(against)} dps", Palette.plain
     end
 

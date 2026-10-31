@@ -20,6 +20,9 @@ module Roguelike
     # Something is in the way. No turn was taken.
     Blocked
 
+    # An explore drank from the waterskin instead of walking.
+    Drank
+
     # Whether a turn was taken.
     def turn? : Bool
       !blocked?
@@ -28,7 +31,7 @@ module Roguelike
     # Whether the character spent the turn on the square ahead and stayed
     # where they were.
     def stayed? : Bool
-      opened? || struck?
+      opened? || struck? || drank?
     end
   end
 
@@ -184,6 +187,22 @@ module Roguelike
     # them, and a creature held here would be a second copy of one the floor
     # already holds.
     getter killer : String? = nil
+
+    # What the character wasted away from. `nil` while they are alive, and
+    # for a death at a creature's hands.
+    getter perished : Sustenance::Death? = nil
+
+    # The hunger and thirst stages the last events were written for.
+    #
+    # It is not written out. `#perform` reads the stages afresh after a
+    # load, so a run loaded mid-stage writes nothing for the stage it is in.
+    @[JSON::Field(ignore: true)]
+    @stages : {Sustenance::HungerStage, Sustenance::ThirstStage}? = nil
+
+    # How many lines a worsening thirst stage has written. An explore reads
+    # it across one step, so the save leaves it out.
+    @[JSON::Field(ignore: true)]
+    @thirst_told : Int32 = 0
 
     # How many turns the sidebar goes on showing the creature the character
     # last traded blows with.
@@ -1528,11 +1547,13 @@ module Roguelike
       last : String?,
       seen : Array(Monster),
       assailed : Int32 = 0,
-      stairs : Bool = false do
+      stairs : Bool = false,
+      thirst : Sustenance::ThirstStage = Sustenance::ThirstStage::Quenched do
       def self.on(game : Game, seen : Vision, assailed : Int32 = 0,
                   stairs : Bool = false) : Watch
         new game.player.hit_points, game.log.written, game.log.said?,
-          game.monsters_in_sight(seen), assailed, stairs
+          game.monsters_in_sight(seen), assailed, stairs,
+          game.player.sustenance.thirst_stage
       end
     end
 
@@ -1597,8 +1618,21 @@ module Roguelike
       return Halt::Creature if stops.stop_creature? && arrived_in_sight?(before.seen, seen)
       return Halt::Item if stops.stop_item? && spotted
       return Halt::Stairs if stops.stop_stairs? && !before.stairs && down_known?
+      return Halt::Thirsty if parched_since?(before) && !drinks?(stops)
 
       Halt::Told if stops.stop_message? && told?(before, planned: true)
+    end
+
+    # Whether thirst reached a stage of thirsty or worse since *before*.
+    private def parched_since?(before : Watch) : Bool
+      now = @player.sustenance.thirst_stage
+      now >= Sustenance::ThirstStage::Thirsty && now > before.thirst
+    end
+
+    # Whether an explore under *stops* drinks from the skin now.
+    private def drinks?(stops : Explore::Settings = explore_settings) : Bool
+      stops.drink? && drinkable? &&
+        @player.sustenance.thirst_stage >= Sustenance::ThirstStage::Thirsty
     end
 
     # Whether the step wrote anything worth stopping for.
@@ -3305,6 +3339,7 @@ module Roguelike
       handle_items
       blink
       regenerate
+      sustain
       creatures_recover
       act_on_the_floor unless over?
 
@@ -3404,7 +3439,7 @@ module Roguelike
     # of banking. It acts on the tick it wakes, and a band that slept for a
     # hundred turns does not wake with a hundred actions in hand.
     private def bank_energy : Nil
-      @player.pace.gain
+      @player.pace.gain @player.sustenance.slowing
 
       floor.each_monster do |_column, _row, creature|
         awake?(creature) ? creature.pace.gain : creature.pace.rest
@@ -3431,6 +3466,7 @@ module Roguelike
     # Creatures recover on their own clock. See `#creatures_recover`.
     private def regenerate : Nil
       rested = @player.rest
+      return unless @player.regenerates?
       return if rested < REST
       return unless (rested % @player.regeneration).zero?
 
@@ -3438,6 +3474,116 @@ module Roguelike
       return if gained.zero?
 
       record Event::Healed.new(gained)
+    end
+
+    # Passes one turn of hunger and thirst.
+    #
+    # A stage that changes says so. A character wasting away loses the hit
+    # points the turn took, and a counter at its end or hit points at zero
+    # end the run.
+    private def sustain : Nil
+      sustenance = @player.sustenance
+      sustenance.tick thirst: !thirst_held?
+      restage
+
+      @player.hurt sustenance.wasted if sustenance.wasted > 0
+      death = sustenance.death
+      death ||= sustenance.wasted_by unless @player.alive?
+      wasted_away death if death
+    end
+
+    # What each stage of hunger says when it starts.
+    HUNGER_LINES = {
+      Sustenance::HungerStage::Hungry   => "You are getting hungry.",
+      Sustenance::HungerStage::Famished => "You are famished.",
+      Sustenance::HungerStage::Starving => "You are starving!",
+    }
+
+    # What each stage of thirst says when it starts.
+    THIRST_LINES = {
+      Sustenance::ThirstStage::Fine       => "Your waterskin is empty.",
+      Sustenance::ThirstStage::Thirsty    => "You are thirsty.",
+      Sustenance::ThirstStage::Parched    => "You are parched.",
+      Sustenance::ThirstStage::Dehydrated => "You are dehydrated.",
+      Sustenance::ThirstStage::Dying      => "You are dying of thirst!",
+    }
+
+    # Writes the events for any hunger or thirst stage that changed since
+    # the last time this ran.
+    #
+    # A stage that gets worse writes its line. One that gets better writes
+    # only events, because the eating or drinking that did it has its own
+    # line. The status of the old stage ends and the status of the new one
+    # starts.
+    private def restage : Nil
+      sustenance = @player.sustenance
+      now = {sustenance.hunger_stage, sustenance.thirst_stage}
+      before = @stages || now
+      @stages = now
+
+      if now[0] != before[0]
+        staged Event::Hunger.new(now[0], before[0]), HUNGER_LINES[now[0]]?,
+          worse: now[0] > before[0],
+          was: Sustenance.status(before[0]), status: sustenance.hunger_status
+      end
+
+      return if now[1] == before[1]
+
+      staged Event::Thirst.new(now[1], before[1]), THIRST_LINES[now[1]]?,
+        worse: now[1] > before[1],
+        was: Sustenance.status(before[1]), status: sustenance.thirst_status
+    end
+
+    # Writes *event* for a stage that changed, and the statuses that ended
+    # and started with it.
+    private def staged(event : Event, line : String?, worse : Bool,
+                       was : Event::Status?, status : Event::Status?) : Nil
+      if worse && line
+        say line, event
+        @thirst_told += 1 if event.is_a?(Event::Thirst)
+      else
+        record event
+      end
+
+      record Event::StatusEnd.new(was) if was && was != status
+      record Event::StatusStart.new(status) if status && status != was
+    end
+
+    # Whether a drink from the skin would be taken.
+    private def drinkable? : Bool
+      sustenance = @player.sustenance
+      !sustenance.quenched? && sustenance.water > 0
+    end
+
+    # Ends the run for a character who wasted away from *death*.
+    private def wasted_away(death : Sustenance::Death) : Nil
+      @outcome = Outcome::Died
+      @perished = death
+      say death.line, Event::Over.new(@outcome, cause: death)
+    end
+
+    # Drinks one unit from the skin. Takes a turn when it does.
+    #
+    # A quenched character and an empty skin are both refused, and no time
+    # passes.
+    private def drink_from_skin : Verdict
+      sustenance = @player.sustenance
+      if sustenance.quenched?
+        say "You are not thirsty.", Event::Refused.new(:not_thirsty)
+        return Verdict.refused
+      end
+
+      if sustenance.water.zero?
+        say "Your waterskin is empty.", Event::Refused.new(:skin_empty)
+        return Verdict.refused
+      end
+
+      drunk = sustenance.drink
+      say "You drink from your waterskin.",
+        Event::Drank.new(:skin, drunk, sustenance.water)
+      restage
+      spend_turn
+      Verdict.done
     end
 
     # Counts a haste and a slow down one tick, on everything that has one.
@@ -6893,7 +7039,9 @@ module Roguelike
       @turned = false
       @reading = Event::StatChanged.reading @player
       before = @player.inventory.signature
+      @stages ||= {@player.sustenance.hunger_stage, @player.sustenance.thirst_stage}
       verdict = dispatched action
+      restage unless over?
       restack if @player.inventory.signature != before && !over?
       clear_bearers
       drop_stale_door
@@ -6956,6 +7104,8 @@ module Roguelike
         heading_off action
       when Action::Configure
         configuring action
+      when Action::Drink
+        drink_from_skin
       when Action::Eat, Action::Cut
         feeding action
       else
@@ -7204,6 +7354,8 @@ module Roguelike
         @sightings = nil
       end
 
+      return explore_drink if action.is_a?(Action::Explore) && drinks?
+
       route = planned_route goal
       direction = route.size >= 2 ? Direction.between(@player.at, route[1]) : nil
 
@@ -7224,9 +7376,29 @@ module Roguelike
         return Verdict.done Step::Blocked
       end
 
+      Verdict.done headed(direction, action)
+    end
+
+    # Takes the step of *action* one square *direction*.
+    private def headed(direction : Direction,
+                       action : Action::Explore | Action::Travel | Action::Visit) : Step
+      told = @thirst_told
       taken = step direction
       sighted_now unless action.is_a?(Action::Travel)
-      Verdict.done taken
+
+      # The next step drinks, so the line that says thirst set in does not
+      # stop the walk.
+      @overlooked += @thirst_told - told if action.is_a?(Action::Explore) && drinks?
+      taken
+    end
+
+    # A step of an explore that drinks from the skin instead of walking. Its
+    # line does not stop the walk.
+    private def explore_drink : Verdict
+      wrote = @log.written
+      drink_from_skin
+      @overlooked += @log.written - wrote
+      Verdict.done Step::Drank
     end
 
     # Adds to `#sightings` the squares of the items the step just taken
@@ -7446,6 +7618,7 @@ module Roguelike
       found << Action::Descend.new if standing_on.stairs_down?
       found << Action::Ascend.new if standing_on.stairs_up?
       found << Action::Explore.new if explorable?
+      found << Action::Drink.new if drinkable?
     end
 
     # Whether an explore has anywhere to go under the current light and

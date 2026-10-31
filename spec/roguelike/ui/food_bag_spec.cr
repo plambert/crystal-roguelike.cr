@@ -23,6 +23,7 @@ Spectator.describe "the food bag screen" do
   def stocked(bag : Array(Item), pack : Array(Item) = [] of Item) : Roguelike::Game
     floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
     player = Roguelike::Player.new floor.id, 1, 1
+    player.sustenance.hunger = 2000
     bag.each { |item| player.food_bag.add item }
     pack.each { |item| player.inventory.add item }
     Roguelike::Game.new Roguelike::World.new(Playing::SEED, {floor.id => floor}), player

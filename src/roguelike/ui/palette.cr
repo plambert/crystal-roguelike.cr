@@ -287,16 +287,23 @@ module Roguelike::Ui
     drawn slow : Array({Int32, TermBuf::Color}) = [{100, theme.slow_bar}, {0, theme.slow_bar}]
     drawn blindness : Array({Int32, TermBuf::Color}) = [{100, theme.blind_bar}, {0, theme.blind_bar}]
 
+    # The bars for the stages of hunger and of thirst, one color for each
+    # ladder. The stage's name inside the bar says how bad it is.
+    drawn hunger : Array({Int32, TermBuf::Color}) = [{100, theme.hunger_bar}, {0, theme.hunger_bar}]
+    drawn thirst : Array({Int32, TermBuf::Color}) = [{100, theme.thirst_bar}, {0, theme.thirst_bar}]
+
     # The bar colors for each temporary effect. A buff from food takes the
     # experience bar's green and being sick takes the slow bar's color, so
     # each reads as well as those do.
     def self.lasting(status : Event::Status) : Array({Int32, TermBuf::Color})
       case status
-      in .hurried?                                            then haste
-      in .dragging?                                           then slow
-      in .blind?                                              then blindness
-      in .well_fed?, .refreshed?, .steady_aim?, .steady_hand? then learning
-      in .sick?                                               then slow
+      in .hurried?                                             then haste
+      in .dragging?                                            then slow
+      in .blind?                                               then blindness
+      in .hungry?, .famished?, .starving?                      then hunger
+      in .thirsty?, .parched?, .dehydrated?, .dying_of_thirst? then thirst
+      in .well_fed?, .refreshed?, .steady_aim?, .steady_hand?  then learning
+      in .sick?                                                then slow
       end
     end
 

@@ -169,3 +169,25 @@ Spectator.describe "Roguelike::Ui::Palette.rebuild" do
     expect(drawn).to eq before
   end
 end
+
+Spectator.describe "the hunger and thirst bars" do
+  alias Palette = Roguelike::Ui::Palette
+  alias Library = Roguelike::Ui::ThemeLibrary
+
+  it "read at 4.5 to 1 against the ground and under their text in every built-in theme" do
+    Library::BUILT_INS.each do |named|
+      theme = named.theme
+      {theme.hunger_bar, theme.thirst_bar}.each do |fill|
+        expect(Palette.contrast(fill, theme.ground)).to be >= 4.5
+        expect(Palette.contrast(Palette.readable_on(fill), fill)).to be >= 4.5
+      end
+    end
+  end
+
+  it "draws the water line in plain text, which reads on the ground in every built-in theme" do
+    Library::BUILT_INS.each do |named|
+      theme = named.theme
+      expect(Palette.contrast(theme.plain, theme.ground)).to be >= 4.5
+    end
+  end
+end

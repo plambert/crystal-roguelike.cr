@@ -76,6 +76,10 @@ module Roguelike
     # The stairs down came into the character's knowledge. Only an explore
     # answers this, and only when its settings ask for it.
     Stairs
+
+    # Thirst reached a new stage and explore did not drink for it. Only an
+    # explore answers this. The line for the stage says why.
+    Thirsty
   end
 
   # What one walk did.

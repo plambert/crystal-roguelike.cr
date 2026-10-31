@@ -118,7 +118,7 @@ module Roguelike
 
     # Takes up to *points* of satiety. Answers how many were taken.
     private def satisfy(points : Int32) : Int32
-      points
+      @player.sustenance.eat points
     end
 
     # The food the character can eat now: what is in the bag, and a corpse
@@ -127,6 +127,12 @@ module Roguelike
       found = @player.food_bag.items.select &.edible?
       here.each { |item| found << item if item.corpse? && !item.freshness.rotten? }
       found
+    end
+
+    # Whether thirst holds still this turn. Fruit makes it build at half
+    # rate, so it holds on every other turn while `Refreshed` runs.
+    private def thirst_held? : Bool
+      @player.buff_power(Event::Status::Refreshed) > 0 && @turn.odd?
     end
 
     # Whether the food bag holds anything or a corpse lies underfoot.
@@ -208,7 +214,6 @@ module Roguelike
       power //= 2 if freshness.stale?
       return if power <= 0
 
-      # TODO: halve how fast thirst builds while Refreshed, through a Sustenance hook.
       offer_buff status, power, Food::BUFF_TURNS
     end
 

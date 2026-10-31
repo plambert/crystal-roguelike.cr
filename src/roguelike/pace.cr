@@ -68,9 +68,9 @@ module Roguelike
     def initialize(@base : Int32 = NORMAL, @energy : Int32 = TICK)
     end
 
-    # What this actor gains in a tick as it stands.
-    def speed : Int32
-      found = @base + boost
+    # What this actor gains in a tick as it stands, with *less* taken off.
+    def speed(less : Int32 = 0) : Int32
+      found = @base - less + boost
       found += HASTE if hurried?
       found -= SLOW if dragging?
 
@@ -108,9 +108,9 @@ module Roguelike
       hurried? || dragging?
     end
 
-    # Banks one tick's worth of energy.
-    def gain : Nil
-      @energy += speed
+    # Banks one tick's worth of energy, with *less* taken off the speed.
+    def gain(less : Int32 = 0) : Nil
+      @energy += speed(less)
     end
 
     # Holds an actor that is not acting at one action's worth.
