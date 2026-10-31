@@ -18,7 +18,7 @@ module Roguelike
 
   # What the character carries to eat, apart from the pack.
   #
-  # The bag holds food, rotten flesh and bones. It has a weight limit and no
+  # The bag holds food and rotten flesh. It has a weight limit and no
   # letters, and what is in it costs no pace. A stack of food shares one age,
   # so food picked up at different times sits in different stacks.
   class FoodBag

@@ -48,7 +48,7 @@ module Roguelike::Ui
       kind = item.kind
 
       lines << marked(Palette.slot(slot), slot.note) if slot
-      lines << blessing(item) unless item.food?
+      lines << blessing(item) unless item.food? || item.remains?
       lines << marked(Palette.burning, Palette::LIT_WORD) if item.lit?
       lines.concat facts(game, item)
       lines << "weight #{item.weight}"
@@ -114,6 +114,9 @@ module Roguelike::Ui
       "#{look.glyph} #{word}"
     end
 
+    # What the box says of something nobody eats.
+    NOTHING_EATS = "nothing eats this"
+
     # The lines about what the item does, which depend on what it is.
     private def self.facts(game : Game, item : Item) : Array(String)
       case item.kind.item_class
@@ -124,13 +127,14 @@ module Roguelike::Ui
       when .light?           then burning item
       when .wand?            then charged item
       when .food?            then eaten item
+      when .remains?         then [NOTHING_EATS]
       else                        [] of String
       end
     end
 
     # What a food is like to eat: how filling, what it does, and how fresh.
     private def self.eaten(item : Item) : Array(String)
-      return ["nothing eats this"] unless item.edible?
+      return [NOTHING_EATS] unless item.edible?
 
       lines = [filling(item.nourishment), item.category.label]
       item.category.buff.try { |status| lines << buffing(status) }

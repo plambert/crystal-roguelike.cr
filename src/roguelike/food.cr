@@ -22,7 +22,7 @@ module Roguelike
     # Roots, herbs and mushrooms. A steadier hand in melee.
     RootsAndHerbs
 
-    # Rotten flesh and bones. Nothing eats them.
+    # Rotten flesh. Nothing eats it.
     Refuse
 
     # What the family is called, for a readout and a sort.
@@ -167,7 +167,6 @@ module Roguelike
 
       ItemKind::Corpse      => FoodFacts.new(FoodCategory::Meat, 1000, CORPSE_KEEPS, 0),
       ItemKind::RottenFlesh => FoodFacts.new(FoodCategory::Refuse, 0, 0, 0),
-      ItemKind::Bones       => FoodFacts.new(FoodCategory::Refuse, 0, 0, 0),
     }
 
     # What lies about a floor, by weight. Fresh meat comes from corpses and

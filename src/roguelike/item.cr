@@ -346,6 +346,11 @@ module Roguelike
       @kind.item_class.food?
     end
 
+    # Whether this is what is left of a creature that goes in the pack.
+    def remains? : Bool
+      @kind.item_class.remains?
+    end
+
     # Whether this is a corpse.
     def corpse? : Bool
       @kind.corpse?

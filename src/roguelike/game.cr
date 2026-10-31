@@ -411,7 +411,28 @@ module Roguelike
       spot = @fought_at
       @fought = spot ? floor.monster(spot[0], spot[1]) : nil
       enroll
+      unbag
       recall_sighted if @sighted.empty?
+    end
+
+    # Takes out of the food bag what it no longer holds, for a save written
+    # while bones went in it.
+    #
+    # Each one goes in the pack while it has a letter free, and on the floor
+    # under the character after that. A stack is split into ones, since
+    # bones do not stack, and each one after the first takes a new id.
+    private def unbag : Nil
+      bag = @player.food_bag
+      bag.items.reject { |item| FoodBag.takes? item }.each do |item|
+        bag.remove item
+        item.count.times do |index|
+          one = item.with_count 1, index.zero? ? item.id : next_id
+          next if @player.inventory.add one
+
+          floor.drop @player.x, @player.y, one
+        end
+      end
+      clear_bearers
     end
 
     # Fills `#sighted` from the map, for a save written before it existed.
@@ -1296,7 +1317,8 @@ module Roguelike
     # What a creature left is one of them. Every fight leaves some, and the
     # walk after a fight would stop for it at once.
     private def unremarkable?(item : Item) : Bool
-      item.kind.gold? || item.kind.torch? || item.corpse? || (item.food? && !item.edible?)
+      item.kind.gold? || item.kind.torch? || item.corpse? || item.remains? ||
+        (item.food? && !item.edible?)
     end
 
     # What the character is told when the explore or travel *walk* stops.

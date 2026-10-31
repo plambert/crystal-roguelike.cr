@@ -186,9 +186,12 @@ Spectator.describe "food, the food bag and corpses" do
       expect(bag.add(Item.new(ItemKind::Dagger))).to be_nil
     end
 
-    it "takes rotten flesh and bones as dead weight" do
+    it "takes rotten flesh as dead weight and no bones" do
       bag = FoodBag.new
-      Game.remains_of(Kind::Zombie).each { |item| expect(bag.add(item)).not_to be_nil }
+      flesh, bones = Game.remains_of(Kind::Zombie)
+      expect(bag.add(flesh)).not_to be_nil
+      expect(bag.add(bones)).to be_nil
+      expect(bag.items.map(&.kind)).to eq [ItemKind::RottenFlesh]
       expect(bag.items.none?(&.edible?)).to be_true
     end
 
@@ -243,6 +246,32 @@ Spectator.describe "food, the food bag and corpses" do
       expect(read.buffs).to be_empty
     end
 
+    it "moves bones from the bag of an old save into the pack" do
+      game = hall [food(ItemKind::Ration)]
+      pair = JSON.parse(Item.new(ItemKind::Bones, blessing_known: true).to_json).as_h
+      pair["count"] = JSON::Any.new 2_i64
+      game.player.food_bag.items << Item.from_json(pair.to_json)
+      game.enroll
+
+      read = Game.from_json game.to_json
+      expect(read.player.food_bag.items.map(&.kind)).to eq [ItemKind::Ration]
+      carried = read.player.inventory.items.map &.[1]
+      expect(carried.map(&.kind)).to eq [ItemKind::Bones, ItemKind::Bones]
+      expect(carried.map(&.id).uniq!.size).to eq 2
+      expect(carried.none?(&.id.zero?)).to be_true
+    end
+
+    it "drops bones from the bag of an old save underfoot when the pack is full" do
+      game = hall
+      Roguelike::Inventory::LETTERS.each { game.player.inventory.add Item.new(ItemKind::Dagger) }
+      game.player.food_bag.items << Item.new(ItemKind::Bones, blessing_known: true)
+      game.enroll
+
+      read = Game.from_json game.to_json
+      expect(read.player.food_bag.empty?).to be_true
+      expect(read.here.map(&.kind)).to eq [ItemKind::Bones]
+    end
+
     it "keeps a buff that does not stack" do
       player = Player.new "hall", 1, 1
       status = Event::Status::WellFed
@@ -293,6 +322,29 @@ Spectator.describe "food, the food bag and corpses" do
 
       expect(game.here.map(&.kind)).to eq [ItemKind::Nuts]
       expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.bag_full? })
+        .to be_true
+    end
+
+    it "puts bones in the pack, one to a letter" do
+      game = hall
+      2.times { game.floor.drop *HERE, Item.new(ItemKind::Bones, blessing_known: true) }
+      game.enroll
+      2.times { game.perform Action::PickUp.new(game.here.first.id) }
+
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.player.inventory.entries.map { |(_, item)| {item.kind, item.count} })
+        .to eq [{ItemKind::Bones, 1}, {ItemKind::Bones, 1}]
+    end
+
+    it "leaves bones when the pack is full" do
+      game = hall
+      Roguelike::Inventory::LETTERS.each { game.player.inventory.add Item.new(ItemKind::Dagger) }
+      game.floor.drop *HERE, Item.new(ItemKind::Bones, blessing_known: true)
+      game.enroll
+      game.perform Action::PickUp.new
+
+      expect(game.here.map(&.kind)).to eq [ItemKind::Bones]
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.pack_full? })
         .to be_true
     end
 
@@ -387,8 +439,10 @@ Spectator.describe "food, the food bag and corpses" do
     end
 
     it "refuses bones" do
-      game = hall [Item.new(ItemKind::Bones, blessing_known: true)]
-      id = game.player.food_bag.items.first.id
+      game = hall
+      game.player.inventory.add Item.new(ItemKind::Bones, blessing_known: true)
+      game.enroll
+      id = game.player.inventory.items.first[1].id
       expect(game.legal.any?(Action::Eat)).to be_false
       expect(game.perform(Action::Eat.new(id)).refused?).to be_true
     end

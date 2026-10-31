@@ -6491,7 +6491,6 @@ is stale from *k* and rotten from 2*k*. A keep of zero never spoils.
 | mushroom | roots and herbs | 300 | 1 | 1200 | 3 |
 | corpse | meat | by size | by size | 150 | 0 |
 | lump of rotten flesh | refuse | none | 4 | never | 0 |
-| pile of bones | refuse | none | 3 | never | 0 |
 
 A corpse feeds 400, 1000 or 1600 for a small, medium or large creature, and cuts into 1, 2 or 4
 pieces of fresh meat. It weighs 50, 150 or 400, so it never fits in the bag.
@@ -6563,6 +6562,15 @@ leave nothing. The undead leave rotten flesh and bones, and the skeleton overrid
 alone. `corpse_left` fires when the character saw the creature die. A corpse is stale at 150 turns
 and rots away at 300, with `corpse_rotted` when the character can see the square. A stale corpse can
 still be eaten, and only a fresh one can be cut up.
+
+* **Bones.** A pile of bones is `ItemClass::Remains`, weight 3, and has no food facts. It goes in
+  the pack under a letter of its own, because the class does not stack, and a full pack leaves it
+  on the floor with `pack_full`. Automatic pickup takes only what stacks with something carried,
+  so it never takes bones. Bones coming into sight do not stop a walk. The inventory lists them
+  on the food page, which holds nothing else.
+* **Old saves.** `Game#unbag` runs from `#after_initialize`. It takes anything the bag no longer
+  holds out of it, splits a stack of bones into ones with new ids after the first, and puts each
+  in the pack. What the pack has no letter for goes on the floor under the character.
 
 ### Floor food
 

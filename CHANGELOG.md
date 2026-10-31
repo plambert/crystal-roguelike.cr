@@ -160,6 +160,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   the door, and each swing at the door can be heard too.
 * The goblin warrior is now the goblin fighter, a stocky goblin in small chain mail with a mace.
   It strikes more slowly than the warrior did and takes longer to kill, and is about as dangerous.
+* Bones go in your pack, one pile to a letter, rather than in the food bag. Bones in the food
+  bag of a saved game move to the pack when it loads, or to the floor under you when the pack is
+  full. Rotten flesh stays in the food bag.
 
 ### Fixed
 
