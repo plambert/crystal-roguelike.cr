@@ -115,7 +115,7 @@ module Roguelike::Ui
         words << CONDITIONS[item.condition]
         words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
         words.concat Lore.food_words(item)
-        words << noun lore, item
+        words << Lore.freshened(noun(lore, item), item)
       else
         words << Lore.bare_noun item
       end

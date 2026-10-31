@@ -138,6 +138,33 @@ Spectator.describe "food, the food bag and corpses" do
       expect(lore.name(ration)).to eq "a partly eaten ration"
     end
 
+    it "puts how fresh meat is in place of fresh" do
+      lore = Lore.new
+      keeps = Food.facts(ItemKind::FreshMeat).keeps
+      expect(lore.name(food(ItemKind::FreshMeat))).to eq "a piece of fresh meat"
+      expect(lore.name(food(ItemKind::FreshMeat, age: keeps))).to eq "a piece of stale meat"
+      expect(lore.name(food(ItemKind::FreshMeat, age: keeps * 2))).to eq "a piece of rotten meat"
+      expect(lore.name(food(ItemKind::FreshMeat, count: 2, age: keeps * 2)))
+        .to eq "2 pieces of rotten meat"
+
+      bitten = food ItemKind::FreshMeat, age: keeps
+      bitten.bite 100
+      expect(lore.name(bitten)).to eq "a partly eaten piece of stale meat"
+      expect(Roguelike::Ui::Naming.short(lore, bitten)).to eq "partly eaten stale meat"
+    end
+
+    it "keeps a freshness word only where a name has none" do
+      lore = Lore.new
+      ItemKind.of_class(Roguelike::ItemClass::Food).each do |kind|
+        facts = Food.facts kind
+        next unless facts.spoils?
+
+        rotten = Item.new kind, blessing_known: true, age: facts.keeps * 2,
+          creature: kind.corpse? ? Kind::Rat : nil
+        expect(lore.name(rotten).split(' ').count(&.in?(%w[fresh stale rotten]))).to eq 1
+      end
+    end
+
     it "names a corpse by the creature it was" do
       corpse = Game.remains_of(Kind::GoblinWarrior).first
       expect(Lore.new.name(corpse)).to eq "a goblin fighter corpse"

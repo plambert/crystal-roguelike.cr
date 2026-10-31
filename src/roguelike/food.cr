@@ -65,6 +65,12 @@ module Roguelike
       end
     end
 
+    # The word for this freshness, fresh included. It takes the place of
+    # "fresh" in a name that holds it.
+    def word : String
+      to_s.downcase
+    end
+
     # What a bite of food this fresh is worth, as a percentage.
     def worth : Int32
       case self

@@ -6508,6 +6508,10 @@ pieces of fresh meat. It weighs 50, 150 or 400, so it never fits in the bag.
 * **Bites.** `Item#eaten` counts the satiety taken out of one, in fresh points. `Item#bite` takes
   the points eating offered and works back to fresh points, so a stale item that loses 100 points
   loses 200 fresh ones.
+* **Names.** `Lore.food_words` puts the freshness word and "partly eaten" before a food's name.
+  A name that holds "fresh" gets no freshness word in front. `Lore.freshened` changes "fresh" in
+  it instead, so meat reads "a piece of fresh meat", "a piece of stale meat" and "a piece of
+  rotten meat". Fresh meat is the one kind whose name holds the word.
 * **Event.** `food_spoiled` fires once for a bag stack on the turn it goes stale and once on the
   turn it goes rotten. The line beside it does not stop a walk.
 

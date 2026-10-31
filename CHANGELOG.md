@@ -170,6 +170,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Menus laid out across the screen, such as save and quit, now move with the left and right
   arrows and `a` and `d`. `w`, `s` and the up and down arrows still move them. The control
   scheme chooser also takes `h` and `l`.
+* Meat says how fresh it is in its own name. A piece of meat reads "a piece of stale meat"
+  rather than "a stale piece of fresh meat".
 
 ## [0.7.0] - 2026-10-28
 
