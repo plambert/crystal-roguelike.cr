@@ -24,6 +24,8 @@ Spectator.describe "replay display preferences" do
     Options.current = nil
     Roguelike::Ui::Motion.on = true
     Theme.current = Theme::DEFAULT
+    Theme.current_name = nil
+    Roguelike::Ui::ThemeLibrary.problem = nil
     Palette.rebuild
   end
 
@@ -51,7 +53,9 @@ Spectator.describe "replay display preferences" do
     expect(display.flickering?).to be_false
     meter = Meter.new("HP", 90, 100, Palette.health)
     expect(meter.fill).to eq Palette.meter(Palette.health, 90, banded: true)
-    expect(Dir.children(root).sort).to eq %w[options.json theme.json]
+    expect(Dir.children(root).sort).to eq %w[options.json theme.json themes]
+    expect(Dir.children(root / "themes").sort).to eq %w[default.json high-contrast.json paper.json]
+    expect(Roguelike::Ui::ThemeLibrary.problem).to be_nil
     expect(File.read(Options.path(root))).to eq options_file
     expect(File.read(Theme.path(root))).to eq theme_file
   end
@@ -111,7 +115,7 @@ Spectator.describe "replay display preferences" do
     expect(options.mouse?).to be_true
     expect(options.bar_color).to eq Options::BarColor::Gradient
     expect(Theme.current).to eq Theme::DEFAULT
-    expect(Dir.children(root)).to be_empty
+    expect(Dir.children(root)).to eq %w[themes]
 
     File.write Options.path(root), "{ not json"
     File.write Theme.path(root), %({"granite":"not-a-color"})

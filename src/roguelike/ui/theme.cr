@@ -1,3 +1,4 @@
+require "base64"
 require "json"
 
 module Roguelike::Ui
@@ -5,7 +6,8 @@ module Roguelike::Ui
   #
   # The file is `theme.json` in the state directory. It holds one key per
   # color and writes each color as `#rrggbb`. A key the file leaves out keeps
-  # its default, so a file written before a color was added still reads.
+  # its default, so a file written before a color was added still reads. An
+  # optional `name` key says which named theme the colors came from.
   #
   # The theme holds only the colors a person picks. `Palette` builds every
   # style from them, and works out the colors that follow from others, such
@@ -297,23 +299,113 @@ module Roguelike::Ui
       {% end %}
     end
 
+    # What a theme shared as text starts with.
+    SCHEME = "rltheme:"
+
+    # A theme that could not be read from text.
+    class Unreadable < Exception
+    end
+
+    # The name of the theme the game draws with, or `nil` when it has none.
+    class_property current_name : String? = nil
+
     # Where the file is under the state directory *root*.
     def self.path(root : Path) : Path
       root / FILE
     end
 
+    # The theme in *text*, and the name it gives.
+    #
+    # *text* is a JSON object in the form of `theme.json`. A color it leaves
+    # out takes its default and a key that is not a color is ignored. Raises
+    # `Unreadable` when the text is not a JSON object or when any color is
+    # not `#rrggbb`, so a theme is read whole or not at all.
+    def self.parse(text : String) : {Theme, String?}
+      data = begin
+        JSON.parse(text).as_h?
+      rescue error : JSON::ParseException
+        raise Unreadable.new "This is not JSON: #{error.message}"
+      end
+      raise Unreadable.new "This is not a JSON object." unless data
+
+      theme = DEFAULT
+      bad = [] of String
+      known = keys
+      data.each do |key, value|
+        next unless known.includes? key
+
+        hex = value.as_s?
+        if hex && Hex::FORM.matches?(hex)
+          theme = theme.with key, TermBuf::Color.rgb(hex[1..].to_i(16))
+        else
+          bad << key
+        end
+      end
+      raise Unreadable.new "These colors are not #rrggbb: #{bad.join ", "}." unless bad.empty?
+
+      {theme, data["name"]?.try(&.as_s?).try(&.strip).presence}
+    end
+
+    # The theme in *text*, and the name it gives. *text* is an `rltheme:`
+    # link or the JSON itself.
+    #
+    # A link is the scheme, in any case, then the JSON in standard base64.
+    # Padding may be left off, and spaces and line breaks in the base64 are
+    # dropped, since a pasted link is often wrapped. Raises `Unreadable` for
+    # base64 that does not decode, and as `.parse` does for the JSON.
+    def self.parse_shared(text : String) : {Theme, String?}
+      stripped = text.strip
+      return parse(stripped) unless stripped.downcase.starts_with? SCHEME
+
+      decoded = begin
+        Base64.decode_string stripped[SCHEME.size..].delete(" \t\r\n")
+      rescue Base64::Error
+        raise Unreadable.new "This rltheme: link is not base64."
+      end
+      raise Unreadable.new "This rltheme: link does not hold text." unless decoded.valid_encoding?
+
+      parse decoded
+    end
+
+    # The theme on file under *root*, and its name. The default with no
+    # name when there is no file or it does not read.
+    def self.load(root : Path) : {Theme, String?}
+      parse File.read(path root)
+    rescue File::Error | Unreadable
+      {DEFAULT, nil}
+    end
+
     # The theme on file under *root*. The default when there is no file or
     # it does not read.
     def self.read(root : Path) : Theme
-      from_json File.read(path root)
-    rescue File::Error | JSON::ParseException
-      DEFAULT
+      load(root)[0]
     end
 
-    # Writes the file under *root*.
-    def write(root : Path) : Nil
+    # The theme as JSON, one color on each line, with *name* first when it
+    # is given.
+    def to_named_json(name : String? = nil) : String
+      "#{named_json name, "  "}\n"
+    end
+
+    # The theme as an `rltheme:` link: the scheme, then its JSON on one line
+    # in standard base64 with padding and no line breaks.
+    def to_uri(name : String? = nil) : String
+      "#{SCHEME}#{Base64.strict_encode named_json(name, nil)}"
+    end
+
+    private def named_json(name : String?, indent : String?) : String
+      JSON.build(indent) do |json|
+        json.object do
+          json.field "name", name if name
+          Theme.keys.each { |key| json.field key, Hex.to_hex(self[key]) }
+        end
+      end
+    end
+
+    # Writes the file under *root*, naming the theme *name*.
+    def write(root : Path, name : String? = nil) : Nil
       Dir.mkdir_p root
-      File.write Theme.path(root), "#{to_pretty_json}\n"
+      File.write Theme.path(root), to_named_json(name)
     end
   end
 end

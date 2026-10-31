@@ -62,6 +62,107 @@ Spectator.describe Roguelike::Ui::Theme do
     end
   end
 
+  describe "a name" do
+    it "writes the name first and reads it back" do
+      changed = Theme::DEFAULT.with "granite", TermBuf::Color.rgb(0x12, 0x34, 0x56)
+      changed.write root, "Moss"
+
+      expect(File.read_lines(Theme.path root)[1]).to eq %(  "name": "Moss",)
+      expect(Theme.load root).to eq({changed, "Moss"})
+    end
+
+    it "reads a file with no name as a theme with no name" do
+      File.write Theme.path(root), %({"granite": "#010203"})
+
+      expect(Theme.load(root)[1]).to be_nil
+      expect(Theme.read(root).granite).to eq TermBuf::Color.rgb(1, 2, 3)
+    end
+
+    it "writes the same text with no name as the plain JSON" do
+      expect(Theme::DEFAULT.to_named_json).to eq "#{Theme::DEFAULT.to_pretty_json}\n"
+    end
+  end
+
+  describe "reading pasted text" do
+    it "takes the colors and the name" do
+      theme, name = Theme.parse %({"name": " Moss ", "granite": "#010203"})
+
+      expect(name).to eq "Moss"
+      expect(theme).to eq Theme::DEFAULT.with("granite", TermBuf::Color.rgb(1, 2, 3))
+    end
+
+    it "takes text with its line breaks flattened" do
+      text = Theme::DEFAULT.with("hero", TermBuf::Color.rgb(9, 9, 9)).to_named_json("Moss").gsub('\n', ' ')
+
+      expect(Theme.parse(text)[0].hero).to eq TermBuf::Color.rgb(9, 9, 9)
+    end
+
+    it "ignores a key that is not a color" do
+      theme, name = Theme.parse %({"granite": "#010203", "sparkle": "#ffffff", "version": 2})
+
+      expect(name).to be_nil
+      expect(theme.granite).to eq TermBuf::Color.rgb(1, 2, 3)
+    end
+
+    it "names every bad color and keeps none of the colors" do
+      expect { Theme.parse %({"granite": "#010203", "hero": "white", "ground": 12}) }
+        .to raise_error(Theme::Unreadable, "These colors are not #rrggbb: hero, ground.")
+    end
+
+    it "refuses text that is not JSON" do
+      expect { Theme.parse %({"granite": ) }.to raise_error(Theme::Unreadable, /not JSON/)
+    end
+
+    it "refuses JSON that is not an object" do
+      expect { Theme.parse %(["#010203"]) }.to raise_error(Theme::Unreadable, "This is not a JSON object.")
+    end
+  end
+
+  describe "an rltheme: link" do
+    let(moss) { Theme::DEFAULT.with "granite", TermBuf::Color.rgb(1, 2, 3) }
+
+    it "is the scheme and the JSON in standard base64 on one line" do
+      link = moss.to_uri("Moss")
+
+      expect(link).to start_with "rltheme:"
+      expect(link).not_to contain '\n'
+      expect(Base64.decode_string link.lchop("rltheme:")).to eq JSON.parse(moss.to_named_json("Moss")).to_json
+      expect(link.lchop("rltheme:").size % 4).to eq 0
+    end
+
+    it "reads back with its name" do
+      expect(Theme.parse_shared moss.to_uri("Moss")).to eq({moss, "Moss"})
+    end
+
+    it "reads without padding, with the scheme in capitals and with line breaks" do
+      encoded = Base64.strict_encode(%({"granite":"#010203"})).rstrip('=')
+      wrapped = "  RLTHEME:#{encoded[0, 10]}\n#{encoded[10..]}  "
+
+      expect(Theme.parse_shared(wrapped)[0]).to eq moss
+    end
+
+    it "takes the JSON itself as well" do
+      expect(Theme.parse_shared moss.to_named_json("Moss")).to eq({moss, "Moss"})
+    end
+
+    it "refuses a link that is not base64" do
+      expect { Theme.parse_shared "rltheme:not*base64!" }
+        .to raise_error(Theme::Unreadable, "This rltheme: link is not base64.")
+    end
+
+    it "refuses a link that holds something other than a theme" do
+      link = "rltheme:#{Base64.strict_encode "a lovely theme"}"
+
+      expect { Theme.parse_shared link }.to raise_error(Theme::Unreadable, /not JSON/)
+    end
+
+    it "reads a bad color in a link as it does in JSON" do
+      link = "rltheme:#{Base64.strict_encode %({"hero":"white"})}"
+
+      expect { Theme.parse_shared link }.to raise_error(Theme::Unreadable, "These colors are not #rrggbb: hero.")
+    end
+  end
+
   describe "#rrggbb" do
     it "writes a color in lower case" do
       expect(Theme::Hex.to_hex TermBuf::Color.rgb(0xA0, 0x0B, 0xFF)).to eq "#a00bff"
