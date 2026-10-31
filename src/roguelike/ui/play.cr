@@ -578,6 +578,7 @@ module Roguelike::Ui
         Keys::Section.new("character", Keys.wearing(self)),
         Keys::Section.new("items", Keys.handling(self)),
         Keys.in_the_pack,
+        Keys.in_the_food_bag,
         Keys::Section.new("aiming", Keys.aiming(self)),
         Keys::Section.new("messages", Keys.reading(self)),
       ]
@@ -1058,11 +1059,22 @@ module Roguelike::Ui
     #
     # *notes* holds the text to end each row with, in the order of
     # *listings*.
+    #
+    # *extra* is a row that ends the first page and the food page.
     private def choose_by_class(title : String, listings : Array(Listing),
                                 about : Hash(Char, Listing), every : Bool = false,
                                 page : String? = nil, notes : Array(String?)? = nil,
+                                extra : Widgets::Menu::Entry? = nil,
                                 &chosen : Char? -> Nil) : Nil
       pages = class_pages listings, every, notes
+      if extra
+        pages = pages.map do |(name, rows)|
+          next {name, rows} unless name == EVERYTHING || name == "food"
+
+          kept = rows.reject(&.==(NOTHING))
+          {name, kept << extra}
+        end
+      end
       if pages.size < 3
         choose title, pages[0][1], about, &chosen
         return
@@ -2083,13 +2095,19 @@ module Roguelike::Ui
     #
     # *page* names the page to show first. The menu of actions comes back to
     # the page it was opened from.
+    #
+    # The last row on the first page and on the food page is the food bag.
+    # Its key puts the bag up.
     def show_inventory(page : String? = nil) : Nil
       found = @game.player.inventory.entries
 
       choose_by_class("Inventory", listings(found), about(found),
-        every: true, page: page) do |key|
-        if key
-          act_on key, @menu.page_name || EVERYTHING
+        every: true, page: page, extra: food_bag_entry) do |key|
+        back = @menu.page_name || EVERYTHING
+        if key == FOOD_BAG_KEY
+          show_food_bag(-> { show_inventory back; nil })
+        elsif key
+          act_on key, back
         else
           refresh
         end
@@ -2100,7 +2118,8 @@ module Roguelike::Ui
     EVERYTHING = "all"
 
     # The names of the other inventory pages, in the order they are shown.
-    PACK_CLASSES = {"weapons", "armor", "amulets", "potions", "scrolls", "wands", "tools", "treasure"}
+    PACK_CLASSES = {"weapons", "armor", "amulets", "potions", "scrolls", "wands", "tools", "treasure",
+                    "food"}
 
     # The inventory page an item of *kind* is listed on, besides the first.
     def self.pack_class(kind : ItemClass) : String

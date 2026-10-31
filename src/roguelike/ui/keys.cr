@@ -466,6 +466,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.zap; nil }
         map.bind TermBuf::Key.parse("a"), "light or put out a flame",
           ->(_context : Widgets::Context) { play.apply; nil }
+        map.bind TermBuf::Key.parse("e"), "eat, or open the food bag",
+          ->(_context : Widgets::Context) { play.show_food_bag; nil }
       end
     end
 
@@ -483,6 +485,19 @@ module Roguelike::Ui
       ]
 
       Section.new "in the inventory", Widgets::Bindings.new, notes
+    end
+
+    # The keys the food bag answers while it is up. The menu binds them, so
+    # these are notes for the help screen.
+    def self.in_the_food_bag : Section
+      notes = [
+        {"a-z A-Z", "what to do with that food"},
+        {"Left Right", "sort by weight, type, value, name or freshness"},
+        {"e c d", "eat, cut up a corpse, drop"},
+        {"%", "the food bag, from the inventory"},
+      ]
+
+      Section.new "in the food bag", Widgets::Bindings.new, notes
     end
 
     # The message history.

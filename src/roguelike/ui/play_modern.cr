@@ -217,7 +217,7 @@ module Roguelike::Ui
       in .title_options?   then show_options(-> { show_title; nil }, from_title: true)
       in .title_news?      then show_news
       in .title_quit?      then @finished = true
-      in .command?, .item?, .target?, .direction?, .empty?, .more_actions?
+      in .command?, .item?, .target?, .direction?, .empty?, .more_actions?, .food_bag?
         nil
       end
     end
@@ -269,7 +269,7 @@ module Roguelike::Ui
       in .walk?, .explore?, .travel?, .visit?, .ascend?, .descend?, .wait?, .rest?,
          .equip?, .remove?, .pick_up?, .drop?, .drink?, .read?, .zap?, .apply?,
          .throw?, .open_door?, .close_door?, .spike_door?, .break_door?, .fire?,
-         .fire_nearest?
+         .fire_nearest?, .food_bag?
         true
       in .inventory?, .examine?, .pan_map?, .recenter?, .history?, .focus_next?,
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
@@ -341,6 +341,7 @@ module Roguelike::Ui
       in .more_actions?
         push_modern_frame
         show_command_catalog ModernMenuKind::Catalog
+      in .food_bag? then open_modern_food_bag
       in .empty?, .title_new?, .title_character?, .title_options?, .title_news?, .title_quit?
         nil
       end
@@ -359,6 +360,7 @@ module Roguelike::Ui
       in .inventory?
         push_modern_frame
         show_modern_inventory
+      in .food_bag? then open_modern_food_bag
       in .fire_nearest?
         if status.available?
           fire_at_nearest
@@ -419,9 +421,19 @@ module Roguelike::Ui
          .focus_log?, .history?, .recenter?, .options?, .theme?, .toggle_mouse?,
          .help?, .whats_new?, .save_quit?, .replay_toggle?, .replay_forward?,
          .replay_back?, .replay_faster?, .replay_slower?, .replay_go_to?,
-         .debug_console?
+         .debug_console?, .food_bag?
         false
       end
+    end
+
+    # Puts the food bag up over the menu that is showing, and goes back to
+    # that menu when the bag is closed.
+    private def open_modern_food_bag : Nil
+      return if @viewer
+
+      push_modern_frame
+      @modern_mode = ModernMenuKind::None
+      show_food_bag(-> { back_modern_menu; nil })
     end
 
     private def show_modern_targets(command : Command, targets : Array(CommandTarget),
@@ -558,7 +570,7 @@ module Roguelike::Ui
          .focus_map?, .focus_info?, .focus_log?, .options?, .theme?,
          .toggle_mouse?, .help?, .whats_new?, .save_quit?, .replay_toggle?,
          .replay_forward?, .replay_back?, .replay_faster?, .replay_slower?,
-         .replay_go_to?, .debug_console?
+         .replay_go_to?, .debug_console?, .food_bag?
         nil
       end
     end
@@ -601,7 +613,7 @@ module Roguelike::Ui
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
          .theme?, .toggle_mouse?, .help?, .whats_new?, .save_quit?,
          .replay_toggle?, .replay_forward?, .replay_back?, .replay_faster?,
-         .replay_slower?, .replay_go_to?, .debug_console?
+         .replay_slower?, .replay_go_to?, .debug_console?, .food_bag?
         nil
       end
     end
@@ -747,6 +759,7 @@ module Roguelike::Ui
       in .replay_slower?  then view_slower
       in .replay_go_to?   then ask_for_turn
       in .debug_console?  then toggle_console
+      in .food_bag?       then show_food_bag
       end
     end
 
@@ -800,6 +813,7 @@ module Roguelike::Ui
         pages[0][1] << value_entry(ModernChoice.new(ModernChoiceKind::Empty), "You are carrying nothing",
           enabled: false)
       end
+      add_food_bag_rows pages unless @viewer
       @selection_menu.on_choose = ->(choice : ModernChoice) { choose_modern_choice choice }
       @selection_menu.on_back = -> { back_modern_menu; nil }
       @selection_menu.on_highlight = ->(choice : ModernChoice?) do
@@ -814,6 +828,17 @@ module Roguelike::Ui
       restored = restore_inventory_selection
       unless restored
         @selection_menu.select_index [@modern_inventory_index || 0, @menu.entries.size - 1].min
+      end
+    end
+
+    # Ends the first page and the food page with the row that opens the food
+    # bag.
+    private def add_food_bag_rows(pages) : Nil
+      pages.each do |(name, rows)|
+        next unless name == EVERYTHING || name == "food"
+
+        rows.reject! { |row| row.value.try(&.kind.empty?) } if name == "food"
+        rows << value_entry(ModernChoice.new(ModernChoiceKind::FoodBag), food_bag_summary)
       end
     end
 

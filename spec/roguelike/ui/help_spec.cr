@@ -28,7 +28,7 @@ Spectator.describe Roguelike::Ui::Help do
 
     expect(help.open?).to be_true
     headers = rows.select(&.header).map(&.keys)
-    expect(headers).to eq(["application", "panels", "moving", "map", "info panel", "log", "time", "getting about", "doors and stairs", "character", "items", "in the inventory", "aiming", "messages", "mouse"])
+    expect(headers).to eq(["application", "panels", "moving", "map", "info panel", "log", "time", "getting about", "doors and stairs", "character", "items", "in the inventory", "in the food bag", "aiming", "messages", "mouse"])
     expect(rows[0].keys).to eq("application")
     expect(rows[1].keys).to eq("seed")
     expect(rows[1].description).to eq("4272")

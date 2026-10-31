@@ -29,9 +29,9 @@
  j  ) +1 mace                       █
  k  ) +2 spear                      █
  l  ) sling                         █
- m  ) +1 bow                        █
- n  ) +2 stone                      █
- o  ) arrow                         █
+ m  ) +1 bow                        │
+ n  ) +2 stone                      │
+ o  ) arrow                         │
  p  ) +1 rock                       │
  q  ) +2 dart                       │
  r  [ cap                           │

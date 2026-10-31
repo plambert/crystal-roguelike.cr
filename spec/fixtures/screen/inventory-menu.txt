@@ -5,8 +5,8 @@
  AC   Gold         Turn │#│ ← [all]  weapons   arm → │
 ╭───────────────────────╮ │ ⟪ a    a dagger        ⟫ │
 │ a dagger              │ │   b    9 arrows          │
-│ unknown               │ ╰──────────────────────────╯
-│ damage 1d4            │
+│ unknown               │ │   %      food bag 0/40   │
+│ damage 1d4            │ ╰──────────────────────────╯
 │ swing quick (75)      │
 │ thrown 10 squares     │
 │ 1.50 dps against AC 2 │

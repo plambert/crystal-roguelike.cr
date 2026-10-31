@@ -123,6 +123,11 @@ module Roguelike
       found
     end
 
+    # Whether the food bag holds anything or a corpse lies underfoot.
+    def food_at_hand? : Bool
+      !@player.food_bag.empty? || here.any?(&.corpse?)
+    end
+
     # The corpses underfoot fresh enough to cut up.
     def cuttable : Array(Item)
       here.select { |item| item.corpse? && item.freshness.fresh? }
