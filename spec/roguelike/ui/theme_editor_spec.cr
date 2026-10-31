@@ -248,7 +248,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
   describe "sharing" do
     let(moss) { Theme::DEFAULT.with("ground", red).with("hero", Color.rgb(0x010203)) }
 
-    it "copies the theme in use to the clipboard as JSON with its name" do
+    it "copies the theme in use to the clipboard as an rltheme: link with its name" do
       run = run_under root
       copied = [] of String
       run.session.app.copy = ->(text : String) { copied << text; nil }
@@ -260,7 +260,8 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
       run.press "Enter"
 
       expect(copied.size).to eq 1
-      expect(Theme.parse copied.first).to eq({Theme.current, Editor::UNNAMED})
+      expect(copied.first).to start_with "rltheme:"
+      expect(Theme.parse_shared copied.first).to eq({Theme.current, Editor::UNNAMED})
       expect(status run).to eq "Copied My theme to the clipboard."
       expect(run.text).to contain "Copied My theme to the clipboard."
     end
@@ -313,12 +314,12 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
       expect(editor(run).help.open?).to be_false
     end
 
-    it "uses a pasted theme, saves it under its name and empties the row" do
+    it "uses a pasted rltheme: link, saves it under its name and empties the row" do
       run = run_under root
       open_editor run
       before = edge_cell run
       go_to run, Editor::PASTE_KEY
-      run.paste moss.to_named_json("Moss")
+      run.paste moss.to_uri("Moss")
 
       expect(Theme.current).to eq moss
       expect(Theme.current_name).to eq "Moss"
@@ -331,7 +332,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
       expect(status run).to contain "Using Moss"
     end
 
-    it "uses a pasted theme with no name and saves no file" do
+    it "uses pasted theme JSON with no name and saves no file" do
       run = run_under root
       open_editor run
       go_to run, Editor::PASTE_KEY
@@ -362,6 +363,16 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
       expect(Library.saved root).to be_empty
       expect(File.exists? Theme.path(root)).to be_false
       expect(status run).to eq "These colors are not #rrggbb: hero. Nothing was changed."
+    end
+
+    it "says so for a pasted link that is not base64 and changes nothing" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::PASTE_KEY
+      run.paste "rltheme:%%%"
+
+      expect(Theme.current).to eq Theme::DEFAULT
+      expect(status run).to eq "This rltheme: link is not base64. Nothing was changed."
     end
 
     it "says so for pasted text that is not JSON and changes nothing" do

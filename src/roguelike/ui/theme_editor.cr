@@ -10,8 +10,8 @@ module Roguelike::Ui
   # those is a `Widgets::Form`. Its "Themes" section has a row for each
   # theme in `ThemeLibrary.all`, the built-in themes first, and `Enter` on
   # one draws with it. The "Share" section copies the theme to the
-  # clipboard, saves it as a named file in `themes/`, and takes a pasted
-  # theme. After it come the colors from `Theme::ENTRIES`, one section per
+  # clipboard as an `rltheme:` link, saves it as a named file in `themes/`,
+  # and takes a pasted link or theme JSON. After it come the colors from `Theme::ENTRIES`, one section per
   # group and one color row per entry. `Enter` on a color row opens the
   # picker.
   #
@@ -255,7 +255,7 @@ module Roguelike::Ui
         section.action COPY_KEY, "Copy theme", "to the clipboard"
         section.text NAME_KEY, "Save as", name
         section.action SAVE_KEY, "Save theme", "to a file"
-        section.text PASTE_KEY, "Paste theme", "", placeholder: "paste JSON here"
+        section.text PASTE_KEY, "Paste theme", "", placeholder: "paste rltheme: link"
       end
 
       Theme::ENTRIES.each do |entry|
@@ -387,14 +387,14 @@ module Roguelike::Ui
       @status.hidden = text.empty?
     end
 
-    # Puts the theme in use on the clipboard as JSON, under the name in the
-    # name row.
+    # Puts the theme in use on the clipboard as an `rltheme:` link, under the
+    # name in the name row.
     def copy : Nil
       copier = @app.try &.copy
       return tell "This terminal gives the game no clipboard. Save writes a file instead." unless copier
 
       name = typed_name || save_name
-      copier.call Theme.current.to_named_json(name)
+      copier.call Theme.current.to_uri(name)
       tell "Copied #{name} to the clipboard."
     end
 
@@ -446,12 +446,12 @@ module Roguelike::Ui
       tell "The theme was not saved: #{error.message}"
     end
 
-    # Reads *text* as a theme and draws with it. A theme that names itself
+    # Reads *text*, an `rltheme:` link or theme JSON, and draws with it. A theme that names itself
     # is saved under that name too, or under a new name when it would write
     # over a built-in theme with other colors. Text that does not read
     # changes nothing.
     def import(text : String) : Nil
-      theme, name = Theme.parse text
+      theme, name = Theme.parse_shared text
     rescue error : Theme::Unreadable
       tell "#{error.message} Nothing was changed."
     else

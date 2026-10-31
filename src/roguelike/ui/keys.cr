@@ -259,7 +259,7 @@ module Roguelike::Ui
         {"Home End", "the first or the last row"},
         {"PageUp PageDown", "a screenful up or down"},
         {"Enter", "in Save as, save the theme under that name"},
-        {"Paste", "in Paste theme, use the pasted theme and save it if it has a name"},
+        {"Paste", "in Paste theme, use a pasted rltheme: link or JSON, and save it if it has a name"},
       ]
 
       Section.new "color theme", bindings, notes

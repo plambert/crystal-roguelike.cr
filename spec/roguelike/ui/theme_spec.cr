@@ -118,6 +118,51 @@ Spectator.describe Roguelike::Ui::Theme do
     end
   end
 
+  describe "an rltheme: link" do
+    let(moss) { Theme::DEFAULT.with "granite", TermBuf::Color.rgb(1, 2, 3) }
+
+    it "is the scheme and the JSON in standard base64 on one line" do
+      link = moss.to_uri("Moss")
+
+      expect(link).to start_with "rltheme:"
+      expect(link).not_to contain '\n'
+      expect(Base64.decode_string link.lchop("rltheme:")).to eq JSON.parse(moss.to_named_json("Moss")).to_json
+      expect(link.lchop("rltheme:").size % 4).to eq 0
+    end
+
+    it "reads back with its name" do
+      expect(Theme.parse_shared moss.to_uri("Moss")).to eq({moss, "Moss"})
+    end
+
+    it "reads without padding, with the scheme in capitals and with line breaks" do
+      encoded = Base64.strict_encode(%({"granite":"#010203"})).rstrip('=')
+      wrapped = "  RLTHEME:#{encoded[0, 10]}\n#{encoded[10..]}  "
+
+      expect(Theme.parse_shared(wrapped)[0]).to eq moss
+    end
+
+    it "takes the JSON itself as well" do
+      expect(Theme.parse_shared moss.to_named_json("Moss")).to eq({moss, "Moss"})
+    end
+
+    it "refuses a link that is not base64" do
+      expect { Theme.parse_shared "rltheme:not*base64!" }
+        .to raise_error(Theme::Unreadable, "This rltheme: link is not base64.")
+    end
+
+    it "refuses a link that holds something other than a theme" do
+      link = "rltheme:#{Base64.strict_encode "a lovely theme"}"
+
+      expect { Theme.parse_shared link }.to raise_error(Theme::Unreadable, /not JSON/)
+    end
+
+    it "reads a bad color in a link as it does in JSON" do
+      link = "rltheme:#{Base64.strict_encode %({"hero":"white"})}"
+
+      expect { Theme.parse_shared link }.to raise_error(Theme::Unreadable, "These colors are not #rrggbb: hero.")
+    end
+  end
+
   describe "#rrggbb" do
     it "writes a color in lower case" do
       expect(Theme::Hex.to_hex TermBuf::Color.rgb(0xA0, 0x0B, 0xFF)).to eq "#a00bff"

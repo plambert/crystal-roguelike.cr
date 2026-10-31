@@ -14,10 +14,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   `themes` folder by name. Press `Enter` on one to use it. The theme you are using is marked, and a
   theme file you drop into the folder shows up the next time the editor opens.
 * The color theme editor has a Share section. It copies the theme you are using to the clipboard
-  as JSON, and saves it under a name you type as a file in the `themes` folder of the state
-  directory. Paste a theme into its Paste theme row to use it at once. A pasted theme that has a
-  name is saved in the `themes` folder too. A paste with a color that is not `#rrggbb`, or text
-  that is not JSON, says what is wrong and changes nothing.
+  as an `rltheme:` link, and saves it under a name you type as a file in the `themes` folder of
+  the state directory. Paste an `rltheme:` link, or the JSON from a theme file, into its Paste
+  theme row to use it at once. A pasted theme that has a name is saved in the `themes` folder
+  too. A paste that does not read, or has a color that is not `#rrggbb`, says what is wrong and
+  changes nothing.
 * Two new color themes. High contrast has a black ground and bright colors. Paper has a light
   ground and dark ink, for a terminal with a light background. Every text color in both is at
   least 4.5 to 1 against what it is drawn on.

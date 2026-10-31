@@ -248,7 +248,11 @@ module Roguelike
 
       @app.after = ->(span : Time::Span) { @terminal.after span }
       @app.cancel = ->(nonce : UInt64) { @terminal.cancel nonce }
-      @app.copy = ->(text : String) { @terminal.clipboard.copy text }
+      # A terminal that takes no clipboard writes leaves `copy` unset, so the
+      # theme editor says so instead of claiming a copy that never happened.
+      if @terminal.clipboard.available?
+        @app.copy = ->(text : String) { @terminal.clipboard.copy text }
+      end
       @app.images = @terminal.images
       @app.on_event = ->(event : TermBuf::Event) { unclaimed event }
       @app.on_deliver = ->(event : TermBuf::Event) { noticed event }

@@ -6292,20 +6292,28 @@ the colors, and the game ships two new themes beside its default.
   of other characters one hyphen. Two names that make the same file name share the file.
 * A reference in `theme.json` to a named file was the other choice. It would make every color
   edit write the named file, built-in files included, which startup then overwrites.
-* `Theme.parse` reads both a file and pasted text. Unknown keys are ignored and a missing color
-  takes its default. A color that is not `#rrggbb` refuses the whole theme and the message names
-  every bad key, so a theme is applied whole or not at all. Text that is not a JSON object is
-  refused the same way.
+* The clipboard carries a theme as an `rltheme:` link: the scheme, then the theme's JSON on one
+  line in standard base64, padded, with no line breaks. `Theme#to_uri` writes it. Files in
+  `themes/` stay plain JSON.
+* `Theme.parse_shared` reads a paste. Text that starts with `rltheme:`, in any case, is decoded.
+  Padding is optional on input, and spaces and line breaks inside the base64 are dropped, since a
+  pasted link is often wrapped. Any other text is read as raw JSON, so the contents of a theme
+  file can be pasted as well. Base64 that does not decode, or that does not decode to text, is
+  refused with its own message.
+* `Theme.parse` reads the JSON, from a file or a decoded paste. Unknown keys are ignored and a
+  missing color takes its default. A color that is not `#rrggbb` refuses the whole theme and the
+  message names every bad key, so a theme is applied whole or not at all. Text that is not a JSON
+  object is refused the same way.
 
 ### The editor
 
 | Section | Row | What it does |
 | --- | --- | --- |
 | Themes | one per theme | `Enter` draws with it and writes `theme.json` with its name |
-| Share | Copy theme | puts the theme as JSON on the clipboard through `App#copy` |
+| Share | Copy theme | puts the theme on the clipboard as an `rltheme:` link through `App#copy` |
 | Share | Save as | the name to save under; `Enter` here saves |
 | Share | Save theme | saves into `themes/` and lists the new theme at once |
-| Share | Paste theme | a bracketed paste here is read as a theme and applied |
+| Share | Paste theme | a pasted `rltheme:` link or theme JSON is read and applied |
 
 * The Themes list is `ThemeLibrary.all`: the built-in themes from the code, then every readable
   file in `themes/` by name. A file named like a built-in is left out, since the code owns it.
@@ -6316,6 +6324,10 @@ the colors, and the game ships two new themes beside its default.
 * A pasted theme with a name is saved under it. A name that is a built-in with the same colors
   just uses the built-in. One with other colors is saved as "Name copy".
 * A status line under the preview says what the last action did, and what went wrong.
+* `Session` sets `App#copy` only when the terminal's clipboard is available. termbuf drops a write
+  to a terminal without `Osc52Clipboard`, so Copy theme would otherwise say "Copied" when nothing
+  was. Such a terminal gets a message pointing at Save theme. `TERMBUF_CAPS=+osc52_clipboard`
+  turns the clipboard on for a terminal termbuf does not recognize.
 * `r` and `?` type into a text row instead of acting.
 
 ### Built-in themes

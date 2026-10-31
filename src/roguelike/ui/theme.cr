@@ -1,3 +1,4 @@
+require "base64"
 require "json"
 
 module Roguelike::Ui
@@ -298,6 +299,9 @@ module Roguelike::Ui
       {% end %}
     end
 
+    # What a theme shared as text starts with.
+    SCHEME = "rltheme:"
+
     # A theme that could not be read from text.
     class Unreadable < Exception
     end
@@ -342,6 +346,27 @@ module Roguelike::Ui
       {theme, data["name"]?.try(&.as_s?).try(&.strip).presence}
     end
 
+    # The theme in *text*, and the name it gives. *text* is an `rltheme:`
+    # link or the JSON itself.
+    #
+    # A link is the scheme, in any case, then the JSON in standard base64.
+    # Padding may be left off, and spaces and line breaks in the base64 are
+    # dropped, since a pasted link is often wrapped. Raises `Unreadable` for
+    # base64 that does not decode, and as `.parse` does for the JSON.
+    def self.parse_shared(text : String) : {Theme, String?}
+      stripped = text.strip
+      return parse(stripped) unless stripped.downcase.starts_with? SCHEME
+
+      decoded = begin
+        Base64.decode_string stripped[SCHEME.size..].delete(" \t\r\n")
+      rescue Base64::Error
+        raise Unreadable.new "This rltheme: link is not base64."
+      end
+      raise Unreadable.new "This rltheme: link does not hold text." unless decoded.valid_encoding?
+
+      parse decoded
+    end
+
     # The theme on file under *root*, and its name. The default with no
     # name when there is no file or it does not read.
     def self.load(root : Path) : {Theme, String?}
@@ -359,13 +384,22 @@ module Roguelike::Ui
     # The theme as JSON, one color on each line, with *name* first when it
     # is given.
     def to_named_json(name : String? = nil) : String
-      text = JSON.build("  ") do |json|
+      "#{named_json name, "  "}\n"
+    end
+
+    # The theme as an `rltheme:` link: the scheme, then its JSON on one line
+    # in standard base64 with padding and no line breaks.
+    def to_uri(name : String? = nil) : String
+      "#{SCHEME}#{Base64.strict_encode named_json(name, nil)}"
+    end
+
+    private def named_json(name : String?, indent : String?) : String
+      JSON.build(indent) do |json|
         json.object do
           json.field "name", name if name
           Theme.keys.each { |key| json.field key, Hex.to_hex(self[key]) }
         end
       end
-      "#{text}\n"
     end
 
     # Writes the file under *root*, naming the theme *name*.
