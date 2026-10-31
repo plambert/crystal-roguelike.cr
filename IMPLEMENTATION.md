@@ -6538,7 +6538,7 @@ so bag food has ids. A save writes the bag under the player, and an older save l
 | Status | Family | Effect |
 |---|---|---|
 | `WellFed` | meat | +5 speed through `Pace#boost` |
-| `Refreshed` | fruit | thirst at half rate, once `Sustenance` has the hook |
+| `Refreshed` | fruit | thirst holds still every other turn, through `Sustenance#tick(thirst:)` |
 | `SteadyAim` | nuts and cheese | +1 to a shot or a throw landing |
 | `SteadyHand` | roots and herbs | +1 to a swing landing |
 | `Sick` | rotten food | -1 to a swing, a shot or a throw landing |
