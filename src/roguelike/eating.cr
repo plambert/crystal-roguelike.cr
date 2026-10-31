@@ -4,12 +4,15 @@ module Roguelike
   class Game
     # ----------------------------------------------------------------- food
 
-    # Puts food about *ground*, on a stream of its own.
+    # Puts food about *ground*, on a stream of its own, and gives it ids.
     #
     # The stream is named by the floor, so the litter and the ammunition
     # fall where they always fell. Each food comes out somewhere between
     # just made and just short of stale.
-    private def stock(rng : Rng, ground : Floor) : Nil
+    #
+    # It runs once everything else on the floor has its id. The food takes
+    # the ids after them, so nothing else is numbered differently for it.
+    def stock(rng : Rng, ground : Floor = floor) : Nil
       stream = rng.derive "pantry:#{ground.id}"
       squares = [] of {Int32, Int32}
       ground.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
@@ -20,8 +23,11 @@ module Roguelike
         kind = Items.pick stream, Food::LITTER
         keeps = Food.facts(kind).keeps
         age = keeps > 0 ? stream.rand(keeps) : 0
-        ground.drop spot[0], spot[1], Item.new(kind, blessing_known: true, age: age)
+        made = Item.new kind, blessing_known: true, age: age
+        made.enroll next_id
+        ground.drop spot[0], spot[1], made
       end
+      clear_bearers
     end
 
     # Puts what *creature* leaves on the square it died on.

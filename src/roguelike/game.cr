@@ -531,6 +531,7 @@ module Roguelike
       game.scatter rng
       game.equip rng
       game.enroll
+      game.stock rng
       # Two lines rather than one. The log pane is four rows of about eighty
       # columns, and one sentence saying all of this wraps onto two of them.
       #
@@ -647,8 +648,6 @@ module Roguelike
         ground.drop spot[0], spot[1], item
         supply rng, ground, spot, item
       end
-
-      stock rng, ground
     end
 
     # Cuts *item* for a wearer, when it is armor, on *rng*.
@@ -755,6 +754,7 @@ module Roguelike
       end
 
       enroll
+      stock root, ground unless depth >= World::VAULT
       ground
     end
 
@@ -1211,6 +1211,7 @@ module Roguelike
     # the dark is seen there for the first time. Gold is left out, because a
     # walk picks it up on the way. Torches are left out, because they lie on
     # every floor and stopping for each would stop the walk again and again.
+    # Remains are left out for the same reason.
     private def unsighted(seen : Vision) : Array(Spotted)
       here = @player.at
       found = [] of Spotted
@@ -1235,8 +1236,11 @@ module Roguelike
     end
 
     # Whether *item* coming into sight goes by without stopping a walk.
+    #
+    # What a creature left is one of them. Every fight leaves some, and the
+    # walk after a fight would stop for it at once.
     private def unremarkable?(item : Item) : Bool
-      item.kind.gold? || item.kind.torch?
+      item.kind.gold? || item.kind.torch? || item.corpse? || (item.food? && !item.edible?)
     end
 
     # What the character is told when the explore or travel *walk* stops.

@@ -6475,9 +6475,14 @@ still be eaten, and only a fresh one can be cut up.
 ### Floor food
 
 `Game#stock` puts food about each floor on a stream of its own, `pantry:<floor id>`, after the
-litter and the ammunition. The litter falls where it always fell, so the `litter` stream keeps its
-version and `pantry` is a new part at version 1. Each food comes out somewhere between new and just
-short of stale. Fresh meat is not on the table, because it comes from corpses.
+litter, the ammunition and the monsters' loot. The litter falls where it always fell, so the
+`litter` stream keeps its version and `pantry` is a new part at version 1. The food is numbered
+after everything else on the floor has its id, so no other id moves for it, and a replay that names
+an item by id still names the same one. Each food comes out somewhere between new and just short of
+stale. Fresh meat is not on the table, because it comes from corpses.
+
+Remains do not stop a walk when they come into sight. Every fight leaves some, and the walk after
+it would stop at once.
 
 * **Rate.** Five per ten thousand open squares, and one at least. The mean floor is about 8000
   squares, which gives about four foods and 2800 points of satiety. Over 40 seeds a floor held
