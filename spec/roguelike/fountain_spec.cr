@@ -236,6 +236,19 @@ Spectator.describe "a fountain" do
       # The skin is still dry, so thirst climbs again on the turn the
       # potion took.
       expect(game.player.sustenance.thirst).to be <= 1
+
+      drank = game.events.compact_map(&.as?(Event::Drank))
+      expect(drank.map { |event| {event.units, event.source} }).to eq [{1, "potion"}]
+    end
+
+    it "writes no drank event for a potion drunk by a character who is not thirsty" do
+      game = hall
+      letter = game.player.inventory.add(Roguelike::Item.new(Roguelike::ItemKind::MinorHealingPotion))
+      raise "pack full" unless letter
+
+      game.quaff letter
+
+      expect(game.events.any?(Event::Drank)).to be_false
     end
 
     it "sends an explore to a known fountain once the skin is dry, and fills it there" do

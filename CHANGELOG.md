@@ -174,6 +174,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   rather than "a stale piece of fresh meat".
 * The line that says food in your bag has gone stale or rotten names the food as it was, so
   it no longer says rotten twice.
+* A potion that quenches thirst writes a `drank` event with source `potion` for bots, as the
+  bot protocol says.
 
 ## [0.7.0] - 2026-10-28
 

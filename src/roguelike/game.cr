@@ -5241,11 +5241,15 @@ module Roguelike
     end
 
     # Drinks what is under *letter*. Answers whether it went down.
+    #
+    # Any potion quenches thirst by one unit. A `drank` event says so when
+    # the character was thirsty enough to take it.
     def quaff(letter : Char) : Bool
       use letter, ItemClass::Potion, "drink" do |item|
         say "You drink #{name item}.",
           with_facts(Event::Used.new(item.id, name(item), :drink), item_facts(item))
-        @player.sustenance.quench 1
+        units = @player.sustenance.quench 1
+        record Event::Drank.new(units, "potion") if units > 0
       end
     end
 

@@ -6701,7 +6701,8 @@ A spec measures the share over 2,000 seeds and holds it within 3 points of 60.
 * `Ui::Play` drives a fill on the rest timer, so a key press stops it. The batch size reads the
   units still missing in place of the hit points.
 * The refill turns write no line until the skin is full. A line each turn would stop the fill.
-* Drinking any potion also calls `Sustenance#quench 1`.
+* Drinking any potion also calls `Sustenance#quench 1`. When that takes a unit, `Game#quaff`
+  records an `Event::Drank` with source `potion` and no line of its own.
 
 ### Keys
 
