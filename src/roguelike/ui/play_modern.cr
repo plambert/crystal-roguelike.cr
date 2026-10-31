@@ -266,7 +266,7 @@ module Roguelike::Ui
 
     private def unavailable_after_end?(command : Command) : Bool
       case command
-      in .walk?, .explore?, .travel?, .visit?, .ascend?, .descend?, .wait?, .rest?,
+      in .walk?, .explore?, .travel?, .visit?, .ascend?, .descend?, .wait?, .drink_water?, .rest?,
          .equip?, .remove?, .pick_up?, .drop?, .drink?, .read?, .zap?, .apply?,
          .throw?, .open_door?, .close_door?, .spike_door?, .break_door?, .fire?,
          .fire_nearest?
@@ -377,7 +377,7 @@ module Roguelike::Ui
         else
           begin_modern_targeted command, status, item_id, slot
         end
-      in .explore?, .ascend?, .descend?, .wait?, .rest?, .equip?, .remove?,
+      in .explore?, .ascend?, .descend?, .wait?, .drink_water?, .rest?, .equip?, .remove?,
          .pick_up?, .drop?, .drink?, .read?, .zap?, .apply?, .throw?,
          .open_door?, .close_door?, .spike_door?, .break_door?, .recenter?,
          .history?, .focus_next?, .focus_previous?, .focus_map?, .focus_info?,
@@ -414,7 +414,7 @@ module Roguelike::Ui
          .throw?, .open_door?, .close_door?, .spike_door?, .break_door?,
          .fire?, .fire_nearest?, .visit?, .ascend?, .descend?
         true
-      in .walk?, .travel?, .examine?, .pan_map?, .wait?, .rest?, .explore?,
+      in .walk?, .travel?, .examine?, .pan_map?, .wait?, .drink_water?, .rest?, .explore?,
          .inventory?, .focus_next?, .focus_previous?, .focus_map?, .focus_info?,
          .focus_log?, .history?, .recenter?, .options?, .theme?, .toggle_mouse?,
          .help?, .whats_new?, .save_quit?, .replay_toggle?, .replay_forward?,
@@ -551,7 +551,7 @@ module Roguelike::Ui
       in .pan_map?
         spot = direction.from @map.camera[0], @map.camera[1]
         scroll_map_to spot[0], spot[1]
-      in .explore?, .travel?, .visit?, .ascend?, .descend?, .wait?, .rest?,
+      in .explore?, .travel?, .visit?, .ascend?, .descend?, .wait?, .drink_water?, .rest?,
          .equip?, .remove?, .inventory?, .pick_up?, .drop?, .drink?, .read?,
          .zap?, .apply?, .throw?, .spike_door?, .fire?, .fire_nearest?,
          .examine?, .recenter?, .history?, .focus_next?, .focus_previous?,
@@ -596,7 +596,7 @@ module Roguelike::Ui
       in .visit?                then visit
       in .ascend?               then ascend
       in .descend?              then descend
-      in .walk?, .travel?, .explore?, .wait?, .rest?, .inventory?,
+      in .walk?, .travel?, .explore?, .wait?, .drink_water?, .rest?, .inventory?,
          .examine?, .pan_map?, .recenter?, .history?, .focus_next?,
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
          .theme?, .toggle_mouse?, .help?, .whats_new?, .save_quit?,
@@ -708,6 +708,7 @@ module Roguelike::Ui
       in .ascend?         then ascend
       in .descend?        then descend
       in .wait?           then live_wait
+      in .drink_water?    then drink_water
       in .rest?           then rest
       in .equip?          then item_id.try { |id| letter_for(id).try { |letter| wield_at letter } }
       in .remove?         then @game.perform(Action::Remove.new(slot)) if slot

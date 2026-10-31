@@ -39,6 +39,7 @@ module Roguelike
       "door"           => Door,
       "door_broken"    => DoorBroken,
       "door_struck"    => DoorStruck,
+      "drank"          => Drank,
       "dropped"        => Dropped,
       "fizzled"        => Fizzled,
       "fled"           => Fled,
@@ -50,6 +51,7 @@ module Roguelike
       "ground"         => Ground,
       "healed"         => Healed,
       "heard"          => Heard,
+      "hunger_stage"   => Hunger,
       "identified"     => Identified,
       "identified_all" => IdentifiedAll,
       "interrupted"    => Interrupted,
@@ -83,6 +85,7 @@ module Roguelike
       "status_start"   => StatusStart,
       "stopped"        => Stopped,
       "teleported"     => Teleported,
+      "thirst_stage"   => Thirst,
       "uncursed"       => Uncursed,
       "used"           => Used,
       "waited"         => Waited,
@@ -278,16 +281,64 @@ module Roguelike
     # The end of the run.
     #
     # *killer* and *killer_species* name what killed the character. Both are
-    # `nil` for a run that ended any other way.
+    # `nil` for a run that ended any other way. *cause* names hunger or
+    # thirst for a character who wasted away, and is `nil` otherwise.
     class Over < Event
       getter kind : String = "over"
 
       getter outcome : Outcome
       getter killer : Int32?
       getter killer_species : String?
+      getter cause : Sustenance::Death?
 
       def initialize(@outcome : Outcome, @killer : Int32? = nil,
-                     @killer_species : String? = nil)
+                     @killer_species : String? = nil,
+                     @cause : Sustenance::Death? = nil)
+      end
+    end
+
+    # Water the character drank.
+    #
+    # *units* is how much. *water* is what is left in the skin after it.
+    class Drank < Event
+      # Where the water came from.
+      enum Source
+        Skin
+        Fountain
+        Potion
+      end
+
+      getter kind : String = "drank"
+
+      getter source : Source
+      getter units : Int32
+      getter water : Int32
+
+      def initialize(@source : Source, @units : Int32, @water : Int32)
+      end
+    end
+
+    # The character's hunger moved from one stage to another.
+    class Hunger < Event
+      getter kind : String = "hunger_stage"
+
+      getter stage : Sustenance::HungerStage
+      getter from : Sustenance::HungerStage
+
+      def initialize(@stage : Sustenance::HungerStage,
+                     @from : Sustenance::HungerStage)
+      end
+    end
+
+    # The character's thirst moved from one stage to another.
+    class Thirst < Event
+      getter kind : String = "thirst_stage"
+
+      getter stage : Sustenance::ThirstStage
+      getter from : Sustenance::ThirstStage
+
+      def initialize(@stage : Sustenance::ThirstStage,
+                     @from : Sustenance::ThirstStage)
       end
     end
 
@@ -382,6 +433,12 @@ module Roguelike
 
         # Nothing carried has anything left for a scroll of identify to name.
         NothingUnknown
+
+        # The character is not thirsty, so there is nothing to drink for.
+        NotThirsty
+
+        # The waterskin holds no water.
+        SkinEmpty
       end
 
       getter kind : String = "refused"
@@ -1042,7 +1099,7 @@ module Roguelike
          player.level, attributes.strength, attributes.dexterity,
          attributes.constitution, attributes.intelligence, attributes.stealth,
          player.gold, player.armor_class, player.to_hit, player.damage.to_s,
-         ranged.try(&.[0]), ranged.try(&.[1]), player.pace.speed] of Value
+         ranged.try(&.[0]), ranged.try(&.[1]), player.speed] of Value
       end
 
       # One event for each stat that differs between *before* and *after*.
@@ -1096,7 +1153,7 @@ module Roguelike
 
         new player.level, player.armor_class, player.max_hit_points,
           player.to_hit, melee.to_s, melee.bonus, ranged.try(&.[0]),
-          ranged.try(&.[1]), player.pace.speed, player.attributes
+          ranged.try(&.[1]), player.speed, player.attributes
       end
 
       # The to-hit and damage dice of a shot, or `nil` unless *player* has
