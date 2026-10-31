@@ -233,7 +233,8 @@ Spectator.describe Roguelike::Items do
 
     it "weights every kind that is rolled as loot" do
       Kind.each do |kind|
-        next if kind.item_class.treasure? || kind.item_class.amulet? || kind.item_class.food?
+        next if kind.item_class.treasure? || kind.item_class.amulet? || kind.item_class.food? ||
+                kind.item_class.remains?
 
         expect(Roguelike::Items::WEIGHTS[kind]?).not_to be_nil
       end

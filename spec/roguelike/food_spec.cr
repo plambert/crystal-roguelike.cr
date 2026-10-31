@@ -138,6 +138,33 @@ Spectator.describe "food, the food bag and corpses" do
       expect(lore.name(ration)).to eq "a partly eaten ration"
     end
 
+    it "puts how fresh meat is in place of fresh" do
+      lore = Lore.new
+      keeps = Food.facts(ItemKind::FreshMeat).keeps
+      expect(lore.name(food(ItemKind::FreshMeat))).to eq "a piece of fresh meat"
+      expect(lore.name(food(ItemKind::FreshMeat, age: keeps))).to eq "a piece of stale meat"
+      expect(lore.name(food(ItemKind::FreshMeat, age: keeps * 2))).to eq "a piece of rotten meat"
+      expect(lore.name(food(ItemKind::FreshMeat, count: 2, age: keeps * 2)))
+        .to eq "2 pieces of rotten meat"
+
+      bitten = food ItemKind::FreshMeat, age: keeps
+      bitten.bite 100
+      expect(lore.name(bitten)).to eq "a partly eaten piece of stale meat"
+      expect(Roguelike::Ui::Naming.short(lore, bitten)).to eq "partly eaten stale meat"
+    end
+
+    it "keeps a freshness word only where a name has none" do
+      lore = Lore.new
+      ItemKind.of_class(Roguelike::ItemClass::Food).each do |kind|
+        facts = Food.facts kind
+        next unless facts.spoils?
+
+        rotten = Item.new kind, blessing_known: true, age: facts.keeps * 2,
+          creature: kind.corpse? ? Kind::Rat : nil
+        expect(lore.name(rotten).split(' ').count(&.in?(%w[fresh stale rotten]))).to eq 1
+      end
+    end
+
     it "names a corpse by the creature it was" do
       corpse = Game.remains_of(Kind::GoblinWarrior).first
       expect(Lore.new.name(corpse)).to eq "a goblin fighter corpse"
@@ -159,9 +186,12 @@ Spectator.describe "food, the food bag and corpses" do
       expect(bag.add(Item.new(ItemKind::Dagger))).to be_nil
     end
 
-    it "takes rotten flesh and bones as dead weight" do
+    it "takes rotten flesh as dead weight and no bones" do
       bag = FoodBag.new
-      Game.remains_of(Kind::Zombie).each { |item| expect(bag.add(item)).not_to be_nil }
+      flesh, bones = Game.remains_of(Kind::Zombie)
+      expect(bag.add(flesh)).not_to be_nil
+      expect(bag.add(bones)).to be_nil
+      expect(bag.items.map(&.kind)).to eq [ItemKind::RottenFlesh]
       expect(bag.items.none?(&.edible?)).to be_true
     end
 
@@ -216,6 +246,32 @@ Spectator.describe "food, the food bag and corpses" do
       expect(read.buffs).to be_empty
     end
 
+    it "moves bones from the bag of an old save into the pack" do
+      game = hall [food(ItemKind::Ration)]
+      pair = JSON.parse(Item.new(ItemKind::Bones, blessing_known: true).to_json).as_h
+      pair["count"] = JSON::Any.new 2_i64
+      game.player.food_bag.items << Item.from_json(pair.to_json)
+      game.enroll
+
+      read = Game.from_json game.to_json
+      expect(read.player.food_bag.items.map(&.kind)).to eq [ItemKind::Ration]
+      carried = read.player.inventory.items.map &.[1]
+      expect(carried.map(&.kind)).to eq [ItemKind::Bones, ItemKind::Bones]
+      expect(carried.map(&.id).uniq!.size).to eq 2
+      expect(carried.none?(&.id.zero?)).to be_true
+    end
+
+    it "drops bones from the bag of an old save underfoot when the pack is full" do
+      game = hall
+      Roguelike::Inventory::LETTERS.each { game.player.inventory.add Item.new(ItemKind::Dagger) }
+      game.player.food_bag.items << Item.new(ItemKind::Bones, blessing_known: true)
+      game.enroll
+
+      read = Game.from_json game.to_json
+      expect(read.player.food_bag.empty?).to be_true
+      expect(read.here.map(&.kind)).to eq [ItemKind::Bones]
+    end
+
     it "keeps a buff that does not stack" do
       player = Player.new "hall", 1, 1
       status = Event::Status::WellFed
@@ -266,6 +322,29 @@ Spectator.describe "food, the food bag and corpses" do
 
       expect(game.here.map(&.kind)).to eq [ItemKind::Nuts]
       expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.bag_full? })
+        .to be_true
+    end
+
+    it "puts bones in the pack, one to a letter" do
+      game = hall
+      2.times { game.floor.drop *HERE, Item.new(ItemKind::Bones, blessing_known: true) }
+      game.enroll
+      2.times { game.perform Action::PickUp.new(game.here.first.id) }
+
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.player.inventory.entries.map { |(_, item)| {item.kind, item.count} })
+        .to eq [{ItemKind::Bones, 1}, {ItemKind::Bones, 1}]
+    end
+
+    it "leaves bones when the pack is full" do
+      game = hall
+      Roguelike::Inventory::LETTERS.each { game.player.inventory.add Item.new(ItemKind::Dagger) }
+      game.floor.drop *HERE, Item.new(ItemKind::Bones, blessing_known: true)
+      game.enroll
+      game.perform Action::PickUp.new
+
+      expect(game.here.map(&.kind)).to eq [ItemKind::Bones]
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.pack_full? })
         .to be_true
     end
 
@@ -360,8 +439,10 @@ Spectator.describe "food, the food bag and corpses" do
     end
 
     it "refuses bones" do
-      game = hall [Item.new(ItemKind::Bones, blessing_known: true)]
-      id = game.player.food_bag.items.first.id
+      game = hall
+      game.player.inventory.add Item.new(ItemKind::Bones, blessing_known: true)
+      game.enroll
+      id = game.player.inventory.items.first[1].id
       expect(game.legal.any?(Action::Eat)).to be_false
       expect(game.perform(Action::Eat.new(id)).refused?).to be_true
     end
@@ -386,6 +467,19 @@ Spectator.describe "food, the food bag and corpses" do
       spoiled = seen.select(Event::FoodSpoiled)
       expect(spoiled.size).to eq 1
       expect(spoiled.first.as(Event::FoodSpoiled).freshness).to eq Freshness::Stale
+    end
+
+    it "names the food as it was before it turned" do
+      keeps = Food.facts(ItemKind::FreshMeat).keeps
+      meat = food ItemKind::FreshMeat, age: keeps * 2 - 1
+      meat.bite 100
+      game = hall [meat]
+      seen = waits game, 1
+
+      spoiled = seen.select(Event::FoodSpoiled).first.as(Event::FoodSpoiled)
+      expect(spoiled.freshness).to eq Freshness::Rotten
+      expect(game.log.lines)
+        .to contain "A partly eaten piece of stale meat in your food bag has gone rotten."
     end
 
     it "keeps rotten food in the bag" do

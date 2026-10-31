@@ -31,6 +31,10 @@ module Roguelike
     # Eaten. It goes in the food bag rather than the pack, and it spoils.
     Food
 
+    # What is left of a creature that nothing eats and the food bag does not
+    # hold. It goes in the pack and does not stack.
+    Remains
+
     # Whether a `+N` means anything on this class.
     def enchantable? : Bool
       melee? || ranged_weapon? || ammunition? || thrown? || armor?
@@ -357,7 +361,8 @@ module Roguelike
     Mushroom
 
     # What a dead creature leaves. A corpse is eaten or cut up where it
-    # lies. Rotten flesh and bones have no use yet.
+    # lies. Rotten flesh and bones have no use yet. Bones are `Remains` and
+    # go in the pack.
     Corpse
     RottenFlesh
     Bones
@@ -652,7 +657,7 @@ module Roguelike
       ItemKind::Corpse      => ItemFacts.new("corpse", "corpses", ItemClass::Food, weight: 150),
       ItemKind::RottenFlesh => ItemFacts.new("lump of rotten flesh", "lumps of rotten flesh",
         ItemClass::Food, weight: 4),
-      ItemKind::Bones => ItemFacts.new("pile of bones", "piles of bones", ItemClass::Food,
+      ItemKind::Bones => ItemFacts.new("pile of bones", "piles of bones", ItemClass::Remains,
         weight: 3),
       ItemKind::Amulet => ItemFacts.new("The Mighty Amulet of MacGuffin",
         "The Mighty Amulet of MacGuffin", ItemClass::Amulet, weight: 5,

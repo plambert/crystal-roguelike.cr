@@ -22,7 +22,7 @@ module Roguelike
     # Roots, herbs and mushrooms. A steadier hand in melee.
     RootsAndHerbs
 
-    # Rotten flesh and bones. Nothing eats them.
+    # Rotten flesh. Nothing eats it.
     Refuse
 
     # What the family is called, for a readout and a sort.
@@ -63,6 +63,12 @@ module Roguelike
       in .stale?  then "stale"
       in .rotten? then "rotten"
       end
+    end
+
+    # The word for this freshness, fresh included. It takes the place of
+    # "fresh" in a name that holds it.
+    def word : String
+      to_s.downcase
     end
 
     # What a bite of food this fresh is worth, as a percentage.
@@ -161,7 +167,6 @@ module Roguelike
 
       ItemKind::Corpse      => FoodFacts.new(FoodCategory::Meat, 1000, CORPSE_KEEPS, 0),
       ItemKind::RottenFlesh => FoodFacts.new(FoodCategory::Refuse, 0, 0, 0),
-      ItemKind::Bones       => FoodFacts.new(FoodCategory::Refuse, 0, 0, 0),
     }
 
     # What lies about a floor, by weight. Fresh meat comes from corpses and

@@ -288,24 +288,29 @@ module Roguelike::Ui
     drawn slow : Array({Int32, TermBuf::Color}) = [{100, theme.slow_bar}, {0, theme.slow_bar}]
     drawn blindness : Array({Int32, TermBuf::Color}) = [{100, theme.blind_bar}, {0, theme.blind_bar}]
 
-    # The bars for the stages of hunger and of thirst, one color for each
-    # ladder. The stage's name inside the bar says how bad it is.
-    drawn hunger : Array({Int32, TermBuf::Color}) = [{100, theme.hunger_bar}, {0, theme.hunger_bar}]
-    drawn thirst : Array({Int32, TermBuf::Color}) = [{100, theme.thirst_bar}, {0, theme.thirst_bar}]
-
-    # The bar colors for each temporary effect. A buff from food takes the
-    # experience bar's green and being sick takes the slow bar's color, so
-    # each reads as well as those do.
+    # The bar colors for an effect with a timer bar. `CharacterPane::BARS`
+    # lists those effects.
     def self.lasting(status : Event::Status) : Array({Int32, TermBuf::Color})
       case status
-      in .hurried?                                             then haste
-      in .dragging?                                            then slow
-      in .blind?                                               then blindness
-      in .hungry?, .famished?, .starving?                      then hunger
-      in .thirsty?, .parched?, .dehydrated?, .dying_of_thirst? then thirst
-      in .well_fed?, .refreshed?, .steady_aim?, .steady_hand?  then learning
-      in .sick?                                                then slow
+      when .hurried?  then haste
+      when .dragging? then slow
+      else                 blindness
       end
+    end
+
+    # The pills for a buff from food and for a debuff: a stage of hunger or
+    # thirst, or being sick.
+    #
+    # Black or white text, whichever reads better, on the pill's own ground.
+    # Each built-in theme keeps the text at 4.5 to 1 or more on the pill, and
+    # the pill at 4.5 to 1 or more on the ground, the focused ground and the
+    # focus flash.
+    drawn buff_pill : Style = Style::DEFAULT.fg(Palette.readable_on(theme.buff_pill)).bg(theme.buff_pill)
+    drawn debuff_pill : Style = Style::DEFAULT.fg(Palette.readable_on(theme.debuff_pill)).bg(theme.debuff_pill)
+
+    # The pill style for *status*.
+    def self.pill(status : Event::Status) : Style
+      Lasting.buff?(status) ? buff_pill : debuff_pill
     end
 
     # The noise bar, which is one color however full it is. Dark text on it
@@ -402,6 +407,7 @@ module Roguelike::Ui
       ItemClass::Treasure     => Look.new('$', coin),
       ItemClass::Amulet       => Look.new('"', coin),
       ItemClass::Food         => Look.new('%', tool),
+      ItemClass::Remains      => Look.new('%', tool),
     }
 
     # How *item* is drawn where it lies.

@@ -23,7 +23,7 @@ module Roguelike::Ui
       skeleton zombie imp gelatinous_cube stone_golem iron_golem orc_warlord goblin_skirmisher
       shape flame glimmer weapon armor potion scroll wand tool coin blessed_mark cursed_mark
       uncursed_mark slot_mark lit_mark plain faint strong vacant message_new pointer_mark
-      focus_rule
+      focus_rule buff_pill debuff_pill
     ]
 
     # Each other color drawn as text, with the color it is drawn on.
@@ -34,6 +34,8 @@ module Roguelike::Ui
       {"badge_text", "badge_ground"}, {"empty_text", "empty"}, {"ground", "spotlight"},
       {"noise_text", "noise_near"}, {"noise_text", "noise_far"},
       {"plain", "offered"}, {"plain", "flight"}, {"plain", "impact"},
+      {"buff_pill", "focus_ground"}, {"debuff_pill", "focus_ground"},
+      {"buff_pill", "focus_flash"}, {"debuff_pill", "focus_flash"},
     ]
 
     # The contrast of each text color on its background, as WCAG gives it,
@@ -138,8 +140,8 @@ module Roguelike::Ui
       "slow_bar"          => 0xC0A8F0,
       "blind_bar"         => 0xC8C8C8,
       "noise_bar"         => 0xC890FF,
-      "hunger_bar"        => 0xF0B870,
-      "thirst_bar"        => 0xA0C4FF,
+      "buff_pill"         => 0x9CE070,
+      "debuff_pill"       => 0xFF9C9C,
     })
 
     # A light ground with dark ink, for a terminal with a light background.
@@ -239,8 +241,8 @@ module Roguelike::Ui
       "slow_bar"          => 0x8060C0,
       "blind_bar"         => 0x909090,
       "noise_bar"         => 0x9050E0,
-      "hunger_bar"        => 0x8A5010,
-      "thirst_bar"        => 0x2A4AA0,
+      "buff_pill"         => 0x2E6B30,
+      "debuff_pill"       => 0xA82828,
     })
   end
 end

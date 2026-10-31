@@ -346,6 +346,11 @@ module Roguelike
       @kind.item_class.food?
     end
 
+    # Whether this is what is left of a creature that goes in the pack.
+    def remains? : Bool
+      @kind.item_class.remains?
+    end
+
     # Whether this is a corpse.
     def corpse? : Bool
       @kind.corpse?
@@ -386,6 +391,22 @@ module Roguelike
       before = freshness
       @age = held + 1
       freshness != before
+    end
+
+    # A copy of this food as it was a turn ago, before the last `#ripen`.
+    #
+    # The line that says food has turned names it as it was before it
+    # turned.
+    def unripened : Item
+      found = copy
+      found.age_back
+      found
+    end
+
+    # Takes one turn off this food's age.
+    protected def age_back : Nil
+      held = @age
+      @age = held - 1 if held && held > 0
     end
 
     # Whether anything eats this.

@@ -59,14 +59,24 @@ module Roguelike::Ui
     # the label says who the bar is about instead.
     THREAT_LABEL = "vs"
 
-    # What each temporary effect is called inside its bar.
+    # The effects that get a bar with the turns they have left, in
+    # `Lasting::ORDER`. Every other effect is a pill.
+    BARS = [Event::Status::Hurried, Event::Status::Dragging, Event::Status::Blind]
+
+    # What each effect with a bar is called inside it.
     #
     # The bar has no label outside it, so it lines up with the bars above
     # and the name goes in front of the count.
     LASTING_NAMES = {
-      Event::Status::Hurried       => "haste",
-      Event::Status::Dragging      => "slow",
-      Event::Status::Blind         => "blind",
+      Event::Status::Hurried  => "haste",
+      Event::Status::Dragging => "slow",
+      Event::Status::Blind    => "blind",
+    }
+
+    # What each pill says. A pill has no count and no bar. A buff from food
+    # lasts a few hundred turns, and a stage of hunger or thirst lasts until
+    # the character eats or drinks.
+    PILL_NAMES = {
       Event::Status::Hungry        => "hungry",
       Event::Status::Famished      => "famished",
       Event::Status::Starving      => "starving",
@@ -74,10 +84,10 @@ module Roguelike::Ui
       Event::Status::Parched       => "parched",
       Event::Status::Dehydrated    => "dehydrated",
       Event::Status::DyingOfThirst => "dying of thirst",
-      Event::Status::WellFed       => "fed",
-      Event::Status::Refreshed     => "fruit",
-      Event::Status::SteadyAim     => "aim",
-      Event::Status::SteadyHand    => "hand",
+      Event::Status::WellFed       => "well fed",
+      Event::Status::Refreshed     => "refreshed",
+      Event::Status::SteadyAim     => "steady aim",
+      Event::Status::SteadyHand    => "steady hand",
       Event::Status::Sick          => "sick",
     }
 
@@ -109,9 +119,13 @@ module Roguelike::Ui
     # The bar for the creature the character is fighting.
     getter threat : Meter
 
-    # One bar per temporary effect, in `Lasting::ORDER`. A bar is hidden
-    # while its effect is not running.
+    # One bar per effect in `BARS`. A bar is hidden while its effect is not
+    # running.
     getter effects : Array(Meter)
+
+    # One pill per running effect that has no bar, in `Lasting::ORDER`, side
+    # by side under the bars.
+    getter pills : Widgets::Pills
 
     # How far the character's recent noise carries.
     getter noise : Meter
@@ -146,7 +160,8 @@ module Roguelike::Ui
     # is no fight.
     getter fight : Widgets::Panel
 
-    # The rows of the temporary effects. Hidden while there are none.
+    # The bars and the pills of the temporary effects. Hidden while there
+    # are none.
     getter lasting : Widgets::Panel
 
     # The most turns each running effect has had left since it began.
@@ -184,9 +199,11 @@ module Roguelike::Ui
       @fight = CharacterPane.block @threat
       @fight.hidden = true
 
-      @effects = Lasting::ORDER.map { |status| Meter.new "", levels: Palette.lasting(status) }
+      @effects = BARS.map { |status| Meter.new "", levels: Palette.lasting(status) }
       @effects.each(&.hidden = true)
-      @lasting = CharacterPane.block @effects.map(&.as(Widgets::Widget))
+      @pills = Widgets::Pills.new
+      @pills.hidden = true
+      @lasting = CharacterPane.block @effects.map(&.as(Widgets::Widget)) << @pills
       @lasting.hidden = true
 
       @noisy = CharacterPane.block @noise
@@ -231,7 +248,7 @@ module Roguelike::Ui
       @magic.retheme Palette.magic
       @learning.retheme Palette.learning
       @threat.retheme Palette.threat
-      Lasting::ORDER.each_with_index do |status, index|
+      BARS.each_with_index do |status, index|
         @effects[index].retheme Palette.lasting(status)
       end
 
@@ -328,30 +345,35 @@ module Roguelike::Ui
       @water.put 0, "water #{player.sustenance.water}/#{Sustenance::WATER_MAX}", Palette.plain
     end
 
-    # One bar for each temporary effect on the character.
+    # The temporary effects on the character: a bar for each one in
+    # `BARS`, and a pill for each of the rest.
     #
-    # The bar is the turns left over the most it has had, so it is full when
-    # the effect begins and empties as it wears off. A bar goes away when
-    # its effect ends. An effect with no timer has a full bar and its name
-    # alone.
+    # A bar is the turns left over the most it has had, so it is full when
+    # the effect begins and empties as it wears off. A bar or a pill goes
+    # away when its effect ends.
     private def lasted(player : Player) : Nil
       running = player.lasting
       @longest.select! { |status, _| running.any?(&.status.==(status)) }
       @lasting.hidden = running.empty?
 
-      Lasting::ORDER.each_with_index do |status, index|
+      BARS.each_with_index do |status, index|
         bar = @effects[index]
         found = running.find(&.status.==(status))
         bar.hidden = found.nil?
         next unless found
 
-        left = found.left
-        next bar.show(1, 1, LASTING_NAMES[status]) unless left
-
+        left = found.left || 0
         most = Math.max left, @longest[status]? || 0
         @longest[status] = most
         bar.show left, most, "#{LASTING_NAMES[status]} #{left}"
       end
+
+      shown = running.compact_map do |held|
+        name = PILL_NAMES[held.status]?
+        Widgets::Pills::Pill.new name, Palette.pill(held.status) if name
+      end
+      @pills.pills = shown
+      @pills.hidden = shown.empty?
     end
 
     # The bar for the creature the character is fighting.

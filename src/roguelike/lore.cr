@@ -228,11 +228,14 @@ module Roguelike
 
     # The words before a food's name: how fresh it is and whether it has
     # been bitten. None for anything that is not food.
+    #
+    # A name that holds "fresh" says how fresh the food is by itself, so it
+    # gets no freshness word in front.
     def self.food_words(item : Item) : Array(String)
       found = [] of String
       return found unless item.food?
 
-      item.freshness.label.try { |word| found << word }
+      item.freshness.label.try { |word| found << word } unless freshened? item.kind.label
       found << "partly eaten" if item.bitten?
       found
     end
@@ -241,9 +244,27 @@ module Roguelike
     # creature it was.
     def self.food_noun(item : Item, plural : Bool) : String
       kind = item.kind
-      noun = plural ? kind.plural : kind.label
+      noun = freshened (plural ? kind.plural : kind.label), item
       creature = item.creature
       creature ? "#{creature.label} #{noun}" : noun
+    end
+
+    # Whether *name* holds the word "fresh".
+    def self.freshened?(name : String) : Bool
+      name.split(' ').includes? Freshness::Fresh.word
+    end
+
+    # *name* with the word "fresh" in it changed to how fresh *item* is.
+    #
+    #     piece of fresh meat
+    #     piece of stale meat
+    #     piece of rotten meat
+    #
+    # A name without the word comes back as it was.
+    def self.freshened(name : String, item : Item) : String
+      return name unless item.food? && freshened?(name)
+
+      name.split(' ').map { |word| word == Freshness::Fresh.word ? item.freshness.word : word }.join ' '
     end
 
     # `+1`, `-2`, and so on.

@@ -1042,9 +1042,8 @@ on. The generator comes last because by now it is clear what it has to place.
   after every action, so eating or drinking anywhere gets its events without the rule that did it
   having to ask. The stages it remembers are not saved, so a loaded run writes nothing for the
   stage it is already in.
-* `Lasting` gives a stage no timer. The pane shows its name in a full bar with no count. Hunger
-  stages share one bar color and thirst stages another. Both are theme colors that read at 4.5 to
-  1 on the ground and under their text in every built-in theme.
+* `Lasting` gives a stage no timer. The pane shows its name in a debuff pill with no count. See
+  the pills under "Temporary effects in the character pane".
 * The water reading is a plain line rather than a bar. Text over the empty part of a bar reads at
   less than 4.5 to 1 in the Default theme.
 * A death from hunger or thirst sets `Game#perished`. The end screen says "You starved to death."
@@ -5911,11 +5910,42 @@ reads like the experience bar, with the effect's name and the turns left written
   effect has had left and draws the bar as a share of it. A longer reading sets a new mark, so a
   second potion of haste fills the bar again. The mark is dropped when the effect ends. A run loaded
   mid-effect starts its bars full.
-* **Rows.** `CharacterPane#effects` has one `Meter` per status, each hidden while its effect is not
-  running, inside a panel that is hidden while none are. The label column is blank, so the bars line
-  up with the ones above.
+* **Rows.** `CharacterPane#effects` has one `Meter` per status in `CharacterPane::BARS`, each
+  hidden while its effect is not running, inside a panel that is hidden while none are. The label
+  column is blank, so the bars line up with the ones above.
 * **Colors.** `haste_bar`, `slow_bar` and `blind_bar` are theme colors in the Bars group. Each is
   light, so `Palette.readable_on` puts dark text on it, and each is far from `empty`.
+
+### Pills
+
+Only a haste, a slow and a blindness get a bar, listed in `CharacterPane::BARS`. The food buffs,
+the stages of hunger and thirst, and being sick each get a short labeled pill with no bar, no count
+and no time left.
+
+* **Widget.** `TermBuf::Widgets::Pills`, in `termbuf_ext/pills.cr`, lays pills out side by side
+  with one cell of the pill's ground on each side of its text and one cell between two pills. A
+  pill that does not fit on the rest of a row starts the next row, and `#height_for_width` counts
+  the rows. A pill wider than a whole row is cut with an ellipsis.
+* **Place.** The pills sit in the `lasting` block under the bars, and the block is hidden while
+  nothing runs. They are in `Lasting::ORDER`: hunger, thirst, the buffs, then sick. At the
+  narrowest info panel, 24 columns, a row holds 22 columns, so "dying of thirst" fits on a row of
+  its own.
+* **Names.** `CharacterPane::PILL_NAMES`: hungry, famished, starving, thirsty, parched,
+  dehydrated, dying of thirst, well fed, refreshed, steady aim, steady hand, sick.
+* **Colors.** `buff_pill` and `debuff_pill` are theme colors in the Bars group, in place of the
+  hunger and thirst bar colors. `Lasting::BUFFS` says which statuses take the buff color. The text
+  is `Palette.readable_on` the pill. The theme's `readings` hold each pill against the ground,
+  the focused ground and the focus flash, and a palette spec holds every pair at 4.5 to 1 or more
+  in every built-in theme, the text on the pill included.
+
+| Theme | Pill | Color | Text | Text on pill | On ground | On focused ground | On focus flash |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Default | buff | `#66CC88` | `#101216` | 9.43 | 9.71 | 7.62 | 6.81 |
+| Default | debuff | `#FF8A80` | `#101216` | 8.21 | 8.46 | 6.64 | 5.93 |
+| High contrast | buff | `#9CE070` | `#101216` | 11.88 | 13.31 | 11.02 | 8.76 |
+| High contrast | debuff | `#FF9C9C` | `#101216` | 9.36 | 10.49 | 8.69 | 6.90 |
+| Paper | buff | `#2E6B30` | `#FFFFFF` | 6.44 | 5.97 | 5.36 | 5.02 |
+| Paper | debuff | `#A82828` | `#FFFFFF` | 7.00 | 6.50 | 5.83 | 5.46 |
 
 ## Thirteen more creatures
 
@@ -6491,7 +6521,6 @@ is stale from *k* and rotten from 2*k*. A keep of zero never spoils.
 | mushroom | roots and herbs | 300 | 1 | 1200 | 3 |
 | corpse | meat | by size | by size | 150 | 0 |
 | lump of rotten flesh | refuse | none | 4 | never | 0 |
-| pile of bones | refuse | none | 3 | never | 0 |
 
 A corpse feeds 400, 1000 or 1600 for a small, medium or large creature, and cuts into 1, 2 or 4
 pieces of fresh meat. It weighs 50, 150 or 400, so it never fits in the bag.
@@ -6508,8 +6537,14 @@ pieces of fresh meat. It weighs 50, 150 or 400, so it never fits in the bag.
 * **Bites.** `Item#eaten` counts the satiety taken out of one, in fresh points. `Item#bite` takes
   the points eating offered and works back to fresh points, so a stale item that loses 100 points
   loses 200 fresh ones.
+* **Names.** `Lore.food_words` puts the freshness word and "partly eaten" before a food's name.
+  A name that holds "fresh" gets no freshness word in front. `Lore.freshened` changes "fresh" in
+  it instead, so meat reads "a piece of fresh meat", "a piece of stale meat" and "a piece of
+  rotten meat". Fresh meat is the one kind whose name holds the word.
 * **Event.** `food_spoiled` fires once for a bag stack on the turn it goes stale and once on the
-  turn it goes rotten. The line beside it does not stop a walk.
+  turn it goes rotten. The line beside it does not stop a walk. The line and the event's `name`
+  name the food as it was before it turned, through `Item#unripened`, so a piece of meat "has
+  gone rotten" as a piece of stale meat.
 
 ### The food bag
 
@@ -6545,9 +6580,8 @@ so bag food has ids. A save writes the bag under the player, and an older save l
 | `SteadyHand` | roots and herbs | +1 to a swing landing |
 | `Sick` | rotten food | -1 to a swing, a shot or a throw landing |
 
-* **Readout.** `Lasting.on` lists each buff, so it gets a bar in the character pane. A buff bar
-  takes the experience bar's green and the sick bar takes the slow bar's color. Both are colors the
-  themes already check for contrast, so no theme gained a color.
+* **Readout.** `Lasting.on` lists each buff, so it gets a pill in the character pane. A buff from
+  food takes the `buff_pill` color and being sick takes `debuff_pill`.
 
 ### Corpses
 
@@ -6557,6 +6591,15 @@ leave nothing. The undead leave rotten flesh and bones, and the skeleton overrid
 alone. `corpse_left` fires when the character saw the creature die. A corpse is stale at 150 turns
 and rots away at 300, with `corpse_rotted` when the character can see the square. A stale corpse can
 still be eaten, and only a fresh one can be cut up.
+
+* **Bones.** A pile of bones is `ItemClass::Remains`, weight 3, and has no food facts. It goes in
+  the pack under a letter of its own, because the class does not stack, and a full pack leaves it
+  on the floor with `pack_full`. Automatic pickup takes only what stacks with something carried,
+  so it never takes bones. Bones coming into sight do not stop a walk. The inventory lists them
+  on the food page, which holds nothing else.
+* **Old saves.** `Game#unbag` runs from `#after_initialize`. It takes anything the bag no longer
+  holds out of it, splits a stack of bones into ones with new ids after the first, and puts each
+  in the pack. What the pack has no letter for goes on the floor under the character.
 
 ### Floor food
 
@@ -6695,7 +6738,8 @@ A spec measures the share over 2,000 seeds and holds it within 3 points of 60.
 * `Ui::Play` drives a fill on the rest timer, so a key press stops it. The batch size reads the
   units still missing in place of the hit points.
 * The refill turns write no line until the skin is full. A line each turn would stop the fill.
-* Drinking any potion also calls `Sustenance#quench 1`.
+* Drinking any potion also calls `Sustenance#quench 1`. When that takes a unit, `Game#quaff`
+  records an `Event::Drank` with source `potion` and no line of its own.
 
 ### Keys
 
