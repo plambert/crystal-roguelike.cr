@@ -17,11 +17,11 @@ module Roguelike::Ui
 
     # The colors drawn as text or as a glyph on the map's ground.
     ON_GROUND = %w[
-      granite sandstone shale stone dirt wood spiked stairs iron hero missile heard_mark
-      white_slime blue_slime red_slime green_slime goblin_scout goblin_warrior goblin_shaman
-      orc orc_archer ant jelly rat giant_rat wolf werewolf bear boar giant_snake skeleton
-      zombie imp gelatinous_cube stone_golem iron_golem orc_warlord goblin_skirmisher shape
-      flame glimmer weapon armor potion scroll wand tool coin blessed_mark cursed_mark
+      granite sandstone shale stone dirt wood spiked stairs fountain iron hero missile
+      heard_mark white_slime blue_slime red_slime green_slime goblin_scout goblin_warrior
+      goblin_shaman orc orc_archer ant jelly rat giant_rat wolf werewolf bear boar giant_snake
+      skeleton zombie imp gelatinous_cube stone_golem iron_golem orc_warlord goblin_skirmisher
+      shape flame glimmer weapon armor potion scroll wand tool coin blessed_mark cursed_mark
       uncursed_mark slot_mark lit_mark plain faint strong vacant message_new pointer_mark
       focus_rule
     ]
@@ -54,6 +54,7 @@ module Roguelike::Ui
       "wood"              => 0xFFA850,
       "spiked"            => 0xE0E4EC,
       "stairs"            => 0xFFFFFF,
+      "fountain"          => 0x60D0FF,
       "iron"              => 0xB8BCC8,
       "hero"              => 0xFFFFFF,
       "ground"            => 0x000000,
@@ -154,6 +155,7 @@ module Roguelike::Ui
       "wood"              => 0x8A4A10,
       "spiked"            => 0x303440,
       "stairs"            => 0x000000,
+      "fountain"          => 0x00508C,
       "iron"              => 0x505560,
       "hero"              => 0x000000,
       "ground"            => 0xFAF6EE,

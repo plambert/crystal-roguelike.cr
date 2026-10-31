@@ -215,6 +215,13 @@ module Roguelike
     # How often a lit sconce is lit, out of a hundred.
     BURNING = 70
 
+    # How often a floor has a fountain, out of a hundred.
+    FOUNTAIN = 60
+
+    # The floors a fountain may be on. Floor 1 has none, and neither has
+    # the chamber under the last floor.
+    WATERED = 2..World::DEEPEST
+
     # What a room's floor is made of.
     GROUND = {
       Terrain::StoneFloor => 70,
@@ -281,6 +288,18 @@ module Roguelike
       rows = (area / columns).round.to_i
 
       {Math.max(columns, SMALLEST[0]), Math.max(rows, SMALLEST[1])}
+    end
+
+    # Whether the floor called *id* has a fountain, drawn on *rng*.
+    #
+    # The draw has a stream of its own named after the floor, so the answer
+    # is the same for a seed however many tries the floor took to dig. Each
+    # floor draws apart from the others.
+    def self.fountain?(rng : Rng, id : String) : Bool
+      depth = World.depth(id) || 1
+      return false unless WATERED.includes? depth
+
+      rng.derive("#{DOMAIN}:#{id}").derive("fountain").rand(100) < FOUNTAIN
     end
 
     # How much larger *depth* is drawn than `AREA`, as a factor.
@@ -411,9 +430,13 @@ module Roguelike
     # The stream every roll of this try derives from.
     @rng : Rng
 
+    # The run's root stream, which `.fountain?` reads.
+    @base : Rng
+
     def initialize(rng : Rng, id : String, columns : Int32? = nil,
                    rows : Int32? = nil, @depth : Int32 = 1,
                    @attempt : Int32 = 0, layout : Layout? = nil)
+      @base = rng
       base = rng.derive "#{DOMAIN}:#{id}"
       @rng = @attempt.zero? ? base : base.derive("retry:#{@attempt}")
 
@@ -453,6 +476,7 @@ module Roguelike
         light zone, index
         inhabit zone, index
       end
+      fountain
 
       @floor
     end
@@ -1039,6 +1063,25 @@ module Roguelike
       end
 
       found.empty? ? [room.middle] : found
+    end
+
+    # Puts a fountain on bare ground in one room, when `.fountain?` says
+    # this floor has one.
+    #
+    # It goes in last, so it moves no staircase, sconce or creature. A floor
+    # with no rooms takes it in a cavern.
+    private def fountain : Nil
+      return unless Generator.fountain? @base, @floor.id
+
+      places = rooms.empty? ? caverns : rooms
+      return if places.empty?
+
+      stream = @rng.derive "fountain"
+      room = places.sample stream
+      spot = plain(room).sample stream
+      return unless @floor.terrain(spot[0], spot[1]).floor?
+
+      @floor.set spot[0], spot[1], Terrain::Fountain
     end
 
     # Puts sconces on the walls of *room*.

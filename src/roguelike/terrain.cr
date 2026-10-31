@@ -36,6 +36,7 @@ module Roguelike
     StairsUp
     StairsDown
     BrokenDoor
+    Fountain
 
     # Which terrain a floor file's *mark* names.
     #
@@ -134,6 +135,7 @@ module Roguelike
       Terrain::BrokenDoor => TerrainKind.new('/', "broken door", "a doorway with its door smashed in", false, false),
       Terrain::StairsUp   => TerrainKind.new('<', "staircase up", "a staircase leading up", false, false),
       Terrain::StairsDown => TerrainKind.new('>', "staircase down", "a staircase leading down", false, false),
+      Terrain::Fountain   => TerrainKind.new('{', "fountain", "a basin of clean water fed from the rock", false, false),
     }
 
     # The character a floor file writes for a square that glows on its own.

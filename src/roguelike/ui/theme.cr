@@ -63,6 +63,7 @@ module Roguelike::Ui
     color wood, 0xD08A3C
     color spiked, 0xD8DCE4
     color stairs, 0xE8ECF4
+    color fountain, 0x50BEF8
     color iron, 0x9A9EA8
     color hero, 0xFFFFFF
     color ground, 0x0C0E12
@@ -165,6 +166,7 @@ module Roguelike::Ui
       Entry.new("wood", "Map", "Door"),
       Entry.new("spiked", "Map", "Spiked door"),
       Entry.new("stairs", "Map", "Stairs"),
+      Entry.new("fountain", "Map", "Fountain"),
       Entry.new("iron", "Map", "Unlit sconce"),
       Entry.new("hero", "Map", "You"),
       Entry.new("ground", "Map", "Map background"),

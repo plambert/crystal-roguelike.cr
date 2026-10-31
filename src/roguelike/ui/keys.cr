@@ -393,6 +393,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.start_running; nil }
         map.bind TermBuf::Key.parse("R"), "rest until you are healed",
           ->(_context : Widgets::Context) { play.rest; nil }
+        map.bind TermBuf::Key.parse("U"), "drink from a fountain and fill your waterskin",
+          ->(_context : Widgets::Context) { play.use_fountain; nil }
       end
     end
 

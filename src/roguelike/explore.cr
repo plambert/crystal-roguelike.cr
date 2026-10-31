@@ -54,6 +54,9 @@ module Roguelike
   # character's own square is never answered. The ground under them is known
   # already, and a walk that stood still to look at it would never end.
   module Explore
+    # No fountains to walk to.
+    NO_WELLS = [] of {Int32, Int32}
+
     # The route to the square explore heads for, the character's own square
     # first. Empty when no pile worth taking, no square left to see and no
     # item left to read can be reached.
@@ -63,14 +66,16 @@ module Roguelike
     # says which items automatic pickup takes, and is `nil` when it takes
     # none. *shows* says whether light falls on a square, and is `nil` when
     # the character carries a light. *settings* says which parts of the
-    # rule are on.
+    # rule are on. *wells* are fountains the character wants water from,
+    # and are walked to the way a pile is.
     def self.route(knowledge : Knowledge, from : {Int32, Int32},
                    columns : Int32, rows : Int32,
                    takes : Proc(Item, Bool)? = nil,
                    shows : Proc({Int32, Int32}, Bool)? = nil,
-                   settings : Settings = Settings.new) : Array({Int32, Int32})
+                   settings : Settings = Settings.new,
+                   wells : Array({Int32, Int32}) = NO_WELLS) : Array({Int32, Int32})
       found = knowledge.chambers columns, rows
-      piles = Explore.piles knowledge, takes, settings
+      piles = Explore.piles(knowledge, takes, settings) + wells
       edge = Explore.edge knowledge, found, columns, rows, shows
       reach, pocket = settings.reach, settings.pocket
 
@@ -145,19 +150,20 @@ module Roguelike
     # Whether explore has anywhere to go. That is a square left to see that
     # is a goal, or a pile worth taking or an item left to read that the
     # character at *from* can reach, other than under them. *takes*,
-    # *shows* and *settings* are as `.route` reads them.
+    # *shows*, *settings* and *wells* are as `.route` reads them.
     def self.going?(knowledge : Knowledge, from : {Int32, Int32},
                     columns : Int32, rows : Int32,
                     takes : Proc(Item, Bool)? = nil,
                     shows : Proc({Int32, Int32}, Bool)? = nil,
-                    settings : Settings = Settings.new) : Bool
+                    settings : Settings = Settings.new,
+                    wells : Array({Int32, Int32}) = NO_WELLS) : Bool
       found = knowledge.chambers columns, rows
       if found.frontier?
         goal = edge knowledge, found, columns, rows, shows
         return true if reaches_any? knowledge, from, found.frontier.select(&goal)
       end
 
-      spots = Explore.piles knowledge, takes, settings
+      spots = Explore.piles(knowledge, takes, settings) + wells
       spots += Explore.unread(knowledge) if settings.unread?
       reaches_any? knowledge, from, spots
     end
