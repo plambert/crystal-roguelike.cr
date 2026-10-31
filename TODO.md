@@ -201,6 +201,9 @@ rare cave flowers, and other very small items. They do not go in the pack. They 
 pouch, which is a separate store with very little room at first. Without the pouch the character
 cannot carry them. The pouch comes from an NPC, as in the quests item below.
 
+More materials turn up among the items scattered about the floors. At first they are mostly
+ingredients for cooking recipes, as in the dwarven cook item below.
+
 Later, samples of copper, tin, iron, gold and platinum ore are crafting materials too. A sample is
 very large and heavy, so it does not fit in the pouch. It needs a cart pulled behind the character,
 as in the carts item below, and a cart holds only two or perhaps three samples. The gold ore that
@@ -210,10 +213,21 @@ the mining item above produces is the first such sample.
 
 Non-player characters give the character quests. A simple quest asks for a named weapon or armor
 piece, which is placed one to three floors deeper than the NPC. A complex quest asks for the
-crafting components of one recipe, which the character gathers over several floors. The NPC who sets
-the first complex quest gives the character the crafting pouch, as in the crafting item above. Which
-NPCs there are, where they stand, and how a quest is accepted and paid are to be settled when this
-is built.
+crafting components of one recipe, which the character gathers over several floors. The first NPC
+is the dwarven cook in the item below, and the cook's first request is a complex quest. It gives
+the character the crafting pouch, as in the crafting item above. Which other NPCs there are, where
+they stand, and how a quest is accepted and paid are to be settled when this is built.
+
+### A dwarven cook
+
+The first NPC is a dwarven cook. The cook takes monster corpses and special monster items and
+makes them into dishes. A dish gives sustenance, quenches thirst, and gives a buff that ranges from
+very minor to very powerful. The buff shows on a temporary effect bar like any other.
+
+This depends on monsters leaving corpses, as in the hunger item, and on the food and drink systems
+in the hunger and thirst items. It also needs a well-rounded list of components that various
+monsters can leave behind, so each kind of creature has something worth taking. Which components
+there are, which dishes they make, and what each buff does are to be settled when this is built.
 
 ### Magic staves
 
