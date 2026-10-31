@@ -10,6 +10,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Fountains. About three floors in five below the first have one, drawn as `{` in a room. Floor 1
+  and the amulet chamber have none, and a run often goes two or three floors in a row without
+  one. The fountain color is in the theme editor and reads at 4.5 to 1 in every built-in theme.
 * The color theme editor opens on a Themes list: the game's three themes, then every theme in the
   `themes` folder by name. Press `Enter` on one to use it. The theme you are using is marked, and a
   theme file you drop into the folder shows up the next time the editor opens.

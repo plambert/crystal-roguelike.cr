@@ -1,4 +1,4 @@
-{"type":"header","format":3,"game_version":"0.7.0+g0f55aa3+","crystal_version":"1.22.1","seed":4272,"generate":true,"streams":{"generator":8,"litter":4,"loot":7,"ammunition":2,"lore":1,"combat":1,"handling":1,"use":1,"wander":1,"mend":1,"sizes":2,"stray":1,"split":1,"brawl":1},"player":"tester","source":"human","started_at":"2026-10-29T04:12:19Z","turn":0,"log":["You are in a dungeon with a short sword, leather armor and a lit torch.","You carry three spikes and a potion of minor healing. Press ? for the keys."],"state":"sha256:be2e5e190f3bdb3e2efafba33caf48d8ea3bd56d77e3e3f5ce273b3e420c2742","every":25}
+{"type":"header","format":3,"game_version":"0.7.0+gb7a4213+","crystal_version":"1.22.2","seed":4272,"generate":true,"streams":{"generator":9,"litter":4,"loot":7,"ammunition":2,"lore":1,"combat":1,"handling":1,"use":1,"wander":1,"mend":1,"sizes":2,"stray":1,"split":1,"brawl":1},"player":"tester","source":"human","started_at":"2026-10-31T16:54:53Z","turn":0,"log":["You are in a dungeon with a short sword, leather armor and a lit torch.","You carry three spikes and a potion of minor healing. Press ? for the keys."],"state":"sha256:be2e5e190f3bdb3e2efafba33caf48d8ea3bd56d77e3e3f5ce273b3e420c2742","every":25}
 {"type":"act","turn":1,"action":{"t":"drop","item":358}}
 {"type":"act","turn":4,"action":{"t":"remove","slot":"body"}}
 {"type":"act","turn":5,"action":{"t":"move","dir":"nw"}}
@@ -82,4 +82,4 @@
 {"type":"act","turn":89,"action":{"t":"close","dir":"s"}}
 {"type":"act","turn":90,"action":{"t":"remove","slot":"melee"}}
 {"type":"act","turn":91,"action":{"t":"explore"}}
-{"type":"footer","turn":91,"outcome":"truncated","ending":"playing","ended_at":"2026-10-29T04:12:20Z"}
+{"type":"footer","turn":91,"outcome":"truncated","ending":"playing","ended_at":"2026-10-31T16:54:53Z"}

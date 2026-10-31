@@ -6376,6 +6376,56 @@ Default is unchanged and misses 4.5 on seven pairs. Raising `faint`, `vacant`, `
 `dirt` and `empty_text` would fix it, and would change every player's colors and the screen
 fixtures. That is left open.
 
+## Fountains
+
+A fountain is a square of terrain that gives water. It is the main way to fill the waterskin.
+
+### The terrain
+
+* `Terrain::Fountain` is appended to the enum. It is walkable, blocks no sight and is safe.
+* A floor file writes it as `{`. The map draws it as `{` in the new `fountain` theme color.
+* It is not `floor?`, so the generator, the litter and the loot put nothing else on it.
+* It is remembered like any other terrain once seen.
+* The shipped proving ground has none. The fountain specs try it instead.
+
+| Theme | Fountain color | On ground | Remembered |
+| --- | --- | --- | --- |
+| Default | #50bef8 | 9.26 | 2.25 |
+| High contrast | #60d0ff | 11.96 | 5.16 |
+| Paper | #00508c | 7.71 | 4.39 |
+
+A spec holds the fountain at 4.5 to 1 or more on the ground in every built-in theme, Default
+included.
+
+### Placement
+
+* Floors 2 to 10 may have one. Floor 1 and the chamber under floor 10 never do.
+* `Generator.fountain?` decides. It draws once on a stream named after the floor, `fountain` under
+  `worldgen:<floor id>`, and says yes on 60 draws in a hundred. The stream does not take the try
+  number, so a floor dug again after an audit fault keeps its answer.
+* A floor with one gets exactly one. It goes on a bare square of a room, picked on the try's own
+  `fountain` stream. A floor with no rooms takes it in a cavern.
+* It is placed after the stairs, the sconces and the creatures, so it moves none of them.
+* Each floor draws apart from the others. Dry stretches of two or three floors in a row then come
+  up often, and those force a walk back up or a potion.
+
+Measured over 20,000 seeds on floors 2 to 10:
+
+| Measure | Share |
+| --- | --- |
+| Floors with a fountain | 60.0% |
+| Runs with a dry stretch of 2 floors or more | 66.7% |
+| Runs with a dry stretch of 3 floors or more | 28.0% |
+| Runs whose longest dry stretch is 4 floors or more | 10.0% |
+
+A spec measures the share over 2,000 seeds and holds it within 3 points of 60.
+
+### Streams and fixtures
+
+* `generator` goes to 9. The fountain draws are new draws, and a fountain square changes where
+  litter and loot can land.
+* The golden replay was recorded again from its seed.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
