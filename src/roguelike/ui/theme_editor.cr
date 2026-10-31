@@ -190,9 +190,10 @@ module Roguelike::Ui
     # Puts the editor up on *app*, showing `Theme.current`.
     def show(app : Widgets::App) : Nil
       @app = app
-      tell ""
+      tell ThemeLibrary.problem || ""
+      ThemeLibrary.problem = nil
       remove @form
-      @form = ThemeEditor.form_for Theme.current, @depth, modern_controls?, ThemeEditor.save_name
+      @form = ThemeEditor.form_for Theme.current, @depth, modern_controls?, save_name
       @form.attach app
       add @form
 
@@ -330,9 +331,14 @@ module Roguelike::Ui
       apply Theme.current.with(key, color)
     end
 
-    # The name the theme in use is saved under unless another is typed.
-    def self.save_name : String
-      Theme.current_name || UNNAMED
+    # The name the theme in use is saved under unless another is typed. A
+    # built-in theme, or one with no name, gets a name no file has yet.
+    def save_name : String
+      name = Theme.current_name
+      return ThemeLibrary.unused_name(@root, UNNAMED) unless name
+      return ThemeLibrary.unused_name(@root, "#{name} copy") if ThemeLibrary.built_in(name)
+
+      name
     end
 
     # Says *text* on the status line. Empty text hides the line.
@@ -347,7 +353,7 @@ module Roguelike::Ui
       copier = @app.try &.copy
       return tell "This terminal gives the game no clipboard. Save writes a file instead." unless copier
 
-      name = typed_name || ThemeEditor.save_name
+      name = typed_name || save_name
       copier.call Theme.current.to_named_json(name)
       tell "Copied #{name} to the clipboard."
     end
@@ -356,6 +362,9 @@ module Roguelike::Ui
     def save : Nil
       name = typed_name
       return tell "Type a name to save the theme under." unless name
+
+      owned = ThemeLibrary.built_in name
+      return tell "#{owned.name} is one of the game's own themes. Save it under another name." if owned
 
       path = ThemeLibrary.save @root, name, Theme.current
       Theme.current_name = name
@@ -366,12 +375,21 @@ module Roguelike::Ui
     end
 
     # Reads *text* as a theme and draws with it. A theme that names itself
-    # is saved under that name too. Text that does not read changes nothing.
+    # is saved under that name too, or under a new name when it would write
+    # over a built-in theme with other colors. Text that does not read
+    # changes nothing.
     def import(text : String) : Nil
       theme, name = Theme.parse text
     rescue error : Theme::Unreadable
       tell "#{error.message} Nothing was changed."
     else
+      owned = name.try { |given| ThemeLibrary.built_in given }
+      if owned && owned.theme == theme
+        use theme, owned.name
+        return tell "Using #{owned.name}."
+      end
+
+      name = ThemeLibrary.unused_name(@root, "#{name} copy") if owned
       use theme, name
       unless name
         return tell "Using the pasted theme. Type a name and save it to keep it."
@@ -391,7 +409,7 @@ module Roguelike::Ui
       @form.rows.each do |row|
         row.value = theme[row.key] if row.is_a? Widgets::Form::ColorRow
       end
-      @form[NAME_KEY] = ThemeEditor.save_name
+      @form[NAME_KEY] = save_name
       apply theme
     end
 
@@ -499,7 +517,7 @@ module Roguelike::Ui
     end
 
     private def reset_everything : Nil
-      use Theme::DEFAULT, nil
+      use Theme::DEFAULT, ThemeLibrary::BUILT_INS.first.name
     end
   end
 end

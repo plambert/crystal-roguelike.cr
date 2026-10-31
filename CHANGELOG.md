@@ -15,6 +15,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   directory. Paste a theme into its Paste theme row to use it at once. A pasted theme that has a
   name is saved in the `themes` folder too. A paste with a color that is not `#rrggbb`, or text
   that is not JSON, says what is wrong and changes nothing.
+* Two new color themes. High contrast has a black ground and bright colors. Paper has a light
+  ground and dark ink, for a terminal with a light background. Every text color in both is at
+  least 4.5 to 1 against what it is drawn on.
+* At startup the game writes its three themes, Default, High contrast and Paper, into the `themes`
+  folder, and puts a file back when it has been changed. To change one of them, save it under
+  another name. The editor offers a new name when the theme you are using is one of these.
 * A haste, a slow or a blindness on you gets its own bar in the character pane, below the
   experience bar. The bar shows the effect's name and the turns it has left, empties as it wears
   off, and goes away when it ends. The three bar colors are in the theme editor.

@@ -75,6 +75,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
     Roguelike::Tester.current = nil
     Theme.current = Theme::DEFAULT
     Theme.current_name = nil
+    Library.problem = nil
     Palette.rebuild
     FileUtils.rm_rf root.to_s
   end
@@ -182,6 +183,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
 
       run.press "End", "Enter", "y"
       expect(Theme.current).to eq Theme::DEFAULT
+      expect(Theme.current_name).to eq "Default"
       expect(editor(run).form["hero"]).to eq Theme::DEFAULT.hero
       expect(on_file(root)["hero"]).to eq Theme::Hex.to_hex(Theme::DEFAULT.hero)
       expect(editor(run).showing?).to be_true
@@ -377,6 +379,63 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
       run.paste moss.to_named_json("Moss")
 
       expect(Theme.current).to eq Theme::DEFAULT
+    end
+  end
+
+  describe "the built-in themes" do
+    let(moss) { Theme::DEFAULT.with("ground", red) }
+
+    it "offers a new name for saving a built-in theme" do
+      Theme.current, Theme.current_name = Theme::PAPER, "Paper"
+      run = run_under root
+      open_editor run
+
+      expect(editor(run).form[Editor::NAME_KEY]).to eq "Paper copy"
+    end
+
+    it "refuses to save under the name of a built-in theme" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::NAME_KEY
+      run.press "Ctrl+U"
+      run.type "paper"
+      run.press "Enter"
+
+      expect(Library.saved root).to be_empty
+      expect(status run).to eq "Paper is one of the game's own themes. Save it under another name."
+    end
+
+    it "uses a pasted built-in theme by its name and saves nothing" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::PASTE_KEY
+      run.paste Theme::PAPER.to_named_json("paper")
+
+      expect(Theme.current).to eq Theme::PAPER
+      expect(Theme.current_name).to eq "Paper"
+      expect(Library.saved root).to be_empty
+    end
+
+    it "saves a pasted theme with a built-in name and other colors under a new name" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::PASTE_KEY
+      run.paste moss.to_named_json("Paper")
+
+      expect(Theme.current).to eq moss
+      expect(Theme.current_name).to eq "Paper copy"
+      expect(Library.saved root).to eq [Library::Named.new("Paper copy", moss)]
+    end
+
+    it "says once what went wrong writing the built-in files" do
+      Library.problem = "The built-in theme files could not be written."
+      run = run_under root
+      open_editor run
+      expect(status run).to eq "The built-in theme files could not be written."
+
+      run.press "Escape", "Enter"
+      expect(editor(run).showing?).to be_true
+      expect(status run).to eq ""
     end
   end
 
