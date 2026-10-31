@@ -151,6 +151,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   `--trial-sustenance` turns them on.
 * The bot observation gives the character's hunger stage, thirst stage, and the water in the
   waterskin with its capacity. The keys are left out when hunger and thirst are off.
+* The bot observation gives the food bag: how many items it holds, its weight and limit, and each
+  stack's id, name, count, family, freshness, whether it spoils, how much it feeds and its weight.
 
 ### Changed
 

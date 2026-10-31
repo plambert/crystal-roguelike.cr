@@ -6607,6 +6607,35 @@ The stages are names, not the counters. The character pane shows no numbers for 
 and the observation holds only what a pane shows. The waterskin is shown as `water 7/10`, so both
 of its numbers are here.
 
+`Observation::Character#food` is an `Observation::Bag`. It is there whether hunger and thirst
+are on or not, and `nil` only in an observation written before it existed.
+
+| Key | What it holds |
+| --- | --- |
+| `count` | Items in the bag, every stack counted in full |
+| `weight`, `weight_max` | `FoodBag#weight` and `FoodBag::LIMIT` |
+| `items` | One `Observation::Meal` a stack, in the order the bag holds them |
+
+| `Meal` key | What it holds |
+| --- | --- |
+| `id` | The stack's item id, which `eat` names |
+| `name` | `Lore#name` of the stack |
+| `count` | How many are in the stack |
+| `category` | `FoodCategory`, as `meat`, `fruit`, `grain`, `nuts_and_cheese`, `roots_and_herbs` or `refuse` |
+| `freshness` | `fresh`, `stale` or `rotten` |
+| `spoils` | Whether the kind ever goes off. A ration reads `fresh` and never turns |
+| `satiety` | `Item#nourishment`, what the first one feeds now, as fresh as it is |
+| `weight` | What the stack weighs |
+
+`satiety` is a number the food bag screen does not show. It is here so a bot can choose a meal.
+It says how much an item feeds and nothing about how hungry the character is.
+
+### Actions
+
+The protocol verbs are `drink` for the waterskin, `quench` and `refill` at a fountain underfoot,
+and `eat` with an item id. Each branch that wrote the rule added its own action. This section adds
+none.
+
 ## Fountains
 
 A fountain is a square of terrain that gives water. It is the main way to fill the waterskin.

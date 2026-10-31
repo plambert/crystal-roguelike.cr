@@ -25,17 +25,20 @@ Spectator.describe Roguelike::Observation do
   #
   # *light* lights every square, for an example that is not about light.
   # *items* go in the pack and *creatures* on the floor before the run is
-  # built, so that both are enrolled and have an id.
+  # built, so that both are enrolled and have an id. *bag* goes in the food
+  # bag, and an example that reads its ids calls `Game#enroll`.
   def played(lines : Array(String),
              light : Bool = true,
              items : Array(Item) = [] of Item,
-             creatures : Array(Monster) = [] of Monster) : Game
+             creatures : Array(Monster) = [] of Monster,
+             bag : Array(Item) = [] of Item) : Game
     floor = Floor.parse "room", lines
     floor.ambient = 1 if light
     creatures.each { |creature| floor.place creature }
 
     player = Player.new floor.id, *Game.entrance(floor)
     items.each { |item| player.inventory.add item }
+    bag.each { |item| player.food_bag.add item }
 
     Game.new World.new(SEED, {floor.id => floor}), player,
       lore: Lore.roll(Rng.new SEED)
@@ -724,6 +727,28 @@ Spectator.describe Roguelike::Observation do
       %w[hunger thirst water water_max].each do |key|
         expect(written).not_to have_key key
       end
+    end
+
+    it "gives the food bag, one entry a stack" do
+      apples = Item.new Kind::Apple, count: 3, blessing_known: true
+      ration = Item.new Kind::Ration, blessing_known: true
+      game = played ROOMS, bag: [apples, ration]
+      game.enroll
+      found = Observation.of(game).player.food || raise "no food bag"
+      apple = found.items.find!(&.category.fruit?)
+      written = JSON.parse(Observation.of(game).to_json)["player"]["food"]
+
+      expect(found.count).to eq 4
+      expect(found.weight).to eq game.player.food_bag.weight
+      expect(found.weight_max).to eq Roguelike::FoodBag::LIMIT
+      expect(apple.id).not_to eq 0
+      expect(apple.count).to eq 3
+      expect(apple.freshness).to eq Roguelike::Freshness::Fresh
+      expect(apple.spoils?).to be_true
+      expect(apple.satiety).to eq apples.nourishment
+      expect(found.items.find!(&.category.grain?).spoils?).to be_false
+      expect(written["items"][0]["category"].as_s).to eq "fruit"
+      expect(written["items"][0]["name"].as_s).to eq game.lore.name(apples)
     end
 
     it "reads a player block written before there was hunger or thirst" do

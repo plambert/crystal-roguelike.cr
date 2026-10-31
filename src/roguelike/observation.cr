@@ -103,6 +103,82 @@ module Roguelike
       include JSON::Serializable
     end
 
+    # One stack in the food bag.
+    class Meal
+      include JSON::Serializable
+
+      # The id the run gave it. `eat` names it.
+      getter id : Int32
+
+      # What the character calls it. `Lore#name` writes it.
+      getter name : String
+
+      # How many there are.
+      getter count : Int32
+
+      # Which family it belongs to, which sets the buff it gives.
+      getter category : FoodCategory
+
+      # How far it has gone off.
+      getter freshness : Freshness
+
+      # Whether it ever goes off. A ration does not.
+      getter? spoils : Bool
+
+      # How much the first one feeds now, as fresh as it is. `Item#nourishment`
+      # gives it.
+      getter satiety : Int32
+
+      # What the whole stack weighs.
+      getter weight : Int32
+
+      def initialize(@id : Int32, @name : String, @count : Int32,
+                     @category : FoodCategory, @freshness : Freshness,
+                     @spoils : Bool, @satiety : Int32, @weight : Int32)
+      end
+
+      # The entry for *item*.
+      def self.of(lore : Lore, item : Item) : Meal
+        new id: item.id,
+          name: lore.name(item),
+          count: item.count,
+          category: item.category,
+          freshness: item.freshness,
+          spoils: item.food_facts.spoils?,
+          satiety: item.nourishment,
+          weight: item.weight
+      end
+    end
+
+    # The food bag, as the food bag screen writes it.
+    class Bag
+      include JSON::Serializable
+
+      # How many items it holds, every stack counted in full.
+      getter count : Int32
+
+      # What everything in it weighs, and the most it holds.
+      getter weight : Int32
+      getter weight_max : Int32
+
+      # Each stack, in the order it went in.
+      getter items : Array(Meal)
+
+      def initialize(@count : Int32, @weight : Int32, @weight_max : Int32,
+                     @items : Array(Meal))
+      end
+
+      # The bag *player* carries.
+      def self.of(lore : Lore, player : Player) : Bag
+        bag = player.food_bag
+
+        new count: bag.items.sum(&.count),
+          weight: bag.weight,
+          weight_max: FoodBag::LIMIT,
+          items: bag.items.map { |item| Meal.of lore, item }
+      end
+    end
+
     # The character, as the sidebar writes them.
     class Character
       include JSON::Serializable
@@ -142,6 +218,10 @@ module Roguelike
       getter water : Int32? = nil
       getter water_max : Int32? = nil
 
+      # The food bag. `nil` only in an observation written before there was
+      # one.
+      getter food : Bag? = nil
+
       def initialize(@pos : {Int32, Int32}, @hit_points : Int32,
                      @max_hit_points : Int32, @level : Int32,
                      @experience : Int32, @armor_class : Int32,
@@ -149,12 +229,14 @@ module Roguelike
                      @statuses : Array(Status),
                      @hunger : HungerStage? = nil,
                      @thirst : ThirstStage? = nil,
-                     @water : Int32? = nil, @water_max : Int32? = nil)
+                     @water : Int32? = nil, @water_max : Int32? = nil,
+                     @food : Bag? = nil)
       end
 
       # The block for *player*. *sustained* false leaves out hunger, thirst
-      # and the waterskin.
-      def self.of(player : Player, sustained : Bool = true) : Character
+      # and the waterskin. *lore* names what is in the food bag.
+      def self.of(player : Player, sustained : Bool = true,
+                  lore : Lore? = nil) : Character
         statuses = [] of Status
         statuses << Status::Blind if player.blind?
         statuses << Status::Hurried if player.pace.hurried?
@@ -173,7 +255,8 @@ module Roguelike
           hunger: sustained ? body.hunger_stage : nil,
           thirst: sustained ? body.thirst_stage : nil,
           water: sustained ? body.water : nil,
-          water_max: sustained ? Sustenance::WATER_MAX : nil
+          water_max: sustained ? Sustenance::WATER_MAX : nil,
+          food: lore.try { |known| Bag.of known, player }
       end
     end
 
@@ -617,7 +700,7 @@ module Roguelike
       new turn: game.turn,
         floor: ground.id,
         depth: World.depth(ground.id),
-        player: Character.of(game.player, game.sustenance?),
+        player: Character.of(game.player, game.sustenance?, game.lore),
         map: Grid.new(ground.columns, ground.rows,
           known.to_map(ground, UNKNOWN)),
         visible: Grid.new(ground.columns, ground.rows,
