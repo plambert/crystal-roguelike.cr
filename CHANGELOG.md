@@ -31,6 +31,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   `e` to open it, or pick the food bag row at the end of the inventory. With modern controls it
   is in the inventory and in the action catalog under Items.
 * Food buffs and being sick each get a bar in the character pane, as a haste does.
+* Fountains. About three floors in five below the first have one, drawn as `{` in a room. Floor 1
+  and the amulet chamber have none, and a run often goes two or three floors in a row without
+  one. The fountain color is in the theme editor and reads at 4.5 to 1 in every built-in theme.
+* Standing on a fountain you can fill your waterskin, one turn for each unit, until it is full or
+  a creature comes into view, and drink from it for free when you are thirsty. In the traditional
+  controls `U` drinks and then fills. In the modern controls both are in the `f` actions list.
+* Explore walks to a fountain it knows of once your waterskin is empty or you are thirsty, drinks,
+  and fills the skin before it goes on. It also tops the skin up at any fountain it crosses.
+* Drinking any potion also quenches your thirst.
 * The color theme editor opens on a Themes list: the game's three themes, then every theme in the
   `themes` folder by name. Press `Enter` on one to use it. The theme you are using is marked, and a
   theme file you drop into the folder shows up the next time the editor opens.
@@ -135,6 +144,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A death from hunger or thirst has its own line on the end screen.
 * A new explore setting, Drink when thirsty, is on by default. With it on, `X` drinks from the
   skin when thirst sets in and walks on. With it off, or with an empty skin, `X` stops there.
+  `X` does not stop when the skin runs dry.
 * Bots get `drank`, `hunger_stage` and `thirst_stage` events, and a `drink` action. The `over`
   event names the cause of a death from hunger or thirst.
 

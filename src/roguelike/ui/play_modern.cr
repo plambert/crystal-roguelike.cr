@@ -269,7 +269,7 @@ module Roguelike::Ui
       in .walk?, .explore?, .travel?, .visit?, .ascend?, .descend?, .wait?, .drink_water?, .rest?,
          .equip?, .remove?, .pick_up?, .drop?, .drink?, .read?, .zap?, .apply?,
          .throw?, .open_door?, .close_door?, .spike_door?, .break_door?, .fire?,
-         .fire_nearest?, .food_bag?
+         .fire_nearest?, .fill_skin?, .drink_fountain?, .food_bag?
         true
       in .inventory?, .examine?, .pan_map?, .recenter?, .history?, .focus_next?,
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
@@ -385,7 +385,8 @@ module Roguelike::Ui
          .history?, .focus_next?, .focus_previous?, .focus_map?, .focus_info?,
          .focus_log?, .options?, .theme?, .toggle_mouse?, .help?, .whats_new?,
          .save_quit?, .replay_toggle?, .replay_forward?, .replay_back?,
-         .replay_faster?, .replay_slower?, .replay_go_to?, .debug_console?
+         .replay_faster?, .replay_slower?, .replay_go_to?, .debug_console?,
+         .fill_skin?, .drink_fountain?
         begin_modern_targeted command, status, item_id, slot
       end
     end
@@ -421,7 +422,7 @@ module Roguelike::Ui
          .focus_log?, .history?, .recenter?, .options?, .theme?, .toggle_mouse?,
          .help?, .whats_new?, .save_quit?, .replay_toggle?, .replay_forward?,
          .replay_back?, .replay_faster?, .replay_slower?, .replay_go_to?,
-         .debug_console?, .food_bag?
+         .debug_console?, .fill_skin?, .drink_fountain?, .food_bag?
         false
       end
     end
@@ -570,7 +571,7 @@ module Roguelike::Ui
          .focus_map?, .focus_info?, .focus_log?, .options?, .theme?,
          .toggle_mouse?, .help?, .whats_new?, .save_quit?, .replay_toggle?,
          .replay_forward?, .replay_back?, .replay_faster?, .replay_slower?,
-         .replay_go_to?, .debug_console?, .food_bag?
+         .replay_go_to?, .debug_console?, .fill_skin?, .drink_fountain?, .food_bag?
         nil
       end
     end
@@ -613,7 +614,8 @@ module Roguelike::Ui
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
          .theme?, .toggle_mouse?, .help?, .whats_new?, .save_quit?,
          .replay_toggle?, .replay_forward?, .replay_back?, .replay_faster?,
-         .replay_slower?, .replay_go_to?, .debug_console?, .food_bag?
+         .replay_slower?, .replay_go_to?, .debug_console?, .fill_skin?,
+         .drink_fountain?, .food_bag?
         nil
       end
     end
@@ -760,6 +762,8 @@ module Roguelike::Ui
       in .replay_slower?  then view_slower
       in .replay_go_to?   then ask_for_turn
       in .debug_console?  then toggle_console
+      in .fill_skin?      then fill_skin
+      in .drink_fountain? then drink_fountain
       in .food_bag?       then show_food_bag
       end
     end

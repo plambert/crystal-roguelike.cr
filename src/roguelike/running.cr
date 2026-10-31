@@ -77,6 +77,9 @@ module Roguelike
     # answers this, and only when its settings ask for it.
     Stairs
 
+    # The waterskin is full.
+    Filled
+
     # Thirst reached a new stage and explore did not drink for it. Only an
     # explore answers this. The line for the stage says why.
     Thirsty

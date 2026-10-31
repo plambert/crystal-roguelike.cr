@@ -229,7 +229,7 @@ Spectator.describe "hunger and thirst" do
       expect(sustenance(game).water).to eq 3
       expect(game.log.last?).to eq "You drink from your waterskin."
       drank = game.events.compact_map(&.as?(Event::Drank)).first
-      expect({drank.source, drank.units, drank.water}).to eq({Event::Drank::Source::Skin, 1, 3})
+      expect({drank.source, drank.units}).to eq({"skin", 1})
       expect(game.events.compact_map(&.as?(Event::StatusEnd)).map(&.status))
         .to eq [Event::Status::Thirsty]
     end
@@ -293,6 +293,16 @@ Spectator.describe "hunger and thirst" do
       expect(went.halt).to eq Halt::Thirsty
       expect(game.log.last?).to eq "You are thirsty."
       expect(sustenance(game).water).to eq 2
+    end
+
+    it "walks on when the skin runs dry" do
+      game = bare MEETING
+      sustenance(game).water = 0
+
+      went = game.explore
+
+      expect(game.log.lines).to contain "Your waterskin is empty."
+      expect(went.halt).not_to eq Halt::Told
     end
 
     it "stops for thirst with an empty skin" do

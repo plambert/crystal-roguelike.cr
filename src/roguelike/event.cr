@@ -72,6 +72,7 @@ module Roguelike
       "picked_up"      => PickedUp,
       "pile"           => Pile,
       "readied"        => Readied,
+      "refilled"       => Refilled,
       "rearmed"        => Rearmed,
       "refused"        => Refused,
       "removed"        => Removed,
@@ -302,27 +303,6 @@ module Roguelike
       end
     end
 
-    # Water the character drank.
-    #
-    # *units* is how much. *water* is what is left in the skin after it.
-    class Drank < Event
-      # Where the water came from.
-      enum Source
-        Skin
-        Fountain
-        Potion
-      end
-
-      getter kind : String = "drank"
-
-      getter source : Source
-      getter units : Int32
-      getter water : Int32
-
-      def initialize(@source : Source, @units : Int32, @water : Int32)
-      end
-    end
-
     # The character's hunger moved from one stage to another.
     class Hunger < Event
       getter kind : String = "hunger_stage"
@@ -439,7 +419,13 @@ module Roguelike
         # Nothing carried has anything left for a scroll of identify to name.
         NothingUnknown
 
-        # The character is not thirsty, so there is nothing to drink for.
+        # There is no fountain underfoot.
+        NoFountain
+
+        # The waterskin is already full.
+        SkinFull
+
+        # The character is not thirsty enough to drink.
         NotThirsty
 
         # The waterskin holds no water.
@@ -1236,6 +1222,30 @@ module Roguelike
       getter way : String?
 
       def initialize(@what : String, @way : String? = nil)
+      end
+    end
+
+    # The character drank water. *units* is how much it took, and *source*
+    # is where it came from: `skin`, `fountain` or `potion`.
+    class Drank < Event
+      getter kind : String = "drank"
+
+      getter units : Int32
+      getter source : String
+
+      def initialize(@units : Int32, @source : String)
+      end
+    end
+
+    # Water from a fountain put into the waterskin. *units* is how much went
+    # in, and *water* is what the skin holds after.
+    class Refilled < Event
+      getter kind : String = "refilled"
+
+      getter units : Int32
+      getter water : Int32
+
+      def initialize(@units : Int32, @water : Int32)
       end
     end
 

@@ -61,6 +61,7 @@ module Roguelike::Ui
     drawn dirt : Style = Style::DEFAULT.fg(theme.dirt)
     drawn wood : Style = Style::DEFAULT.fg(theme.wood)
     drawn stairs : Style = Style::DEFAULT.fg(theme.stairs)
+    drawn fountain : Style = Style::DEFAULT.fg(theme.fountain)
     drawn iron : Style = Style::DEFAULT.fg(theme.iron)
     drawn hero : Style = Style::DEFAULT.fg(theme.hero).bold
 
@@ -626,6 +627,7 @@ module Roguelike::Ui
       Terrain::BrokenDoor => Look.new('/', wood),
       Terrain::StairsUp   => Look.new('<', stairs),
       Terrain::StairsDown => Look.new('>', stairs),
+      Terrain::Fountain   => Look.new('{', fountain),
     }
 
     # How *terrain* draws.

@@ -1058,6 +1058,8 @@ on. The generator comes last because by now it is clear what it has to place.
 * The explore setting `drink`, on by default, makes an explore step drink instead of walking
   once thirst is at the thirsty stage or worse and the skin holds water. The line that says
   thirst set in does not stop the walk then, and neither does the drink.
+* The line that says the skin ran dry never stops an explore, because an explore walks to a
+  known fountain by itself once the skin is dry.
 * With `drink` off, or with an empty skin, a thirst stage that gets worse stops the walk with
   `Halt::Thirsty`. Its line is the reason the walk stopped, so nothing more is written.
 * `Sustenance#tick` takes `thirst: false` to hold thirst and the skin still for a turn. A food
@@ -6574,6 +6576,95 @@ it would stop at once.
   something dies.
 * **Weights.** bread 12; ration, dried meat and apple 10; oatcake, nuts and turnip 8; sausage,
   dried fruit, berries, cheese, herbs and mushroom 6.
+
+## Fountains
+
+A fountain is a square of terrain that gives water. It is the main way to fill the waterskin.
+
+### The terrain
+
+* `Terrain::Fountain` is appended to the enum. It is walkable, blocks no sight and is safe.
+* A floor file writes it as `{`. The map draws it as `{` in the new `fountain` theme color.
+* It is not `floor?`, so the generator, the litter and the loot put nothing else on it.
+* It is remembered like any other terrain once seen.
+* The shipped proving ground has none. The fountain specs try it instead.
+
+| Theme | Fountain color | On ground | Remembered |
+| --- | --- | --- | --- |
+| Default | #50bef8 | 9.26 | 2.25 |
+| High contrast | #60d0ff | 11.96 | 5.16 |
+| Paper | #00508c | 7.71 | 4.39 |
+
+A spec holds the fountain at 4.5 to 1 or more on the ground in every built-in theme, Default
+included.
+
+### Placement
+
+* Floors 2 to 10 may have one. Floor 1 and the chamber under floor 10 never do.
+* `Generator.fountain?` decides. It draws once on a stream named after the floor, `fountain` under
+  `worldgen:<floor id>`, and says yes on 60 draws in a hundred. The stream does not take the try
+  number, so a floor dug again after an audit fault keeps its answer.
+* A floor with one gets exactly one. It goes on a bare square of a room, picked on the try's own
+  `fountain` stream. A floor with no rooms takes it in a cavern.
+* It is placed after the stairs, the sconces and the creatures, so it moves none of them.
+* Each floor draws apart from the others. Dry stretches of two or three floors in a row then come
+  up often, and those force a walk back up or a potion.
+
+Measured over 20,000 seeds on floors 2 to 10:
+
+| Measure | Share |
+| --- | --- |
+| Floors with a fountain | 60.0% |
+| Runs with a dry stretch of 2 floors or more | 66.7% |
+| Runs with a dry stretch of 3 floors or more | 28.0% |
+| Runs whose longest dry stretch is 4 floors or more | 10.0% |
+
+A spec measures the share over 2,000 seeds and holds it within 3 points of 60.
+
+### Drawing water
+
+| Action | `t` | Turns | What it does |
+| --- | --- | --- | --- |
+| `Action::Refill` | `refill` | 1 | `Sustenance#refill 1`, then an `Event::Refilled` with the units and the skin's water |
+| `Action::Quench` | `quench` | 0 | `Sustenance#quench 1`, then an `Event::Drank` from the fountain |
+
+* `Game#legal` offers each one only on a fountain, and only while it would do something: a skin
+  below full, or a character who is not `quenched?`.
+* Filling the skin is a `Game::Rest` with `filling?` set. `Game#linger` performs a `Refill` in
+  place of a `Wait`, so a replay holds one `refill` line per unit. It stops when the skin is
+  full, and for everything that stops a rest but a wound healed. A creature in sight refuses it.
+* `Ui::Play` drives a fill on the rest timer, so a key press stops it. The batch size reads the
+  units still missing in place of the hit points.
+* The refill turns write no line until the skin is full. A line each turn would stop the fill.
+* Drinking any potion also calls `Sustenance#quench 1`.
+
+### Keys
+
+| Scheme | Key | What it does |
+| --- | --- | --- |
+| Traditional | `U` | drinks from the fountain when thirsty, then fills the skin |
+| Modern | `f` | the available actions list "Fill the waterskin" and "Drink from the fountain" |
+
+The two commands are `Ui::Command::FillSkin` and `Ui::Command::DrinkFountain`, in the
+Environment group of the action catalog.
+
+### Explore
+
+* `Game#water_wanted?` is true when the skin is below full and is either empty or the thirsty
+  stage has started.
+* While it is, `Explore.route` and `Explore.going?` take the fountains the character knows on the
+  floor as `wells`, and walk to the nearest the way they walk to gold.
+* Standing on a fountain with the skin below full, an `Action::Explore` drinks from it when the
+  character is thirsty, then fills one unit and takes the turn. This tops up any skin it crosses
+  a fountain with, so a fill it walked there for goes on to full. No state is kept between steps.
+* The lines this writes do not stop the explore, so it walks on once the skin is full. A creature
+  coming into view stops it as it stops any explore step.
+
+### Streams and fixtures
+
+* `generator` goes to 9. The fountain draws are new draws, and a fountain square changes where
+  litter and loot can land.
+* The golden replay was recorded again from its seed.
 
 ## Asked for, not yet built
 

@@ -73,6 +73,8 @@ module Roguelike
       "travel"    => Travel,
       "visit"     => Visit,
       "configure" => Configure,
+      "refill"    => Refill,
+      "quench"    => Quench,
       "drink"     => Drink,
       "eat"       => Eat,
       "cut"       => Cut,
@@ -451,6 +453,23 @@ module Roguelike
       getter explore : Roguelike::Explore::Settings?
 
       def initialize(@explore : Roguelike::Explore::Settings? = nil)
+      end
+    end
+
+    # Putting one unit of water from the fountain underfoot into the
+    # waterskin. It takes a turn. Filling the skin repeats this.
+    class Refill < Action
+      getter t : String = "refill"
+
+      def initialize
+      end
+    end
+
+    # Drinking from the fountain underfoot. No turn passes.
+    class Quench < Action
+      getter t : String = "quench"
+
+      def initialize
       end
     end
 
