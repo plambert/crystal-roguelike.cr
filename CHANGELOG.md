@@ -147,6 +147,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   `X` does not stop when the skin runs dry.
 * Bots get `drank`, `hunger_stage` and `thirst_stage` events, and a `drink` action. The `over`
   event names the cause of a death from hunger or thirst.
+* `--trial` games run without hunger and thirst, because the trial bot never eats or drinks.
+  `--trial-sustenance` turns them on.
+* The bot observation gives the character's hunger stage, thirst stage, and the water in the
+  waterskin with its capacity. The keys are left out when hunger and thirst are off.
+* The bot observation gives the food bag: how many items it holds, its weight and limit, and each
+  stack's id, name, count, family, freshness, whether it spoils, how much it feeds and its weight.
 
 ### Changed
 

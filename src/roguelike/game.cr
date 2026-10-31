@@ -298,6 +298,14 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     property on_flight : Proc(Missile, Nil)? = nil
 
+    # Whether hunger and thirst run in this game.
+    #
+    # A player's game always has them. `Trial` turns them off unless asked,
+    # so its numbers measure the fights and not the food. A save does not
+    # hold this, and a loaded game has them on.
+    @[JSON::Field(ignore: true)]
+    property? sustenance : Bool = true
+
     # The run's root generator, built from the world's seed.
     #
     # This is not written out. `World#seed` is, and this is a function of it.
@@ -3672,12 +3680,15 @@ module Roguelike
       record Event::Healed.new(gained)
     end
 
-    # Passes one turn of hunger and thirst.
+    # Passes one turn of hunger and thirst, unless `#sustenance?` has them
+    # off.
     #
     # A stage that changes says so. A character wasting away loses the hit
     # points the turn took, and a counter at its end or hit points at zero
     # end the run.
     private def sustain : Nil
+      return unless sustenance?
+
       sustenance = @player.sustenance
       sustenance.tick thirst: !thirst_held?
       restage

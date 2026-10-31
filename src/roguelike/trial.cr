@@ -155,17 +155,19 @@ module Roguelike
     #
     # *cautious* plays the bot that backs away when it is badly hurt rather
     # than the one that never retreats. *doors* has either one shut each door
-    # behind it.
+    # behind it. *sustenance* turns hunger and thirst on. They are off by
+    # default, because the bot never eats or drinks.
     def self.play(runs : Int32, first : UInt64 = FIRST,
                   turns : Int32 = TURNS, cautious : Bool = false,
-                  doors : Bool = false) : Report
-      Report.new (0...runs).map { |index| one first + index, turns, cautious, doors }
+                  doors : Bool = false, sustenance : Bool = false) : Report
+      Report.new (0...runs).map { |index| one first + index, turns, cautious, doors, sustenance }
     end
 
     # Plays one game from *seed* and answers how it went.
     def self.one(seed : UInt64, turns : Int32 = TURNS,
-                 cautious : Bool = false, doors : Bool = false) : Played
-      bot = cautious ? Cautious.new(seed, doors) : Bot.new(seed, doors)
+                 cautious : Bool = false, doors : Bool = false,
+                 sustenance : Bool = false) : Played
+      bot = cautious ? Cautious.new(seed, doors, sustenance) : Bot.new(seed, doors, sustenance)
 
       # A run stops once *turns* turns have passed. One action can take more
       # than one turn, so the last may run a turn past. A bot turn that takes
@@ -218,8 +220,10 @@ module Roguelike
       # Where it stood before its last step.
       @behind : {Int32, Int32}? = nil
 
-      def initialize(seed : UInt64, @shuts_doors : Bool = false)
+      def initialize(seed : UInt64, @shuts_doors : Bool = false,
+                     sustenance : Bool = false)
         @game = Game.dug Rng.new(seed)
+        @game.sustenance = sustenance
         @rng = Rng.new(seed).derive "trial"
         @start = @game.player.at
         @been = Set({Int32, Int32}).new

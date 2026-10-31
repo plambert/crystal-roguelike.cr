@@ -73,6 +73,23 @@ Spectator.describe Roguelike::Trial do
     end
   end
 
+  describe Roguelike::Trial::Bot do
+    it "plays without hunger and thirst unless asked" do
+      expect(Trial::Bot.new(Trial::FIRST).game.sustenance?).to be_false
+      expect(Trial::Bot.new(Trial::FIRST, sustenance: true).game.sustenance?).to be_true
+      expect(Trial::Cautious.new(Trial::FIRST, true, true).game.sustenance?).to be_true
+    end
+
+    it "holds hunger and thirst still while they are off" do
+      off = Trial::Bot.new Trial::FIRST
+      on = Trial::Bot.new Trial::FIRST, sustenance: true
+      TURNS.times { off.turn; on.turn }
+
+      expect(off.game.player.sustenance.hunger).to eq 0
+      expect(on.game.player.sustenance.hunger).to be > 0
+    end
+  end
+
   describe Roguelike::Trial::Report do
     it "counts the deaths" do
       expect(REPORT.deaths.size).to eq REPORT.played.count &.outcome.died?
