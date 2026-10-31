@@ -1,22 +1,22 @@
  —              D1 Lv 1 │#########
  HP        12/12        │#..o....#
  XP        0/20         │#..@...>#
- ▼ Scores               │#########
+ water 10/10            │#########
+ ▼ Scores               │
  AC   Gold         Turn │
  0    37              0 │
  St Dx Cn In Sl         │
  10 10 10 10 10         │
  Walk 111%     2.29 dps │
- ▶ Equipment          1 │
- ▶ Pack   ╭─ crystal-roguelike version       · seed 20260915 ─╮
- ▼ Here   │ ⟪ a - new character                             ⟫ │
-   stairca│   o - options                                     │
- ▼ Seen   │   Q - quit                                        │
-   orc    ╰───────────────────────────────────────────────────╯
+ ▶ Equipme╭─ crystal-roguelike version       · seed 20260915 ─╮
+ ▶ Pack   │ ⟪ a - new character                             ⟫ │
+ ▼ Here   │   o - options                                     │
+   stairca│   Q - quit                                        │
+ ▼ Seen   ╰───────────────────────────────────────────────────╯
+   orc                  │
  ▼ Look                 │
  Point at the map, or   │
  press x.               │
-                        │
                         │───────────────────────────────────────────────
                         │
                         │

@@ -81,6 +81,10 @@ module Roguelike
       # Whether finding the stairs down stops the walk.
       property? stop_stairs : Bool = false
 
+      # Whether explore drinks from the waterskin when thirst sets in. Off,
+      # thirst stops the walk instead.
+      property? drink : Bool = true
+
       def initialize
       end
 

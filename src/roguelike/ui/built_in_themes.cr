@@ -138,6 +138,8 @@ module Roguelike::Ui
       "slow_bar"          => 0xC0A8F0,
       "blind_bar"         => 0xC8C8C8,
       "noise_bar"         => 0xC890FF,
+      "hunger_bar"        => 0xF0B870,
+      "thirst_bar"        => 0xA0C4FF,
     })
 
     # A light ground with dark ink, for a terminal with a light background.
@@ -237,6 +239,8 @@ module Roguelike::Ui
       "slow_bar"          => 0x8060C0,
       "blind_bar"         => 0x909090,
       "noise_bar"         => 0x9050E0,
+      "hunger_bar"        => 0x8A5010,
+      "thirst_bar"        => 0x2A4AA0,
     })
   end
 end

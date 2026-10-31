@@ -212,7 +212,7 @@ module Roguelike
     #
     # *held* is the wielded weapon unless another is named.
     def to_hit(held : Item? = wielded) : Int32
-      bonus = @attributes.modifier Attributes::Which::Dexterity
+      bonus = @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty
       return bonus unless held && Player.swung?(held)
 
       bonus + held.aim
@@ -236,7 +236,7 @@ module Roguelike
     def damage(held : Item? = wielded) : Dice
       dice = held && Player.swung?(held) ? held.damage : UNARMED
 
-      dice.with_bonus @attributes.modifier(Attributes::Which::Strength)
+      dice.with_bonus @attributes.modifier(Attributes::Which::Strength) - @sustenance.damage_penalty
     end
 
     # What the character adds to a shot from *weapon* with *ammunition*.
@@ -244,7 +244,8 @@ module Roguelike
     # The dexterity modifier, plus what each of the two adds. A masterwork
     # bow and a bent arrow both count, and so does a blessing on either.
     def to_shoot(weapon : Item, ammunition : Item) : Int32
-      Combat.aim @attributes.modifier(Attributes::Which::Dexterity), weapon, ammunition
+      Combat.aim @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty,
+        weapon, ammunition
     end
 
     # What a shot of *ammunition* from *weapon* hits for.
@@ -258,14 +259,14 @@ module Roguelike
 
     # What the character adds to a throw of *item*.
     def to_throw(item : Item) : Int32
-      @attributes.modifier(Attributes::Which::Dexterity) + item.aim
+      @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty + item.aim
     end
 
     # What *item* hits for when it is thrown.
     #
     # Its dice, plus the strength modifier. An arm sends this one.
     def throw_damage(item : Item) : Dice
-      item.damage.with_bonus @attributes.modifier(Attributes::Which::Strength)
+      item.damage.with_bonus @attributes.modifier(Attributes::Which::Strength) - @sustenance.damage_penalty
     end
 
     # What the character adds to a bolt from a wand.
@@ -273,7 +274,7 @@ module Roguelike
     # The dexterity modifier and nothing else. A wand carries no `+N`, and
     # strength does not aim one.
     def to_zap : Int32
-      @attributes.modifier Attributes::Which::Dexterity
+      @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty
     end
 
     # Adds *amount* gold pieces. Answers the new total.
@@ -370,8 +371,22 @@ module Roguelike
     end
 
     # Ticks one hit point of regeneration takes, from constitution.
+    #
+    # The first stage of hunger or of thirst doubles it.
     def regeneration : Int32
-      Advancement.regeneration @attributes.constitution
+      found = Advancement.regeneration @attributes.constitution
+      @sustenance.slow_regeneration? ? found * 2 : found
+    end
+
+    # Whether the character regenerates at all. Wasting away stops it.
+    def regenerates? : Bool
+      @sustenance.regenerates?
+    end
+
+    # What the character gains in energy in a tick, after what hunger and
+    # thirst take off.
+    def speed : Int32
+      @pace.speed @sustenance.slowing
     end
 
     # Takes *amount* off the hit points. Answers how many are left.

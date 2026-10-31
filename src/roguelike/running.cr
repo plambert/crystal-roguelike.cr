@@ -79,6 +79,10 @@ module Roguelike
 
     # The waterskin is full.
     Filled
+
+    # Thirst reached a new stage and explore did not drink for it. Only an
+    # explore answers this. The line for the stage says why.
+    Thirsty
   end
 
   # What one walk did.

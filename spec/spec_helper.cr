@@ -4,6 +4,7 @@ require "../src/crystal-roguelike"
 require "./support/fixture"
 require "./support/headless"
 require "./support/playing"
+require "./support/sustenance"
 
 # The suite keeps its state in a directory of its own, so nothing a spec
 # does reaches the player's options, saves or logs. `Save.state_home` reads

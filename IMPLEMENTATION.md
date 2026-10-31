@@ -231,6 +231,7 @@ none of it is fixed and a preset can rebind the lot.
 | `w` `T` `q` `r` `z` `a` `t` `d` | In the menu on an inventory letter, the same actions on that item, always in that order |
 | `w` `T` | Wield a weapon or wear armor, swapping out what is there; take a weapon or armor off |
 | `q` `r` `z` | Quaff a potion, read a scroll, zap a wand |
+| `D` | Drink one unit from the waterskin. `Ctrl+D` under modern controls |
 | `f` `t` | Fire the ranged weapon, throw something |
 | `F` | Fire the ranged weapon at the nearest monster in sight, with no aiming step |
 | `a` | Apply. Light or put out a torch, a candle, or a wall sconce, or spike a door |
@@ -984,6 +985,91 @@ on. The generator comes last because by now it is clear what it has to place.
 
   `spec/fixtures/screens/` holds the title screen, the death screen and the victory screen drawn
   out, so a change to any of the wording shows as a diff of three screens.
+
+### Hunger and thirst
+
+`Sustenance` on the character holds two counters and the waterskin. `Game#tick` calls
+`Sustenance#tick` once per turn. Nothing in it draws from a generator, so no replay stream moves.
+
+#### The counters
+
+* `hunger` climbs one a turn. Food lowers it.
+* `water` is the skin, 10 units, starting full. A quenched character sips one unit every 300
+  turns.
+* `thirst` climbs one a turn once the character is not quenched. A dry skin is what starts it.
+  Water put back in the skin does not stop it. The character has to drink, from the skin, a
+  fountain or a potion. One unit quenches, and `thirst` goes back to zero.
+* One satiety point is one turn of hunger. `Sustenance#eat` takes up to the points it is given,
+  stops at zero, and answers how many it took. A ration of 1500 points takes 1500 turns of hunger
+  off. Food that is only partly eaten keeps the points that were not taken.
+
+#### The stages
+
+| Hunger | Starts at | Debuff |
+|---|---|---|
+| Satiated | 0 | none |
+| Fed | 500 | none |
+| Hungry | 1500 | regeneration takes twice as long |
+| Famished | 3000 | -1 to hit, -1 melee and thrown damage |
+| Starving | 5000 | -10 pace, no regeneration, 1 hit point lost every 100 turns |
+| Death | 9000 | |
+
+| Thirst | Starts at | Debuff |
+|---|---|---|
+| Quenched | 0 | none |
+| Fine | 1 | none. The skin is dry |
+| Thirsty | 500 | regeneration takes twice as long |
+| Parched | 2000 | -1 to hit |
+| Dehydrated | 3500 | -10 pace |
+| Dying of thirst | 5000 | no regeneration, 1 hit point lost every 50 turns |
+| Death | 6000 | |
+
+* A later stage of a ladder replaces the earlier stage's debuff. The two ladders add together, so
+  famished and parched make -2 to hit.
+* To-hit counts for melee, shooting, throwing and wands. Damage counts for melee and throwing,
+  because the arm drives those and the bow drives a shot.
+* The wasting stages stop regeneration. Regeneration at average constitution gives a point every
+  20 ticks, which would outrun a point lost every 50.
+* Thirst is named as the cause when both ladders take the last hit point on one turn.
+
+#### Events and display
+
+* A stage that gets worse writes a line and a `hunger_stage` or `thirst_stage` event. One that
+  gets better writes the event alone, because the eating or drinking has its own line.
+* The old stage's status ends and the new one's starts, through `status_start` and `status_end`.
+  The penalties show up as `stat_changed`, since the reading takes them in.
+* `Game#restage` compares the stages with the last ones it wrote events for. `#perform` runs it
+  after every action, so eating or drinking anywhere gets its events without the rule that did it
+  having to ask. The stages it remembers are not saved, so a loaded run writes nothing for the
+  stage it is already in.
+* `Lasting` gives a stage no timer. The pane shows its name in a full bar with no count. Hunger
+  stages share one bar color and thirst stages another. Both are theme colors that read at 4.5 to
+  1 on the ground and under their text in every built-in theme.
+* The water reading is a plain line rather than a bar. Text over the empty part of a bar reads at
+  less than 4.5 to 1 in the Default theme.
+* A death from hunger or thirst sets `Game#perished`. The end screen says "You starved to death."
+  or "You died of thirst.", and `over` carries the cause. A trial report counts it as starvation or
+  thirst.
+
+#### Drinking and explore
+
+* `Action::Drink` drinks one unit from the skin. A quenched character and an empty skin are both
+  refused, with a line and no turn. `Game#legal` offers it only while it would be taken.
+* The explore setting `drink`, on by default, makes an explore step drink instead of walking
+  once thirst is at the thirsty stage or worse and the skin holds water. The line that says
+  thirst set in does not stop the walk then, and neither does the drink.
+* The line that says the skin ran dry never stops an explore, because an explore walks to a
+  known fountain by itself once the skin is dry.
+* With `drink` off, or with an empty skin, a thirst stage that gets worse stops the walk with
+  `Halt::Thirsty`. Its line is the reason the walk stopped, so nothing more is written.
+* `Sustenance#tick` takes `thirst: false` to hold thirst and the skin still for a turn. A food
+  that makes thirst build at half rate passes it on every other turn.
+
+#### Specs
+
+`spec/support/sustenance.cr` gives `Sustenance` setters for the three counters and `Sustained`,
+which puts them back where a run starts. A spec that wants a character three thousand turns hungry
+sets the counter instead of playing the turns.
 
 ## Development tools
 
