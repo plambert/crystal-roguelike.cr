@@ -6420,6 +6420,45 @@ Measured over 20,000 seeds on floors 2 to 10:
 
 A spec measures the share over 2,000 seeds and holds it within 3 points of 60.
 
+### Drawing water
+
+| Action | `t` | Turns | What it does |
+| --- | --- | --- | --- |
+| `Action::Refill` | `refill` | 1 | `Sustenance#refill 1`, then an `Event::Refilled` with the units and the skin's water |
+| `Action::FountainDrink` | `fountain` | 0 | `Sustenance#quench 1`, then an `Event::Drank` from the fountain |
+
+* `Game#legal` offers each one only on a fountain, and only while it would do something: a skin
+  below full, or a character who is not `quenched?`.
+* Filling the skin is a `Game::Rest` with `filling?` set. `Game#linger` performs a `Refill` in
+  place of a `Wait`, so a replay holds one `refill` line per unit. It stops when the skin is
+  full, and for everything that stops a rest but a wound healed. A creature in sight refuses it.
+* `Ui::Play` drives a fill on the rest timer, so a key press stops it. The batch size reads the
+  units still missing in place of the hit points.
+* The refill turns write no line until the skin is full. A line each turn would stop the fill.
+* Drinking any potion also calls `Sustenance#quench 1`.
+
+### Keys
+
+| Scheme | Key | What it does |
+| --- | --- | --- |
+| Traditional | `U` | drinks from the fountain when thirsty, then fills the skin |
+| Modern | `f` | the available actions list "Fill the waterskin" and "Drink from the fountain" |
+
+The two commands are `Ui::Command::FillSkin` and `Ui::Command::DrinkFountain`, in the
+Environment group of the action catalog.
+
+### Explore
+
+* `Game#water_wanted?` is true when the skin is below full and is either empty or the thirsty
+  stage has started.
+* While it is, `Explore.route` and `Explore.going?` take the fountains the character knows on the
+  floor as `wells`, and walk to the nearest the way they walk to gold.
+* Standing on a fountain with the skin below full, an `Action::Explore` drinks from it when the
+  character is thirsty, then fills one unit and takes the turn. This tops up any skin it crosses
+  a fountain with, so a fill it walked there for goes on to full. No state is kept between steps.
+* The lines this writes do not stop the explore, so it walks on once the skin is full. A creature
+  coming into view stops it as it stops any explore step.
+
 ### Streams and fixtures
 
 * `generator` goes to 9. The fountain draws are new draws, and a fountain square changes where
