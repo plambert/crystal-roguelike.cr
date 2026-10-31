@@ -92,20 +92,6 @@ better. Each kind of wall takes a different amount of damage to destroy, so soft
 few blows and the hardest stone takes a long time. Now and then a dig runs into a gold ore vein,
 which is rare. A vein yields gold ore, an item of its own that is not gold and does not stack.
 
-### Hunger, food and corpses
-
-The character gets hungry as turns pass and must eat to avoid starving. Food is found on the floor
-as rations and other things to eat. A creature the character kills leaves a corpse, and a corpse
-can be eaten too. How fast hunger builds, what each food restores, how long a corpse lasts, and
-whether some corpses are bad to eat are to be settled when this is built.
-
-### Thirst, fountains and waterskins
-
-The character gets thirsty as turns pass and must drink. Fountains on some floors give water to
-drink on the spot. A waterskin holds water to carry away and drink later, and a fountain refills it.
-How fast thirst builds, how much a waterskin holds, and whether fountain water is always safe are to
-be settled when this is built.
-
 ### A floating pack window
 
 The pack in the left sidebar becomes a toggle that opens a floating pack window. The window can be
@@ -226,9 +212,9 @@ corpses and special monster items and makes them into dishes. A dish gives suste
 thirst, and gives a buff that ranges from very minor to very powerful. The buff shows on a temporary
 effect bar like any other.
 
-This depends on monsters leaving corpses, as in the hunger item, and on the food and drink systems
-in the hunger and thirst items. It also needs a well-rounded list of components that various
-monsters can leave behind, so each kind of creature has something worth taking. Which components
+Monsters already leave corpses, and food and drink systems are in the game. The cook also needs a
+well-rounded list of special components that various monsters can leave behind, so each kind of
+creature has something worth taking. Which components
 there are, which dishes they make, and what each buff does are to be settled when this is built.
 
 ### Magic staves
@@ -267,6 +253,47 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### Thirst, fountains and waterskins
+
+The character carries a waterskin of 10 units, which starts full, and sips from it as time passes.
+When it runs dry, thirst builds through the stages thirsty, parched, dehydrated and dying of thirst,
+and kills about 6000 turns after the skin ran dry. About three floors in five below the first have a
+fountain, drawn as `{` in a room. Floor 1 and the amulet chamber have none. Fountain water is always
+safe. Standing on a fountain, the character fills the waterskin one unit a turn until it is full or
+a creature comes into view, and drinks from it for free when thirsty. `D` drinks one unit from the
+skin, and `Ctrl+D` does it under modern controls. A drink is refused, with no turn spent, when the
+character is not thirsty. Any potion also quenches thirst. The explore settings include "Drink when
+thirsty", which is on by default. `X` also walks to a known fountain once the skin is empty or the
+character is thirsty, drinks, and fills the skin before it goes on.
+
+### Hunger, food and corpses
+
+Hunger builds every turn and passes through the stages hungry, famished and starving, and it kills
+at about 9000 turns without food. Each stage of hunger and thirst has its own penalty in place of
+the one before it. The first slows natural healing, the next takes 1 off to hit, and famished also
+takes 1 off melee and thrown damage. The third takes 10 off pace, and the last stops healing and
+takes hit points away. The character pane names each stage in its own bar, shows the waterskin as
+`water 7/10`, and a death from hunger or thirst has its own line on the end screen.
+
+Fourteen kinds of food lie about the floors, in five families. They are grain, meat, fruit, nuts and
+cheese, and roots and herbs. Food goes in a food bag that holds weight 40, takes no pack letter and
+costs no pace. The character starts with two rations. Food goes stale and then rotten as it ages,
+except rations, which keep. Stale food feeds half as much, and eating rotten food makes the
+character sick for a while, so every blow and shot lands less often. Fresh food gives a buff for 300
+turns by family. Meat makes the character quicker, fruit eases thirst, nuts and cheese steady the
+aim, and roots and herbs steady the hand. Grain feeds the most and gives no buff. A buff does not
+stack with itself, and stale food gives half of it. Food buffs and sickness each get a bar in the
+character pane. Eating stops when the character is full, and the rest stays in the bag, partly
+eaten.
+
+Beasts, goblins, orcs and ants leave a corpse when they die, and the undead leave rotten flesh and
+bones. A fresh corpse can be eaten where it lies or cut into fresh meat for the bag, and it rots
+away about 300 turns after death. A food bag screen, opened with `e`, lists what the bag holds and
+any corpse underfoot, and lets the player eat, cut up or drop each item. Trial games run without
+hunger and thirst, because the trial bot never eats or drinks, and `--trial-sustenance` turns them
+on. Bots get events for drinking and for each stage, a `drink` action, and the food bag and
+waterskin in the observation.
 
 ### Sound and noise
 
