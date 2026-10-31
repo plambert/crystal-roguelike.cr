@@ -170,17 +170,29 @@ Spectator.describe "Roguelike::Ui::Palette.rebuild" do
   end
 end
 
-Spectator.describe "the hunger and thirst bars" do
+Spectator.describe "the buff and debuff pills" do
   alias Palette = Roguelike::Ui::Palette
   alias Library = Roguelike::Ui::ThemeLibrary
 
-  it "read at 4.5 to 1 against the ground and under their text in every built-in theme" do
+  it "read at 4.5 to 1 under their text and against every ground in every built-in theme" do
     Library::BUILT_INS.each do |named|
       theme = named.theme
-      {theme.hunger_bar, theme.thirst_bar}.each do |fill|
-        expect(Palette.contrast(fill, theme.ground)).to be >= 4.5
-        expect(Palette.contrast(Palette.readable_on(fill), fill)).to be >= 4.5
+      {"buff_pill", "debuff_pill"}.each do |key|
+        pill = theme[key]
+        text = Palette.contrast Palette.readable_on(pill), pill
+        expect(text).to be >= 4.5, "#{named.name}: text on #{key} is #{text.round 2}"
+
+        {"ground", "focus_ground", "focus_flash"}.each do |under|
+          apart = Palette.contrast pill, theme[under]
+          expect(apart).to be >= 4.5, "#{named.name}: #{key} on #{under} is #{apart.round 2}"
+        end
       end
+    end
+  end
+
+  it "differ from each other in every built-in theme" do
+    Library::BUILT_INS.each do |named|
+      expect(named.theme.buff_pill).not_to eq named.theme.debuff_pill
     end
   end
 

@@ -30,7 +30,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   it by weight, type, value, name or freshness. Pick a row to eat it, cut it up or drop it. Press
   `e` to open it, or pick the food bag row at the end of the inventory. With modern controls it
   is in the inventory and in the action catalog under Items.
-* Food buffs and being sick each get a bar in the character pane, as a haste does.
+* Food buffs and being sick each show as a short labeled pill in the character pane.
 * Fountains. About three floors in five below the first have one, drawn as `{` in a room. Floor 1
   and the amulet chamber have none, and a run often goes two or three floors in a row without
   one. The fountain color is in the theme editor and reads at 4.5 to 1 in every built-in theme.
@@ -135,9 +135,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   off melee and thrown damage. The third takes 10 off pace. The last stops healing and takes hit
   points away. Thirst kills about 6000 turns after the skin runs dry. Hunger kills at about 9000
   turns without food.
-* The character pane names each hunger and thirst stage in its own bar, with no count, and shows
-  the waterskin as `water 7/10`. The two bar colors are in the theme editor, and each reads at
-  4.5 to 1 in every built-in theme.
+* The character pane names each hunger and thirst stage in a pill, with no count, and shows the
+  waterskin as `water 7/10`.
 * `D` drinks one unit from the waterskin, and `Ctrl+D` does it under modern controls. The action
   catalog lists it as Drink water. A drink quenches your thirst. You cannot drink when you are
   not thirsty, and that costs no turn.
@@ -163,6 +162,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Bones go in your pack, one pile to a letter, rather than in the food bag. Bones in the food
   bag of a saved game move to the pack when it loads, or to the floor under you when the pack is
   full. Rotten flesh stays in the food bag.
+* Food buffs, being sick, and the stages of hunger and thirst show in the character pane as short
+  labeled pills side by side, with no bar and no count. They wrap to the next line when a line
+  fills. Buffs are green and debuffs are red, and both colors are in the theme editor. The pill
+  text and the pills read at 4.5 to 1 or more in every built-in theme. Haste, slow and blindness
+  keep their bars.
 
 ### Fixed
 

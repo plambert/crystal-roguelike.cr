@@ -21,6 +21,18 @@ module Roguelike
       Event::Status::SteadyHand, Event::Status::Sick,
     ]
 
+    # The buffs from food. A pane draws these in a color apart from the
+    # debuffs.
+    BUFFS = [
+      Event::Status::WellFed, Event::Status::Refreshed, Event::Status::SteadyAim,
+      Event::Status::SteadyHand,
+    ]
+
+    # Whether *status* is a buff from food.
+    def self.buff?(status : Event::Status) : Bool
+      BUFFS.includes? status
+    end
+
     # What runs on *player* now, in `ORDER`.
     #
     # A haste and a slow count ticks, and a blindness and a buff from food

@@ -327,7 +327,12 @@ Spectator.describe Roguelike::Ui::CharacterPane do
 
     # The bar for *status*.
     def effect_bar(run : Playing::Run, status : Status) : Roguelike::Ui::Meter
-      run.play.character.effects[Roguelike::Lasting::ORDER.index!(status)]
+      run.play.character.effects[Pane::BARS.index!(status)]
+    end
+
+    # What the pills say, in order.
+    def pill_names(run : Playing::Run) : Array(String)
+      run.play.character.pills.pills.map &.text
     end
 
     it "shows no effect rows while nothing is running" do
@@ -389,7 +394,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       expect(effect_bar(run, Status::Dragging).reading).to eq "slow 18"
     end
 
-    it "names a hunger or thirst stage in a full bar with no count" do
+    it "names a hunger or thirst stage in a pill with no count" do
       run = playing
       sustenance = run.game.player.sustenance
       sustenance.water = 0
@@ -397,12 +402,63 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       sustenance.hunger = Roguelike::Sustenance::HUNGRY
       run.play.refresh
 
-      parched = effect_bar run, Status::Parched
-      expect(parched.hidden?).to be_false
-      expect(parched.reading).to eq "parched"
-      expect(parched.percent).to eq 100
-      expect(effect_bar(run, Status::Hungry).reading).to eq "hungry"
-      expect(effect_bar(run, Status::Thirsty).hidden?).to be_true
+      expect(pill_names run).to eq ["hungry", "parched"]
+      expect(run.play.character.pills.hidden?).to be_false
+      expect(run.play.character.effects.all?(&.hidden?)).to be_true
+    end
+
+    it "names a buff from food in a pill with no count" do
+      run = playing
+      run.game.player.buff Status::WellFed, 5, 300
+      run.game.player.buff Status::Sick, 1, 300
+      run.play.refresh
+
+      expect(pill_names run).to eq ["well fed", "sick"]
+      expect(run.play.character.effects.all?(&.hidden?)).to be_true
+    end
+
+    it "draws buffs and debuffs in two pill styles" do
+      run = playing
+      run.game.player.buff Status::SteadyAim, 1, 300
+      run.game.player.sustenance.hunger = Roguelike::Sustenance::HUNGRY
+      run.play.refresh
+
+      styles = run.play.character.pills.pills.map { |pill| {pill.text, pill.style} }.to_h
+      expect(styles["steady aim"]).to eq Roguelike::Ui::Palette.buff_pill
+      expect(styles["hungry"]).to eq Roguelike::Ui::Palette.debuff_pill
+      expect(Roguelike::Ui::Palette.buff_pill).not_to eq Roguelike::Ui::Palette.debuff_pill
+    end
+
+    it "sets pills side by side under the bars and wraps them when the row fills" do
+      run = playing
+      player = run.game.player
+      player.pace.hurry 30
+      player.buff Status::WellFed, 5, 300
+      player.buff Status::SteadyAim, 1, 300
+      player.buff Status::SteadyHand, 1, 300
+      player.sustenance.hunger = Roguelike::Sustenance::HUNGRY
+      run.play.refresh
+      run.render
+
+      water = run.play.character.water.rect.y
+      expect(info_row run, water + 1).to contain "haste 30"
+      first = info_row run, water + 2
+      expect(first).to contain "hungry"
+      expect(first).to contain "well fed"
+      expect(info_row run, water + 3).to contain "steady aim"
+      expect(info_row run, water + 4).to contain "steady hand"
+      expect(run.play.character.pills.rect.height).to eq 3
+    end
+
+    it "takes the pill away when the stage ends" do
+      run = playing
+      run.game.player.sustenance.hunger = Roguelike::Sustenance::HUNGRY
+      run.play.refresh
+      run.game.player.sustenance.hunger = 0
+      run.play.refresh
+
+      expect(run.play.character.pills.hidden?).to be_true
+      expect(run.play.character.lasting.hidden?).to be_true
     end
 
     it "shows what is in the waterskin" do
