@@ -700,6 +700,40 @@ Spectator.describe Roguelike::Observation do
       expect(found.statuses).not_to contain Observation::Status::Dragging
       expect(Observation.of(game).to_json.includes? "turns_left").to be_false
     end
+
+    it "gives hunger and thirst by stage name, and the waterskin" do
+      game = played ROOMS
+      body = game.player.sustenance
+      Roguelike::Sustenance::HUNGRY.times { body.tick }
+      found = Observation.of(game).player
+      written = JSON.parse(Observation.of(game).to_json)["player"]
+
+      expect(found.hunger).to eq body.hunger_stage
+      expect(found.thirst).to eq body.thirst_stage
+      expect(found.water).to eq body.water
+      expect(found.water_max).to eq Roguelike::Sustenance::WATER_MAX
+      expect(written["hunger"].as_s).to eq "hungry"
+      expect(written["thirst"].as_s).to eq "quenched"
+    end
+
+    it "leaves hunger, thirst and the waterskin out while they are off" do
+      game = played ROOMS
+      game.sustenance = false
+      written = JSON.parse(Observation.of(game).to_json)["player"].as_h
+
+      %w[hunger thirst water water_max].each do |key|
+        expect(written).not_to have_key key
+      end
+    end
+
+    it "reads a player block written before there was hunger or thirst" do
+      game = played ROOMS
+      written = JSON.parse(Observation.of(game).to_json).as_h
+      block = written["player"].as_h
+      %w[hunger thirst water water_max].each { |key| block.delete key }
+
+      expect(Observation.from_json(written.to_json).player.hunger).to be_nil
+    end
   end
 
   describe ".of" do

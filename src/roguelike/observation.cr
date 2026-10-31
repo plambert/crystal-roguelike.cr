@@ -130,19 +130,36 @@ module Roguelike
       # What is working on them now.
       getter statuses : Array(Status)
 
+      # How hungry and how thirsty they are, by stage name.
+      #
+      # These four are `nil` in a game with hunger and thirst off, and the
+      # keys are then left out. An observation written before they existed
+      # reads back the same way.
+      getter hunger : HungerStage? = nil
+      getter thirst : ThirstStage? = nil
+
+      # Units in the waterskin, and how many it holds.
+      getter water : Int32? = nil
+      getter water_max : Int32? = nil
+
       def initialize(@pos : {Int32, Int32}, @hit_points : Int32,
                      @max_hit_points : Int32, @level : Int32,
                      @experience : Int32, @armor_class : Int32,
                      @gold : Int32, @attributes : Attributes,
-                     @statuses : Array(Status))
+                     @statuses : Array(Status),
+                     @hunger : HungerStage? = nil,
+                     @thirst : ThirstStage? = nil,
+                     @water : Int32? = nil, @water_max : Int32? = nil)
       end
 
-      # The block for *player*.
-      def self.of(player : Player) : Character
+      # The block for *player*. *sustained* false leaves out hunger, thirst
+      # and the waterskin.
+      def self.of(player : Player, sustained : Bool = true) : Character
         statuses = [] of Status
         statuses << Status::Blind if player.blind?
         statuses << Status::Hurried if player.pace.hurried?
         statuses << Status::Dragging if player.pace.dragging?
+        body = player.sustenance
 
         new pos: player.at,
           hit_points: player.hit_points,
@@ -152,7 +169,11 @@ module Roguelike
           armor_class: player.armor_class,
           gold: player.gold,
           attributes: player.attributes,
-          statuses: statuses
+          statuses: statuses,
+          hunger: sustained ? body.hunger_stage : nil,
+          thirst: sustained ? body.thirst_stage : nil,
+          water: sustained ? body.water : nil,
+          water_max: sustained ? Sustenance::WATER_MAX : nil
       end
     end
 
@@ -596,7 +617,7 @@ module Roguelike
       new turn: game.turn,
         floor: ground.id,
         depth: World.depth(ground.id),
-        player: Character.of(game.player),
+        player: Character.of(game.player, game.sustenance?),
         map: Grid.new(ground.columns, ground.rows,
           known.to_map(ground, UNKNOWN)),
         visible: Grid.new(ground.columns, ground.rows,

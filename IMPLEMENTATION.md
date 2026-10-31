@@ -6389,6 +6389,23 @@ fixtures. That is left open.
 * No flag turns them off for a game a person plays. A replay does not record the switch, so a run
   played with it off would not replay.
 
+### What a bot sees
+
+`Observation::Character` has four new keys. Each is `nil` when `Game#sustenance?` is false, and
+the key is then left out of the JSON. An observation written before they existed reads back with
+them `nil`, and a bot that does not read them sees no change.
+
+| Key | What it holds |
+| --- | --- |
+| `hunger` | `Sustenance#hunger_stage`, as `satiated`, `fed`, `hungry`, `famished` or `starving` |
+| `thirst` | `Sustenance#thirst_stage`, as `quenched`, `fine`, `thirsty`, `parched`, `dehydrated` or `dying` |
+| `water` | Units in the waterskin |
+| `water_max` | `Sustenance::WATER_MAX` |
+
+The stages are names, not the counters. The character pane shows no numbers for hunger or thirst,
+and the observation holds only what a pane shows. The waterskin is shown as `water 7/10`, so both
+of its numbers are here.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

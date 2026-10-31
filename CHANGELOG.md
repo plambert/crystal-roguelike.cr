@@ -99,6 +99,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   theme editor.
 * `--trial` games run without hunger and thirst, because the trial bot never eats or drinks.
   `--trial-sustenance` turns them on.
+* The bot observation gives the character's hunger stage, thirst stage, and the water in the
+  waterskin with its capacity. The keys are left out when hunger and thirst are off.
 
 ### Changed
 
