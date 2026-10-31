@@ -2044,12 +2044,12 @@ module Roguelike
     end
 
     # The rule for drawing water at a fountain.
-    private def drawing(action : Action::Refill | Action::FountainDrink) : Verdict
+    private def drawing(action : Action::Refill | Action::Quench) : Verdict
       case action
       in Action::Refill
         clear_step
         Verdict.done(refill ? Step::Drew : Step::Blocked)
-      in Action::FountainDrink
+      in Action::Quench
         drink_fountain
         Verdict.done
       end
@@ -7130,7 +7130,7 @@ module Roguelike
         heading_off action
       when Action::Configure
         configuring action
-      when Action::Refill, Action::FountainDrink
+      when Action::Refill, Action::Quench
         drawing action
       else
         raise ArgumentError.new "#{action.class} has no rule"
@@ -7615,7 +7615,7 @@ module Roguelike
       found << Action::Descend.new if standing_on.stairs_down?
       found << Action::Ascend.new if standing_on.stairs_up?
       found << Action::Refill.new if cannot_refill.nil?
-      found << Action::FountainDrink.new if cannot_drink_fountain.nil?
+      found << Action::Quench.new if cannot_drink_fountain.nil?
       found << Action::Explore.new if explorable?
     end
 

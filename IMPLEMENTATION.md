@@ -6425,7 +6425,7 @@ A spec measures the share over 2,000 seeds and holds it within 3 points of 60.
 | Action | `t` | Turns | What it does |
 | --- | --- | --- | --- |
 | `Action::Refill` | `refill` | 1 | `Sustenance#refill 1`, then an `Event::Refilled` with the units and the skin's water |
-| `Action::FountainDrink` | `fountain` | 0 | `Sustenance#quench 1`, then an `Event::Drank` from the fountain |
+| `Action::Quench` | `quench` | 0 | `Sustenance#quench 1`, then an `Event::Drank` from the fountain |
 
 * `Game#legal` offers each one only on a fountain, and only while it would do something: a skin
   below full, or a character who is not `quenched?`.

@@ -1450,7 +1450,7 @@ module Roguelike::Ui
       complaint = @game.cannot_drink_fountain
       return say complaint if complaint
 
-      @game.perform Action::FountainDrink.new
+      @game.perform Action::Quench.new
       refresh
     end
 
@@ -1460,7 +1460,7 @@ module Roguelike::Ui
       return say "There is no fountain here." unless @game.at_fountain?
 
       drank = @game.cannot_drink_fountain.nil?
-      @game.perform Action::FountainDrink.new if drank
+      @game.perform Action::Quench.new if drank
 
       complaint = @game.cannot_refill
       if complaint.nil?

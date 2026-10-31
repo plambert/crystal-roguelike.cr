@@ -208,7 +208,7 @@ Spectator.describe "a fountain" do
       parch game.player.sustenance, 600
       turn = game.turn
 
-      game.perform Action::FountainDrink.new
+      game.perform Action::Quench.new
 
       expect(game.player.sustenance.quenched?).to be_true
       expect(game.turn).to eq turn
@@ -219,10 +219,10 @@ Spectator.describe "a fountain" do
     it "is refused to a character who is not thirsty" do
       game = hall on: true
 
-      game.perform Action::FountainDrink.new
+      game.perform Action::Quench.new
 
       expect(game.log.last?).to eq "You are not thirsty."
-      expect(game.legal.any?(Action::FountainDrink)).to be_false
+      expect(game.legal.any?(Action::Quench)).to be_false
     end
 
     it "quenches a character who drinks a potion" do

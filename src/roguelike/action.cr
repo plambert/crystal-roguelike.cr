@@ -74,7 +74,7 @@ module Roguelike
       "visit"     => Visit,
       "configure" => Configure,
       "refill"    => Refill,
-      "fountain"  => FountainDrink,
+      "quench"    => Quench,
     }
 
     # How a direction is written in JSON.
@@ -455,8 +455,8 @@ module Roguelike
     end
 
     # Drinking from the fountain underfoot. No turn passes.
-    class FountainDrink < Action
-      getter t : String = "fountain"
+    class Quench < Action
+      getter t : String = "quench"
 
       def initialize
       end
