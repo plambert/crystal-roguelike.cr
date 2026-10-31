@@ -47,8 +47,8 @@ Spectator.describe "the food bag screen" do
 
     expect(run.menu.title.to_s).to start_with Play::FOOD_BAG
     expect(run.menu.pages.map &.[0]).to eq %w[weight type value name freshness]
-    expect(run.text).to contain "rations"
-    expect(run.text).to contain "keeps"
+    expect(run.text).to contain "2 rations"
+    expect(run.text).to contain "an apple"
   end
 
   it "keeps a row's letter on every page as the sort changes" do
@@ -104,7 +104,7 @@ Spectator.describe "the food bag screen" do
     game.enroll
     run = traditional game
     run.press "e"
-    expect(run.text).to contain "underfoot"
+    expect(run.text).to contain "orc corpse"
 
     run.press "a", "c"
     expect(run.game.player.food_bag.items.map &.kind).to eq [Kind::FreshMeat]

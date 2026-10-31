@@ -25,11 +25,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
   bones, or bones alone for a skeleton. A fresh corpse can be eaten where it lies or cut into
   fresh meat for the bag, and it rots away about 300 turns after death.
-* A food bag screen lists what is in the bag with how fresh each thing is and what it weighs,
-  and any corpse you are standing on. Left and Right sort it by weight, type, value, name or
-  freshness. Pick a row to eat it, cut it up or drop it. Press `e` to open it, or pick the food
-  bag row at the end of the inventory. With modern controls it is in the inventory and in the
-  action catalog under Items.
+* A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
+  and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
+  it by weight, type, value, name or freshness. Pick a row to eat it, cut it up or drop it. Press
+  `e` to open it, or pick the food bag row at the end of the inventory. With modern controls it
+  is in the inventory and in the action catalog under Items.
 * Food buffs and being sick each get a bar in the character pane, as a haste does.
 * The color theme editor opens on a Themes list: the game's three themes, then every theme in the
   `themes` folder by name. Press `Enter` on one to use it. The theme you are using is marked, and a

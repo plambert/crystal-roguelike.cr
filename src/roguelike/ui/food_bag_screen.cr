@@ -71,37 +71,25 @@ module Roguelike::Ui
     end
 
     # *found* as rows, in the order *sort* puts them.
+    #
+    # A row is the name, which says when a food is stale, rotten or partly
+    # eaten, and what the stack weighs. A corpse underfoot has no weight,
+    # because it does not go in the bag.
     private def food_page(found : Array({Char, Item}), sort : FoodSort) : Array(Widgets::Menu::Entry)
       bag = FoodBag.new found.map(&.[1]).reject(&.corpse?)
       ordered = bag.sorted(sort).compact_map { |item| found.find(&.[1].same?(item)) }
       ordered.concat found.select(&.[1].corpse?)
 
-      nouns = ordered.map { |(_key, item)| food_noun item }
+      nouns = ordered.map { |(_key, item)| Naming.listed @game.lore, item }
       leads = ordered.map { |(_key, item)| Naming.lead @game.lore, item }
       lead = Math.max leads.max_of?(&.size) || 0, Naming::LEAD
       noun = nouns.max_of?(&.size) || 0
 
       ordered.map_with_index do |(key, item), index|
-        text = "#{leads[index].rjust(lead)} #{nouns[index].ljust(noun)}  #{food_note item}"
+        weight = item.corpse? ? "" : item.weight.to_s
+        text = "#{leads[index].rjust(lead)} #{nouns[index].ljust(noun)} #{weight.rjust(2)}"
         Widgets::Menu::Entry.new key, text.rstrip, mark: ' '
       end
-    end
-
-    # What a row calls *item*, without how fresh it is. A column says that.
-    private def food_noun(item : Item) : String
-      words = [] of String
-      words << "partly eaten" if item.bitten?
-      words << Lore.food_noun(item, item.count > 1)
-      words.join ' '
-    end
-
-    # How fresh *item* is and what it weighs, for the end of a row.
-    private def food_note(item : Item) : String
-      return "underfoot" if item.corpse?
-      return "refuse  weight #{item.weight}" unless item.edible?
-
-      fresh = item.food_facts.spoils? ? item.freshness.to_s.downcase : "keeps"
-      "#{fresh.ljust(6)}  weight #{item.weight}"
     end
 
     # Puts up what can be done with *item*: eat it, cut it up, or drop it.
