@@ -220,9 +220,11 @@ they stand, and how a quest is accepted and paid are to be settled when this is 
 
 ### A dwarven cook
 
-The first NPC is a dwarven cook. The cook takes monster corpses and special monster items and
-makes them into dishes. A dish gives sustenance, quenches thirst, and gives a buff that ranges from
-very minor to very powerful. The buff shows on a temporary effect bar like any other.
+The first NPC is a dwarven cook. Once the character has finished the cook's first quest, the cook
+offers to cook recipes in return for the ingredients and a little gold. The cook takes monster
+corpses and special monster items and makes them into dishes. A dish gives sustenance, quenches
+thirst, and gives a buff that ranges from very minor to very powerful. The buff shows on a temporary
+effect bar like any other.
 
 This depends on monsters leaving corpses, as in the hunger item, and on the food and drink systems
 in the hunger and thirst items. It also needs a well-rounded list of components that various
