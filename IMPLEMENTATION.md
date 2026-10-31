@@ -6277,6 +6277,93 @@ before with no change to rats, which is how much one seed moves when the generat
 * "One seed plays the same fights twice" moved from seed 5057 to 5029, the first seed from 5000
   on where a creature kills another in 400 turns.
 
+## Theme files and built-in themes
+
+Color themes can be saved, shared and chosen by name. The theme editor gained three sections above
+the colors, and the game ships two new themes beside its default.
+
+### The files
+
+* `theme.json` in the state directory stays the active theme. It is a full copy of the colors, so
+  editing a color writes only this file and never a named theme. It now carries an optional
+  `name` key, the theme the colors came from. A file without one still reads.
+* `themes/` under the state directory holds one file per named theme, in the same form, with
+  `name` first. `ThemeLibrary.file_name` makes the file name from the name: lower case, each run
+  of other characters one hyphen. Two names that make the same file name share the file.
+* A reference in `theme.json` to a named file was the other choice. It would make every color
+  edit write the named file, built-in files included, which startup then overwrites.
+* `Theme.parse` reads both a file and pasted text. Unknown keys are ignored and a missing color
+  takes its default. A color that is not `#rrggbb` refuses the whole theme and the message names
+  every bad key, so a theme is applied whole or not at all. Text that is not a JSON object is
+  refused the same way.
+
+### The editor
+
+| Section | Row | What it does |
+| --- | --- | --- |
+| Themes | one per theme | `Enter` draws with it and writes `theme.json` with its name |
+| Share | Copy theme | puts the theme as JSON on the clipboard through `App#copy` |
+| Share | Save as | the name to save under; `Enter` here saves |
+| Share | Save theme | saves into `themes/` and lists the new theme at once |
+| Share | Paste theme | a bracketed paste here is read as a theme and applied |
+
+* The Themes list is `ThemeLibrary.all`: the built-in themes from the code, then every readable
+  file in `themes/` by name. A file named like a built-in is left out, since the code owns it.
+* The row whose colors equal `Theme.current` says "in use", and the editor opens on that row.
+* A paste arrives as `Events::Paste`. The field takes it, flattening line breaks to spaces, which
+  JSON allows, and leaves it unclaimed. The editor reads the paste's text and empties the field.
+  `Enter` on typed text in the row does the same for a terminal without bracketed paste.
+* A pasted theme with a name is saved under it. A name that is a built-in with the same colors
+  just uses the built-in. One with other colors is saved as "Name copy".
+* A status line under the preview says what the last action did, and what went wrong.
+* `r` and `?` type into a text row instead of acting.
+
+### Built-in themes
+
+`ThemeLibrary::BUILT_INS` lists Default, High contrast and Paper. High contrast and Paper are
+fixed tables in `built_in_themes.cr`, and `Theme.built` refuses a table that leaves out a color.
+
+The game owns the built-in files. At startup `Session.display_preferences` calls
+`ThemeLibrary.sync`, which writes each built-in file that is missing or whose text differs from the
+code. A player's change to one is lost at the next start, so `ThemeLibrary.save` refuses a
+built-in name. The editor's Save as row offers "Name copy", or "Name copy 2" and so on, when the
+theme in use is a built-in. A failure to write the directory is kept in `ThemeLibrary.problem` and
+shown once, on the status line the first time the editor opens. Headless runs and bots never call
+`display_preferences`, so they never touch `themes/`.
+
+Paper suits a terminal with a light background. Panels draw on the terminal's own background, and
+the theme only sets the map's ground, the focused panel and the bars.
+
+### Contrast
+
+`Theme#readings` gives the WCAG contrast of each text color on its background: every glyph and
+text color on `ground`, plus the panel, bar, spotlight and noise pairs in `Theme::ON_OTHERS`. A
+spec holds every built-in but Default at 4.5 or more on all of them.
+
+| Pair | Default | High contrast | Paper |
+| --- | --- | --- | --- |
+| Ground | #0c0e12 | #000000 | #faf6ee |
+| plain on ground | 14.84 | 18.76 | 15.76 |
+| faint on ground | 3.88 | 10.20 | 7.01 |
+| vacant on ground | 2.32 | 7.71 | 5.17 |
+| message_new on ground | 15.60 | 17.79 | 6.68 |
+| faint on focus_ground | 3.05 | 8.44 | 6.29 |
+| faint on selected_row | 2.22 | 6.14 | 5.34 |
+| header_text on selected_header | 5.45 | 6.81 | 10.41 |
+| empty_text on empty | 3.78 | 9.79 | 10.04 |
+| ground on spotlight | 12.00 | 15.91 | 9.66 |
+| Lowest color on ground | 2.32 | 7.52 | 5.17 |
+| Lowest pair of all | 2.22 | 6.14 | 5.17 |
+| Remembered floor | 1.59 | 4.86 | 3.90 |
+
+A remembered square is its color mixed 66% toward `shadow`. It is shading rather than text, and the
+spec does not hold it to 4.5. High contrast sets `shadow` to a gray, #545c6e, so remembered floors
+stay near 4.9 to 1.
+
+Default is unchanged and misses 4.5 on seven pairs. Raising `faint`, `vacant`, `uncursed_mark`,
+`dirt` and `empty_text` would fix it, and would change every player's colors and the screen
+fixtures. That is left open.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

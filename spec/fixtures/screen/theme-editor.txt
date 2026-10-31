@@ -4,13 +4,13 @@
  #│ a dagger, a scroll, 12 gold      │
  #│ You hit the orc. The orc dies.   │
  #│                                  │
- #│ Share                          █ │
- #│ Copy theme   to the clipboard  │ │
- #│ Save as      My theme          │ │
-  │ Save theme   to a file         │ │
-  │ Paste theme  paste JSON here   │ │
+ #│ Themes                         █ │
+ #│ Default      in use, the game's│ │
+ #│ High         black ground, brig│ │
+  │ contrast                       │ │
+  │ Paper        dark ink, for a li│ │
 ──│                                │ │──
- Y│ Map                            │ │
- s│ Granite                 #a0a6b2│ │
+ Y│ Share                          │ │
+ s│ Copy theme   to the clipboard  │ │
  Y╰──────────────────────────────────╯f
  minor healing. Press ? for the keys.

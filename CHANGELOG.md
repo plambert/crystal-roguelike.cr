@@ -10,6 +10,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* The color theme editor opens on a Themes list: the game's three themes, then every theme in the
+  `themes` folder by name. Press `Enter` on one to use it. The theme you are using is marked, and a
+  theme file you drop into the folder shows up the next time the editor opens.
 * The color theme editor has a Share section. It copies the theme you are using to the clipboard
   as JSON, and saves it under a name you type as a file in the `themes` folder of the state
   directory. Paste a theme into its Paste theme row to use it at once. A pasted theme that has a

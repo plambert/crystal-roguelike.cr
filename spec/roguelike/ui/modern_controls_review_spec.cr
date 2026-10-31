@@ -372,7 +372,7 @@ Spectator.describe "modern controls reviewed interaction flows" do
       run.play.options_screen.show_theme_editor run.session.app
       run.render
       editor = run.play.options_screen.theme_editor
-      run.press "d"
+      run.press "d", "d"
       expect(editor.focused_row.try &.key).to eq "granite"
       run.press "f"
       expect(editor.picking?).to be_true

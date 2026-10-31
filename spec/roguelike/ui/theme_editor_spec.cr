@@ -87,7 +87,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
     expect(editor(run).showing?).to be_true
     expect(run.play.options_screen.showing?).to be_true
     expect(run.text).to contain "Color theme"
-    expect(editor(run).focused_row.try &.key).to eq Editor::COPY_KEY
+    expect(editor(run).focused_row.try &.key).to eq "theme-default"
     expect(editor(run).form.app).to be run.session.app
   end
 
@@ -96,8 +96,9 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
     open_editor run
 
     form = editor(run).form
-    expect(form.sections.compact_map(&.name)).to eq ["Share"] + Theme::ENTRIES.map(&.group).uniq! + ["Reset"]
-    expect(form.rows.map(&.key)).to eq [Editor::COPY_KEY, Editor::NAME_KEY, Editor::SAVE_KEY, Editor::PASTE_KEY] +
+    expect(form.sections.compact_map(&.name)).to eq ["Themes", "Share"] + Theme::ENTRIES.map(&.group).uniq! + ["Reset"]
+    expect(form.rows.map(&.key)).to eq %w[theme-default theme-high-contrast theme-paper] +
+                                       [Editor::COPY_KEY, Editor::NAME_KEY, Editor::SAVE_KEY, Editor::PASTE_KEY] +
                                        Theme::ENTRIES.map(&.key) + [Editor::RESET_KEY]
     expect(form.row("granite").try &.label).to eq "Granite"
   end
@@ -268,6 +269,7 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
       run = run_under root
       run.session.app.copy = nil
       open_editor run
+      go_to run, Editor::COPY_KEY
       run.press "Enter"
 
       expect(status run).to contain "no clipboard"
@@ -436,6 +438,92 @@ Spectator.describe Roguelike::Ui::ThemeEditor do
       run.press "Escape", "Enter"
       expect(editor(run).showing?).to be_true
       expect(status run).to eq ""
+    end
+  end
+
+  describe "the themes section" do
+    let(moss) { Theme::DEFAULT.with("ground", red) }
+
+    it "lists the built-in themes, then the saved ones by name" do
+      Library.save root, "Moss", moss
+      Library.save root, "Amber", Theme::PAPER
+      run = run_under root
+      open_editor run
+
+      choices = editor(run).choices.values.map &.name
+      expect(choices).to eq ["Default", "High contrast", "Paper", "Amber", "Moss"]
+      expect(run.text).to contain "High contrast"
+    end
+
+    it "marks the theme in use and starts the keyboard on it" do
+      Theme.current = Theme::PAPER
+      run = run_under root
+      open_editor run
+
+      row = editor(run).form.row("theme-paper").as(TermBuf::Widgets::Form::ActionRow)
+      expect(row.hint).to eq "in use, dark ink, for a light terminal"
+      expect(editor(run).focused_row.try &.key).to eq "theme-paper"
+    end
+
+    it "draws with a theme chosen with Enter and writes it with its name" do
+      Library.save root, "Moss", moss
+      run = run_under root
+      open_editor run
+      before = edge_cell run
+      go_to run, "theme-moss"
+      run.press "Enter"
+
+      expect(Theme.current).to eq moss
+      expect(Theme.current_name).to eq "Moss"
+      expect(on_file(root)["name"]).to eq "Moss"
+      expect(editor(run).form["ground"]).to eq red
+      expect(editor(run).form[Editor::NAME_KEY]).to eq "Moss"
+      expect(edge_cell run).not_to eq before
+      expect(status run).to eq "Using Moss."
+      expect(editor(run).form.row("theme-moss").as(TermBuf::Widgets::Form::ActionRow).hint).to eq "in use"
+    end
+
+    it "offers a copy name after choosing a built-in theme" do
+      run = run_under root
+      open_editor run
+      go_to run, "theme-high-contrast"
+      run.press "Enter"
+
+      expect(Theme.current).to eq Theme::HIGH_CONTRAST
+      expect(editor(run).form[Editor::NAME_KEY]).to eq "High contrast copy"
+    end
+
+    it "drops the in use mark once a color changes" do
+      run = run_under root
+      open_editor run
+      go_to run, "hero"
+      pick run, "ff0000"
+
+      expect(editor(run).form.row("theme-default").as(TermBuf::Widgets::Form::ActionRow).hint)
+        .to eq "the game's own colors"
+    end
+
+    it "lists a theme as soon as it is saved, keeping the keyboard where it was" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::NAME_KEY
+      run.press "Ctrl+U"
+      run.type "Moss"
+      run.press "Enter"
+
+      expect(editor(run).choices.keys).to contain "theme-moss"
+      expect(editor(run).focused_row.try &.key).to eq Editor::NAME_KEY
+      expect(run.text).to contain "Moss"
+    end
+
+    it "lists a pasted theme as soon as it is saved" do
+      run = run_under root
+      open_editor run
+      go_to run, Editor::PASTE_KEY
+      run.paste moss.to_named_json("Moss")
+
+      expect(editor(run).choices.keys).to contain "theme-moss"
+      expect(editor(run).focused_row.try &.key).to eq Editor::PASTE_KEY
     end
   end
 

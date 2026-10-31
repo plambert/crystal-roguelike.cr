@@ -7,7 +7,9 @@ module Roguelike::Ui
   # It is a second modal overlay over the options screen, with a border
   # titled `Color theme`. A preview sits at the top, drawn in the theme as it
   # stands, and a status line under it says what the last action did. Under
-  # those is a `Widgets::Form`. Its "Share" section copies the theme to the
+  # those is a `Widgets::Form`. Its "Themes" section has a row for each
+  # theme in `ThemeLibrary.all`, the built-in themes first, and `Enter` on
+  # one draws with it. The "Share" section copies the theme to the
   # clipboard, saves it as a named file in `themes/`, and takes a pasted
   # theme. After it come the colors from `Theme::ENTRIES`, one section per
   # group and one color row per entry. `Enter` on a color row opens the
@@ -32,6 +34,13 @@ module Roguelike::Ui
 
     # What is asked before every color goes back.
     QUESTION = "Put every color back?"
+
+    # The prefix of the key of each row in the Themes section. The rest is
+    # the stem of the theme's file name.
+    THEME_PREFIX = "theme-"
+
+    # What the row of the theme in use says first.
+    IN_USE = "in use"
 
     # The key of the row that copies the theme to the clipboard.
     COPY_KEY = "copy"
@@ -159,6 +168,9 @@ module Roguelike::Ui
     # What the last action did, under the preview. Hidden while empty.
     getter status : Widgets::Label
 
+    # The themes the Themes section offers, by the key of each row.
+    getter choices : Hash(String, ThemeLibrary::Named) = {} of String => ThemeLibrary::Named
+
     # The application the editor is up on.
     @app : Widgets::App? = nil
 
@@ -192,10 +204,7 @@ module Roguelike::Ui
       @app = app
       tell ThemeLibrary.problem || ""
       ThemeLibrary.problem = nil
-      remove @form
-      @form = ThemeEditor.form_for Theme.current, @depth, modern_controls?, save_name
-      @form.attach app
-      add @form
+      rebuild app
 
       @help.sections = [Keys.theme_editor(self, app)]
       self.keymap = @help.sections.first.bindings
@@ -203,13 +212,44 @@ module Roguelike::Ui
       open app
     end
 
-    # The form for *theme*: the share section, a section for each group in
-    # `Theme::ENTRIES` with a color row for each entry, and the reset row at
-    # the end. Each picker offers *depth* colors. The name row starts at
-    # *name*.
+    # Builds the form afresh, with a row for each theme on file, and puts
+    # the keyboard back on the row filed under *key* when there is one.
+    private def rebuild(app : Widgets::App, key : String? = nil) : Nil
+      @choices = ThemeEditor.choices_for ThemeLibrary.all(@root)
+      remove @form
+      @form = ThemeEditor.form_for Theme.current, @depth, modern_controls?, save_name, @choices
+      @form.attach app
+      add @form
+      mark_in_use
+
+      row = key.try { |wanted| @form.row wanted }
+      target = row.try &.target
+      return unless row && target
+
+      app.focus.focus target
+      @form.bring row
+    end
+
+    # *themes* by the key of the row each has in the Themes section.
+    def self.choices_for(themes : Array(ThemeLibrary::Named)) : Hash(String, ThemeLibrary::Named)
+      themes.each_with_object({} of String => ThemeLibrary::Named) do |named, found|
+        file = ThemeLibrary.file_name named.name
+        found["#{THEME_PREFIX}#{file.rchop ".json"}"] = named if file
+      end
+    end
+
+    # The form for *theme*: a row for each of *choices*, the share section,
+    # a section for each group in `Theme::ENTRIES` with a color row for each
+    # entry, and the reset row at the end. Each picker offers *depth*
+    # colors. The name row starts at *name*.
     def self.form_for(theme : Theme, depth : Widgets::Depth,
-                      modern : Bool = false, name : String = UNNAMED) : Widgets::Form
+                      modern : Bool = false, name : String = UNNAMED,
+                      choices : Hash(String, ThemeLibrary::Named) = choices_for(ThemeLibrary::BUILT_INS)) : Widgets::Form
       form = Widgets::Form.new actions: false, depth: depth, height: Layout::Sizing.fit
+
+      form.section "Themes" do |section|
+        choices.each { |key, named| section.action key, named.name, named.note }
+      end
 
       form.section "Share" do |section|
         section.action COPY_KEY, "Copy theme", "to the clipboard"
@@ -358,6 +398,36 @@ module Roguelike::Ui
       tell "Copied #{name} to the clipboard."
     end
 
+    # Says on the row of each theme whether it is the one in use, which is
+    # the one with the same colors.
+    private def mark_in_use : Nil
+      @choices.each do |key, named|
+        row = @form.row(key).as?(Widgets::Form::ActionRow)
+        next unless row
+
+        row.hint = [(IN_USE if named.theme == Theme.current), named.note].compact.join(", ")
+      end
+    end
+
+    # Draws with the theme on the Themes row filed under *key*.
+    def choose(key : String) : Nil
+      named = @choices[key]?
+      return unless named
+
+      use named.theme, named.name
+      tell "Using #{named.name}."
+    end
+
+    # Builds the form again when the themes on file are not the ones it
+    # offers, keeping the keyboard where it is.
+    private def relist : Nil
+      app = @app
+      return unless app
+      return if ThemeEditor.choices_for(ThemeLibrary.all(@root)).keys == @choices.keys
+
+      rebuild app, focused_row.try(&.key)
+    end
+
     # Saves the theme in use under the name in the name row.
     def save : Nil
       name = typed_name
@@ -369,6 +439,8 @@ module Roguelike::Ui
       path = ThemeLibrary.save @root, name, Theme.current
       Theme.current_name = name
       Theme.current.write @root, name
+      relist
+      mark_in_use
       tell "Saved #{name} as #{path}."
     rescue error : File::Error | ArgumentError
       tell "The theme was not saved: #{error.message}"
@@ -397,6 +469,8 @@ module Roguelike::Ui
 
       begin
         ThemeLibrary.save @root, name, theme
+        relist
+        mark_in_use
         tell "Using #{name}, saved in the themes folder."
       rescue error : File::Error | ArgumentError
         tell "Using #{name}. It was not saved: #{error.message}"
@@ -430,9 +504,11 @@ module Roguelike::Ui
       end
     end
 
-    # The keyboard goes to the first row.
+    # The keyboard goes to the row of the theme in use, or the first row.
     protected def initial_focus : Widgets::Widget?
-      @form.reachable.first?.try &.target
+      in_use = @choices.find { |_, named| named.theme == Theme.current }
+      row = in_use.try { |(key, _)| @form.row key }
+      (row || @form.reachable.first?).try &.target
     end
 
     # Takes each change and each press the form reports, a line handed
@@ -484,9 +560,10 @@ module Roguelike::Ui
     # it was one of the editor's.
     private def activated(key : String) : Bool
       case key
-      when COPY_KEY  then copy
-      when SAVE_KEY  then save
-      when RESET_KEY then reset_all
+      when .starts_with?(THEME_PREFIX) then choose key
+      when COPY_KEY                    then copy
+      when SAVE_KEY                    then save
+      when RESET_KEY                   then reset_all
       when .starts_with?(RESET_COLOR_PREFIX)
         reset_color key[RESET_COLOR_PREFIX.size..]
       else
@@ -513,6 +590,7 @@ module Roguelike::Ui
       Theme.current = theme
       theme.write @root, Theme.current_name
       Palette.rebuild
+      mark_in_use
       @on_change.try &.call
     end
 
