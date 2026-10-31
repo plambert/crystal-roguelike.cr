@@ -6513,7 +6513,9 @@ pieces of fresh meat. It weighs 50, 150 or 400, so it never fits in the bag.
   it instead, so meat reads "a piece of fresh meat", "a piece of stale meat" and "a piece of
   rotten meat". Fresh meat is the one kind whose name holds the word.
 * **Event.** `food_spoiled` fires once for a bag stack on the turn it goes stale and once on the
-  turn it goes rotten. The line beside it does not stop a walk.
+  turn it goes rotten. The line beside it does not stop a walk. The line and the event's `name`
+  name the food as it was before it turned, through `Item#unripened`, so a piece of meat "has
+  gone rotten" as a piece of stale meat.
 
 ### The food bag
 

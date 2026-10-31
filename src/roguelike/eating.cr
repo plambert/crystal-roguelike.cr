@@ -71,10 +71,11 @@ module Roguelike
 
     # Says that *item* in the bag has gone stale or rotten.
     #
-    # An explore and a travel go on past the line. `#told?` overlooks it.
+    # The line names the food as it was before it turned. An explore and a
+    # travel go on past the line. `#told?` overlooks it.
     private def spoiled(item : Item) : Nil
       wrote = @log.written
-      noun = name item
+      noun = name item.unripened
       verb = item.count > 1 ? "have" : "has"
       say "#{Lore.sentence noun} in your food bag #{verb} gone #{item.freshness.label}.",
         Event::FoodSpoiled.new(item.id, noun, item.freshness)

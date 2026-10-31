@@ -388,6 +388,22 @@ module Roguelike
       freshness != before
     end
 
+    # A copy of this food as it was a turn ago, before the last `#ripen`.
+    #
+    # The line that says food has turned names it as it was before it
+    # turned.
+    def unripened : Item
+      found = copy
+      found.age_back
+      found
+    end
+
+    # Takes one turn off this food's age.
+    protected def age_back : Nil
+      held = @age
+      @age = held - 1 if held && held > 0
+    end
+
     # Whether anything eats this.
     def edible? : Bool
       food? && !category.refuse?

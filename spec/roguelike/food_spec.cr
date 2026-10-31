@@ -415,6 +415,19 @@ Spectator.describe "food, the food bag and corpses" do
       expect(spoiled.first.as(Event::FoodSpoiled).freshness).to eq Freshness::Stale
     end
 
+    it "names the food as it was before it turned" do
+      keeps = Food.facts(ItemKind::FreshMeat).keeps
+      meat = food ItemKind::FreshMeat, age: keeps * 2 - 1
+      meat.bite 100
+      game = hall [meat]
+      seen = waits game, 1
+
+      spoiled = seen.select(Event::FoodSpoiled).first.as(Event::FoodSpoiled)
+      expect(spoiled.freshness).to eq Freshness::Rotten
+      expect(game.log.lines)
+        .to contain "A partly eaten piece of stale meat in your food bag has gone rotten."
+    end
+
     it "keeps rotten food in the bag" do
       keeps = Food.facts(ItemKind::Berries).keeps
       game = hall [food(ItemKind::Berries, age: keeps * 2)]

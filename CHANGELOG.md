@@ -172,6 +172,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   scheme chooser also takes `h` and `l`.
 * Meat says how fresh it is in its own name. A piece of meat reads "a piece of stale meat"
   rather than "a stale piece of fresh meat".
+* The line that says food in your bag has gone stale or rotten names the food as it was, so
+  it no longer says rotten twice.
 
 ## [0.7.0] - 2026-10-28
 
