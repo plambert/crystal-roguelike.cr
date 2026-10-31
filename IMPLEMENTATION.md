@@ -6376,6 +6376,19 @@ Default is unchanged and misses 4.5 on seven pairs. Raising `faint`, `vacant`, `
 `dirt` and `empty_text` would fix it, and would change every player's colors and the screen
 fixtures. That is left open.
 
+## Hunger and thirst for bots and trials
+
+### The switch
+
+* `Game#sustenance?` says whether hunger and thirst run. It is true by default. When it is false,
+  `Game#sustain` returns before `Sustenance#tick`, so the counters and the skin stand still.
+* The save does not hold it. A loaded game has hunger and thirst on.
+* `Trial::Bot` and `Trial::Cautious` set it false unless built with `sustenance: true`. The trial
+  bot never eats or drinks, so a long trial would measure starvation rather than the fights.
+* `--trial-sustenance` turns hunger and thirst on for `--trial` games.
+* No flag turns them off for a game a person plays. A replay does not record the switch, so a run
+  played with it off would not replay.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

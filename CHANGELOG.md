@@ -97,6 +97,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   pass. For one turn after you make a noise, the map tints the squares it reached, brightest at
   the source. A ring spreads out from you first unless motion is off. The colors are in the
   theme editor.
+* `--trial` games run without hunger and thirst, because the trial bot never eats or drinks.
+  `--trial-sustenance` turns them on.
 
 ### Changed
 
