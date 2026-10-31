@@ -64,9 +64,14 @@ module Roguelike::Ui
     # The bar has no label outside it, so it lines up with the bars above
     # and the name goes in front of the count.
     LASTING_NAMES = {
-      Event::Status::Hurried  => "haste",
-      Event::Status::Dragging => "slow",
-      Event::Status::Blind    => "blind",
+      Event::Status::Hurried    => "haste",
+      Event::Status::Dragging   => "slow",
+      Event::Status::Blind      => "blind",
+      Event::Status::WellFed    => "fed",
+      Event::Status::Refreshed  => "fruit",
+      Event::Status::SteadyAim  => "aim",
+      Event::Status::SteadyHand => "hand",
+      Event::Status::Sick       => "sick",
     }
 
     # What the noise bar is labeled. A note, where the other bars have two

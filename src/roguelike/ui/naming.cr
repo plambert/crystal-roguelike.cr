@@ -48,6 +48,16 @@ module Roguelike::Ui
       ItemKind::LightWand          => "light wand",
       ItemKind::StrikingWand       => "striking wand",
       ItemKind::Gold               => "gold",
+      ItemKind::Bread              => "bread",
+      ItemKind::FreshMeat          => "fresh meat",
+      ItemKind::DriedMeat          => "dried meat",
+      ItemKind::DriedFruit         => "dried fruit",
+      ItemKind::Berries            => "berries",
+      ItemKind::Nuts               => "nuts",
+      ItemKind::Cheese             => "cheese",
+      ItemKind::Herbs              => "herbs",
+      ItemKind::RottenFlesh        => "rotten flesh",
+      ItemKind::Bones              => "bones",
     }
 
     # How many cells the field in front of a name takes at the narrowest.
@@ -104,6 +114,7 @@ module Roguelike::Ui
       if regard.everything?
         words << CONDITIONS[item.condition]
         words << Lore.enchantment(item.enchantment) unless item.enchantment.zero?
+        words.concat Lore.food_words(item)
         words << noun lore, item
       else
         words << Lore.bare_noun item

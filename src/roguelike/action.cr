@@ -73,6 +73,8 @@ module Roguelike
       "travel"    => Travel,
       "visit"     => Visit,
       "configure" => Configure,
+      "eat"       => Eat,
+      "cut"       => Cut,
     }
 
     # How a direction is written in JSON.
@@ -453,6 +455,29 @@ module Roguelike
       getter target : {Int32, Int32}?
 
       def initialize(@target : {Int32, Int32}? = nil)
+      end
+    end
+
+    # Eating food from the food bag, or a corpse underfoot.
+    #
+    # *item* is the id of a stack in the bag or of a corpse on the square.
+    # One of a stack is eaten, and eating stops when the character is full.
+    class Eat < Action
+      getter t : String = "eat"
+
+      getter item : Int32
+
+      def initialize(@item : Int32)
+      end
+    end
+
+    # Cutting a fresh corpse underfoot into meat for the food bag.
+    class Cut < Action
+      getter t : String = "cut"
+
+      getter item : Int32
+
+      def initialize(@item : Int32)
       end
     end
   end

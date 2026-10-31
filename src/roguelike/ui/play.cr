@@ -2113,6 +2113,7 @@ module Roguelike::Ui
       in .wand?                                           then "wands"
       in .light?, .tool?                                  then "tools"
       in .treasure?                                       then "treasure"
+      in .food?                                           then "food"
       end
     end
 
