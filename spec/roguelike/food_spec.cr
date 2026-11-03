@@ -3,6 +3,7 @@ require "../spec_helper"
 Spectator.describe "food, the food bag and corpses" do
   alias Action = Roguelike::Action
   alias Buff = Roguelike::Buff
+  alias Butchery = Roguelike::Butchery
   alias Event = Roguelike::Event
   alias Floor = Roguelike::Floor
   alias Food = Roguelike::Food
@@ -355,6 +356,93 @@ Spectator.describe "food, the food bag and corpses" do
       expect(game.legal.any?(Action::PickUp)).to be_false
     end
 
+    it "cuts a fresh beast corpse into meat when it is picked up" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Wolf).first
+      game.enroll
+      corpse = game.here.first
+      game.perform Action::PickUp.new
+
+      expect(game.events.select(Event::Butchered).map(&.as(Event::Butchered).item)).to eq [corpse.id]
+      expect(game.player.food_bag.items.map(&.kind)).to eq [ItemKind::FreshMeat]
+      expect(game.player.food_bag.items.first.count).to eq Food::CUTS[corpse.size]
+      expect(game.here).to be_empty
+      expect(game.turn).to eq 1
+    end
+
+    it "refuses to pick up a stale corpse" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Wolf).first
+      game.enroll
+      waits game, Food::CORPSE_KEEPS
+      turn = game.turn
+      corpse = game.here.first
+      game.perform Action::PickUp.new(corpse.id)
+
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.too_old? })
+        .to be_true
+      expect(game.here).to eq [corpse]
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.turn).to eq turn
+    end
+
+    it "refuses to pick up a humanoid corpse" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.enroll
+      game.perform Action::PickUp.new
+
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.not_butchered? })
+        .to be_true
+      expect(game.here.size).to eq 1
+      expect(game.turn).to eq 0
+    end
+
+    it "passes over a humanoid corpse when picking up everything" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::GoblinWarrior).first
+      game.floor.drop *HERE, food(ItemKind::Apple)
+      game.enroll
+
+      expect(game.pick_up_all).to eq 1
+      expect(game.player.food_bag.items.map(&.kind)).to eq [ItemKind::Apple]
+      expect(game.here.map(&.corpse?)).to eq [true]
+      expect(game.events.any?(Event::Refused)).to be_false
+    end
+
+    it "says why when a humanoid corpse is all there is to pick up" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::GoblinWarrior).first
+      game.enroll
+
+      expect(game.pick_up_all).to eq 0
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.not_butchered? })
+        .to be_true
+      expect(game.here.size).to eq 1
+    end
+
+    it "cuts a beast corpse when picking up everything" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Rat).first
+      game.floor.drop *HERE, food(ItemKind::Apple)
+      game.enroll
+
+      expect(game.pick_up_all).to eq 2
+      expect(game.player.food_bag.items.map(&.kind)).to eq [ItemKind::FreshMeat, ItemKind::Apple]
+      expect(game.here).to be_empty
+    end
+
+    it "never cuts a corpse it steps on" do
+      game = hall
+      game.floor.drop HERE[0] + 1, HERE[1], Game.remains_of(Kind::Wolf).first
+      game.enroll
+      game.perform Action::Move.new(Roguelike::Direction::East)
+
+      expect(game.here.map(&.corpse?)).to eq [true]
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.events.any?(Event::Butchered)).to be_false
+    end
+
     it "drops a stack from the bag" do
       game = hall [food(ItemKind::Apple, 2)]
       id = game.player.food_bag.items.first.id
@@ -502,6 +590,66 @@ Spectator.describe "food, the food bag and corpses" do
       expect(Kind::Skeleton.remains).to eq Remains::Bones
     end
 
+    it "knows which corpses cut into meat" do
+      expect(Kind::Wolf.butchery).to eq Butchery::Beast
+      expect(Kind::Ant.butchery).to eq Butchery::Beast
+      expect(Kind::GoblinScout.butchery).to eq Butchery::Humanoid
+      expect(Kind::OrcWarlord.butchery).to eq Butchery::Humanoid
+      expect(Kind::Werewolf.butchery).to eq Butchery::Humanoid
+      expect(Kind::Zombie.butchery).to eq Butchery::None
+      expect(Kind::WhiteSlime.butchery).to eq Butchery::None
+      expect(Game.remains_of(Kind::Orc).first.butchery).to eq Butchery::Humanoid
+    end
+
+    it "will not cut up a humanoid corpse" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::GoblinWarrior).first
+      game.enroll
+      corpse = game.here.first
+      expect(game.cuttable).to be_empty
+      expect(game.legal.any?(Action::Cut)).to be_false
+
+      expect(game.cut(corpse)).to be_false
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.not_butchered? })
+        .to be_true
+      expect(game.here).to eq [corpse]
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.turn).to eq 0
+    end
+
+    it "takes a point of maximum hit points for each meal of a humanoid corpse" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.enroll
+      corpse = game.here.first
+      before = game.player.max_hit_points
+      expect(game.player.hit_points).to eq before
+      game.perform Action::Eat.new(corpse.id)
+
+      expect(game.player.max_hit_points).to eq before - 1
+      expect(game.player.hit_points).to eq before - 1
+      expect(game.events.select(Event::Weakened).map(&.as(Event::Weakened).amount)).to eq [1]
+    end
+
+    it "costs nothing to eat a beast corpse" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Rat).first
+      game.enroll
+      before = game.player.max_hit_points
+      game.perform Action::Eat.new(game.here.first.id)
+
+      expect(game.player.max_hit_points).to eq before
+      expect(game.events.any?(Event::Weakened)).to be_false
+    end
+
+    it "keeps lost maximum hit points through a save" do
+      game = hall
+      game.player.waste 2
+      loaded = Player.from_json game.player.to_json
+      expect(loaded.max_hit_points).to eq game.player.max_hit_points
+      expect(Player.from_json(hall.player.to_json).to_json).not_to contain "wasted"
+    end
+
     it "leaves a corpse where a kill falls" do
       game = hall
       goblin = Monster.new Kind::GoblinWarrior, 2, 1, "band-one"
@@ -538,13 +686,14 @@ Spectator.describe "food, the food bag and corpses" do
 
     it "cuts a corpse into meat for the bag" do
       game = hall
-      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.floor.drop *HERE, Game.remains_of(Kind::Wolf).first
       game.enroll
+      size = game.here.first.size
       game.perform Action::Cut.new(game.here.first.id)
 
       meat = game.player.food_bag.items
       expect(meat.map(&.kind)).to eq [ItemKind::FreshMeat]
-      expect(meat.first.count).to eq Food::CUTS[Roguelike::Size::Medium]
+      expect(meat.first.count).to eq Food::CUTS[size]
       expect(game.here).to be_empty
       expect(game.turn).to eq 1
     end

@@ -307,10 +307,11 @@ module Roguelike
         true
       end
 
-      # Takes what is underfoot. Answers whether it did.
+      # Takes what is underfoot. Answers whether it did. It leaves a corpse
+      # alone, because picking one up cuts it and the bot never eats.
       protected def took : Bool
         pile = @game.here
-        return false if pile.empty?
+        return false if pile.empty? || pile.first.corpse?
 
         @game.pick_up pile.first
       end

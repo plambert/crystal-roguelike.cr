@@ -6553,8 +6553,12 @@ alone, so an item id still names one thing in both. `Game#each_bearer` walks the
 so bag food has ids. A save writes the bag under the player, and an older save loads an empty one.
 
 * **Pickup.** `Game#pick_up` sends food to the bag. A stack that does not fit stays on the floor
-  with a `bag_full` refusal, and a corpse with `too_big`. Automatic pickup takes food that has not
-  rotted, is not refuse, was not put down, and fits. Explore walks to it under its pickup setting.
+  with a `bag_full` refusal. A corpse goes to `Game#cut`, so picking one up cuts it with the same
+  lines, events and refusals. `too_big` is no longer sent. `Game#pick_up_all` passes over a
+  corpse that would refuse and names it only when it took nothing else. Automatic pickup takes
+  food that has not rotted, is not refuse, is not a corpse, was not put down, and fits. Explore
+  walks to it under its pickup setting. `Game#legal` still offers no `pickup` for a corpse, so a
+  bot keeps using `cut`. The trial bot leaves a corpse alone. The food bag screen has no cut row.
 * **Drop.** `Action::Drop` takes a bag id as well as a pack id.
 * **Sorts.** `FoodBag#sorted` orders by weight, by family, by value, by name and by freshness.
   Weight and value put the most first. Freshness puts fresh first, and within a stage what turns
@@ -6592,6 +6596,17 @@ alone. `corpse_left` fires when the character saw the creature die. A corpse is 
 and rots away at 300, with `corpse_rotted` when the character can see the square. A stale corpse can
 still be eaten, and only a fresh one can be cut up.
 
+* **Butchery.** `Species#butchery` says whether a corpse cuts into meat, and
+  `KindFacts#butchery` lets a kind say otherwise. `Item#butchery` reads it from the corpse's
+  creature, the way `Item#size` does. `Butchery::Beast` cuts as before: rats, wolves, bears,
+  boars, snakes and ants. `Butchery::Humanoid` never cuts: goblins, orcs and the werewolf, which
+  overrides its species. `Butchery::None` covers the species that leave no corpse, the undead
+  among them. `Game#cut` refuses a humanoid corpse with `not_butchered` before it looks at
+  freshness, and `Game#cuttable` leaves it out. A humanoid corpse can still be eaten in place.
+  Each `eat` of one takes a point off the maximum through `Player#waste`, and current hit points
+  down with it, with a `weakened` event. It costs a point per meal and not per point of satiety.
+  `Player#wasted` is `nil` in the save until something is lost, so an older save and the
+  fingerprint of a run that never ate one are unchanged. The maximum never goes below 1.
 * **Bones.** A pile of bones is `ItemClass::Remains`, weight 3, and has no food facts. It goes in
   the pack under a letter of its own, because the class does not stack, and a full pack leaves it
   on the floor with `pack_full`. Automatic pickup takes only what stacks with something carried,

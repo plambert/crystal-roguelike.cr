@@ -92,7 +92,8 @@ module Roguelike::Ui
       end
     end
 
-    # Puts up what can be done with *item*: eat it, cut it up, or drop it.
+    # Puts up what can be done with *item*: eat it or drop it. Picking up a
+    # corpse cuts it, so the pick-up keys do that.
     #
     # Each row is dimmed where it does not apply, so a key is in the same
     # place every time. `Escape` goes back to the bag.
@@ -100,7 +101,6 @@ module Roguelike::Ui
       corpse = item.corpse?
       entries = [
         Widgets::Menu::Entry.new('e', "eat", enabled: @game.edible.any?(&.same?(item))),
-        Widgets::Menu::Entry.new('c', "cut up", enabled: @game.cuttable.any?(&.same?(item))),
         Widgets::Menu::Entry.new('d', "drop", enabled: !corpse),
       ]
       about = {} of Char => Listing
@@ -109,7 +109,6 @@ module Roguelike::Ui
       choose(Lore.sentence(@game.name(item)), entries, about) do |key|
         case key
         when 'e' then @game.perform Action::Eat.new(item.id)
-        when 'c' then @game.perform Action::Cut.new(item.id)
         when 'd' then @game.perform Action::Drop.new(item.id)
         else
           show_food_bag @food_back

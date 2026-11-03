@@ -100,6 +100,12 @@ module Roguelike
     # with the character fed, quenched and the skin full.
     getter sustenance : Sustenance = Sustenance.new
 
+    # Maximum hit points lost for good, from eating humanoid corpses.
+    #
+    # `nil` stands for none, so a save that has lost nothing writes no field
+    # and an older save loads the same.
+    @wasted : Int32? = nil
+
     def initialize(@floor : String, @x : Int32, @y : Int32,
                    @attributes : Attributes = Attributes.new,
                    @level : Int32 = 1,
@@ -324,9 +330,24 @@ module Roguelike
       @x == x && @y == y
     end
 
-    # Hit points at full health.
+    # Hit points at full health. Never less than one.
     def max_hit_points : Int32
-      Advancement.max_hit_points @level, @attributes.constitution
+      Math.max Advancement.max_hit_points(@level, @attributes.constitution) - wasted, 1
+    end
+
+    # Maximum hit points lost for good.
+    def wasted : Int32
+      @wasted || 0
+    end
+
+    # Takes *amount* off the maximum hit points for good, and the current
+    # hit points down to the new maximum. Answers how many came off the
+    # maximum.
+    def waste(amount : Int32) : Int32
+      before = max_hit_points
+      @wasted = wasted + amount
+      @hit_points = Math.min @hit_points, max_hit_points
+      before - max_hit_points
     end
 
     # Whether the character is still alive.

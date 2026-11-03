@@ -497,7 +497,7 @@ module Roguelike::Ui
       notes = [
         {"a-z A-Z", "what to do with that food"},
         {"Left Right", "sort by weight, type, value, name or freshness"},
-        {"e c d", "eat, cut up a corpse, drop"},
+        {"e d", "eat, drop"},
         {"%", "the food bag, from the inventory"},
       ]
 
