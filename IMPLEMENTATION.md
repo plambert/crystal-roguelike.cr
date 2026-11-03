@@ -6592,6 +6592,17 @@ alone. `corpse_left` fires when the character saw the creature die. A corpse is 
 and rots away at 300, with `corpse_rotted` when the character can see the square. A stale corpse can
 still be eaten, and only a fresh one can be cut up.
 
+* **Butchery.** `Species#butchery` says whether a corpse cuts into meat, and
+  `KindFacts#butchery` lets a kind say otherwise. `Item#butchery` reads it from the corpse's
+  creature, the way `Item#size` does. `Butchery::Beast` cuts as before: rats, wolves, bears,
+  boars, snakes and ants. `Butchery::Humanoid` never cuts: goblins, orcs and the werewolf, which
+  overrides its species. `Butchery::None` covers the species that leave no corpse, the undead
+  among them. `Game#cut` refuses a humanoid corpse with `not_butchered` before it looks at
+  freshness, and `Game#cuttable` leaves it out. A humanoid corpse can still be eaten in place.
+  Each `eat` of one takes a point off the maximum through `Player#waste`, and current hit points
+  down with it, with a `weakened` event. It costs a point per meal and not per point of satiety.
+  `Player#wasted` is `nil` in the save until something is lost, so an older save and the
+  fingerprint of a run that never ate one are unchanged. The maximum never goes below 1.
 * **Bones.** A pile of bones is `ItemClass::Remains`, weight 3, and has no food facts. It goes in
   the pack under a letter of its own, because the class does not stack, and a full pack leaves it
   on the floor with `pack_full`. Automatic pickup takes only what stacks with something carried,

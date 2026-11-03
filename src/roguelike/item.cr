@@ -361,6 +361,12 @@ module Roguelike
       @creature
     end
 
+    # Whether this corpse is cut into meat. `Butchery::None` for anything
+    # that is not a corpse.
+    def butchery : Butchery
+      @creature.try(&.butchery) || Butchery::None
+    end
+
     # The food facts of this kind. Only food has them.
     def food_facts : FoodFacts
       Food.facts @kind

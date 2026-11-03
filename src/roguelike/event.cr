@@ -95,6 +95,7 @@ module Roguelike
       "uncursed"       => Uncursed,
       "used"           => Used,
       "waited"         => Waited,
+      "weakened"       => Weakened,
       "welded"         => Welded,
     }
 
@@ -446,6 +447,10 @@ module Roguelike
 
         # The corpse has gone too far to cut up.
         TooOld
+
+        # The corpse was a goblin, an orc or another humanoid, and nobody
+        # cuts one up.
+        NotButchered
       end
 
       getter kind : String = "refused"
@@ -1274,6 +1279,19 @@ module Roguelike
 
       def initialize(@item : Int32, @name : String, @taken : Int32,
                      @whole : Bool)
+      end
+    end
+
+    # Eating the humanoid corpse *item* took *amount* off the character's
+    # maximum hit points for good.
+    class Weakened < Event
+      getter kind : String = "weakened"
+
+      getter item : Int32
+      getter name : String
+      getter amount : Int32
+
+      def initialize(@item : Int32, @name : String, @amount : Int32)
       end
     end
 

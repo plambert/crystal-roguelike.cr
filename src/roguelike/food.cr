@@ -98,6 +98,23 @@ module Roguelike
     Bones
   end
 
+  # Whether a creature's corpse is cut into meat.
+  #
+  # A member is never removed and never reordered.
+  enum Butchery
+    # Cuts into meat. Rats, wolves, bears, boars, snakes and ants.
+    Beast
+
+    # Never cut. Goblins and orcs, and any human, elf, dwarf, gnome or
+    # primate. Its corpse can be eaten where it lies, at the cost of a
+    # point of maximum hit points for each meal.
+    Humanoid
+
+    # Leaves no corpse to cut. Slimes, jellies, imps, constructs and the
+    # undead.
+    None
+  end
+
   # Everything one kind of food is.
   #
   # *satiety* is how much one feeds, in the points `Sustenance#eat` takes.

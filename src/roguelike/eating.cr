@@ -141,9 +141,14 @@ module Roguelike
       !@player.food_bag.empty? || here.any?(&.corpse?)
     end
 
-    # The corpses underfoot fresh enough to cut up.
+    # The corpses underfoot that cut into meat: fresh, and of a beast.
     def cuttable : Array(Item)
-      here.select { |item| item.corpse? && item.freshness.fresh? }
+      here.select { |item| butchers? item }
+    end
+
+    # Whether *item* is a corpse that cuts into meat.
+    private def butchers?(item : Item) : Bool
+      item.corpse? && item.butchery.beast? && item.freshness.fresh?
     end
 
     # Eats *item*, from the bag or from a corpse underfoot. Answers whether
@@ -180,8 +185,21 @@ module Roguelike
       line = whole ? "You eat #{eaten}." : "You eat some of #{eaten} and are full."
       say line, Event::Ate.new(eaten_id, eaten, taken, whole)
       nourished category, freshness
+      defiled item, eaten_id, eaten
       spend_turn
       true
+    end
+
+    # Takes a point of maximum hit points for good when *item* was a
+    # humanoid corpse. Each meal of one costs a point, however much it fed.
+    private def defiled(item : Item, id : Int32, noun : String) : Nil
+      return unless item.corpse? && item.butchery.humanoid?
+
+      lost = @player.waste 1
+      return if lost.zero?
+
+      say "Eating #{noun} weakens you for good. Your maximum hit points drop by #{lost}.",
+        Event::Weakened.new(id, noun, lost)
     end
 
     # Puts what is left of *one* back, or takes it away when it is all
@@ -255,6 +273,12 @@ module Roguelike
     # partly eaten. What the bag has no room for stays on the floor.
     def cut(item : Item) : Bool
       noun = the item
+      if item.butchery.humanoid?
+        say "You will not cut up #{noun}.",
+          Event::Refused.new(:not_butchered, item: item.id, name: noun)
+        return false
+      end
+
       unless item.freshness.fresh?
         say "#{Lore.sentence noun} is too far gone to cut up.",
           Event::Refused.new(:too_old, item: item.id, name: noun)

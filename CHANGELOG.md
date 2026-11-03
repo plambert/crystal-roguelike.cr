@@ -25,6 +25,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
   bones, or bones alone for a skeleton. A fresh corpse can be eaten where it lies or cut into
   fresh meat for the bag, and it rots away about 300 turns after death.
+* Goblin, orc and werewolf corpses are never cut up. You can still eat one where it lies, but
+  each meal of one takes 1 off your maximum hit points for good, and you are told so.
 * A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
   and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
   it by weight, type, value, name or freshness. Pick a row to eat it, cut it up or drop it. Press

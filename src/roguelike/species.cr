@@ -325,7 +325,8 @@ module Roguelike
     splits : Bool = false,
     hide : Bulk = Bulk::Medium,
     garb : ItemKind? = nil,
-    remains : Remains? = nil do
+    remains : Remains? = nil,
+    butchery : Butchery? = nil do
     # Hit points of an average one.
     def hit_points : Int32
       hit_dice.average.round.to_i
@@ -389,6 +390,16 @@ module Roguelike
       in .goblin?, .orc?, .ant?                   then Remains::Corpse
       in .rat?, .wolf?, .bear?, .boar?, .snake?   then Remains::Corpse
       in .undead?                                 then Remains::FleshAndBones
+      end
+    end
+
+    # Whether a corpse of one of these is cut into meat. `Kind#butchery`
+    # lets a kind say otherwise, and a werewolf does.
+    def butchery : Butchery
+      case self
+      in .rat?, .wolf?, .bear?, .boar?, .snake?, .ant?      then Butchery::Beast
+      in .goblin?, .orc?                                    then Butchery::Humanoid
+      in .slime?, .jelly?, .imp?, .cube?, .golem?, .undead? then Butchery::None
       end
     end
 
@@ -535,6 +546,12 @@ module Roguelike
     # the kind says otherwise.
     def remains : Remains
       facts.remains || species.remains
+    end
+
+    # Whether a corpse of this kind is cut into meat. Its species decides,
+    # unless the kind says otherwise.
+    def butchery : Butchery
+      facts.butchery || species.butchery
     end
 
     # The character it draws as. Every kind of a species shares the letter.
@@ -918,6 +935,7 @@ module Roguelike
         persistence: 40, speed: 125, verb: "bites",
         opens_doors: true, surrounds: true, sharing: Sharing::Called,
         depths: 6..10, faction: Faction::Beast, hide: Bulk::Light,
+        butchery: Butchery::Humanoid,
         attributes: Attributes.new(strength: 15, dexterity: 14, constitution: 14,
           intelligence: 10, stealth: 13)),
 
