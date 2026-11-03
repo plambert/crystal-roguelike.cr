@@ -98,15 +98,20 @@ Spectator.describe "the food bag screen" do
     expect(run.menu.title).to eq "Inventory"
   end
 
-  it "lists a corpse underfoot and cuts it up" do
+  it "lists a corpse underfoot and leaves cutting it to the pick-up key" do
     game = stocked([] of Item)
-    game.floor.drop 1, 1, Roguelike::Game.remains_of(Roguelike::Kind::Orc).first
+    game.floor.drop 1, 1, Roguelike::Game.remains_of(Roguelike::Kind::Wolf).first
     game.enroll
     run = traditional game
     run.press "e"
-    expect(run.text).to contain "orc corpse"
+    expect(run.text).to contain "wolf corpse"
 
-    run.press "a", "c"
+    run.press "a"
+    expect(run.text).not_to contain "cut up"
+
+    run.press "Escape", "Escape"
+    expect(run.menu.showing?).to be_false
+    run.press ","
     expect(run.game.player.food_bag.items.map &.kind).to eq [Kind::FreshMeat]
   end
 

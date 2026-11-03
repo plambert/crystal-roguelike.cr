@@ -23,13 +23,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Eating stops when you are full. Food you could not finish stays in the bag, partly eaten. If
   you are too full to eat at all, you are told so and no turn passes.
 * Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
-  bones, or bones alone for a skeleton. A fresh corpse can be eaten where it lies or cut into
-  fresh meat for the bag, and it rots away about 300 turns after death.
+  bones, or bones alone for a skeleton. A fresh corpse can be eaten where it lies, and picking it
+  up cuts it into fresh meat for the bag. It rots away about 300 turns after death.
+* Picking up everything on a square passes over a corpse that cannot be cut, and says why only
+  when nothing else was picked up. Automatic pickup never cuts a corpse.
 * Goblin, orc and werewolf corpses are never cut up. You can still eat one where it lies, but
   each meal of one takes 1 off your maximum hit points for good, and you are told so.
 * A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
   and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
-  it by weight, type, value, name or freshness. Pick a row to eat it, cut it up or drop it. Press
+  it by weight, type, value, name or freshness. Pick a row to eat it or drop it. Press
   `e` to open it, or pick the food bag row at the end of the inventory. With modern controls it
   is in the inventory and in the action catalog under Items.
 * Food buffs and being sick each show as a short labeled pill in the character pane, with no bar

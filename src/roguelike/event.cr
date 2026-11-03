@@ -441,8 +441,8 @@ module Roguelike
         # The character is too full to eat.
         Full
 
-        # It is too big for the food bag. A corpse is eaten or cut up where
-        # it lies.
+        # It is too big for the food bag. Nothing sends it, because picking
+        # up a corpse cuts it.
         TooBig
 
         # The corpse has gone too far to cut up.

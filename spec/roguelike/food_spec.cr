@@ -356,6 +356,93 @@ Spectator.describe "food, the food bag and corpses" do
       expect(game.legal.any?(Action::PickUp)).to be_false
     end
 
+    it "cuts a fresh beast corpse into meat when it is picked up" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Wolf).first
+      game.enroll
+      corpse = game.here.first
+      game.perform Action::PickUp.new
+
+      expect(game.events.select(Event::Butchered).map(&.as(Event::Butchered).item)).to eq [corpse.id]
+      expect(game.player.food_bag.items.map(&.kind)).to eq [ItemKind::FreshMeat]
+      expect(game.player.food_bag.items.first.count).to eq Food::CUTS[corpse.size]
+      expect(game.here).to be_empty
+      expect(game.turn).to eq 1
+    end
+
+    it "refuses to pick up a stale corpse" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Wolf).first
+      game.enroll
+      waits game, Food::CORPSE_KEEPS
+      turn = game.turn
+      corpse = game.here.first
+      game.perform Action::PickUp.new(corpse.id)
+
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.too_old? })
+        .to be_true
+      expect(game.here).to eq [corpse]
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.turn).to eq turn
+    end
+
+    it "refuses to pick up a humanoid corpse" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.enroll
+      game.perform Action::PickUp.new
+
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.not_butchered? })
+        .to be_true
+      expect(game.here.size).to eq 1
+      expect(game.turn).to eq 0
+    end
+
+    it "passes over a humanoid corpse when picking up everything" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::GoblinWarrior).first
+      game.floor.drop *HERE, food(ItemKind::Apple)
+      game.enroll
+
+      expect(game.pick_up_all).to eq 1
+      expect(game.player.food_bag.items.map(&.kind)).to eq [ItemKind::Apple]
+      expect(game.here.map(&.corpse?)).to eq [true]
+      expect(game.events.any?(Event::Refused)).to be_false
+    end
+
+    it "says why when a humanoid corpse is all there is to pick up" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::GoblinWarrior).first
+      game.enroll
+
+      expect(game.pick_up_all).to eq 0
+      expect(game.events.any? { |event| event.is_a?(Event::Refused) && event.reason.not_butchered? })
+        .to be_true
+      expect(game.here.size).to eq 1
+    end
+
+    it "cuts a beast corpse when picking up everything" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Rat).first
+      game.floor.drop *HERE, food(ItemKind::Apple)
+      game.enroll
+
+      expect(game.pick_up_all).to eq 2
+      expect(game.player.food_bag.items.map(&.kind)).to eq [ItemKind::FreshMeat, ItemKind::Apple]
+      expect(game.here).to be_empty
+    end
+
+    it "never cuts a corpse it steps on" do
+      game = hall
+      game.floor.drop HERE[0] + 1, HERE[1], Game.remains_of(Kind::Wolf).first
+      game.enroll
+      game.perform Action::Move.new(Roguelike::Direction::East)
+
+      expect(game.here.map(&.corpse?)).to eq [true]
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.events.any?(Event::Butchered)).to be_false
+    end
+
     it "drops a stack from the bag" do
       game = hall [food(ItemKind::Apple, 2)]
       id = game.player.food_bag.items.first.id

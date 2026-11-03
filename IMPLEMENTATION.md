@@ -6553,8 +6553,12 @@ alone, so an item id still names one thing in both. `Game#each_bearer` walks the
 so bag food has ids. A save writes the bag under the player, and an older save loads an empty one.
 
 * **Pickup.** `Game#pick_up` sends food to the bag. A stack that does not fit stays on the floor
-  with a `bag_full` refusal, and a corpse with `too_big`. Automatic pickup takes food that has not
-  rotted, is not refuse, was not put down, and fits. Explore walks to it under its pickup setting.
+  with a `bag_full` refusal. A corpse goes to `Game#cut`, so picking one up cuts it with the same
+  lines, events and refusals. `too_big` is no longer sent. `Game#pick_up_all` passes over a
+  corpse that would refuse and names it only when it took nothing else. Automatic pickup takes
+  food that has not rotted, is not refuse, is not a corpse, was not put down, and fits. Explore
+  walks to it under its pickup setting. `Game#legal` still offers no `pickup` for a corpse, so a
+  bot keeps using `cut`. The trial bot leaves a corpse alone. The food bag screen has no cut row.
 * **Drop.** `Action::Drop` takes a bag id as well as a pack id.
 * **Sorts.** `FoodBag#sorted` orders by weight, by family, by value, by name and by freshness.
   Weight and value put the most first. Freshness puts fresh first, and within a stage what turns

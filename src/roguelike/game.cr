@@ -5036,9 +5036,12 @@ module Roguelike
     # Gold is counted rather than carried. It takes no letter and never fills
     # the inventory.
     #
+    # A corpse is cut into meat for the food bag, as `#cut` does.
+    #
     # Answers whether the character now has it. A full inventory answers false
     # and leaves the item where it was.
     def pick_up(item : Item) : Bool
+      return here.any?(&.same?(item)) && cut(item) if item.corpse?
       return false unless floor.take @player.x, @player.y, item
       return bag(item) if item.food?
 
@@ -5188,17 +5191,27 @@ module Roguelike
 
     # Picks up everything on the square. Answers how many entries were taken.
     #
+    # A corpse that would not cut is passed over. It is named only when
+    # nothing else was taken, so the character hears why nothing happened.
+    #
     # This is not in the `Action` union and does not belong there. An action
     # is one turn. Picking up three items takes three turns, so this is three
     # actions. A bot and a replay log use three `Action::PickUp` instead.
     def pick_up_all : Int32
       taken = 0
+      passed = [] of Item
 
       here.dup.each do |item|
         break if over?
 
+        if item.corpse? && !butchers?(item)
+          passed << item
+          next
+        end
+
         taken += 1 if pick_up item
       end
+      passed.each { |item| cut item } if taken.zero? && !over?
 
       taken
     end

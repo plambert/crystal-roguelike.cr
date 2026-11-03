@@ -323,17 +323,10 @@ module Roguelike
     # Puts *item*, already taken off the floor, in the food bag. Answers
     # whether it went in.
     #
-    # A corpse is too big and goes back where it was, and so does anything
-    # the bag has no room for.
+    # What the bag has no room for goes back where it was. A corpse never
+    # comes here. `#pick_up` cuts it instead.
     private def bag(item : Item) : Bool
       noun = name item
-      if item.corpse?
-        floor.drop @player.x, @player.y, item
-        say "#{Lore.sentence the(item)} is too big for your food bag. You can eat it or cut it up.",
-          Event::Refused.new(:too_big, item: item.id, name: noun)
-        return false
-      end
-
       left = item.dropped?
       item.take_up
       held = @player.food_bag.add item
