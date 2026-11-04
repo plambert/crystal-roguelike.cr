@@ -85,6 +85,10 @@ module Roguelike
       # thirst stops the walk instead.
       property? drink : Bool = true
 
+      # Whether explore eats from the food bag when hunger sets in. Off,
+      # hunger stops the walk instead.
+      property? eat : Bool = true
+
       def initialize
       end
 

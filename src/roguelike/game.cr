@@ -26,6 +26,9 @@ module Roguelike
     # An explore drank from the waterskin instead of walking.
     Drank
 
+    # An explore ate from the food bag instead of walking.
+    Ate
+
     # Whether a turn was taken.
     def turn? : Bool
       !blocked?
@@ -34,7 +37,7 @@ module Roguelike
     # Whether the character spent the turn on the square ahead and stayed
     # where they were.
     def stayed? : Bool
-      opened? || struck? || drew? || drank?
+      opened? || struck? || drew? || drank? || ate?
     end
   end
 
@@ -212,6 +215,11 @@ module Roguelike
     # them. The save leaves it out.
     @[JSON::Field(ignore: true)]
     @dry_told : Int32 = 0
+
+    # How many lines a worsening hunger stage has written. An explore reads
+    # it across one step, so the save leaves it out.
+    @[JSON::Field(ignore: true)]
+    @hunger_told : Int32 = 0
 
     # How many turns the sidebar goes on showing the creature the character
     # last traded blows with.
@@ -1607,12 +1615,14 @@ module Roguelike
       seen : Array(Monster),
       assailed : Int32 = 0,
       stairs : Bool = false,
-      thirst : Sustenance::ThirstStage = Sustenance::ThirstStage::Quenched do
+      thirst : Sustenance::ThirstStage = Sustenance::ThirstStage::Quenched,
+      hunger : Sustenance::HungerStage = Sustenance::HungerStage::Satiated do
       def self.on(game : Game, seen : Vision, assailed : Int32 = 0,
                   stairs : Bool = false) : Watch
+        sustenance = game.player.sustenance
         new game.player.hit_points, game.log.written, game.log.said?,
           game.monsters_in_sight(seen), assailed, stairs,
-          game.player.sustenance.thirst_stage
+          sustenance.thirst_stage, sustenance.hunger_stage
       end
     end
 
@@ -1677,15 +1687,30 @@ module Roguelike
       return Halt::Creature if stops.stop_creature? && arrived_in_sight?(before.seen, seen)
       return Halt::Item if stops.stop_item? && spotted
       return Halt::Stairs if stops.stop_stairs? && !before.stairs && down_known?
-      return Halt::Thirsty if parched_since?(before) && !drinks?(stops)
+      wanted = wanting before, stops
+      return wanted if wanted
 
       Halt::Told if stops.stop_message? && told?(before, planned: true)
+    end
+
+    # Whether thirst or hunger stops a step of an explore under *stops*. A
+    # stage that set in stops it when explore will not drink or eat for it.
+    private def wanting(before : Watch, stops : Explore::Settings) : Halt?
+      return Halt::Thirsty if parched_since?(before) && !drinks?(stops)
+
+      Halt::Hungry if hungered_since?(before) && !stops.eat?
     end
 
     # Whether thirst reached a stage of thirsty or worse since *before*.
     private def parched_since?(before : Watch) : Bool
       now = @player.sustenance.thirst_stage
       now >= Sustenance::ThirstStage::Thirsty && now > before.thirst
+    end
+
+    # Whether hunger reached a stage of hungry or worse since *before*.
+    private def hungered_since?(before : Watch) : Bool
+      now = @player.sustenance.hunger_stage
+      now >= Sustenance::HungerStage::Hungry && now > before.hunger
     end
 
     # Whether an explore under *stops* drinks from the skin now.
@@ -3773,6 +3798,8 @@ module Roguelike
           @dry_told += 1
         elsif event.is_a?(Event::Thirst)
           @thirst_told += 1
+        elsif event.is_a?(Event::Hunger)
+          @hunger_told += 1
         end
       else
         record event
@@ -7609,7 +7636,10 @@ module Roguelike
         @sightings = nil
       end
 
-      return explore_drink if action.is_a?(Action::Explore) && drinks?
+      if action.is_a?(Action::Explore)
+        fed = explore_sustain
+        return fed if fed
+      end
 
       route = planned_route goal
       direction = route.size >= 2 ? Direction.between(@player.at, route[1]) : nil
@@ -7639,15 +7669,18 @@ module Roguelike
                        action : Action::Explore | Action::Travel | Action::Visit) : Step
       told = @thirst_told
       dry = @dry_told
+      hungry = @hunger_told
       taken = step direction
       sighted_now unless action.is_a?(Action::Travel)
       return taken unless action.is_a?(Action::Explore)
 
       # An explore goes to water by itself, so a dry skin does not stop it.
       # When the next step drinks, the line that says thirst set in does not
-      # stop it either.
+      # stop it either. With eating on, a line that says hunger set in never
+      # stops it, food or none. The hunger pill shows the stage.
       @overlooked += @dry_told - dry
       @overlooked += @thirst_told - told if drinks?
+      @overlooked += @hunger_told - hungry if explore_settings.eat?
       taken
     end
 
@@ -7658,6 +7691,60 @@ module Roguelike
       drink_from_skin
       @overlooked += @log.written - wrote
       Verdict.done Step::Drank
+    end
+
+    # A step of an explore that drinks or eats instead of walking, or `nil`
+    # when it walks. Thirst comes first.
+    private def explore_sustain : Verdict?
+      return explore_drink if drinks?
+
+      meal = explore_meal
+      explore_eat meal if meal
+    end
+
+    # A step of an explore that eats *meal* from the food bag instead of
+    # walking. Its lines do not stop the walk.
+    private def explore_eat(meal : Item) : Verdict
+      wrote = @log.written
+      eat meal
+      @overlooked += @log.written - wrote
+      Verdict.done Step::Ate
+    end
+
+    # What an explore eats from the food bag now, or `nil` for nothing.
+    #
+    # It eats only with eating on and the character hungry or worse. The
+    # worst food goes first, so the best is kept. See `#meal_rank`. Rotten
+    # food is eaten only while starving, and only when nothing else is left.
+    # A corpse underfoot is never eaten here.
+    private def explore_meal : Item?
+      return unless explore_settings.eat?
+
+      stage = @player.sustenance.hunger_stage
+      return if stage < Sustenance::HungerStage::Hungry
+
+      starving = stage.starving?
+      food = @player.food_bag.items.select do |item|
+        item.edible? && !item.corpse? && item.nourishment > 0 &&
+          (starving || !item.freshness.rotten?)
+      end
+      food.each_with_index.min_by? { |item, index| {meal_rank(item), index} }.try &.[0]
+    end
+
+    # Where *item* comes in the order an explore eats food, lowest first.
+    #
+    # Stale food comes before fresh, and among equals the food with the
+    # fewest turns left before it turns comes first. Food that never spoils,
+    # such as a ration, comes after everything that does. Rotten food comes
+    # last of all.
+    private def meal_rank(item : Item) : {Int32, Int32}
+      facts = item.food_facts
+      freshness = item.freshness
+      return {3, 0} if freshness.rotten?
+      return {2, 0} unless facts.spoils?
+
+      turns = freshness.stale? ? facts.keeps * 2 : facts.keeps
+      {freshness.stale? ? 0 : 1, turns - item.age}
     end
 
     # Adds to `#sightings` the squares of the items the step just taken

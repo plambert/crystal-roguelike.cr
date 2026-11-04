@@ -151,6 +151,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A new explore setting, Drink when thirsty, is on by default. With it on, `X` drinks from the
   skin when thirst sets in and walks on. With it off, or with an empty skin, `X` stops there.
   `X` does not stop when the skin runs dry.
+* A new explore setting, Eat when hungry, is on by default. With it on, `X` eats from the food
+  bag when you get hungry and walks on. It eats the food that will spoil first, stale before
+  fresh, and keeps rations for last. It eats rotten food only when you are starving and nothing
+  else is left, and it never eats a corpse. With an empty bag, `X` walks on. With the setting
+  off, `X` stops when hunger sets in.
 * Bots get `drank`, `hunger_stage` and `thirst_stage` events, and a `drink` action. The `over`
   event names the cause of a death from hunger or thirst.
 * `--trial` games run without hunger and thirst, because the trial bot never eats or drinks.

@@ -5,6 +5,8 @@ Spectator.describe "hunger and thirst" do
   alias Event = Roguelike::Event
   alias Game = Roguelike::Game
   alias Halt = Roguelike::Halt
+  alias Item = Roguelike::Item
+  alias ItemKind = Roguelike::ItemKind
   alias Sustenance = Roguelike::Sustenance
   alias Settings = Roguelike::Explore::Settings
 
@@ -311,6 +313,117 @@ Spectator.describe "hunger and thirst" do
       sustenance(game).thirst = Sustenance::THIRSTY - 1
 
       expect(game.explore.halt).to eq Halt::Thirsty
+    end
+  end
+
+  describe "exploring with food" do
+    # A game in `MEETING` with *bag* in the food bag, every item given an
+    # id, and a character *hunger* turns from their last meal.
+    def fed(hunger : Int32, bag : Array(Item) = [] of Item) : Game
+      game = bare MEETING
+      bag.each { |item| game.player.food_bag.add item }
+      game.enroll
+      sustenance(game).hunger = hunger
+      game
+    end
+
+    def food(kind : ItemKind, age : Int32 = 0) : Item
+      Item.new kind, blessing_known: true, age: age
+    end
+
+    def keeps(kind : ItemKind) : Int32
+      Roguelike::Food.facts(kind).keeps
+    end
+
+    # Takes *steps* steps of an explore. Answers the ids of what they ate,
+    # in order.
+    def eaten(game : Game, steps : Int32) : Array(Int32)
+      found = [] of Int32
+      steps.times do
+        game.perform Action::Explore.new
+        game.events.each { |event| found << event.item if event.is_a?(Event::Ate) }
+      end
+      found
+    end
+
+    it "eats when hunger sets in and walks on" do
+      game = fed Sustenance::HUNGRY - 1, [food(ItemKind::Bread)]
+
+      went = game.explore
+
+      expect(game.log.lines).to contain "You are getting hungry."
+      expect(game.log.lines.any? &.starts_with?("You eat")).to be_true
+      expect(went.halt).not_to eq Halt::Hungry
+      expect(went.halt).not_to eq Halt::Told
+      expect(game.player.food_bag.empty?).to be_true
+      expect(sustenance(game).hunger_stage).to be < Sustenance::HungerStage::Hungry
+    end
+
+    it "stops for hunger with eating off" do
+      game = fed Sustenance::HUNGRY - 1, [food(ItemKind::Bread)]
+      game.perform Action::Configure.new(Settings.parse "eat=off")
+
+      went = game.explore
+
+      expect(went.halt).to eq Halt::Hungry
+      expect(game.log.last?).to eq "You are getting hungry."
+      expect(game.player.food_bag.size).to eq 1
+    end
+
+    it "eats nothing with eating off" do
+      game = fed Sustenance::FAMISHED, [food(ItemKind::Bread)]
+      game.perform Action::Configure.new(Settings.parse "eat=off")
+
+      expect(eaten(game, 3)).to be_empty
+    end
+
+    it "eats stale food first, the soonest to turn first, and rations last" do
+      ration = food ItemKind::Ration
+      bread = food ItemKind::Bread
+      berries = food ItemKind::Berries
+      stale_apple = food ItemKind::Apple, keeps(ItemKind::Apple)
+      stale_berries = food ItemKind::Berries, keeps(ItemKind::Berries) + 100
+      order = [stale_berries, stale_apple, berries, bread, ration]
+      game = fed Sustenance::STARVING - 1, [ration, bread, berries, stale_apple, stale_berries]
+
+      expect(order.map(&.id).reject(&.zero?).uniq!.size).to eq 5
+      expect(eaten(game, 5)).to eq order.map(&.id)
+    end
+
+    it "leaves rotten food alone short of starving" do
+      game = fed Sustenance::FAMISHED, [food(ItemKind::Apple, keeps(ItemKind::Apple) * 2)]
+
+      expect(eaten(game, 3)).to be_empty
+      expect(game.player.food_bag.size).to eq 1
+    end
+
+    it "eats rotten food while starving, once nothing else is left" do
+      rotten = food ItemKind::Apple, keeps(ItemKind::Apple) * 2
+      ration = food ItemKind::Ration
+      game = fed Sustenance::STARVING + 1500, [rotten, ration]
+      expect(rotten.id).not_to eq ration.id
+
+      expect(eaten(game, 2)).to eq [ration.id, rotten.id]
+    end
+
+    it "walks on with an empty bag and says nothing new" do
+      game = fed Sustenance::HUNGRY - 1
+
+      went = game.explore
+
+      expect(went.halt).not_to eq Halt::Hungry
+      expect(went.halt).not_to eq Halt::Told
+      expect(game.log.lines.count &.==("You are getting hungry.")).to eq 1
+      expect(game.log.lines.any? &.starts_with?("You eat")).to be_false
+    end
+
+    it "never eats a corpse underfoot" do
+      game = fed Sustenance::FAMISHED
+      corpse = Game.remains_of(Roguelike::Kind::Rat).first
+      game.floor.drop game.player.x, game.player.y, corpse
+      game.enroll
+
+      expect(eaten(game, 1)).to be_empty
     end
   end
 
