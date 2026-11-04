@@ -408,6 +408,8 @@ module Roguelike::Ui
       ItemClass::Amulet       => Look.new('"', coin),
       ItemClass::Food         => Look.new('%', tool),
       ItemClass::Remains      => Look.new('%', tool),
+      ItemClass::Delicacy     => Look.new('%', tool),
+      ItemClass::Reagent      => Look.new('%', tool),
     }
 
     # How *item* is drawn where it lies.

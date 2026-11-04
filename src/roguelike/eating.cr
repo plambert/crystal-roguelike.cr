@@ -30,12 +30,15 @@ module Roguelike
       clear_bearers
     end
 
-    # Puts what *creature* leaves on the square it died on.
+    # Puts what *creature* leaves on the square it died on: its remains, and
+    # any parts it left by chance.
     #
-    # *shown* says the character saw it die, and only then is there an
-    # event.
+    # The parts are rolled on a stream named by the creature, so one death
+    # rolls the same whatever else happened first. *shown* says the
+    # character saw it die, and only then is there an event.
     private def leave_remains(creature : Monster, shown : Bool) : Nil
-      left = Game.remains_of creature.kind
+      root = (@root ||= Rng.new @world.seed)
+      left = Game.remains_of(creature.kind) + Parts.roll(creature.kind, root.derive("parts", creature.id))
       return if left.empty?
 
       left.each do |item|
@@ -112,6 +115,10 @@ module Roguelike
              when .steady_aim?  then "Your aim is no longer as steady."
              when .steady_hand? then "Your hand is no longer as steady."
              when .sick?        then "You feel better."
+             when .mending?     then "Your wounds no longer close as fast."
+             when .mighty?      then "The strength leaves your arms."
+             when .night_eyes?  then "Your eyes lose their edge in the dark."
+             when .quickened?   then "You no longer feel as quick."
              else                    "An effect wears off."
              end
       say line, Event::StatusEnd.new(status)
@@ -173,7 +180,7 @@ module Roguelike
       end
 
       freshness = item.freshness
-      category = item.category
+      kind = item.kind
       eaten = the item.with_count(1)
       whole = taken >= offered
       one = item.corpse? ? item : (@player.food_bag.take_one(item, next_id) || item)
@@ -184,7 +191,7 @@ module Roguelike
       @pack_moves += 1
       line = whole ? "You eat #{eaten}." : "You eat some of #{eaten} and are full."
       say line, Event::Ate.new(eaten_id, eaten, taken, whole)
-      nourished category, freshness
+      nourished kind, freshness
       defiled item, eaten_id, eaten
       spend_turn
       true
@@ -215,25 +222,27 @@ module Roguelike
       clear_bearers
     end
 
-    # Gives what eating food of *category* at *freshness* gives.
+    # Gives what eating a *kind* at *freshness* gives.
     #
     # Fresh food gives its buff whole. Stale food gives half of it, and a
     # half that rounds to nothing is no buff. Rotten food makes the
-    # character sick.
-    private def nourished(category : FoodCategory, freshness : Freshness) : Nil
+    # character sick. A part of a beast gives its own buff for
+    # `Parts::BUFF_TURNS`.
+    private def nourished(kind : ItemKind, freshness : Freshness) : Nil
       if freshness.rotten?
         offer_buff Event::Status::Sick, Food::SICK_AIM, Food::SICK_TURNS
         return
       end
 
-      status = category.buff
+      status = Food.buff kind
       return unless status
 
-      power = Game.buff_power status
+      part = Parts.facts? kind
+      power = part ? part.power : Game.buff_power(status)
       power //= 2 if freshness.stale?
       return if power <= 0
 
-      offer_buff status, power, Food::BUFF_TURNS
+      offer_buff status, power, part ? Parts::BUFF_TURNS : Food::BUFF_TURNS
     end
 
     # How strong the buff *status* is from fresh food.
@@ -254,16 +263,28 @@ module Roguelike
       say buff_line(status, again), Event::StatusStart.new(status, again: again)
     end
 
+    # What the character is told when each buff starts, first time and
+    # again.
+    BUFF_LINES = {
+      Event::Status::WellFed    => {"You feel well fed and quick on your feet.", "You feel well fed again."},
+      Event::Status::Refreshed  => {"The fruit refreshes you.", "The fruit refreshes you again."},
+      Event::Status::SteadyAim  => {"Your aim feels steady.", "Your aim feels steady again."},
+      Event::Status::SteadyHand => {"Your hand feels steady.", "Your hand feels steady again."},
+      Event::Status::Sick       => {"You feel sick.", "You feel sicker."},
+      Event::Status::Mending    => {"Warmth spreads through you. Your wounds close faster.",
+                                 "Your wounds close faster again."},
+      Event::Status::Mighty    => {"Strength floods your arms.", "Your arms feel strong again."},
+      Event::Status::NightEyes => {"Your eyes sharpen. The dark nearby gives up its shapes.",
+                                   "Your eyes sharpen again."},
+      Event::Status::Quickened => {"You feel quick and light.", "You feel quick again."},
+    }
+
     # What the character is told when the buff *status* starts.
     private def buff_line(status : Event::Status, again : Bool) : String
-      case status
-      when .well_fed?    then again ? "You feel well fed again." : "You feel well fed and quick on your feet."
-      when .refreshed?   then again ? "The fruit refreshes you again." : "The fruit refreshes you."
-      when .steady_aim?  then again ? "Your aim feels steady again." : "Your aim feels steady."
-      when .steady_hand? then again ? "Your hand feels steady again." : "Your hand feels steady."
-      when .sick?        then again ? "You feel sicker." : "You feel sick."
-      else                    "You feel different."
-      end
+      lines = BUFF_LINES[status]?
+      return "You feel different." unless lines
+
+      again ? lines[1] : lines[0]
     end
 
     # Cuts the corpse *item* underfoot into meat for the bag. Answers

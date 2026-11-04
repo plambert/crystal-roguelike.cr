@@ -341,14 +341,21 @@ module Roguelike
 
     # ----------------------------------------------------------------- food
 
-    # Whether this is food, or what is left of a creature.
+    # Whether this is food, or what is left of a creature. A part of a beast
+    # that is eaten counts.
     def food? : Bool
-      @kind.item_class.food?
+      found = @kind.item_class
+      found.food? || found.delicacy?
     end
 
     # Whether this is what is left of a creature that goes in the pack.
     def remains? : Bool
       @kind.item_class.remains?
+    end
+
+    # Whether this is a part of a beast kept for alchemy.
+    def reagent? : Bool
+      @kind.item_class.reagent?
     end
 
     # Whether this is a corpse.
