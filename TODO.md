@@ -92,6 +92,45 @@ better. Each kind of wall takes a different amount of damage to destroy, so soft
 few blows and the hardest stone takes a long time. Now and then a dig runs into a gold ore vein,
 which is rare. A vein yields gold ore, an item of its own that is not gold and does not stack.
 
+### Secret doors
+
+A secret door looks like wall until the character finds it. On the early floors a secret door never
+stands between the two staircases, so the way down is never hidden. How many floors count as early
+is to be settled when this is built. A scroll of reveal secret doors shows every secret door within
+a short range of the reader. A blessed one shows every secret door on the floor.
+
+A search command gives the character a chance to find each secret door in sight. The chance falls
+as the distance grows. An auto-search works a little like explore. It can walk along one wall, or it
+can search a whole room, floor included. Someday a band will add a secret door to a nearby dead end
+and use the room behind it to store supplies, weapons, armor and treasure. The treasure chests item
+and the map set pieces item below both rely on secret doors.
+
+### Treasure chests
+
+A treasure chest stands only in an area that the character cannot reach without going through a
+secret door, as in the secret doors item. A chest is worth more when the character must find and
+pass two or more secret doors to reach it from the stairs. A chest can be locked, trapped, or both.
+What opens a lock, which traps there are, and what a chest holds are to be settled when this is
+built.
+
+### Map set pieces
+
+A set piece is a map layout that was designed by hand and is placed into a floor. A set piece can be
+mirrored from top to bottom, from left to right, or both, so one layout gives up to four. Some set
+pieces have fixed monsters and treasure. Others have tables that choose among monsters and
+treasure, and the choices can be tied together. If the table picks the goblin sapper, his chest
+holds sapper gear. If it picks the werewolf king, the chest holds a magic item that belongs to the
+werewolf. The choices can also be independent of each other.
+
+This calls for monster tables and item tables that are built first and then linked in different
+ways. Each set piece says whether the normal scatter of monsters and items still applies, either in
+chosen regions of the set piece or across all of it. A set piece can be marked unique, or given a
+frequency that says how often it appears. The final mini boss room is a set piece. So is an
+S-shaped hallway that can end up anywhere. So is a goblin camp, with a campfire, low-level goblin
+sized gear lying about, a chieftain's room with better loot, and a shaman's room with better loot.
+A secret door in the camp leads to the best loot, which sits in a locked chest. The camp uses the
+secret doors and treasure chests items above.
+
 ### A floating pack window
 
 The pack in the left sidebar becomes a toggle that opens a floating pack window. The window can be
@@ -214,8 +253,8 @@ effect bar like any other.
 
 Monsters already leave corpses, and food and drink systems are in the game. The cook also needs a
 well-rounded list of special components that various monsters can leave behind, so each kind of
-creature has something worth taking. Which components
-there are, which dishes they make, and what each buff does are to be settled when this is built.
+creature has something worth taking. Which components there are, which dishes they make, and what
+each buff does are to be settled when this is built.
 
 ### Magic staves
 
