@@ -4598,7 +4598,8 @@ module Roguelike
       still = blind ? NO_LIGHTS : still_lights
       moving = blind ? NO_LIGHTS : moving_lights
       sources = still + moving
-      key = {@player.floor, floor.version, @player.at, blind, sources}
+      reach = blind ? 0 : @player.night_sight
+      key = {@player.floor, floor.version, @player.at, blind, sources, reach}
 
       held = @seen
       return held if held && @seen_from == key
@@ -4606,7 +4607,7 @@ module Roguelike
       made = if blind
                Vision.blind @player.at
              else
-               Vision.new FieldOfView.from(floor, @player.x, @player.y), light(still, moving)
+               Vision.new FieldOfView.from(floor, @player.x, @player.y), light(still, moving), reach
              end
       @seen = made
       @seen_from = key
@@ -4638,10 +4639,10 @@ module Roguelike
     #
     # The floor and its version cover the walls, the glow and the ambient
     # level. The sources cover every flame, whoever is holding it and
-    # wherever it stands. The square and the blindness cover the character.
-    # Nothing else reaches `Vision.from`, and a creature blocks neither sight
-    # nor light.
-    alias Seeing = {String, Int32, {Int32, Int32}, Bool, Array(LightSource)}
+    # wherever it stands. The square, the blindness and the night sight
+    # cover the character. Nothing else reaches `Vision.from`, and a creature
+    # blocks neither sight nor light.
+    alias Seeing = {String, Int32, {Int32, Int32}, Bool, Array(LightSource), Int32}
 
     # The sources a character who cannot see reads. `Vision.blind` reads
     # none, so the list is the same every time and is made once.

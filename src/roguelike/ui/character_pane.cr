@@ -89,6 +89,10 @@ module Roguelike::Ui
       Event::Status::SteadyAim     => "steady aim",
       Event::Status::SteadyHand    => "steady hand",
       Event::Status::Sick          => "sick",
+      Event::Status::Mending       => "mending",
+      Event::Status::Mighty        => "mighty",
+      Event::Status::NightEyes     => "night eyes",
+      Event::Status::Quickened     => "quickened",
     }
 
     # What the noise bar is labeled. A note, where the other bars have two

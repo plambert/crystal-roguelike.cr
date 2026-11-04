@@ -35,6 +35,15 @@ module Roguelike
     # hold. It goes in the pack and does not stack.
     Remains
 
+    # A part of a beast worth eating for what it does. It goes in the food
+    # bag like food and spoils the way fresh meat does. Each one gives a buff
+    # of its own. `Parts::TABLE` holds which.
+    Delicacy
+
+    # A part of a beast that nothing eats, kept for alchemy. It goes in the
+    # pack, stacks by kind and never spoils. It does nothing yet.
+    Reagent
+
     # Whether a `+N` means anything on this class.
     def enchantable? : Bool
       melee? || ranged_weapon? || ammunition? || thrown? || armor?
@@ -47,7 +56,8 @@ module Roguelike
     # interchangeable. Tools stack because one spike is the same as another.
     # Wands do not, because two wands have different charges left.
     def stacks? : Bool
-      ammunition? || thrown? || potion? || scroll? || tool? || treasure? || food?
+      ammunition? || thrown? || potion? || scroll? || tool? || treasure? || food? ||
+        delicacy? || reagent?
     end
 
     # Whether a character has to find out what one of these is.
@@ -367,6 +377,20 @@ module Roguelike
     RottenFlesh
     Bones
 
+    # Parts of a beast, left beside its corpse by chance. `Parts::TABLE`
+    # says which beast leaves which.
+    WolfLiver
+    BearHeart
+    BoarLiver
+    SnakeEyes
+    AntJelly
+    WolfFang
+    BearClaw
+    BoarTusk
+    SnakeSkin
+    AntMandible
+    RatTail
+
     # What this kind is.
     def facts : ItemFacts
       ItemKinds::FACTS[self]
@@ -662,6 +686,29 @@ module Roguelike
       ItemKind::Amulet => ItemFacts.new("The Mighty Amulet of MacGuffin",
         "The Mighty Amulet of MacGuffin", ItemClass::Amulet, weight: 5,
         proper: true),
+
+      ItemKind::WolfLiver => ItemFacts.new("wolf liver", "wolf livers", ItemClass::Delicacy,
+        weight: 2),
+      ItemKind::BearHeart => ItemFacts.new("bear heart", "bear hearts", ItemClass::Delicacy,
+        weight: 3),
+      ItemKind::BoarLiver => ItemFacts.new("boar liver", "boar livers", ItemClass::Delicacy,
+        weight: 2),
+      ItemKind::SnakeEyes => ItemFacts.new("pair of snake eyes", "pairs of snake eyes",
+        ItemClass::Delicacy, weight: 1),
+      ItemKind::AntJelly => ItemFacts.new("glob of ant jelly", "globs of ant jelly",
+        ItemClass::Delicacy, weight: 1),
+      ItemKind::WolfFang => ItemFacts.new("wolf fang", "wolf fangs", ItemClass::Reagent,
+        weight: 1),
+      ItemKind::BearClaw => ItemFacts.new("bear claw", "bear claws", ItemClass::Reagent,
+        weight: 1),
+      ItemKind::BoarTusk => ItemFacts.new("boar tusk", "boar tusks", ItemClass::Reagent,
+        weight: 2),
+      ItemKind::SnakeSkin => ItemFacts.new("snakeskin", "snakeskins", ItemClass::Reagent,
+        weight: 2),
+      ItemKind::AntMandible => ItemFacts.new("ant mandible", "ant mandibles",
+        ItemClass::Reagent, weight: 1),
+      ItemKind::RatTail => ItemFacts.new("rat tail", "rat tails", ItemClass::Reagent,
+        weight: 1),
     }
   end
 end

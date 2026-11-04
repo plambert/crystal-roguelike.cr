@@ -2201,7 +2201,8 @@ module Roguelike::Ui
     # The inventory page an item of *kind* is listed on, besides the first.
     #
     # Food goes in the food bag, so the food page holds what is left of a
-    # creature that the bag does not take.
+    # creature that the bag does not take: bones, and the parts of a beast
+    # kept for alchemy.
     def self.pack_class(kind : ItemClass) : String
       case kind
       in .melee?, .ranged_weapon?, .ammunition?, .thrown? then "weapons"
@@ -2212,7 +2213,7 @@ module Roguelike::Ui
       in .wand?                                           then "wands"
       in .light?, .tool?                                  then "tools"
       in .treasure?                                       then "treasure"
-      in .food?, .remains?                                then "food"
+      in .food?, .remains?, .delicacy?, .reagent?         then "food"
       end
     end
 
