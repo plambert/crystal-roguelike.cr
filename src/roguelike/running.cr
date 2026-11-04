@@ -83,6 +83,10 @@ module Roguelike
     # Thirst reached a new stage and explore did not drink for it. Only an
     # explore answers this. The line for the stage says why.
     Thirsty
+
+    # Hunger reached a new stage and explore was not set to eat for it.
+    # Only an explore answers this. The line for the stage says why.
+    Hungry
   end
 
   # What one walk did.

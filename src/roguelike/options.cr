@@ -130,6 +130,8 @@ module Roguelike
         "Stop when you find the stairs down", :toggle),
       Setting.new("explore.drink", "When to stop", "Drink when thirsty",
         "Drink from your waterskin when thirst sets in. Off stops instead", :toggle),
+      Setting.new("explore.eat", "When to stop", "Eat when hungry",
+        "Eat from your food bag when hunger sets in. Off stops instead", :toggle),
       Setting.new("name", "Tester", "Name",
         "The name that labels your uploaded runs", :text),
     ]
