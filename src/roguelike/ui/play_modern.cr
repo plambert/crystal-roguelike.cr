@@ -496,7 +496,7 @@ module Roguelike::Ui
         item = item_for item_id
         if item
           name = item_menu_text item
-          return name + eat_note(target.open) if command.pick_up? && target.eat
+          return name + eat_note(target.open, target.cannibal) if command.pick_up? && target.eat
           if (coordinate = target.coordinate) && (command.apply? || command.spike_door?)
             return "#{name} — #{apply_target_location coordinate}"
           end

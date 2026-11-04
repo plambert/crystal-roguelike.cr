@@ -79,14 +79,16 @@ module Roguelike::Ui
   # A semantic target. Item identities are model IDs, never inventory letters.
   #
   # *eat* marks a pick-up target that eats a corpse where it lies. *open* is
-  # false for a target the menu shows dimmed.
+  # false for a target the menu shows dimmed. *cannibal* marks a corpse of
+  # the character's own species.
   record CommandTarget,
     item_id : Int32? = nil,
     slot : Roguelike::Slot? = nil,
     direction : Roguelike::Direction? = nil,
     coordinate : {Int32, Int32}? = nil,
     eat : Bool = false,
-    open : Bool = true
+    open : Bool = true,
+    cannibal : Bool = false
 
   # The model state and UI mode used for read-only availability queries.
   record CommandContext,
@@ -483,7 +485,8 @@ module Roguelike::Ui
     # The pick-up menu's *rows* as targets.
     def self.pick_up_targets(rows : Array(Game::PickUpRow)) : Array(CommandTarget)
       rows.map do |row|
-        CommandTarget.new item_id: row.item.id, eat: row.way.eat?, open: row.open
+        CommandTarget.new item_id: row.item.id, eat: row.way.eat?, open: row.open,
+          cannibal: row.cannibal
       end
     end
 

@@ -19,6 +19,9 @@ module Roguelike
     # How big the character is. Armor cut for any other size does not fit.
     SIZE = Size::Medium
 
+    # The species every character is. No creature of it spawns yet.
+    HUMAN = "human"
+
     # What the person called this character.
     #
     # Empty for a character nobody has named, which is what a spec builds and
@@ -105,6 +108,20 @@ module Roguelike
     # `nil` stands for none, so a save that has lost nothing writes no field
     # and an older save loads the same.
     @wasted : Int32? = nil
+
+    # What species the character is, as `Species#label` names one.
+    #
+    # Every character is human, so the save leaves it out. A spec sets it
+    # to make a creature's corpse one of the character's own kind.
+    @[JSON::Field(ignore: true)]
+    property species : String = HUMAN
+
+    # Whether the character has eaten one of their own species. It never
+    # goes back.
+    #
+    # `nil` stands for false, so a save that never ate one writes no field
+    # and an older save loads the same.
+    @cannibal : Bool? = nil
 
     def initialize(@floor : String, @x : Int32, @y : Int32,
                    @attributes : Attributes = Attributes.new,
@@ -348,6 +365,19 @@ module Roguelike
       @wasted = wasted + amount
       @hit_points = Math.min @hit_points, max_hit_points
       before - max_hit_points
+    end
+
+    # Whether the character has eaten one of their own species.
+    def cannibal? : Bool
+      @cannibal || false
+    end
+
+    # Marks the character a cannibal for good. Answers whether they were
+    # not one before.
+    def become_cannibal : Bool
+      return false if cannibal?
+
+      @cannibal = true
     end
 
     # Whether the character is still alive.

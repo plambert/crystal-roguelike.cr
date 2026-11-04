@@ -6622,6 +6622,14 @@ still be eaten, and only a fresh one can be cut up.
   traditional menu skips the question only for a single take or cut row, so a lone humanoid
   corpse still shows its dimmed row. Dimmed menu rows draw in the `dimmed` theme color, which is
   `#8A909C` in Default, about 6 to 1 on the ground.
+* **Cannibalism.** `Player#species` is the label of the character's species, `Player::HUMAN` for
+  every character. No `Species` member stands for humans, because each member names a default
+  kind and no human creature exists yet. The save leaves the field out, and a spec sets it to
+  make a creature's corpse one of the character's own kind. `Game#cannibalism?` compares the
+  corpse's `Species#label` with it. The pick-up row marks such a corpse, and the first meal of one
+  sets `Player#cannibal?` with a `cannibal` event. The flag is `nil` in the save until it is set,
+  so an older save and the fingerprint of a run that never set it are unchanged. It does nothing
+  else yet.
 * **Old saves.** `Game#unbag` runs from `#after_initialize`. It takes anything the bag no longer
   holds out of it, splits a stack of bones into ones with new ids after the first, and puts each
   in the pack. What the pack has no letter for goes on the floor under the character.

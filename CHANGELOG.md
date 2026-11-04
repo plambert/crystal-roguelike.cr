@@ -28,6 +28,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * You can eat a corpse where it lies only when you are starving. Until then the pick-up menu
   shows it as a dimmed row that says "eat when starving". Once you are starving the row says
   "eat some (starving!)", and a fresh beast corpse gets that row as well as the one that cuts it.
+* Your character is human. Eating a human corpse is cannibalism: the pick-up menu marks the row
+  "cannibalism", and the first meal of one makes you a cannibal for good, which the game tells
+  you and keeps in your save. No human corpses turn up in the dungeon yet.
 * Menu rows you cannot choose have a color of their own in the theme editor. In the Default theme
   it is brighter than before and reads at 6 to 1 against the ground.
 * Picking up everything on a square passes over a corpse that cannot be cut, and says why only

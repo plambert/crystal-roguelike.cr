@@ -766,6 +766,74 @@ Spectator.describe "food, the food bag and corpses" do
     end
   end
 
+  describe "cannibalism" do
+    # A starving character over an orc corpse, who is an orc themselves.
+    #
+    # No human creature spawns, so the spec makes the character an orc to
+    # stand a corpse of their own species underfoot.
+    def among_orcs : Game
+      game = hall hunger: STARVING
+      game.player.species = "orc"
+      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.enroll
+      game
+    end
+
+    it "makes every character human" do
+      expect(hall.player.species).to eq Player::HUMAN
+      expect(Player::HUMAN).to eq "human"
+    end
+
+    it "marks the eat row of a corpse of the character's own species" do
+      expect(among_orcs.pick_up_rows.map(&.cannibal)).to eq [true]
+
+      human = hall hunger: STARVING
+      human.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      human.enroll
+      expect(human.pick_up_rows.map(&.cannibal)).to eq [false]
+    end
+
+    it "makes a character who eats one of their own kind a cannibal for good" do
+      game = among_orcs
+      corpse = game.here.first
+      expect(game.player.cannibal?).to be_false
+      game.perform Action::Eat.new(corpse.id)
+
+      expect(game.player.cannibal?).to be_true
+      found = game.events.select(Event::Cannibal).map(&.as(Event::Cannibal))
+      expect(found.map(&.item)).to eq [corpse.id]
+      expect(game.log.lines).to contain "You have eaten the orc corpse, one of your own kind. " \
+                                        "You are a cannibal now."
+    end
+
+    it "says so only the first time" do
+      game = among_orcs
+      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.enroll
+      2.times { game.perform Action::Eat.new(game.here.first.id) }
+
+      expect(game.player.cannibal?).to be_true
+      expect(game.events.any?(Event::Cannibal)).to be_false
+    end
+
+    it "does not make a human who eats an orc a cannibal" do
+      game = hall hunger: STARVING
+      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.enroll
+      game.perform Action::Eat.new(game.here.first.id)
+      expect(game.player.cannibal?).to be_false
+    end
+
+    it "keeps the flag through a save, and writes none for a character who never ate one" do
+      game = among_orcs
+      game.perform Action::Eat.new(game.here.first.id)
+
+      expect(Player.from_json(game.player.to_json).cannibal?).to be_true
+      expect(hall.player.to_json).not_to contain "cannibal"
+      expect(Player.from_json(hall.player.to_json).cannibal?).to be_false
+    end
+  end
+
   describe "the pick-up rows" do
     alias Way = Roguelike::Game::PickUpRow::Way
 

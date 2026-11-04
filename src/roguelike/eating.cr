@@ -145,8 +145,9 @@ module Roguelike
     # does.
     #
     # *open* is false for a row the menu shows dimmed, as a corpse is while
-    # the character is not starving.
-    record PickUpRow, item : Item, way : Way, open : Bool = true do
+    # the character is not starving. *cannibal* marks a corpse of the
+    # character's own species.
+    record PickUpRow, item : Item, way : Way, open : Bool = true, cannibal : Bool = false do
       # What choosing a row does.
       enum Way
         # Picks the item up, as `#pick_up` does.
@@ -179,9 +180,14 @@ module Roguelike
         next if cuts && !starving
         next unless eats_in_place? item
 
-        rows << PickUpRow.new(item, :eat, open: starving)
+        rows << PickUpRow.new(item, :eat, open: starving, cannibal: cannibalism?(item))
       end
       rows
+    end
+
+    # Whether eating *item* is eating one of the character's own species.
+    def cannibalism?(item : Item) : Bool
+      item.corpse? && item.creature.try(&.species.label) == @player.species
     end
 
     # Whether thirst holds still this turn. Fruit makes it build at half
@@ -248,6 +254,7 @@ module Roguelike
       say line, Event::Ate.new(eaten_id, eaten, taken, whole)
       nourished category, freshness
       defiled item, eaten_id, eaten
+      cannibalized item, eaten_id, eaten
       spend_turn
       true
     end
@@ -262,6 +269,15 @@ module Roguelike
 
       say "Eating #{noun} weakens you for good. Your maximum hit points drop by #{lost}.",
         Event::Weakened.new(id, noun, lost)
+    end
+
+    # Makes the character a cannibal for good when *item* was a corpse of
+    # their own species. Only the first such meal says so.
+    private def cannibalized(item : Item, id : Int32, noun : String) : Nil
+      return unless cannibalism?(item) && @player.become_cannibal
+
+      say "You have eaten #{noun}, one of your own kind. You are a cannibal now.",
+        Event::Cannibal.new(id, noun)
     end
 
     # Puts what is left of *one* back, or takes it away when it is all

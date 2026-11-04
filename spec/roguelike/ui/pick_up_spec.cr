@@ -90,6 +90,20 @@ Spectator.describe "the pick-up menu and corpses" do
       expect(run.game.player.food_bag.empty?).to be_true
     end
 
+    it "marks a corpse of the character's own species as cannibalism" do
+      game = over_corpse(Kind::Orc)
+      game.player.species = "orc"
+      run = traditional game
+      run.press ","
+      expect(run.menu.entries.first.text).to end_with "orc corpse (eat when starving) (cannibalism)"
+
+      run.press "Escape"
+      run.game.player.sustenance.hunger = Sustenance::STARVING
+      run.press ","
+      expect(run.menu.entries.first.text)
+        .to end_with "orc corpse - eat some (starving!) (cannibalism)"
+    end
+
     it "draws a dimmed row in the dimmed menu color" do
       run = traditional over_corpse(Kind::Orc)
       run.press ","
@@ -120,6 +134,15 @@ Spectator.describe "the pick-up menu and corpses" do
       run.press "s", "f"
       expect(run.game.events.any?(Roguelike::Event::Ate)).to be_true
       expect(run.game.player.food_bag.empty?).to be_true
+    end
+
+    it "marks a corpse of the character's own species as cannibalism" do
+      game = over_corpse(Kind::Orc, Sustenance::STARVING)
+      game.player.species = "orc"
+      run = modern game
+      run.press "g"
+      expect(run.menu.entries.first.text)
+        .to end_with "orc corpse - eat some (starving!) (cannibalism)"
     end
 
     it "cuts a fresh beast corpse from the first target while starving" do

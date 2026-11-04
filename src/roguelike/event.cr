@@ -35,6 +35,7 @@ module Roguelike
       "climbed"        => Climbed,
       "bolt_stopped"   => BoltStopped,
       "butchered"      => Butchered,
+      "cannibal"       => Cannibal,
       "corpse_left"    => CorpseLeft,
       "corpse_rotted"  => CorpseRotted,
       "cracked"        => Cracked,
@@ -1296,6 +1297,18 @@ module Roguelike
       getter amount : Int32
 
       def initialize(@item : Int32, @name : String, @amount : Int32)
+      end
+    end
+
+    # The character ate the corpse *item* of their own species for the
+    # first time, and is a cannibal from now on.
+    class Cannibal < Event
+      getter kind : String = "cannibal"
+
+      getter item : Int32
+      getter name : String
+
+      def initialize(@item : Int32, @name : String)
       end
     end
 

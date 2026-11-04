@@ -2119,9 +2119,11 @@ module Roguelike::Ui
     end
 
     # What a pick-up row that eats a corpse says after the corpse's name.
-    # *open* is false while the row is dimmed.
-    private def eat_note(open : Bool) : String
-      open ? " - eat some (starving!)" : " (eat when starving)"
+    # *open* is false while the row is dimmed. *cannibal* marks a corpse of
+    # the character's own species.
+    private def eat_note(open : Bool, cannibal : Bool) : String
+      note = open ? " - eat some (starving!)" : " (eat when starving)"
+      cannibal ? "#{note} (cannibalism)" : note
     end
 
     # Asks which of *rows* to take.
@@ -2138,7 +2140,7 @@ module Roguelike::Ui
       entries = listed(listings).zip(rows).map do |entry, row|
         next entry unless row.way.eat?
 
-        entry.copy_with text: entry.text + eat_note(row.open), enabled: row.open
+        entry.copy_with text: entry.text + eat_note(row.open, row.cannibal), enabled: row.open
       end
 
       choose("Pick up what?", entries, about(rows.map &.item)) do |key|
