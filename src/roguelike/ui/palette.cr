@@ -158,6 +158,13 @@ module Roguelike::Ui
     # What an empty equipment slot is drawn in.
     drawn vacant : Style = Style::DEFAULT.fg(theme.vacant)
 
+    # What a menu row that cannot be chosen is drawn in.
+    #
+    # It is dimmer than `plain` and brighter than `faint`, because the row
+    # still has to be read. It is about 6 to 1 on `ground` and 6.5 to 1 on
+    # black.
+    drawn dimmed : Style = Style::DEFAULT.fg(theme.dimmed)
+
     # ------------------------------------------------------------- focus
 
     # The ground of a focused info or log panel once its fade has settled.

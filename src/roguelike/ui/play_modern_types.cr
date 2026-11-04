@@ -23,7 +23,8 @@ module Roguelike::Ui
     slot : Slot? = nil,
     direction : Direction? = nil,
     coordinate : {Int32, Int32}? = nil,
-    character : String? = nil
+    character : String? = nil,
+    eat : Bool = false
 
   enum ModernMenuKind
     None

@@ -6612,6 +6612,16 @@ still be eaten, and only a fresh one can be cut up.
   on the floor with `pack_full`. Automatic pickup takes only what stacks with something carried,
   so it never takes bones. Bones coming into sight do not stop a walk. The inventory lists them
   on the food page, which holds nothing else.
+* **Eating in place.** A corpse is eaten where it lies only while `Game#starving?`, which is the
+  Starving hunger stage. `Game#edible` leaves corpses out below it, so the legal actions and the
+  food bag screen offer no `eat` on one. An `eat` on a corpse below it reaches `Game#eat`, which
+  refuses with `not_starving` and spends no turn. `Game#pick_up_rows` lists what the pick-up menu
+  shows: a take row for anything that is not a corpse, a cut row for a fresh beast corpse, and an
+  eat row for any other corpse, open only while starving. A starving character also gets an eat
+  row after a fresh beast corpse's cut row. Both control schemes build their menus from it. The
+  traditional menu skips the question only for a single take or cut row, so a lone humanoid
+  corpse still shows its dimmed row. Dimmed menu rows draw in the `dimmed` theme color, which is
+  `#8A909C` in Default, about 6 to 1 on the ground.
 * **Old saves.** `Game#unbag` runs from `#after_initialize`. It takes anything the bag no longer
   holds out of it, splits a stack of bones into ones with new ids after the first, and puts each
   in the pack. What the pack has no letter for goes on the floor under the character.

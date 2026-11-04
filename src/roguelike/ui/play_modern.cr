@@ -393,7 +393,8 @@ module Roguelike::Ui
 
     private def begin_modern_targeted(command : Command, status : CommandStatus,
                                       item_id : Int32?, slot : Slot?) : Nil
-      if (item_id || slot) && status.targets.size == 1 && !command.apply?
+      if (item_id || slot) && status.targets.size == 1 && status.targets.first.open &&
+         !command.apply?
         commit_modern_target command, target_choice(status.targets.first)
         return
       end
@@ -447,7 +448,9 @@ module Roguelike::Ui
       rows = targets.map do |target|
         direction = target.direction
         value_entry(target_choice(target), target_label(command, target),
-          shortcut: direction.try { |found| direction_key(found) })
+          enabled: target.open,
+          shortcut: direction.try { |found| direction_key(found) },
+          reason: target.open ? nil : NOT_STARVING)
       end
       if rows.empty?
         empty_target_lines(reason || "No usable target.").each do |line|
@@ -485,7 +488,7 @@ module Roguelike::Ui
     private def target_choice(target : CommandTarget) : ModernChoice
       ModernChoice.new(ModernChoiceKind::Target, command: @modern_command,
         item_id: target.item_id, slot: target.slot,
-        direction: target.direction, coordinate: target.coordinate)
+        direction: target.direction, coordinate: target.coordinate, eat: target.eat)
     end
 
     private def target_label(command : Command, target : CommandTarget) : String
@@ -493,6 +496,7 @@ module Roguelike::Ui
         item = item_for item_id
         if item
           name = item_menu_text item
+          return name + eat_note(target.open) if command.pick_up? && target.eat
           if (coordinate = target.coordinate) && (command.apply? || command.spike_door?)
             return "#{name} — #{apply_target_location coordinate}"
           end
@@ -588,7 +592,7 @@ module Roguelike::Ui
       @modern_cancel_stack = cancel_stack if cancel_frame
 
       case command
-      in .pick_up? then commit_modern_pick_up item_id
+      in .pick_up? then commit_modern_pick_up item_id, choice.eat
       in .equip?   then commit_modern_equip item_id
       in .remove?  then commit_modern_remove slot
       in .drop?    then commit_modern_drop item_id
@@ -620,13 +624,22 @@ module Roguelike::Ui
       end
     end
 
-    private def commit_modern_pick_up(item_id : Int32?) : Nil
+    private def commit_modern_pick_up(item_id : Int32?, eat : Bool = false) : Nil
       if item_id && @game.here.any? { |item| item.id == item_id }
-        action = @game.here.size == 1 ? Action::PickUp.new : Action::PickUp.new(item_id)
+        action = if eat
+                   Action::Eat.new(item_id)
+                 elsif @game.here.size == 1
+                   Action::PickUp.new
+                 else
+                   Action::PickUp.new(item_id)
+                 end
         @game.perform action
       end
       refresh
     end
+
+    # What a dimmed pick-up row says when it is highlighted.
+    NOT_STARVING = "Only a starving character eats a corpse where it lies."
 
     private def commit_modern_equip(item_id : Int32?) : Nil
       return unless letter = letter_for item_id

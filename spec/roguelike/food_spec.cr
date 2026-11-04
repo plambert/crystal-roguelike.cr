@@ -20,6 +20,7 @@ Spectator.describe "food, the food bag and corpses" do
   alias Player = Roguelike::Player
   alias Remains = Roguelike::Remains
   alias Rng = Roguelike::Rng
+  alias Sustenance = Roguelike::Sustenance
   alias World = Roguelike::World
 
   SEED = 20261031_u64
@@ -36,6 +37,9 @@ Spectator.describe "food, the food bag and corpses" do
   # How hungry the character in `#hall` is: hungry, and a long way from
   # starving.
   HUNGER = 2000
+
+  # How hungry a starving character is.
+  STARVING = Sustenance::STARVING
 
   # A game in a lit hall, with *bag* in the food bag and a character
   # *hunger* turns from their last meal.
@@ -618,7 +622,7 @@ Spectator.describe "food, the food bag and corpses" do
     end
 
     it "takes a point of maximum hit points for each meal of a humanoid corpse" do
-      game = hall
+      game = hall hunger: STARVING
       game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
       game.enroll
       corpse = game.here.first
@@ -632,7 +636,7 @@ Spectator.describe "food, the food bag and corpses" do
     end
 
     it "costs nothing to eat a beast corpse" do
-      game = hall
+      game = hall hunger: STARVING
       game.floor.drop *HERE, Game.remains_of(Kind::Rat).first
       game.enroll
       before = game.player.max_hit_points
@@ -672,7 +676,7 @@ Spectator.describe "food, the food bag and corpses" do
     end
 
     it "eats a corpse where it lies" do
-      game = hall
+      game = hall hunger: STARVING
       game.floor.drop *HERE, Game.remains_of(Kind::Rat).first
       game.enroll
       corpse = game.here.first
@@ -709,12 +713,101 @@ Spectator.describe "food, the food bag and corpses" do
     end
 
     it "will not cut a stale corpse" do
-      game = hall
+      game = hall hunger: STARVING
       game.floor.drop *HERE, Game.remains_of(Kind::Wolf).first
       game.enroll
       waits game, Food::CORPSE_KEEPS
       expect(game.legal.any?(Action::Cut)).to be_false
       expect(game.legal.any?(Action::Eat)).to be_true
+    end
+  end
+
+  describe "eating a corpse where it lies" do
+    # The legal eat actions on *corpse*.
+    def eats(game : Game, corpse : Item) : Bool
+      game.legal.any? { |action| action.is_a?(Action::Eat) && action.item == corpse.id }
+    end
+
+    it "is offered only to a starving character" do
+      {Kind::Rat, Kind::Orc}.each do |kind|
+        game = hall hunger: STARVING - 1
+        game.floor.drop *HERE, Game.remains_of(kind).first
+        game.enroll
+        corpse = game.here.first
+        expect(game.edible).to be_empty
+        expect(eats game, corpse).to be_false
+
+        game.player.sustenance.hunger = STARVING
+        expect(game.edible).to eq [corpse]
+        expect(eats game, corpse).to be_true
+      end
+    end
+
+    it "refuses a character who is not starving, and spends no turn" do
+      game = hall hunger: STARVING - 1
+      game.floor.drop *HERE, Game.remains_of(Kind::Rat).first
+      game.enroll
+      corpse = game.here.first
+      verdict = game.perform Action::Eat.new(corpse.id)
+
+      expect(verdict.refused?).to be_false
+      refused = game.events.select(Event::Refused).map(&.as(Event::Refused))
+      expect(refused.map(&.reason)).to eq [Event::Refused::Reason::NotStarving]
+      expect(refused.first.item).to eq corpse.id
+      expect(game.log.lines.last).to eq "You are not hungry enough to eat that where it lies."
+      expect(game.here).to eq [corpse]
+      expect(game.turn).to eq 0
+    end
+
+    it "leaves eating from the bag alone" do
+      game = hall [food(ItemKind::Apple)], hunger: HUNGER
+      id = game.player.food_bag.items.first.id
+      expect(game.legal.any? { |action| action.is_a?(Action::Eat) && action.item == id }).to be_true
+    end
+  end
+
+  describe "the pick-up rows" do
+    alias Way = Roguelike::Game::PickUpRow::Way
+
+    # Each row of *game*'s pick-up menu as its way and whether it is open.
+    def rows(game : Game) : Array({Way, Bool})
+      game.pick_up_rows.map { |row| {row.way, row.open} }
+    end
+
+    it "cuts a fresh beast corpse and adds an eat row only while starving" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Wolf).first
+      game.enroll
+      expect(rows game).to eq [{Way::Cut, true}]
+
+      game.player.sustenance.hunger = STARVING
+      expect(rows game).to eq [{Way::Cut, true}, {Way::Eat, true}]
+    end
+
+    it "dims the eat row of a humanoid corpse until the character is starving" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.enroll
+      expect(rows game).to eq [{Way::Eat, false}]
+
+      game.player.sustenance.hunger = STARVING
+      expect(rows game).to eq [{Way::Eat, true}]
+    end
+
+    it "has only an eat row for a stale beast corpse" do
+      game = hall
+      game.floor.drop *HERE, Game.remains_of(Kind::Wolf).first
+      game.enroll
+      waits game, Food::CORPSE_KEEPS
+      expect(rows game).to eq [{Way::Eat, false}]
+    end
+
+    it "takes anything that is not a corpse" do
+      game = hall
+      game.floor.drop *HERE, food(ItemKind::Apple)
+      game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
+      game.enroll
+      expect(rows game).to eq [{Way::Take, true}, {Way::Eat, false}]
     end
   end
 

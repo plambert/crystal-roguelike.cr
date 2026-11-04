@@ -451,6 +451,10 @@ module Roguelike
         # The corpse was a goblin, an orc or another humanoid, and nobody
         # cuts one up.
         NotButchered
+
+        # The character is not starving, and only a starving character eats
+        # a corpse where it lies.
+        NotStarving
       end
 
       getter kind : String = "refused"

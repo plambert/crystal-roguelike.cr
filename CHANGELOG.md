@@ -23,12 +23,18 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Eating stops when you are full. Food you could not finish stays in the bag, partly eaten. If
   you are too full to eat at all, you are told so and no turn passes.
 * Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
-  bones, or bones alone for a skeleton. A fresh corpse can be eaten where it lies, and picking it
-  up cuts it into fresh meat for the bag. It rots away about 300 turns after death.
+  bones, or bones alone for a skeleton. Picking up a fresh beast corpse cuts it into fresh meat
+  for the bag. A corpse rots away about 300 turns after death.
+* You can eat a corpse where it lies only when you are starving. Until then the pick-up menu
+  shows it as a dimmed row that says "eat when starving". Once you are starving the row says
+  "eat some (starving!)", and a fresh beast corpse gets that row as well as the one that cuts it.
+* Menu rows you cannot choose have a color of their own in the theme editor. In the Default theme
+  it is brighter than before and reads at 6 to 1 against the ground.
 * Picking up everything on a square passes over a corpse that cannot be cut, and says why only
   when nothing else was picked up. Automatic pickup never cuts a corpse.
-* Goblin, orc and werewolf corpses are never cut up. You can still eat one where it lies, but
-  each meal of one takes 1 off your maximum hit points for good, and you are told so.
+* Goblin, orc and werewolf corpses are never cut up. When you are starving you can eat one where
+  it lies, but each meal of one takes 1 off your maximum hit points for good, and you are told
+  so.
 * A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
   and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
   it by weight, type, value, name or freshness. Pick a row to eat it or drop it. Press

@@ -203,3 +203,21 @@ Spectator.describe "the buff and debuff pills" do
     end
   end
 end
+
+Spectator.describe "the dimmed menu color" do
+  alias Palette = Roguelike::Ui::Palette
+  alias Theme = Roguelike::Ui::Theme
+
+  it "reads at 4.5 to 1 on the default ground and on black" do
+    theme = Theme::DEFAULT
+    black = TermBuf::Color.rgb(0, 0, 0)
+    expect(Palette.contrast(theme.dimmed, theme.ground)).to be >= 4.5
+    expect(Palette.contrast(theme.dimmed, black)).to be >= 4.5
+  end
+
+  it "is dimmer than plain text and brighter than faint text in the default theme" do
+    theme = Theme::DEFAULT
+    expect(Palette.luminance theme.dimmed).to be < Palette.luminance(theme.plain)
+    expect(Palette.luminance theme.dimmed).to be > Palette.luminance(theme.faint)
+  end
+end

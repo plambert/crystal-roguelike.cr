@@ -22,7 +22,7 @@ module Roguelike::Ui
       goblin_shaman orc orc_archer ant jelly rat giant_rat wolf werewolf bear boar giant_snake
       skeleton zombie imp gelatinous_cube stone_golem iron_golem orc_warlord goblin_skirmisher
       shape flame glimmer weapon armor potion scroll wand tool coin blessed_mark cursed_mark
-      uncursed_mark slot_mark lit_mark plain faint strong vacant message_new pointer_mark
+      uncursed_mark slot_mark lit_mark plain faint dimmed strong vacant message_new pointer_mark
       focus_rule buff_pill debuff_pill
     ]
 
@@ -114,6 +114,7 @@ module Roguelike::Ui
       "lit_mark"          => 0xF0B870,
       "plain"             => 0xF2F2F2,
       "faint"             => 0xB4B4BC,
+      "dimmed"            => 0x9C9CA4,
       "strong"            => 0xFFFFFF,
       "vacant"            => 0x9C9CA4,
       "message_new"       => 0xFFF040,
@@ -215,6 +216,7 @@ module Roguelike::Ui
       "lit_mark"          => 0x8A5010,
       "plain"             => 0x1C1C20,
       "faint"             => 0x505460,
+      "dimmed"            => 0x646872,
       "strong"            => 0x000000,
       "vacant"            => 0x646872,
       "message_new"       => 0xA03000,
