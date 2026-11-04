@@ -131,6 +131,38 @@ sized gear lying about, a chieftain's room with better loot, and a shaman's room
 A secret door in the camp leads to the best loot, which sits in a locked chest. The camp uses the
 secret doors and treasure chests items above.
 
+A set piece can also hold regions that a special generator fills in. The generators are a small set
+made for this purpose. A wandering hallway generator takes a region, a start and an end, and finds a
+random path between them. A parameter says how windy the path is. This lets a set piece be mostly
+random and still have very specific monsters or treasure. A giant ant colony is an example. Random
+passages run around the outside with no scatter. A central room holds the ant queen, many ant
+soldiers, and a dense scatter of specific treasure, such as the shiny things the ants kept from dead
+creatures.
+
+An S-shaped hallway is a small hand-drawn set piece. In this sketch `#` is wall and a space is
+floor.
+
+```text
+########################################################################
+   ####          ###########                          #####       #
+## #### ######## ########### ######################## ##### ##### # ####
+##      ######## #####    ## ######                   #   # #     # ####
+################ ##### ## ## #      ################### # # # ##### ####
+################ ##### ##    # ######                   # # # #   # ####
+################       #######        ###################   #   #   ####
+########################################################################
+```
+
+The sketch could also be built with the wandering hallway generator. Boulders, in the item below,
+suit set pieces well.
+
+### Boulders
+
+A boulder acts as a wall that the character can push. A push moves the boulder one square when the
+square beyond it is free. A set piece can use boulders to make sokoban-style puzzles. A boulder
+would also appear very rarely in caverns, outside any set piece. What a boulder does to explore, to
+creatures and to a stair that it blocks is to be settled when this is built.
+
 ### A floating pack window
 
 The pack in the left sidebar becomes a toggle that opens a floating pack window. The window can be
@@ -193,6 +225,26 @@ turns after the breath. A few of these potions soften a group without breaking t
 The scroll of darkness makes a burst of permanent magical darkness centered on the character, with
 radius 3. It follows the light and darkness rules above. It destroys permanent light under it,
 suppresses temporary light, and blocks light and sight like a wall.
+
+### Potions, flasks and oils
+
+Three words say how a liquid is used. A potion is drunk by the character. A flask is thrown at an
+enemy. An oil is thrown, or used on the character or on an item. The inventory and the other
+screens still call all of them potions, so they stay one class of item. Only the name of each kind
+changes, as in potion of healing, flask of acid, and oil of blessing.
+
+The first flasks are acid, poison and alchemist's fire. Acid damages the items it hits. The first
+oils are blessing and enchantment. Each oil gives a temporary effect, either blessed or an added
+enchantment. A scroll with the same name has a permanent effect. An unidentified liquid reads as a
+purple potion, a flask of green liquid, or a vial of orange oil. The oil of true form is in the
+werewolf item below. Which other flasks and oils there are is to be settled when this is built.
+
+### Werewolves change form
+
+A werewolf changes between a human form and a beast form. Today a werewolf is one fixed form. An oil
+of true form thrown at a werewolf forces it back to its human form, as in the potions, flasks and
+oils item above. Whether the human form is peaceful again is to be settled, and it may depend on
+the werewolf. When a werewolf changes form on its own is also to be settled when this is built.
 
 ### Pets
 
