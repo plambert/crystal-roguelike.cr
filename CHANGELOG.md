@@ -42,6 +42,16 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Goblin, orc and werewolf corpses are never cut up. When you are starving you can eat one where
   it lies, but each meal of one takes 1 off your maximum hit points for good, and you are told
   so.
+* Beasts sometimes leave a part beside their corpse. Wolves leave a liver or a fang, bears a heart
+  or a claw, boars a liver or a tusk, snakes their eyes or their skin, and ants a glob of jelly or
+  a mandible. Each part turns up about one death in four. Rats leave a tail about one death in
+  ten. Goblins, orcs and werewolves never leave parts.
+* The edible parts go in the food bag, spoil like fresh meat and feed only a little. Eating a
+  fresh one gives a strong buff for 600 turns. A liver closes your wounds three times as fast, a
+  bear heart adds 2 to your melee damage, snake eyes let you see 4 squares around you in the
+  dark, and ant jelly makes you quicker than a meal of meat does. Each buff shows as a pill.
+* The inedible parts go in the pack on the food page and stack by kind. They never spoil. They
+  are kept for alchemy and do nothing yet.
 * A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
   and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
   it by weight, type, value, name or freshness. Pick a row to eat it or drop it. Press
@@ -164,6 +174,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A new explore setting, Drink when thirsty, is on by default. With it on, `X` drinks from the
   skin when thirst sets in and walks on. With it off, or with an empty skin, `X` stops there.
   `X` does not stop when the skin runs dry.
+* A new explore setting, Eat when hungry, is on by default. With it on, `X` eats from the food
+  bag when you get hungry and walks on. It eats the food that will spoil first, stale before
+  fresh, and keeps rations for last. It eats rotten food only when you are starving and nothing
+  else is left, and it never eats a corpse. With an empty bag, `X` walks on. With the setting
+  off, `X` stops when hunger sets in.
 * Bots get `drank`, `hunger_stage` and `thirst_stage` events, and a `drink` action. The `over`
   event names the cause of a death from hunger or thirst.
 * `--trial` games run without hunger and thirst, because the trial bot never eats or drinks.

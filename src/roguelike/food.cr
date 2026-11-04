@@ -25,6 +25,10 @@ module Roguelike
     # Rotten flesh. Nothing eats it.
     Refuse
 
+    # A part of a beast. Each kind gives a buff of its own, which
+    # `Parts::TABLE` holds.
+    Delicacy
+
     # What the family is called, for a readout and a sort.
     def label : String
       case self
@@ -34,6 +38,7 @@ module Roguelike
       in .nuts_and_cheese? then "nuts and cheese"
       in .roots_and_herbs? then "roots and herbs"
       in .refuse?          then "refuse"
+      in .delicacy?        then "delicacy"
       end
     end
 
@@ -46,6 +51,7 @@ module Roguelike
       in .nuts_and_cheese? then Event::Status::SteadyAim
       in .roots_and_herbs? then Event::Status::SteadyHand
       in .refuse?          then nil
+      in .delicacy?        then nil
       end
     end
   end
@@ -184,6 +190,12 @@ module Roguelike
 
       ItemKind::Corpse      => FoodFacts.new(FoodCategory::Meat, 1000, CORPSE_KEEPS, 0),
       ItemKind::RottenFlesh => FoodFacts.new(FoodCategory::Refuse, 0, 0, 0),
+
+      ItemKind::WolfLiver => FoodFacts.new(FoodCategory::Delicacy, 250, 300, 20),
+      ItemKind::BearHeart => FoodFacts.new(FoodCategory::Delicacy, 300, 300, 30),
+      ItemKind::BoarLiver => FoodFacts.new(FoodCategory::Delicacy, 250, 300, 20),
+      ItemKind::SnakeEyes => FoodFacts.new(FoodCategory::Delicacy, 100, 300, 25),
+      ItemKind::AntJelly  => FoodFacts.new(FoodCategory::Delicacy, 150, 600, 20),
     }
 
     # What lies about a floor, by weight. Fresh meat comes from corpses and
@@ -239,6 +251,12 @@ module Roguelike
     # :ditto:
     def self.facts(kind : ItemKind) : FoodFacts
       FACTS[kind]
+    end
+
+    # The buff eating a fresh *kind* gives. A part of a beast gives its own,
+    # and other food gives its family's. `nil` for food with none.
+    def self.buff(kind : ItemKind) : Event::Status?
+      Parts.facts?(kind).try(&.buff) || facts(kind).category.buff
     end
   end
 end

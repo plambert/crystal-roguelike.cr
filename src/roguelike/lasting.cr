@@ -18,14 +18,16 @@ module Roguelike
       Event::Status::Thirsty, Event::Status::Parched, Event::Status::Dehydrated,
       Event::Status::DyingOfThirst,
       Event::Status::WellFed, Event::Status::Refreshed, Event::Status::SteadyAim,
-      Event::Status::SteadyHand, Event::Status::Sick,
+      Event::Status::SteadyHand, Event::Status::Mending, Event::Status::Mighty,
+      Event::Status::NightEyes, Event::Status::Quickened, Event::Status::Sick,
     ]
 
-    # The buffs from food. A pane draws these in a color apart from the
-    # debuffs.
+    # The buffs from food and from the parts of beasts. A pane draws these
+    # in a color apart from the debuffs.
     BUFFS = [
       Event::Status::WellFed, Event::Status::Refreshed, Event::Status::SteadyAim,
-      Event::Status::SteadyHand,
+      Event::Status::SteadyHand, Event::Status::Mending, Event::Status::Mighty,
+      Event::Status::NightEyes, Event::Status::Quickened,
     ]
 
     # Whether *status* is a buff from food.

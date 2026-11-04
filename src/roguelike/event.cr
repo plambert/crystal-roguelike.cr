@@ -727,6 +727,18 @@ module Roguelike
 
       # Sick from rotten food. Every blow and shot lands less often.
       Sick
+
+      # Fed on a beast's liver. Wounds close faster.
+      Mending
+
+      # Fed on a bear's heart. A melee blow hits harder.
+      Mighty
+
+      # Fed on a snake's eyes. The squares nearby are seen in the dark.
+      NightEyes
+
+      # Fed on ant jelly. Quicker than a meal of meat makes anyone.
+      Quickened
     end
 
     # A status that started.

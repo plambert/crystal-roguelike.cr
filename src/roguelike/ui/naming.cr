@@ -58,6 +58,8 @@ module Roguelike::Ui
       ItemKind::Herbs              => "herbs",
       ItemKind::RottenFlesh        => "rotten flesh",
       ItemKind::Bones              => "bones",
+      ItemKind::SnakeEyes          => "snake eyes",
+      ItemKind::AntJelly           => "ant jelly",
     }
 
     # How many cells the field in front of a name takes at the narrowest.

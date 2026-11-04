@@ -150,7 +150,7 @@ module Roguelike
                  identified : Bool = false,
                  regard : Regard = Regard::Everything) : String
       return item.kind.label if item.kind.proper?
-      return Lore.food_name(item) if item.food? && regard.everything?
+      return Lore.food_name(item) if (item.food? || item.reagent?) && regard.everything?
 
       composed_noun item, blessing, identified, regard
     end

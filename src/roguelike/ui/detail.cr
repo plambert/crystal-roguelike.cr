@@ -48,7 +48,7 @@ module Roguelike::Ui
       kind = item.kind
 
       lines << marked(Palette.slot(slot), slot.note) if slot
-      lines << blessing(item) unless item.food? || item.remains?
+      lines << blessing(item) unless item.food? || item.remains? || item.reagent?
       lines << marked(Palette.burning, Palette::LIT_WORD) if item.lit?
       lines.concat facts(game, item)
       lines << "weight #{item.weight}"
@@ -117,18 +117,22 @@ module Roguelike::Ui
     # What the box says of something nobody eats.
     NOTHING_EATS = "nothing eats this"
 
+    # What the box says of a part kept for alchemy.
+    KEPT = "worth keeping for alchemy"
+
     # The lines about what the item does, which depend on what it is.
     private def self.facts(game : Game, item : Item) : Array(String)
       case item.kind.item_class
-      when .melee?, .thrown? then hitting game, item
-      when .ranged_weapon?   then shooting item
-      when .ammunition?      then shot item
-      when .armor?           then worn item
-      when .light?           then burning item
-      when .wand?            then charged item
-      when .food?            then eaten item
-      when .remains?         then [NOTHING_EATS]
-      else                        [] of String
+      when .melee?, .thrown?  then hitting game, item
+      when .ranged_weapon?    then shooting item
+      when .ammunition?       then shot item
+      when .armor?            then worn item
+      when .light?            then burning item
+      when .wand?             then charged item
+      when .food?, .delicacy? then eaten item
+      when .remains?          then [NOTHING_EATS]
+      when .reagent?          then [NOTHING_EATS, KEPT]
+      else                         [] of String
       end
     end
 
@@ -137,7 +141,7 @@ module Roguelike::Ui
       return [NOTHING_EATS] unless item.edible?
 
       lines = [filling(item.nourishment), item.category.label]
-      item.category.buff.try { |status| lines << buffing(status) }
+      Food.buff(item.kind).try { |status| lines << buffing(status) }
       lines << freshness(item)
       lines << corpse_use(item) if item.corpse?
       lines
@@ -169,6 +173,10 @@ module Roguelike::Ui
       when .refreshed?   then "fresh, it slows your thirst for a while"
       when .steady_aim?  then "fresh, it steadies your aim for a while"
       when .steady_hand? then "fresh, it steadies your hand for a while"
+      when .mending?     then "fresh, it closes your wounds faster for a long while"
+      when .mighty?      then "fresh, it makes your blows hit harder for a long while"
+      when .night_eyes?  then "fresh, it lets you see nearby in the dark for a long while"
+      when .quickened?   then "fresh, it makes you much quicker for a long while"
       else                    "fresh, it does you good"
       end
     end

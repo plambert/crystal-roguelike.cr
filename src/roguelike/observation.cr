@@ -132,9 +132,17 @@ module Roguelike
       # What the whole stack weighs.
       getter weight : Int32
 
+      # What sort of thing it is. `Delicacy` for a part of a beast.
+      getter item_class : ItemClass = ItemClass::Food
+
+      # The buff eating a fresh one gives. `nil` for food with none.
+      getter buff : Event::Status? = nil
+
       def initialize(@id : Int32, @name : String, @count : Int32,
                      @category : FoodCategory, @freshness : Freshness,
-                     @spoils : Bool, @satiety : Int32, @weight : Int32)
+                     @spoils : Bool, @satiety : Int32, @weight : Int32,
+                     @item_class : ItemClass = ItemClass::Food,
+                     @buff : Event::Status? = nil)
       end
 
       # The entry for *item*.
@@ -146,7 +154,9 @@ module Roguelike
           freshness: item.freshness,
           spoils: item.food_facts.spoils?,
           satiety: item.nourishment,
-          weight: item.weight
+          weight: item.weight,
+          item_class: item.kind.item_class,
+          buff: Food.buff(item.kind)
       end
     end
 

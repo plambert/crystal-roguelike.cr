@@ -23,7 +23,11 @@ module Roguelike
     # What has light on it. `nil` lights everything.
     getter lighting : Lighting?
 
-    def initialize(@field : FieldOfView, @lighting : Lighting? = nil)
+    # How many squares out the creature sees without light. A square this
+    # near that it has a line to is seen in the dark.
+    getter reach : Int32
+
+    def initialize(@field : FieldOfView, @lighting : Lighting? = nil, @reach : Int32 = 0)
     end
 
     # Where the creature stands.
@@ -65,6 +69,7 @@ module Roguelike
     def includes?(x : Int32, y : Int32) : Bool
       return true if {x, y} == origin
       return false unless @field.includes? x, y
+      return true if near?(x, y)
 
       found = @lighting
       found ? found.lit?(x, y) : true
@@ -73,6 +78,13 @@ module Roguelike
     # :ditto:
     def includes?(spot : {Int32, Int32}) : Bool
       includes? spot[0], spot[1]
+    end
+
+    # Whether *x*, *y* is within `#reach` of where the creature stands.
+    private def near?(x : Int32, y : Int32) : Bool
+      return false if @reach <= 0
+
+      Math.max((x - origin[0]).abs, (y - origin[1]).abs) <= @reach
     end
 
     # How many squares can be seen.

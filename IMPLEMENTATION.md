@@ -6644,6 +6644,37 @@ still be eaten, and only a fresh one can be cut up.
   holds out of it, splits a stack of bones into ones with new ids after the first, and puts each
   in the pack. What the pack has no letter for goes on the floor under the character.
 
+### Parts of beasts
+
+`Parts::TABLE` gives each beast species at most one edible part and one inedible part, each with
+a chance of one in `one_in`. `Parts.of` answers nothing for a kind whose butchery is not `Beast`,
+so the werewolf leaves none though it is a wolf. `Game#leave_remains` rolls the parts after the
+remains on `parts:<creature id>`, derived from the world seed, so a death rolls the same whatever
+came before it. The parts take the ids after the corpse and appear in `corpse_left`.
+
+| Species | Edible part | Buff | Inedible part |
+|---|---|---|---|
+| wolf | wolf liver, 1 in 4 | `Mending` 2 | wolf fang, 1 in 4 |
+| bear | bear heart, 1 in 4 | `Mighty` 2 | bear claw, 1 in 4 |
+| boar | boar liver, 1 in 4 | `Mending` 2 | boar tusk, 1 in 4 |
+| snake | pair of snake eyes, 1 in 4 | `NightEyes` 4 | snakeskin, 1 in 4 |
+| ant | glob of ant jelly, 1 in 4 | `Quickened` 10 | ant mandible, 1 in 4 |
+| rat | none | | rat tail, 1 in 10 |
+
+* **Edible.** `ItemClass::Delicacy` counts as food for `Item#food?`, so the bag, spoilage,
+  naming and eating need nothing new. Each has `Food::FACTS` in `FoodCategory::Delicacy`, with
+  100 to 300 satiety and the fresh meat timer of 300 turns, except ant jelly at 600. `Food.buff`
+  reads the part's own buff before the family's. A part's buff lasts `Parts::BUFF_TURNS`, 600,
+  and stale halves the power as with other food. These stand in for the cook's recipes.
+* **Effects.** `Mending` divides `Player#regeneration` by one more than its power. `Mighty` adds
+  its power to melee damage. `NightEyes` sets `Vision#reach`, and a square that near with a line
+  to it is seen without light. `Quickened` adds to `Pace#boost` on top of `WellFed`.
+* **Inedible.** `ItemClass::Reagent` stacks, has no food facts and never ages. It is named
+  without a blessing word, lists on the inventory's food page beside bones, and automatic pickup
+  takes it only when it stacks with one carried.
+* **Observation.** A food bag `Meal` carries `item_class` and `buff`. A reagent in the pack is a
+  `Seen` with `item_class` `reagent`.
+
 ### Floor food
 
 `Game#stock` puts food about each floor on a stream of its own, `pantry:<floor id>`, after the

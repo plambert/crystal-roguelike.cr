@@ -269,14 +269,15 @@ module Roguelike
     # What the character hits for in melee.
     #
     # The wielded weapon's dice, or `UNARMED` for bare hands, plus the
-    # strength modifier. The weapon's own dice already carry its enchantment
-    # and its condition.
+    # strength modifier and what a bear's heart adds. The weapon's own dice
+    # already carry its enchantment and its condition.
     #
     # *held* is the wielded weapon unless another is named.
     def damage(held : Item? = wielded) : Dice
       dice = held && Player.swung?(held) ? held.damage : UNARMED
 
-      dice.with_bonus @attributes.modifier(Attributes::Which::Strength) - @sustenance.damage_penalty
+      dice.with_bonus @attributes.modifier(Attributes::Which::Strength) - @sustenance.damage_penalty +
+                      buff_power(Event::Status::Mighty)
     end
 
     # What the character adds to a shot from *weapon* with *ammunition*.
@@ -476,9 +477,10 @@ module Roguelike
       ended
     end
 
-    # Sets what food adds to the character's speed.
+    # Sets what food adds to the character's speed. Meat and ant jelly add
+    # up.
     private def repace : Nil
-      @pace.boost = buff_power(Event::Status::WellFed)
+      @pace.boost = buff_power(Event::Status::WellFed) + buff_power(Event::Status::Quickened)
     end
 
     # What food adds to a swing landing, less what being sick takes off.
@@ -515,10 +517,18 @@ module Roguelike
 
     # Ticks one hit point of regeneration takes, from constitution.
     #
-    # The first stage of hunger or of thirst doubles it.
+    # The first stage of hunger or of thirst doubles it. A liver divides it
+    # by one more than its power, and never below one tick.
     def regeneration : Int32
       found = Advancement.regeneration @attributes.constitution
-      @sustenance.slow_regeneration? ? found * 2 : found
+      found *= 2 if @sustenance.slow_regeneration?
+      Math.max found // (1 + buff_power(Event::Status::Mending)), 1
+    end
+
+    # How many squares about the character are seen without light. Zero
+    # unless a snake's eyes are working.
+    def night_sight : Int32
+      buff_power Event::Status::NightEyes
     end
 
     # Whether the character regenerates at all. Wasting away stops it.
