@@ -125,6 +125,7 @@ module Roguelike::Ui
 
     color plain, 0xDCE2EC
     color faint, 0x6A707C
+    color dimmed, 0x8A909C
     color strong, 0xFFFFFF
     color vacant, 0x4A4E58
     color message_new, 0xFFE860
@@ -228,6 +229,7 @@ module Roguelike::Ui
 
       Entry.new("plain", "Text", "Plain"),
       Entry.new("faint", "Text", "Faint"),
+      Entry.new("dimmed", "Text", "Menu choice you cannot take"),
       Entry.new("strong", "Text", "Strong"),
       Entry.new("vacant", "Text", "Empty slot"),
       Entry.new("message_new", "Text", "New message"),

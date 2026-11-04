@@ -27,6 +27,7 @@ module Roguelike
     include JSON::Serializable
 
     use_json_discriminator "kind", {
+      "achieved"       => Achieved,
       "anointed"       => Anointed,
       "ate"            => Ate,
       "attack"         => Attack,
@@ -35,6 +36,7 @@ module Roguelike
       "climbed"        => Climbed,
       "bolt_stopped"   => BoltStopped,
       "butchered"      => Butchered,
+      "cannibal"       => Cannibal,
       "corpse_left"    => CorpseLeft,
       "corpse_rotted"  => CorpseRotted,
       "cracked"        => Cracked,
@@ -451,6 +453,10 @@ module Roguelike
         # The corpse was a goblin, an orc or another humanoid, and nobody
         # cuts one up.
         NotButchered
+
+        # The character is not starving, and only a starving character eats
+        # a corpse where it lies.
+        NotStarving
       end
 
       getter kind : String = "refused"
@@ -1304,6 +1310,29 @@ module Roguelike
       getter amount : Int32
 
       def initialize(@item : Int32, @name : String, @amount : Int32)
+      end
+    end
+
+    # The character earned the achievement *name* on game turn *turn*.
+    class Achieved < Event
+      getter kind : String = "achieved"
+
+      getter name : String
+      getter turn : Int32
+
+      def initialize(@name : String, @turn : Int32)
+      end
+    end
+
+    # The character ate the corpse *item* of their own species for the
+    # first time, and is a cannibal from now on.
+    class Cannibal < Event
+      getter kind : String = "cannibal"
+
+      getter item : Int32
+      getter name : String
+
+      def initialize(@item : Int32, @name : String)
       end
     end
 

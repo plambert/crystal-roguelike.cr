@@ -130,11 +130,71 @@ module Roguelike
     end
 
     # The food the character can eat now: what is in the bag, and a corpse
-    # underfoot that has not rotted.
+    # underfoot that has not rotted while the character is starving.
     def edible : Array(Item)
       found = @player.food_bag.items.select &.edible?
-      here.each { |item| found << item if item.corpse? && !item.freshness.rotten? }
+      here.each { |item| found << item if eats_in_place?(item) } if starving?
       found
+    end
+
+    # Whether the character is hungry enough to eat a corpse where it lies.
+    def starving? : Bool
+      @player.sustenance.hunger_stage.starving?
+    end
+
+    # Whether *item* is a corpse that can be eaten where it lies once the
+    # character is starving.
+    private def eats_in_place?(item : Item) : Bool
+      item.corpse? && !item.freshness.rotten?
+    end
+
+    # One row of the pick-up menu: an item underfoot and what choosing it
+    # does.
+    #
+    # *open* is false for a row the menu shows dimmed, as a corpse is while
+    # the character is not starving. *cannibal* marks a corpse of the
+    # character's own species.
+    record PickUpRow, item : Item, way : Way, open : Bool = true, cannibal : Bool = false do
+      # What choosing a row does.
+      enum Way
+        # Picks the item up, as `#pick_up` does.
+        Take
+
+        # Cuts the corpse into meat, as picking it up does.
+        Cut
+
+        # Eats some of the corpse where it lies.
+        Eat
+      end
+    end
+
+    # The rows of the pick-up menu, in the order the pile lies.
+    #
+    # A fresh beast corpse is cut. Any other corpse is an eat row, dimmed
+    # while the character is not starving. A starving character also gets
+    # an eat row for a fresh beast corpse, after its cut row.
+    def pick_up_rows : Array(PickUpRow)
+      rows = [] of PickUpRow
+      starving = starving?
+      here.each do |item|
+        unless item.corpse?
+          rows << PickUpRow.new(item, :take)
+          next
+        end
+
+        cuts = butchers? item
+        rows << PickUpRow.new(item, :cut) if cuts
+        next if cuts && !starving
+        next unless eats_in_place? item
+
+        rows << PickUpRow.new(item, :eat, open: starving, cannibal: cannibalism?(item))
+      end
+      rows
+    end
+
+    # Whether eating *item* is eating one of the character's own species.
+    def cannibalism?(item : Item) : Bool
+      item.corpse? && item.creature.try(&.species.label) == @player.species
     end
 
     # Whether thirst holds still this turn. Fruit makes it build at half
@@ -161,6 +221,8 @@ module Roguelike
     # Eats *item*, from the bag or from a corpse underfoot. Answers whether
     # any of it was eaten.
     #
+    # A corpse is eaten where it lies only by a starving character.
+    #
     # Eating stops when the character is full. A partly eaten item keeps
     # what is left. Nothing eaten leaves everything as it was and spends no
     # turn.
@@ -169,6 +231,12 @@ module Roguelike
       unless item.edible?
         say "You cannot eat #{noun}.",
           Event::Refused.new(:not_edible, item: item.id, name: noun)
+        return false
+      end
+
+      if item.corpse? && !starving?
+        say "You are not hungry enough to eat that where it lies.",
+          Event::Refused.new(:not_starving, item: item.id, name: noun)
         return false
       end
 
@@ -193,6 +261,7 @@ module Roguelike
       say line, Event::Ate.new(eaten_id, eaten, taken, whole)
       nourished kind, freshness
       defiled item, eaten_id, eaten
+      cannibalized item, eaten_id, eaten
       spend_turn
       true
     end
@@ -207,6 +276,24 @@ module Roguelike
 
       say "Eating #{noun} weakens you for good. Your maximum hit points drop by #{lost}.",
         Event::Weakened.new(id, noun, lost)
+    end
+
+    # Makes the character a cannibal for good when *item* was a corpse of
+    # their own species. Only the first such meal says so.
+    private def cannibalized(item : Item, id : Int32, noun : String) : Nil
+      return unless cannibalism?(item) && @player.become_cannibal
+
+      say "You have eaten #{noun}, one of your own kind. You are a cannibal now.",
+        Event::Cannibal.new(id, noun)
+      earn Achievement::CANNIBAL
+    end
+
+    # Gives the character the achievement *name* on this turn, once, and
+    # says so.
+    private def earn(name : String) : Nil
+      return unless @player.earn Achievement.new(name, @turn, Time.utc)
+
+      say "You earn an achievement: #{name}.", Event::Achieved.new(name, @turn)
     end
 
     # Puts what is left of *one* back, or takes it away when it is all
@@ -394,7 +481,8 @@ module Roguelike
       in Action::Eat
         item = @player.food_bag[action.item] ||
                here.find { |lying| lying.corpse? && lying.id == action.item }
-        return Verdict.refused unless item && edible.any?(&.same?(item))
+        return Verdict.refused unless item
+        return Verdict.refused unless edible.any?(&.same?(item)) || eats_in_place?(item)
 
         eat item
         Verdict.done

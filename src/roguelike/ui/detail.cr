@@ -143,8 +143,17 @@ module Roguelike::Ui
       lines = [filling(item.nourishment), item.category.label]
       Food.buff(item.kind).try { |status| lines << buffing(status) }
       lines << freshness(item)
-      lines << "eat it here or cut it into meat" if item.corpse?
+      lines << corpse_use(item) if item.corpse?
       lines
+    end
+
+    # What can be done with the corpse *item*.
+    private def self.corpse_use(item : Item) : String
+      if item.butchery.beast? && item.freshness.fresh?
+        return "cut it into meat, or eat it here when starving"
+      end
+
+      "eat it here when starving"
     end
 
     # How filling *points* of satiety are, in words.

@@ -17,6 +17,9 @@ module Roguelike::Ui
     # The equipment section's title.
     WORN = "Equipment"
 
+    # What the heading over the achievements says.
+    ACHIEVEMENTS = "Achievements"
+
     # The pack section's title.
     PACK = "Pack"
 
@@ -151,6 +154,13 @@ module Roguelike::Ui
     # How fast the character walks, and their melee damage rate.
     getter pacing : Line
 
+    # The heading over the achievements. Hidden while there are none.
+    getter achieved : Line
+
+    # One row per achievement, oldest first: its name, and the turn it was
+    # earned on. Rows are added as achievements are.
+    getter achievements : Array(Line) = [] of Line
+
     # One row per equipment slot, in `Slot.listed` order.
     getter slots : Array(Line)
 
@@ -193,6 +203,8 @@ module Roguelike::Ui
       @score_names = Line.new
       @scores = Line.new
       @pacing = Line.new
+      @achieved = Line.new
+      @achieved.hidden = true
       @slots = Slot.listed.map { Line.new }
       @pack = Array.new(MOST_PACK) { Line.new }
 
@@ -222,7 +234,7 @@ module Roguelike::Ui
       @vitals.add @who, @health, @magic, @learning, @water, @lasting, @noisy, @fight
 
       @scoring = InfoPanel.section SCORES
-      @scoring.body.add @number_names, @numbers, @score_names, @scores, @pacing
+      @scoring.body.add @number_names, @numbers, @score_names, @scores, @pacing, @achieved
 
       @worn = InfoPanel.section WORN
       @slots.each { |row| @worn.body.add row }
@@ -317,6 +329,7 @@ module Roguelike::Ui
 
       written_scores player
       written_pacing game
+      written_achievements player
       written_slots game
       written_pack game
 
@@ -450,6 +463,30 @@ module Roguelike::Ui
       Attributes::Which.values.each_with_index do |which, index|
         @score_names.put index * 3, which.short, Palette.faint
         @scores.put index * 3, player.attributes[which].to_s.rjust(2), Palette.plain
+      end
+    end
+
+    # The achievements under the scores, with the turn each was earned on.
+    private def written_achievements(player : Player) : Nil
+      earned = player.achievements
+      @achieved.hidden = earned.empty?
+      @achieved.clear
+      @achieved.put 0, ACHIEVEMENTS, Palette.faint unless earned.empty?
+
+      while @achievements.size < earned.size
+        added = Line.new
+        @achievements << added
+        @scoring.body.add added
+      end
+
+      @achievements.each_with_index do |row, index|
+        row.clear
+        found = earned[index]?
+        row.hidden = found.nil?
+        next unless found
+
+        row.put 0, found.name, Palette.plain
+        row.put_right "turn #{found.turn}", Palette.faint
       end
     end
 

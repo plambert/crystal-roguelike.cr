@@ -6612,6 +6612,34 @@ still be eaten, and only a fresh one can be cut up.
   on the floor with `pack_full`. Automatic pickup takes only what stacks with something carried,
   so it never takes bones. Bones coming into sight do not stop a walk. The inventory lists them
   on the food page, which holds nothing else.
+* **Eating in place.** A corpse is eaten where it lies only while `Game#starving?`, which is the
+  Starving hunger stage. `Game#edible` leaves corpses out below it, so the legal actions and the
+  food bag screen offer no `eat` on one. An `eat` on a corpse below it reaches `Game#eat`, which
+  refuses with `not_starving` and spends no turn. `Game#pick_up_rows` lists what the pick-up menu
+  shows: a take row for anything that is not a corpse, a cut row for a fresh beast corpse, and an
+  eat row for any other corpse, open only while starving. A starving character also gets an eat
+  row after a fresh beast corpse's cut row. Both control schemes build their menus from it. The
+  traditional menu skips the question only for a single take or cut row, so a lone humanoid
+  corpse still shows its dimmed row. Dimmed menu rows draw in the `dimmed` theme color, which is
+  `#8A909C` in Default, about 6 to 1 on the ground.
+* **Cannibalism.** `Player#species` is the label of the character's species, `Player::HUMAN` for
+  every character. No `Species` member stands for humans, because each member names a default
+  kind and no human creature exists yet. The save leaves the field out, and a spec sets it to
+  make a creature's corpse one of the character's own kind. `Game#cannibalism?` compares the
+  corpse's `Species#label` with it. The pick-up row marks such a corpse, and the first meal of one
+  sets `Player#cannibal?` with a `cannibal` event. The flag is `nil` in the save until it is set,
+  so an older save and the fingerprint of a run that never set it are unchanged. It does nothing
+  else yet.
+* **Achievements.** `Achievement` is a record of a string name, the game turn and the wall clock
+  time it was earned, so a web scoreboard or Steam can take it as it is. `Player#achievements`
+  holds them oldest first, and `Player#earn` adds a name only once. `Game#earn` stamps the turn
+  and `Time.utc` and says so with an `achieved` event, which carries the name and the turn. The
+  list is `nil` in the save until something is earned, so an older save, the fingerprint and the
+  golden replay are unchanged for a run that earned nothing. A replay earns an achievement again
+  at another time, so the streamed fingerprint leaves the time out and keeps the name and the
+  turn. The canonical scheme only checks values from earlier builds, which hold no achievements.
+  The character pane lists them under the scores, and the end screen after what was carried.
+  `cannibal` is the first, earned with the flag.
 * **Old saves.** `Game#unbag` runs from `#after_initialize`. It takes anything the bag no longer
   holds out of it, splits a stack of bones into ones with new ids after the first, and puts each
   in the pack. What the pack has no letter for goes on the floor under the character.

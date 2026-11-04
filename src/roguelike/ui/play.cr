@@ -507,7 +507,7 @@ module Roguelike::Ui
       @menu.pointer_style = Palette.pointer_mark
       @news_page = NewsPage.new
       @options_screen = OptionsScreen.new
-      @menu.disabled_style = Palette.faint
+      @menu.disabled_style = Palette.dimmed
       @history = HistoryPane.new
       @history.control_scheme = control_scheme
       @history.accents = ->BlessingWords.accents(String)
@@ -728,7 +728,7 @@ module Roguelike::Ui
       @nearby.retheme
       @map.retheme
       @menu.pointer_style = Palette.pointer_mark
-      @menu.disabled_style = Palette.faint
+      @menu.disabled_style = Palette.dimmed
       @pager.fresh_style = Palette.message_new
       @pager.badge_style = Palette.newer_badge
       @screen.banner.try &.style=(Palette.strong)
@@ -2100,43 +2100,68 @@ module Roguelike::Ui
 
     # Picks up what is on the square the character stands on.
     #
-    # Nothing there says so. One thing is taken without a question. More than
-    # one is a menu, because a person standing on a pile has to say which.
+    # Nothing there says so. One thing to pick up or cut is taken without a
+    # question. Anything else is a menu, because a person standing on a pile
+    # has to say which. A corpse that can only be eaten where it lies is a
+    # row of its own, dimmed until the character is starving, so the menu
+    # comes up for it even when it lies alone.
     def pick_up : Nil
-      pile = @game.here
+      rows = @game.pick_up_rows
 
-      case pile.size
-      when 0
+      if rows.empty?
         say "There is nothing here to pick up."
-      when 1
+      elsif rows.size == 1 && !rows.first.way.eat?
         @game.perform Action::PickUp.new
         refresh
       else
-        choose_from pile
+        choose_from rows
       end
     end
 
-    # Asks which of *pile* to pick up.
-    private def choose_from(pile : Array(Item)) : Nil
+    # What a pick-up row that eats a corpse says after the corpse's name.
+    # *open* is false while the row is dimmed. *cannibal* marks a corpse of
+    # the character's own species.
+    private def eat_note(open : Bool, cannibal : Bool) : String
+      note = open ? " - eat some (starving!)" : " (eat when starving)"
+      cannibal ? "#{note} (cannibalism)" : note
+    end
+
+    # Asks which of *rows* to take.
+    private def choose_from(rows : Array(Game::PickUpRow)) : Nil
       if modern_controls?
         @modern_stack.clear
-        targets = pile.map { |item| CommandTarget.new(item_id: item.id) }
-        show_modern_targets Command::PickUp, targets
+        show_modern_targets Command::PickUp, Commands.pick_up_targets(rows)
         return
       end
 
-      entries = listed(pile.map_with_index do |item, index|
-        Listing.new Widgets::Menu.letter(index), item
-      end)
+      listings = rows.map_with_index do |row, index|
+        Listing.new Widgets::Menu.letter(index), row.item
+      end
+      entries = listed(listings).zip(rows).map do |entry, row|
+        next entry unless row.way.eat?
 
-      choose("Pick up what?", entries, about(pile)) do |key|
+        entry.copy_with text: entry.text + eat_note(row.open, row.cannibal), enabled: row.open
+      end
+
+      choose("Pick up what?", entries, about(rows.map &.item)) do |key|
         next unless key
 
-        item = pile[Widgets::Menu.index key]?
-        next unless item
+        row = rows[Widgets::Menu.index key]?
+        next unless row
 
-        @game.perform Action::PickUp.new(item.id)
+        take_row row
         refresh
+      end
+    end
+
+    # Does what choosing *row* in the pick-up menu does.
+    private def take_row(row : Game::PickUpRow) : Nil
+      return unless row.open
+
+      if row.way.eat?
+        @game.perform Action::Eat.new(row.item.id)
+      else
+        @game.perform Action::PickUp.new(row.item.id)
       end
     end
 
