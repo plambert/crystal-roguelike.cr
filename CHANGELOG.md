@@ -31,6 +31,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Your character is human. Eating a human corpse is cannibalism: the pick-up menu marks the row
   "cannibalism", and the first meal of one makes you a cannibal for good, which the game tells
   you and keeps in your save. No human corpses turn up in the dungeon yet.
+* Achievements. Your save keeps each one you earn, with the turn and the time you earned it. The
+  game tells you when you earn one, and the character pane lists them under your scores. The
+  screen a run ends with lists them too. The first is "cannibal", for the first meal of your own
+  kind.
 * Menu rows you cannot choose have a color of their own in the theme editor. In the Default theme
   it is brighter than before and reads at 6 to 1 against the ground.
 * Picking up everything on a square passes over a corpse that cannot be cut, and says why only

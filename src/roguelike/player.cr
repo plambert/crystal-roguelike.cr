@@ -123,6 +123,12 @@ module Roguelike
     # and an older save loads the same.
     @cannibal : Bool? = nil
 
+    # What the character has earned, oldest first.
+    #
+    # `nil` stands for none, so a save that has earned nothing writes no
+    # field and an older save loads the same.
+    @achievements : Array(Achievement)? = nil
+
     def initialize(@floor : String, @x : Int32, @y : Int32,
                    @attributes : Attributes = Attributes.new,
                    @level : Int32 = 1,
@@ -378,6 +384,25 @@ module Roguelike
       return false if cannibal?
 
       @cannibal = true
+    end
+
+    # What the character has earned, oldest first.
+    def achievements : Array(Achievement)
+      @achievements || [] of Achievement
+    end
+
+    # Whether the character has earned the achievement *name*.
+    def earned?(name : String) : Bool
+      achievements.any? &.name.==(name)
+    end
+
+    # Adds *achievement* to the list. Answers false and adds nothing when
+    # one of that name is already there.
+    def earn(achievement : Achievement) : Bool
+      return false if earned? achievement.name
+
+      (@achievements ||= [] of Achievement) << achievement
+      true
     end
 
     # Whether the character is still alive.

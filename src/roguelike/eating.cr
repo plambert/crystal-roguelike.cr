@@ -278,6 +278,15 @@ module Roguelike
 
       say "You have eaten #{noun}, one of your own kind. You are a cannibal now.",
         Event::Cannibal.new(id, noun)
+      earn Achievement::CANNIBAL
+    end
+
+    # Gives the character the achievement *name* on this turn, once, and
+    # says so.
+    private def earn(name : String) : Nil
+      return unless @player.earn Achievement.new(name, @turn, Time.utc)
+
+      say "You earn an achievement: #{name}.", Event::Achieved.new(name, @turn)
     end
 
     # Puts what is left of *one* back, or takes it away when it is all

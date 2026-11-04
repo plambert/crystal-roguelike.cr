@@ -6630,6 +6630,16 @@ still be eaten, and only a fresh one can be cut up.
   sets `Player#cannibal?` with a `cannibal` event. The flag is `nil` in the save until it is set,
   so an older save and the fingerprint of a run that never set it are unchanged. It does nothing
   else yet.
+* **Achievements.** `Achievement` is a record of a string name, the game turn and the wall clock
+  time it was earned, so a web scoreboard or Steam can take it as it is. `Player#achievements`
+  holds them oldest first, and `Player#earn` adds a name only once. `Game#earn` stamps the turn
+  and `Time.utc` and says so with an `achieved` event, which carries the name and the turn. The
+  list is `nil` in the save until something is earned, so an older save, the fingerprint and the
+  golden replay are unchanged for a run that earned nothing. A replay earns an achievement again
+  at another time, so the streamed fingerprint leaves the time out and keeps the name and the
+  turn. The canonical scheme only checks values from earlier builds, which hold no achievements.
+  The character pane lists them under the scores, and the end screen after what was carried.
+  `cannibal` is the first, earned with the flag.
 * **Old saves.** `Game#unbag` runs from `#after_initialize`. It takes anything the bag no longer
   holds out of it, splits a stack of bones into ones with new ids after the first, and puts each
   in the pack. What the pack has no letter for goes on the floor under the character.

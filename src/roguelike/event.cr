@@ -27,6 +27,7 @@ module Roguelike
     include JSON::Serializable
 
     use_json_discriminator "kind", {
+      "achieved"       => Achieved,
       "anointed"       => Anointed,
       "ate"            => Ate,
       "attack"         => Attack,
@@ -1297,6 +1298,17 @@ module Roguelike
       getter amount : Int32
 
       def initialize(@item : Int32, @name : String, @amount : Int32)
+      end
+    end
+
+    # The character earned the achievement *name* on game turn *turn*.
+    class Achieved < Event
+      getter kind : String = "achieved"
+
+      getter name : String
+      getter turn : Int32
+
+      def initialize(@name : String, @turn : Int32)
       end
     end
 

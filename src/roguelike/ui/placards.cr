@@ -124,6 +124,11 @@ module Roguelike::Ui
       lines << ""
       lines.concat carrying game
       lines << ""
+      earned = achieved game
+      unless earned.empty?
+        lines.concat earned
+        lines << ""
+      end
       lines << "seed #{game.world.seed}"
 
       lines
@@ -160,6 +165,15 @@ module Roguelike::Ui
         "level #{player.level}, #{player.experience} experience",
         "#{player.gold} gold",
       ]
+    end
+
+    # What the character earned, one achievement to a line with its turn.
+    # Empty when they earned nothing.
+    private def self.achieved(game : Game) : Array(String)
+      earned = game.player.achievements
+      return [] of String if earned.empty?
+
+      ["You earned:"] + earned.map { |found| "  #{found.name}, on turn #{found.turn}" }
     end
 
     # What the character was carrying, one item to a line.
