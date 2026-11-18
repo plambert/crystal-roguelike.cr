@@ -27,11 +27,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   most and gives no buff. A buff does not stack with itself. Stale food gives half the buff.
 * Eating stops when you are full. Food you could not finish stays in the bag, partly eaten. If
   you are too full to eat at all, you are told so and no turn passes.
-* Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
+* Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave a putrid mass and
   bones, or bones alone for a skeleton. Picking up a fresh beast corpse cuts it into fresh meat
   for the bag. A small or medium beast gives one piece and a large one gives two. A piece feeds
-  less than an apple, so meat helps but does not feed you on its own. A corpse rots away about
-  300 turns after death.
+  less than an apple, so meat helps but does not feed you on its own. A corpse rots to a putrid mass
+  about 300 turns after death.
 * You can eat a corpse where it lies only when you are starving. Until then the pick-up menu
   shows it as a dimmed row that says "eat when starving". Once you are starving the row says
   "eat some (starving!)", and a fresh beast corpse gets that row as well as the one that cuts it.
