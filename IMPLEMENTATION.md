@@ -1046,6 +1046,49 @@ on. The generator comes last because by now it is clear what it has to place.
   the pills under "Temporary effects in the character pane".
 * The water reading is a plain line rather than a bar. Text over the empty part of a bar reads at
   less than 4.5 to 1 in the Default theme.
+
+#### Times the player sees
+
+The player sees food and water as rough game time, never as turns, so they never know the exact
+turn a change comes on. The protocol and the observation keep exact numbers.
+
+* `Sustenance::SECONDS_PER_TURN` is 10. Every time shown is counted from it.
+* `Sustenance.approximate` rounds down to ten minutes and writes "50m", "4h10m" or "1h". Under
+  ten minutes, zero included, it writes "<10m".
+* Each time is the turns until the next stage that shows a status, rounded down. It can say
+  "<10m" for up to 59 turns before the stage changes.
+
+| Line | Shows | The time counts to |
+| --- | --- | --- |
+| food | `food`, or the hunger stage | hungry from satiated or fed; then famished, starving, death |
+| water | `water`, or the thirst stage, then the skin's units | see below |
+
+* `Sustenance#food_left` counts hunger to the next of `HUNGRY`, `FAMISHED`, `STARVING` and
+  `STARVED`. Satiated and fed show no status, so both count to hungry.
+* `Sustenance#water_left` for a quenched character is the skin's sipping time,
+  `water * SIP - sipped`, plus `THIRSTY`. A character past quenched does not sip, so the skin
+  adds nothing. The time is then the turns to the next of `THIRSTY`, `PARCHED`, `DEHYDRATED`,
+  `DYING` and `DRIED`.
+* The fruit buff that holds thirst every other turn is left out of the time. The real wait is
+  longer than the time shown while it runs.
+* Past the first status, the line starts with the stage word in the style of its pill. Dying of
+  thirst is "dying", so "dehydrated 10/10 4h10m" fits the 22 columns of the narrow panel.
+* The stage pills stay as they were, under the lines.
+
+On the food bag screen:
+
+* A row's feeding time is `FoodBag.feeds`, the whole stack at its present freshness. The first
+  piece may be bitten. The rest are whole. Rotten flesh feeds nothing and shows no time.
+* For food that spoils, `FoodBag.turning` gives the next freshness and the turns until it. A stack
+  shares one age, so every piece turns together. Rotten food has no later stage and shows none.
+* The title shows the water in the skin and `water * SIP`, the time it lasts a quenched
+  character.
+* The rows give up columns to keep the detail box readable. A row has the text room the menu
+  leaves when its side margins are `MENU_MARGIN`. When the widest row is too wide for that, the
+  spoiling time goes. When it is still too wide, the feeding time goes too. With a long name such
+  as "2 handfuls of dried fruit" in the bag, 80 columns shows the name and weight alone, 90 and
+  100 add the feeding time, and 120 shows both times.
+* The potion list shows no time. A potion quenches once and holds nothing back for later.
 * A death from hunger or thirst sets `Game#perished`. The end screen says "You starved to death."
   or "You died of thirst.", and `over` carries the cause. A trial report counts it as starvation or
   thirst.

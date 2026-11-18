@@ -98,6 +98,18 @@ module Roguelike::Ui
       Event::Status::Quickened     => "quickened",
     }
 
+    # What a budget line starts with for each stage of hunger and thirst.
+    # Dying of thirst is one word, so the line fits the narrow panel.
+    STAGE_WORDS = {
+      Event::Status::Hungry        => "hungry",
+      Event::Status::Famished      => "famished",
+      Event::Status::Starving      => "starving",
+      Event::Status::Thirsty       => "thirsty",
+      Event::Status::Parched       => "parched",
+      Event::Status::Dehydrated    => "dehydrated",
+      Event::Status::DyingOfThirst => "dying",
+    }
+
     # What the noise bar is labeled. A note, where the other bars have two
     # letters. The word goes inside the bar with the count.
     NOISE_LABEL = "♪"
@@ -117,10 +129,14 @@ module Roguelike::Ui
     getter magic : Meter
     getter learning : Meter
 
-    # How much water is in the skin, as text.
+    # About how long until hunger gets worse, as text.
+    getter food : Line
+
+    # How much water is in the skin, and about how long until thirst gets
+    # worse, as text.
     #
-    # A line rather than a bar. Text on the empty part of a bar does not
-    # read at 4.5 to 1 in every theme.
+    # Lines rather than bars. Text on the empty part of a bar does not read
+    # at 4.5 to 1 in every theme.
     getter water : Line
 
     # The bar for the creature the character is fighting.
@@ -195,6 +211,7 @@ module Roguelike::Ui
       @health = Meter.new "HP", levels: Palette.health
       @magic = Meter.new "MP", levels: Palette.magic
       @learning = Meter.new "XP", levels: Palette.learning
+      @food = Line.new
       @water = Line.new
       @threat = Meter.new THREAT_LABEL, levels: Palette.threat
       @noise = Meter.new NOISE_LABEL, levels: Palette.noise
@@ -231,7 +248,7 @@ module Roguelike::Ui
         width: Layout::Sizing.grow,
         height: Layout::Sizing.fit,
         padding: Layout::Padding.symmetric(horizontal: 1))
-      @vitals.add @who, @health, @magic, @learning, @water, @lasting, @noisy, @fight
+      @vitals.add @who, @health, @magic, @learning, @food, @water, @lasting, @noisy, @fight
 
       @scoring = InfoPanel.section SCORES
       @scoring.body.add @number_names, @numbers, @score_names, @scores, @pacing, @achieved
@@ -312,6 +329,7 @@ module Roguelike::Ui
       @health.show player.hit_points, player.max_hit_points
       @magic.show 0, 0
       learned player
+      fed player
       watered player
       lasted player
       fought game
@@ -355,11 +373,39 @@ module Roguelike::Ui
         "#{player.experience}/#{player.experience + wanted}"
     end
 
-    # The water line: how many units are in the skin, out of how many it
-    # holds.
+    # The food line: about how long until the next stage of hunger, or
+    # until death once starving.
+    #
+    # The line starts with "food" while the character is not hungry. Past
+    # that, the stage takes its place, in the style of its pill. The time
+    # sits against the right edge.
+    private def fed(player : Player) : Nil
+      sustenance = player.sustenance
+      budgeted @food, "food", sustenance.hunger_status
+      @food.put_right Sustenance.approximate(sustenance.food_left), Palette.plain
+    end
+
+    # The water line: the units in the skin out of how many it holds, and
+    # about how long until the next stage of thirst, or until death once
+    # dying of thirst.
+    #
+    # The line starts with "water" while the character is not thirsty. Past
+    # that, the stage takes its place, as on the food line.
     private def watered(player : Player) : Nil
-      @water.clear
-      @water.put 0, "water #{player.sustenance.water}/#{Sustenance::WATER_MAX}", Palette.plain
+      sustenance = player.sustenance
+      start = budgeted @water, "water", sustenance.thirst_status
+      @water.put start + 1, "#{sustenance.water}/#{Sustenance::WATER_MAX}", Palette.plain
+      @water.put_right Sustenance.approximate(sustenance.water_left), Palette.plain
+    end
+
+    # What a budget line starts with: *label* while *status* is `nil`, and
+    # the stage word in its pill's style otherwise. Answers the column after
+    # it.
+    private def budgeted(row : Line, label : String, status : Event::Status?) : Int32
+      row.clear
+      return row.put(0, label, Palette.plain) unless status
+
+      row.put 0, STAGE_WORDS[status], Palette.pill(status)
     end
 
     # The temporary effects on the character: a bar for each one in
