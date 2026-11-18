@@ -30,8 +30,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave a putrid mass and
   bones, or bones alone for a skeleton. Picking up a fresh beast corpse cuts it into fresh meat
   for the bag. A small or medium beast gives one piece and a large one gives two. A piece feeds
-  less than an apple, so meat helps but does not feed you on its own. A corpse rots to a putrid mass
-  about 300 turns after death.
+  less than an apple, so meat helps but does not feed you on its own. A corpse rots to a putrid
+  mass about 300 turns after death.
 * You can eat a corpse where it lies only when you are starving. Until then the pick-up menu
   shows it as a dimmed row that says "eat when starving". Once you are starving the row says
   "eat some (starving!)", and a fresh beast corpse gets that row as well as the one that cuts it.
@@ -205,11 +205,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   It strikes more slowly than the warrior did and takes longer to kill, and is about as dangerous.
 * Bones go in your pack, one pile to a letter, rather than in the food bag. Bones in the food
   bag of a saved game move to the pack when it loads, or to the floor under you when the pack is
-  full. Rotten flesh stays in the food bag.
-* A corpse no longer vanishes when it rots. It leaves one putrid mass on its square.
-* Undead leave a putrid mass and bones instead of rotten flesh and bones. Rotten flesh in a
-  saved game turns into putrid masses when it loads: in your pack, or at your feet when the pack
-  is full, and where it lies on the floors.
+  full. Rotten flesh in a saved game turns into putrid masses when it loads, in the pack or at
+  your feet the same way, and where it lies on the floors.
 
 ### Fixed
 
