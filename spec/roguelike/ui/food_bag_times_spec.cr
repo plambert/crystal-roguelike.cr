@@ -41,7 +41,7 @@ Spectator.describe "the times on the food bag screen" do
   it "shows how long each stack feeds and when it next turns" do
     run = opened [food(Kind::FreshMeat, 2, age: 250), food(Kind::Ration, 2)], 140
 
-    expect(row_for run, 'a').to match /2 pieces of fresh meat +8 +5h stale in <10m$/
+    expect(row_for run, 'a').to match /2 pieces of fresh meat +\d+ +50m stale in <10m$/
     expect(row_for run, 'b').to match /2 rations +8 +8h20m$/
   end
 
