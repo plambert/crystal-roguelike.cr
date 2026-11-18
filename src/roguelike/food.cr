@@ -173,7 +173,7 @@ module Roguelike
       ItemKind::Bread   => FoodFacts.new(FoodCategory::Grain, 1200, 1500, 6),
       ItemKind::Oatcake => FoodFacts.new(FoodCategory::Grain, 800, 4000, 5),
 
-      ItemKind::FreshMeat => FoodFacts.new(FoodCategory::Meat, 900, 300, 8),
+      ItemKind::FreshMeat => FoodFacts.new(FoodCategory::Meat, 175, 300, 8),
       ItemKind::DriedMeat => FoodFacts.new(FoodCategory::Meat, 700, 5000, 10),
       ItemKind::Sausage   => FoodFacts.new(FoodCategory::Meat, 800, 1500, 8),
 
@@ -232,8 +232,8 @@ module Roguelike
     # How many pieces of fresh meat a corpse of each size cuts into.
     CUTS = {
       Size::Small  => 1,
-      Size::Medium => 2,
-      Size::Large  => 4,
+      Size::Medium => 1,
+      Size::Large  => 2,
     }
 
     # What a corpse of each size weighs. No corpse fits in the bag.

@@ -215,12 +215,20 @@ module Roguelike
     # How often a lit sconce is lit, out of a hundred.
     BURNING = 70
 
-    # How often a floor has a fountain, out of a hundred.
-    FOUNTAIN = 60
+    # How often a floor has a fountain, out of a hundred, by how many floors
+    # in a row directly above it have none.
+    #
+    # After three dry floors the next one always has a fountain. Over a long
+    # run 500 floors in 683 have one, which is 73.2 in a hundred.
+    FOUNTAIN = {70, 80, 90, 100}
 
-    # The floors a fountain may be on. Floor 1 has none, and neither has
-    # the chamber under the last floor.
+    # The floors a fountain is drawn for. Floor 1 always has one, and the
+    # chamber under the last floor has none.
     WATERED = 2..World::DEEPEST
+
+    # How many steps from the up staircase floor 1's fountain is, at most,
+    # when the room the staircase is in has bare ground that near.
+    NEAR = 6
 
     # What a room's floor is made of.
     GROUND = {
@@ -292,14 +300,26 @@ module Roguelike
 
     # Whether the floor called *id* has a fountain, drawn on *rng*.
     #
-    # The draw has a stream of its own named after the floor, so the answer
-    # is the same for a seed however many tries the floor took to dig. Each
-    # floor draws apart from the others.
+    # Floor 1 always has one. Each deeper floor draws on a stream of its own
+    # named after the floor, so the answer is the same for a seed however
+    # many tries a floor took to dig. The odds of a draw rise with the dry
+    # floors in a row above it, so the answer walks down from floor 2 and
+    # counts them. A floor outside the dungeon's numbering has none.
     def self.fountain?(rng : Rng, id : String) : Bool
-      depth = World.depth(id) || 1
+      depth = World.depth id
+      return false unless depth
+      return true if depth == 1
       return false unless WATERED.includes? depth
 
-      rng.derive("#{DOMAIN}:#{id}").derive("fountain").rand(100) < FOUNTAIN
+      dry = 0
+      WATERED.begin.upto(depth) do |above|
+        wet = rng.derive("#{DOMAIN}:#{World.id above}").derive("fountain").rand(100) < FOUNTAIN[dry]
+        return wet if above == depth
+
+        dry = wet ? 0 : dry + 1
+      end
+
+      false
     end
 
     # How much larger *depth* is drawn than `AREA`, as a factor.
@@ -405,6 +425,10 @@ module Roguelike
     # The room or cavern the up staircase is in. `nil` before the stairs are
     # put down.
     getter arrival : Area? = nil
+
+    # The square the up staircase is on. `nil` before the stairs are put
+    # down.
+    getter landing : {Int32, Int32}? = nil
 
     # How deep the floor is. `Spawns` reads it.
     getter depth : Int32
@@ -1001,6 +1025,7 @@ module Roguelike
 
       arrival = put stream, up, Terrain::StairsUp
       @arrival = up
+      @landing = arrival
 
       far = distant places, up, arrival
       down = far.sample stream unless far.empty? || far.includes?(down)
@@ -1065,23 +1090,57 @@ module Roguelike
       found.empty? ? [room.middle] : found
     end
 
-    # Puts a fountain on bare ground in one room, when `.fountain?` says
-    # this floor has one.
+    # Puts a fountain on bare ground, when `.fountain?` says this floor has
+    # one.
     #
-    # It goes in last, so it moves no staircase, sconce or creature. A floor
-    # with no rooms takes it in a cavern.
+    # Floor 1's goes near the up staircase. Any other floor's goes in a room
+    # drawn at random, or a cavern on a floor with no rooms. It goes in last,
+    # so it moves no staircase, sconce or creature.
     private def fountain : Nil
       return unless Generator.fountain? @base, @floor.id
 
+      stream = @rng.derive "fountain"
+      spot = (welcome(stream) if World.depth(@floor.id) == 1) || anywhere(stream)
+      return unless spot && @floor.terrain(spot[0], spot[1]).floor?
+
+      @floor.set spot[0], spot[1], Terrain::Fountain
+    end
+
+    # A square for a fountain in a room drawn from *stream*.
+    private def anywhere(stream : Rng) : {Int32, Int32}?
       places = rooms.empty? ? caverns : rooms
       return if places.empty?
 
-      stream = @rng.derive "fountain"
-      room = places.sample stream
-      spot = plain(room).sample stream
-      return unless @floor.terrain(spot[0], spot[1]).floor?
+      plain(places.sample stream).sample stream
+    end
 
-      @floor.set spot[0], spot[1], Terrain::Fountain
+    # A bare square near the up staircase, drawn from *stream*.
+    #
+    # It is in the staircase's own zone and at most `NEAR` steps away when
+    # that zone has such a square. Otherwise it is the bare square of any
+    # zone fewest steps away. `nil` when the floor has no staircase or no
+    # bare square can be walked to.
+    private def welcome(stream : Rng) : {Int32, Int32}?
+      landing = @landing
+      arrival = @arrival
+      return unless landing && arrival
+
+      flood = Descent.toward surveyed, landing, @floor.columns * @floor.rows, doors: true
+      bare = ->(zone : Area) do
+        plain(zone).compact_map do |spot|
+          steps = flood[spot]
+          {spot, steps} if steps && spot != landing && @floor.terrain(spot[0], spot[1]).floor?
+        end
+      end
+
+      close = bare.call(arrival).select { |pair| pair[1] <= NEAR }
+      return close.sample(stream)[0] unless close.empty?
+
+      reached = zones.flat_map { |zone| bare.call zone }
+      return if reached.empty?
+
+      fewest = reached.min_of &.[1]
+      reached.select { |pair| pair[1] == fewest }.sample(stream)[0]
     end
 
     # Puts sconces on the walls of *room*.
