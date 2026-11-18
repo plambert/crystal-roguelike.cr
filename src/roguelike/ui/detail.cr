@@ -48,7 +48,7 @@ module Roguelike::Ui
       kind = item.kind
 
       lines << marked(Palette.slot(slot), slot.note) if slot
-      lines << blessing(item) unless item.food? || item.remains? || item.reagent?
+      lines << blessing(item) unless item.food? || item.remains? || item.reagent? || item.refuse?
       lines << marked(Palette.burning, Palette::LIT_WORD) if item.lit?
       lines.concat facts(game, item)
       lines << "weight #{item.weight}"
@@ -123,16 +123,16 @@ module Roguelike::Ui
     # The lines about what the item does, which depend on what it is.
     private def self.facts(game : Game, item : Item) : Array(String)
       case item.kind.item_class
-      when .melee?, .thrown?  then hitting game, item
-      when .ranged_weapon?    then shooting item
-      when .ammunition?       then shot item
-      when .armor?            then worn item
-      when .light?            then burning item
-      when .wand?             then charged item
-      when .food?, .delicacy? then eaten item
-      when .remains?          then [NOTHING_EATS]
-      when .reagent?          then [NOTHING_EATS, KEPT]
-      else                         [] of String
+      when .melee?, .thrown?   then hitting game, item
+      when .ranged_weapon?     then shooting item
+      when .ammunition?        then shot item
+      when .armor?             then worn item
+      when .light?             then burning item
+      when .wand?              then charged item
+      when .food?, .delicacy?  then eaten item
+      when .remains?, .refuse? then [NOTHING_EATS]
+      when .reagent?           then [NOTHING_EATS, KEPT]
+      else                          [] of String
       end
     end
 
@@ -189,6 +189,7 @@ module Roguelike::Ui
       in .fresh?  then "fresh"
       in .stale?  then "stale: it feeds half as much"
       in .rotten? then "rotten: eating it will make you sick"
+      in .putrid? then "putrid: nothing eats it"
       end
     end
 

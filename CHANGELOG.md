@@ -10,6 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Putrid mass. Food that spoils now goes putrid at three times the turns it keeps fresh, after
+  stale and rotten. Putrid food in your food bag turns into putrid masses in your pack, or at
+  your feet when the pack is full, and the message log says so. Food on the floor turns into
+  putrid masses where it lies. Putrid masses stack without limit, weigh 1, never spoil and cannot
+  be eaten. Automatic pickup takes one only when it stacks with one you carry.
 * Food. Fourteen kinds lie about the floors in five families: grain, meat, fruit, nuts and
   cheese, and roots and herbs. Food you pick up goes in a food bag that holds weight 40, takes
   no pack letter and costs no pace. If the bag has no room, the food stays on the floor.
@@ -197,6 +202,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Bones go in your pack, one pile to a letter, rather than in the food bag. Bones in the food
   bag of a saved game move to the pack when it loads, or to the floor under you when the pack is
   full. Rotten flesh stays in the food bag.
+* A corpse no longer vanishes when it rots. It leaves one putrid mass on its square.
+* Undead leave a putrid mass and bones instead of rotten flesh and bones. Rotten flesh in a
+  saved game turns into putrid masses when it loads: in your pack, or at your feet when the pack
+  is full, and where it lies on the floors.
 
 ### Fixed
 

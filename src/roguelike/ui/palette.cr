@@ -417,6 +417,7 @@ module Roguelike::Ui
       ItemClass::Remains      => Look.new('%', tool),
       ItemClass::Delicacy     => Look.new('%', tool),
       ItemClass::Reagent      => Look.new('%', tool),
+      ItemClass::Refuse       => Look.new('%', tool),
     }
 
     # How *item* is drawn where it lies.

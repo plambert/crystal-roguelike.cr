@@ -6501,7 +6501,7 @@ it ages. `Sustenance#eat` on the `hunger-thirst` branch is what eating feeds.
 
 `Food::FACTS` holds one `FoodFacts` per kind: the family, the satiety, the turns it keeps, and a
 value for the sort. Satiety is in the points `Sustenance#eat` takes. Food that keeps for *k* turns
-is stale from *k* and rotten from 2*k*. A keep of zero never spoils.
+is stale from *k*, rotten from 2*k* and putrid from 3*k*. A keep of zero never spoils.
 
 | Kind | Family | Satiety | Weight | Keeps | Value |
 |---|---|---|---|---|---|
@@ -6521,6 +6521,8 @@ is stale from *k* and rotten from 2*k*. A keep of zero never spoils.
 | mushroom | roots and herbs | 300 | 1 | 1200 | 3 |
 | corpse | meat | by size | by size | 150 | 0 |
 | lump of rotten flesh | refuse | none | 4 | never | 0 |
+
+Rotten flesh is left by nothing now. It stays a member so an old save loads.
 
 A corpse feeds 400, 1000 or 1600 for a small, medium or large creature, and cuts into 1, 2 or 4
 pieces of fresh meat. It weighs 50, 150 or 400, so it never fits in the bag.
@@ -6591,10 +6593,10 @@ so bag food has ids. A save writes the bag under the player, and an older save l
 
 `Species#remains` says what a creature leaves, and `KindFacts#remains` lets a kind say otherwise.
 Beasts, goblins, orcs, ants and the warlord leave a corpse. Slimes, jellies, constructs and imps
-leave nothing. The undead leave rotten flesh and bones, and the skeleton overrides that with bones
+leave nothing. The undead leave a putrid mass and bones, and the skeleton overrides that with bones
 alone. `corpse_left` fires when the character saw the creature die. A corpse is stale at 150 turns
-and rots away at 300, with `corpse_rotted` when the character can see the square. A stale corpse can
-still be eaten, and only a fresh one can be cut up.
+and rots to a putrid mass at 300, with `corpse_rotted` when the character can see the square. A
+stale corpse can still be eaten, and only a fresh one can be cut up.
 
 * **Butchery.** `Species#butchery` says whether a corpse cuts into meat, and
   `KindFacts#butchery` lets a kind say otherwise. `Item#butchery` reads it from the corpse's
@@ -6674,6 +6676,47 @@ came before it. The parts take the ids after the corpse and appear in `corpse_le
   takes it only when it stacks with one carried.
 * **Observation.** A food bag `Meal` carries `item_class` and `buff`. A reagent in the pack is a
   `Seen` with `item_class` `reagent`.
+
+### Putrid masses
+
+Putrid mass is the end of all spoiling food. `ItemKind::PutridMass` is the last member, in
+`ItemClass::Refuse`, also the last member. The class stacks, is not food, has no food facts and
+never ages.
+
+| Field | Value |
+|---|---|
+| name | putrid mass, putrid masses |
+| weight | 1 |
+| value | 0, `Food::PUTRID_MASS_VALUE` |
+| stack cap | none |
+| glyph | `%` |
+| inventory page | food, beside bones and reagents |
+
+* **Timing.** One rule for every food that spoils: putrid at `Food::PUTRID` (3) times its keeps.
+  `Freshness::Putrid` comes after `Rotten` and is worth 0. A corpse ends where it always ended,
+  at 2 times its keeps, when it turns rotten. `Item#putrid?` answers both. A ration and other
+  food that never spoils never reaches it.
+* **Bag.** `Game#keep_food` ripens the bag, then `Game#putrefied` takes each putrid stack out. It
+  becomes that many masses under the stack's id, which go in the pack and stack with any there.
+  A full pack drops them under the character. `food_spoiled` fires with `freshness` `putrid`,
+  `mass` the id of the pack stack or floor pile that holds them, and `fell` true when they fell.
+  The line names the food as it was before it turned. It does not stop a walk.
+* **Floor.** `Game#age_the_floor` replaces each putrid food on the current floor with that many
+  masses on its square, under the food's id. A corpse leaves one mass, partly eaten or not. A
+  mass already on the square takes it in, and its id stands. `corpse_rotted` now carries `mass`,
+  the id of the mass on the square. No event fires for other food.
+* **Undead.** `Remains::FleshAndBones` leaves a putrid mass and bones. The ids are as before.
+* **Old saves.** `Game#unrot` runs from `#after_initialize`, after `#unbag`. Rotten flesh in the
+  bag becomes masses in the pack, or on the floor under the character when the pack is full.
+  Rotten flesh on every floor becomes masses on its square. Each keeps its id.
+* **Pickup.** Picking up by hand puts it in the pack. Automatic pickup takes it only when it
+  stacks with one carried, as for reagents. Masses coming into sight do not stop a walk.
+* **Eating.** `Item#edible?` is false, so `Game#edible`, `Game#legal` and the explore meal never
+  offer it, and an `eat` naming one is refused.
+* **Observation.** A mass in the pack or on the floor is a `Seen` with `item_class` `refuse`,
+  `kind` `putrid_mass` and its `count`.
+* **Streams.** Nothing new is drawn. The masses reuse ids, so `#next_id` is not called and no
+  stream version moves.
 
 ### Floor food
 

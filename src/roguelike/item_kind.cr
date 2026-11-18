@@ -44,6 +44,10 @@ module Roguelike
     # pack, stacks by kind and never spoils. It does nothing yet.
     Reagent
 
+    # What spoiled food and dead flesh end as. Nothing eats it. It goes in
+    # the pack, stacks and never spoils. It does nothing yet.
+    Refuse
+
     # Whether a `+N` means anything on this class.
     def enchantable? : Bool
       melee? || ranged_weapon? || ammunition? || thrown? || armor?
@@ -57,7 +61,7 @@ module Roguelike
     # Wands do not, because two wands have different charges left.
     def stacks? : Bool
       ammunition? || thrown? || potion? || scroll? || tool? || treasure? || food? ||
-        delicacy? || reagent?
+        delicacy? || reagent? || refuse?
     end
 
     # Whether a character has to find out what one of these is.
@@ -371,8 +375,9 @@ module Roguelike
     Mushroom
 
     # What a dead creature leaves. A corpse is eaten or cut up where it
-    # lies. Rotten flesh and bones have no use yet. Bones are `Remains` and
-    # go in the pack.
+    # lies. Bones have no use yet. Bones are `Remains` and go in the pack.
+    # Rotten flesh is left by nothing now. A save that holds some turns it
+    # into a `PutridMass` when it loads.
     Corpse
     RottenFlesh
     Bones
@@ -390,6 +395,10 @@ module Roguelike
     SnakeSkin
     AntMandible
     RatTail
+
+    # What spoiled food and a rotted corpse end as. It is `Refuse` and goes
+    # in the pack.
+    PutridMass
 
     # What this kind is.
     def facts : ItemFacts
@@ -708,6 +717,8 @@ module Roguelike
       ItemKind::AntMandible => ItemFacts.new("ant mandible", "ant mandibles",
         ItemClass::Reagent, weight: 1),
       ItemKind::RatTail => ItemFacts.new("rat tail", "rat tails", ItemClass::Reagent,
+        weight: 1),
+      ItemKind::PutridMass => ItemFacts.new("putrid mass", "putrid masses", ItemClass::Refuse,
         weight: 1),
     }
   end
