@@ -219,7 +219,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Explore no longer goes round the same squares for ever when it learns nothing. It turns
   toward somewhere else, and if it still comes back it stops with "You stop. You keep coming
   back to the same places." Explore is offered again once you move or see something new. Bots
-  get the halt as `circling`.
+  get the halt as `circling`. Your save keeps where explore stands in this, so a run you save
+  and load carries on the same way.
 
 ## [0.7.0] - 2026-10-28
 

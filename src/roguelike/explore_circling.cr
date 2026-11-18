@@ -1,3 +1,4 @@
+require "json"
 require "../roguelike"
 
 module Roguelike
@@ -29,12 +30,21 @@ module Roguelike
     # again. `#chose` says where the next step lands. A watch that finds the
     # character anywhere else takes it that something other than explore
     # moved them, or that something stood in the way.
+    #
+    # A save holds the whole watch, so a run loaded in the middle of a
+    # circle goes on as one that never stopped. *sight* is made by `.sight`
+    # rather than `Object#hash`, because Crystal seeds its hasher afresh in
+    # every process.
     class Circling
+      include JSON::Serializable
+
       # How many times explore is turned away before it gives up.
       TRIES = 3
 
       # What has to stay the same for a square stood on again to count.
-      record Ground, floor : String, revision : Int32, moves : Int32
+      record Ground, floor : String, revision : Int32, moves : Int32 do
+        include JSON::Serializable
+      end
 
       # What `#watch` found.
       enum Watch
@@ -55,18 +65,49 @@ module Roguelike
       getter tries : Int32 = 0
 
       @ground : Ground? = nil
-      @stood = Set({ {Int32, Int32}, UInt64 }).new
+      @stood = Set({ {Int32, Int32}, Int64 }).new
       @goals = Set({Int32, Int32}).new
       @landing : {Int32, Int32}? = nil
       @watched : { {Int32, Int32}, Int32 }? = nil
       @stuck : {Int32, Int32}? = nil
+
+      def initialize
+      end
+
+      # The *sight* number for a plan that reads *unread*, *wells* and
+      # whether the character carries a light, *lit*.
+      #
+      # It is FNV-1a over the numbers in order, the same in every process.
+      # Each list is preceded by its length, so two lists cannot run into
+      # each other.
+      def self.sight(unread : Array({Int32, Int32}), wells : Array({Int32, Int32}),
+                     lit : Bool) : Int64
+        numbers = [unread.size]
+        unread.each { |spot| numbers << spot[0] << spot[1] }
+        numbers << wells.size
+        wells.each { |spot| numbers << spot[0] << spot[1] }
+        numbers << (lit ? 1 : 0)
+        fnv(numbers).to_i64!
+      end
+
+      # FNV-1a over the four bytes of each of *numbers*, low byte first.
+      private def self.fnv(numbers : Array(Int32)) : UInt64
+        numbers.reduce(FNV_BASIS) do |found, value|
+          4.times.reduce(found) do |inner, shift|
+            (inner ^ ((value >> (shift * 8)) & 0xff).to_u64) &* FNV_PRIME
+          end
+        end
+      end
+
+      private FNV_BASIS = 0xcbf29ce484222325_u64
+      private FNV_PRIME =      0x100000001b3_u64
 
       # Records that explore is about to plan a step from *at* on *turn*, and
       # answers whether it has been here before with nothing learned.
       #
       # A second call on the same turn from the same square is the same
       # step, and answers `Going` without counting it again.
-      def watch(ground : Ground, at : {Int32, Int32}, sight : UInt64,
+      def watch(ground : Ground, at : {Int32, Int32}, sight : Int64,
                 turn : Int32) : Watch
         return stuck?(ground, at) ? Watch::Stuck : Watch::Going if @watched == {at, turn}
 

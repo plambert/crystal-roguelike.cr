@@ -351,10 +351,12 @@ module Roguelike
     # How many times something has gone into the pack or come out of it.
     #
     # A pickup or a drop changes what an explore wants, so a walk that stands
-    # on a square again after one is not going round in a circle. A walk
-    # compares it only with what it read earlier in the same walk, so the
-    # save leaves it out.
-    @[JSON::Field(ignore: true)]
+    # on a square again after one is not going round in a circle.
+    # `Explore::Circling` holds it across walks in its ground, so the save
+    # keeps it too. A save written before it was kept loads it as zero, and
+    # that save has no watch for it to disagree with.
+    # `Fingerprint::UNCOUNTED` names it.
+    @[JSON::Field(ignore_serialize: Roguelike::Fingerprint.streaming?)]
     @pack_moves : Int32 = 0
 
     # Whether the action being performed has spent any time.
@@ -1455,7 +1457,7 @@ module Roguelike
     # Watches an explore step about to be planned, by `Explore::Circling`.
     # Answers whether explore has given up here.
     private def circled? : Bool
-      sight = {Explore.unread(knowledge), wells, shining.nil?}.hash
+      sight = Explore::Circling.sight Explore.unread(knowledge), wells, shining.nil?
       case circling.watch circling_ground, @player.at, sight, @turn
       in .stuck?
         true
@@ -1477,13 +1479,15 @@ module Roguelike
       Explore::Circling::Ground.new floor.id, knowledge.revision, @pack_moves
     end
 
-    # What watches explore for going round. A save does not keep it, so a
-    # run loaded from one watches afresh.
+    # What watches explore for going round.
     private def circling : Explore::Circling
       @circling ||= Explore::Circling.new
     end
 
-    @[JSON::Field(ignore: true)]
+    # The watch `#circling` answers. `nil` until the first explore, so a save
+    # holds it only once there is one. A save written before it existed
+    # loads with a fresh watch. `Fingerprint::UNCOUNTED` names it.
+    @[JSON::Field(ignore_serialize: Roguelike::Fingerprint.streaming?)]
     @circling : Explore::Circling? = nil
 
     # What a planned way was worked out from.

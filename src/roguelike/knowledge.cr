@@ -168,9 +168,12 @@ module Roguelike
     # at again and found the same does not. `#chambers` is rebuilt only when
     # this has moved.
     #
-    # It is not in a save. Knowledge read back starts again from zero, and
-    # nothing compares the number across two objects.
-    @[JSON::Field(ignore: true)]
+    # A save keeps it, because `Explore::Circling` compares it across a
+    # save and a load. A save written before it was kept loads it as zero.
+    # It is in no fingerprint, by `Fingerprint.counting?`. It counts how
+    # knowledge was built up rather than what it holds, and leaving it out
+    # keeps every fingerprint recorded before it was saved in agreement.
+    @[JSON::Field(ignore_serialize: Roguelike::Fingerprint.counting?)]
     getter revision : Int32 = 0
 
     # The chambers worked out at `#revision`, or `nil` before the first ask.

@@ -5611,8 +5611,8 @@ them. `Chambers` holds the cut.
 * **Cached on a revision.** `Knowledge#revision` counts changes to what is known of the ground. A
   square seen for the first time counts, and so do a changed terrain, a changed top item, an
   opening and a door found barred. A square looked at again and found the same counts nothing.
-  Walking over known ground asks for the cut every step and gets the same object back. Neither the
-  revision nor the cut is in a save or in the fingerprint.
+  Walking over known ground asks for the cut every step and gets the same object back. The cut is
+  not in a save. The revision is, for `Explore::Circling`, and neither is in a fingerprint.
 * **Flat arrays.** The cut copies the knowledge into arrays over the floor once and works on those
   rather than on string keys.
 * **A seen chamber is fixed.** Every square beside a seen chamber is known. Nothing learned later
@@ -5819,11 +5819,12 @@ own.
   compare by it. With it, the same replay on d802fb6 runs as before to turn 4,931, and then
   explore has nothing left and is no longer offered.
 * **The guard.** `Explore::Circling` watches every explore step, from the protocol and from a walk
-  alike. `Game#planned_route` asks it before it plans. Its key is the square and a hash of what a
-  plan reads beyond the map: the unread items, the fountains wanted, and whether the character
-  carries a light. Its ground is the floor, the revision and the count of pickups and drops. A
-  change of ground starts the watch again, and so does a step that lands anywhere but where the
-  plan said.
+  alike. `Game#planned_route` asks it before it plans. Its key is the square and a sight number
+  over what a plan reads beyond the map: the unread items, the fountains wanted, and whether the
+  character carries a light. `Circling.sight` makes the number with FNV-1a over those values,
+  because `Object#hash` is seeded per process and the number goes in a save. Its ground is the
+  floor, the revision and the count of pickups and drops. A change of ground starts the watch
+  again, and so does a step that lands anywhere but where the plan said.
 * **Turning away.** The first square that comes round adds every goal headed for since the watch
   began to `Circling#avoid`. `Explore.route` takes `avoid` and leaves those squares out of the
   piles, the frontier and the unread items. Each later time adds the goals since the time before.
@@ -5833,12 +5834,27 @@ own.
   until the character stands somewhere else or the ground changes, so a bot is not offered
   `explore` again on that square.
 * **Same as the other halts.** The halt reaches a bot as `Event::Stopped` with `halt` set to
-  `circling`, and the event stream the same way. No stream version moved.
+  `circling` in the reply to its `explore`. The event stream holds no explore halt, because a
+  stopped explore takes no turn and is not recorded. No stream version moved.
 * **Checked on seed 5023.** The replay played on d802fb6 with the guard and without the fix.
   Explore stopped with `Halt::Circling` on (108, 11) at turn 5,102, and once more after each
   later `eat` or `quaff` changed the pack.
-* **Not in a save.** The watch is left out of the save, like the planned route. A run loaded from
-  a save watches afresh, and a replay from the start rebuilds it step by step.
+* **In the save, not in the fingerprint.** A save holds the whole watch as `circling`: the
+  ground, the squares stood on with their sight numbers, the goals, the landing square, the last
+  square and turn watched, the tries, the avoided goals and the square given up on. It also holds
+  the two numbers the ground reads, `pack_moves` on the game and `revision` on each
+  `Knowledge`, which saves did not hold before. A run loaded at any point then goes on as one that
+  never stopped. A spec saves and loads a forced circle while it watches, after one turn away,
+  after two and once given up, and the run after the load matches step for step, fingerprints
+  included.
+* **Old saves.** A save without `circling` loads with a fresh watch, and one without
+  `pack_moves` or `revision` loads them as zero. A watch is started afresh on its first step
+  either way, so the zeros never meet a watch that read other values.
+* **Fingerprints unchanged.** `circling` and `pack_moves` join `Fingerprint::UNCOUNTED`.
+  `Knowledge#revision` is nested, so `Fingerprint.counting?` is new. It is set while either
+  scheme writes, and a field marked with it is left out at any depth. All three follow from the
+  actions before them, which a replay plays again. Leaving them out keeps every recorded
+  fingerprint, the golden fixtures included, as it was.
 
 ### Measured
 
