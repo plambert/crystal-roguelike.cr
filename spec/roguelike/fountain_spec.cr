@@ -9,7 +9,7 @@ Spectator.describe "a fountain" do
   alias Palette = Roguelike::Ui::Palette
 
   # How many seeds the share of watered floors is measured over.
-  SEEDS = 2000
+  SEEDS = 4000
 
   describe "the terrain" do
     it "is walked through and seen through" do
@@ -36,11 +36,54 @@ Spectator.describe "a fountain" do
   end
 
   describe "where the generator puts one" do
-    it "is never on floor 1 or in the chamber under the last floor" do
+    # The share of floors 2 to the deepest expected to have a fountain, out
+    # of a hundred, worked through `Generator::FOUNTAIN` from floor 1.
+    def expected_share : Float64
+      odds = Generator::FOUNTAIN.map &./(100.0)
+      streak = [1.0, 0.0, 0.0, 0.0]
+      total = 0.0
+      Generator::WATERED.each do
+        wet = streak.zip(odds).sum { |chance, odd| chance * odd }
+        total += wet
+        streak = [wet, streak[0] * (1 - odds[0]), streak[1] * (1 - odds[1]), streak[2] * (1 - odds[2])]
+      end
+      total * 100 / Generator::WATERED.size
+    end
+
+    # How many steps the fountain on floor 1 of *seed* is from the up
+    # staircase, and whether it is in the room the staircase is in.
+    def welcome(seed : UInt64) : {Int32?, Bool}
+      dug = Generator.dug Rng.new(seed), World.id(1), 1
+      floor = dug.floor
+      spot = floor.find Terrain::Fountain
+      landing = dug.landing
+      return {nil, false} unless spot && landing
+
+      known = Roguelike::Knowledge.new floor.id
+      floor.each { |column, row, tile| known.touch floor, column, row unless tile.terrain.rock? }
+      steps = Roguelike::Descent.toward(known, landing, floor.columns * floor.rows, doors: true)[spot]
+      {steps, dug.arrival.try(&.holds?(*spot)) || false}
+    end
+
+    it "is always on floor 1 and never in the chamber under the last floor" do
       (1_u64..200_u64).each do |seed|
         rng = Rng.new seed
-        expect(Generator.fountain?(rng, World.id(1))).to be_false
+        expect(Generator.fountain?(rng, World.id(1))).to be_true
+        expect(Generator.fountain?(rng, World::LEGACY)).to be_true
         expect(Generator.fountain?(rng, World.id(World::VAULT))).to be_false
+      end
+    end
+
+    it "is never on a floor outside the dungeon's numbering" do
+      expect(Generator.fountain?(Rng.new(1), "proving-ground")).to be_false
+    end
+
+    it "is in the starting room of floor 1, close to the up staircase" do
+      (1_u64..100_u64).each do |seed|
+        steps, inside = welcome seed
+        expect(steps).not_to be_nil, "seed #{seed}"
+        expect(steps.try &.<=(Generator::NEAR)).to be_true, "seed #{seed}: #{steps} steps"
+        expect(inside).to be_true, "seed #{seed}"
       end
     end
 
@@ -52,7 +95,7 @@ Spectator.describe "a fountain" do
       end
     end
 
-    it "is on about 60 floors in a hundred" do
+    it "is on the share of floors the table works out to" do
       watered = 0
       total = 0
       (1_u64..SEEDS.to_u64).each do |seed|
@@ -63,18 +106,16 @@ Spectator.describe "a fountain" do
         end
       end
 
-      share = watered * 100.0 / total
-      expect(share).to be_within(3.0).of(Generator::FOUNTAIN)
+      expect(expected_share).to be_within(0.1).of(72.8)
+      expect(watered * 100.0 / total).to be_within(2.0).of(expected_share)
     end
 
-    it "leaves two floors in a row dry in most runs" do
-      dry = (1_u64..SEEDS.to_u64).count do |seed|
+    it "never leaves four floors in a row dry" do
+      (1_u64..SEEDS.to_u64).each do |seed|
         rng = Rng.new seed
-        flags = Generator::WATERED.map { |depth| Generator.fountain? rng, World.id(depth) }
-        flags.each_cons_pair.any? { |one, two| !one && !two }
+        flags = (1..World::DEEPEST).map { |depth| Generator.fountain? rng, World.id(depth) }
+        expect(flags.each_cons(4).any?(&.none?)).to be_false, "seed #{seed}"
       end
-
-      expect(dry * 100.0 / SEEDS).to be >= 50.0
     end
 
     it "puts one fountain in a room of each floor that has one, and none elsewhere" do
@@ -239,6 +280,20 @@ Spectator.describe "a fountain" do
 
       drank = game.events.compact_map(&.as?(Event::Drank))
       expect(drank.map { |event| {event.units, event.source} }).to eq [{1, "potion"}]
+    end
+
+    it "quenches one unit for every kind of potion" do
+      Roguelike::ItemKind.of_class(Roguelike::ItemClass::Potion).each do |kind|
+        game = hall
+        parch game.player.sustenance, 600
+        letter = game.player.inventory.add(Roguelike::Item.new(kind))
+        raise "pack full" unless letter
+
+        game.quaff letter
+
+        drank = game.events.compact_map(&.as?(Event::Drank))
+        expect(drank.map { |event| {event.units, event.source} }).to eq([{1, "potion"}]), kind.to_s
+      end
     end
 
     it "writes no drank event for a potion drunk by a character who is not thirsty" do

@@ -20,6 +20,7 @@ Spectator.describe "food, the food bag and corpses" do
   alias Player = Roguelike::Player
   alias Remains = Roguelike::Remains
   alias Rng = Roguelike::Rng
+  alias Size = Roguelike::Size
   alias Sustenance = Roguelike::Sustenance
   alias World = Roguelike::World
 
@@ -700,6 +701,23 @@ Spectator.describe "food, the food bag and corpses" do
       expect(meat.first.count).to eq Food::CUTS[size]
       expect(game.here).to be_empty
       expect(game.turn).to eq 1
+    end
+
+    it "cuts a small or medium beast into one piece and a large one into two" do
+      expect(Food::CUTS).to eq({Size::Small => 1, Size::Medium => 1, Size::Large => 2})
+
+      {Kind::Rat => 1, Kind::Wolf => 1, Kind::Bear => 2}.each do |kind, pieces|
+        game = hall
+        game.floor.drop *HERE, Game.remains_of(kind).first
+        game.enroll
+        game.perform Action::Cut.new(game.here.first.id)
+
+        expect(game.player.food_bag.items.sum(&.count)).to eq(pieces), kind.to_s
+      end
+    end
+
+    it "makes pieces of fresh meat worth 175 each" do
+      expect(Food.facts(ItemKind::FreshMeat).satiety).to eq 175
     end
 
     it "rots away on the floor" do
