@@ -1364,26 +1364,38 @@ module Roguelike
       end
     end
 
-    # A corpse on the floor rotted away. The id names nothing afterward.
+    # A corpse on the floor rotted to a putrid mass.
+    #
+    # *mass* is the id of the putrid mass on *at*. It is the corpse's own id
+    # unless the mass joined a pile already lying there.
     class CorpseRotted < Event
       getter kind : String = "corpse_rotted"
 
       getter item : Int32
       getter at : {Int32, Int32}
+      getter mass : Int32
 
-      def initialize(@item : Int32, @at : {Int32, Int32})
+      def initialize(@item : Int32, @at : {Int32, Int32}, @mass : Int32)
       end
     end
 
-    # Food in the bag that went stale or rotten.
+    # Food in the bag that went stale, rotten or putrid.
+    #
+    # Putrid food leaves the bag as putrid masses. *mass* is the id of the
+    # pack stack that holds them, or of the pile at the character's feet
+    # when *fell* is true because the pack was full. Both are `nil` for
+    # stale and rotten food.
     class FoodSpoiled < Event
       getter kind : String = "food_spoiled"
 
       getter item : Int32
       getter name : String
       getter freshness : Freshness
+      getter mass : Int32?
+      getter fell : Bool?
 
-      def initialize(@item : Int32, @name : String, @freshness : Freshness)
+      def initialize(@item : Int32, @name : String, @freshness : Freshness,
+                     @mass : Int32? = nil, @fell : Bool? = nil)
       end
     end
   end

@@ -358,6 +358,22 @@ module Roguelike
       @kind.item_class.reagent?
     end
 
+    # Whether this is refuse: a putrid mass.
+    def refuse? : Bool
+      @kind.item_class.refuse?
+    end
+
+    # Whether this food has reached its end and turns into a putrid mass.
+    #
+    # Food that spoils ends when it turns putrid, and a corpse when it turns
+    # rotten.
+    def putrid? : Bool
+      return false unless food?
+      return freshness.rotten? if corpse?
+
+      freshness.putrid?
+    end
+
     # Whether this is a corpse.
     def corpse? : Bool
       @kind.corpse?
