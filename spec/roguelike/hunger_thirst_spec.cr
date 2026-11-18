@@ -377,6 +377,16 @@ Spectator.describe "hunger and thirst" do
       expect(eaten(game, 3)).to be_empty
     end
 
+    it "never eats a putrid mass, starving or not" do
+      game = fed Sustenance::STARVING
+      game.player.inventory.add Item.new(ItemKind::PutridMass, count: 3, blessing_known: true)
+      game.enroll
+
+      expect(eaten(game, 3)).to be_empty
+      expect(game.legal.any?(Action::Eat)).to be_false
+      expect(game.player.inventory.items.sum { |(_, item)| item.count }).to eq 3
+    end
+
     it "eats stale food first, the soonest to turn first, and rations last" do
       ration = food ItemKind::Ration
       bread = food ItemKind::Bread

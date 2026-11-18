@@ -1,24 +1,24 @@
  —              D1 Lv 1 │#########
  HP        0/12         │#..o....#
  XP        0/20         │#..@...>#
- water 10/10            │#########
- ♪        ╭─ You died ───────────────────────────────────────╮
- vs      o│  Killed by an orc.                               │
- ▼ Scores │                                                  │
- AC   Gold│  turn 1                                          │
- 0    37  │  level 1, 0 experience                           │
- St Dx Cn │  37 gold                                         │
- 10 10 10 │                                                  │
- Walk 111%│  You were carrying:                              │
- ▶ Equipme│    a torch                                       │
- ▶ Pack   │    a +1 long sword (weapon in hand)              │
- ▼ Here   │    12 arrows                                     │
-   stairca│    a potion of healing                           │
- ▼ Seen   │                                                  │
-   orc    │  seed 20260915                                   │
- ▼ Look   │  Play again? y starts a new run, n quits.  [yN]  │
- Point at ╰──────────────────────────────────────────────────╯──────────
- press x.               │ You miss the orc.
-                        │ The orc notices you.
+ food                4h │#########
+ water 10/╭─ You died ───────────────────────────────────────╮
+ ♪        │  Killed by an orc.                               │
+ vs      o│                                                  │
+ ▼ Scores │  turn 1                                          │
+ AC   Gold│  level 1, 0 experience                           │
+ 0    37  │  37 gold                                         │
+ St Dx Cn │                                                  │
+ 10 10 10 │  You were carrying:                              │
+ Walk 111%│    a torch                                       │
+ ▶ Equipme│    a +1 long sword (weapon in hand)              │
+ ▶ Pack   │    12 arrows                                     │
+ ▼ Here   │    a potion of healing                           │
+   stairca│                                                  │
+ ▼ Seen   │  seed 20260915                                   │
+   orc    │  Play again? y starts a new run, n quits.  [yN]  │
+ ▼ Look   ╰──────────────────────────────────────────────────╯──────────
+ Point at the map, or   │ You miss the orc.
+ press x.               │ The orc notices you.
                         │ The orc hits you for 8.
                         │ You die...

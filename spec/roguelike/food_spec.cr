@@ -20,6 +20,7 @@ Spectator.describe "food, the food bag and corpses" do
   alias Player = Roguelike::Player
   alias Remains = Roguelike::Remains
   alias Rng = Roguelike::Rng
+  alias Size = Roguelike::Size
   alias Sustenance = Roguelike::Sustenance
   alias World = Roguelike::World
 
@@ -191,13 +192,12 @@ Spectator.describe "food, the food bag and corpses" do
       expect(bag.add(Item.new(ItemKind::Dagger))).to be_nil
     end
 
-    it "takes rotten flesh as dead weight and no bones" do
+    it "takes neither a putrid mass nor bones" do
       bag = FoodBag.new
-      flesh, bones = Game.remains_of(Kind::Zombie)
-      expect(bag.add(flesh)).not_to be_nil
+      mass, bones = Game.remains_of(Kind::Zombie)
+      expect(bag.add(mass)).to be_nil
       expect(bag.add(bones)).to be_nil
-      expect(bag.items.map(&.kind)).to eq [ItemKind::RottenFlesh]
-      expect(bag.items.none?(&.edible?)).to be_true
+      expect(bag.empty?).to be_true
     end
 
     it "sorts by each key" do
@@ -702,14 +702,60 @@ Spectator.describe "food, the food bag and corpses" do
       expect(game.turn).to eq 1
     end
 
-    it "rots away on the floor" do
+    it "cuts a small or medium beast into one piece and a large one into two" do
+      expect(Food::CUTS).to eq({Size::Small => 1, Size::Medium => 1, Size::Large => 2})
+
+      {Kind::Rat => 1, Kind::Wolf => 1, Kind::Bear => 2}.each do |kind, pieces|
+        game = hall
+        game.floor.drop *HERE, Game.remains_of(kind).first
+        game.enroll
+        game.perform Action::Cut.new(game.here.first.id)
+
+        expect(game.player.food_bag.items.sum(&.count)).to eq(pieces), kind.to_s
+      end
+    end
+
+    it "makes pieces of fresh meat worth 175 each" do
+      expect(Food.facts(ItemKind::FreshMeat).satiety).to eq 175
+    end
+
+    it "rots to one putrid mass on the floor" do
       game = hall
       game.floor.drop 5, 1, Game.remains_of(Kind::Wolf).first
       game.enroll
+      corpse = game.floor.items(5, 1).first.id
       seen = waits game, Food::CORPSE_KEEPS * 2
 
-      expect(game.floor.items(5, 1)).to be_empty
-      expect(seen.any?(Event::CorpseRotted)).to be_true
+      left = game.floor.items(5, 1)
+      expect(left.map { |item| {item.kind, item.count, item.id} })
+        .to eq [{ItemKind::PutridMass, 1, corpse}]
+      rotted = seen.select(Event::CorpseRotted).map(&.as(Event::CorpseRotted))
+      expect(rotted.map { |event| {event.item, event.mass, event.at} }).to eq [{corpse, corpse, {5, 1}}]
+    end
+
+    it "leaves one putrid mass of a partly eaten corpse" do
+      game = hall
+      corpse = Game.remains_of(Kind::Bear).first
+      corpse.bite 100
+      game.floor.drop 5, 1, corpse
+      game.enroll
+      waits game, Food::CORPSE_KEEPS * 2
+
+      expect(game.floor.items(5, 1).map { |item| {item.kind, item.count} })
+        .to eq [{ItemKind::PutridMass, 1}]
+    end
+
+    it "lets a rotting corpse join a putrid mass already on its square" do
+      game = hall
+      game.floor.drop 5, 1, Item.new(ItemKind::PutridMass, count: 2, blessing_known: true)
+      game.floor.drop 5, 1, Game.remains_of(Kind::Wolf).first
+      game.enroll
+      pile = game.floor.items(5, 1).first.id
+      seen = waits game, Food::CORPSE_KEEPS * 2
+
+      expect(game.floor.items(5, 1).map { |item| {item.kind, item.count, item.id} })
+        .to eq [{ItemKind::PutridMass, 3, pile}]
+      expect(seen.select(Event::CorpseRotted).first.as(Event::CorpseRotted).mass).to eq pile
     end
 
     it "will not cut a stale corpse" do
@@ -719,6 +765,223 @@ Spectator.describe "food, the food bag and corpses" do
       waits game, Food::CORPSE_KEEPS
       expect(game.legal.any?(Action::Cut)).to be_false
       expect(game.legal.any?(Action::Eat)).to be_true
+    end
+  end
+
+  describe "putrid masses" do
+    def mass(count : Int32 = 1) : Item
+      Item.new ItemKind::PutridMass, count: count, blessing_known: true
+    end
+
+    # The kinds that spoil, a corpse left out.
+    def spoiling : Array(ItemKind)
+      Food::FACTS.select { |kind, facts| facts.spoils? && !kind.corpse? }.keys
+    end
+
+    it "is an item kind of its own, in the pack, that stacks" do
+      expect(ItemKind::PutridMass.item_class).to eq Roguelike::ItemClass::Refuse
+      expect(ItemKind::PutridMass.stacks?).to be_true
+      expect(ItemKind::PutridMass.facts.weight).to eq 1
+      expect(Food::PUTRID_MASS_VALUE).to eq 0
+      expect(ItemKind.values.last).to eq ItemKind::PutridMass
+    end
+
+    it "takes every spoiling food through stale and rotten to putrid" do
+      expect(spoiling).to contain ItemKind::Bread, ItemKind::FreshMeat, ItemKind::WolfLiver
+      spoiling.each do |kind|
+        facts = Food.facts kind
+        keeps = facts.keeps
+        expect(facts.freshness(keeps - 1)).to eq Freshness::Fresh
+        expect(facts.freshness(keeps)).to eq Freshness::Stale
+        expect(facts.freshness(keeps * 2 - 1)).to eq Freshness::Stale
+        expect(facts.freshness(keeps * 2)).to eq Freshness::Rotten
+        expect(facts.freshness(keeps * Food::PUTRID - 1)).to eq Freshness::Rotten
+        expect(facts.freshness(keeps * Food::PUTRID)).to eq Freshness::Putrid
+      end
+    end
+
+    it "never takes a food that keeps to putrid" do
+      ration = food ItemKind::Ration
+      10_000.times { ration.ripen }
+      expect(ration.putrid?).to be_false
+      expect(ration.freshness).to eq Freshness::Fresh
+    end
+
+    it "turns each spoiling food in the bag into putrid masses in the pack" do
+      spoiling.each do |kind|
+        keeps = Food.facts(kind).keeps
+        game = hall [food(kind, 2, age: keeps * Food::PUTRID - 1)]
+        waits game, 1
+
+        expect(game.player.food_bag.empty?).to be_true
+        expect(game.player.inventory.entries.map { |(_, item)| {item.kind, item.count} })
+          .to eq [{ItemKind::PutridMass, 2}]
+      end
+    end
+
+    it "stacks the masses with one already in the pack and says so" do
+      keeps = Food.facts(ItemKind::Berries).keeps
+      game = hall [food(ItemKind::Berries, 3, age: keeps * Food::PUTRID - 1)]
+      game.player.inventory.add mass(2)
+      game.enroll
+      berries = game.player.food_bag.items.first.id
+      held = game.player.inventory.entries.first[1].id
+      seen = waits game, 1
+
+      expect(game.player.inventory.entries.map { |(_, item)| {item.kind, item.count, item.id} })
+        .to eq [{ItemKind::PutridMass, 5, held}]
+      spoiled = seen.select(Event::FoodSpoiled).map(&.as(Event::FoodSpoiled))
+      expect(spoiled.map { |event| {event.item, event.freshness, event.mass, event.fell} })
+        .to eq [{berries, Freshness::Putrid, held, nil}]
+      expect(game.log.lines).to contain "3 rotten handfuls of berries in your food bag have gone " \
+                                        "putrid. They are now 3 putrid masses in your pack."
+    end
+
+    it "drops the mass at the character's feet when the pack is full" do
+      keeps = Food.facts(ItemKind::Bread).keeps
+      game = hall [food(ItemKind::Bread, age: keeps * Food::PUTRID - 1)]
+      Roguelike::Inventory::LETTERS.each { game.player.inventory.add Item.new(ItemKind::Dagger) }
+      game.enroll
+      bread = game.player.food_bag.items.first.id
+      seen = waits game, 1
+
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.here.map { |item| {item.kind, item.count, item.id} })
+        .to eq [{ItemKind::PutridMass, 1, bread}]
+      spoiled = seen.select(Event::FoodSpoiled).first.as(Event::FoodSpoiled)
+      expect({spoiled.mass, spoiled.fell}).to eq({bread, true})
+      expect(game.log.lines).to contain "A rotten loaf of bread in your food bag has gone putrid. " \
+                                        "Your pack is full, so a putrid mass falls at your feet."
+    end
+
+    it "turns food on the floor into putrid masses on its square" do
+      keeps = Food.facts(ItemKind::Mushroom).keeps
+      game = hall
+      game.floor.drop 5, 1, food(ItemKind::Mushroom, 2, age: keeps * Food::PUTRID - 1)
+      game.enroll
+      mushrooms = game.floor.items(5, 1).first.id
+      seen = waits game, 1
+
+      expect(game.floor.items(5, 1).map { |item| {item.kind, item.count, item.id} })
+        .to eq [{ItemKind::PutridMass, 2, mushrooms}]
+      expect(seen.any?(Event::CorpseRotted)).to be_false
+    end
+
+    it "is what an undead creature with flesh leaves" do
+      expect(Game.remains_of(Kind::Zombie).map(&.kind)).to eq [ItemKind::PutridMass, ItemKind::Bones]
+
+      game = hall
+      zombie = Monster.new Kind::Zombie, 2, 1, "band-one"
+      game.floor.place zombie
+      game.enroll
+      game.kill zombie
+      expect(game.floor.items(2, 1).map(&.kind)).to eq [ItemKind::PutridMass, ItemKind::Bones]
+    end
+
+    it "turns rotten flesh in an old save into putrid masses when it loads" do
+      game = hall [food(ItemKind::Ration)]
+      game.player.food_bag.items << Item.new(ItemKind::RottenFlesh, count: 2, blessing_known: true)
+      game.floor.drop 5, 1, Item.new(ItemKind::RottenFlesh, blessing_known: true)
+      game.enroll
+      flesh = game.player.food_bag.items.last.id
+      lying = game.floor.items(5, 1).first.id
+
+      read = Game.from_json game.to_json
+      expect(read.player.food_bag.items.map(&.kind)).to eq [ItemKind::Ration]
+      expect(read.player.inventory.entries.map { |(_, item)| {item.kind, item.count, item.id} })
+        .to eq [{ItemKind::PutridMass, 2, flesh}]
+      expect(read.floor.items(5, 1).map { |item| {item.kind, item.id} })
+        .to eq [{ItemKind::PutridMass, lying}]
+    end
+
+    it "drops rotten flesh from an old save underfoot when the pack is full" do
+      game = hall
+      Roguelike::Inventory::LETTERS.each { game.player.inventory.add Item.new(ItemKind::Dagger) }
+      game.player.food_bag.items << Item.new(ItemKind::RottenFlesh, blessing_known: true)
+      game.enroll
+
+      read = Game.from_json game.to_json
+      expect(read.player.food_bag.empty?).to be_true
+      expect(read.here.map(&.kind)).to eq [ItemKind::PutridMass]
+    end
+
+    it "is never eaten and never offered to eat" do
+      game = hall hunger: STARVING
+      game.player.inventory.add mass(3)
+      game.enroll
+      held = game.player.inventory.entries.first[1]
+
+      expect(held.edible?).to be_false
+      expect(held.food?).to be_false
+      expect(game.edible).to be_empty
+      expect(game.legal.any?(Action::Eat)).to be_false
+      game.perform Action::Eat.new(held.id)
+      expect(game.player.inventory.count('a')).to eq 3
+      expect(game.turn).to eq 0
+    end
+
+    it "never spoils" do
+      held = mass
+      10_000.times { held.ripen }
+      expect(held.freshness).to eq Freshness::Fresh
+      expect(held.putrid?).to be_false
+    end
+
+    it "stacks under one letter with no cap" do
+      game = hall
+      100.times { game.player.inventory.add mass(100) }
+
+      expect(game.player.inventory.size).to eq 1
+      expect(game.player.inventory.count('a')).to eq 10_000
+      expect(game.player.inventory.all('a').size).to eq 1
+    end
+
+    it "is named with its count and plural" do
+      lore = hall.lore
+      expect(lore.name(mass)).to eq "a putrid mass"
+      expect(lore.name(mass(3))).to eq "3 putrid masses"
+    end
+
+    it "is picked up by hand into the pack" do
+      game = hall
+      game.floor.drop *HERE, mass
+      game.enroll
+      game.perform Action::PickUp.new
+
+      expect(game.player.food_bag.empty?).to be_true
+      expect(game.player.inventory.entries.map { |(_, item)| {item.kind, item.count} })
+        .to eq [{ItemKind::PutridMass, 1}]
+    end
+
+    it "is picked up on a step only when it stacks with one carried" do
+      game = hall
+      game.floor.drop HERE[0] + 1, HERE[1], mass
+      game.enroll
+      game.perform Action::Move.new(Roguelike::Direction::East)
+      expect(game.here.map(&.kind)).to eq [ItemKind::PutridMass]
+      expect(game.player.inventory.empty?).to be_true
+
+      game.player.inventory.add mass
+      game.floor.drop HERE[0] + 2, HERE[1], mass(2)
+      game.enroll
+      game.perform Action::Move.new(Roguelike::Direction::East)
+      expect(game.here).to be_empty
+      expect(game.player.inventory.count('a')).to eq 3
+    end
+
+    it "shows in the observation with its class and count" do
+      game = hall
+      game.player.inventory.add mass(4)
+      game.floor.drop 5, 1, mass(2)
+      game.enroll
+      seen = Roguelike::Observation.of game
+      carried = seen.inventory.find! { |item| item.kind == ItemKind::PutridMass }
+      lying = seen.items.find! { |item| item.kind == ItemKind::PutridMass }
+
+      expect({carried.item_class, carried.count}).to eq({Roguelike::ItemClass::Refuse, 4})
+      expect({lying.item_class, lying.count}).to eq({Roguelike::ItemClass::Refuse, 2})
+      expect(carried.to_json).to contain %("item_class":"refuse")
+      expect(carried.to_json).to contain %("kind":"putrid_mass")
     end
   end
 

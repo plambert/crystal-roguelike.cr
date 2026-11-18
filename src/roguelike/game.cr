@@ -422,6 +422,7 @@ module Roguelike
       @fought = spot ? floor.monster(spot[0], spot[1]) : nil
       enroll
       unbag
+      unrot
       recall_sighted if @sighted.empty?
     end
 
@@ -440,6 +441,31 @@ module Roguelike
           next if @player.inventory.add one
 
           floor.drop @player.x, @player.y, one
+        end
+      end
+      clear_bearers
+    end
+
+    # Turns each lump of rotten flesh into a putrid mass with its id, for a
+    # save written before putrid masses.
+    #
+    # Flesh in the food bag goes in the pack, or on the floor under the
+    # character when the pack is full. Flesh on a floor stays on its square.
+    private def unrot : Nil
+      bag = @player.food_bag
+      bag.items.select(&.kind.rotten_flesh?).each do |item|
+        bag.remove item
+        mass = Game.putrid_mass item
+        floor.drop @player.x, @player.y, mass unless @player.inventory.add mass
+      end
+
+      @world.floors.each_value do |ground|
+        flesh = [] of {Int32, Int32, Item}
+        ground.each_pile do |column, row, pile|
+          pile.each { |item| flesh << {column, row, item} if item.kind.rotten_flesh? }
+        end
+        flesh.each do |column, row, item|
+          ground.drop column, row, Game.putrid_mass(item) if ground.take column, row, item
         end
       end
       clear_bearers
@@ -1328,7 +1354,7 @@ module Roguelike
     # walk after a fight would stop for it at once.
     private def unremarkable?(item : Item) : Bool
       item.kind.gold? || item.kind.torch? || item.corpse? || item.remains? ||
-        (item.food? && !item.edible?)
+        item.refuse? || (item.food? && !item.edible?)
     end
 
     # What the character is told when the explore or travel *walk* stops.

@@ -99,6 +99,27 @@ module Roguelike
     # Pace a character loses while dehydrated, and while starving.
     SLOWING = 10
 
+    # Seconds of game time in one turn. Every time shown to the player is
+    # counted from this.
+    SECONDS_PER_TURN = 10
+
+    # *turns* as the player sees them. The game time is rounded down to ten
+    # minutes and written as "50m", "4h10m" or "1h". Anything under ten
+    # minutes is "<10m".
+    #
+    # The player never learns the exact turn a change comes on.
+    def self.approximate(turns : Int32) : String
+      minutes = Math.max(turns, 0).to_i64 * SECONDS_PER_TURN // 60
+      steps = minutes // 10 * 10
+      return "<10m" if steps.zero?
+
+      hours, left = steps.divmod 60
+      return "#{left}m" if hours.zero?
+      return "#{hours}h" if left.zero?
+
+      "#{hours}h#{left}m"
+    end
+
     # Turns since the character last ate their fill.
     getter hunger : Int32 = 0
 
@@ -223,6 +244,42 @@ module Roguelike
       when ...DYING      then ThirstStage::Dehydrated
       else                    ThirstStage::Dying
       end
+    end
+
+    # Turns until hunger reaches its next stage that shows a status. At
+    # starving, turns until the character starves to death.
+    #
+    # A satiated or fed character counts to hungry.
+    def food_left : Int32
+      ahead = case hunger_stage
+              in .satiated?, .fed? then HUNGRY
+              in .hungry?          then FAMISHED
+              in .famished?        then STARVING
+              in .starving?        then STARVED
+              end
+      Math.max ahead - @hunger, 0
+    end
+
+    # Turns until thirst reaches its next stage that shows a status. At
+    # dying, turns until the character dies of thirst.
+    #
+    # A quenched character sips the skin dry first, and only then starts
+    # counting to thirsty. One who is already thirsty does not sip, so the
+    # skin adds nothing until they drink.
+    def water_left : Int32
+      if quenched?
+        sipping = @water > 0 ? @water * SIP - @sipped : 0
+        return sipping + THIRSTY
+      end
+
+      ahead = case thirst_stage
+              in .quenched?, .fine? then THIRSTY
+              in .thirsty?          then PARCHED
+              in .parched?          then DEHYDRATED
+              in .dehydrated?       then DYING
+              in .dying?            then DRIED
+              end
+      Math.max ahead - @thirst, 0
     end
 
     # The status *stage* shows, or `nil` for none.

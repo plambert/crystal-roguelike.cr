@@ -10,6 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Putrid mass. Food that spoils now goes putrid at three times the turns it keeps fresh, after
+  stale and rotten. Putrid food in your food bag turns into putrid masses in your pack, or at
+  your feet when the pack is full, and the message log says so. Food on the floor turns into
+  putrid masses where it lies. Putrid masses stack without limit, weigh 1, never spoil and cannot
+  be eaten. Automatic pickup takes one only when it stacks with one you carry.
 * Food. Fourteen kinds lie about the floors in five families: grain, meat, fruit, nuts and
   cheese, and roots and herbs. Food you pick up goes in a food bag that holds weight 40, takes
   no pack letter and costs no pace. If the bag has no room, the food stays on the floor.
@@ -22,9 +27,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   most and gives no buff. A buff does not stack with itself. Stale food gives half the buff.
 * Eating stops when you are full. Food you could not finish stays in the bag, partly eaten. If
   you are too full to eat at all, you are told so and no turn passes.
-* Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
+* Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave a putrid mass and
   bones, or bones alone for a skeleton. Picking up a fresh beast corpse cuts it into fresh meat
-  for the bag. A corpse rots away about 300 turns after death.
+  for the bag. A small or medium beast gives one piece and a large one gives two. A piece feeds
+  less than an apple, so meat helps but does not feed you on its own. A corpse rots to a putrid
+  mass about 300 turns after death.
 * You can eat a corpse where it lies only when you are starving. Until then the pick-up menu
   shows it as a dimmed row that says "eat when starving". Once you are starving the row says
   "eat some (starving!)", and a fresh beast corpse gets that row as well as the one that cuts it.
@@ -61,9 +68,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   and no count. Pills sit side by side and wrap to the next line when a line fills. Buffs are
   green and debuffs are red. Both colors are in the theme editor, and the pills and their text
   read at 4.5 to 1 or more in every built-in theme.
-* Fountains. About three floors in five below the first have one, drawn as `{` in a room. Floor 1
-  and the amulet chamber have none, and a run often goes two or three floors in a row without
-  one. The fountain color is in the theme editor and reads at 4.5 to 1 in every built-in theme.
+* Fountains, drawn as `{`. Floor 1 always has one in the room you start in, a few steps from the
+  stairs. About three floors in four below it have one in a room. The longer you go without a
+  fountain, the likelier the next floor has one, and you never go more than three floors in a row
+  without one. The amulet chamber has none. The fountain color is in the theme editor and reads
+  at 4.5 to 1 in every built-in theme.
 * Standing on a fountain you can fill your waterskin, one turn for each unit, until it is full or
   a creature comes into view, and drink from it for free when you are thirsty. In the traditional
   controls `U` drinks and then fills. In the modern controls both are in the `f` actions list.
@@ -190,13 +199,22 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* The character pane shows food and water as rough times rather than exact turns. The food line
+  gives about how long until you next grow hungrier, and the water line gives the water in the
+  skin and about how long until you next grow thirstier. Once you are hungry or thirsty, the
+  line names the stage, and the time runs to the next stage or, at the last one, to death. Times
+  count ten seconds to a turn and round down to ten minutes, as "50m" or "4h10m".
+* The food bag screen shows how long each stack feeds and, for food that spoils, about how long
+  until it turns stale, rotten or putrid. The title shows the water in the skin and how long it
+  lasts. A row too wide for the screen drops the spoiling time first, and then the feeding time.
 * Breaking a door down is heard along the floor's corridors rather than in a fixed square around
   the door, and each swing at the door can be heard too.
 * The goblin warrior is now the goblin fighter, a stocky goblin in small chain mail with a mace.
   It strikes more slowly than the warrior did and takes longer to kill, and is about as dangerous.
 * Bones go in your pack, one pile to a letter, rather than in the food bag. Bones in the food
   bag of a saved game move to the pack when it loads, or to the floor under you when the pack is
-  full. Rotten flesh stays in the food bag.
+  full. Rotten flesh in a saved game turns into putrid masses when it loads, in the pack or at
+  your feet the same way, and where it lies on the floors.
 
 ### Fixed
 

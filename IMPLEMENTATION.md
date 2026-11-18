@@ -1046,6 +1046,49 @@ on. The generator comes last because by now it is clear what it has to place.
   the pills under "Temporary effects in the character pane".
 * The water reading is a plain line rather than a bar. Text over the empty part of a bar reads at
   less than 4.5 to 1 in the Default theme.
+
+#### Times the player sees
+
+The player sees food and water as rough game time, never as turns, so they never know the exact
+turn a change comes on. The protocol and the observation keep exact numbers.
+
+* `Sustenance::SECONDS_PER_TURN` is 10. Every time shown is counted from it.
+* `Sustenance.approximate` rounds down to ten minutes and writes "50m", "4h10m" or "1h". Under
+  ten minutes, zero included, it writes "<10m".
+* Each time is the turns until the next stage that shows a status, rounded down. It can say
+  "<10m" for up to 59 turns before the stage changes.
+
+| Line | Shows | The time counts to |
+| --- | --- | --- |
+| food | `food`, or the hunger stage | hungry from satiated or fed; then famished, starving, death |
+| water | `water`, or the thirst stage, then the skin's units | see below |
+
+* `Sustenance#food_left` counts hunger to the next of `HUNGRY`, `FAMISHED`, `STARVING` and
+  `STARVED`. Satiated and fed show no status, so both count to hungry.
+* `Sustenance#water_left` for a quenched character is the skin's sipping time,
+  `water * SIP - sipped`, plus `THIRSTY`. A character past quenched does not sip, so the skin
+  adds nothing. The time is then the turns to the next of `THIRSTY`, `PARCHED`, `DEHYDRATED`,
+  `DYING` and `DRIED`.
+* The fruit buff that holds thirst every other turn is left out of the time. The real wait is
+  longer than the time shown while it runs.
+* Past the first status, the line starts with the stage word in the style of its pill. Dying of
+  thirst is "dying", so "dehydrated 10/10 4h10m" fits the 22 columns of the narrow panel.
+* The stage pills stay as they were, under the lines.
+
+On the food bag screen:
+
+* A row's feeding time is `FoodBag.feeds`, the whole stack at its present freshness. The first
+  piece may be bitten. The rest are whole. Rotten flesh feeds nothing and shows no time.
+* For food that spoils, `FoodBag.turning` gives the next freshness and the turns until it. A stack
+  shares one age, so every piece turns together. Rotten food has no later stage and shows none.
+* The title shows the water in the skin and `water * SIP`, the time it lasts a quenched
+  character.
+* The rows give up columns to keep the detail box readable. A row has the text room the menu
+  leaves when its side margins are `MENU_MARGIN`. When the widest row is too wide for that, the
+  spoiling time goes. When it is still too wide, the feeding time goes too. With a long name such
+  as "2 handfuls of dried fruit" in the bag, 80 columns shows the name and weight alone, 90 and
+  100 add the feeding time, and 120 shows both times.
+* The potion list shows no time. A potion quenches once and holds nothing back for later.
 * A death from hunger or thirst sets `Game#perished`. The end screen says "You starved to death."
   or "You died of thirst.", and `over` carries the cause. A trial report counts it as starvation or
   thirst.
@@ -6558,14 +6601,14 @@ it ages. `Sustenance#eat` on the `hunger-thirst` branch is what eating feeds.
 
 `Food::FACTS` holds one `FoodFacts` per kind: the family, the satiety, the turns it keeps, and a
 value for the sort. Satiety is in the points `Sustenance#eat` takes. Food that keeps for *k* turns
-is stale from *k* and rotten from 2*k*. A keep of zero never spoils.
+is stale from *k*, rotten from 2*k* and putrid from 3*k*. A keep of zero never spoils.
 
 | Kind | Family | Satiety | Weight | Keeps | Value |
 |---|---|---|---|---|---|
 | ration | grain | 1500 | 4 | never | 12 |
 | loaf of bread | grain | 1200 | 3 | 1500 | 6 |
 | oatcake | grain | 800 | 2 | 4000 | 5 |
-| piece of fresh meat | meat | 900 | 4 | 300 | 8 |
+| piece of fresh meat | meat | 175 | 4 | 300 | 8 |
 | strip of dried meat | meat | 700 | 2 | 5000 | 10 |
 | sausage | meat | 800 | 3 | 1500 | 8 |
 | apple | fruit | 400 | 2 | 2000 | 3 |
@@ -6579,8 +6622,53 @@ is stale from *k* and rotten from 2*k*. A keep of zero never spoils.
 | corpse | meat | by size | by size | 150 | 0 |
 | lump of rotten flesh | refuse | none | 4 | never | 0 |
 
-A corpse feeds 400, 1000 or 1600 for a small, medium or large creature, and cuts into 1, 2 or 4
+Rotten flesh is left by nothing now. It stays a member so an old save loads.
+
+A corpse feeds 400, 1000 or 1600 for a small, medium or large creature, and cuts into 1, 1 or 2
 pieces of fresh meat. It weighs 50, 150 or 400, so it never fits in the bag.
+
+### Meat supply
+
+Corpse meat is held near 1.5 times a floor's need at the median human pace until richer food
+systems exist. `plans/SUPPLY.md` measured the supply at d802fb6. The pace there is 3,564 turns a
+floor, which costs 3,564 satiety. The player is taken to kill and cut a third of the beasts.
+
+* **Levers.** `Food::CUTS` went from 1, 2 and 4 to 1, 1 and 2. Floors 1 and 2 hold only small
+  beasts, and a small beast cannot give less than one piece, so the cuts alone left floor 2 at
+  4.5 times need. A piece of fresh meat then went from 900 satiety to 175.
+* **Why the piece.** Every piece is a `FreshMeat` item at the kind's satiety, whatever the corpse
+  was. `Food::CORPSE_SATIETY` only feeds a starving character who eats a corpse where it lies, and
+  scales the cut for one partly eaten. Lowering it would not change the meat a cut gives.
+* **Beasts.** Beasts by size per floor, from 1,000 seeds of `Generator.floor`. They agree with the
+  report's piece counts.
+
+| Depth | Small | Medium | Large |
+|---:|---:|---:|---:|
+| 1 | 24.5 | 0 | 0 |
+| 2 | 46.0 | 0 | 0 |
+| 3 | 42.9 | 7.1 | 4.4 |
+| 4 | 31.9 | 7.9 | 7.6 |
+| 5 | 26.6 | 9.9 | 12.0 |
+| 6 | 30.6 | 11.4 | 13.9 |
+| 7 | 57.8 | 0 | 13.0 |
+| 8 | 0 | 0 | 8.8 |
+
+Meat is a third of the pieces times the piece's satiety. Ratios divide by 3,564.
+
+| Depth | Floor food | Meat before | Total before | Ratio before | Meat after | Total after | Ratio after |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 2454 | 7337 | 9791 | 2.75 | 1427 | 3881 | 1.09 |
+| 2 | 2345 | 13808 | 16153 | 4.53 | 2685 | 5030 | 1.41 |
+| 3 | 2425 | 22362 | 24787 | 6.95 | 3424 | 5849 | 1.64 |
+| 4 | 2353 | 23495 | 25848 | 7.25 | 3215 | 5568 | 1.56 |
+| 5 | 2429 | 28339 | 30768 | 8.63 | 3530 | 5959 | 1.67 |
+| 6 | 2603 | 32714 | 35317 | 9.91 | 4072 | 6675 | 1.87 |
+| 7 | 2705 | 32915 | 35620 | 9.99 | 4887 | 7592 | 2.13 |
+| 8 | 2899 | 10537 | 13436 | 3.77 | 1024 | 3923 | 1.10 |
+
+* The mean ratio over floors 1 to 8 is 1.56. A piece at 150 gives 1.44 and one at 200 gives 1.68.
+* Floors 9 and 10 have no beasts and keep 0.86 and 0.89. The pantry rate is the lever there.
+* Delicacies cut from a beast and human corpses are left out, as in the report.
 
 ### Freshness and stacks
 
@@ -6648,10 +6736,10 @@ so bag food has ids. A save writes the bag under the player, and an older save l
 
 `Species#remains` says what a creature leaves, and `KindFacts#remains` lets a kind say otherwise.
 Beasts, goblins, orcs, ants and the warlord leave a corpse. Slimes, jellies, constructs and imps
-leave nothing. The undead leave rotten flesh and bones, and the skeleton overrides that with bones
+leave nothing. The undead leave a putrid mass and bones, and the skeleton overrides that with bones
 alone. `corpse_left` fires when the character saw the creature die. A corpse is stale at 150 turns
-and rots away at 300, with `corpse_rotted` when the character can see the square. A stale corpse can
-still be eaten, and only a fresh one can be cut up.
+and rots to a putrid mass at 300, with `corpse_rotted` when the character can see the square. A
+stale corpse can still be eaten, and only a fresh one can be cut up.
 
 * **Butchery.** `Species#butchery` says whether a corpse cuts into meat, and
   `KindFacts#butchery` lets a kind say otherwise. `Item#butchery` reads it from the corpse's
@@ -6731,6 +6819,47 @@ came before it. The parts take the ids after the corpse and appear in `corpse_le
   takes it only when it stacks with one carried.
 * **Observation.** A food bag `Meal` carries `item_class` and `buff`. A reagent in the pack is a
   `Seen` with `item_class` `reagent`.
+
+### Putrid masses
+
+Putrid mass is the end of all spoiling food. `ItemKind::PutridMass` is the last member, in
+`ItemClass::Refuse`, also the last member. The class stacks, is not food, has no food facts and
+never ages.
+
+| Field | Value |
+|---|---|
+| name | putrid mass, putrid masses |
+| weight | 1 |
+| value | 0, `Food::PUTRID_MASS_VALUE` |
+| stack cap | none |
+| glyph | `%` |
+| inventory page | food, beside bones and reagents |
+
+* **Timing.** One rule for every food that spoils: putrid at `Food::PUTRID` (3) times its keeps.
+  `Freshness::Putrid` comes after `Rotten` and is worth 0. A corpse ends where it always ended,
+  at 2 times its keeps, when it turns rotten. `Item#putrid?` answers both. A ration and other
+  food that never spoils never reaches it.
+* **Bag.** `Game#keep_food` ripens the bag, then `Game#putrefied` takes each putrid stack out. It
+  becomes that many masses under the stack's id, which go in the pack and stack with any there.
+  A full pack drops them under the character. `food_spoiled` fires with `freshness` `putrid`,
+  `mass` the id of the pack stack or floor pile that holds them, and `fell` true when they fell.
+  The line names the food as it was before it turned. It does not stop a walk.
+* **Floor.** `Game#age_the_floor` replaces each putrid food on the current floor with that many
+  masses on its square, under the food's id. A corpse leaves one mass, partly eaten or not. A
+  mass already on the square takes it in, and its id stands. `corpse_rotted` now carries `mass`,
+  the id of the mass on the square. No event fires for other food.
+* **Undead.** `Remains::FleshAndBones` leaves a putrid mass and bones. The ids are as before.
+* **Old saves.** `Game#unrot` runs from `#after_initialize`, after `#unbag`. Rotten flesh in the
+  bag becomes masses in the pack, or on the floor under the character when the pack is full.
+  Rotten flesh on every floor becomes masses on its square. Each keeps its id.
+* **Pickup.** Picking up by hand puts it in the pack. Automatic pickup takes it only when it
+  stacks with one carried, as for reagents. Masses coming into sight do not stop a walk.
+* **Eating.** `Item#edible?` is false, so `Game#edible`, `Game#legal` and the explore meal never
+  offer it, and an `eat` naming one is refused.
+* **Observation.** A mass in the pack or on the floor is a `Seen` with `item_class` `refuse`,
+  `kind` `putrid_mass` and its `count`.
+* **Streams.** Nothing new is drawn. The masses reuse ids, so `#next_id` is not called and no
+  stream version moves.
 
 ### Floor food
 
@@ -6833,26 +6962,47 @@ included.
 
 ### Placement
 
-* Floors 2 to 10 may have one. Floor 1 and the chamber under floor 10 never do.
-* `Generator.fountain?` decides. It draws once on a stream named after the floor, `fountain` under
-  `worldgen:<floor id>`, and says yes on 60 draws in a hundred. The stream does not take the try
-  number, so a floor dug again after an audit fault keeps its answer.
-* A floor with one gets exactly one. It goes on a bare square of a room, picked on the try's own
-  `fountain` stream. A floor with no rooms takes it in a cavern.
+* Floor 1 always has one. Floors 2 to 10 may have one. The chamber under floor 10 never does.
+* `Generator.fountain?` decides from the run seed and the floor id alone, with no saved state.
+  Each of floors 2 to 10 draws once on a stream named after it, `fountain` under
+  `worldgen:<floor id>`. The stream does not take the try number, so a floor dug again after an
+  audit fault keeps its answer.
+* The odds of a draw depend on the dry floors in a row directly above it. Floor 1 counts as wet.
+  The call walks from floor 2 down to the floor asked about and carries the dry count along, which
+  is at most nine draws.
+* A floor id outside the dungeon's numbering, such as the proving ground, has none. The legacy id
+  `dungeon` is floor 1 and has one. No other floor ids exist off the main line.
+
+| Dry floors above | Chance out of 100 |
+| ---: | ---: |
+| 0 | 70 |
+| 1 | 80 |
+| 2 | 90 |
+| 3 | 100 |
+
+* **Rate.** The dry count is a Markov chain on 0 to 3. Its stationary share of wet floors is
+  `1 / (1 + 0.3 + 0.3 * 0.2 + 0.3 * 0.2 * 0.1)`, which is 500 / 683 or 73.2%. Starting from
+  floor 1 wet, the expected share over floors 2 to 10 is 72.8%. Floor 2 is the lowest at 70%.
+* **Placement on floor 1.** The fountain goes on a bare square of the up staircase's own zone at
+  most `Generator::NEAR` = 6 steps from the staircase, walking through doors. When that zone has
+  no such square, it goes on the bare square of any zone fewest steps away. Over 2,000 seeds every
+  floor 1 fountain was in the starting zone, 1 to 6 steps from the stairs.
+* **Placement deeper.** A floor with one gets exactly one. It goes on a bare square of a room,
+  picked on the try's own `fountain` stream. A floor with no rooms takes it in a cavern.
 * It is placed after the stairs, the sconces and the creatures, so it moves none of them.
-* Each floor draws apart from the others. Dry stretches of two or three floors in a row then come
-  up often, and those force a walk back up or a potion.
 
-Measured over 20,000 seeds on floors 2 to 10:
+Measured on floors 2 to 10:
 
-| Measure | Share |
-| --- | --- |
-| Floors with a fountain | 60.0% |
-| Runs with a dry stretch of 2 floors or more | 66.7% |
-| Runs with a dry stretch of 3 floors or more | 28.0% |
-| Runs whose longest dry stretch is 4 floors or more | 10.0% |
+| Measure | 4,000 seeds | 20,000 seeds |
+| --- | ---: | ---: |
+| Floors with a fountain | 73.0% | 72.9% |
+| Runs whose longest dry stretch is 0 floors | 4.5% | 3.9% |
+| Runs whose longest dry stretch is 1 floor | 63.3% | 63.4% |
+| Runs whose longest dry stretch is 2 floors | 29.3% | 29.6% |
+| Runs whose longest dry stretch is 3 floors | 3.0% | 3.0% |
 
-A spec measures the share over 2,000 seeds and holds it within 3 points of 60.
+A spec measures the share over 4,000 seeds and holds it within 2 points of the 72.8% the table
+works out to. Another checks that no seed has four dry floors in a row.
 
 ### Drawing water
 
@@ -6899,6 +7049,11 @@ Environment group of the action catalog.
 * `generator` goes to 9. The fountain draws are new draws, and a fountain square changes where
   litter and loot can land.
 * The golden replay was recorded again from its seed.
+* The floor 1 fountain takes a bare square, so litter and loot on floor 1 land differently and
+  the starting kit's item ids move from 355 to 359 up to 358 to 362. The golden replay's actions
+  name those ids, so they were moved by three before it was recorded again.
+* `spec/fixtures/floors/dug.txt` is floor 1 and gains its fountain three steps from the up
+  staircase. Nothing else on it moves.
 
 ## Asked for, not yet built
 
