@@ -51,6 +51,12 @@ Spectator.describe "the times on the food bag screen" do
     expect(row_for run, 'a').to match /stale.* bread +\d+ +1h40m rotten in 3h50m$/
   end
 
+  it "says when rotten food turns putrid" do
+    run = opened [food(Kind::Bread, age: 3_100)], 140
+
+    expect(row_for run, 'a').to match /rotten.* bread +\d+ +.* putrid in \S+$/
+  end
+
   it "puts the water in the skin in the title, with how long it lasts" do
     run = opened [food(Kind::Apple)], 140, water: 7
 

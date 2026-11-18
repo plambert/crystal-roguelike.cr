@@ -122,9 +122,13 @@ Spectator.describe "time shown for food and water" do
       expect(FoodBag.turning meat).to eq({Freshness::Rotten, 200})
     end
 
-    it "has nothing for food that keeps or is already rotten" do
+    it "says when rotten food turns putrid" do
+      meat = Item.new Kind::FreshMeat, age: 700
+      expect(FoodBag.turning meat).to eq({Freshness::Putrid, 200})
+    end
+
+    it "has nothing for food that keeps" do
       expect(FoodBag.turning Item.new(Kind::Ration)).to be_nil
-      expect(FoodBag.turning Item.new(Kind::FreshMeat, age: 700)).to be_nil
     end
   end
 end
