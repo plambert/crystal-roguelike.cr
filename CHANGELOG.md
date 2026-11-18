@@ -190,6 +190,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* The character pane shows food and water as rough times rather than exact turns. The food line
+  gives about how long until you next grow hungrier, and the water line gives the water in the
+  skin and about how long until you next grow thirstier. Once you are hungry or thirsty, the
+  line names the stage, and the time runs to the next stage or, at the last one, to death. Times
+  count ten seconds to a turn and round down to ten minutes, as "50m" or "4h10m".
+* The food bag screen shows how long each stack feeds and, for food that spoils, about how long
+  until it turns stale or rotten. The title shows the water in the skin and how long it lasts.
+  A row too wide for the screen drops the spoiling time first, and then the feeding time.
 * Breaking a door down is heard along the floor's corridors rather than in a fixed square around
   the door, and each swing at the door can be heard too.
 * The goblin warrior is now the goblin fighter, a stocky goblin in small chain mail with a mace.

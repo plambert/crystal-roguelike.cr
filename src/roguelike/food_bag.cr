@@ -155,6 +155,32 @@ module Roguelike
       (item.age % keeps) * 1000 // keeps
     end
 
+    # Turns of hunger the whole stack *item* takes away, as fresh as it is
+    # now. The first piece may be bitten. The rest are whole.
+    def self.feeds(item : Item) : Int32
+      rest = item.full_satiety * item.freshness.worth // 100
+      item.nourishment + (item.count - 1) * rest
+    end
+
+    # The freshness *item* turns to next, and the turns until it does.
+    # `nil` for food that never spoils or has no later stage.
+    #
+    # A stack shares one age, so every piece turns on the same turn.
+    def self.turning(item : Item) : {Freshness, Int32}?
+      facts = item.food_facts
+      return unless facts.spoils?
+
+      now = item.freshness
+      (1..4).each do |step|
+        at = facts.keeps * step
+        next if at <= item.age
+
+        later = facts.freshness at
+        return {later, at - item.age} unless later == now
+      end
+      nil
+    end
+
     def ==(other : FoodBag) : Bool
       @items == other.items
     end
