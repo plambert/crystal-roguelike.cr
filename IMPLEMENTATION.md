@@ -5799,6 +5799,47 @@ click, as moves.
 * **The format number stays.** `Replay::FORMAT` is still 3. A file holding neither verb reads as it
   did. A build from before this cannot parse a file holding either one, and says so.
 
+### Going round with nothing learned
+
+A bot on seed 5023 at d802fb6 sent `explore` from turn 5,330 to the end of its run. The character
+walked between (108, 11) and (112, 10), eight turns a lap, and saw nothing new. The walk's
+`Halt::Spent` guard does not reach this, because each `explore` from the protocol is a walk of its
+own.
+
+* **The cause.** A loaf at (118, 9) was read from (112, 10), six squares off. Walking west, the
+  character saw it again from (108, 11), ten squares off and past `Regards::READING`. The loaf
+  was a turn older. `Knowledge#see` keeps the better regard only for an item equal to the one
+  remembered, and `Item#==` compares age. The memory took the older loaf for another item and
+  fell back to `Regard::Kind`, so `Explore.unread` listed it again and explore turned back. Once
+  the loaf was read, the goal was the next unread item, a pile at (91, 87), and explore turned
+  west again. At turn 4,931 the unread goals were already three pieces of food re-listed this
+  way: the loaf, a rat corpse and a pile under a goblin scout's corpse. `Knowledge#revision`
+  stayed at 13,140 the whole time, because a regard is not a change to the map.
+* **The fix.** `Item#alike?` is `#==` without the age. `Knowledge#see` and `Game#regard_of_item`
+  compare by it. With it, the same replay on d802fb6 runs as before to turn 4,931, and then
+  explore has nothing left and is no longer offered.
+* **The guard.** `Explore::Circling` watches every explore step, from the protocol and from a walk
+  alike. `Game#planned_route` asks it before it plans. Its key is the square and a hash of what a
+  plan reads beyond the map: the unread items, the fountains wanted, and whether the character
+  carries a light. Its ground is the floor, the revision and the count of pickups and drops. A
+  change of ground starts the watch again, and so does a step that lands anywhere but where the
+  plan said.
+* **Turning away.** The first square that comes round adds every goal headed for since the watch
+  began to `Circling#avoid`. `Explore.route` takes `avoid` and leaves those squares out of the
+  piles, the frontier and the unread items. Each later time adds the goals since the time before.
+* **Giving up.** After `Circling::TRIES`, three turns away, the next square that comes round stops
+  explore with `Halt::Circling`, the last member. So does a plan that finds every goal avoided.
+  The line is "You stop. You keep coming back to the same places." `Game#explorable?` is false
+  until the character stands somewhere else or the ground changes, so a bot is not offered
+  `explore` again on that square.
+* **Same as the other halts.** The halt reaches a bot as `Event::Stopped` with `halt` set to
+  `circling`, and the event stream the same way. No stream version moved.
+* **Checked on seed 5023.** The replay played on d802fb6 with the guard and without the fix.
+  Explore stopped with `Halt::Circling` on (108, 11) at turn 5,102, and once more after each
+  later `eat` or `quaff` changed the pack.
+* **Not in a save.** The watch is left out of the save, like the planned route. A run loaded from
+  a save watches afresh, and a replay from the start rebuilds it step by step.
+
 ### Measured
 
 A release build, on seed 4272's first floor, 170 by 85, with every creature taken off.

@@ -640,11 +640,28 @@ module Roguelike
     # arrows. That question is about the arrows and not about which pile they
     # are in.
     def ==(other : Item) : Bool
+      alike?(other) && age == other.age
+    end
+
+    # Whether this item and *other* are the same in every way `#==` compares
+    # but age.
+    #
+    # Food ages every turn, whether anybody looks at it or not. A memory of
+    # an item compares with the item by this, so a loaf a few turns older is
+    # still the loaf the character looked at closely.
+    def alike?(other : Item) : Bool
       @kind == other.kind && @enchantment == other.enchantment &&
         @condition == other.condition && @count == other.count &&
         @charges == other.charges && @blessing == other.blessing &&
         @blessing_known == other.blessing_known? && @lit == other.lit? &&
-        size == other.size && meal_matches?(other)
+        size == other.size && eaten == other.eaten && @creature == other.creature
+    end
+
+    # :ditto:, where either may be no item. Two absent items are alike.
+    def self.alike?(one : Item?, other : Item?) : Bool
+      return one.nil? && other.nil? unless one && other
+
+      one.alike? other
     end
 
     def hash(hasher)

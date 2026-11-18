@@ -424,7 +424,8 @@ module Roguelike
     # A worse look does not undo a better one. A square whose item has not
     # changed keeps the best regard it has ever been seen with, so glancing
     # back at a spear from across a hall does not turn a cursed -2 spear back
-    # into a spear.
+    # into a spear. Food that has only aged has not changed, by
+    # `Item.alike?`.
     def see(floor : Floor, x : Int32, y : Int32, turn : Int32 = 0,
             regard : Regard = Regard::Everything) : Nil
       return unless floor.contains? x, y
@@ -436,7 +437,7 @@ module Roguelike
 
       held = self[x, y]
       made_out = regard
-      made_out = made_out.at_least held.regard if held && held.item == lying
+      made_out = made_out.at_least held.regard if held && Item.alike?(held.item, lying)
 
       terrain = floor.terrain x, y
       changed if held.nil? || held.terrain != terrain || held.item.try(&.id) != lying.try(&.id)

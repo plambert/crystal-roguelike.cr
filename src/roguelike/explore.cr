@@ -57,6 +57,9 @@ module Roguelike
     # No fountains to walk to.
     NO_WELLS = [] of {Int32, Int32}
 
+    # No squares to keep away from.
+    NO_SQUARES = Set({Int32, Int32}).new
+
     # The route to the square explore heads for, the character's own square
     # first. Empty when no pile worth taking, no square left to see and no
     # item left to read can be reached.
@@ -67,17 +70,24 @@ module Roguelike
     # none. *shows* says whether light falls on a square, and is `nil` when
     # the character carries a light. *settings* says which parts of the
     # rule are on. *wells* are fountains the character wants water from,
-    # and are walked to the way a pile is.
+    # and are walked to the way a pile is. *avoid* holds squares that are
+    # never the goal, which `Circling` fills.
     def self.route(knowledge : Knowledge, from : {Int32, Int32},
                    columns : Int32, rows : Int32,
                    takes : Proc(Item, Bool)? = nil,
                    shows : Proc({Int32, Int32}, Bool)? = nil,
                    settings : Settings = Settings.new,
-                   wells : Array({Int32, Int32}) = NO_WELLS) : Array({Int32, Int32})
+                   wells : Array({Int32, Int32}) = NO_WELLS,
+                   avoid : Set({Int32, Int32}) = NO_SQUARES) : Array({Int32, Int32})
       found = knowledge.chambers columns, rows
       piles = Explore.piles(knowledge, takes, settings) + wells
       edge = Explore.edge knowledge, found, columns, rows, shows
       reach, pocket = settings.reach, settings.pocket
+      unless avoid.empty?
+        piles.reject! { |spot| avoid.includes? spot }
+        open = edge
+        edge = ->(spot : {Int32, Int32}) { !avoid.includes?(spot) && open.call(spot) }
+      end
 
       # Each flood here runs only as far as what reads it needs.
       if reaches_any? knowledge, from, piles
@@ -97,7 +107,9 @@ module Roguelike
       end
       descent ||= toward_frontier knowledge, edge, from, columns, rows, reach: reach
       goal ||= smallest found, descent, found.frontier.select(&edge), reach, pocket
-      goal ||= nearest descent, Explore.unread(knowledge) if settings.unread?
+      if settings.unread?
+        goal ||= nearest descent, Explore.unread(knowledge).reject { |spot| avoid.includes? spot }
+      end
       return Route::NOWHERE unless goal
 
       Route.over descent, goal
