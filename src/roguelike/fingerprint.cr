@@ -98,11 +98,17 @@ module Roguelike
     # square, so a replay plays the same without it. Leaving it out also
     # keeps replays recorded before it existed in agreement.
     #
+    # `circling` is explore's watch for going round, and `pack_moves` is the
+    # count of pickups and drops its ground reads. A save keeps both, so a
+    # loaded run goes on the way it would have. Both follow from the actions
+    # before them, which a replay plays again. Leaving them out keeps every
+    # fingerprint recorded before they were saved in agreement.
+    #
     # Under the canonical scheme only the top level is read. A field of this
     # name deeper in the document is hashed the way every other field is.
-    # Under the streamed scheme `Game` leaves these two out of what it
+    # Under the streamed scheme `Game` leaves these out of what it
     # writes while `.streaming?` is set.
-    UNCOUNTED = ["log", "sightings"]
+    UNCOUNTED = ["log", "sightings", "circling", "pack_moves"]
 
     # The fingerprint of *subject* under the canonical scheme.
     #
@@ -113,7 +119,8 @@ module Roguelike
       sha = Digest::SHA256.new
       sink = Sink.new sha
 
-      Writer.new.write JSON::PullParser.new(subject.to_json), sink, top: true
+      text = counting { subject.to_json }
+      Writer.new.write JSON::PullParser.new(text), sink, top: true
       sink.flush
 
       "#{Scheme::Canonical.label}:#{sha.hexfinal}"
@@ -155,9 +162,33 @@ module Roguelike
       was = @@streaming
       begin
         @@streaming = true
-        yield
+        counting { yield }
       ensure
         @@streaming = was
+      end
+    end
+
+    # Whether what is being written now is for a fingerprint of either
+    # scheme.
+    #
+    # A field marked with this is in a save and in no fingerprint, at any
+    # depth. `Knowledge#revision` is one.
+    @[ThreadLocal]
+    @@counting = false
+
+    # :ditto:
+    def self.counting? : Bool
+      @@counting
+    end
+
+    # Runs the block with `.counting?` set, and answers what it answers.
+    def self.counting(&)
+      was = @@counting
+      begin
+        @@counting = true
+        yield
+      ensure
+        @@counting = was
       end
     end
 
@@ -179,7 +210,7 @@ module Roguelike
 
     # *subject* written as canonical JSON.
     def self.canonical(subject : JSON::Serializable) : String
-      canonical subject.to_json
+      canonical counting { subject.to_json }
     end
 
     # :ditto:

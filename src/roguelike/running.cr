@@ -87,6 +87,11 @@ module Roguelike
     # Hunger reached a new stage and explore was not set to eat for it.
     # Only an explore answers this. The line for the stage says why.
     Hungry
+
+    # Explore kept coming back to the same squares with nothing learned,
+    # and still did after `Explore::Circling` turned it away from where it
+    # was going. Only an explore answers this.
+    Circling
   end
 
   # What one walk did.

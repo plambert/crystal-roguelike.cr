@@ -231,6 +231,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   it no longer says rotten twice.
 * A potion that quenches thirst writes a `drank` event with source `potion` for bots, as the
   bot protocol says.
+* Food you looked at closely stays known when you see it again from across the room a few turns
+  older. Before, it went back to just "bread", and explore walked back to read it, then to the
+  next one, back and forth for ever.
+* Explore no longer goes round the same squares for ever when it learns nothing. It turns
+  toward somewhere else, and if it still comes back it stops with "You stop. You keep coming
+  back to the same places." Explore is offered again once you move or see something new. Bots
+  get the halt as `circling`. Your save keeps where explore stands in this, so a run you save
+  and load carries on the same way.
 
 ## [0.7.0] - 2026-10-28
 

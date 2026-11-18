@@ -168,6 +168,34 @@ Spectator.describe "how well something is made out" do
       expect(memory.regard).to eq Regard::Everything
       expect(memory.turn).to eq 2
     end
+
+    it "survives the food on the square growing older" do
+      game = hall
+      bread = Item.new Kind::Bread
+      game.floor.drop 29, 5, bread
+      game.player.move_to 27, 5
+      game.look
+
+      bread.ripen
+      game.player.move_to 20, 5
+      game.look
+
+      expect(game.regard_of_item 29, 5).to eq Regard::Everything
+      expect(game.knowledge[29, 5].try &.regard).to eq Regard::Everything
+    end
+
+    it "is lost when the item on the square changes" do
+      floor = Playing.daylight Floor.parse("room", ["#####", "#...#", "#####"])
+      wand = Item.new Kind::LightWand
+      floor.drop 2, 1, wand
+      knowledge = Knowledge.new floor.id
+
+      knowledge.see floor, 2, 1, 1, Regard::Everything
+      wand.spend
+      knowledge.see floor, 2, 1, 2, Regard::Kind
+
+      expect(knowledge[2, 1].try &.regard).to eq Regard::Kind
+    end
   end
 
   describe "a creature" do

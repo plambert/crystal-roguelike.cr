@@ -351,10 +351,12 @@ module Roguelike
     # How many times something has gone into the pack or come out of it.
     #
     # A pickup or a drop changes what an explore wants, so a walk that stands
-    # on a square again after one is not going round in a circle. A walk
-    # compares it only with what it read earlier in the same walk, so the
-    # save leaves it out.
-    @[JSON::Field(ignore: true)]
+    # on a square again after one is not going round in a circle.
+    # `Explore::Circling` holds it across walks in its ground, so the save
+    # keeps it too. A save written before it was kept loads it as zero, and
+    # that save has no watch for it to disagree with.
+    # `Fingerprint::UNCOUNTED` names it.
+    @[JSON::Field(ignore_serialize: Roguelike::Fingerprint.streaming?)]
     @pack_moves : Int32 = 0
 
     # Whether the action being performed has spent any time.
@@ -1368,7 +1370,7 @@ module Roguelike
       return unless walk.planned?
 
       case walk.halt
-      when Halt::Explored, Halt::Dark
+      when Halt::Explored, Halt::Dark, Halt::Circling
         line, halt = explored
         say line, Event::Stopped.new(halt)
       when Halt::Arrived
@@ -1440,15 +1442,20 @@ module Roguelike
     #
     # One step asks this twice, once to plan and once in `#perform`. The
     # answer is kept for as long as nothing it was worked out from has moved.
+    #
+    # An explore asks `#circling` first. A character going round with
+    # nothing learned is turned away from the goals they went round
+    # between, and is given no way at all once explore gives up.
     private def planned_route(goal : {Int32, Int32}?) : Array({Int32, Int32})
+      return Route::NOWHERE if goal.nil? && circled?
+
       known = knowledge
       key = Plan.new floor.id, @turn, @player.at, known.object_id, known.revision, goal
       held = @plan
       return held[1] if held && held[0] == key
 
       route = if goal.nil?
-                Explore.route known, @player.at, floor.columns, floor.rows, auto_takes, shining,
-                  explore_settings, wells
+                exploring_route known
               elsif goal == @player.at
                 Route::NOWHERE
               else
@@ -1458,6 +1465,56 @@ module Roguelike
       @plan = {key, route}
       route
     end
+
+    # The way an explore takes, planned around the goals `#circling` avoids.
+    private def exploring_route(known : Knowledge) : Array({Int32, Int32})
+      avoid = circling.avoid
+      route = Explore.route known, @player.at, floor.columns, floor.rows, auto_takes, shining,
+        explore_settings, wells, avoid
+
+      if route.size >= 2
+        circling.chose route.last, route[1]
+      elsif !avoid.empty?
+        circling.give_up @player.at
+      end
+      route
+    end
+
+    # Watches an explore step about to be planned, by `Explore::Circling`.
+    # Answers whether explore has given up here.
+    private def circled? : Bool
+      sight = Explore::Circling.sight Explore.unread(knowledge), wells, shining.nil?
+      case circling.watch circling_ground, @player.at, sight, @turn
+      in .stuck?
+        true
+      in .turned?
+        @plan = nil
+        false
+      in .going?
+        false
+      end
+    end
+
+    # Whether explore has given up where the character stands.
+    private def circling_stuck? : Bool
+      @circling.try(&.stuck?(circling_ground, @player.at)) || false
+    end
+
+    # What `Explore::Circling` takes as the character having learned nothing.
+    private def circling_ground : Explore::Circling::Ground
+      Explore::Circling::Ground.new floor.id, knowledge.revision, @pack_moves
+    end
+
+    # What watches explore for going round.
+    private def circling : Explore::Circling
+      @circling ||= Explore::Circling.new
+    end
+
+    # The watch `#circling` answers. `nil` until the first explore, so a save
+    # holds it only once there is one. A save written before it existed
+    # loads with a fresh watch. `Fingerprint::UNCOUNTED` names it.
+    @[JSON::Field(ignore_serialize: Roguelike::Fingerprint.streaming?)]
+    @circling : Explore::Circling? = nil
 
     # What a planned way was worked out from.
     private record Plan,
@@ -4782,7 +4839,7 @@ module Roguelike
       return held.try(&.regard) || Regard::Nothing unless seen.includes? x, y
 
       made_out = Regards.of_item @player.at, {x, y}
-      return made_out unless held && held.item == floor.items(x, y).last?
+      return made_out unless held && Item.alike?(held.item, floor.items(x, y).last?)
 
       made_out.at_least held.regard
     end
@@ -7431,6 +7488,7 @@ module Roguelike
 
       @explore_settings = settings.default? ? nil : settings
       @plan = nil
+      @circling = nil
       Verdict.done
     end
 
@@ -7997,9 +8055,11 @@ module Roguelike
     end
 
     # Whether an explore has anywhere to go under the current light and
-    # automatic-pickup rules.
+    # automatic-pickup rules. It has nowhere once `Explore::Circling` has
+    # given up on the square the character stands on.
     def explorable? : Bool
       return true if drawing_water?
+      return false if circling_stuck?
 
       Explore.going? knowledge, @player.at, floor.columns, floor.rows, auto_takes, shining,
         explore_settings, wells
@@ -8016,8 +8076,13 @@ module Roguelike
       ->(spot : {Int32, Int32}) { seen.lit? spot[0], spot[1] }
     end
 
+    # What an explore that has given up going round says.
+    CIRCLING = "You stop. You keep coming back to the same places."
+
     # What an explore with nowhere to go says, and why it stopped.
     private def explored : {String, Halt}
+      return {CIRCLING, Halt::Circling} if circling_stuck?
+
       if Explore.dark? knowledge, floor.columns, floor.rows, shining
         return {"It is too dark to explore any further.", Halt::Dark}
       end
