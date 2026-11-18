@@ -29,7 +29,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   you are too full to eat at all, you are told so and no turn passes.
 * Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
   bones, or bones alone for a skeleton. Picking up a fresh beast corpse cuts it into fresh meat
-  for the bag. A corpse rots away about 300 turns after death.
+  for the bag. A small or medium beast gives one piece and a large one gives two. A piece feeds
+  less than an apple, so meat helps but does not feed you on its own. A corpse rots away about
+  300 turns after death.
 * You can eat a corpse where it lies only when you are starving. Until then the pick-up menu
   shows it as a dimmed row that says "eat when starving". Once you are starving the row says
   "eat some (starving!)", and a fresh beast corpse gets that row as well as the one that cuts it.
@@ -66,9 +68,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   and no count. Pills sit side by side and wrap to the next line when a line fills. Buffs are
   green and debuffs are red. Both colors are in the theme editor, and the pills and their text
   read at 4.5 to 1 or more in every built-in theme.
-* Fountains. About three floors in five below the first have one, drawn as `{` in a room. Floor 1
-  and the amulet chamber have none, and a run often goes two or three floors in a row without
-  one. The fountain color is in the theme editor and reads at 4.5 to 1 in every built-in theme.
+* Fountains, drawn as `{`. Floor 1 always has one in the room you start in, a few steps from the
+  stairs. About three floors in four below it have one in a room. The longer you go without a
+  fountain, the likelier the next floor has one, and you never go more than three floors in a row
+  without one. The amulet chamber has none. The fountain color is in the theme editor and reads
+  at 4.5 to 1 in every built-in theme.
 * Standing on a fountain you can fill your waterskin, one turn for each unit, until it is full or
   a creature comes into view, and drink from it for free when you are thirsty. In the traditional
   controls `U` drinks and then fills. In the modern controls both are in the `f` actions list.
