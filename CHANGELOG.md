@@ -10,6 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* Putrid mass. Food that spoils now goes putrid at three times the turns it keeps fresh, after
+  stale and rotten. Putrid food in your food bag turns into putrid masses in your pack, or at
+  your feet when the pack is full, and the message log says so. Food on the floor turns into
+  putrid masses where it lies. Putrid masses stack without limit, weigh 1, never spoil and cannot
+  be eaten. Automatic pickup takes one only when it stacks with one you carry.
 * Food. Fourteen kinds lie about the floors in five families: grain, meat, fruit, nuts and
   cheese, and roots and herbs. Food you pick up goes in a food bag that holds weight 40, takes
   no pack letter and costs no pace. If the bag has no room, the food stays on the floor.
@@ -22,11 +27,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   most and gives no buff. A buff does not stack with itself. Stale food gives half the buff.
 * Eating stops when you are full. Food you could not finish stays in the bag, partly eaten. If
   you are too full to eat at all, you are told so and no turn passes.
-* Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave rotten flesh and
+* Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave a putrid mass and
   bones, or bones alone for a skeleton. Picking up a fresh beast corpse cuts it into fresh meat
   for the bag. A small or medium beast gives one piece and a large one gives two. A piece feeds
-  less than an apple, so meat helps but does not feed you on its own. A corpse rots away about
-  300 turns after death.
+  less than an apple, so meat helps but does not feed you on its own. A corpse rots to a putrid
+  mass about 300 turns after death.
 * You can eat a corpse where it lies only when you are starving. Until then the pick-up menu
   shows it as a dimmed row that says "eat when starving". Once you are starving the row says
   "eat some (starving!)", and a fresh beast corpse gets that row as well as the one that cuts it.
@@ -208,7 +213,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   It strikes more slowly than the warrior did and takes longer to kill, and is about as dangerous.
 * Bones go in your pack, one pile to a letter, rather than in the food bag. Bones in the food
   bag of a saved game move to the pack when it loads, or to the floor under you when the pack is
-  full. Rotten flesh stays in the food bag.
+  full. Rotten flesh in a saved game turns into putrid masses when it loads, in the pack or at
+  your feet the same way, and where it lies on the floors.
 
 ### Fixed
 

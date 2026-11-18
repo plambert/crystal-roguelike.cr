@@ -22,7 +22,7 @@ module Roguelike
     # Roots, herbs and mushrooms. A steadier hand in melee.
     RootsAndHerbs
 
-    # Rotten flesh. Nothing eats it.
+    # Rotten flesh, from an old save. Nothing eats it.
     Refuse
 
     # A part of a beast. Each kind gives a buff of its own, which
@@ -57,10 +57,14 @@ module Roguelike
   end
 
   # How far a food has gone off.
+  #
+  # Food that turns `Putrid` is a `ItemKind::PutridMass` by the end of the
+  # same turn, so no food is ever seen putrid.
   enum Freshness
     Fresh
     Stale
     Rotten
+    Putrid
 
     # The word that goes in a name. `nil` for fresh food.
     def label : String?
@@ -68,6 +72,7 @@ module Roguelike
       in .fresh?  then nil
       in .stale?  then "stale"
       in .rotten? then "rotten"
+      in .putrid? then "putrid"
       end
     end
 
@@ -83,6 +88,7 @@ module Roguelike
       in .fresh?  then 100
       in .stale?  then 50
       in .rotten? then 25
+      in .putrid? then 0
       end
     end
   end
@@ -97,7 +103,7 @@ module Roguelike
     # A corpse that can be eaten or cut up.
     Corpse
 
-    # Rotten flesh and bones. An undead creature with flesh on it.
+    # A putrid mass and bones. An undead creature with flesh on it.
     FleshAndBones
 
     # Bones. An undead creature without flesh.
@@ -124,9 +130,9 @@ module Roguelike
   # Everything one kind of food is.
   #
   # *satiety* is how much one feeds, in the points `Sustenance#eat` takes.
-  # *keeps* is how many turns it stays fresh. It turns stale then, and
-  # rotten at twice that. Zero means it never spoils. *value* is what it is
-  # worth, for a sort.
+  # *keeps* is how many turns it stays fresh. It turns stale then, rotten
+  # at twice that and putrid at three times that. Zero means it never
+  # spoils. *value* is what it is worth, for a sort.
   record FoodFacts,
     category : FoodCategory,
     satiety : Int32,
@@ -142,8 +148,9 @@ module Roguelike
       return Freshness::Fresh unless spoils?
       return Freshness::Fresh if age < keeps
       return Freshness::Stale if age < keeps * 2
+      return Freshness::Rotten if age < keeps * Food::PUTRID
 
-      Freshness::Rotten
+      Freshness::Putrid
     end
   end
 
@@ -165,8 +172,15 @@ module Roguelike
     SICK_AIM = 1
 
     # How many turns a corpse on the floor stays fresh. It turns stale then,
-    # and rots away at twice that.
+    # and rots to a putrid mass at twice that.
     CORPSE_KEEPS = 150
+
+    # How many times its `FoodFacts#keeps` a food lasts before it turns
+    # putrid.
+    PUTRID = 3
+
+    # What a putrid mass is worth, for a sort.
+    PUTRID_MASS_VALUE = 0
 
     FACTS = {
       ItemKind::Ration  => FoodFacts.new(FoodCategory::Grain, 1500, 0, 12),

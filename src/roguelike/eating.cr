@@ -56,18 +56,21 @@ module Roguelike
       in .nothing? then [] of Item
       in .corpse?  then [Item.new(ItemKind::Corpse, blessing_known: true, creature: kind)]
       in .flesh_and_bones?
-        [Item.new(ItemKind::RottenFlesh, blessing_known: true),
+        [Item.new(ItemKind::PutridMass, blessing_known: true),
          Item.new(ItemKind::Bones, blessing_known: true)]
       in .bones? then [Item.new(ItemKind::Bones, blessing_known: true)]
       end
     end
 
-    # Ages the food in the bag and on this floor, rots corpses away, and
-    # counts the buffs down. `#tick` calls this once a turn.
+    # Ages the food in the bag and on this floor, turns what has reached
+    # its end into putrid masses, and counts the buffs down. `#tick` calls
+    # this once a turn.
     #
     # Other floors wait for the character, the way their creatures do.
     private def keep_food : Nil
-      @player.food_bag.ripen.each { |item| spoiled item }
+      bag = @player.food_bag
+      bag.ripen.each { |item| spoiled item unless item.putrid? }
+      bag.items.select(&.putrid?).each { |item| putrefied item }
       age_the_floor
       @player.pass_buffs.each { |status| buff_ended status }
     end
@@ -85,25 +88,82 @@ module Roguelike
       @overlooked += @log.written - wrote
     end
 
-    # Ages every food lying on this floor, and takes away each corpse that
-    # has rotted.
+    # Takes the putrid *item* out of the bag and puts as many putrid masses
+    # in the pack. A full pack drops them at the character's feet.
+    #
+    # The line names the food as it was before it turned. An explore and a
+    # travel go on past the line. `#told?` overlooks it.
+    private def putrefied(item : Item) : Nil
+      return unless @player.food_bag.remove item
+
+      wrote = @log.written
+      noun = name item.unripened
+      mass = Game.putrid_mass item
+      letter = @player.inventory.add mass
+      held = if letter
+               taken_id letter, mass
+             else
+               floor.drop @player.x, @player.y, mass
+               pile_id @player.x, @player.y, mass
+             end
+      @pack_moves += 1
+      clear_bearers
+
+      verb = item.count > 1 ? "have" : "has"
+      say "#{Lore.sentence noun} in your food bag #{verb} gone putrid. " \
+          "#{putrid_where mass.count, letter.nil?}",
+        Event::FoodSpoiled.new(item.id, noun, Freshness::Putrid, mass: held,
+          fell: letter ? nil : true)
+      @overlooked += @log.written - wrote
+    end
+
+    # Where the putrid masses from the food bag went.
+    private def putrid_where(count : Int32, fell : Bool) : String
+      one = count == 1
+      what = one ? "a putrid mass" : "#{count} putrid masses"
+      return "#{one ? "It is" : "They are"} now #{what} in your pack." unless fell
+
+      "Your pack is full, so #{what} #{one ? "falls" : "fall"} at your feet."
+    end
+
+    # The putrid masses *item* turns into. A corpse leaves one, and a stack
+    # of other food one for each. They keep the id of *item*.
+    def self.putrid_mass(item : Item) : Item
+      count = item.corpse? ? 1 : item.count
+      mass = Item.new ItemKind::PutridMass, count: count, blessing_known: true
+      mass.enroll item.id
+      mass
+    end
+
+    # The id of the pile on *x*, *y* that *mass* lies in. It is another
+    # pile's id when *mass* joined one already there.
+    private def pile_id(x : Int32, y : Int32, mass : Item) : Int32
+      floor.items(x, y).find(&.stacks_with?(mass)).try(&.id) || mass.id
+    end
+
+    # Ages every food lying on this floor, and turns each that has reached
+    # its end into putrid masses on its square.
     private def age_the_floor : Nil
-      rotted = [] of {Int32, Int32, Item}
+      ended = [] of {Int32, Int32, Item}
 
       floor.each_pile do |column, row, pile|
         pile.each do |item|
           next unless item.food?
 
           item.ripen
-          rotted << {column, row, item} if item.corpse? && item.freshness.rotten?
+          ended << {column, row, item} if item.putrid?
         end
       end
 
-      rotted.each do |column, row, item|
+      ended.each do |column, row, item|
         next unless floor.take column, row, item
 
+        mass = Game.putrid_mass item
+        floor.drop column, row, mass
         clear_bearers
-        record Event::CorpseRotted.new(item.id, {column, row}) if can_see? column, row
+        next unless item.corpse? && can_see?(column, row)
+
+        record Event::CorpseRotted.new(item.id, {column, row}, pile_id(column, row, mass))
       end
     end
 
