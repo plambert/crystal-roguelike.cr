@@ -6,6 +6,7 @@ Spectator.describe "time shown for food and water" do
   alias Freshness = Roguelike::Freshness
   alias Item = Roguelike::Item
   alias Kind = Roguelike::ItemKind
+  alias Tuning = Roguelike::Sustenance::Tuning
 
   describe "Sustenance.approximate" do
     it "counts ten seconds to a turn" do
@@ -42,23 +43,32 @@ Spectator.describe "time shown for food and water" do
     end
   end
 
+  describe "Sustenance.rough" do
+    it "writes whole hours from ten hours up" do
+      expect(Sustenance.rough 3_599).to eq "9h50m"
+      expect(Sustenance.rough 3_600).to eq "10h"
+      expect(Sustenance.rough 7_304).to eq "20h"
+    end
+  end
+
   describe "#food_left" do
-    it "counts a fed character to hungry" do
-      expect(Sustenance.new.food_left).to eq Sustenance::HUNGRY
-      expect(Sustenance.new(hunger: 800).food_left).to eq Sustenance::HUNGRY - 800
+    it "counts a character with no debt to hunger's first effect" do
+      expect(Sustenance.new.food_left).to eq Tuning::HUNGER_FIRST
+      expect(Sustenance.new(hunger: 800).food_left).to eq Tuning::HUNGER_FIRST - 800
     end
 
     it "counts each stage to the next one" do
-      expect(Sustenance.new(hunger: 2_000).food_left).to eq Sustenance::FAMISHED - 2_000
-      expect(Sustenance.new(hunger: 4_000).food_left).to eq Sustenance::STARVING - 4_000
+      expect(Sustenance.new(hunger: 3_000).food_left).to eq Tuning::HUNGER_HUNGRY - 3_000
+      expect(Sustenance.new(hunger: 5_000).food_left).to eq Tuning::HUNGER_SERIOUS - 5_000
+      expect(Sustenance.new(hunger: 10_000).food_left).to eq Tuning::HUNGER_SEVERE - 10_000
     end
 
     it "counts a starving character to death" do
-      expect(Sustenance.new(hunger: 6_000).food_left).to eq Sustenance::STARVED - 6_000
+      expect(Sustenance.new(hunger: 30_000).food_left).to eq Tuning::HUNGER_DEATH - 30_000
     end
 
-    it "matches the turns the counter takes to change stage" do
-      sustenance = Sustenance.new hunger: 1_234
+    it "matches the turns the debt takes to change stage" do
+      sustenance = Sustenance.new hunger: 3_234
       left = sustenance.food_left
       (left - 1).times { sustenance.tick }
       expect(sustenance.hunger_stage).to eq Roguelike::HungerStage::Fed
@@ -69,32 +79,43 @@ Spectator.describe "time shown for food and water" do
   end
 
   describe "#water_left" do
-    it "counts the skin and then the climb to thirsty" do
-      sustenance = Sustenance.new water: 7, sipped: 100
-      expect(sustenance.water_left).to eq 7 * Sustenance::SIP - 100 + Sustenance::THIRSTY
+    it "counts a character with no debt to thirsty, whatever the skin holds" do
+      expect(Sustenance.new(water: 7).water_left).to eq Tuning::THIRST_FIRST
+      expect(Sustenance.new(water: 0).water_left).to eq Tuning::THIRST_FIRST
+      expect(Sustenance.new(thirst: 600).water_left).to eq Tuning::THIRST_FIRST - 600
     end
 
-    it "counts an empty skin straight to thirsty" do
-      expect(Sustenance.new(water: 0).water_left).to eq Sustenance::THIRSTY
-    end
-
-    it "leaves the skin out once the character is thirsty" do
-      sustenance = Sustenance.new thirst: 600, water: 5
-      expect(sustenance.water_left).to eq Sustenance::PARCHED - 600
+    it "counts each stage to the next one" do
+      expect(Sustenance.new(thirst: 3_000).water_left).to eq Tuning::THIRST_SERIOUS - 3_000
+      expect(Sustenance.new(thirst: 9_000).water_left).to eq Tuning::THIRST_SEVERE - 9_000
+      expect(Sustenance.new(thirst: 18_000).water_left).to eq Sustenance::THIRST_DYING - 18_000
     end
 
     it "counts a dying character to death" do
-      expect(Sustenance.new(thirst: 5_500).water_left).to eq Sustenance::DRIED - 5_500
+      debt = Sustenance::THIRST_DYING + 10
+      expect(Sustenance.new(thirst: debt).water_left).to eq Tuning::THIRST_DEATH - debt
     end
 
-    it "matches the turns a quenched character takes to grow thirsty" do
-      sustenance = Sustenance.new water: 2, sipped: 17
+    it "matches the turns a character takes to grow thirsty" do
+      sustenance = Sustenance.new thirst: 17
       left = sustenance.water_left
       (left - 1).times { sustenance.tick }
       expect(sustenance.thirst_stage).to eq Roguelike::ThirstStage::Fine
 
       sustenance.tick
       expect(sustenance.thirst_stage).to eq Roguelike::ThirstStage::Thirsty
+    end
+  end
+
+  describe "the times at the new thresholds" do
+    it "shows each stage's distance as the player reads it" do
+      expect(Sustenance.approximate Sustenance.new.food_left).to eq "6h"
+      expect(Sustenance.approximate Sustenance.new(hunger: Tuning::HUNGER_FIRST).food_left).to eq "6h"
+      expect(Sustenance.approximate Sustenance.new(hunger: Tuning::HUNGER_HUNGRY).food_left).to eq "12h"
+      expect(Sustenance.approximate Sustenance.new(hunger: Tuning::HUNGER_SERIOUS).food_left).to eq "36h"
+      expect(Sustenance.approximate Sustenance.new.water_left).to eq "7h"
+      expect(Sustenance.approximate Sustenance.new(thirst: Tuning::THIRST_FIRST).water_left).to eq "17h"
+      expect(Sustenance.approximate Sustenance.new(thirst: Tuning::THIRST_SERIOUS).water_left).to eq "24h"
     end
   end
 

@@ -64,12 +64,12 @@ module Roguelike::Ui
     end
 
     # The food bag screen's title: the bag's weight out of its limit, and
-    # the water in the skin with about how long it lasts.
+    # the water in the skin with about how much thirst it can take away.
     private def food_bag_title : String
       sustenance = @game.player.sustenance
-      lasts = Sustenance.approximate sustenance.water * Sustenance::SIP
+      lasts = Sustenance.approximate sustenance.water * Sustenance::Tuning::UNIT_TURNS
       "#{FOOD_BAG} #{@game.player.food_bag.weight}/#{FoodBag::LIMIT}, " \
-      "water #{sustenance.water}/#{Sustenance::WATER_MAX} #{lasts}"
+      "water #{sustenance.water}/#{Sustenance::Tuning::SKIN_UNITS} #{lasts}"
     end
 
     # The food the screen lists, each under its letter: the bag in the

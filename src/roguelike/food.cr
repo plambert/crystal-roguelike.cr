@@ -230,11 +230,13 @@ module Roguelike
       ItemKind::Mushroom   => 6,
     }
 
-    # How many food items a floor starts with, per ten thousand squares of
-    # open floor. A floor of 8000 squares, which is about the mean, holds
-    # four, and about 2800 points of satiety between them. Every floor holds
-    # one at least.
-    PER_TEN_THOUSAND = 5
+    # How many food items a floor at *depth* with *squares* of open floor
+    # starts with, at the rate `Sustenance::Tuning::PANTRY` gives for its
+    # depth. Every floor holds one at least.
+    def self.stocked(squares : Int32, depth : Int32) : Int32
+      rate = Sustenance::Tuning::PANTRY.find { |depths, _| depths.includes? depth }.try(&.[1]) || 0
+      Math.max squares * rate // 100_000, 1
+    end
 
     # What a corpse of each size feeds, eaten where it lies.
     CORPSE_SATIETY = {

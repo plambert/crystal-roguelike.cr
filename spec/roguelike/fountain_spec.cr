@@ -1,5 +1,10 @@
 require "../spec_helper"
 
+# The fountain flags of every measured seed, kept between examples.
+module Watered
+  class_property flags : Array(Array(Bool))? = nil
+end
+
 Spectator.describe "a fountain" do
   alias Generator = Roguelike::Generator
   alias Rng = Roguelike::Rng
@@ -9,7 +14,7 @@ Spectator.describe "a fountain" do
   alias Palette = Roguelike::Ui::Palette
 
   # How many seeds the share of watered floors is measured over.
-  SEEDS = 4000
+  SEEDS = 20_000
 
   describe "the terrain" do
     it "is walked through and seen through" do
@@ -36,18 +41,39 @@ Spectator.describe "a fountain" do
   end
 
   describe "where the generator puts one" do
-    # The share of floors 2 to the deepest expected to have a fountain, out
-    # of a hundred, worked through `Generator::FOUNTAIN` from floor 1.
-    def expected_share : Float64
-      odds = Generator::FOUNTAIN.map &./(100.0)
-      streak = [1.0, 0.0, 0.0, 0.0]
-      total = 0.0
-      Generator::WATERED.each do
-        wet = streak.zip(odds).sum { |chance, odd| chance * odd }
-        total += wet
-        streak = [wet, streak[0] * (1 - odds[0]), streak[1] * (1 - odds[1]), streak[2] * (1 - odds[2])]
+    # The chance each floor from 2 to the deepest has a fountain, out of a
+    # hundred, worked through `Sustenance::Tuning::FOUNTAINS` from floor 1.
+    # It follows the dry floors in a row above each one.
+    def expected_shares : Hash(Int32, Float64)
+      streak = Hash(Int32, Float64).new 0.0
+      streak[0] = 1.0
+      found = {} of Int32 => Float64
+      Generator::WATERED.each do |depth|
+        chance, certain = Generator.fountain_odds depth
+        after = Hash(Int32, Float64).new 0.0
+        wet = 0.0
+        streak.each do |dry, weight|
+          odds = certain && dry >= certain ? 1.0 : chance / 100.0
+          wet += weight * odds
+          after[dry + 1] += weight * (1 - odds)
+        end
+        after[0] = wet
+        streak = after
+        found[depth] = wet * 100
       end
-      total * 100 / Generator::WATERED.size
+      found
+    end
+
+    # Whether each floor from 1 to the deepest of *seed* has a fountain.
+    def watered(seed : UInt64) : Array(Bool)
+      rng = Rng.new seed
+      (1..World::DEEPEST).map { |depth| Generator.fountain? rng, World.id(depth) }
+    end
+
+    # `#watered` for every seed up to `SEEDS`, worked out once for all the
+    # examples that read it.
+    def all_watered : Array(Array(Bool))
+      Watered.flags ||= (1_u64..SEEDS.to_u64).map { |seed| watered seed }
     end
 
     # How many steps the fountain on floor 1 of *seed* is from the up
@@ -95,27 +121,41 @@ Spectator.describe "a fountain" do
       end
     end
 
-    it "is on the share of floors the table works out to" do
-      watered = 0
-      total = 0
-      (1_u64..SEEDS.to_u64).each do |seed|
-        rng = Rng.new seed
-        Generator::WATERED.each do |depth|
-          total += 1
-          watered += 1 if Generator.fountain? rng, World.id(depth)
-        end
-      end
-
-      expect(expected_share).to be_within(0.1).of(72.8)
-      expect(watered * 100.0 / total).to be_within(2.0).of(expected_share)
+    it "uses the bands the design gives" do
+      expect(Roguelike::Sustenance::Tuning::FOUNTAINS).to eq({2..4 => {75, 3}, 5..7 => {25, nil}, 8..10 => {45, 4}})
     end
 
-    it "never leaves four floors in a row dry" do
-      (1_u64..SEEDS.to_u64).each do |seed|
-        rng = Rng.new seed
-        flags = (1..World::DEEPEST).map { |depth| Generator.fountain? rng, World.id(depth) }
-        expect(flags.each_cons(4).any?(&.none?)).to be_false, "seed #{seed}"
+    it "is on the share of each floor the bands work out to" do
+      wet = Hash(Int32, Int32).new 0
+      all_watered.each do |flags|
+        flags.each_with_index { |has, index| wet[index + 1] += 1 if has }
       end
+
+      expected = expected_shares
+      expect(expected[2]).to be_within(0.01).of(75.0)
+      expect(expected[5]).to be_within(1.0).of(25.0)
+      Generator::WATERED.each do |depth|
+        expect(wet[depth] * 100.0 / SEEDS).to be_within(1.0).of(expected[depth]), "floor #{depth}"
+      end
+    end
+
+    it "always has one on floors 8 to 10 after four dry floors directly above" do
+      certain = 0
+      all_watered.each_with_index do |flags, index|
+        seed = index + 1
+        (8..10).each do |depth|
+          next unless flags[depth - 5...depth - 1].none?
+
+          certain += 1
+          expect(flags[depth - 1]).to be_true, "seed #{seed} floor #{depth}"
+        end
+      end
+      expect(certain).to be > 0
+    end
+
+    it "can leave floors 5 to 7 all dry, because they have no certainty" do
+      dry = all_watered.count(&.[4..6].none?)
+      expect(dry).to be > 0
     end
 
     it "puts one fountain in a room of each floor that has one, and none elsewhere" do
@@ -169,19 +209,15 @@ Spectator.describe "a fountain" do
         Playing.dressed(Roguelike::Player.new("well", at[0], at[1])))
     end
 
-    # Ticks *sustenance* until the skin holds *units*.
+    # Empties the skin of *sustenance* down to *units*.
     def drain(sustenance : Sustenance, units : Int32 = 0) : Nil
-      held = sustenance.water
-      while held > units
-        sustenance.tick
-        held = sustenance.water
-      end
+      sustenance.water = units
     end
 
-    # Ticks *sustenance* until thirst has climbed *turns* past a dry skin.
+    # Gives *sustenance* a dry skin and *turns* of thirst debt.
     def parch(sustenance : Sustenance, turns : Int32) : Nil
       drain sustenance
-      turns.times { sustenance.tick }
+      sustenance.thirst = turns
     end
 
     it "puts one unit in the skin and takes a turn" do
@@ -218,9 +254,9 @@ Spectator.describe "a fountain" do
       fill = game.fill
 
       expect(fill.halt).to eq Halt::Filled
-      expect(fill.turns).to eq Sustenance::WATER_MAX - 3
-      expect(game.turn).to eq turn + Sustenance::WATER_MAX - 3
-      expect(game.player.sustenance.water).to eq Sustenance::WATER_MAX
+      expect(fill.turns).to eq Sustenance::Tuning::SKIN_UNITS - 3
+      expect(game.turn).to eq turn + Sustenance::Tuning::SKIN_UNITS - 3
+      expect(game.player.sustenance.water).to eq Sustenance::Tuning::SKIN_UNITS
       expect(game.log.last?).to eq "Your waterskin is full."
     end
 
@@ -244,9 +280,9 @@ Spectator.describe "a fountain" do
       expect(elsewhere.legal.any?(Action::Refill)).to be_false
     end
 
-    it "quenches a thirsty character for free" do
+    it "pays all the thirst debt for free" do
       game = hall on: true
-      parch game.player.sustenance, 600
+      parch game.player.sustenance, 20_000
       turn = game.turn
 
       game.perform Action::Quench.new
@@ -254,7 +290,7 @@ Spectator.describe "a fountain" do
       expect(game.player.sustenance.quenched?).to be_true
       expect(game.turn).to eq turn
       drank = game.events.compact_map(&.as?(Event::Drank))
-      expect(drank.map &.source).to eq ["fountain"]
+      expect(drank.map { |event| {event.source, event.paid} }).to eq [{"fountain", 20_000}]
     end
 
     it "is refused to a character who is not thirsty" do
@@ -266,7 +302,7 @@ Spectator.describe "a fountain" do
       expect(game.legal.any?(Action::Quench)).to be_false
     end
 
-    it "quenches a character who drinks a potion" do
+    it "pays the potion quench of thirst debt and leaves the skin alone" do
       game = hall
       parch game.player.sustenance, 600
       letter = game.player.inventory.add(Roguelike::Item.new(Roguelike::ItemKind::MinorHealingPotion))
@@ -274,15 +310,28 @@ Spectator.describe "a fountain" do
 
       game.quaff letter
 
-      # The skin is still dry, so thirst climbs again on the turn the
-      # potion took.
-      expect(game.player.sustenance.thirst).to be <= 1
+      # Thirst climbs again on the turns the potion took.
+      expect(Sustenance::Tuning::POTION_QUENCH).to eq 100
+      expect(game.player.sustenance.thirst).to be_within(3).of(600 - Sustenance::Tuning::POTION_QUENCH)
+      expect(game.player.sustenance.water).to eq 0
 
       drank = game.events.compact_map(&.as?(Event::Drank))
-      expect(drank.map { |event| {event.units, event.source} }).to eq [{1, "potion"}]
+      expect(drank.map { |event| {event.units, event.source, event.paid} })
+        .to eq [{1, "potion", Sustenance::Tuning::POTION_QUENCH}]
     end
 
-    it "quenches one unit for every kind of potion" do
+    it "pays no more debt than there is" do
+      game = hall
+      parch game.player.sustenance, 30
+      letter = game.player.inventory.add(Roguelike::Item.new(Roguelike::ItemKind::MinorHealingPotion))
+      raise "pack full" unless letter
+
+      game.quaff letter
+
+      expect(game.events.compact_map(&.as?(Event::Drank)).map(&.paid)).to eq [30]
+    end
+
+    it "quenches the same for every kind of potion" do
       Roguelike::ItemKind.of_class(Roguelike::ItemClass::Potion).each do |kind|
         game = hall
         parch game.player.sustenance, 600
@@ -313,8 +362,8 @@ Spectator.describe "a fountain" do
       game.explore
 
       expect(game.player.at).to eq BASIN
-      expect(game.player.sustenance.water).to eq Sustenance::WATER_MAX
-      expect(game.player.sustenance.thirst_stage).to eq Roguelike::ThirstStage::Quenched
+      expect(game.player.sustenance.water).to eq Sustenance::Tuning::SKIN_UNITS
+      expect(game.player.sustenance.thirst).to be < 5
     end
 
     it "lists filling and drinking among the available commands only on a fountain" do

@@ -1571,7 +1571,7 @@ module Roguelike::Ui
       player = @game.player
       size = if rest.filling?
                Play.breath_size @breaths,
-                 Sustenance::WATER_MAX - player.sustenance.water, BREATH_SHARE
+                 Sustenance::Tuning::SKIN_UNITS - player.sustenance.water, BREATH_SHARE
              else
                Play.breath_size @breaths,
                  player.max_hit_points - player.hit_points,

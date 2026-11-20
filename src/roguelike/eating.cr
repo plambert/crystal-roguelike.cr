@@ -8,7 +8,8 @@ module Roguelike
     #
     # The stream is named by the floor, so the litter and the ammunition
     # fall where they always fell. Each food comes out somewhere between
-    # just made and just short of stale.
+    # just made and just short of stale. `Food.stocked` says how many, in
+    # whole numbers, so the draws are the same on every machine.
     #
     # It runs once everything else on the floor has its id. The food takes
     # the ids after them, so nothing else is numbered differently for it.
@@ -18,7 +19,7 @@ module Roguelike
       ground.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
       return if squares.empty?
 
-      Math.max(squares.size * Food::PER_TEN_THOUSAND // 10_000, 1).times do
+      Food.stocked(squares.size, World.depth(ground.id) || 1).times do
         spot = squares.sample stream
         kind = Items.pick stream, Food::LITTER
         keeps = Food.facts(kind).keeps
@@ -309,6 +310,7 @@ module Roguelike
 
       freshness = item.freshness
       kind = item.kind
+      full = item.full_satiety * freshness.worth // 100
       eaten = the item.with_count(1)
       whole = taken >= offered
       one = item.corpse? ? item : (@player.food_bag.take_one(item, next_id) || item)
@@ -320,10 +322,27 @@ module Roguelike
       line = whole ? "You eat #{eaten}." : "You eat some of #{eaten} and are full."
       say line, Event::Ate.new(eaten_id, eaten, taken, whole)
       nourished kind, freshness
+      meat_water kind, freshness, taken, full
       defiled item, eaten_id, eaten
       cannibalized item, eaten_id, eaten
       spend_turn
       true
+    end
+
+    # Pays the thirst debt a piece of fresh meat carries, or adds the debt a
+    # piece of rotten meat costs. *full* is what a whole piece feeds at
+    # *freshness*, so a meal of part of a piece pays its share.
+    private def meat_water(kind : ItemKind, freshness : Freshness, taken : Int32, full : Int32) : Nil
+      return unless kind.fresh_meat? && full > 0
+
+      water = case freshness
+              in .fresh?            then Sustenance::Tuning::MEAT_FRESH_WATER
+              in .stale?            then Sustenance::Tuning::MEAT_STALE_WATER
+              in .rotten?, .putrid? then Sustenance::Tuning::MEAT_ROTTEN_WATER
+              end
+      share = water.abs * taken // full
+      sustenance = @player.sustenance
+      water < 0 ? sustenance.parch(share) : sustenance.quench(share)
     end
 
     # Takes a point of maximum hit points for good when *item* was a

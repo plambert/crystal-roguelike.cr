@@ -218,15 +218,23 @@ module Roguelike
 
       # How hungry and how thirsty they are, by stage name.
       #
-      # These four are `nil` in a game with hunger and thirst off, and the
-      # keys are then left out. An observation written before they existed
-      # reads back the same way.
+      # These and the fields after them up to the food bag are `nil` in a
+      # game with hunger and thirst off, and the keys are then left out. An
+      # observation written before they existed reads back the same way.
       getter hunger : HungerStage? = nil
       getter thirst : ThirstStage? = nil
 
       # Units in the waterskin, and how many it holds.
       getter water : Int32? = nil
       getter water_max : Int32? = nil
+
+      # Turns of hunger debt and of thirst debt.
+      getter hunger_debt : Int32? = nil
+      getter thirst_debt : Int32? = nil
+
+      # Hunger and thirst severity together, from 0 to 1, to three places.
+      # Every penalty from hunger and thirst reads it.
+      getter severity : Float64? = nil
 
       # The food bag. `nil` only in an observation written before there was
       # one.
@@ -240,7 +248,9 @@ module Roguelike
                      @hunger : HungerStage? = nil,
                      @thirst : ThirstStage? = nil,
                      @water : Int32? = nil, @water_max : Int32? = nil,
-                     @food : Bag? = nil)
+                     @food : Bag? = nil,
+                     @hunger_debt : Int32? = nil, @thirst_debt : Int32? = nil,
+                     @severity : Float64? = nil)
       end
 
       # The block for *player*. *sustained* false leaves out hunger, thirst
@@ -265,8 +275,11 @@ module Roguelike
           hunger: sustained ? body.hunger_stage : nil,
           thirst: sustained ? body.thirst_stage : nil,
           water: sustained ? body.water : nil,
-          water_max: sustained ? Sustenance::WATER_MAX : nil,
-          food: lore.try { |known| Bag.of known, player }
+          water_max: sustained ? Sustenance::Tuning::SKIN_UNITS : nil,
+          food: lore.try { |known| Bag.of known, player },
+          hunger_debt: sustained ? body.hunger : nil,
+          thirst_debt: sustained ? body.thirst : nil,
+          severity: sustained ? body.severity.round(3) : nil
       end
     end
 

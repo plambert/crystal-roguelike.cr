@@ -2,13 +2,21 @@ require "../../src/roguelike"
 
 # Setters a spec uses to put hunger, thirst and the skin where it wants them.
 #
-# The game moves these only through `#tick`, `#eat`, `#drink`, `#quench` and
-# `#refill`. A spec that needs a character three thousand turns hungry sets
-# the counter rather than playing the turns.
+# The game moves these only through `#tick`, `#eat`, `#drink`, `#quench`,
+# `#slake`, `#parch` and `#refill`. A spec that needs a character a day
+# hungry sets the debt rather than playing the turns.
+#
+# Plain methods rather than `setter`, which would declare the variables
+# again without their JSON keys.
 class Roguelike::Sustenance
-  setter hunger : Int32
-  setter thirst : Int32
-  setter water : Int32
+  def hunger=(@hunger : Int32) : Int32
+  end
+
+  def thirst=(@thirst : Int32) : Int32
+  end
+
+  def water=(@water : Int32) : Int32
+  end
 end
 
 # Puts a character's hunger, thirst and skin back where a new run starts.
@@ -20,6 +28,6 @@ module Sustained
     sustenance = player.sustenance
     sustenance.hunger = 0
     sustenance.thirst = 0
-    sustenance.water = Roguelike::Sustenance::WATER_MAX
+    sustenance.water = Roguelike::Sustenance::Tuning::SKIN_UNITS
   end
 end

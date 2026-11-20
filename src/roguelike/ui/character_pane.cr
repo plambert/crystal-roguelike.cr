@@ -382,7 +382,7 @@ module Roguelike::Ui
     private def fed(player : Player) : Nil
       sustenance = player.sustenance
       budgeted @food, "food", sustenance.hunger_status
-      @food.put_right Sustenance.approximate(sustenance.food_left), Palette.plain
+      @food.put_right Sustenance.rough(sustenance.food_left), Palette.plain
     end
 
     # The water line: the units in the skin out of how many it holds, and
@@ -394,8 +394,8 @@ module Roguelike::Ui
     private def watered(player : Player) : Nil
       sustenance = player.sustenance
       start = budgeted @water, "water", sustenance.thirst_status
-      @water.put start + 1, "#{sustenance.water}/#{Sustenance::WATER_MAX}", Palette.plain
-      @water.put_right Sustenance.approximate(sustenance.water_left), Palette.plain
+      @water.put start + 1, "#{sustenance.water}/#{Sustenance::Tuning::SKIN_UNITS}", Palette.plain
+      @water.put_right Sustenance.rough(sustenance.water_left), Palette.plain
     end
 
     # What a budget line starts with: *label* while *status* is `nil`, and

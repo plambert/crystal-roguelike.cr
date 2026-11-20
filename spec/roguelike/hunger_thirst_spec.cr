@@ -52,11 +52,20 @@ Spectator.describe "hunger and thirst" do
     found
   end
 
+  # Waits until *turns* turns have passed. A slow character's wait takes
+  # more than one.
+  def pass(game : Game, turns : Int32) : Nil
+    last = game.turn + turns
+    while game.turn < last && !game.over?
+      game.perform Action::Wait.new
+    end
+  end
+
   describe "stages" do
     it "says thirst sets in, and starts its status" do
       game = bare
       sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::THIRSTY - 1
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
 
       events = wait game
 
@@ -71,7 +80,7 @@ Spectator.describe "hunger and thirst" do
 
     it "ends the old status as the next stage starts" do
       game = bare
-      sustenance(game).hunger = Sustenance::FAMISHED - 1
+      sustenance(game).hunger = Sustenance::Tuning::HUNGER_SERIOUS - 1
 
       events = wait game
 
@@ -82,19 +91,32 @@ Spectator.describe "hunger and thirst" do
         .to eq [Event::Status::Famished]
     end
 
-    it "says the skin ran dry" do
+    it "grows thirsty with water in the skin, because nothing drinks it unasked" do
       game = bare
-      sustenance(game).water = 0
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
 
       wait game
 
-      expect(game.log.lines).to contain "Your waterskin is empty."
+      expect(game.log.lines).to contain "You are thirsty."
+      expect(sustenance(game).water).to eq Sustenance::Tuning::SKIN_UNITS
+    end
+
+    it "writes an event and no line as hunger reaches its first effect" do
+      game = bare
+      sustenance(game).hunger = Sustenance::Tuning::HUNGER_FIRST - 1
+
+      events = wait game
+
+      staged = events.compact_map(&.as?(Event::Hunger)).first
+      expect(staged.stage).to eq Sustenance::HungerStage::Fed
+      expect(game.log.lines).to be_empty
+      expect(game.player.lasting).to be_empty
     end
 
     it "writes nothing for a stage a loaded run is already in" do
       game = bare
       sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::PARCHED + 5
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_SERIOUS + 5
       again = Game.from_json game.to_json
 
       wait again
@@ -104,74 +126,67 @@ Spectator.describe "hunger and thirst" do
   end
 
   describe "debuffs" do
-    it "takes one off to hit while parched, and says the stat moved" do
+    it "takes pace off as thirst sets in, and says the stat moved" do
       game = bare
-      before = game.player.to_hit
-      sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::PARCHED - 1
+      before = game.player.speed
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
 
       events = wait game
 
-      expect(game.player.to_hit).to eq before - 1
-      changed = events.compact_map(&.as?(Event::StatChanged)).find(&.stat.==("to_hit"))
-      expect(changed.try &.to).to eq before - 1
+      expect(game.player.speed).to eq before - 6
+      changed = events.compact_map(&.as?(Event::StatChanged)).find(&.stat.==("pace"))
+      expect(changed.try &.to).to eq before - 6
     end
 
-    it "takes one off to hit and one off damage while famished" do
+    it "takes to hit and damage off through the penalty and the worn attributes" do
       game = bare
       before = game.player.damage.to_s
-      sustenance(game).hunger = Sustenance::FAMISHED
+      sustenance(game).hunger = Sustenance::Tuning::HUNGER_SEVERE
 
-      expect(game.player.to_hit).to eq(-1)
+      expect(sustenance(game).to_hit_penalty).to eq 2
+      expect(game.player.worn_attributes.dexterity).to eq 6
+      expect(game.player.to_hit).to eq(-4)
       expect(game.player.damage.to_s).not_to eq before
+      expect(game.player.attributes).to eq Roguelike::Attributes.new
     end
 
-    it "takes ten off pace while dehydrated, and ten more while starving" do
+    it "slows by severity, and by the sum of hunger and thirst up to the cap" do
       game = bare
-      sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::DEHYDRATED
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_SEVERE
 
-      expect(game.player.speed).to eq 90
+      expect(game.player.speed).to eq 100 - 39
 
-      sustenance(game).hunger = Sustenance::STARVING
-      expect(game.player.speed).to eq 80
+      sustenance(game).hunger = Sustenance::Tuning::HUNGER_SEVERE
+      expect(game.player.speed).to eq 100 - Sustenance::Tuning::PACE_LOSS
     end
 
-    it "replaces the earlier debuff with the later one" do
+    it "stretches the turns a hit point takes by severity" do
       game = bare
-      sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::DEHYDRATED
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST
 
-      expect(game.player.to_hit).to eq 0
-      expect(game.player.regeneration).to eq Roguelike::Advancement::REGENERATION
+      expect(game.player.regeneration).to eq (Roguelike::Advancement::REGENERATION * 1.4).to_i
     end
 
-    it "doubles the turns a hit point takes while thirsty" do
-      game = bare
-      sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::THIRSTY
-
-      expect(game.player.regeneration).to eq Roguelike::Advancement::REGENERATION * 2
-    end
-
-    it "stops regeneration and wastes a hit point every fifty turns when dying of thirst" do
+    it "stops regeneration and wastes hit points once thirst passes the wasting point" do
       game = bare
       game.player.hurt 10
-      sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::DYING
+      sustenance(game).thirst = Sustenance::THIRST_DYING
       before = game.player.hit_points
 
-      wait game, Sustenance::DYING_EVERY
+      pass game, Sustenance::Tuning::WASTE_FIRST
 
       expect(game.player.hit_points).to eq before - 1
     end
 
-    it "wastes a hit point every hundred turns when starving" do
+    it "wastes hit points when hunger and thirst together pass the wasting point" do
       game = bare
-      sustenance(game).hunger = Sustenance::STARVING
+      sustenance(game).hunger = Sustenance::Tuning::HUNGER_SEVERE
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_SERIOUS
       before = game.player.hit_points
+      every = sustenance(game).waste_every || 0
+      expect(every).to be < Sustenance::Tuning::WASTE_FIRST
 
-      wait game, Sustenance::STARVING_EVERY
+      pass game, every + 1
 
       expect(game.player.hit_points).to eq before - 1
     end
@@ -181,7 +196,7 @@ Spectator.describe "hunger and thirst" do
     it "ends the run when thirst reaches its end" do
       game = bare
       sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::DRIED - 1
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_DEATH - 1
 
       events = wait game
 
@@ -195,7 +210,7 @@ Spectator.describe "hunger and thirst" do
 
     it "ends the run when hunger reaches its end" do
       game = bare
-      sustenance(game).hunger = Sustenance::STARVED - 1
+      sustenance(game).hunger = Sustenance::Tuning::HUNGER_DEATH - 1
 
       wait game
 
@@ -207,9 +222,9 @@ Spectator.describe "hunger and thirst" do
       game = bare
       game.player.hurt game.player.hit_points - 1
       sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::DYING
+      sustenance(game).thirst = Sustenance::THIRST_DYING
 
-      wait game, Sustenance::DYING_EVERY
+      pass game, Sustenance::Tuning::WASTE_FIRST
 
       expect(game.over?).to be_true
       expect(game.perished).to eq Sustenance::Death::Thirst
@@ -217,10 +232,10 @@ Spectator.describe "hunger and thirst" do
   end
 
   describe "drinking from the skin" do
-    it "quenches, uses one unit and takes a turn" do
+    it "pays a unit of debt, uses one unit and takes a turn" do
       game = bare
       sustenance(game).water = 4
-      sustenance(game).thirst = Sustenance::THIRSTY + 3
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST + 3
       game.perform Action::Wait.new
       turn = game.turn
 
@@ -231,7 +246,7 @@ Spectator.describe "hunger and thirst" do
       expect(sustenance(game).water).to eq 3
       expect(game.log.last?).to eq "You drink from your waterskin."
       drank = game.events.compact_map(&.as?(Event::Drank)).first
-      expect({drank.source, drank.units}).to eq({"skin", 1})
+      expect({drank.source, drank.units, drank.paid}).to eq({"skin", 1, Sustenance::Tuning::UNIT_TURNS})
       expect(game.events.compact_map(&.as?(Event::StatusEnd)).map(&.status))
         .to eq [Event::Status::Thirsty]
     end
@@ -244,14 +259,14 @@ Spectator.describe "hunger and thirst" do
 
       expect(verdict.refused?).to be_true
       expect(game.turn).to eq turn
-      expect(sustenance(game).water).to eq Sustenance::WATER_MAX
+      expect(sustenance(game).water).to eq Sustenance::Tuning::SKIN_UNITS
       expect(game.log.last?).to eq "You are not thirsty."
     end
 
     it "is refused from an empty skin" do
       game = bare
       sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::THIRSTY
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST
 
       expect(game.perform(Action::Drink.new).refused?).to be_true
       expect(game.log.last?).to eq "Your waterskin is empty."
@@ -270,25 +285,34 @@ Spectator.describe "hunger and thirst" do
   end
 
   describe "exploring" do
-    it "drinks when thirst sets in and walks on" do
+    it "drinks before thirst sets in and walks on" do
       game = bare MEETING
       sustenance(game).water = 2
-      sustenance(game).thirst = Sustenance::THIRSTY - 1
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
 
       went = game.explore
 
-      expect(game.log.lines).to contain "You are thirsty."
+      expect(game.log.lines).not_to contain "You are thirsty."
       expect(game.log.lines).to contain "You drink from your waterskin."
       expect(went.halt).not_to eq Halt::Thirsty
       expect(went.halt).not_to eq Halt::Told
       expect(sustenance(game).water).to eq 1
     end
 
+    it "leaves the skin alone while a unit would not pay off whole" do
+      game = bare MEETING
+      sustenance(game).thirst = Sustenance::Tuning::UNIT_TURNS - 1
+
+      game.perform Action::Explore.new
+
+      expect(sustenance(game).water).to eq Sustenance::Tuning::SKIN_UNITS
+    end
+
     it "stops for thirst with drinking off" do
       game = bare MEETING
       game.perform Action::Configure.new(Settings.parse "drink=off")
       sustenance(game).water = 2
-      sustenance(game).thirst = Sustenance::THIRSTY - 1
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
 
       went = game.explore
 
@@ -297,20 +321,21 @@ Spectator.describe "hunger and thirst" do
       expect(sustenance(game).water).to eq 2
     end
 
-    it "walks on when the skin runs dry" do
+    it "says nothing as the skin runs dry" do
       game = bare MEETING
-      sustenance(game).water = 0
+      sustenance(game).water = 1
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
 
-      went = game.explore
+      game.explore
 
-      expect(game.log.lines).to contain "Your waterskin is empty."
-      expect(went.halt).not_to eq Halt::Told
+      expect(sustenance(game).water).to eq 0
+      expect(game.log.lines).not_to contain "Your waterskin is empty."
     end
 
     it "stops for thirst with an empty skin" do
       game = bare MEETING
       sustenance(game).water = 0
-      sustenance(game).thirst = Sustenance::THIRSTY - 1
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
 
       expect(game.explore.halt).to eq Halt::Thirsty
     end
@@ -346,21 +371,27 @@ Spectator.describe "hunger and thirst" do
       found
     end
 
-    it "eats when hunger sets in and walks on" do
-      game = fed Sustenance::HUNGRY - 1, [food(ItemKind::Bread)]
+    it "eats as hunger reaches its first effect and walks on" do
+      game = fed Sustenance::Tuning::HUNGER_FIRST - 1, [food(ItemKind::Bread)]
 
       went = game.explore
 
-      expect(game.log.lines).to contain "You are getting hungry."
+      expect(game.log.lines).not_to contain "You are getting hungry."
       expect(game.log.lines.any? &.starts_with?("You eat")).to be_true
       expect(went.halt).not_to eq Halt::Hungry
       expect(went.halt).not_to eq Halt::Told
       expect(game.player.food_bag.empty?).to be_true
-      expect(sustenance(game).hunger_stage).to be < Sustenance::HungerStage::Hungry
+      expect(sustenance(game).hunger_stage).to eq Sustenance::HungerStage::Satiated
+    end
+
+    it "eats nothing short of hunger's first effect" do
+      game = fed Sustenance::Tuning::HUNGER_FIRST - 10, [food(ItemKind::Bread)]
+
+      expect(eaten(game, 3)).to be_empty
     end
 
     it "stops for hunger with eating off" do
-      game = fed Sustenance::HUNGRY - 1, [food(ItemKind::Bread)]
+      game = fed Sustenance::Tuning::HUNGER_HUNGRY - 1, [food(ItemKind::Bread)]
       game.perform Action::Configure.new(Settings.parse "eat=off")
 
       went = game.explore
@@ -371,14 +402,14 @@ Spectator.describe "hunger and thirst" do
     end
 
     it "eats nothing with eating off" do
-      game = fed Sustenance::FAMISHED, [food(ItemKind::Bread)]
+      game = fed Sustenance::Tuning::HUNGER_SERIOUS, [food(ItemKind::Bread)]
       game.perform Action::Configure.new(Settings.parse "eat=off")
 
       expect(eaten(game, 3)).to be_empty
     end
 
     it "never eats a putrid mass, starving or not" do
-      game = fed Sustenance::STARVING
+      game = fed Sustenance::Tuning::HUNGER_SEVERE
       game.player.inventory.add Item.new(ItemKind::PutridMass, count: 3, blessing_known: true)
       game.enroll
 
@@ -394,14 +425,14 @@ Spectator.describe "hunger and thirst" do
       stale_apple = food ItemKind::Apple, keeps(ItemKind::Apple)
       stale_berries = food ItemKind::Berries, keeps(ItemKind::Berries) + 100
       order = [stale_berries, stale_apple, berries, bread, ration]
-      game = fed Sustenance::STARVING - 1, [ration, bread, berries, stale_apple, stale_berries]
+      game = fed Sustenance::Tuning::HUNGER_SEVERE - 1, [ration, bread, berries, stale_apple, stale_berries]
 
       expect(order.map(&.id).reject(&.zero?).uniq!.size).to eq 5
       expect(eaten(game, 5)).to eq order.map(&.id)
     end
 
     it "leaves rotten food alone short of starving" do
-      game = fed Sustenance::FAMISHED, [food(ItemKind::Apple, keeps(ItemKind::Apple) * 2)]
+      game = fed Sustenance::Tuning::HUNGER_SERIOUS, [food(ItemKind::Apple, keeps(ItemKind::Apple) * 2)]
 
       expect(eaten(game, 3)).to be_empty
       expect(game.player.food_bag.size).to eq 1
@@ -410,14 +441,14 @@ Spectator.describe "hunger and thirst" do
     it "eats rotten food while starving, once nothing else is left" do
       rotten = food ItemKind::Apple, keeps(ItemKind::Apple) * 2
       ration = food ItemKind::Ration
-      game = fed Sustenance::STARVING + 1500, [rotten, ration]
+      game = fed Sustenance::Tuning::HUNGER_SEVERE + 1500, [rotten, ration]
       expect(rotten.id).not_to eq ration.id
 
       expect(eaten(game, 2)).to eq [ration.id, rotten.id]
     end
 
     it "walks on with an empty bag and says nothing new" do
-      game = fed Sustenance::HUNGRY - 1
+      game = fed Sustenance::Tuning::HUNGER_HUNGRY - 1
 
       went = game.explore
 
@@ -428,7 +459,7 @@ Spectator.describe "hunger and thirst" do
     end
 
     it "never eats a corpse underfoot" do
-      game = fed Sustenance::FAMISHED
+      game = fed Sustenance::Tuning::HUNGER_SERIOUS
       corpse = Game.remains_of(Roguelike::Kind::Rat).first
       game.floor.drop game.player.x, game.player.y, corpse
       game.enroll
@@ -438,7 +469,7 @@ Spectator.describe "hunger and thirst" do
   end
 
   describe "a save" do
-    it "keeps hunger, thirst and the skin" do
+    it "keeps the hunger and thirst debts and the skin" do
       game = bare
       sustenance(game).hunger = 1234
       sustenance(game).thirst = 56

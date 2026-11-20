@@ -27,7 +27,7 @@ Spectator.describe "achievements" do
   def among_orcs : Game
     floor = Playing.daylight Floor.parse("hall", HALL)
     player = Player.new floor.id, 1, 1
-    player.sustenance.hunger = Sustenance::STARVING
+    player.sustenance.hunger = Sustenance::Tuning::HUNGER_SEVERE
     player.species = "orc"
     game = Game.new World.new(Playing::SEED, {floor.id => floor}), player
     game.floor.drop 1, 1, Game.remains_of(Kind::Orc).first

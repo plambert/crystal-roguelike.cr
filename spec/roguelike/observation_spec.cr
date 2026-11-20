@@ -707,16 +707,28 @@ Spectator.describe Roguelike::Observation do
     it "gives hunger and thirst by stage name, and the waterskin" do
       game = played ROOMS
       body = game.player.sustenance
-      Roguelike::Sustenance::HUNGRY.times { body.tick }
+      Roguelike::Sustenance::Tuning::HUNGER_HUNGRY.times { body.tick }
       found = Observation.of(game).player
       written = JSON.parse(Observation.of(game).to_json)["player"]
 
       expect(found.hunger).to eq body.hunger_stage
       expect(found.thirst).to eq body.thirst_stage
       expect(found.water).to eq body.water
-      expect(found.water_max).to eq Roguelike::Sustenance::WATER_MAX
+      expect(found.water_max).to eq Roguelike::Sustenance::Tuning::SKIN_UNITS
       expect(written["hunger"].as_s).to eq "hungry"
-      expect(written["thirst"].as_s).to eq "quenched"
+      expect(written["thirst"].as_s).to eq "thirsty"
+    end
+
+    it "gives the exact debts and the severity" do
+      game = played ROOMS
+      body = game.player.sustenance
+      body.hunger = Roguelike::Sustenance::Tuning::HUNGER_HUNGRY
+      body.thirst = Roguelike::Sustenance::Tuning::THIRST_SERIOUS
+      written = JSON.parse(Observation.of(game).to_json)["player"]
+
+      expect(written["hunger_debt"].as_i).to eq Roguelike::Sustenance::Tuning::HUNGER_HUNGRY
+      expect(written["thirst_debt"].as_i).to eq Roguelike::Sustenance::Tuning::THIRST_SERIOUS
+      expect(written["severity"].as_f).to eq 0.5
     end
 
     it "leaves hunger, thirst and the waterskin out while they are off" do
@@ -724,7 +736,7 @@ Spectator.describe Roguelike::Observation do
       game.sustenance = false
       written = JSON.parse(Observation.of(game).to_json)["player"].as_h
 
-      %w[hunger thirst water water_max].each do |key|
+      %w[hunger thirst water water_max hunger_debt thirst_debt severity].each do |key|
         expect(written).not_to have_key key
       end
     end

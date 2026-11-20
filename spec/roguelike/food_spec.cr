@@ -35,12 +35,12 @@ Spectator.describe "food, the food bag and corpses" do
 
   HERE = {1, 1}
 
-  # How hungry the character in `#hall` is: hungry, and a long way from
-  # starving.
+  # How hungry the character in `#hall` is: enough to eat most foods whole,
+  # and a long way from starving.
   HUNGER = 2000
 
   # How hungry a starving character is.
-  STARVING = Sustenance::STARVING
+  STARVING = Sustenance::Tuning::HUNGER_SEVERE
 
   # A game in a lit hall, with *bag* in the food bag and a character
   # *hunger* turns from their last meal.
@@ -1139,6 +1139,81 @@ Spectator.describe "food, the food bag and corpses" do
       game.floor.drop *HERE, Game.remains_of(Kind::Orc).first
       game.enroll
       expect(rows game).to eq [{Way::Take, true}, {Way::Eat, false}]
+    end
+  end
+
+  describe "meat and thirst" do
+    # Eats one piece of meat *age* turns old in `#hall`, with *thirst* turns
+    # of thirst debt. Answers how far the meal moved the debt, less the
+    # turns it took.
+    def meat_meal(age : Int32, thirst : Int32 = 1000, hunger : Int32 = HUNGER) : Int32
+      game = hall [food(ItemKind::FreshMeat, age: age)], hunger: hunger
+      game.player.sustenance.thirst = thirst
+      game.perform Action::Eat.new(game.player.food_bag.items.first.id)
+      raise "not eaten" unless game.events.any?(Event::Ate)
+
+      game.player.sustenance.thirst - thirst - game.turn
+    end
+
+    def keeps : Int32
+      Food.facts(ItemKind::FreshMeat).keeps
+    end
+
+    it "pays the fresh meat water off thirst" do
+      expect(Sustenance::Tuning::MEAT_FRESH_WATER).to eq 90
+      expect(meat_meal(0)).to eq(-90)
+    end
+
+    it "pays nothing for stale meat" do
+      expect(Sustenance::Tuning::MEAT_STALE_WATER).to eq 0
+      expect(meat_meal(keeps)).to eq 0
+    end
+
+    it "adds thirst for rotten meat" do
+      expect(Sustenance::Tuning::MEAT_ROTTEN_WATER).to eq(-180)
+      expect(meat_meal(keeps * 2)).to eq 180
+    end
+
+    it "pays a share for a piece only partly eaten" do
+      satiety = Food.facts(ItemKind::FreshMeat).satiety
+      expect(meat_meal(0, hunger: 100)).to eq(-(90 * 100 // satiety))
+    end
+
+    it "pays no further than no thirst" do
+      expect(meat_meal(0, thirst: 0)).to eq 0
+    end
+  end
+
+  describe "the pantry" do
+    it "uses the rates the design gives, per 100,000 squares" do
+      expect(Sustenance::Tuning::PANTRY).to eq({1..3 => 105, 4..7 => 10, 8..10 => 40})
+    end
+
+    it "stocks each band at its rate, in whole items rounded down" do
+      expect(Food.stocked(10_000, 1)).to eq 10
+      expect(Food.stocked(20_000, 3)).to eq 21
+      expect(Food.stocked(30_000, 4)).to eq 3
+      expect(Food.stocked(19_999, 7)).to eq 1
+      expect(Food.stocked(10_000, 8)).to eq 4
+      expect(Food.stocked(25_000, 10)).to eq 10
+    end
+
+    it "stocks one at least" do
+      expect(Food.stocked(100, 1)).to eq 1
+      expect(Food.stocked(5_000, 6)).to eq 1
+    end
+
+    it "puts the stocked count of food on dug floors of each band" do
+      game = Game.dug Rng.new(SEED)
+      {1, 5, 9}.each do |depth|
+        ground = depth == 1 ? game.floor : game.dig(depth)
+        open = 0
+        ground.each { |_column, _row, tile| open += 1 if tile.terrain.floor? }
+        found = 0
+        ground.each_pile { |_column, _row, pile| found += pile.count(&.food?) }
+
+        expect(found).to eq(Food.stocked(open, depth)), "floor #{depth}"
+      end
     end
   end
 

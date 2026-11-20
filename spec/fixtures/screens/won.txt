@@ -1,7 +1,7 @@
  —              D1 Lv 1 │#########
  HP        12/12        │#....o..#
  XP        0/20         │#..<...@#
- food                4h │#########
+ food             5h50m │#########
  water╭─ You win ─────────────────────────────────────────────────╮
  vs   │  You climbed down and out of the dungeon with your life.  │
  ▼ Sco│                                                           │

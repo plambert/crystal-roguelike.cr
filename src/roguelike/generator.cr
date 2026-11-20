@@ -215,13 +215,6 @@ module Roguelike
     # How often a lit sconce is lit, out of a hundred.
     BURNING = 70
 
-    # How often a floor has a fountain, out of a hundred, by how many floors
-    # in a row directly above it have none.
-    #
-    # After three dry floors the next one always has a fountain. Over a long
-    # run 500 floors in 683 have one, which is 73.2 in a hundred.
-    FOUNTAIN = {70, 80, 90, 100}
-
     # The floors a fountain is drawn for. Floor 1 always has one, and the
     # chamber under the last floor has none.
     WATERED = 2..World::DEEPEST
@@ -300,11 +293,15 @@ module Roguelike
 
     # Whether the floor called *id* has a fountain, drawn on *rng*.
     #
-    # Floor 1 always has one. Each deeper floor draws on a stream of its own
-    # named after the floor, so the answer is the same for a seed however
-    # many tries a floor took to dig. The odds of a draw rise with the dry
-    # floors in a row above it, so the answer walks down from floor 2 and
-    # counts them. A floor outside the dungeon's numbering has none.
+    # Floor 1 always has one. Each deeper floor draws one number out of a
+    # hundred on a stream of its own named after the floor, so the answer is
+    # the same for a seed however many tries a floor took to dig. The floor
+    # has a fountain when the number is under its band's chance in
+    # `Sustenance::Tuning::FOUNTAINS`, or when the dry floors in a row
+    # directly above have reached its band's certainty. The answer walks
+    # down from floor 2 to count them. Every floor draws its number, so no
+    # draw depends on another. A floor outside the dungeon's numbering has
+    # none.
     def self.fountain?(rng : Rng, id : String) : Bool
       depth = World.depth id
       return false unless depth
@@ -313,13 +310,21 @@ module Roguelike
 
       dry = 0
       WATERED.begin.upto(depth) do |above|
-        wet = rng.derive("#{DOMAIN}:#{World.id above}").derive("fountain").rand(100) < FOUNTAIN[dry]
+        chance, certain = fountain_odds above
+        roll = rng.derive("#{DOMAIN}:#{World.id above}").derive("fountain").rand(100)
+        wet = roll < chance || (certain ? dry >= certain : false)
         return wet if above == depth
 
         dry = wet ? 0 : dry + 1
       end
 
       false
+    end
+
+    # The chance of a fountain at *depth* out of a hundred, and the dry
+    # floors above after which one is certain, or `nil` for never.
+    def self.fountain_odds(depth : Int32) : {Int32, Int32?}
+      Sustenance::Tuning::FOUNTAINS.find { |depths, _| depths.includes? depth }.try(&.[1]) || {0, nil}
     end
 
     # How much larger *depth* is drawn than `AREA`, as a factor.

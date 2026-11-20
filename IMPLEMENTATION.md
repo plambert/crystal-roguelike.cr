@@ -988,60 +988,129 @@ on. The generator comes last because by now it is clear what it has to place.
 
 ### Hunger and thirst
 
-`Sustenance` on the character holds two counters and the waterskin. `Game#tick` calls
+`Sustenance` on the character holds two debts and the waterskin. `Game#tick` calls
 `Sustenance#tick` once per turn. Nothing in it draws from a generator, so no replay stream moves.
+Every number is in `Sustenance::Tuning`, in `src/roguelike/sustenance_tuning.cr`, with one
+definition each and a comment on each line.
 
-#### The counters
+#### The debts
 
-* `hunger` climbs one a turn. Food lowers it.
-* `water` is the skin, 10 units, starting full. A quenched character sips one unit every 300
-  turns.
-* `thirst` climbs one a turn once the character is not quenched. A dry skin is what starts it.
-  Water put back in the skin does not stop it. The character has to drink, from the skin, a
-  fountain or a potion. One unit quenches, and `thirst` goes back to zero.
-* One satiety point is one turn of hunger. `Sustenance#eat` takes up to the points it is given,
-  stops at zero, and answers how many it took. A ration of 1500 points takes 1500 turns of hunger
-  off. Food that is only partly eaten keeps the points that were not taken.
+* `hunger` and `thirst` are debts in turns. Each climbs by one every turn. One turn is ten
+  seconds, so 360 turns is an hour.
+* Eating pays hunger debt. One satiety point pays one turn. `Sustenance#eat` takes up to the points
+  it is given, stops at zero and answers how many it took. Food partly eaten keeps the rest.
+* Drinking pays thirst debt. Neither debt goes below zero.
+* `water` is the skin, `SKIN_UNITS` = 20 units, starting full. Nothing drinks from it unasked.
+  `Sustenance#drink` takes one unit and pays `UNIT_TURNS` = 450 turns. A full skin is 9,000 turns,
+  25 hours.
+* `Sustenance#tick(thirst: false)` holds thirst for a turn. The fruit buff passes it on every other
+  turn, so thirst climbs at half rate while it runs.
+
+| Source | Thirst debt | The skin |
+| --- | --- | --- |
+| A unit from the skin | pays 450 | one unit less |
+| A fountain | pays all of it | filled at the fountain, a turn a unit |
+| Any potion | pays `POTION_QUENCH` = 100 | untouched |
+| Fresh meat | pays `MEAT_FRESH_WATER` = 90 | untouched |
+| Stale meat | `MEAT_STALE_WATER` = 0 | untouched |
+| Rotten meat | adds 180, `MEAT_ROTTEN_WATER` = -180 | untouched |
+
+* Meat is `ItemKind::FreshMeat` at its freshness. A meal of part of a piece pays its share: the
+  water times the satiety taken over what a whole piece feeds at that freshness.
+* `POTION_QUENCH` has no environment or options override. A run with one could not be replayed
+  by a build without it.
 
 #### The stages
 
-| Hunger | Starts at | Debuff |
-|---|---|---|
-| Satiated | 0 | none |
-| Fed | 500 | none |
-| Hungry | 1500 | regeneration takes twice as long |
-| Famished | 3000 | -1 to hit, -1 melee and thrown damage |
-| Starving | 5000 | -10 pace, no regeneration, 1 hit point lost every 100 turns |
-| Death | 9000 | |
+Each debt has five stage names, kept from before. The thresholds are in turns of debt.
 
-| Thirst | Starts at | Debuff |
-|---|---|---|
-| Quenched | 0 | none |
-| Fine | 1 | none. The skin is dry |
-| Thirsty | 500 | regeneration takes twice as long |
-| Parched | 2000 | -1 to hit |
-| Dehydrated | 3500 | -10 pace |
-| Dying of thirst | 5000 | no regeneration, 1 hit point lost every 50 turns |
-| Death | 6000 | |
+| Hunger | Starts at | Time | Status |
+| --- | ---: | ---: | --- |
+| Satiated | 0 | | none |
+| Fed | `HUNGER_FIRST` 2,160 | 6h | none. The first effect |
+| Hungry | `HUNGER_HUNGRY` 4,320 | 12h | hungry |
+| Famished | `HUNGER_SERIOUS` 8,640 | 24h | famished |
+| Starving | `HUNGER_SEVERE` 21,600 | 60h | starving. A corpse can be eaten where it lies |
+| Death | `HUNGER_DEATH` 362,880 | 6 weeks | |
 
-* A later stage of a ladder replaces the earlier stage's debuff. The two ladders add together, so
-  famished and parched make -2 to hit.
-* To-hit counts for melee, shooting, throwing and wands. Damage counts for melee and throwing,
-  because the arm drives those and the bow drives a shot.
-* The wasting stages stop regeneration. Regeneration at average constitution gives a point every
-  20 ticks, which would outrun a point lost every 50.
-* Thirst is named as the cause when both ladders take the last hit point on one turn.
+| Thirst | Starts at | Time | Status |
+| --- | ---: | ---: | --- |
+| Quenched | 0 | | none. Less than a unit's worth of debt |
+| Fine | `UNIT_TURNS` 450 | 1h15m | none. A drink would pay a whole unit |
+| Thirsty | `THIRST_FIRST` 2,520 | 7h | thirsty. The first effect |
+| Parched | `THIRST_SERIOUS` 8,640 | 24h | parched |
+| Dehydrated | `THIRST_SEVERE` 17,280 | 48h | dehydrated |
+| Dying | `Sustenance::THIRST_DYING` 24,583 | 68h17m | dying of thirst |
+| Death | `THIRST_DEATH` 25,920 | 72h | |
+
+* No enum member moved. Fed is hunger's first effect, and the three statuses keep their names for
+  the serious and severe stages.
+* `THIRST_DYING` is not a tuned number. It is the debt at which thirst alone reaches `WASTING`, so
+  the dying status shows when thirst would waste the character away by itself. It moves with the
+  severity points.
+* The eat-in-place gate stays `Game#starving?`, the Starving stage. Its threshold moved from
+  `Sustenance::STARVING` = 5,000 to `Tuning::HUNGER_SEVERE` = 21,600.
+* `scratch/stages.cr` plays a character who never eats or drinks and prints the turn each stage
+  starts. It is not committed.
+
+#### Severity
+
+Each debt has a severity from 0 to 1. `Sustenance.severity` reads it off a list of points.
+
+* Zero below the first point. A straight line from each point to the next.
+* From the last point it climbs as the `CLIMB` = 2 power of the share of the way to death, so it
+  starts slowly and is 1 at death.
+* `Sustenance#severity` is the two added, no more than 1. Every effect reads it.
+
+| Hunger debt | Severity | | Thirst debt | Severity |
+| ---: | ---: | --- | ---: | ---: |
+| below 2,160 | 0 | | below 2,520 | 0 |
+| 2,160 | 0 | | 2,520 | 0.1 |
+| 4,320 | 0.15 | | 8,640 | 0.35 |
+| 8,640 | 0.35 | | 17,280 | 0.65 |
+| 21,600 | 0.6 | | 25,920 | 1 |
+| 362,880 | 1 | | | |
+
+#### Effects
+
+Each size is in `Tuning`. The effects replace the stage debuffs. The hooks are the same ones:
+`Player#speed`, `#to_hit` and its siblings, `#damage`, `#regeneration` and `Game#regenerate`.
+
+| Effect | Size at severity s | At 0.15 | At 1 |
+| --- | --- | --- | --- |
+| Pace | `PACE_LOSS` = 60 times s off, rounded down | -9 | -60, pace 40 |
+| To hit | `TO_HIT_LOSS` = 4 times s off, rounded down | 0 | -4 |
+| Melee and thrown damage | `DAMAGE_LOSS` = 3 times s off, rounded down | 0 | -3 |
+| Attributes | each score loses s of its distance to `Attributes::MINIMUM` | 10 to 9 | all at 3 |
+| Regeneration | takes 1 + `REGEN_SLOWING` = 4 times s as long | 1.6 times | stopped |
+| Hit points | none below `WASTING` = 0.9 | | one every 10 turns |
+
+* **Attributes.** `Player#worn_attributes` is `Sustenance#wear` of the scores. Every roll reads
+  it: the dexterity and strength modifiers in to-hit and damage, armor class, the constitution in
+  regeneration and stealth for being noticed. Maximum hit points, the character pane and the
+  observation read the scores as they are.
+* **At 0.15** the character is a tenth slower and a point down on rolls from a score of 10. That is
+  a minor drag.
+* **At 1** a character of average scores has pace 40, -8 to hit and -7 to damage, and does not
+  regenerate. That is nearly helpless.
+* **Wasting.** From `WASTING` the character loses hit points and does not regenerate. The time
+  between two falls in a straight line from `WASTE_FIRST` = 100 turns at 0.9 to `WASTE_LAST` = 10
+  at 1. `@wear` counts thousandths of a hit point toward the next one, so a changing rate wastes
+  no point twice. The save keeps it, and leaves it out when it is zero. Death still comes at the
+  debt limits. The death is named for the larger severity, thirst on a tie.
 
 #### Events and display
 
-* A stage that gets worse writes a line and a `hunger_stage` or `thirst_stage` event. One that
-  gets better writes the event alone, because the eating or drinking has its own line.
+* A stage that gets worse writes a line and a `hunger_stage` or `thirst_stage` event. Fed and Fine
+  have no line, so they write the event alone. One that gets better writes the event alone,
+  because the eating or drinking has its own line.
 * The old stage's status ends and the new one's starts, through `status_start` and `status_end`.
   The penalties show up as `stat_changed`, since the reading takes them in.
 * `Game#restage` compares the stages with the last ones it wrote events for. `#perform` runs it
   after every action, so eating or drinking anywhere gets its events without the rule that did it
   having to ask. The stages it remembers are not saved, so a loaded run writes nothing for the
   stage it is already in.
+* A skin running dry writes nothing. The water line shows the units.
 * `Lasting` gives a stage no timer. The pane shows its name in a debuff pill with no count. See
   the pills under "Temporary effects in the character pane".
 * The water reading is a plain line rather than a bar. Text over the empty part of a bar reads at
@@ -1055,63 +1124,89 @@ turn a change comes on. The protocol and the observation keep exact numbers.
 * `Sustenance::SECONDS_PER_TURN` is 10. Every time shown is counted from it.
 * `Sustenance.approximate` rounds down to ten minutes and writes "50m", "4h10m" or "1h". Under
   ten minutes, zero included, it writes "<10m".
-* Each time is the turns until the next stage that shows a status, rounded down. It can say
-  "<10m" for up to 59 turns before the stage changes.
+* `Sustenance.rough` is the same below ten hours and whole hours from there, as "20h". The budget
+  lines use it, so "dehydrated 20/20 20h" fits the 22 columns of the narrow panel.
 
 | Line | Shows | The time counts to |
 | --- | --- | --- |
-| food | `food`, or the hunger stage | hungry from satiated or fed; then famished, starving, death |
-| water | `water`, or the thirst stage, then the skin's units | see below |
+| food | `food`, or the hunger stage | the next hunger stage, fed included; death once starving |
+| water | `water`, or the thirst stage, then the skin as units out of 20 | the next thirst stage that shows a status; death once dying |
 
-* `Sustenance#food_left` counts hunger to the next of `HUNGRY`, `FAMISHED`, `STARVING` and
-  `STARVED`. Satiated and fed show no status, so both count to hungry.
-* `Sustenance#water_left` for a quenched character is the skin's sipping time,
-  `water * SIP - sipped`, plus `THIRSTY`. A character past quenched does not sip, so the skin
-  adds nothing. The time is then the turns to the next of `THIRSTY`, `PARCHED`, `DEHYDRATED`,
-  `DYING` and `DRIED`.
-* The fruit buff that holds thirst every other turn is left out of the time. The real wait is
-  longer than the time shown while it runs.
+* `Sustenance#food_left` counts to the next of `HUNGER_FIRST`, `HUNGER_HUNGRY`, `HUNGER_SERIOUS`,
+  `HUNGER_SEVERE` and `HUNGER_DEATH`. A satiated character sees the time to the first effect.
+* `Sustenance#water_left` counts to the next of `THIRST_FIRST`, `THIRST_SERIOUS`, `THIRST_SEVERE`,
+  `THIRST_DYING` and `THIRST_DEATH`. The skin adds nothing, because nothing drinks it unasked.
+* The fruit buff that holds thirst every other turn is left out of the time. The wait is longer
+  than the time shown while it runs.
 * Past the first status, the line starts with the stage word in the style of its pill. Dying of
-  thirst is "dying", so "dehydrated 10/10 4h10m" fits the 22 columns of the narrow panel.
+  thirst is "dying".
 * The stage pills stay as they were, under the lines.
 
 On the food bag screen:
 
-* A row's feeding time is `FoodBag.feeds`, the whole stack at its present freshness. The first
-  piece may be bitten. The rest are whole. Rotten flesh feeds nothing and shows no time.
+* A row's feeding time is `FoodBag.feeds`, the whole stack at its present freshness, which is the
+  turns of hunger debt it pays. The first piece may be bitten. The rest are whole.
 * For food that spoils, `FoodBag.turning` gives the next freshness and the turns until it. A stack
   shares one age, so every piece turns together. Rotten food has no later stage and shows none.
-* The title shows the water in the skin and `water * SIP`, the time it lasts a quenched
-  character.
+* The title shows the water in the skin out of 20 and `water * UNIT_TURNS`, the thirst debt the
+  skin can pay.
 * The rows give up columns to keep the detail box readable. A row has the text room the menu
   leaves when its side margins are `MENU_MARGIN`. When the widest row is too wide for that, the
   spoiling time goes. When it is still too wide, the feeding time goes too. With a long name such
   as "2 handfuls of dried fruit" in the bag, 80 columns shows the name and weight alone, 90 and
   100 add the feeding time, and 120 shows both times.
-* The potion list shows no time. A potion quenches once and holds nothing back for later.
+* The potion list shows no time.
 * A death from hunger or thirst sets `Game#perished`. The end screen says "You starved to death."
   or "You died of thirst.", and `over` carries the cause. A trial report counts it as starvation or
   thirst.
 
-#### Drinking and explore
+#### What drinks and eats on its own
 
-* `Action::Drink` drinks one unit from the skin. A quenched character and an empty skin are both
-  refused, with a line and no turn. `Game#legal` offers it only while it would be taken.
-* The explore setting `drink`, on by default, makes an explore step drink instead of walking
-  once thirst is at the thirsty stage or worse and the skin holds water. The line that says
-  thirst set in does not stop the walk then, and neither does the drink.
-* The line that says the skin ran dry never stops an explore, because an explore walks to a
-  known fountain by itself once the skin is dry.
+| Where | What it does |
+| --- | --- |
+| Explore, drink on | drinks one unit from the skin once `Sustenance#drink_due?`: the debt is at least a unit and within a unit of thirsty |
+| Explore at a fountain | drinks from the fountain when there is any debt, then fills one unit a turn |
+| Explore, eat on | eats from the bag once hunger reaches its first effect, the Fed stage |
+| `U` at a fountain | drinks when there is any debt, then fills the skin |
+| Travel, visit, rest | nothing |
+| Bots | nothing. They send `drink`, `quench`, `refill` and `eat` |
+| The trial bot | drinks a potion when badly hurt, which pays 100 turns of thirst |
+
+* `Action::Drink` drinks one unit from the skin. A character with no thirst debt and an empty skin
+  are both refused, with a line and no turn. `Game#legal` offers it only while it would be taken.
+* Explore drinks before the thirsty stage, so its line never comes while the skin holds water. A
+  drink pays a whole unit, so none is wasted.
 * With `drink` off, or with an empty skin, a thirst stage that gets worse stops the walk with
   `Halt::Thirsty`. Its line is the reason the walk stopped, so nothing more is written.
-* `Sustenance#tick` takes `thirst: false` to hold thirst and the skin still for a turn. A food
-  that makes thirst build at half rate passes it on every other turn.
+* Explore eats at the first hunger effect. A ration of 1,500 or anything smaller is eaten whole
+  there. With `eat` off, the hungry stage stops the walk with `Halt::Hungry`.
+
+#### Saves
+
+* The save holds `hunger_debt`, `thirst_debt`, `skin` and, while wasting, `wear`. They sit inside
+  the player, so `Fingerprint` counts them as it counts the rest of the player. None is in
+  `Fingerprint::UNCOUNTED`.
+* A save from before the debts holds `hunger`, `thirst`, `water` and `sipped`. `after_initialize`
+  turns them into debts. Hunger carries over as it was. A skin that held water becomes a full skin
+  of 20 and no thirst debt. A dry skin stays dry, and the old thirst count becomes the debt. The
+  old keys are read and never written, and `sipped` is dropped.
+
+#### Fixtures
+
+* The golden replay, both schemes, was recorded again with `script/record-golden`. Its actions and
+  item ids did not move, because the pantry's food takes the ids after everything else.
+* The screen fixtures under `spec/fixtures/screen` and `spec/fixtures/screens` that show the
+  budget lines were written again with `UPDATE_FIXTURES=1`. They show `water 20/20` and the new
+  times.
+* `spec/fixtures/floors/dug.txt` holds no food, and floor 1's fountain rule did not change, so it
+  did not move.
 
 #### Specs
 
-`spec/support/sustenance.cr` gives `Sustenance` setters for the three counters and `Sustained`,
-which puts them back where a run starts. A spec that wants a character three thousand turns hungry
-sets the counter instead of playing the turns.
+`spec/support/sustenance.cr` gives `Sustenance` setters for the two debts and the skin, and
+`Sustained`, which puts them back where a run starts. A spec that wants a character a day hungry
+sets the debt instead of playing the turns. The setters are plain methods, because `setter` would
+declare the variables again without their JSON keys.
 
 ## Development tools
 
@@ -6758,13 +6853,13 @@ stale corpse can still be eaten, and only a fresh one can be cut up.
   so it never takes bones. Bones coming into sight do not stop a walk. The inventory lists them
   on the food page, which holds nothing else.
 * **Eating in place.** A corpse is eaten where it lies only while `Game#starving?`, which is the
-  Starving hunger stage. `Game#edible` leaves corpses out below it, so the legal actions and the
-  food bag screen offer no `eat` on one. An `eat` on a corpse below it reaches `Game#eat`, which
-  refuses with `not_starving` and spends no turn. `Game#pick_up_rows` lists what the pick-up menu
-  shows: a take row for anything that is not a corpse, a cut row for a fresh beast corpse, and an
-  eat row for any other corpse, open only while starving. A starving character also gets an eat
-  row after a fresh beast corpse's cut row. Both control schemes build their menus from it. The
-  traditional menu skips the question only for a single take or cut row, so a lone humanoid
+  Starving hunger stage, 60 hours of debt. `Game#edible` leaves corpses out below it, so the legal
+  actions and the food bag screen offer no `eat` on one. An `eat` on a corpse below it reaches
+  `Game#eat`, which refuses with `not_starving` and spends no turn. `Game#pick_up_rows` lists what
+  the pick-up menu shows: a take row for anything that is not a corpse, a cut row for a fresh beast
+  corpse, and an eat row for any other corpse, open only while starving. A starving character also
+  gets an eat row after a fresh beast corpse's cut row. Both control schemes build their menus from
+  it. The traditional menu skips the question only for a single take or cut row, so a lone humanoid
   corpse still shows its dimmed row. Dimmed menu rows draw in the `dimmed` theme color, which is
   `#8A909C` in Default, about 6 to 1 on the ground.
 * **Cannibalism.** `Player#species` is the label of the character's species, `Player::HUMAN` for
@@ -6873,10 +6968,12 @@ stale. Fresh meat is not on the table, because it comes from corpses.
 Remains do not stop a walk when they come into sight. Every fight leaves some, and the walk after
 it would stop at once.
 
-* **Rate.** Five per ten thousand open squares, and one at least. The mean floor is about 8000
-  squares, which gives about four foods and 2800 points of satiety. Over 40 seeds a floor held
-  between 1 and 17. Corpses add to that, and are worth most to a character who is hungry when
-  something dies.
+* **Rate.** `Food.stocked` reads `Sustenance::Tuning::PANTRY` by depth, in items per 100,000
+  open squares, and gives one at least: 105 on floors 1 to 3, 10 on floors 4 to 7 and 40 on
+  floors 8 to 10. That is 10.5, 1 and 4 per ten thousand. The count is whole-number arithmetic,
+  rounded down, so every machine draws the same number of foods from the `pantry` stream. The
+  count is a rule, not a draw order, so `pantry` stays at 1. Corpses add to the food, and are
+  worth most to a character who is hungry when something dies.
 * **Weights.** bread 12; ration, dried meat and apple 10; oatcake, nuts and turnip 8; sausage,
   dried fruit, berries, cheese, herbs and mushroom 6.
 
@@ -6895,20 +6992,25 @@ it would stop at once.
 
 ### What a bot sees
 
-`Observation::Character` has four new keys. Each is `nil` when `Game#sustenance?` is false, and
-the key is then left out of the JSON. An observation written before they existed reads back with
-them `nil`, and a bot that does not read them sees no change.
+`Observation::Character` has seven keys for hunger and thirst. Each is `nil` when
+`Game#sustenance?` is false, and the key is then left out of the JSON. An observation written
+before they existed reads back with them `nil`, and a bot that does not read them sees no change.
 
 | Key | What it holds |
 | --- | --- |
 | `hunger` | `Sustenance#hunger_stage`, as `satiated`, `fed`, `hungry`, `famished` or `starving` |
 | `thirst` | `Sustenance#thirst_stage`, as `quenched`, `fine`, `thirsty`, `parched`, `dehydrated` or `dying` |
 | `water` | Units in the waterskin |
-| `water_max` | `Sustenance::WATER_MAX` |
+| `water_max` | `Sustenance::Tuning::SKIN_UNITS`, 20 |
+| `hunger_debt` | Turns of hunger debt, exact |
+| `thirst_debt` | Turns of thirst debt, exact |
+| `severity` | `Sustenance#severity`, hunger and thirst together from 0 to 1, to three places |
 
-The stages are names, not the counters. The character pane shows no numbers for hunger or thirst,
-and the observation holds only what a pane shows. The waterskin is shown as `water 7/10`, so both
-of its numbers are here.
+The pane shows rough times. The protocol keeps the exact debts, so a bot can plan a meal or a
+drink to the turn. The thresholds a debt is read against are in `Sustenance::Tuning`.
+
+The `drank` event carries `paid`, the turns of thirst debt the drink paid, beside `units` and
+`source`. `units` is 1 for a drink from the skin, a fountain or a potion.
 
 `Observation::Character#food` is an `Observation::Bag`. It is there whether hunger and thirst
 are on or not, and `nil` only in an observation written before it existed.
@@ -6967,22 +7069,25 @@ included.
   Each of floors 2 to 10 draws once on a stream named after it, `fountain` under
   `worldgen:<floor id>`. The stream does not take the try number, so a floor dug again after an
   audit fault keeps its answer.
-* The odds of a draw depend on the dry floors in a row directly above it. Floor 1 counts as wet.
-  The call walks from floor 2 down to the floor asked about and carries the dry count along, which
-  is at most nine draws.
-* A floor id outside the dungeon's numbering, such as the proving ground, has none. The legacy id
-  `dungeon` is floor 1 and has one. No other floor ids exist off the main line.
+* Each floor draws a number below 100 and has a fountain when it is under its band's chance, or
+  when the dry floors in a row directly above it have reached its band's certainty. Floor 1 counts
+  as wet. The call walks from floor 2 down to the floor asked about and carries the dry count
+  along, which is at most nine draws. Every floor draws its number whether or not it is certain,
+  so no draw depends on another and the streams keep their order. `generator` stays at 9.
+* The bands are `Sustenance::Tuning::FOUNTAINS`, read through `Generator.fountain_odds`.
 
-| Dry floors above | Chance out of 100 |
-| ---: | ---: |
-| 0 | 70 |
-| 1 | 80 |
-| 2 | 90 |
-| 3 | 100 |
+| Floors | Chance out of 100 | Certain after |
+| --- | ---: | --- |
+| 1 | always | |
+| 2 to 4 | 75 | 3 dry floors |
+| 5 to 7 | 25 | never |
+| 8 to 10 | 45 | 4 dry floors |
 
-* **Rate.** The dry count is a Markov chain on 0 to 3. Its stationary share of wet floors is
-  `1 / (1 + 0.3 + 0.3 * 0.2 + 0.3 * 0.2 * 0.1)`, which is 500 / 683 or 73.2%. Starting from
-  floor 1 wet, the expected share over floors 2 to 10 is 72.8%. Floor 2 is the lowest at 70%.
+* Floor 1 is always wet, so floors 2 to 4 can never have three dry floors above them. Their
+  certainty never comes into play.
+* **Rate.** Worked from floor 1 through the dry count, each floor's chance is 75% on floors 2 to 4,
+  25% on floors 5 to 7, and 45% on floor 8. Floors 9 and 10 rise a little above 45% from the
+  certainty after four dry floors.
 * **Placement on floor 1.** The fountain goes on a bare square of the up staircase's own zone at
   most `Generator::NEAR` = 6 steps from the staircase, walking through doors. When that zone has
   no such square, it goes on the bare square of any zone fewest steps away. Over 2,000 seeds every
@@ -6991,36 +7096,28 @@ included.
   picked on the try's own `fountain` stream. A floor with no rooms takes it in a cavern.
 * It is placed after the stairs, the sconces and the creatures, so it moves none of them.
 
-Measured on floors 2 to 10:
-
-| Measure | 4,000 seeds | 20,000 seeds |
-| --- | ---: | ---: |
-| Floors with a fountain | 73.0% | 72.9% |
-| Runs whose longest dry stretch is 0 floors | 4.5% | 3.9% |
-| Runs whose longest dry stretch is 1 floor | 63.3% | 63.4% |
-| Runs whose longest dry stretch is 2 floors | 29.3% | 29.6% |
-| Runs whose longest dry stretch is 3 floors | 3.0% | 3.0% |
-
-A spec measures the share over 4,000 seeds and holds it within 2 points of the 72.8% the table
-works out to. Another checks that no seed has four dry floors in a row.
+A spec measures each floor's share over 20,000 seeds and holds it within 1 point of the share the
+bands work out to. Another checks that floors 8 to 10 always have one after four dry floors, and a
+third that floors 5 to 7 can all be dry.
 
 ### Drawing water
 
 | Action | `t` | Turns | What it does |
 | --- | --- | --- | --- |
 | `Action::Refill` | `refill` | 1 | `Sustenance#refill 1`, then an `Event::Refilled` with the units and the skin's water |
-| `Action::Quench` | `quench` | 0 | `Sustenance#quench 1`, then an `Event::Drank` from the fountain |
+| `Action::Quench` | `quench` | 0 | `Sustenance#slake`, which pays all the thirst debt, then an `Event::Drank` from the fountain |
 
 * `Game#legal` offers each one only on a fountain, and only while it would do something: a skin
-  below full, or a character who is not `quenched?`.
+  below full, or a character with thirst debt.
 * Filling the skin is a `Game::Rest` with `filling?` set. `Game#linger` performs a `Refill` in
   place of a `Wait`, so a replay holds one `refill` line per unit. It stops when the skin is
   full, and for everything that stops a rest but a wound healed. A creature in sight refuses it.
 * `Ui::Play` drives a fill on the rest timer, so a key press stops it. The batch size reads the
   units still missing in place of the hit points.
 * The refill turns write no line until the skin is full. A line each turn would stop the fill.
-* Drinking any potion also calls `Sustenance#quench 1`. When that takes a unit, `Game#quaff`
-  records an `Event::Drank` with source `potion` and no line of its own.
+* Drinking any potion also pays `POTION_QUENCH` = 100 turns of thirst debt and leaves the skin
+  alone. When it pays any, `Game#quaff` records an `Event::Drank` with source `potion` and no line
+  of its own.
 
 ### Keys
 
@@ -7039,8 +7136,9 @@ Environment group of the action catalog.
 * While it is, `Explore.route` and `Explore.going?` take the fountains the character knows on the
   floor as `wells`, and walk to the nearest the way they walk to gold.
 * Standing on a fountain with the skin below full, an `Action::Explore` drinks from it when the
-  character is thirsty, then fills one unit and takes the turn. This tops up any skin it crosses
-  a fountain with, so a fill it walked there for goes on to full. No state is kept between steps.
+  character has any thirst debt, then fills one unit and takes the turn. This tops up any skin it
+  crosses a fountain with, so a fill it walked there for goes on to full. No state is kept between
+  steps.
 * The lines this writes do not stop the explore, so it walks on once the skin is full. A creature
   coming into view stops it as it stops any explore step.
 
