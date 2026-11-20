@@ -1249,14 +1249,16 @@ module Roguelike
     end
 
     # The character drank water. *units* is how much it took, and *source*
-    # is where it came from: `skin`, `fountain` or `potion`.
+    # is where it came from: `skin`, `fountain` or `potion`. *paid* is the
+    # turns of thirst debt it paid.
     class Drank < Event
       getter kind : String = "drank"
 
       getter units : Int32
       getter source : String
+      getter paid : Int32? = nil
 
-      def initialize(@units : Int32, @source : String)
+      def initialize(@units : Int32, @source : String, @paid : Int32? = nil)
       end
     end
 

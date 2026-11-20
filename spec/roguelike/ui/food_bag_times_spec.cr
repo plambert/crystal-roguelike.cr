@@ -60,7 +60,7 @@ Spectator.describe "the times on the food bag screen" do
   it "puts the water in the skin in the title, with how long it lasts" do
     run = opened [food(Kind::Apple)], 140, water: 7
 
-    expect(run.menu.title.to_s).to eq "Food bag 2/40, water 7/10 5h50m"
+    expect(run.menu.title.to_s).to eq "Food bag 2/40, water 7/20 8h40m"
   end
 
   it "drops the turning time before the rows outgrow an 80 column screen" do

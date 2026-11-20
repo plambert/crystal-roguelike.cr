@@ -4,18 +4,18 @@ require "../roguelike"
 module Roguelike
   # Hunger, thirst and the waterskin, kept on the character.
   #
-  # Two counters climb with the turns. `#hunger` climbs every turn and food
-  # brings it down. `#thirst` climbs once the character is no longer
-  # quenched, and drinking puts it back to zero.
+  # Hunger and thirst are debts, counted in turns. Each climbs by one every
+  # turn. Eating pays hunger debt down, and drinking pays thirst debt down.
+  # Neither goes below zero. One satiety point pays one turn of hunger.
   #
-  # While the character is quenched they sip from the skin as they go, one
-  # unit every `SIP` turns. When the skin runs dry, thirst starts to climb.
-  # Water put back in the skin does not quench them. They have to drink it.
+  # Each debt has a severity from 0 to 1, read off the points in `Tuning`.
+  # The two add, up to 1, and every effect reads the sum.
   #
-  # One satiety point is one turn of hunger. `#eat` with 1500 points takes
-  # the counter down by 1500 turns.
+  # The waterskin holds `Tuning::SKIN_UNITS` units. The character drinks
+  # from it only when they choose to.
   #
-  # Nothing here draws from a generator, so no replay stream depends on it.
+  # Every number is in `Tuning`. Nothing here draws from a generator, so no
+  # replay stream depends on it.
   class Sustenance
     include JSON::Serializable
 
@@ -68,40 +68,15 @@ module Roguelike
       end
     end
 
-    # Units the skin holds.
-    WATER_MAX = 10
-
-    # Turns one unit of water lasts a quenched character.
-    SIP = 300
-
-    # Turns of hunger at which each stage starts, and at which the character
-    # dies.
-    FED      =  500
-    HUNGRY   = 1500
-    FAMISHED = 3000
-    STARVING = 5000
-    STARVED  = 9000
-
-    # Turns of thirst at which each stage starts, and at which the character
-    # dies.
-    THIRSTY    =  500
-    PARCHED    = 2000
-    DEHYDRATED = 3500
-    DYING      = 5000
-    DRIED      = 6000
-
-    # Turns between two hit points lost while starving.
-    STARVING_EVERY = 100
-
-    # Turns between two hit points lost while dying of thirst.
-    DYING_EVERY = 50
-
-    # Pace a character loses while dehydrated, and while starving.
-    SLOWING = 10
-
     # Seconds of game time in one turn. Every time shown to the player is
     # counted from this.
     SECONDS_PER_TURN = 10
+
+    # The thirst debt at which thirst alone would waste the character away.
+    # The dying stage starts here.
+    THIRST_DYING = (Tuning::THIRST_SEVERE..Tuning::THIRST_DEATH).bsearch do |debt|
+      Sustenance.thirst_severity(debt) >= Tuning::WASTING
+    end || Tuning::THIRST_DEATH
 
     # *turns* as the player sees them. The game time is rounded down to ten
     # minutes and written as "50m", "4h10m" or "1h". Anything under ten
@@ -120,17 +95,67 @@ module Roguelike
       "#{hours}h#{left}m"
     end
 
-    # Turns since the character last ate their fill.
+    # *turns* as `.approximate` writes them, but in whole hours from ten
+    # hours up, as "20h". A budget line uses it, so the longest line fits
+    # the narrow panel.
+    def self.rough(turns : Int32) : String
+      hours = Math.max(turns, 0).to_i64 * SECONDS_PER_TURN // 3600
+      hours >= 10 ? "#{hours}h" : approximate(turns)
+    end
+
+    # The severity of *debt* on a ladder of *points* that ends at *death*.
+    #
+    # Zero below the first point. A straight line from each point to the
+    # next. From the last point it climbs as the `Tuning::CLIMB` power of the
+    # share of the way to *death*, and is 1 there and past it.
+    def self.severity(debt : Int32, points : Array({Int32, Float64}), death : Int32) : Float64
+      return 0.0 if debt < points.first[0]
+      return 1.0 if debt >= death
+
+      points.each_cons_pair do |(low, from), (high, to)|
+        return from + (to - from) * (debt - low) / (high - low) if debt < high
+      end
+
+      last, from = points.last
+      share = (debt - last) / (death - last)
+      from + (1.0 - from) * share ** Tuning::CLIMB
+    end
+
+    # The severity of *debt* turns of hunger.
+    def self.hunger_severity(debt : Int32) : Float64
+      severity debt, Tuning::HUNGER_SEVERITY, Tuning::HUNGER_DEATH
+    end
+
+    # The severity of *debt* turns of thirst.
+    def self.thirst_severity(debt : Int32) : Float64
+      severity debt, Tuning::THIRST_SEVERITY, Tuning::THIRST_DEATH
+    end
+
+    # Turns of hunger debt.
+    @[JSON::Field(key: "hunger_debt")]
     getter hunger : Int32 = 0
 
-    # Turns since the character was last quenched.
+    # Turns of thirst debt.
+    @[JSON::Field(key: "thirst_debt")]
     getter thirst : Int32 = 0
 
-    # Units in the skin, from zero to `WATER_MAX`.
-    getter water : Int32 = WATER_MAX
+    # Units in the skin, from zero to `Tuning::SKIN_UNITS`.
+    @[JSON::Field(key: "skin")]
+    getter water : Int32 = Tuning::SKIN_UNITS
 
-    # Turns since the last unit was sipped from the skin.
-    getter sipped : Int32 = 0
+    # The counters a save from before the debts holds. `#after_initialize`
+    # turns them into debts, and they are never written.
+    @[JSON::Field(key: "hunger", ignore_serialize: true)]
+    @old_hunger : Int32? = nil
+    @[JSON::Field(key: "thirst", ignore_serialize: true)]
+    @old_thirst : Int32? = nil
+    @[JSON::Field(key: "water", ignore_serialize: true)]
+    @old_water : Int32? = nil
+
+    # Thousandths of a hit point worn away toward the next one wasted.
+    # `nil` stands for none, so a character who is not wasting away writes
+    # no field.
+    @wear : Int32? = nil
 
     # Hit points the last `#tick` wasted away. The save leaves it out,
     # because `Game` reads it on the turn it was set.
@@ -143,7 +168,26 @@ module Roguelike
     getter wasted_by : Death? = nil
 
     def initialize(@hunger : Int32 = 0, @thirst : Int32 = 0,
-                   @water : Int32 = WATER_MAX, @sipped : Int32 = 0)
+                   @water : Int32 = Tuning::SKIN_UNITS)
+    end
+
+    # Turns the counters of a save from before the debts into debts.
+    #
+    # Hunger carries over as it was. A skin that held water becomes a full
+    # skin and no thirst debt. A dry skin stays dry, and the thirst count
+    # becomes the debt.
+    protected def after_initialize : Nil
+      return unless @old_hunger || @old_thirst || @old_water
+
+      @hunger = @old_hunger || 0
+      if (@old_water || 1) > 0
+        @thirst = 0
+        @water = Tuning::SKIN_UNITS
+      else
+        @thirst = @old_thirst || 0
+        @water = 0
+      end
+      @old_hunger = @old_thirst = @old_water = nil
     end
 
     # Eats up to *points* of satiety. Answers how many were taken. Stops at
@@ -154,132 +198,153 @@ module Roguelike
       taken
     end
 
-    # Drinks up to *units* from the skin. Answers how many were drunk. Stops
-    # when not thirsty.
+    # Drinks one unit from the skin, which pays `Tuning::UNIT_TURNS` of
+    # thirst debt. Answers the units drunk.
     #
-    # One unit quenches the character, so no more than one is ever drunk.
-    def drink(units : Int32 = 1) : Int32
-      return 0 if units <= 0 || quenched? || @water.zero?
+    # Nothing is drunk while there is no thirst debt or the skin is empty.
+    def drink : Int32
+      return 0 if quenched? || @water.zero?
 
       @water -= 1
-      slake
+      quench Tuning::UNIT_TURNS
       1
     end
 
-    # Water taken from a fountain or a potion, not from the skin. Answers
-    # units used.
-    def quench(units : Int32) : Int32
-      return 0 if units <= 0 || quenched?
+    # Pays up to *turns* of thirst debt. Answers how many were paid.
+    def quench(turns : Int32) : Int32
+      paid = turns.clamp(0, @thirst)
+      @thirst -= paid
+      paid
+    end
 
-      slake
-      1
+    # Pays all the thirst debt, as a fountain does. Answers how many turns
+    # were paid.
+    def slake : Int32
+      quench @thirst
+    end
+
+    # Adds *turns* of thirst debt.
+    def parch(turns : Int32) : Nil
+      @thirst += Math.max turns, 0
     end
 
     # Puts *units* into the skin. Answers how many fit.
     def refill(units : Int32) : Int32
-      fitted = units.clamp(0, WATER_MAX - @water)
+      fitted = units.clamp(0, Tuning::SKIN_UNITS - @water)
       @water += fitted
       fitted
     end
 
-    # Called once per turn by `Game`. Advances the counters and uses skin
-    # water.
+    # Called once per turn by `Game`. Climbs both debts and wastes hit
+    # points away once severity passes `Tuning::WASTING`.
     #
-    # *thirst* false holds thirst and the skin where they are for this turn,
-    # for a food that makes thirst build at half rate.
+    # *thirst* false holds thirst where it is for this turn, for a food that
+    # makes thirst build at half rate.
     def tick(thirst : Bool = true) : Nil
       @hunger += 1
+      @thirst += 1 if thirst
       @wasted = 0
       @wasted_by = nil
-      parch if thirst
 
-      waste Death::Hunger if hunger_stage.starving? && due?(@hunger, STARVING, STARVING_EVERY)
-    end
-
-    # One turn of thirst, or one sip from the skin.
-    private def parch : Nil
-      if quenched? && @water > 0
-        @sipped += 1
-        return if @sipped < SIP
-
-        @sipped = 0
-        @water -= 1
+      every = waste_every
+      unless every
+        @wear = nil
         return
       end
 
-      @thirst += 1
-      waste Death::Thirst if thirst_stage.dying? && due?(@thirst, DYING, DYING_EVERY)
+      worn = (@wear || 0) + WORN // every
+      @wasted, left = worn.divmod WORN
+      @wear = left.zero? ? nil : left
+      @wasted_by = thirst_severity >= hunger_severity ? Death::Thirst : Death::Hunger if @wasted > 0
     end
 
-    # Whether *count* has gone a whole number of *every* turns past *start*.
-    private def due?(count : Int32, start : Int32, every : Int32) : Bool
-      count > start && ((count - start) % every).zero?
+    # What `@wear` counts to before a hit point is wasted away.
+    WORN = 1000
+
+    # Turns between two hit points wasted away, or `nil` while severity is
+    # short of `Tuning::WASTING`. It falls in a straight line from
+    # `Tuning::WASTE_FIRST` there to `Tuning::WASTE_LAST` at severity 1.
+    def waste_every : Int32?
+      found = severity
+      return if found < Tuning::WASTING
+
+      share = (found - Tuning::WASTING) / (1.0 - Tuning::WASTING)
+      span = Tuning::WASTE_FIRST - Tuning::WASTE_LAST
+      Math.max (Tuning::WASTE_FIRST - span * share).round.to_i, 1
     end
 
-    # Wastes one hit point away for *death*. Thirst is named first when both
-    # take one on the same turn.
-    private def waste(death : Death) : Nil
-      @wasted += 1
-      @wasted_by ||= death
+    # How severe the hunger debt is, from 0 to 1.
+    def hunger_severity : Float64
+      Sustenance.hunger_severity @hunger
+    end
+
+    # How severe the thirst debt is, from 0 to 1.
+    def thirst_severity : Float64
+      Sustenance.thirst_severity @thirst
+    end
+
+    # Hunger and thirst severity together, no more than 1. Every effect
+    # reads this.
+    def severity : Float64
+      Math.min hunger_severity + thirst_severity, 1.0
     end
 
     # How hungry the character is now.
     def hunger_stage : HungerStage
       case @hunger
-      when ...FED      then HungerStage::Satiated
-      when ...HUNGRY   then HungerStage::Fed
-      when ...FAMISHED then HungerStage::Hungry
-      when ...STARVING then HungerStage::Famished
-      else                  HungerStage::Starving
+      when ...Tuning::HUNGER_FIRST   then HungerStage::Satiated
+      when ...Tuning::HUNGER_HUNGRY  then HungerStage::Fed
+      when ...Tuning::HUNGER_SERIOUS then HungerStage::Hungry
+      when ...Tuning::HUNGER_SEVERE  then HungerStage::Famished
+      else                                HungerStage::Starving
       end
     end
 
-    # How thirsty the character is now.
+    # How thirsty the character is now. Quenched is less than one unit's
+    # worth of debt, and fine is a unit or more short of thirsty.
     def thirst_stage : ThirstStage
       case @thirst
-      when 0             then ThirstStage::Quenched
-      when ...THIRSTY    then ThirstStage::Fine
-      when ...PARCHED    then ThirstStage::Thirsty
-      when ...DEHYDRATED then ThirstStage::Parched
-      when ...DYING      then ThirstStage::Dehydrated
-      else                    ThirstStage::Dying
+      when ...Tuning::UNIT_TURNS     then ThirstStage::Quenched
+      when ...Tuning::THIRST_FIRST   then ThirstStage::Fine
+      when ...Tuning::THIRST_SERIOUS then ThirstStage::Thirsty
+      when ...Tuning::THIRST_SEVERE  then ThirstStage::Parched
+      when ...THIRST_DYING           then ThirstStage::Dehydrated
+      else                                ThirstStage::Dying
       end
     end
 
-    # Turns until hunger reaches its next stage that shows a status. At
-    # starving, turns until the character starves to death.
-    #
-    # A satiated or fed character counts to hungry.
+    # Turns until hunger reaches its next stage. At starving, turns until
+    # the character starves to death.
     def food_left : Int32
       ahead = case hunger_stage
-              in .satiated?, .fed? then HUNGRY
-              in .hungry?          then FAMISHED
-              in .famished?        then STARVING
-              in .starving?        then STARVED
+              in .satiated? then Tuning::HUNGER_FIRST
+              in .fed?      then Tuning::HUNGER_HUNGRY
+              in .hungry?   then Tuning::HUNGER_SERIOUS
+              in .famished? then Tuning::HUNGER_SEVERE
+              in .starving? then Tuning::HUNGER_DEATH
               end
       Math.max ahead - @hunger, 0
     end
 
     # Turns until thirst reaches its next stage that shows a status. At
     # dying, turns until the character dies of thirst.
-    #
-    # A quenched character sips the skin dry first, and only then starts
-    # counting to thirsty. One who is already thirsty does not sip, so the
-    # skin adds nothing until they drink.
     def water_left : Int32
-      if quenched?
-        sipping = @water > 0 ? @water * SIP - @sipped : 0
-        return sipping + THIRSTY
-      end
-
       ahead = case thirst_stage
-              in .quenched?, .fine? then THIRSTY
-              in .thirsty?          then PARCHED
-              in .parched?          then DEHYDRATED
-              in .dehydrated?       then DYING
-              in .dying?            then DRIED
+              in .quenched?, .fine? then Tuning::THIRST_FIRST
+              in .thirsty?          then Tuning::THIRST_SERIOUS
+              in .parched?          then Tuning::THIRST_SEVERE
+              in .dehydrated?       then THIRST_DYING
+              in .dying?            then Tuning::THIRST_DEATH
               end
       Math.max ahead - @thirst, 0
+    end
+
+    # Whether a drink from the skin now pays a whole unit's worth of debt
+    # and keeps the character short of the thirsty stage. An explore drinks
+    # when this is true.
+    def drink_due? : Bool
+      @thirst >= Tuning::UNIT_TURNS &&
+        @thirst + Tuning::UNIT_TURNS > Tuning::THIRST_FIRST
     end
 
     # The status *stage* shows, or `nil` for none.
@@ -318,39 +383,46 @@ module Roguelike
       [hunger_status, thirst_status].compact
     end
 
-    # Whether natural regeneration takes twice as long.
-    #
-    # Each ladder's later stage takes the place of its earlier one, so only
-    # the first stage of each slows it.
-    def slow_regeneration? : Bool
-      hunger_stage.hungry? || thirst_stage.thirsty?
+    # How many times as long natural regeneration takes.
+    def regeneration_factor : Float64
+      1.0 + Tuning::REGEN_SLOWING * severity
     end
 
     # Whether natural regeneration runs at all. It stops while the character
     # wastes away.
     def regenerates? : Bool
-      !hunger_stage.starving? && !thirst_stage.dying?
+      severity < Tuning::WASTING
     end
 
-    # What hunger and thirst take off every roll to hit.
+    # What hunger and thirst take off every roll to hit, on top of what
+    # they take off dexterity.
     def to_hit_penalty : Int32
-      found = 0
-      found += 1 if hunger_stage.famished?
-      found += 1 if thirst_stage.parched?
-      found
+      (severity * Tuning::TO_HIT_LOSS).to_i
     end
 
-    # What hunger takes off melee and thrown damage.
+    # What hunger and thirst take off melee and thrown damage, on top of
+    # what they take off strength.
     def damage_penalty : Int32
-      hunger_stage.famished? ? 1 : 0
+      (severity * Tuning::DAMAGE_LOSS).to_i
     end
 
     # What hunger and thirst take off pace.
     def slowing : Int32
-      found = 0
-      found += SLOWING if hunger_stage.starving?
-      found += SLOWING if thirst_stage.dehydrated?
-      found
+      (severity * Tuning::PACE_LOSS).to_i
+    end
+
+    # *attributes* as hunger and thirst leave them. Each score falls toward
+    # `Attributes::MINIMUM` in step with severity, and is there at
+    # severity 1. A score at or below the minimum stays where it is.
+    def wear(attributes : Attributes) : Attributes
+      found = severity
+      return attributes if found <= 0.0
+
+      held = Attributes::Which.values.map do |which|
+        score = attributes[which]
+        score - (Math.max(score - Attributes::MINIMUM, 0) * found).to_i
+      end
+      Attributes.new held[0], held[1], held[2], held[3], held[4]
     end
 
     # Whether the character can eat no more.
@@ -358,25 +430,18 @@ module Roguelike
       @hunger.zero?
     end
 
-    # Whether the character needs no water.
+    # Whether the character has no thirst debt.
     def quenched? : Bool
       @thirst.zero?
     end
 
-    # What the character has died of, or `nil` while neither counter has
+    # What the character has died of, or `nil` while neither debt has
     # reached its end.
     def death : Death?
-      return Death::Thirst if @thirst >= DRIED
-      return Death::Hunger if @hunger >= STARVED
+      return Death::Thirst if @thirst >= Tuning::THIRST_DEATH
+      return Death::Hunger if @hunger >= Tuning::HUNGER_DEATH
 
       nil
-    end
-
-    # Puts thirst back to nothing. The next sip from the skin is a full
-    # `SIP` away.
-    private def slake : Nil
-      @thirst = 0
-      @sipped = 0
     end
   end
 

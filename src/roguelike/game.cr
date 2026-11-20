@@ -210,12 +210,6 @@ module Roguelike
     @[JSON::Field(ignore: true)]
     @thirst_told : Int32 = 0
 
-    # How many lines have said the skin ran dry. An explore walks to water
-    # on its own, so it reads this across one step and does not stop for
-    # them. The save leaves it out.
-    @[JSON::Field(ignore: true)]
-    @dry_told : Int32 = 0
-
     # How many lines a worsening hunger stage has written. An explore reads
     # it across one step, so the save leaves it out.
     @[JSON::Field(ignore: true)]
@@ -1796,10 +1790,10 @@ module Roguelike
       now >= Sustenance::HungerStage::Hungry && now > before.hunger
     end
 
-    # Whether an explore under *stops* drinks from the skin now.
+    # Whether an explore under *stops* drinks from the skin now. It drinks
+    # once a unit pays off whole and before thirst sets in.
     private def drinks?(stops : Explore::Settings = explore_settings) : Bool
-      stops.drink? && drinkable? &&
-        @player.sustenance.thirst_stage >= Sustenance::ThirstStage::Thirsty
+      stops.drink? && drinkable? && @player.sustenance.drink_due?
     end
 
     # Whether the step wrote anything worth stopping for.
@@ -2111,7 +2105,7 @@ module Roguelike
 
     # Whether the waterskin holds all it can.
     def skin_full? : Bool
-      @player.sustenance.water >= Sustenance::WATER_MAX
+      @player.sustenance.water >= Sustenance::Tuning::SKIN_UNITS
     end
 
     # Why the waterskin cannot be filled here. `nil` when it can.
@@ -2181,8 +2175,8 @@ module Roguelike
       true
     end
 
-    # Drinks from the fountain underfoot until the character is no longer
-    # thirsty. Answers whether they drank. No turn passes.
+    # Drinks from the fountain underfoot, which pays all the thirst debt.
+    # Answers whether they drank. No turn passes.
     def drink_fountain : Bool
       complaint = cannot_drink_fountain
       if complaint
@@ -2191,8 +2185,8 @@ module Roguelike
         return false
       end
 
-      units = @player.sustenance.quench 1
-      say "You drink from the fountain.", Event::Drank.new(units, "fountain")
+      paid = @player.sustenance.slake
+      say "You drink from the fountain.", Event::Drank.new(1, "fountain", paid)
       true
     end
 
@@ -3838,7 +3832,6 @@ module Roguelike
 
     # What each stage of thirst says when it starts.
     THIRST_LINES = {
-      Sustenance::ThirstStage::Fine       => "Your waterskin is empty.",
       Sustenance::ThirstStage::Thirsty    => "You are thirsty.",
       Sustenance::ThirstStage::Parched    => "You are parched.",
       Sustenance::ThirstStage::Dehydrated => "You are dehydrated.",
@@ -3877,9 +3870,7 @@ module Roguelike
                        was : Event::Status?, status : Event::Status?) : Nil
       if worse && line
         say line, event
-        if event.is_a?(Event::Thirst) && event.stage.fine?
-          @dry_told += 1
-        elsif event.is_a?(Event::Thirst)
+        if event.is_a?(Event::Thirst)
           @thirst_told += 1
         elsif event.is_a?(Event::Hunger)
           @hunger_told += 1
@@ -3921,9 +3912,10 @@ module Roguelike
         return Verdict.refused
       end
 
+      owed = sustenance.thirst
       drunk = sustenance.drink
       say "You drink from your waterskin.",
-        Event::Drank.new(drunk, "skin")
+        Event::Drank.new(drunk, "skin", owed - sustenance.thirst)
       restage
       spend_turn
       Verdict.done
@@ -4218,7 +4210,7 @@ module Roguelike
     # found.
     private def noticing(seen : Vision) : Hash(String, Monster)
       light = seen.light @player.x, @player.y
-      stealth = @player.attributes.stealth
+      stealth = @player.worn_attributes.stealth
       found = {} of String => Monster
 
       floor.each_monster do |column, row, creature|
@@ -5388,14 +5380,15 @@ module Roguelike
 
     # Drinks what is under *letter*. Answers whether it went down.
     #
-    # Any potion quenches thirst by one unit. A `drank` event says so when
-    # the character was thirsty enough to take it.
+    # Any potion pays `Sustenance::Tuning::POTION_QUENCH` turns of thirst
+    # debt and leaves the skin alone. A `drank` event says so when there was
+    # debt to pay.
     def quaff(letter : Char) : Bool
       use letter, ItemClass::Potion, "drink" do |item|
         say "You drink #{name item}.",
           with_facts(Event::Used.new(item.id, name(item), :drink), item_facts(item))
-        units = @player.sustenance.quench 1
-        record Event::Drank.new(units, "potion") if units > 0
+        paid = @player.sustenance.quench Sustenance::Tuning::POTION_QUENCH
+        record Event::Drank.new(1, "potion", paid) if paid > 0
       end
     end
 
@@ -7753,17 +7746,14 @@ module Roguelike
     private def headed(direction : Direction,
                        action : Action::Explore | Action::Travel | Action::Visit) : Step
       told = @thirst_told
-      dry = @dry_told
       hungry = @hunger_told
       taken = step direction
       sighted_now unless action.is_a?(Action::Travel)
       return taken unless action.is_a?(Action::Explore)
 
-      # An explore goes to water by itself, so a dry skin does not stop it.
       # When the next step drinks, the line that says thirst set in does not
-      # stop it either. With eating on, a line that says hunger set in never
-      # stops it, food or none. The hunger pill shows the stage.
-      @overlooked += @dry_told - dry
+      # stop it. With eating on, a line that says hunger set in never stops
+      # it, food or none. The hunger pill shows the stage.
       @overlooked += @thirst_told - told if drinks?
       @overlooked += @hunger_told - hungry if explore_settings.eat?
       taken
@@ -7798,7 +7788,7 @@ module Roguelike
 
     # What an explore eats from the food bag now, or `nil` for nothing.
     #
-    # It eats only with eating on and the character hungry or worse. The
+    # It eats only with eating on and hunger at its first effect. The
     # worst food goes first, so the best is kept. See `#meal_rank`. Rotten
     # food is eaten only while starving, and only when nothing else is left.
     # A corpse underfoot is never eaten here.
@@ -7806,7 +7796,7 @@ module Roguelike
       return unless explore_settings.eat?
 
       stage = @player.sustenance.hunger_stage
-      return if stage < Sustenance::HungerStage::Hungry
+      return if stage < Sustenance::HungerStage::Fed
 
       starving = stage.starving?
       food = @player.food_bag.items.select do |item|

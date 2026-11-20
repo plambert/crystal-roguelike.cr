@@ -118,7 +118,8 @@ Spectator.describe Roguelike::Replay::Export do
     end
 
     it "says how the run ended" do
-      source = recorded
+      # Twenty actions end short of the death sixty of them reach.
+      source = recorded 20
       lines = exported source
 
       expect(Roguelike::Replay::Reading.read(source).footer.try(&.state)).to be_nil

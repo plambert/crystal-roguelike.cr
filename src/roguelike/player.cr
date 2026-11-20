@@ -103,6 +103,12 @@ module Roguelike
     # with the character fed, quenched and the skin full.
     getter sustenance : Sustenance = Sustenance.new
 
+    # The five scores as hunger and thirst leave them. Every roll reads
+    # these. Maximum hit points and the character pane read `#attributes`.
+    def worn_attributes : Attributes
+      @sustenance.wear @attributes
+    end
+
     # Maximum hit points lost for good, from eating humanoid corpses.
     #
     # `nil` stands for none, so a save that has lost nothing writes no field
@@ -241,7 +247,7 @@ module Roguelike
     def armor_class : Int32
       total = worn.sum { |_slot, item| item.armor }
 
-      Math.max total + @attributes.modifier(Attributes::Which::Dexterity), 0
+      Math.max total + worn_attributes.modifier(Attributes::Which::Dexterity), 0
     end
 
     # What the character adds to a swing.
@@ -251,7 +257,7 @@ module Roguelike
     #
     # *held* is the wielded weapon unless another is named.
     def to_hit(held : Item? = wielded) : Int32
-      bonus = @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty +
+      bonus = worn_attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty +
               fed_melee
       return bonus unless held && Player.swung?(held)
 
@@ -276,7 +282,7 @@ module Roguelike
     def damage(held : Item? = wielded) : Dice
       dice = held && Player.swung?(held) ? held.damage : UNARMED
 
-      dice.with_bonus @attributes.modifier(Attributes::Which::Strength) - @sustenance.damage_penalty +
+      dice.with_bonus worn_attributes.modifier(Attributes::Which::Strength) - @sustenance.damage_penalty +
                       buff_power(Event::Status::Mighty)
     end
 
@@ -285,7 +291,7 @@ module Roguelike
     # The dexterity modifier, plus what each of the two adds. A masterwork
     # bow and a bent arrow both count, and so does a blessing on either.
     def to_shoot(weapon : Item, ammunition : Item) : Int32
-      Combat.aim @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty +
+      Combat.aim worn_attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty +
                  fed_aim, weapon, ammunition
     end
 
@@ -300,7 +306,7 @@ module Roguelike
 
     # What the character adds to a throw of *item*.
     def to_throw(item : Item) : Int32
-      @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty + fed_aim +
+      worn_attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty + fed_aim +
         item.aim
     end
 
@@ -308,7 +314,7 @@ module Roguelike
     #
     # Its dice, plus the strength modifier. An arm sends this one.
     def throw_damage(item : Item) : Dice
-      item.damage.with_bonus @attributes.modifier(Attributes::Which::Strength) - @sustenance.damage_penalty
+      item.damage.with_bonus worn_attributes.modifier(Attributes::Which::Strength) - @sustenance.damage_penalty
     end
 
     # What the character adds to a bolt from a wand.
@@ -316,7 +322,7 @@ module Roguelike
     # The dexterity modifier and nothing else. A wand carries no `+N`, and
     # strength does not aim one.
     def to_zap : Int32
-      @attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty
+      worn_attributes.modifier(Attributes::Which::Dexterity) - @sustenance.to_hit_penalty
     end
 
     # Adds *amount* gold pieces. Answers the new total.
@@ -517,11 +523,11 @@ module Roguelike
 
     # Ticks one hit point of regeneration takes, from constitution.
     #
-    # The first stage of hunger or of thirst doubles it. A liver divides it
-    # by one more than its power, and never below one tick.
+    # Hunger and thirst stretch it by `Sustenance#regeneration_factor`. A
+    # liver divides it by one more than its power, and never below one tick.
     def regeneration : Int32
-      found = Advancement.regeneration @attributes.constitution
-      found *= 2 if @sustenance.slow_regeneration?
+      found = Advancement.regeneration worn_attributes.constitution
+      found = (found * @sustenance.regeneration_factor).to_i
       Math.max found // (1 + buff_power(Event::Status::Mending)), 1
     end
 

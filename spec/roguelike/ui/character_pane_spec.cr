@@ -398,8 +398,8 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       run = playing
       sustenance = run.game.player.sustenance
       sustenance.water = 0
-      sustenance.thirst = Roguelike::Sustenance::PARCHED
-      sustenance.hunger = Roguelike::Sustenance::HUNGRY
+      sustenance.thirst = Roguelike::Sustenance::Tuning::THIRST_SERIOUS
+      sustenance.hunger = Roguelike::Sustenance::Tuning::HUNGER_HUNGRY
       run.play.refresh
 
       expect(pill_names run).to eq ["hungry", "parched"]
@@ -420,7 +420,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
     it "draws buffs and debuffs in two pill styles" do
       run = playing
       run.game.player.buff Status::SteadyAim, 1, 300
-      run.game.player.sustenance.hunger = Roguelike::Sustenance::HUNGRY
+      run.game.player.sustenance.hunger = Roguelike::Sustenance::Tuning::HUNGER_HUNGRY
       run.play.refresh
 
       styles = run.play.character.pills.pills.map { |pill| {pill.text, pill.style} }.to_h
@@ -436,7 +436,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       player.buff Status::WellFed, 5, 300
       player.buff Status::SteadyAim, 1, 300
       player.buff Status::SteadyHand, 1, 300
-      player.sustenance.hunger = Roguelike::Sustenance::HUNGRY
+      player.sustenance.hunger = Roguelike::Sustenance::Tuning::HUNGER_HUNGRY
       run.play.refresh
       run.render
 
@@ -452,7 +452,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
 
     it "takes the pill away when the stage ends" do
       run = playing
-      run.game.player.sustenance.hunger = Roguelike::Sustenance::HUNGRY
+      run.game.player.sustenance.hunger = Roguelike::Sustenance::Tuning::HUNGER_HUNGRY
       run.play.refresh
       run.game.player.sustenance.hunger = 0
       run.play.refresh
@@ -467,7 +467,7 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       run.play.refresh
       run.render
 
-      expect(info_row run, run.play.character.water.rect.y).to contain "water 7/10"
+      expect(info_row run, run.play.character.water.rect.y).to contain "water 7/20"
     end
 
     it "gives each running effect its own row below the water bar" do

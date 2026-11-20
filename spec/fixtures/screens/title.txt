@@ -1,8 +1,8 @@
  —              D1 Lv 1 │#########
  HP        12/12        │#..o....#
  XP        0/20         │#..@...>#
- food             4h10m │#########
- water 10/10      9h40m │
+ food                6h │#########
+ water 20/20         7h │
  ▼ Scores               │
  AC   Gold         Turn │
  0    37              0 │

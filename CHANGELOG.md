@@ -19,9 +19,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   cheese, and roots and herbs. Food you pick up goes in a food bag that holds weight 40, takes
   no pack letter and costs no pace. If the bag has no room, the food stays on the floor.
   Automatic pickup and `X` take food when the bag has room. You start with two rations.
+* Floors 1 to 3 hold the most food. Floors 4 to 7 hold very little, often one item, so you live
+  on what you carry down and what you kill. Floors 8 to 10 hold a little more again.
 * Food goes stale and then rotten as it ages, except rations, which keep. Stale food feeds half as
   much. Rotten food stays in the bag, and eating it makes you sick for a while: every blow and
-  shot lands less often.
+  shot lands less often. The line that says food in your bag has turned names the food as it was
+  before it turned.
 * Eating fresh food gives a buff for 300 turns by family. Meat makes you quicker, fruit eases
   thirst, nuts and cheese steady your aim, and roots and herbs steady your hand. Grain feeds the
   most and gives no buff. A buff does not stack with itself. Stale food gives half the buff.
@@ -30,11 +33,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Beasts, goblins, orcs and ants leave a corpse when they die. Undead leave a putrid mass and
   bones, or bones alone for a skeleton. Picking up a fresh beast corpse cuts it into fresh meat
   for the bag. A small or medium beast gives one piece and a large one gives two. A piece feeds
-  less than an apple, so meat helps but does not feed you on its own. A corpse rots to a putrid
-  mass about 300 turns after death.
-* You can eat a corpse where it lies only when you are starving. Until then the pick-up menu
-  shows it as a dimmed row that says "eat when starving". Once you are starving the row says
-  "eat some (starving!)", and a fresh beast corpse gets that row as well as the one that cuts it.
+  less than an apple, so meat helps but does not feed you on its own. A fresh piece also eases
+  your thirst by 15 minutes, a stale one does nothing for it, and a rotten one makes you 30
+  minutes thirstier. A corpse rots to a putrid mass about 300 turns after death.
+* You can eat a corpse where it lies only when you are starving, after 60 hours without food. Until
+  then the pick-up menu shows it as a dimmed row that says "eat when starving". Once you are
+  starving the row says "eat some (starving!)", and a fresh beast corpse gets that row as well as
+  the one that cuts it.
 * Your character is human. Eating a human corpse is cannibalism: the pick-up menu marks the row
   "cannibalism", and the first meal of one makes you a cannibal for good, which the game tells
   you and keeps in your save. No human corpses turn up in the dungeon yet.
@@ -69,16 +74,17 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   green and debuffs are red. Both colors are in the theme editor, and the pills and their text
   read at 4.5 to 1 or more in every built-in theme.
 * Fountains, drawn as `{`. Floor 1 always has one in the room you start in, a few steps from the
-  stairs. About three floors in four below it have one in a room. The longer you go without a
-  fountain, the likelier the next floor has one, and you never go more than three floors in a row
-  without one. The amulet chamber has none. The fountain color is in the theme editor and reads
-  at 4.5 to 1 in every built-in theme.
-* Standing on a fountain you can fill your waterskin, one turn for each unit, until it is full or
-  a creature comes into view, and drink from it for free when you are thirsty. In the traditional
-  controls `U` drinks and then fills. In the modern controls both are in the `f` actions list.
+  stairs. Below it a floor has one in a room: three floors in four on floors 2 to 4, one in four on
+  floors 5 to 7, and a little under half on floors 8 to 10. On floors 8 to 10 you never go more
+  than four floors in a row without one. The amulet chamber has none. The fountain color is in the
+  theme editor and reads at 4.5 to 1 in every built-in theme.
+* Standing on a fountain you can fill your waterskin, one turn for each unit, until it is full or a
+  creature comes into view, and drink from it for free, which takes away all your thirst. In the
+  traditional controls `U` drinks and then fills. In the modern controls both are in the `f`
+  actions list.
 * Explore walks to a fountain it knows of once your waterskin is empty or you are thirsty, drinks,
   and fills the skin before it goes on. It also tops the skin up at any fountain it crosses.
-* Drinking any potion also quenches your thirst.
+* Drinking any potion also eases your thirst a little, by about 15 minutes.
 * The color theme editor opens on a Themes list: the game's three themes, then every theme in the
   `themes` folder by name. Press `Enter` on one to use it. The theme you are using is marked, and a
   theme file you drop into the folder shows up the next time the editor opens.
@@ -166,34 +172,40 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   pass. For one turn after you make a noise, the map tints the squares it reached, brightest at
   the source. A ring spreads out from you first unless motion is off. The colors are in the
   theme editor.
-* You get hungry and thirsty. Hunger builds every turn. A waterskin of 10 units starts full, and
-  you sip from it as you go. When it runs dry, thirst builds. Each one passes through stages that
-  get worse. Hunger goes from hungry to famished to starving. Thirst goes from thirsty to parched,
-  dehydrated and dying of thirst. Each stage has its own penalty in place of the one before it.
-  The first stage slows natural healing. The next takes 1 off to hit, and famished also takes 1
-  off melee and thrown damage. The third takes 10 off pace. The last stops healing and takes hit
-  points away. Thirst kills about 6000 turns after the skin runs dry. Hunger kills at about 9000
-  turns without food.
+* You get hungry and thirsty. Both build every turn, and a turn is ten seconds. Eating takes
+  hunger away by what the food feeds, and drinking takes thirst away. Hunger first tells on you
+  after 6 hours, makes you hungry at 12, famished at 24 and starving at 60, and kills you after
+  six weeks. Thirst makes you thirsty at 7 hours, parched at 24 and dehydrated at 48, and kills
+  you at 72. Dying of thirst shows a few hours before that.
+* Hunger and thirst wear you down by degrees rather than in steps, and the two add together. As
+  they grow you walk and act more slowly, heal more slowly, land fewer blows, hit for less, and
+  your scores sink toward 3. A little hunger is a small drag. Starving and dehydrated together
+  leave you nearly helpless. Near the end you stop healing and lose hit points, faster as it gets
+  worse.
+* A waterskin of 20 units starts full. Each drink from it takes away 75 minutes of thirst, so a
+  full skin is about a day of water. You drink only when you choose to.
 * The character pane names each hunger and thirst stage in a pill, with no count, and shows the
-  waterskin as `water 7/10`.
+  waterskin as `water 7/20`.
 * `D` drinks one unit from the waterskin, and `Ctrl+D` does it under modern controls. The action
-  catalog lists it as Drink water. A drink quenches your thirst. You cannot drink when you are
-  not thirsty, and that costs no turn.
+  catalog lists it as Drink water. You cannot drink when you are not thirsty at all, and that
+  costs no turn.
 * A death from hunger or thirst has its own line on the end screen.
 * A new explore setting, Drink when thirsty, is on by default. With it on, `X` drinks from the
-  skin when thirst sets in and walks on. With it off, or with an empty skin, `X` stops there.
-  `X` does not stop when the skin runs dry.
-* A new explore setting, Eat when hungry, is on by default. With it on, `X` eats from the food
-  bag when you get hungry and walks on. It eats the food that will spoil first, stale before
-  fresh, and keeps rations for last. It eats rotten food only when you are starving and nothing
-  else is left, and it never eats a corpse. With an empty bag, `X` walks on. With the setting
-  off, `X` stops when hunger sets in.
+  skin just before thirst sets in and walks on, and never drinks more than it needs. With it off,
+  or with an empty skin, `X` stops when you grow thirsty.
+* A new explore setting, Eat when hungry, is on by default. With it on, `X` eats from the food bag
+  once hunger first tells on you, at 6 hours, and walks on. It eats the food that will spoil first,
+  stale before fresh, and keeps rations for last. It eats rotten food only when you are starving
+  and nothing else is left, and it never eats a corpse. With an empty bag, `X` walks on. With the
+  setting off, `X` stops when hunger sets in.
 * Bots get `drank`, `hunger_stage` and `thirst_stage` events, and a `drink` action. The `over`
   event names the cause of a death from hunger or thirst.
 * `--trial` games run without hunger and thirst, because the trial bot never eats or drinks.
   `--trial-sustenance` turns them on.
-* The bot observation gives the character's hunger stage, thirst stage, and the water in the
-  waterskin with its capacity. The keys are left out when hunger and thirst are off.
+* The bot observation gives the character's hunger stage, thirst stage, the water in the
+  waterskin with its capacity, the exact hunger and thirst debts in turns, and the severity the
+  penalties read, from 0 to 1. The keys are left out when hunger and thirst are off. The `drank`
+  event says how many turns of thirst the drink took away.
 * The bot observation gives the food bag: how many items it holds, its weight and limit, and each
   stack's id, name, count, family, freshness, whether it spoils, how much it feeds and its weight.
 
@@ -201,9 +213,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 * The character pane shows food and water as rough times rather than exact turns. The food line
   gives about how long until you next grow hungrier, and the water line gives the water in the
-  skin and about how long until you next grow thirstier. Once you are hungry or thirsty, the
-  line names the stage, and the time runs to the next stage or, at the last one, to death. Times
-  count ten seconds to a turn and round down to ten minutes, as "50m" or "4h10m".
+  skin out of 20 and about how long until you next grow thirstier. Once you are hungry or thirsty,
+  the line names the stage, and the time runs to the next stage or, at the last one, to death.
+  Times count ten seconds to a turn and round down to ten minutes, as "50m" or "4h10m". From ten
+  hours up they show whole hours, as "20h".
 * The food bag screen shows how long each stack feeds and, for food that spoils, about how long
   until it turns stale, rotten or putrid. The title shows the water in the skin and how long it
   lasts. A row too wide for the screen drops the spoiling time first, and then the feeding time.
@@ -227,8 +240,6 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   scheme chooser also takes `h` and `l`.
 * Meat says how fresh it is in its own name. A piece of meat reads "a piece of stale meat"
   rather than "a stale piece of fresh meat".
-* The line that says food in your bag has gone stale or rotten names the food as it was, so
-  it no longer says rotten twice.
 * A potion that quenches thirst writes a `drank` event with source `potion` for bots, as the
   bot protocol says.
 * Food you looked at closely stays known when you see it again from across the room a few turns
