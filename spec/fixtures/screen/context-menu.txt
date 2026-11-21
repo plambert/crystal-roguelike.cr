@@ -1,0 +1,24 @@
+ —              D1 Lv 1 │###########
+ HP        40/12        │#@........#
+ XP        0/20         │#....{..).#
+ food                6h │#.>.......#
+ water 20/20         7h │####+┌────────────┐
+ ▼ Scores               │     │Open       o│
+ AC   Gold         Turn │     │Walk here  _│
+ 0    0               0 │     │Examine    x│
+ St Dx Cn In Sl         │     └────────────┘
+ 10 10 10 10 10         │
+ Walk 111%     0.84 dps │
+ ▶ Equipment          0 │
+ ▶ Pack               0 │
+ ▼ Here                 │
+   staircase up         │
+ ▼ Seen                 │
+   a dagger             │
+ ▼ Look                 │
+ 4, 4                   │
+ closed door            │───────────────────────────────────────────────────────
+ a shut wooden door     │
+                        │
+                        │
+                        │

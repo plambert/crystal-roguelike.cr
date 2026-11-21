@@ -29,6 +29,11 @@ module Roguelike::Ui
       "n" => Direction::SouthEast,
     }
 
+    # What the mouse does, as the help screen lists it after `M`.
+    MOUSE_NOTES = [
+      {"Right-click", "open a menu of actions for the square"},
+    ]
+
     # A group of keys with a name, which is how the help screen shows them.
     #
     # *notes* are rows the help screen shows after the bindings, each a key
@@ -89,7 +94,7 @@ module Roguelike::Ui
       end
       sections = [Section.new("application", own)]
       sections.concat play.sections if play
-      sections << Section.new("mouse", mousing(&on_mouse)) if on_mouse
+      sections << Section.new("mouse", mousing(&on_mouse), MOUSE_NOTES) if on_mouse
 
       help.sections = sections
       help.first = -> { play.try { |game| Help.title_for game.ring.current } } if play
@@ -147,11 +152,14 @@ module Roguelike::Ui
       end
     end
 
-    # `x` puts the examine cursor on the map and takes it off again.
+    # `x` puts the examine cursor on the map and takes it off again. `m`
+    # opens the menu of actions for the square under the cursor.
     def self.examining(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("x"), "look at a square",
           ->(_context : Widgets::Context) { play.toggle_examine; nil }
+        map.bind TermBuf::Key.parse("m"), "open the menu for the square under the cursor",
+          ->(_context : Widgets::Context) { play.context_menu_at_cursor; nil }
       end
     end
 
@@ -645,6 +653,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.modern_explore; nil }
         map.bind TermBuf::Key.parse("Ctrl+D"), "drink from your waterskin",
           ->(_context : Widgets::Context) { play.drink_water; nil }
+        map.bind TermBuf::Key.parse("m"), "open the menu for the square under the cursor",
+          ->(_context : Widgets::Context) { play.context_menu_at_cursor; nil }
       end
     end
 

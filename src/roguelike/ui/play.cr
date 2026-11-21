@@ -50,6 +50,9 @@ module Roguelike::Ui
     # The window the floor is played in.
     getter map : MapPane
 
+    # The menu of actions for a square, put up by a right click or `m`.
+    getter context_menu : Widgets::PointMenu
+
     # The readout of what is on one square.
     getter examine : ExaminePane
 
@@ -349,11 +352,23 @@ module Roguelike::Ui
     @fade_timer : UInt64? = nil
 
     # A right button held down on the map: the cell it went down on and the
-    # camera at that moment.
-    private record Drag, from : {Int32, Int32}, camera : {Int32, Int32}
+    # camera at that moment. *moved* is true once the pointer has gone more
+    # than a cell from where it went down, which is what makes the press a
+    # drag rather than a click.
+    private record Drag, from : {Int32, Int32}, camera : {Int32, Int32}, moved : Bool = false
 
     # The drag under way. `nil` when the right button is up.
     @drag : Drag? = nil
+
+    # The rows of the context menu while it is up, and the square it is for.
+    @context_rows : Array(ContextRow) = [] of ContextRow
+    @context_spot : {Int32, Int32}? = nil
+
+    # The verb a walk is taking the character to do. `nil` when none is.
+    #
+    # It lives and dies with `@walk`. Anything that stops the walk puts it
+    # away, except the walk reaching the square it was sent to.
+    @errand : ContextErrand? = nil
 
     # Where the camera was before the first drag moved it, and the turn it was
     # dragged on. `nil` when the camera has not been dragged.
@@ -513,6 +528,10 @@ module Roguelike::Ui
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
       @tooltip = Tooltip.new
+      @context_menu = Widgets::PointMenu.new
+      @context_menu.disabled_style = Palette.dimmed
+      @context_menu.on_choose = ->(index : Int32) { chose_context index; nil }
+      @context_menu.on_dismiss = -> { dismissed_context; nil }
       watch_the_log
       build_info
 
@@ -1307,7 +1326,7 @@ module Roguelike::Ui
     # Whether a box is holding the keyboard. A question and a list each do.
     def modal? : Bool
       @prompt.asking? || @entry.asking? || @menu.showing? || @placard.showing? ||
-        @history.showing? || @options_screen.showing? || (@console.try &.showing? || false)
+        @context_menu.open? || @history.showing? || @options_screen.showing? || (@console.try &.showing? || false)
     end
 
     # Puts the camera on the character.
@@ -3493,7 +3512,8 @@ module Roguelike::Ui
 
     # Answers a mouse report the widgets did not claim.
     #
-    # The right button held down on the map drags the view. Every other
+    # The right button held down on the map drags the view, or opens the
+    # context menu when it comes up on the square it went down on. Every other
     # report goes to `#pointed`.
     #
     # Answers the sequence the terminal needs, as `#pointed` does.
@@ -3505,7 +3525,9 @@ module Roguelike::Ui
       if report.action.press?
         @drag = Drag.new({x, y}, @map.camera) if @map.cell_at_screen(x, y)
       elsif report.action.release?
+        held = @drag
         @drag = nil
+        right_clicked held, x, y if held
       else
         drag_to x, y
       end
@@ -3536,13 +3558,28 @@ module Roguelike::Ui
       !modal? && !@menu.showing?
     end
 
+    # Whether *one* and *other* are the same cell or neighbors. A right press
+    # that stays this close to where it went down is a click.
+    def self.near?(one : {Int32, Int32}, other : {Int32, Int32}) : Bool
+      Math.max((one[0] - other[0]).abs, (one[1] - other[1]).abs) <= 1
+    end
+
     # Moves the camera so that the square the drag started on sits under
     # *x*, *y*.
+    #
+    # The pointer has to leave the cells beside where it went down first. A
+    # click that wobbles a cell does not move the view.
     #
     # The grid stops the camera at the edges of the floor.
     private def drag_to(x : Int32, y : Int32) : Nil
       found = @drag
       return unless found
+
+      unless found.moved
+        return if Play.near? found.from, {x, y}
+
+        @drag = found = found.copy_with moved: true
+      end
 
       wanted = {found.camera[0] + found.from[0] - x, found.camera[1] + found.from[1] - y}
       before = @map.camera
@@ -3746,6 +3783,192 @@ module Roguelike::Ui
       start_walking @game.travelling(pointing.goal)
     end
 
+    # ------------------------------------------------------ context menu
+
+    # Answers the right button coming up where it went down.
+    #
+    # A press that stayed within a cell of where it went down is a click, and
+    # opens the menu for that square. A press that went further was a drag,
+    # and has already moved the view. A click while a walk or a rest runs
+    # stops it, as a left click does.
+    private def right_clicked(held : Drag, x : Int32, y : Int32) : Nil
+      return if held.moved || !Play.near?(held.from, {x, y})
+      return interrupted if walking? || resting?
+      return unless @mousing
+
+      spot = @map.cell_at_screen held.from[0], held.from[1]
+      show_context_menu spot, held.from if spot
+    end
+
+    # Opens the menu for the square under the examine cursor. `m` does this.
+    #
+    # It does nothing while the cursor is off the map or is aiming a shot.
+    def context_menu_at_cursor : Nil
+      return unless @examiner.cursoring? && @aiming.nil?
+
+      spot = @examiner.spot
+      anchor = @examiner.screen_spot
+      show_context_menu spot, anchor if spot && anchor
+    end
+
+    # Puts the menu for *spot* up beside *anchor*, a cell of the buffer.
+    #
+    # Nothing opens while a box is up, while the run is over or being
+    # watched, or for a square the character knows nothing about. A square
+    # beyond the character's reach has its route drawn while the menu is up.
+    private def show_context_menu(spot : {Int32, Int32}, anchor : {Int32, Int32}) : Nil
+      return if @viewer || @game.over? || modal? || @pending || @aiming
+
+      rows = ContextMenu.rows @game, spot, control_scheme
+      return if rows.empty?
+
+      @context_rows = rows
+      @context_spot = spot
+      @context_menu.items.replace(rows.map do |row|
+        Widgets::DropdownMenu::Item.new row.label, hint: row.hint, enabled: row.enabled
+      end)
+
+      preview_route spot
+      @context_menu.open_at application, anchor[0], anchor[1]
+    end
+
+    # Draws the way to *spot* without arming the timer that takes it off. The
+    # menu takes it off when it goes down.
+    private def preview_route(spot : {Int32, Int32}) : Nil
+      return if Notice.touching?(@game.player.at, spot)
+      return unless @game.knowledge.crossable? spot
+
+      route = @game.route_to spot
+      return if route.size < 2
+
+      stop_fading
+      aim_at spot, route
+      refresh
+    end
+
+    # Takes the route the menu drew off the map when the menu goes down with
+    # no choice made.
+    private def dismissed_context : Nil
+      spot = @context_spot
+      @context_spot = nil
+      stop_pointing if spot && @pointing.try(&.goal) == spot
+    end
+
+    # Does what choosing row *index* of the menu does.
+    private def chose_context(index : Int32) : Nil
+      row = @context_rows[index]?
+      spot = @context_spot
+      @context_spot = nil
+      return unless row && spot
+
+      case row.verb
+      in .examine?
+        @examiner.start spot unless @examiner.cursoring?
+        @examiner.point_at spot[0], spot[1]
+        refresh
+      in .walk?
+        @pointing = nil
+        go_to spot
+      in .open?, .close?, .spike?, .descend?, .ascend?, .drink?, .fill?, .pick_up?
+        run_errand row.verb, spot
+      end
+    end
+
+    # Does *verb* on *target*, walking to where it can be done first.
+    private def run_errand(verb : ContextVerb, target : {Int32, Int32}) : Nil
+      @pointing = nil
+      here = ContextErrand.new verb, target, @game.player.at, @game.floor.id
+      return do_errand here if ContextMenu.reached?(verb, @game, target)
+
+      stand = ContextMenu.stand_for verb, @game, target
+      unless stand
+        refresh
+        return say "You know no way there."
+      end
+
+      start_walking @game.travelling(stand),
+        ContextErrand.new(verb, target, stand, @game.floor.id)
+    end
+
+    # Does *errand* if the walk that carried it ended on the square it was
+    # sent to and nothing else stopped it. Any other end drops it without a
+    # word.
+    #
+    # Stepping onto a staircase writes a line, and a line stops a walk with
+    # `Halt::Told`. That line is the arrival, so it counts as one for a verb
+    # done on the staircase.
+    def finish_errand(walk : Game::Walk, errand : ContextErrand) : Nil
+      halt = walk.halt
+      return unless halt
+      return unless halt.arrived? || (halt.told? && stairs_arrival?(errand))
+      return unless @game.player.at == errand.stand
+      return unless ContextMenu.reached?(errand.verb, @game, errand.target)
+
+      do_errand errand
+    end
+
+    # Whether *errand* is a verb done on the staircase the character stands
+    # on.
+    private def stairs_arrival?(errand : ContextErrand) : Bool
+      errand.verb.reach.on? && @game.standing_on.stairs?
+    end
+
+    # Does the verb of *errand* where the character now stands.
+    private def do_errand(errand : ContextErrand) : Nil
+      return if @game.over? || errand.floor != @game.floor.id
+
+      target = errand.target
+      case errand.verb
+      in .examine?, .walk? then nil
+      in .open?            then open_there target
+      in .close?           then close_there target
+      in .spike?           then spike_there target
+      in .descend?         then descend
+      in .ascend?          then ascend
+      in .drink?           then drink_fountain
+      in .fill?            then fill_skin
+      in .pick_up?         then pick_up
+      end
+    end
+
+    # Opens the door on *spot*, which the character stands beside. A door
+    # already open is said the way `o` says it.
+    private def open_there(spot : {Int32, Int32}) : Nil
+      way = Direction.between @game.player.at, spot
+      unless way && @game.doors(Terrain::ClosedDoor).includes?(way)
+        return say "There is nothing to open beside you."
+      end
+
+      act Pending::Open, way
+    end
+
+    # Shuts the door on *spot*, which the character stands beside.
+    private def close_there(spot : {Int32, Int32}) : Nil
+      way = Direction.between @game.player.at, spot
+      unless way && @game.doors(Terrain::OpenDoor).includes?(way)
+        return say "There is nothing to close beside you."
+      end
+
+      act Pending::Close, way
+    end
+
+    # Drives a spike into the shut door on *spot*, which the character
+    # stands beside. Choosing the row was the yes the key asks for.
+    private def spike_there(spot : {Int32, Int32}) : Nil
+      way = Direction.between @game.player.at, spot
+      spike = @game.spike_carried
+      unless spike && way && @game.doors(Terrain::ClosedDoor).includes?(way)
+        return say "There is nothing to spike beside you."
+      end
+
+      if @game.floor.spiked? spot[0], spot[1]
+        return say "The door already has a spike in it."
+      end
+
+      @game.perform Action::Apply.new(item: spike.id, at: spot)
+      refresh
+    end
+
     # Records that the pointer is off the map. Also used when the mouse is
     # turned off and when the walk ends.
     #
@@ -3764,6 +3987,7 @@ module Roguelike::Ui
     def fit(columns : Int32, rows : Int32) : Nil
       @columns = columns
       @rows = rows
+      @context_menu.close
       @screen.fit columns, rows
       @ring.fit
       @news_page.screen_rows = rows
@@ -3875,9 +4099,12 @@ module Roguelike::Ui
     # the application has is out of reach until the walk stops, so a key
     # pressed part way through stops it rather than doing what it usually
     # does.
-    private def start_walking(walk : Game::Walk) : Nil
+    #
+    # *errand* is done when the walk ends on the square it names.
+    private def start_walking(walk : Game::Walk, errand : ContextErrand? = nil) : Nil
       stop_walking
       @walk = walk
+      @errand = errand
       @interrupt.grab @app
 
       # The pane piles the walk's messages up and holds once it is over. A page
@@ -3903,7 +4130,11 @@ module Roguelike::Ui
 
         # The walk is put away before the screen is drawn, so the pane is free
         # to hold on the lines the last step wrote.
-        stop_walking unless going
+        unless going
+          errand = @errand
+          stop_walking
+          finish_errand walk, errand if errand
+        end
         refresh
         return unless going
 
@@ -3921,6 +4152,7 @@ module Roguelike::Ui
     # the walk found off the pane.
     private def stop_walking : Nil
       @walk_timer.cancel
+      @errand = nil
 
       return unless @walk
 
