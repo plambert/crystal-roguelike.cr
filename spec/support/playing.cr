@@ -35,7 +35,7 @@ module Playing
     end
 
     delegate game, screen, map, examine, examiner, nearby, pointer, prompt, pager, menu,
-      console, placard, entry, store, viewer, to: @play
+      context_menu, console, placard, entry, store, viewer, to: @play
 
     # Whether the run should end.
     def finished? : Bool
@@ -158,6 +158,19 @@ module Playing
       mouse right, TermBuf::Input::Mouse::Action::Press, *from
       mouse right, TermBuf::Input::Mouse::Action::Motion, *to
       mouse right, TermBuf::Input::Mouse::Action::Release, *to
+    end
+
+    # The right button going down and coming up at *x*, *y* of the buffer.
+    def right_click(x : Int32, y : Int32) : Nil
+      right = TermBuf::Input::Mouse::Button::Right
+      mouse right, TermBuf::Input::Mouse::Action::Press, x, y
+      mouse right, TermBuf::Input::Mouse::Action::Release, x, y
+    end
+
+    # The right button going down and coming up over cell *x*, *y* of the map
+    # pane.
+    def right_click_map(x : Int32, y : Int32) : Nil
+      right_click *on_map(x, y)
     end
 
     # A wheel notch at *x*, *y* of the buffer. *up* rolls it back.

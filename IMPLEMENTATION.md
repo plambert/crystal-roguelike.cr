@@ -7153,6 +7153,83 @@ Environment group of the action catalog.
 * `spec/fixtures/floors/dug.txt` is floor 1 and gains its fountain three steps from the up
   staircase. Nothing else on it moves.
 
+## The context menu
+
+A right click on a map square opens a menu of what the character can do with that square. `m` opens
+the same menu for the square under the examine cursor, in both control schemes.
+
+### The widget
+
+* `TermBuf::Widgets::PointMenu` in `termbuf_ext/point_menu.cr` is a `DropdownMenu` that opens
+  beside a screen point and keeps itself on the screen. It is modal, so the keyboard stays in it.
+* A press outside takes it down and goes no further, so the click that closes it does not also
+  walk anywhere.
+* `DropdownMenu` was chosen over `Widgets::Menu` because it is a small popover with a key hint
+  column and disabled rows. `Menu` is a centered box that dims the screen and answers by letter.
+* `Play#modal?` counts it, so the pointer, the cursor and the keys treat it like every other box.
+
+### Opening it
+
+* A right press records a `Drag`. The view moves only after the pointer leaves the cells beside the
+  press, so a click that wobbles a cell does not shift the map.
+* The right button coming up within a cell of where it went down, with no move beyond that, opens
+  the menu on the cell it went down on. A release counts whatever button it names, because some
+  terminals do not say.
+* Nothing opens while a box is up, while the run is over or is a replay, while a command waits for
+  a key or a square, or while mouse reporting is off. A right click during a walk or a rest stops
+  it, as a left click does.
+* A square the character knows nothing of gets no menu.
+
+### Rows
+
+`Ui::ContextMenu.rows` builds them from `Knowledge`, never from the floor. Every row is a
+`ContextVerb`, and members are only appended.
+
+| Square | Rows |
+| --- | --- |
+| Any known square | Examine. Walk here unless it is the character's own or cannot be crossed. |
+| Shut door | Open. Spike when a spike is carried, dimmed when the door is remembered spiked. |
+| Open door | Close, dimmed while the character stands in it. |
+| Stairs | Descend or Ascend. |
+| Fountain | Drink, dimmed when not thirsty. Fill waterskin, dimmed when the skin is full. |
+| Item remembered | Pick up. |
+
+There are no creature rows. The hints come from `TRADITIONAL_KEYS` and `MODERN_KEYS`, and a spec
+checks that each hint is a key the scheme binds. The modern scheme has no key for most of the
+verbs, so those rows show none.
+
+### Walk, then act
+
+* `ContextVerb#reach` says where the character stands. Open, Close and Spike act on a square
+  beside the target. Stairs, fountain and Pick up act on the target. Examine and Walk need no
+  walk.
+* `ContextMenu.stand_for` picks the nearest known square beside a door, preferring one whose route
+  does not pass through the door and one that is not a door itself. The walk never steps onto a
+  door about to be shut.
+* The walk is an ordinary `Action::Travel`. `Play` keeps one `ContextErrand` with it. The errand
+  runs when the walk ends with `Halt::Arrived` on the stand square. Stepping onto a staircase
+  writes a line that stops a walk with `Halt::Told`, and that counts as arriving for the stairs
+  verbs.
+* Every other end drops the errand without a line. That includes a key, a click, a creature,
+  being hurt, a blocked way, a spent walk and the run ending. The errand dies with the walk in
+  `stop_walking`.
+* Open and Close on a door that is no longer in that state say "There is nothing to open beside
+  you." or the close line, as the keys do.
+* The verbs are the existing actions. Descend, Ascend, Drink, Fill and Pick up call the methods the
+  keys call. Open and Close go through `act`. Spike applies the carried spike, since choosing the
+  row is the yes the `c` key asks for.
+
+### The route
+
+The menu draws the route to the square when it opens, unless the square is beside the character.
+The fade timer is not armed, so the route stays while the menu is up. Closing the menu with no
+choice takes it off.
+
+### Replay and streams
+
+No new `Action`. A walk is `Action::Travel` and a verb is its own action, so replays, saves and
+fingerprints do not change and no stream version moves.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
