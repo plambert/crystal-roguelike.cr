@@ -48,4 +48,12 @@ jobs:
       # On Windows this includes a run played in a pseudoconsole, which
       # builds the game first.
       - name: Run specs
+        if: runner.os != 'Linux'
         run: crystal spec --error-trace
+
+      # The spec binary defines more than 32,767 symbol versions, the GNU ld
+      # version index limit, and then fails to load. Not exporting its
+      # symbols avoids that.
+      - name: Run specs (Linux)
+        if: runner.os == 'Linux'
+        run: crystal spec --error-trace --link-flags=-Wl,--no-export-dynamic

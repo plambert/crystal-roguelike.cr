@@ -15,6 +15,8 @@ A change is finished when `crystal tool format --check`, `ameba`, `crystal spec`
 are all clean, and `rumdl check` passes on any Markdown that changed. The changelog needs
 `rumdl check --no-exclude CHANGELOG.md`. Run them; do not reason about whether they would pass.
 
+On Linux, `crystal spec` needs `--link-flags=-Wl,--no-export-dynamic` (32,767 version limit).
+
 Commit with explicit paths, never `git add -A`. A new file needs its own `git add` first.
 
 Never add `Co-Authored-By`, `Claude-Session`, or any other mention of an AI assistant to a commit
