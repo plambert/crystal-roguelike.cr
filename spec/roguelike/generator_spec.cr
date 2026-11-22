@@ -1,5 +1,14 @@
 require "../spec_helper"
 
+# The floors and sizes the examples share. Each set is made the first time an
+# example reads it, so a process that runs none of these examples skips it.
+private module Shared
+  class_property dug : Array(Roguelike::Generator)?
+  class_property deep : Hash(Int32, Array(Roguelike::Floor))?
+  class_property sizes : Array({Int32, Int32})?
+  class_property sampled : Array(Roguelike::Generator)?
+end
+
 Spectator.describe Roguelike::Generator do
   alias Generator = Roguelike::Generator
   alias Area = Roguelike::Area
@@ -30,8 +39,10 @@ Spectator.describe Roguelike::Generator do
   # Nothing in this file writes to one. The generator is kept rather than the
   # floor alone, because a spec about the rooms needs the rectangles the
   # generator cut and a floor carries only the squares.
-  DUG = (0...RUNS).map do |index|
-    Generator.dug Rng.new(FIRST + index), Roguelike::World.id(1)
+  def every_dug : Array(Generator)
+    Shared.dug ||= (0...RUNS).map do |index|
+      Generator.dug Rng.new(FIRST + index), Roguelike::World.id(1)
+    end
   end
 
   # What the block found wrong with each of `RUNS` floors.
@@ -42,7 +53,7 @@ Spectator.describe Roguelike::Generator do
   def complaints(& : Generator, UInt64 -> String?) : Array(String)
     found = [] of String
 
-    DUG.each_with_index do |generator, index|
+    every_dug.each_with_index do |generator, index|
       said = yield generator, FIRST + index
       found << said if said
     end
@@ -149,11 +160,11 @@ Spectator.describe Roguelike::Generator do
     it "digs the same floor from the same seed" do
       again = (0...TWICE).map { |index| dug(FIRST + index).to_map }
 
-      expect(again).to eq DUG.first(TWICE).map &.floor.to_map
+      expect(again).to eq every_dug.first(TWICE).map &.floor.to_map
     end
 
     it "digs a different floor from a different seed" do
-      drawn = DUG.first(TWICE).map &.floor.to_map.join
+      drawn = every_dug.first(TWICE).map &.floor.to_map.join
 
       expect(drawn.uniq.size).to eq drawn.size
     end
@@ -273,8 +284,10 @@ Spectator.describe Roguelike::Generator do
 
   describe "who lives on a floor" do
     # The floors deeper than the first that these examples dig, by depth.
-    DEEP = (1..Roguelike::World::DEEPEST).to_h do |depth|
-      {depth, (0...12).map { |index| Generator.floor Rng.new(FIRST + index), depth: depth }}
+    def deep : Hash(Int32, Array(Floor))
+      Shared.deep ||= (1..Roguelike::World::DEEPEST).to_h do |depth|
+        {depth, (0...12).map { |index| Generator.floor Rng.new(FIRST + index), depth: depth }}
+      end
     end
 
     # Every band on *floor*, and the kinds of its members.
@@ -287,7 +300,7 @@ Spectator.describe Roguelike::Generator do
     end
 
     it "places only kinds that appear at the floor's depth" do
-      DEEP.each do |depth, floors|
+      deep.each do |depth, floors|
         floors.each do |floor|
           floor.each_monster do |_column, _row, creature|
             expect(creature.kind.appears_at? depth).to be_true
@@ -298,10 +311,10 @@ Spectator.describe Roguelike::Generator do
 
     it "places every kind that lives on the ten floors somewhere on them" do
       found = Set(Roguelike::Kind).new
-      DEEP.each_value do |floors|
+      deep.each_value do |floors|
         floors.each { |floor| floor.each_monster { |_column, _row, creature| found << creature.kind } }
       end
-      expected = Roguelike::Kind.values.select { |kind| DEEP.keys.any? { |depth| kind.appears_at? depth } }
+      expected = Roguelike::Kind.values.select { |kind| deep.keys.any? { |depth| kind.appears_at? depth } }
 
       expect(found).to eq expected.to_set
     end
@@ -309,7 +322,7 @@ Spectator.describe Roguelike::Generator do
     it "puts a scout in a room by itself" do
       scouts = 0
 
-      DEEP.each_value do |floors|
+      deep.each_value do |floors|
         floors.each do |floor|
           bands(floor).each_value do |kinds|
             next unless kinds.any? &.alone?
@@ -324,7 +337,7 @@ Spectator.describe Roguelike::Generator do
     end
 
     it "keeps each band to one species" do
-      DEEP.each_value do |floors|
+      deep.each_value do |floors|
         floors.each do |floor|
           bands(floor).each_value do |kinds|
             expect(kinds.map(&.species).uniq!.size).to eq 1
@@ -334,13 +347,13 @@ Spectator.describe Roguelike::Generator do
     end
 
     it "puts more than one creature in some bands" do
-      shared = DEEP.values.flatten.sum { |floor| bands(floor).count &.[1].size.>(1) }
+      shared = deep.values.flatten.sum { |floor| bands(floor).count &.[1].size.>(1) }
 
       expect(shared).to be > 0
     end
 
     it "rolls hit points within each kind's hit dice" do
-      DEEP.each_value do |floors|
+      deep.each_value do |floors|
         floors.each do |floor|
           floor.each_monster do |_column, _row, creature|
             dice = creature.kind.hit_dice
@@ -419,31 +432,33 @@ Spectator.describe Roguelike::Generator do
 
   describe ".size" do
     # How many sizes the examples draw. Drawing one rolls five numbers.
-    SIZES = (0...1000).map { |index| Generator.size Rng.new(FIRST + index), "floor-1" }
+    def sizes : Array({Int32, Int32})
+      Shared.sizes ||= (0...1000).map { |index| Generator.size Rng.new(FIRST + index), "floor-1" }
+    end
 
     it "draws an area from a quarter of the average to four times it" do
-      areas = SIZES.map { |size| size[0] * size[1] / Generator::AREA.to_f }
+      areas = sizes.map { |size| size[0] * size[1] / Generator::AREA.to_f }
 
       expect(areas.min).to be >= 0.24
       expect(areas.max).to be <= 4.1
     end
 
     it "centres the area on the average" do
-      areas = SIZES.map { |size| size[0] * size[1] / Generator::AREA.to_f }.sort!
+      areas = sizes.map { |size| size[0] * size[1] / Generator::AREA.to_f }.sort!
 
       expect(areas[areas.size // 2]).to be_within(0.1).of(1.0)
     end
 
     it "draws a bell rather than a flat spread" do
-      areas = SIZES.map { |size| size[0] * size[1] / Generator::AREA.to_f }
+      areas = sizes.map { |size| size[0] * size[1] / Generator::AREA.to_f }
       middle = areas.count { |area| area >= 0.7 && area <= 1.4 }
 
-      expect(middle).to be > SIZES.size // 2
+      expect(middle).to be > sizes.size // 2
     end
 
     it "favors the squarer shapes" do
-      square = SIZES.count { |size| (size[0] - size[1]).abs * 4 < size[1] }
-      long = SIZES.count { |size| size[0] > size[1] * 5 // 2 }
+      square = sizes.count { |size| (size[0] - size[1]).abs * 4 < size[1] }
+      long = sizes.count { |size| size[0] > size[1] * 5 // 2 }
 
       expect(square).to be > long
     end
@@ -469,7 +484,7 @@ Spectator.describe Roguelike::Generator do
 
   describe "layouts" do
     it "digs every layout, the tree most often" do
-      counted = DUG.map(&.layout).tally
+      counted = every_dug.map(&.layout).tally
 
       expect(counted.keys.to_set).to eq Layout.values.to_set
       expect(counted[Layout::Tree]).to be > counted[Layout::Grid]
@@ -477,13 +492,13 @@ Spectator.describe Roguelike::Generator do
     end
 
     it "fills part of some trees another way" do
-      expect(DUG.count { |generator| generator.layout.tree? && !generator.mixed.empty? }).to be > 0
+      expect(every_dug.count { |generator| generator.layout.tree? && !generator.mixed.empty? }).to be > 0
     end
 
     # A walk with one hand on the wall goes round a body of rock that no edge
     # touches and never sees the far side of it.
     it "digs some floors with loops a walk along one wall cannot cover" do
-      looped = DUG.count { |generator| Audit.loops(generator.floor, 40) >= 5 }
+      looped = every_dug.count { |generator| Audit.loops(generator.floor, 40) >= 5 }
 
       expect(looped).to be > RUNS // 5
     end
@@ -491,7 +506,7 @@ Spectator.describe Roguelike::Generator do
     # The first room a tree cuts is in its top left corner, until the floor
     # is mirrored.
     it "mirrors trees across, down, both ways and neither" do
-      corners = DUG.select(&.layout.tree?).map do |generator|
+      corners = every_dug.select(&.layout.tree?).map do |generator|
         first = generator.rooms.first
         {first.x * 2 < generator.floor.columns, first.y * 2 < generator.floor.rows}
       end
@@ -511,7 +526,7 @@ Spectator.describe Roguelike::Generator do
     end
 
     it "finds two corridors side by side on few floors" do
-      pairs = DUG.sum { |generator| Audit.alongside generator.floor }
+      pairs = every_dug.sum { |generator| Audit.alongside generator.floor }
 
       expect(pairs).to be < RUNS // 10
     end
@@ -604,14 +619,16 @@ Spectator.describe Roguelike::Generator do
 
     # Fifty of the floors every floor example reads, and ten of each layout
     # at one size.
-    SAMPLED = DUG.first(50) + Layout.values.flat_map do |layout|
-      (0...10).map do |index|
-        Generator.dug Rng.new(FIRST + index), Roguelike::World.id(3), 3, 120, 50, layout
+    def sampled : Array(Generator)
+      Shared.sampled ||= every_dug.first(50) + Layout.values.flat_map do |layout|
+        (0...10).map do |index|
+          Generator.dug Rng.new(FIRST + index), Roguelike::World.id(3), 3, 120, 50, layout
+        end
       end
     end
 
     it "lies at least half the farthest zone's walk from the up staircase" do
-      found = SAMPLED.compact_map do |generator|
+      found = sampled.compact_map do |generator|
         zone = departure generator
         next "a floor has its down staircase outside every zone" unless zone
 
@@ -629,12 +646,12 @@ Spectator.describe Roguelike::Generator do
     end
 
     it "is in a different zone from the up staircase" do
-      split = SAMPLED.count do |generator|
+      split = sampled.count do |generator|
         zone = departure generator
         zone && zone != generator.arrival
       end
 
-      expect(split).to eq SAMPLED.size
+      expect(split).to eq sampled.size
     end
 
     # Seed 23 on a tree of 30 by 12 has four rooms, and only the farthest
