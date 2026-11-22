@@ -1,4 +1,5 @@
 require "../spec_helper"
+require "../support/watching"
 
 Spectator.describe Roguelike::Explore::Circling do
   alias Action = Roguelike::Action
@@ -170,78 +171,55 @@ Spectator.describe Roguelike::Explore::Circling do
       expect(squares.min_by &.[0]).to eq({9, 1})
       expect(squares.max_by &.[0]).to eq({21, 1})
       expect(squares.count({15, 1})).to eq 2
-      expect(game.knowledge[1, 1].try &.regard).to eq Regard::Everything
-      expect(game.knowledge[29, 1].try &.regard).to eq Regard::Everything
+      expect(game.knowledge[1, 1].try &.items.first?.try &.regard).to eq Regard::Everything
+      expect(game.knowledge[29, 1].try &.items.first?.try &.regard).to eq Regard::Everything
     end
 
-    # A wand used up while nobody looks is a changed item, so a distant look
-    # at it makes out only the kind. Using up the two at the ends between
-    # steps makes explore go back and forth between them for ever.
-    it "turns away from a circle and stops once nothing else is left" do
+    # A wand used up while nobody looks keeps its id, so the close look at
+    # it stands. Explore reads each wand once and runs out of places to go.
+    it "reads wands used up out of sight once and finishes" do
       game, west, east, _south = room ItemKind::LightWand, 1_000
       halts, squares = explore(game, 400) do
         [west, east].each &.spend
       end
 
-      expect(halts).to eq [Halt::Circling]
-      expect(game.log.last?).to eq "You stop. You keep coming back to the same places."
-      expect(game.knowledge[15, 32].try &.regard).to eq Regard::Everything
-      expect(squares.max_by &.[1]).to eq({15, 24})
+      expect(halts).to eq [Halt::Explored]
+      expect(game.knowledge[15, 32].try &.items.first?.try &.regard).to eq Regard::Everything
+      expect(squares.max_of &.[1]).to eq 32 - Roguelike::Regards::READING
       expect(game.explorable?).to be_false
+    end
+
+    it "stops with circling where the watch has given up" do
+      game, _west, _east, _south = room ItemKind::LightWand, 1_000
+      game = Watching.stuck game
+
+      expect(game.explorable?).to be_false
+      game.perform Action::Explore.new
+      stop = game.events.find(&.is_a?(Event::Stopped))
+
+      expect(stop.as?(Event::Stopped).try &.halt).to eq Halt::Circling
+      expect(game.log.last?).to eq "You stop. You keep coming back to the same places."
+      expect(stop.to_json).to contain %("halt":"circling")
       expect(game.legal.map &.class).not_to contain Action::Explore
     end
 
-    it "tells a bot the halt as circling" do
-      game, west, east, _south = room ItemKind::LightWand, 1_000
-      explore(game, 400) { [west, east].each &.spend }
-      stop = game.events.find(&.is_a?(Event::Stopped))
-
-      expect(stop.to_json).to contain %("halt":"circling")
-    end
-
     it "is offered again once the character stands somewhere else" do
-      game, west, east, _south = room ItemKind::LightWand, 1_000
-      explore(game, 400) { [west, east].each &.spend }
+      game, _west, _east, _south = room ItemKind::LightWand, 1_000
+      game = Watching.stuck game
       expect(game.explorable?).to be_false
 
       game.player.move_to 15, 10
       expect(game.explorable?).to be_true
+      expect(game.legal.map &.class).to contain Action::Explore
     end
   end
 
-  # Three pairs of wands, one pair at each end of rows 1, 26 and 51 of a
-  # lit room. Each pair is a circle when its wands are used up between
-  # steps. Explore turns away from the first pair to the second, from the
-  # second to the third, and gives up on the third.
-  #
-  # The room is saved and loaded once before any step. A load gives the
-  # hand-placed wands ids, which a game built in a spec has not done. The
-  # character wears armor, so `Game#sighted` is never empty. A load fills
-  # an empty one from the map, which a run that never stopped does not.
-  PAIRS = [{1, 1}, {29, 1}, {1, 26}, {29, 26}, {1, 51}, {29, 51}]
+  # How far *watch* has got, read from what a save holds.
+  def stage(watch : Circling) : String
+    saved = JSON.parse watch.to_json
+    return "stuck" if saved["stuck"]?.try(&.raw)
 
-  def pairs : Game
-    game = Playing.field 31, 53
-    PAIRS.each { |spot| game.floor.drop spot[0], spot[1], Item.new(ItemKind::LightWand, charges: 1_000) }
-    Playing.dressed game.player
-    game.player.move_to 15, 1
-    game = Game.from_json game.to_json
-    game.look
-    game
-  end
-
-  # What one step of the forced circle did: the square, the halts and the
-  # fingerprint after it. `nil` once explore is no longer offered.
-  record Stepped, at : {Int32, Int32}, halts : Array(Halt), fingerprint : String
-
-  def stride(game : Game) : Stepped?
-    return unless game.explorable?
-
-    PAIRS.each { |spot| game.floor.items(spot[0], spot[1]).each &.spend }
-    game.perform Action::Explore.new
-    game.look
-    halts = game.events.compact_map { |event| event.halt if event.is_a?(Event::Stopped) }
-    Stepped.new game.player.at, halts, game.fingerprint
+    "tries #{saved["tries"]}"
   end
 
   # How far the watch in *game* has got, read from what a save holds.
@@ -254,9 +232,18 @@ Spectator.describe Roguelike::Explore::Circling do
   end
 
   describe "a save" do
+    # A room holding *watch*, with three pickups and drops counted.
+    def holding(watch : Circling) : Game
+      game, _west, _east, _south = room ItemKind::LightWand
+      saved = JSON.parse(game.to_json).as_h
+      saved["pack_moves"] = JSON::Any.new(3_i64)
+      Watching.holding Game.from_json(saved.to_json), watch
+    end
+
     it "holds the watch and the pack count, and not in the fingerprint" do
-      game = pairs
-      30.times { stride game }
+      watch = Circling.new
+      round watch, PAIR, {9, 1}
+      game = holding watch
       saved = JSON.parse game.to_json
 
       expect(saved["circling"]?).not_to be_nil
@@ -265,9 +252,9 @@ Spectator.describe Roguelike::Explore::Circling do
     end
 
     it "loads one written without the watch with a fresh watch" do
-      game = pairs
-      30.times { stride game }
-      saved = JSON.parse(game.to_json).as_h
+      watch = Circling.new
+      round watch, PAIR, {9, 1}
+      saved = JSON.parse(holding(watch).to_json).as_h
       saved.delete "circling"
       saved.delete "pack_moves"
       loaded = Game.from_json saved.to_json
@@ -276,34 +263,25 @@ Spectator.describe Roguelike::Explore::Circling do
       expect(loaded.explorable?).to be_true
     end
 
-    it "carries on a forced circle at every stage as a run that never stopped" do
-      whole = pairs
-      steps = [] of Stepped
-      stages = [stage(whole)]
-      while found = stride(whole)
-        steps << found
-        stages << stage(whole)
-        break if steps.size > 2_000
-      end
+    it "carries the watch at every stage through a save and a load" do
+      watch = Circling.new
+      stages = [] of String
+      turn = 0
+      until stage(watch) == "stuck"
+        square = PAIR[turn % PAIR.size]
+        watch.watch GROUND, square, 0_i64, turn
+        turn += 1
+        watch.chose({turn, 9}, PAIR[turn % PAIR.size])
+        stages << stage(watch)
 
-      expect(steps.flat_map(&.halts)).to eq [Halt::Circling]
-      expect(stages.uniq).to eq ["none", "tries 0", "tries 1", "tries 2", "stuck"]
-
-      ["tries 0", "tries 1", "tries 2", "stuck"].each do |wanted|
-        before = stages.index!(wanted)
-        game = pairs
-        before.times { stride game }
-        expect(stage game).to eq wanted
-
+        game = holding watch
         loaded = Game.from_json game.to_json
+        expect(stage loaded).to eq stage(watch)
         expect(loaded.fingerprint).to eq game.fingerprint
-        rest = [] of Stepped
-        while found = stride(loaded)
-          rest << found
-        end
-
-        expect(rest).to eq steps[before..]
+        expect(JSON.parse(loaded.to_json)["circling"]).to eq JSON.parse(watch.to_json)
       end
+
+      expect(stages.uniq).to eq ["tries 0", "tries 1", "tries 2", "tries 3", "stuck"]
     end
   end
 end

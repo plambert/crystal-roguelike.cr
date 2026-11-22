@@ -404,7 +404,7 @@ Spectator.describe "drinking, reading and zapping" do
 
       game.read 'a'
 
-      expect(game.knowledge[10, 4].try &.item).to be_nil
+      expect(game.knowledge[10, 4].try &.shown).to be_nil
     end
 
     it "uses the scroll up" do

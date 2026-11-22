@@ -651,6 +651,29 @@ module Roguelike
       with_count @count
     end
 
+    # A copy as somebody sees it from too far off to read, who made out
+    # *before* closely.
+    #
+    # What shows at a distance comes from this item: its kind, how many,
+    # whether it is lit, how far it is eaten. What only a close look shows
+    # comes from *before*: the enchantment, the condition, the charges and
+    # the blessing. An item that is now of another kind keeps none of
+    # *before*, since none of it applies.
+    def seen_from_afar(before : Item) : Item
+      found = copy
+      found.hide_behind before if before.kind == @kind
+      found
+    end
+
+    # Takes what only a close look shows from *before*.
+    protected def hide_behind(before : Item) : Nil
+      @enchantment = before.enchantment
+      @condition = before.condition
+      @charges = before.charges
+      @blessing = before.blessing
+      @blessing_known = before.blessing_known?
+    end
+
     # A copy with *amount* added to the count.
     def add(amount : Int32) : Item
       with_count @count + amount

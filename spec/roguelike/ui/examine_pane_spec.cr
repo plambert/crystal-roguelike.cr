@@ -126,7 +126,7 @@ Spectator.describe Roguelike::Ui::ExaminePane do
       floor = Roguelike::Floor.parse "pile", "#####\n#...#\n#####"
       arrows = Roguelike::Item.new Roguelike::ItemKind::Arrow, count: 3
       sword = Roguelike::Item.new Roguelike::ItemKind::LongSword
-      memory = Roguelike::Memory.new Terrain::StoneFloor, item: sword, under: [arrows]
+      memory = Roguelike::Memory.of Terrain::StoneFloor, nil, [arrows, sword]
       knowledge = Roguelike::Knowledge.new floor.id
       knowledge.remember 2, 1, memory
       lore = Roguelike::Lore.new

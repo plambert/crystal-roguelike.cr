@@ -1092,17 +1092,17 @@ Spectator.describe "food, the food bag and corpses" do
         lore: Lore.roll(Rng.new SEED)
       game.enroll
       game.look
-      expect(game.knowledge[5, 1].try(&.item).try &.kind).to eq ItemKind::PutridMass
+      expect(game.knowledge[5, 1].try(&.shown).try &.kind).to eq ItemKind::PutridMass
 
       game.perform Action::Close.new(Roguelike::Direction::East)
       passes game, Food::PUTRID_FADES
       game.look
       expect(game.floor.items(5, 1)).to be_empty
-      expect(game.knowledge[5, 1].try(&.item).try &.kind).to eq ItemKind::PutridMass
+      expect(game.knowledge[5, 1].try(&.shown).try &.kind).to eq ItemKind::PutridMass
 
       game.perform Action::Open.new(Roguelike::Direction::East)
       game.look
-      expect(game.knowledge[5, 1].try &.item).to be_nil
+      expect(game.knowledge[5, 1].try &.shown).to be_nil
     end
 
     it "waits on a floor the character is not on, and fades once they return" do
