@@ -6,8 +6,43 @@ module Roguelike
   #
   # A memory is a copy rather than a view. The floor goes on changing after a
   # creature looks away, and what they remember does not.
+  #
+  # The items on the square are remembered one by one. Each has its own
+  # regard and its own turn last seen. Nothing on a square hides anything
+  # else on it, so the order they lie in says nothing about how well each
+  # was made out.
   class Memory
     include JSON::Serializable
+
+    # One item as somebody remembers it.
+    #
+    # The regard belongs to the memory, never to the item. A band and the
+    # character each remember the same spear their own way.
+    struct Item
+      include JSON::Serializable
+
+      # A copy of the item as it was made out.
+      getter item : Roguelike::Item
+
+      # How well it was made out, at best.
+      getter regard : Regard
+
+      # Which turn it was last seen on.
+      getter turn : Int32
+
+      def initialize(@item : Roguelike::Item, @regard : Regard, @turn : Int32)
+      end
+
+      # The id of the item remembered.
+      def id : Int32
+        @item.id
+      end
+
+      def ==(other : Memory::Item) : Bool
+        @item.id == other.item.id && @item == other.item &&
+          @regard == other.regard && @turn == other.turn
+      end
+    end
 
     # What the square was made of.
     getter terrain : Terrain
@@ -15,23 +50,8 @@ module Roguelike
     # What was fitted to it, if anything.
     getter fixture : Fixture?
 
-    # What was lying on top of the pile, if anything. This is the one a map
-    # draws. `#under` holds the rest of the pile.
-    getter item : Item?
-
     # Which turn this was seen on.
     getter turn : Int32
-
-    # How well the item on the square was made out.
-    #
-    # `Regard::Everything` for an item looked at from close enough to read.
-    # `Regard::Kind` for one seen from further off than `Regards::READING`:
-    # the character made out a scroll and not what was written on it.
-    #
-    # It has a default, so a square remembered before this field existed
-    # loads as one the character made everything out on. That is what those
-    # saves meant: the name was written in full whatever the distance.
-    getter regard : Regard = Regard::Everything
 
     # Whether the door was seen with a spike in it.
     #
@@ -39,34 +59,131 @@ module Roguelike
     # before spikes existed and one written now read the same.
     @spiked : Bool? = nil
 
-    # What was lying under `#item`, bottom first. `nil` when nothing was.
-    #
-    # A square with one item or none writes no field, so it writes what it
-    # wrote before this existed. A memory read from an older save has nothing
-    # under its top item.
-    getter under : Array(Item)? = nil
+    # Every item remembered here, in the order they lay when last seen.
+    # `nil` when there are none, so a bare square writes no field.
+    @items : Array(Memory::Item)? = nil
+
+    # The top item of a memory written before items were remembered one by
+    # one. Read from an old save and folded into `@items`.
+    @[JSON::Field(key: "item", ignore_serialize: true)]
+    @old_item : Roguelike::Item? = nil
+
+    # :ditto:, for what lay under the top item.
+    @[JSON::Field(key: "under", ignore_serialize: true)]
+    @old_under : Array(Roguelike::Item)? = nil
+
+    # :ditto:, for the one regard the whole square had. A memory older
+    # still had none, and the name was written in full whatever the
+    # distance, so the default is `Regard::Everything`.
+    @[JSON::Field(key: "regard", ignore_serialize: true)]
+    @old_regard : Regard = Regard::Everything
 
     def initialize(@terrain : Terrain, @fixture : Fixture? = nil,
-                   @item : Item? = nil, @turn : Int32 = 0,
-                   @regard : Regard = Regard::Everything,
-                   spiked : Bool = false, under : Array(Item)? = nil)
+                   @turn : Int32 = 0, spiked : Bool = false,
+                   items : Array(Memory::Item)? = nil)
       @spiked = spiked || nil
-      @under = under unless under.nil? || under.empty?
+      @items = items unless items.nil? || items.empty?
     end
 
-    # Every item remembered here, bottom first and `#item` last. Empty for a
-    # square seen with nothing on it.
-    def pile : Array(Item)
-      found = @under.try(&.dup) || [] of Item
-      @item.try { |top| found << top }
-      found
+    # A memory of *pile*, every item made out to *regard* on *turn*.
+    def self.of(terrain : Terrain, fixture : Fixture?, pile : Array(Roguelike::Item),
+                turn : Int32 = 0, regard : Regard = Regard::Everything,
+                spiked : Bool = false) : Memory
+      new terrain, fixture, turn, spiked,
+        pile.map { |item| Memory::Item.new item.copy, regard, turn }
+    end
+
+    # Folds an old save's pile into one memory per item, each with the
+    # square's regard and turn.
+    def after_initialize : Nil
+      pile = @old_under.try(&.dup) || [] of Roguelike::Item
+      @old_item.try { |top| pile << top }
+      unless pile.empty?
+        @items = pile.map { |item| Memory::Item.new item, @old_regard, @turn }
+      end
+      @old_item = nil
+      @old_under = nil
+    end
+
+    # Every item remembered here. Empty for a square with none.
+    def items : Array(Memory::Item)
+      @items || NO_ITEMS
+    end
+
+    # No items, shared by every memory with none.
+    NO_ITEMS = [] of Memory::Item
+
+    # Every item remembered here, as items.
+    def pile : Array(Roguelike::Item)
+      items.map &.item
+    end
+
+    # Whether any item is remembered here.
+    def items? : Bool
+      !@items.nil?
+    end
+
+    # The item a map draws for this square, or `nil` with none. `.shown`
+    # is the rule.
+    def shown : Roguelike::Item?
+      Memory.shown pile
+    end
+
+    # Which of *pile* a map draws.
+    #
+    # The item whose class comes first in `SHOWN`, and of those the one
+    # with the lowest id. The order the pile lies in plays no part.
+    def self.shown(pile : Array(Roguelike::Item)) : Roguelike::Item?
+      pile.min_by? { |item| {SHOWN.index(item.kind.item_class) || SHOWN.size, item.id} }
+    end
+
+    # The classes of item, in the order a map prefers to draw them.
+    #
+    # Magic first, then arms and armor, then tools and light, then gold,
+    # then food. What is left of a meal or a creature comes last, so a
+    # putrid mass never hides a spear.
+    SHOWN = [
+      ItemClass::Amulet, ItemClass::Wand, ItemClass::Scroll, ItemClass::Potion,
+      ItemClass::Melee, ItemClass::RangedWeapon, ItemClass::Armor,
+      ItemClass::Thrown, ItemClass::Ammunition, ItemClass::Tool,
+      ItemClass::Light, ItemClass::Treasure, ItemClass::Food,
+      ItemClass::Delicacy, ItemClass::Reagent, ItemClass::Remains,
+      ItemClass::Refuse,
+    ]
+
+    # The memory of the item with the id *id*, or `nil`.
+    def [](id : Int32) : Memory::Item?
+      items.find(&.id.== id)
+    end
+
+    # The memory of *item*, matched the way `Knowledge#see` matches it, or
+    # `nil` for an item not remembered here.
+    def of(item : Roguelike::Item) : Memory::Item?
+      id = item.id
+      return self[id] unless id.zero?
+
+      items.find { |remembered| remembered.id.zero? && remembered.item.kind == item.kind }
+    end
+
+    # How well the item with the id *id* was made out. `nil` for an item
+    # not remembered here.
+    def regard_of(id : Int32) : Regard?
+      self[id].try &.regard
     end
 
     # Whether any item remembered here passes the block.
-    def holds?(& : Item -> Bool) : Bool
-      @under.try &.each { |item| return true if yield item }
-      top = @item
-      top ? (yield top) : false
+    def holds?(& : Roguelike::Item -> Bool) : Bool
+      items.any? { |remembered| yield remembered.item }
+    end
+
+    # Whether any item here was made out short of everything and is worth
+    # walking over to read. Gold, torches and refuse are not.
+    def unread? : Bool
+      items.any? do |remembered|
+        item = remembered.item
+        remembered.regard < Regard::Everything &&
+          !item.kind.gold? && !item.kind.torch? && !item.refuse?
+      end
     end
 
     # Whether the door was seen with a spike in it.
@@ -81,15 +198,16 @@ module Roguelike
 
     def ==(other : Memory) : Bool
       @terrain == other.terrain && @fixture == other.fixture &&
-        @item == other.item && @turn == other.turn && @regard == other.regard &&
-        spiked? == other.spiked? && @under == other.under
+        @turn == other.turn && spiked? == other.spiked? && items == other.items
     end
 
     def to_s(io : IO) : Nil
       io << "Memory(" << @terrain
       io << " +" << @fixture if @fixture
-      pile.each { |item| io << " +" << item }
-      io << ' ' << @regard unless @regard.everything?
+      items.each do |remembered|
+        io << " +" << remembered.item
+        io << ' ' << remembered.regard unless remembered.regard.everything?
+      end
       io << " spiked" if spiked?
       io << " turn " << @turn << ')'
     end
@@ -163,9 +281,10 @@ module Roguelike
 
     # How many times what is known of the ground has changed.
     #
-    # A square seen for the first time, a square whose terrain or top item
-    # changed, an opening and a door found barred each count. A square looked
-    # at again and found the same does not. `#chambers` is rebuilt only when
+    # A square seen for the first time, a square whose terrain changed, an
+    # opening and a door found barred each count. So does a look that adds
+    # or drops a remembered item, raises one's regard or finds it changed in
+    # kind. A square looked at again and found the same does not. `#chambers` is rebuilt only when
     # this has moved.
     #
     # A save keeps it, because `Explore::Circling` compares it across a
@@ -413,42 +532,81 @@ module Roguelike
 
     # Records what *floor* holds at *x*, *y* as of *turn*.
     #
-    # The whole pile is remembered. The character sees every item on a square
-    # in sight, and explore walks to one the pickup takes wherever it lies in
-    # the pile.
+    # The terrain, the fixture and the spike are replaced by what is there
+    # now. The items are worked out one by one, with no regard to the order
+    # they lie in. `#recall` is the rule.
     #
-    # Whatever was remembered before is replaced. A square looked at again
-    # shows what is there now, not what was there before.
-    #
-    # *regard* says how well the item lying there was made out. The default
-    # makes everything out, which is what a caller that says nothing about
-    # distance means.
-    #
-    # A worse look does not undo a better one. A square whose item has not
-    # changed keeps the best regard it has ever been seen with, so glancing
-    # back at a spear from across a hall does not turn a cursed -2 spear back
-    # into a spear. Food that has only aged has not changed, by
-    # `Item.alike?`.
+    # *regard* says how well the items lying there were made out. The
+    # default makes everything out, which is what a caller that says nothing
+    # about distance means.
     def see(floor : Floor, x : Int32, y : Int32, turn : Int32 = 0,
             regard : Regard = Regard::Everything) : Nil
       return unless floor.contains? x, y
 
-      fitting = floor.fixture x, y
-      pile = floor.items x, y
-      lying = pile.last?.try(&.copy)
-      beneath = pile.size > 1 ? pile[0, pile.size - 1].map(&.copy) : nil
-
       held = self[x, y]
-      made_out = regard
-      made_out = made_out.at_least held.regard if held && Item.alike?(held.item, lying)
-
       terrain = floor.terrain x, y
-      changed if held.nil? || held.terrain != terrain || held.item.try(&.id) != lying.try(&.id)
+      items, moved = recall held, floor.items(x, y), turn, regard
+      changed if moved || held.nil? || held.terrain != terrain
       memory = Memory.new terrain,
-        fitting.try(&.copy), lying, turn, made_out, floor.spiked?(x, y), beneath
+        floor.fixture(x, y).try(&.copy), turn, floor.spiked?(x, y), items
       @memories[Floor.spot x, y] = memory
       unbar x, y unless terrain.closed_door?
       regrid x, y, memory
+    end
+
+    # What *pile* seen on *turn* at *regard* leaves remembered of a square
+    # whose memory was *held*, and whether that differs from what was held.
+    #
+    # An item remembered before keeps the better of its old regard and this
+    # one. A worse look does not undo a better one, so glancing back at a
+    # spear from across a hall does not turn a cursed -2 spear back into a
+    # spear. Its copy is refreshed with what this look can make out.
+    #
+    # An item not remembered before comes in at this regard. A remembered
+    # item no longer lying here is dropped.
+    #
+    # An item is matched by its id. Rot keeps the id, so a loaf that turns
+    # into a putrid mass is still the item the character looked at closely.
+    # An item with no id, which only a spec builds, is matched with one of
+    # the same kind.
+    #
+    # Something differs when an item came in or was dropped, or when one
+    # rose in regard or changed kind. A look that refreshes copies and
+    # nothing more differs in nothing.
+    private def recall(held : Memory?, pile : Array(Item), turn : Int32,
+                       regard : Regard) : {Array(Memory::Item), Bool}
+      before = held.try(&.items) || Memory::NO_ITEMS
+      return {Memory::NO_ITEMS, !before.empty?} if pile.empty?
+
+      taken = Array(Bool).new before.size, false
+      moved = false
+      items = pile.map do |item|
+        index = match before, taken, item
+        unless index
+          moved = true
+          next Memory::Item.new(item.copy, regard, turn)
+        end
+
+        taken[index] = true
+        old = before[index]
+        made_out = regard.at_least old.regard
+        moved = true if made_out != old.regard || old.item.kind != item.kind
+        copy = regard < old.regard ? item.seen_from_afar(old.item) : item.copy
+        Memory::Item.new copy, made_out, turn
+      end
+      moved = true if taken.includes? false
+
+      {items, moved}
+    end
+
+    # Which of *before*, not yet *taken*, is the memory of *item*.
+    private def match(before : Array(Memory::Item), taken : Array(Bool),
+                      item : Item) : Int32?
+      id = item.id
+      before.each_with_index do |remembered, index|
+        next if taken[index]
+        return index if id.zero? ? remembered.id.zero? && remembered.item.kind == item.kind : remembered.id == id
+      end
     end
 
     # Records the shape of *x*, *y* and what is fixed to it, and no more.
@@ -467,9 +625,8 @@ module Roguelike
       terrain = floor.terrain x, y
       changed if held.nil? || held.terrain != terrain
       memory = Memory.new terrain,
-        floor.fixture(x, y).try(&.copy), held.try(&.item), turn,
-        held.try(&.regard) || Regard::Nothing, floor.spiked?(x, y),
-        held.try(&.under)
+        floor.fixture(x, y).try(&.copy), turn, floor.spiked?(x, y),
+        held.try(&.items)
       @memories[Floor.spot x, y] = memory
       unbar x, y unless terrain.closed_door?
       regrid x, y, memory
@@ -532,9 +689,12 @@ module Roguelike
     end
 
     # Yields every square remembered with an item on it, with what was on it.
+    #
+    # Every reader of remembered items goes through here, and each look
+    # walks every square. A summary kept up by `#see` would go here.
     def each_item(& : Int32, Int32, Memory ->) : Nil
       @memories.each do |spot, memory|
-        next unless memory.item
+        next unless memory.items?
 
         column, row = Floor.unspot spot
         yield column, row, memory
@@ -757,7 +917,7 @@ module Roguelike
     def self.remembered(memory : Memory, barred : Bool) : UInt8
       terrain = memory.terrain
       flags = SEEN
-      flags |= ITEM if memory.item
+      flags |= ITEM if memory.items?
       if terrain.passable?
         flags |= WALK | CROSS
         flags |= GROUND unless terrain.door?

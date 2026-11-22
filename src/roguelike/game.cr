@@ -470,13 +470,11 @@ module Roguelike
 
     # Fills `#sighted` from the map, for a save written before it existed.
     #
-    # The map holds the top item of every pile the character has seen, and
-    # an item on the map is one they have seen.
+    # Every item the character remembers is one they have seen.
     private def recall_sighted : Nil
       @player.memory.each_value do |known|
-        known.each do |_, _, memory|
-          item = memory.item
-          @sighted << item.id if item && !item.id.zero?
+        known.each_item do |_, _, memory|
+          memory.items.each { |remembered| @sighted << remembered.id unless remembered.id.zero? }
         end
       end
     end
@@ -1127,7 +1125,7 @@ module Roguelike
     def next_sighting : {Int32, Int32}?
       here = @player.at
       known = knowledge
-      left = sightings.select { |spot| spot != here && known[spot].try &.item }
+      left = sightings.select { |spot| spot != here && known[spot].try &.items? }
 
       left.min_by? { |spot| {Route.apart(here, spot), spot[1], spot[0]} }
     end
@@ -1405,7 +1403,7 @@ module Roguelike
     # stand, the way the sidebar names it.
     private def came_into_sight(spotted : Array(Spotted), seen : Vision) : Nil
       things = spotted.map do |one|
-        regard = regard_of_item one.spot[0], one.spot[1], seen
+        regard = regard_of_item one.item, one.spot[0], one.spot[1], seen
         Event::Thing.new one.item.id, name(one.item, regard)
       end
       verb = several?(spotted) ? "come" : "comes"
@@ -1650,7 +1648,7 @@ module Roguelike
     # when they find it. A dagger they looked at two steps ago is on their
     # map, and a walk crosses it.
     private def pile_in_mind? : Bool
-      !knowledge[@player.at].try(&.item).nil?
+      knowledge[@player.at].try(&.items?) || false
     end
 
     # Says why a walk went nowhere.
@@ -4837,29 +4835,27 @@ module Roguelike
       Regard::Nothing
     end
 
-    # How well the character makes out the item lying at *x*, *y*.
+    # How well the character makes out *item* lying at *x*, *y*.
     #
     # A square they can see is answered by how far off it is: `Regards.of_item`
     # is the rule. A square they cannot see is answered by what they remember
-    # of it.
+    # of the item.
     #
     # A closer look is never undone by a further one. A spear the character
     # has stood over stays a cursed -2 spear while they look back at it from
-    # the far wall, and goes back to being a spear only if somebody swaps it
-    # for another one.
-    def regard_of_item(x : Int32, y : Int32) : Regard
-      regard_of_item x, y, sight
+    # the far wall. Each item on a square keeps its own regard, so a potion
+    # dropped beside that spear is a potion until they come near.
+    def regard_of_item(item : Item, x : Int32, y : Int32) : Regard
+      regard_of_item item, x, y, sight
     end
 
     # :ditto:, against a field of view that has already been worked out.
-    def regard_of_item(x : Int32, y : Int32, seen : Vision) : Regard
-      held = knowledge[x, y]
+    def regard_of_item(item : Item, x : Int32, y : Int32, seen : Vision) : Regard
+      held = knowledge[x, y].try &.of(item)
       return held.try(&.regard) || Regard::Nothing unless seen.includes? x, y
 
       made_out = Regards.of_item @player.at, {x, y}
-      return made_out unless held && Item.alike?(held.item, floor.items(x, y).last?)
-
-      made_out.at_least held.regard
+      held ? made_out.at_least(held.regard) : made_out
     end
 
     # Works out what the character can see, and remembers it.
@@ -6502,7 +6498,7 @@ module Roguelike
     # Writes down every item of *found* where it lies.
     #
     # The items of one square are written down together, in the order
-    # *found* holds them. The last of them is the top of the remembered pile.
+    # *found* holds them.
     private def detect(found : Array({Int32, Int32, Item})) : Nil
       squares = {} of {Int32, Int32} => Array(Item)
       found.each { |column, row, item| (squares[{column, row}] ||= [] of Item) << item }
@@ -6519,10 +6515,9 @@ module Roguelike
     private def detect(column : Int32, row : Int32, items : Array(Item)) : Nil
       held = @player.knowledge[column, row]
       @player.knowledge.remember column, row,
-        Memory.new(held.try(&.terrain) || floor.terrain(column, row),
-          held.try(&.fixture), items.last.copy, held.try(&.turn) || @turn,
-          spiked: held.try(&.spiked?) || false,
-          under: items[0, items.size - 1].map(&.copy))
+        Memory.of(held.try(&.terrain) || floor.terrain(column, row),
+          held.try(&.fixture), items, held.try(&.turn) || @turn,
+          spiked: held.try(&.spiked?) || false)
     end
 
     # ------------------------------------------------- blessing and uncursing
@@ -7863,7 +7858,7 @@ module Roguelike
       return unless found
 
       known = knowledge
-      found.select! { |spot| known[spot].try &.item }
+      found.select! { |spot| known[spot].try &.items? }
       @sightings = nil if found.empty?
     end
 

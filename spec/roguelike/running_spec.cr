@@ -314,7 +314,7 @@ Spectator.describe "running" do
 
       went = run_watching game
 
-      expect(game.knowledge[LATER].try &.item).not_to be_nil
+      expect(game.knowledge[LATER].try &.shown).not_to be_nil
       expect(game.player.at).to eq FAR_END
       expect(went.halt).to eq Halt::Blocked
       expect(game.log.lines).to contain "You see a dagger here."

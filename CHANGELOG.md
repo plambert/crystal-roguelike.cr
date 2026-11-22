@@ -256,6 +256,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   bag of a saved game move to the pack when it loads, or to the floor under you when the pack is
   full. Rotten flesh in a saved game turns into putrid masses when it loads, in the pack or at
   your feet the same way, and where it lies on the floors.
+* Each item on a square is remembered on its own. An item you looked at closely stays known
+  however the pile around it changes, and an item that turns up on a pile you read is only a
+  "spear" or a "potion" until you come close again. The look readout and the bot observation
+  name each item as well as you made it out.
+* The map shows the most interesting item on a pile rather than the one on top. Magic comes
+  first, then weapons and armor, then tools, light, gold and food, and a putrid mass or a
+  corpse never hides a spear.
 
 ### Fixed
 
@@ -278,6 +285,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   back to the same places." Explore is offered again once you move or see something new. Bots
   get the halt as `circling`. Your save keeps where explore stands in this, so a run you save
   and load carries on the same way.
+* Explore no longer walks back to a pile you have already read when food on it rots into a
+  putrid mass. A pile whose top item changed used to count as unread again.
 
 ## [0.7.0] - 2026-10-28
 

@@ -116,13 +116,14 @@ module Roguelike::Ui
     # the character has found out. *sight* says which squares the character
     # can see. A `nil` *sight* sees everything.
     #
-    # *regard* says how well the character has made out what is lying there.
-    # Anything short of `Regard::Everything` is named by its kind: "a spear"
-    # rather than "a cursed -2 spear". The default makes everything out, so a
-    # caller with no game behind it writes the whole name.
+    # *regard* says how well the character has made out each item lying
+    # there. Anything short of `Regard::Everything` is named by its kind: "a
+    # spear" rather than "a cursed -2 spear". With none every item is made
+    # out, so a caller with no game behind it writes the whole name. A
+    # remembered square names each item as well as it is remembered.
     def show(floor : Floor, x : Int32, y : Int32, lore : Lore? = nil,
              sight : Vision? = nil, knowledge : Knowledge? = nil,
-             regard : Regard = Regard::Everything) : Nil
+             regard : Proc(Item, Regard)? = nil) : Nil
       unless sight.nil? || sight.includes?(x, y)
         shape = sight.backlit?(floor, x, y) ? floor.monster(x, y) : nil
         if shape
@@ -130,7 +131,7 @@ module Roguelike::Ui
           return
         end
 
-        recalled floor, x, y, lore, knowledge.try &.[](x, y), regard
+        recalled floor, x, y, lore, knowledge.try &.[](x, y)
         return
       end
 
@@ -167,7 +168,7 @@ module Roguelike::Ui
 
       pile = floor.items x, y
       @litter.hidden = pile.empty?
-      @litter.text = listed pile, lore, regard
+      @litter.text = listed pile.map { |item| {item, regard.try(&.call item) || Regard::Everything} }, lore
     end
 
     # Says that *creature* is a shape and no more.
@@ -191,8 +192,7 @@ module Roguelike::Ui
     # Says what *x*, *y* looked like when it was last seen, or that it has
     # never been seen.
     private def recalled(floor : Floor, x : Int32, y : Int32, lore : Lore?,
-                         memory : Memory?,
-                         regard : Regard = Regard::Everything) : Nil
+                         memory : Memory?) : Nil
       @where.text = "#{x}, #{y}"
       @where.hidden = false
       @doing.text = ""
@@ -214,11 +214,11 @@ module Roguelike::Ui
       @what.style = Style::DEFAULT.faint
       @detail.text = REMEMBERED
 
-      pile = memory.pile
+      pile = memory.items.map { |remembered| {remembered.item, remembered.regard} }
       return if pile.empty?
 
       @litter.hidden = false
-      @litter.text = lore ? listed(pile, lore, regard) : "Here: something"
+      @litter.text = lore ? listed(pile, lore) : "Here: something"
     end
 
     # What a remembered square's terrain is called.
@@ -228,16 +228,13 @@ module Roguelike::Ui
       memory.terrain.label
     end
 
-    # What is lying on a square, written out.
-    #
-    # One regard covers the pile. It is one square, and the character is as
-    # far from everything on it as from anything on it.
-    private def listed(pile : Array(Item), lore : Lore?,
-                       regard : Regard = Regard::Everything) : String
+    # What is lying on a square, written out, each item named as well as
+    # it was made out.
+    private def listed(pile : Array({Item, Regard}), lore : Lore?) : String
       return "" if pile.empty?
       return "Here: #{pile.size} things" unless lore
 
-      named = pile.map { |item| lore.name(item, regard: regard).as(String) }
+      named = pile.map { |item, regard| lore.name(item, regard: regard).as(String) }
       "Here: #{named.join ", "}"
     end
 

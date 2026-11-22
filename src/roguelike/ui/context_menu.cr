@@ -140,7 +140,7 @@ module Roguelike::Ui
         end
       end
 
-      add.call ContextVerb::PickUp, "Pick up", true if memory.try &.item
+      add.call ContextVerb::PickUp, "Pick up", true if memory.try &.items?
       add.call ContextVerb::Walk, "Walk here", true if !here && knowledge.crossable?(spot)
       add.call ContextVerb::Examine, "Examine", true
 

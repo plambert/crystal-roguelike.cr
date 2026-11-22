@@ -93,13 +93,25 @@ Spectator.describe "how well something is made out" do
     found
   end
 
+  # How well the character makes out the first item lying at *x*, *y*. A
+  # bare square asks about a spear that is not there.
+  def regard_at(game : Roguelike::Game, x : Int32, y : Int32) : Regard
+    item = game.floor.items(x, y).first? || Item.new(Kind::Spear)
+    game.regard_of_item item, x, y
+  end
+
+  # How well the first item remembered at *x*, *y* was made out.
+  def remembered(knowledge : Knowledge, x : Int32, y : Int32) : Regard?
+    knowledge[x, y].try &.items.first?.try &.regard
+  end
+
   describe "an item lying on the floor" do
     it "is made out in full seven squares off" do
       game = hall
       game.floor.drop 27, 5, Item.new Kind::Spear
 
       expect(game.can_see? 27, 5).to be_true
-      expect(game.regard_of_item 27, 5).to eq Regard::Everything
+      expect(regard_at(game, 27, 5)).to eq Regard::Everything
     end
 
     it "is made out as its kind nine squares off" do
@@ -107,14 +119,14 @@ Spectator.describe "how well something is made out" do
       game.floor.drop 29, 5, Item.new Kind::Spear
 
       expect(game.can_see? 29, 5).to be_true
-      expect(game.regard_of_item 29, 5).to eq Regard::Kind
+      expect(regard_at(game, 29, 5)).to eq Regard::Kind
     end
 
     it "is nothing at all on a square the character has never seen" do
       game = hall_of UNLIT
 
       expect(game.can_see? 9, 1).to be_false
-      expect(game.regard_of_item 9, 1).to eq Regard::Nothing
+      expect(regard_at(game, 9, 1)).to eq Regard::Nothing
     end
   end
 
@@ -123,16 +135,16 @@ Spectator.describe "how well something is made out" do
       game = hall
       game.floor.drop 29, 5, Item.new Kind::Spear
       game.look
-      expect(game.regard_of_item 29, 5).to eq Regard::Kind
+      expect(regard_at(game, 29, 5)).to eq Regard::Kind
 
       game.player.move_to 27, 5
       game.look
-      expect(game.regard_of_item 29, 5).to eq Regard::Everything
+      expect(regard_at(game, 29, 5)).to eq Regard::Everything
 
       game.player.move_to 20, 5
       game.look
-      expect(game.regard_of_item 29, 5).to eq Regard::Everything
-      expect(game.knowledge[29, 5].try &.regard).to eq Regard::Everything
+      expect(regard_at(game, 29, 5)).to eq Regard::Everything
+      expect(remembered(game.knowledge, 29, 5)).to eq Regard::Everything
     end
 
     it "is not carried over to a different item on the square" do
@@ -141,15 +153,15 @@ Spectator.describe "how well something is made out" do
       game.floor.drop 29, 5, spear
       game.player.move_to 27, 5
       game.look
-      expect(game.regard_of_item 29, 5).to eq Regard::Everything
+      expect(regard_at(game, 29, 5)).to eq Regard::Everything
 
       game.player.move_to 20, 5
       game.floor.take 29, 5, spear
       game.floor.drop 29, 5, Item.new Kind::TeleportScroll
       game.look
 
-      expect(game.regard_of_item 29, 5).to eq Regard::Kind
-      expect(game.knowledge[29, 5].try &.regard).to eq Regard::Kind
+      expect(regard_at(game, 29, 5)).to eq Regard::Kind
+      expect(remembered(game.knowledge, 29, 5)).to eq Regard::Kind
     end
 
     # `Knowledge#see` is where the rule lives. This is the same thing without
@@ -165,7 +177,7 @@ Spectator.describe "how well something is made out" do
       memory = knowledge[2, 1]
       raise "the square was not remembered" unless memory
 
-      expect(memory.regard).to eq Regard::Everything
+      expect(memory.items.first.regard).to eq Regard::Everything
       expect(memory.turn).to eq 2
     end
 
@@ -180,21 +192,24 @@ Spectator.describe "how well something is made out" do
       game.player.move_to 20, 5
       game.look
 
-      expect(game.regard_of_item 29, 5).to eq Regard::Everything
-      expect(game.knowledge[29, 5].try &.regard).to eq Regard::Everything
+      expect(regard_at(game, 29, 5)).to eq Regard::Everything
+      expect(remembered(game.knowledge, 29, 5)).to eq Regard::Everything
     end
 
-    it "is lost when the item on the square changes" do
+    it "keeps what only a close look showed when the item changes out of reach" do
       floor = Playing.daylight Floor.parse("room", ["#####", "#...#", "#####"])
       wand = Item.new Kind::LightWand
+      wand.enroll 7
       floor.drop 2, 1, wand
       knowledge = Knowledge.new floor.id
 
       knowledge.see floor, 2, 1, 1, Regard::Everything
+      charges = wand.charges
       wand.spend
       knowledge.see floor, 2, 1, 2, Regard::Kind
 
-      expect(knowledge[2, 1].try &.regard).to eq Regard::Kind
+      expect(remembered knowledge, 2, 1).to eq Regard::Everything
+      expect(knowledge[2, 1].try &.items.first.item.charges).to eq charges
     end
   end
 
@@ -286,37 +301,39 @@ Spectator.describe "how well something is made out" do
   end
 
   describe "a saved character" do
-    it "carries how well each square's item was made out" do
+    it "carries how well each item was made out" do
       kept = Playing.store
       game = Playing.field 40, 11
       game.player.name = "Sparky"
       game.floor.drop 29, 5, Item.new Kind::Spear
+      game.floor.drop 27, 5, Item.new Kind::Dagger
       game.look
 
-      expect(game.knowledge[29, 5].try &.regard).to eq Regard::Kind
+      expect(remembered(game.knowledge, 29, 5)).to eq Regard::Kind
 
       kept.write game
       back = kept.read "Sparky"
       raise "nothing was read back" unless back
 
-      expect(back.knowledge[29, 5].try &.regard).to eq Regard::Kind
-      expect(back.knowledge[20, 5].try &.regard).to eq Regard::Everything
+      expect(remembered(back.knowledge, 29, 5)).to eq Regard::Kind
+      expect(remembered(back.knowledge, 27, 5)).to eq Regard::Everything
     end
 
     # What a save written before this field held. A square nobody had walked
     # up to was named in full anyway, so loading it as `Everything` is what
     # that file meant.
     it "loads a square written before the field existed" do
-      written = %({"terrain":"stone_floor","item":null,"turn":4})
+      spear = Item.new(Kind::Spear).to_json
+      written = %({"terrain":"stone_floor","item":#{spear},"turn":4})
 
-      expect(Memory.from_json(written).regard).to eq Regard::Everything
+      expect(Memory.from_json(written).items.map &.regard).to eq [Regard::Everything]
     end
 
-    it "round-trips a square made out from a distance" do
-      memory = Memory.new Terrain::StoneFloor, nil, Item.new(Kind::Spear), 4, Regard::Kind
+    it "round-trips an item made out from a distance" do
+      memory = Memory.of Terrain::StoneFloor, nil, [Item.new(Kind::Spear)], 4, Regard::Kind
       back = Memory.from_json memory.to_json
 
-      expect(back.regard).to eq Regard::Kind
+      expect(back.items.map &.regard).to eq [Regard::Kind]
       expect(back).to eq memory
     end
   end

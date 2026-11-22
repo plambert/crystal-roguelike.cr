@@ -42,13 +42,13 @@ Spectator.describe Roguelike::Knowledge do
       expect(knowledge.seen? 3, 2).to be_true
     end
 
-    it "records the top of the pile" do
+    it "shows the item the map rule picks rather than the top of the pile" do
       floor = spot
       floor.drop 1, 1, Item.new Kind::Dagger
       floor.drop 1, 1, Item.new Kind::Cap
 
       knowledge.see floor, 1, 1
-      expect(knowledge[1, 1].try &.item.try &.kind).to eq Kind::Cap
+      expect(knowledge[1, 1].try &.shown.try &.kind).to eq Kind::Dagger
     end
 
     it "records the rest of the pile under the top" do
@@ -61,7 +61,6 @@ Spectator.describe Roguelike::Knowledge do
       memory = knowledge[1, 1]
 
       expect(memory.try &.pile.map(&.kind)).to eq [Kind::Dagger, Kind::Arrow, Kind::Cap]
-      expect(memory.try &.under.try &.map(&.kind)).to eq [Kind::Dagger, Kind::Arrow]
     end
 
     it "records nothing under a lone item" do
@@ -70,7 +69,6 @@ Spectator.describe Roguelike::Knowledge do
 
       knowledge.see floor, 1, 1
 
-      expect(knowledge[1, 1].try &.under).to be_nil
       expect(knowledge[1, 1].try &.pile.size).to eq 1
     end
 
@@ -104,7 +102,7 @@ Spectator.describe Roguelike::Knowledge do
       floor.drop 1, 1, Item.new Kind::Dagger
       knowledge.see floor, 1, 1, 9
 
-      expect(knowledge[1, 1].try &.item).not_to be_nil
+      expect(knowledge[1, 1].try &.shown).not_to be_nil
       expect(knowledge[1, 1].try &.turn).to eq 9
     end
   end
@@ -121,7 +119,7 @@ Spectator.describe Roguelike::Knowledge do
       torch.kindle
 
       expect(torch.lit?).to be_true
-      expect(knowledge[1, 1].try &.item.try &.lit?).to be_false
+      expect(knowledge[1, 1].try &.shown.try &.lit?).to be_false
     end
 
     it "keeps the fixture as it was after the one on the floor is lit" do
@@ -317,7 +315,7 @@ Spectator.describe Roguelike::Knowledge do
       expect(again).to eq knowledge
       expect(again.floor).to eq "room"
       expect(again.size).to eq knowledge.size
-      expect(again[1, 1].try &.item.try &.kind).to eq Kind::Dagger
+      expect(again[1, 1].try &.shown.try &.kind).to eq Kind::Dagger
       expect(again[1, 1].try &.turn).to eq 5
     end
 
@@ -352,8 +350,9 @@ Spectator.describe Roguelike::Knowledge do
     it "reads a memory written before piles were remembered" do
       again = described_class.from_json OLDER
 
-      expect(again[1, 1].try &.item.try &.kind).to eq Kind::Dagger
-      expect(again[1, 1].try &.under).to be_nil
+      expect(again[1, 1].try &.shown.try &.kind).to eq Kind::Dagger
+      expect(again[1, 1].try &.pile.size).to eq 1
+      expect(again[1, 1].try &.items.first.regard).to eq Roguelike::Regard::Everything
       expect(again[1, 1].try &.turn).to eq 3
     end
 
@@ -385,7 +384,7 @@ Spectator.describe Roguelike::Knowledge do
       knowledge = described_class.new "room"
       knowledge.touch floor, 1, 1
 
-      expect(knowledge[1, 1].try &.item).to be_nil
+      expect(knowledge[1, 1].try &.shown).to be_nil
     end
 
     it "keeps what was already remembered of what is lying there" do
@@ -395,7 +394,7 @@ Spectator.describe Roguelike::Knowledge do
       knowledge.see floor, 1, 1
       knowledge.touch floor, 1, 1
 
-      expect(knowledge[1, 1].try &.item).not_to be_nil
+      expect(knowledge[1, 1].try &.shown).not_to be_nil
     end
 
     it "records a square off the floor as nothing" do
