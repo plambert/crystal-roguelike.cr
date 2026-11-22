@@ -151,6 +151,12 @@ module Roguelike::Ui
       bar.frame.contains? x, y
     end
 
+    # Whether the pointer at *x*, *y* of the buffer is kept off the map, by
+    # a modal box or by the search bar.
+    private def held_off_map?(x : Int32, y : Int32) : Bool
+      modal? || over_search_bar?(x, y)
+    end
+
     # Pans the map a step toward *direction* while the matches show on it.
     # Answers whether it did, which is when the movement keys belong to the
     # search.
