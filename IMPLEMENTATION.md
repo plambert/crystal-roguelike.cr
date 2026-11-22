@@ -7216,8 +7216,9 @@ verbs, so those rows show none.
 * Open and Close on a door that is no longer in that state say "There is nothing to open beside
   you." or the close line, as the keys do.
 * The verbs are the existing actions. Descend, Ascend, Drink, Fill and Pick up call the methods the
-  keys call. Open and Close go through `act`. Spike applies the carried spike, since choosing the
-  row is the yes the `c` key asks for.
+  keys call. Open and Close go through `act`. Spike asks "Spike the door?" through the same
+  `ask_to_spike` that `c` uses, beside the door and after a walk alike. A yes applies the carried
+  spike. A no changes nothing and takes no turn.
 
 ### The route
 
