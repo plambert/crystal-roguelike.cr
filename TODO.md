@@ -53,8 +53,7 @@ The oil of resizing is applied to a piece of armor that is not made of metal, an
 armor to the character's size. Metal armor cannot be resized. Armor already has a size of small,
 medium or large, and the character cannot wear armor of another size. Goblins wear small armor, so
 the oil lets the character use armor that goblins drop. The oil follows the naming rule in the
-potions, flasks and oils item below. Whether a resized piece is changed in any other way is to be
-settled when this is built.
+potions, flasks and oils item below.
 
 ## Considered
 
