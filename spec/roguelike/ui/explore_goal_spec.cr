@@ -303,6 +303,28 @@ Spectator.describe "what the rule under the map says during explore" do
       expect(run.armed_for Play::STRIDE).to be_empty
     end
 
+    it "holds once for a run of fill turns and keeps the text up" do
+      run = exploring WELL
+      run.game.player.sustenance.water = 0
+      run.press "X"
+      until run.at == BASIN
+        stride run
+      end
+
+      holds = 0
+      said = [] of String?
+      while run.play.walking? && !run.game.skin_full?
+        holds += 1 unless run.armed_for(Play::HOLD).empty?
+        said << run.play.doing if run.play.doing.try &.starts_with?("Filling")
+        stride run
+      end
+
+      expect(run.game.skin_full?).to be_true
+      expect(holds).to eq 1
+      expect(said.size).to be > 10
+      expect(said.uniq).to eq ["Filling your waterskin"]
+    end
+
     it "waits longer than a stride, about long enough to read" do
       expect(Play::HOLD).to be > Play::STRIDE
       expect(Play::HOLD).to eq 250.milliseconds

@@ -7540,12 +7540,15 @@ While `X` walks, the rule under the map says what explore is doing beside the fl
   dropped rot, a door opened and a blow all add one.
 * A step in place that added no line shows its own text and waits `Play::HOLD`, 250 ms, before the
   next step, against `Play::STRIDE`, 45 ms.
+* A run of the same step back to back holds once, on its first such turn. `@held` in `Play`
+  keeps the step that held until a different step comes between. The rest of the run goes at
+  `STRIDE` with the text still up.
 * A line said again only puts a count on the last line. `MessageLog#written` does not count it,
-  so it counts as no line. A second door opened in a row shows "Opening a door" and holds.
+  so it counts as no line. A second door opened after a walk shows "Opening a door" and holds.
 * A fill at a fountain drinks from it every turn the character is not quenched, which is nearly
   every turn, so its first turn adds "You drink from the fountain." and the turns after only
-  count it again. They show "Filling your waterskin" and hold, and the last turn adds "Your
-  waterskin is full." A fill from empty holds about 4.5 seconds.
+  count it again. The second turn shows "Filling your waterskin" and holds, the turns after go at
+  `STRIDE` under the same text, and the last turn adds "Your waterskin is full."
 
 ### Narrow screens
 

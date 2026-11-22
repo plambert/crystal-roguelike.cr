@@ -262,11 +262,18 @@ module Roguelike::Ui
     # The rule under the map says what the step did, and this is about long
     # enough for a person who has not seen it before to read it. A step that
     # wrote a line waits only `STRIDE`, because the log says what it did.
+    #
+    # A run of the same step back to back waits once. The text stays up
+    # for the rest of the run, which goes at `STRIDE`.
     HOLD = 250.milliseconds
 
     # What an explore walk is doing, for the rule under the map. `nil` when
     # no explore is walking.
     getter doing : String? = nil
+
+    # The step in place that last waited `HOLD`, while the walk is still
+    # taking it back to back. `nil` once any other step comes between.
+    @held : Step? = nil
 
     # The walk being drawn, or `nil` when nothing is walking.
     @walk : Game::Walk? = nil
@@ -4266,9 +4273,11 @@ module Roguelike::Ui
     # rule as it was, since the log says what it did. One that wrote nothing
     # says what it did and holds, so a person can read it. A line said again
     # only puts a count on the last line, and counts as nothing written, as
-    # `MessageLog#written` counts it.
+    # `MessageLog#written` counts it. Only the first such step of a run of
+    # the same step holds.
     private def note_doing(walk : Game::Walk, logged : Bool) : Bool
       taken = walk.taken
+      @held = nil unless taken == @held
       if taken && taken.stayed?
         return false if logged
 
@@ -4276,6 +4285,9 @@ module Roguelike::Ui
         return false unless said
 
         @doing = said
+        return false if @held
+
+        @held = taken
         return true
       end
 
@@ -4340,6 +4352,7 @@ module Roguelike::Ui
       @walk_timer.cancel
       @errand = nil
       @doing = nil
+      @held = nil
 
       return unless @walk
 
