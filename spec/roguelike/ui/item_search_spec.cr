@@ -351,6 +351,59 @@ Spectator.describe "the item search" do
     end
   end
 
+  describe "the hover box" do
+    # A strip of floor with a spear on the top row, which the bar covers.
+    def strip : Playing::Run
+      options = Options.new
+      options.control_scheme = Scheme::Traditional
+      Options.current = options
+
+      floor = Playing.daylight Roguelike::Floor.parse("strip", [
+        "....................",
+        "....................",
+        "....................",
+      ])
+      floor.drop 3, 0, Item.new(Kind::Spear)
+      player = Roguelike::Player.new "strip", 1, 2, hit_points: 40
+      game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"strip" => floor}), player
+
+      run = Playing.open game, columns: 60, rows: 20, clock: true
+      run.clear_monsters
+      run.play.mousing = true
+      run
+    end
+
+    # Rests the pointer on square *spot* until the dwell is over.
+    def rest(run : Playing::Run, spot : {Int32, Int32}) : Nil
+      cell = run.map.screen_of(spot[0], spot[1]) || raise "#{spot} is not on the screen"
+      run.hover cell[0] + 1, cell[1]
+      run.hover *cell
+      run.tick Play::HOVER_DWELL
+      run.render
+    end
+
+    # Whether the hover box is on the screen.
+    def up?(run : Playing::Run) : Bool
+      box = run.play.hover_box
+      box.showing? && !box.hidden?
+    end
+
+    it "does not show for a square under the bar" do
+      run = strip
+      run.press Keys::HOVER
+      rest run, {3, 0}
+      expect(up? run).to be_true
+
+      run.press "/"
+      run.press "Tab"
+      cell = run.map.screen_of(3, 0) || raise "not on the screen"
+      expect(run.play.search_bar.frame.contains?(*cell)).to be_true
+
+      rest run, {3, 0}
+      expect(up? run).to be_false
+    end
+  end
+
   describe "piles" do
     it "lists the matching items first in the info panel while the search is open" do
       run = room

@@ -142,6 +142,15 @@ module Roguelike::Ui
       refresh
     end
 
+    # Whether the cell *x*, *y* of the buffer is on the bar along the top
+    # of the map.
+    def over_search_bar?(x : Int32, y : Int32) : Bool
+      bar = @search_bar
+      return false unless bar && bar.showing?
+
+      bar.frame.contains? x, y
+    end
+
     # Pans the map a step toward *direction* while the matches show on it.
     # Answers whether it did, which is when the movement keys belong to the
     # search.

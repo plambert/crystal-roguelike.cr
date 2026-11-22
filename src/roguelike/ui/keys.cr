@@ -277,12 +277,14 @@ module Roguelike::Ui
     # the log. `Escape` gives it back to the map, and on the map it takes
     # back whatever is waiting.
     #
-    # `Tab` aims at the next monster while something is being aimed. An
+    # `Tab` aims at the next monster while something is being aimed, and
+    # goes back to the item search while its matches show on the map. An
     # overlay pushes a focus scope with its own keys, so none of these
     # reach the panels while one is up.
     def self.panels(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
-        map.bind TermBuf::Key.parse("Tab"), "focus the next panel, or aim at the next monster",
+        map.bind TermBuf::Key.parse("Tab"),
+          "focus the next panel, aim at the next monster, or go back to the item search",
           ->(_context : Widgets::Context) { play.tab; nil }
         map.bind TermBuf::Key.parse("Shift+Tab"), "focus the previous panel",
           ->(_context : Widgets::Context) { play.tab_back; nil }

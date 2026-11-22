@@ -3716,8 +3716,9 @@ module Roguelike::Ui
       end
 
       # Every other modal box owns the screen the same way, and none of them
-      # has a box of its own to keep up.
-      if modal?
+      # has a box of its own to keep up. The item search's bar over the map
+      # counts as off the map.
+      if modal? || over_search_bar?(x, y)
         @nearby.unmark
         spotlight nil
         return pointer_away
