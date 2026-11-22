@@ -69,7 +69,8 @@ Spectator.describe "the sort key in lists of items" do
       run.press "="
 
       expect(run.menu.title).to eq Play::SORT_TITLE
-      expect(run.menu.entries.map &.text).to eq %w[name weight class]
+      expect(run.menu.entries.map &.text).to eq %w[letter name weight class]
+      expect(run.menu.entries.map &.mark).to eq ['*', ' ', ' ', ' ']
 
       run.press "Escape"
       expect(run.menu.title).to eq Play::INVENTORY
@@ -78,7 +79,7 @@ Spectator.describe "the sort key in lists of items" do
 
     it "sorts the inventory by weight, heaviest first, and keeps each letter" do
       run = traditional stocked(mixed)
-      run.press "i", "=", "b"
+      run.press "i", "=", "c"
 
       weights = keys(run).reject(&.==(Play::FOOD_BAG_KEY)).map do |key|
         run.game.player.inventory[key].try(&.weight) || 0
@@ -89,15 +90,24 @@ Spectator.describe "the sort key in lists of items" do
 
     it "puts a heading before each class when sorted by class" do
       run = traditional stocked(mixed)
-      run.press "i", "=", "c"
+      run.press "i", "=", "d"
 
       expect(headers run).to eq %w[Weapons Armor Potions Scrolls]
       expect(keys run).to eq ['a', 'c', 'b', 'd', Play::FOOD_BAG_KEY]
     end
 
+    it "goes back to letter order from the picker" do
+      run = traditional stocked(mixed)
+      run.press "i", "=", "d", "=", "a"
+
+      expect(headers run).to be_empty
+      expect(keys run).to eq ['a', 'b', 'c', 'd', Play::FOOD_BAG_KEY]
+      expect(run.play.sort_of(Play::INVENTORY)).to eq Roguelike::Ui::ItemSort::Letter
+    end
+
     it "steps the highlight over headings" do
       run = traditional stocked(mixed)
-      run.press "i", "=", "c"
+      run.press "i", "=", "d"
 
       expect(run.menu.list.selected).to eq 1
       run.press "Down"
@@ -110,7 +120,7 @@ Spectator.describe "the sort key in lists of items" do
 
     it "keeps the class pages as they are" do
       run = traditional stocked(mixed)
-      run.press "i", "=", "c", "Right"
+      run.press "i", "=", "d", "Right"
 
       expect(run.menu.page_name).to eq "weapons"
       expect(headers run).to be_empty
@@ -118,7 +128,7 @@ Spectator.describe "the sort key in lists of items" do
 
     it "remembers each list's order on its own" do
       run = traditional stocked(mixed)
-      run.press "i", "=", "c", "Escape"
+      run.press "i", "=", "d", "Escape"
       run.press "i"
       expect(headers run).to_not be_empty
       run.press "Escape"
@@ -131,9 +141,9 @@ Spectator.describe "the sort key in lists of items" do
       run = traditional stocked([] of Item, floor: mixed)
       run.press ","
       run.press "="
-      expect(run.menu.entries.map &.text).to eq %w[name class]
+      expect(run.menu.entries.map &.text).to eq %w[letter name class]
 
-      run.press "b"
+      run.press "c"
       expect(run.menu.title).to eq Play::PICK_UP
       expect(headers run).to eq %w[Weapons Armor Potions Scrolls]
 
@@ -155,7 +165,7 @@ Spectator.describe "the sort key in lists of items" do
 
     it "takes no turn and sends no action" do
       run = traditional stocked(mixed)
-      run.press "i", "=", "c", "Escape"
+      run.press "i", "=", "d", "Escape"
 
       expect(run.turn).to eq 0
     end
@@ -167,7 +177,8 @@ Spectator.describe "the sort key in lists of items" do
       run.press "i", "r"
 
       expect(run.menu.title).to eq Play::SORT_TITLE
-      run.press "s", "s", "f"
+      expect(run.menu.entries.map &.text).to eq %w[letter name weight class]
+      run.press "s", "s", "s", "f"
 
       expect(run.menu.title).to eq Play::INVENTORY
       expect(headers run).to eq %w[Weapons Armor Potions Scrolls]
@@ -176,7 +187,7 @@ Spectator.describe "the sort key in lists of items" do
 
     it "steps over headings with s" do
       run = modern stocked(mixed)
-      run.press "i", "r", "s", "s", "f"
+      run.press "i", "r", "s", "s", "s", "f"
       run.press "s"
 
       expect(run.menu.entries[run.menu.list.selected].header).to be_false
@@ -185,7 +196,9 @@ Spectator.describe "the sort key in lists of items" do
 
     it "sorts a list of targets" do
       run = modern stocked([] of Item, floor: mixed)
-      run.press "g", "r", "s", "f"
+      run.press "g", "r"
+      expect(run.menu.entries.map &.text).to eq %w[name class]
+      run.press "s", "f"
 
       expect(headers run).to eq %w[Weapons Armor Potions Scrolls]
     end

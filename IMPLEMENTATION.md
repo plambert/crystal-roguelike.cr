@@ -7561,16 +7561,18 @@ The modern scheme uses `r`. The traditional scheme uses `=`, because letters pic
 
 | List | Orders | Kept under |
 | --- | --- | --- |
-| Inventory, drop and other carried lists | name, weight, class | the menu title |
-| Pick-up list | name, class | `Play::PICK_UP` |
+| Inventory, drop and other carried lists | letter, name, weight, class | the menu title |
+| Pick-up list | letter, name, class | `Play::PICK_UP` |
 | Modern target lists of items | as the traditional list | the command label |
 | Food bag | the six `FoodSort.pages` | `@food_sort` |
 
-* `Ui::ItemSort` holds the orders. Members are only added at the end.
+* `Ui::ItemSort` holds the orders. Members are only added at the end, so `Letter` is last in the
+  enum and first in the picker.
+* The modern pick-up list shows no letters, so it offers name and class only.
 * `Play#choose_by_class` covers every traditional carried list. `#choose_from` covers pick-up.
   `#show_inventory_values` and `#show_modern_targets` cover the modern ones.
 * The food bag keeps its pages. The picker turns to the page picked.
-* A list that has never been sorted keeps the order it comes in, which is letter order.
+* Letter order is the default, the order a list comes in. A list never sorted is in it.
 
 ### Order
 

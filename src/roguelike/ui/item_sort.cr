@@ -11,16 +11,18 @@ module Roguelike::Ui
     Name
     Weight
     Class
+    Letter
 
     # The orders a list of carried items offers, in the order the picker
-    # shows them.
+    # shows them. Letter order is the default.
     def self.carried : Array(ItemSort)
-      [Name, Weight, Class]
+      [Letter, Name, Weight, Class]
     end
 
-    # The orders the pick-up list offers.
-    def self.floor : Array(ItemSort)
-      [Name, Class]
+    # The orders the pick-up list offers. Letter order comes first only when
+    # the rows show their *letters*.
+    def self.floor(letters : Bool) : Array(ItemSort)
+      letters ? [Letter, Name, Class] : [Name, Class]
     end
 
     # What the picker calls this order.
@@ -34,8 +36,8 @@ module Roguelike::Ui
     SORT_TITLE = "Sort by"
 
     # The order each list of items was last sorted in, by the list's name.
-    # A list with no entry keeps the order it comes in. This lasts for the
-    # session and is not saved.
+    # A list with no entry is in letter order. This lasts for the session
+    # and is not saved.
     @sorts = {} of String => ItemSort
 
     # The order the list named *list* is sorted in, or `nil` for none yet.
@@ -48,7 +50,7 @@ module Roguelike::Ui
     private def sort_order(list : String, items : Array(Item)) : Array(Int32)
       order = (0...items.size).to_a
       sort = @sorts[list]?
-      return order unless sort
+      return order if sort.nil? || sort.letter?
 
       lore = @game.lore
       order.sort_by do |index|
@@ -58,6 +60,7 @@ module Roguelike::Ui
         in .name?   then {0, name, index}
         in .weight? then {-item.weight, name, index}
         in .class?  then {Play.class_rank(item), name, index}
+        in .letter? then {0, "", index}
         end
       end
     end
@@ -96,7 +99,7 @@ module Roguelike::Ui
       labels = orders.map &.label
       offer_sort_key do
         page = @menu.page_name
-        current = @sorts[list]?.try { |sort| orders.index sort }
+        current = orders.index(@sorts[list]? || ItemSort::Letter)
         pick_sort(labels, current) do |index|
           @sorts[list] = orders[index] if index
           again.call page

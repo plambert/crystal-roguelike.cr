@@ -503,7 +503,7 @@ module Roguelike::Ui
       notes = [
         {"a-z A-Z", "what to do with that item"},
         {"Left Right", "show one class of item at a time"},
-        {sort_key.to_s, "sort the list by name, weight or class"},
+        {sort_key.to_s, "sort the list by letter, name, weight or class"},
         {actions.join(" ", &.key), actions.join(", ", &.label)},
       ]
 
@@ -537,7 +537,7 @@ module Roguelike::Ui
     def self.in_a_list : Section
       key = sort_key(Options::ControlScheme::Modern).to_s
       notes = [
-        {key, "sort a list of items by name, weight or class"},
+        {key, "sort a list of items by letter, name, weight or class"},
         {key, "pick the food bag's sort from a list"},
       ]
 

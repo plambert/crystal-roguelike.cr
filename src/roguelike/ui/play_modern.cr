@@ -482,7 +482,7 @@ module Roguelike::Ui
     # sort.
     private def target_sort(command : Command) : {String?, Array(ItemSort)}
       case command
-      when .pick_up? then {PICK_UP, ItemSort.floor}
+      when .pick_up? then {PICK_UP, ItemSort.floor(letters: false)}
       when .equip?, .remove?, .drop?, .drink?, .read?, .zap?, .throw?
         {command_label(command), ItemSort.carried}
       else
