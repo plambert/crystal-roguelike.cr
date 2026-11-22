@@ -5,6 +5,7 @@ Spectator.describe "the food bag screen" do
   alias Kind = Roguelike::ItemKind
   alias Options = Roguelike::Options
   alias Play = Roguelike::Ui::Play
+  alias Widgets = TermBuf::Widgets
 
   HALL = [
     "############",
@@ -46,7 +47,7 @@ Spectator.describe "the food bag screen" do
     run.press "E"
 
     expect(run.menu.title.to_s).to start_with Play::FOOD_BAG
-    expect(run.menu.pages.map &.[0]).to eq %w[weight type value name freshness]
+    expect(run.menu.pages.map &.[0]).to eq %w[soonest weight type value name freshness]
     expect(run.text).to contain "2 rations"
     expect(run.text).to contain "an apple"
   end
@@ -56,10 +57,62 @@ Spectator.describe "the food bag screen" do
     run.press "E"
     first = run.menu.entries.map &.key
 
-    run.press "Right", "Right", "Right"
+    run.press "Right", "Right", "Right", "Right"
     expect(run.menu.page_name).to eq "name"
     expect(run.menu.entries.map &.key).to eq ['b', 'a', '+', '-']
-    expect(first).to eq ['a', 'b', '+', '-']
+    expect(first).to eq ['b', 'a', '+', '-']
+  end
+
+  describe "the first page" do
+    def keeps(kind : Kind) : Int32
+      Roguelike::Food.facts(kind).keeps
+    end
+
+    # A ration, which never spoils, fresh berries, a stale apple and rotten
+    # bread, put in the bag in that order.
+    def mixed : Roguelike::Game
+      stocked([
+        food(Kind::Ration),
+        food(Kind::Berries),
+        food(Kind::Apple, age: keeps(Kind::Apple) + 10),
+        food(Kind::Bread, age: keeps(Kind::Bread) * 2),
+      ])
+    end
+
+    it "is in the order of Game.meal_rank" do
+      game = mixed
+      run = traditional game
+      run.press "E"
+
+      expect(run.menu.page_name).to eq "soonest"
+      ranked = game.player.food_bag.items.sort_by { |item| Roguelike::Game.meal_rank item }
+      letters = ranked.map { |item| Widgets::Menu.letter game.player.food_bag.items.index!(&.same?(item)) }
+      expect(run.menu.entries.map(&.key).first(4)).to eq letters
+      expect(ranked.last.kind).to eq Kind::Bread
+      expect(ranked[-2].kind).to eq Kind::Ration
+    end
+
+    it "starts with what the eat key eats" do
+      game = mixed
+      meal = game.meal
+      run = traditional game
+      run.press "E"
+
+      expect(meal).not_to be_nil
+      first = run.menu.entries.first.key
+      expect(first).to eq Widgets::Menu.letter(game.player.food_bag.items.index!(&.same?(meal)))
+
+      run.press first.to_s, "e"
+      expect(run.game.player.food_bag.items.none?(&.same?(meal))).to be_true
+      expect(run.turn).to eq 1
+    end
+
+    it "keeps the page last chosen for the rest of the session" do
+      run = traditional mixed
+      run.press "E", "Right", "Right", "Escape", "E"
+
+      expect(run.menu.page_name).to eq "type"
+    end
   end
 
   it "eats one of a stack from the menu on its letter" do

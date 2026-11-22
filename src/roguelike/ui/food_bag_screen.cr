@@ -16,7 +16,8 @@ module Roguelike::Ui
     # The food bag row that drops all the rot.
     DROP_ROT_KEY = '-'
 
-    # Which sort the food bag screen opened on last.
+    # The page of `FoodSort.pages` the food bag screen opened on last. It
+    # starts on the first, the order `e` eats in.
     @food_sort : Int32 = 0
 
     # What runs when the food bag screen is closed. `nil` goes back to the
@@ -83,11 +84,13 @@ module Roguelike::Ui
     # Shows what is in the food bag, and any corpse underfoot. `E` does
     # this.
     #
-    # One page per sort, and the left and right keys turn the page. A row's
-    # letter stays with its food on every page. A letter puts up what can
-    # be done with that food. `+` and `-` end every page, as
-    # `#food_chore_rows` says. Putrid masses in the pack put the screen up
-    # with an empty bag, for `-`. *back* runs when the screen is closed.
+    # One page per sort, and the left and right keys turn the page. The
+    # screen first opens on the order `e` eats in, and after that on the
+    # page last shown. A row's letter stays with its food on every page. A
+    # letter puts up what can be done with that food. `+` and `-` end every
+    # page, as `#food_chore_rows` says. Putrid masses in the pack put the
+    # screen up with an empty bag, for `-`. *back* runs when the screen is
+    # closed.
     def show_food_bag(back : Proc(Nil)? = nil) : Nil
       @food_back = back
       found = food_rows
@@ -98,7 +101,7 @@ module Roguelike::Ui
       end
 
       room = food_room
-      pages = FoodSort.values.map do |sort|
+      pages = FoodSort.pages.map do |sort|
         {sort.label, food_page(found, sort, room)}
       end
       about = {} of Char => Listing

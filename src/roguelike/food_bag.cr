@@ -3,12 +3,22 @@ require "../roguelike"
 
 module Roguelike
   # How the food bag screen orders what is in the bag.
+  #
+  # Members are only ever added at the end. `.pages` is the order the
+  # screen shows them in.
   enum FoodSort
     Weight
     Type
     Value
     Name
     Freshness
+    Soonest
+
+    # The sorts in the order the food bag screen shows its pages. The first
+    # is the page it opens on.
+    def self.pages : Array(FoodSort)
+      [Soonest, Weight, Type, Value, Name, Freshness]
+    end
 
     # What the page is called.
     def label : String
@@ -130,9 +140,14 @@ module Roguelike
     # order they went in.
     #
     # Weight and value put the most first. Freshness puts fresh food first,
-    # and within each stage what turns soonest.
+    # and within each stage what turns soonest. Soonest is the order
+    # `Game.meal_rank` gives, so the food `e` eats comes first.
     def sorted(sort : FoodSort) : Array(Item)
       indexed = @items.each_with_index.to_a
+      if sort.soonest?
+        return indexed.sort_by! { |(item, index)| {Game.meal_rank(item), index} }.map &.[0]
+      end
+
       indexed.sort_by! do |(item, index)|
         noun = Lore.food_noun item, false
         case sort
@@ -141,6 +156,7 @@ module Roguelike
         in .value?     then {-item.food_facts.value, 0, noun, index}
         in .name?      then {0, 0, noun, index}
         in .freshness? then {item.freshness.value, -FoodBag.ripeness(item), "", index}
+        in .soonest?   then {0, 0, "", index}
         end
       end
       indexed.map &.[0]

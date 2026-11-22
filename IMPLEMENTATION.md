@@ -7017,6 +7017,8 @@ one goes through actions that already exist, so a bot does the same with `eat` a
   spoils comes after all that does, and rotten food last.
 * **Rotten food.** `#meal` leaves it out unless asked with `rotten: true` and nothing else is left.
   An explore asks only while starving.
+* **Food bag page.** `FoodSort::Soonest` sorts by `.meal_rank`. `FoodSort.pages` shows it first,
+  so the bag opens on it. Freshness groups by stage, which this order does not, so both are kept.
 * **Explore order moved.** An explore used to eat stale food before fresh whatever the turns left.
   It now eats in the order above, so fresh berries a turn from stale go before a stale apple with
   days left.
