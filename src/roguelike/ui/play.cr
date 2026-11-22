@@ -256,6 +256,25 @@ module Roguelike::Ui
     # and the squares crossed on the way are what a person is watching for.
     STRIDE = 45.milliseconds
 
+    # How long a walk waits after an explore step taken in place that wrote
+    # nothing to the log.
+    #
+    # The rule under the map says what the step did, and this is about long
+    # enough for a person who has not seen it before to read it. A step that
+    # wrote a line waits only `STRIDE`, because the log says what it did.
+    #
+    # A run of the same step back to back waits once. The text stays up
+    # for the rest of the run, which goes at `STRIDE`.
+    HOLD = 250.milliseconds
+
+    # What an explore walk is doing, for the rule under the map. `nil` when
+    # no explore is walking.
+    getter doing : String? = nil
+
+    # The step in place that last waited `HOLD`, while the walk is still
+    # taking it back to back. `nil` once any other step comes between.
+    @held : Step? = nil
+
     # The walk being drawn, or `nil` when nothing is walking.
     @walk : Game::Walk? = nil
 
@@ -3360,6 +3379,7 @@ module Roguelike::Ui
       arrive_on_floor unless @map.floor.same? @game.floor
       come_home if @home && @home_turn != @game.turn
       @screen.rule.label = Play.floor_name(@game.floor)
+      @screen.rule.aside = @doing
       @map.clear_marks
       @map.clear_highlights
       drop_stale_hover
@@ -4330,9 +4350,11 @@ module Roguelike::Ui
         walk = @walk
         return unless walk
 
+        wrote = @game.log.written
         going = @game.stride walk
         @map.follow @game.player.x, @game.player.y
         follow_trail if walk.exploring?
+        held = walk.exploring? && note_doing(walk, @game.log.written != wrote)
 
         # The walk is put away before the screen is drawn, so the pane is free
         # to hold on the lines the last step wrote.
@@ -4347,8 +4369,88 @@ module Roguelike::Ui
 
         app = @app
         if app
-          return if @walk_timer.after(app, STRIDE) { stride }
+          return if @walk_timer.after(app, held ? HOLD : STRIDE) { stride }
         end
+      end
+    end
+
+    # Sets `#doing` from the explore step *walk* just took. Answers whether
+    # the walk waits `HOLD` before its next step.
+    #
+    # A step that walked says where the explore is heading. When there is
+    # nothing new to say, such as on the step that took the pile it was
+    # heading for, the rule stays as it was. A step taken in
+    # place that wrote to the log, such as a drink from the skin, leaves the
+    # rule as it was, since the log says what it did. One that wrote nothing
+    # says what it did and holds, so a person can read it. A line said again
+    # only puts a count on the last line, and counts as nothing written, as
+    # `MessageLog#written` counts it. Only the first such step of a run of
+    # the same step holds.
+    private def note_doing(walk : Game::Walk, logged : Bool) : Bool
+      taken = walk.taken
+      @held = nil unless taken == @held
+      if taken && taken.stayed?
+        return false if logged
+
+        said = Play.doing_in_place taken
+        return false unless said
+
+        @doing = said
+        return false if @held
+
+        @held = taken
+        return true
+      end
+
+      @doing = heading_for || @doing
+      false
+    end
+
+    # What the rule under the map says an explore step taken in place by
+    # *step* is doing. `nil` for a step that is not taken in place.
+    def self.doing_in_place(step : Step) : String?
+      case step
+      when .drew?    then "Filling your waterskin"
+      when .drank?   then "Drinking from your waterskin"
+      when .ate?     then "Eating"
+      when .dropped? then "Dropping rotten food"
+      when .opened?  then "Opening a door"
+      when .struck?  then "Fighting"
+      end
+    end
+
+    # What the rule under the map says about where the last explore step
+    # was heading, or `nil` when it was heading nowhere.
+    #
+    # It reads `Game#explore_reason` and plans nothing.
+    private def heading_for : String?
+      reason = @game.explore_reason
+      route = @game.explore_plan
+      return unless reason && route && route.size >= 2
+
+      names = @game.explore_items(route.last, reason).map do |remembered|
+        @game.name remembered.item, remembered.regard
+      end
+      Play.heading_for reason, names
+    end
+
+    # What the rule under the map says about an explore heading somewhere
+    # for *reason*. *names* are the items there that it is heading for, as
+    # the character names them, the one the map draws first. One item is
+    # named, and "and more" stands for the rest.
+    #
+    # `nil` for a pile or an unread item with no names. The character no
+    # longer remembers anything there to head for.
+    def self.heading_for(reason : Explore::Reason, names : Array(String) = [] of String) : String?
+      named = names.first?
+      named = "#{named} and more" if named && names.size > 1
+      case reason
+      in .pile?     then "Picking up #{named}" if named
+      in .well?     then "Walking to fountain"
+      in .room?     then "Searching this room"
+      in .passage?  then "Following the passage"
+      in .frontier? then "Exploring unknown areas"
+      in .unread?   then "Going to look at #{named}" if named
       end
     end
 
@@ -4360,6 +4462,8 @@ module Roguelike::Ui
     private def stop_walking : Nil
       @walk_timer.cancel
       @errand = nil
+      @doing = nil
+      @held = nil
 
       return unless @walk
 

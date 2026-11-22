@@ -34,9 +34,10 @@ Spectator.describe "the way explore is heading" do
     run
   end
 
-  # Takes one step of the walk under way.
+  # Takes one step of the walk under way. A step in place that wrote
+  # nothing arms the next on `Play::HOLD` rather than `Play::STRIDE`.
   def stride(run : Playing::Run) : Nil
-    run.tick Play::STRIDE
+    run.tick(Play::STRIDE) || run.tick(Play::HOLD)
   end
 
   # The goal of the drawn trail. `nil` when none is drawn.

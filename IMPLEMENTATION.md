@@ -7552,6 +7552,71 @@ fixed to what `HoverBox.size` worked out, so the layout leaves it where `.place`
 Nothing here touches the game. No action, save field or bot protocol changes, and the golden
 fixtures do not move.
 
+## What explore is doing
+
+While `X` walks, the rule under the map says what explore is doing beside the floor, as
+"Floor 7 - Walking to fountain".
+
+### The reason
+
+* `Explore.plan` answers an `Explore::Plan`, the route and an `Explore::Reason`. `Explore.route`
+  is `.plan` less the reason, so its callers do not change.
+* `Explore::Reason` holds `Pile`, `Well`, `Room`, `Passage`, `Frontier` and `Unread`, one per
+  branch of the goal chain. A square that is both a pile and a fountain is a `Pile`.
+* `@plan` keeps the whole `Explore::Plan`. `Game#explore_reason` reads its reason beside
+  `#explore_plan`, and plans nothing.
+* `Game#explore_items` gives the items on the goal that make it one, as the character remembers
+  them. A pile gives the gold and what automatic pickup takes, and an unread goal gives what is not
+  read yet. The item `Memory.shown` picks comes first.
+
+### The text
+
+| Reason | Text |
+| --- | --- |
+| `Pile` | Picking up *item* |
+| `Well` | Walking to fountain |
+| `Room` | Searching this room |
+| `Passage` | Following the passage |
+| `Frontier` | Exploring unknown areas |
+| `Unread` | Going to look at *item* |
+
+* *item* is `Game#name` at that item's own regard, so arrows not read yet are "3 arrows" and read
+  ones are "3 blessed +1 arrows". Several items name the first and add "and more".
+* `Play#doing` holds the text. `#redraw` puts it on `Screen#rule` as its aside.
+
+### Steps in place
+
+* `Walk#taken` is the step the last stride took. A step that stayed in place and added a line to
+  the log leaves the text alone, because the log says what it did. A drink from the skin, a meal,
+  dropped rot, a door opened and a blow all add one.
+* A step in place that added no line shows its own text and waits `Play::HOLD`, 250 ms, before the
+  next step, against `Play::STRIDE`, 45 ms.
+* A run of the same step back to back holds once, on its first such turn. `@held` in `Play`
+  keeps the step that held until a different step comes between. The rest of the run goes at
+  `STRIDE` with the text still up.
+* A line said again only puts a count on the last line. `MessageLog#written` does not count it,
+  so it counts as no line. A second door opened after a walk shows "Opening a door" and holds.
+* A fill at a fountain drinks from it every turn the character is not quenched, which is nearly
+  every turn, so its first turn adds "You drink from the fountain." and the turns after only
+  count it again. The second turn shows "Filling your waterskin" and holds, the turns after go at
+  `STRIDE` under the same text, and the last turn adds "Your waterskin is full."
+
+### Narrow screens
+
+* `Widgets::AsideRule` is a `Divider` with an aside after its label. It asks only for the label's
+  width. The aside is cut with an ellipsis when the rule is short, and dropped when fewer than
+  `AsideRule::SHORTEST`, 8, cells of it would fit. The label is never cut for it.
+* The narrowest map is 35 columns, beside the info panel on a 60 column terminal.
+
+### Coming off
+
+* `Play#stop_walking` clears the text, so the rule shows the floor alone as soon as the walk ends.
+  The faint route stays up on its own timer.
+* Travel and `v` set no text.
+* The replay viewer performs actions without a `Walk`, so it shows no text, as it shows no route.
+* Nothing here reaches a save, a fingerprint, a replay or the bot protocol. A spec records a run
+  with the screen drawn and one with no screen and finds the same acts and checks.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
