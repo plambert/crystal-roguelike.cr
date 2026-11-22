@@ -6060,6 +6060,7 @@ rules above.
 | `stop_item` | on | | An item not seen before coming into sight stops the walk |
 | `stop_message` | on | | A line in the log stops the walk |
 | `stop_stairs` | off | | The stairs down coming into knowledge stops the walk. `Halt::Stairs` |
+| `drop_rot` | on | | A wait or an explore step drops rot while nothing threatens. See Food chores |
 
 The first seven change which squares `Explore.route` and `Explore.going?` pick. The stops change
 only where `Game#stride` ends a walk of `X`. A travel and a visit keep every stop.
@@ -7001,6 +7002,77 @@ it would stop at once.
   worth most to a character who is hungry when something dies.
 * **Weights.** bread 12; ration, dried meat and apple 10; oatcake, nuts and turnip 8; sausage,
   dried fruit, berries, cheese, herbs and mushroom 6.
+
+## Food chores
+
+Keeping food used to take a menu for every meal. These rules take the chores off the player. Each
+one goes through actions that already exist, so a bot does the same with `eat` and `drop`.
+
+### The next meal
+
+* **One picker.** `Game#meal` picks the bag food to eat next, and `Game.meal_rank` orders it. `e`
+  and an explore's meal both use it.
+* **Order.** The food that changes freshness soonest comes first, by `FoodBag.turning`. A tie goes
+  to the food further along, stale before fresh, then by `FoodBag.ripeness`. Food that never
+  spoils comes after all that does, and rotten food last.
+* **Rotten food.** `#meal` leaves it out unless asked with `rotten: true` and nothing else is left.
+  An explore asks only while starving.
+* **Explore order moved.** An explore used to eat stale food before fresh whatever the turns left.
+  It now eats in the order above, so fresh berries a turn from stale go before a stale apple with
+  days left.
+
+### Keys
+
+* **`e`** eats `#meal` with no menu, through `Action::Eat`. `Ctrl+E` does the same under modern
+  controls, beside `Ctrl+D` for the waterskin.
+* **Rotten only.** When only rotten food is left, `e` asks "Eat the rotten ...? Rotten food makes
+  you sick." first. A full character is not asked, and gets the usual refusal.
+* **Empty bag.** `e` puts the food bag screen up, which says the bag is empty or lists a corpse
+  underfoot.
+* **`E`** opens the food bag screen in the traditional scheme, as `e` did before.
+
+### Dropping rot
+
+* **What.** `Game.rot?` is a putrid mass, or rotten food that is not a corpse. `Game#rot` is the
+  next one, the pack first and then the bag, each in order.
+* **When.** `Game#drop_rot` drops one stack and takes the turn. A wait calls it, so `.`, a rest and
+  a bot's `wait` all drop. An explore step calls it after drinking and eating, and the step is
+  `Step::Dropped`. Nothing else drops.
+* **Safety.** `Game#unthreatened?` joins two rules the game already had. No creature is in sight,
+  the rule `#refusing_rest` uses. No blow either way for `FIGHT_LASTS`, 8 turns, by
+  `#fought_turn`, the rule that keeps a fight on the sidebar. A creature out of sight that just
+  struck still counts, and so does the character's own swing.
+* **Lines.** The drop writes the usual "You drop ..." line and `dropped` event. A wait counts the
+  line into `@forgiven`, so a rest goes on. An explore counts it into `@overlooked`.
+* **Setting.** `Explore::Settings#drop_rot`, on by default, labeled "Drop rot when safe" on the
+  explore page. It rides in `Action::Configure` like every explore setting, so a replay drops on
+  the same turns. Its JSON field is written only when off, so a save, a fingerprint and an
+  `options.json` written before it existed are unchanged.
+* **Bots.** A bot's `wait` and `explore` drop rot like a person's. A bot that wants to keep rot
+  sends `configure` with `drop_rot` false. Dropping by hand is still `drop`. No action or
+  observation field was added.
+
+### Batch keys in the food bag
+
+* **Rows.** `+` and `-` end every page of the food bag screen as rows, so the traditional scheme
+  presses them and the modern scheme picks them like any row. Each is dimmed when it has nothing
+  to do. The letters are taken by food, so the keys are not letters. Putrid masses in the pack
+  put the screen up with an empty bag, for `-`.
+* **About to turn.** `Food::TURNING_SOON` is 360 turns, an hour. `Game#turning_soon` is the bag food
+  that is not rotten and changes freshness within that, in `#meal` order. A hunger stage is 12
+  hours or more, and nearly every food would count at that length.
+* **`+`.** `Game#eat_turning` eats the first of `#turning_soon` each turn. It stops when none is
+  left, or when a meal was only part eaten because the character filled up. Hunger ticks again in
+  the turn a meal takes, so the debt alone never reads full after one. A character full from the
+  start gets the usual refusal once.
+* **`-`.** `Game#drop_all_rot` drops `#rot` each turn until none is left. The person asked, so it
+  drops with the setting off and with a creature in sight.
+* **Stops.** Both run through `Game#chores`, which performs one action a turn and stops the way a
+  walk does. A wound stops it, and so does a creature coming into view that was not in view. The
+  stop writes the walk's line. A creature already in view does not stop it, as it does not stop a
+  walk.
+* **Replay.** Each turn is its own `eat` or `drop` through `#perform`, so the log holds the actions
+  and a bot does the same with them. No action was added.
 
 ## Hunger and thirst for bots and trials
 

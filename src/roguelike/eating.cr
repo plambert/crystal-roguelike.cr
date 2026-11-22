@@ -205,6 +205,162 @@ module Roguelike
       found
     end
 
+    # The food in the bag to eat next, or `nil` when there is none.
+    #
+    # It is the food that changes freshness soonest, so food is eaten before
+    # it turns. `e` eats it, and so does an explore. Rotten food is left out
+    # unless *rotten* is true and nothing else is left. See `.meal_rank`.
+    def meal(rotten : Bool = false) : Item?
+      food = @player.food_bag.items.select do |item|
+        item.edible? && !item.corpse? && item.nourishment > 0
+      end
+      kept = food.reject &.freshness.rotten?
+      food = kept unless kept.empty? && rotten
+      food.each_with_index.min_by? { |item, index| {Game.meal_rank(item), index} }.try &.[0]
+    end
+
+    # Where *item* comes in the order `#meal` eats food, lowest first.
+    #
+    # Food that turns soonest comes first. Between two that turn on the same
+    # turn, the one further along comes first. Stale goes before fresh, and
+    # then the one with more of its stage gone. Food that never spoils, such
+    # as a ration, comes after everything that does. Rotten food comes last.
+    def self.meal_rank(item : Item) : {Int32, Int32, Int32, Int32, Int32}
+      rotten = item.freshness.rotten? ? 1 : 0
+      turning = FoodBag.turning item
+      return {rotten, 1, 0, 0, 0} unless turning
+
+      {rotten, 0, turning[1], -item.freshness.value, -FoodBag.ripeness(item)}
+    end
+
+    # Whether nothing threatens the character.
+    #
+    # No creature is in sight in *seen*, which is the rule that refuses a
+    # rest. No blow either way has been struck for `FIGHT_LASTS` turns,
+    # which is the rule that keeps a fight on the sidebar. A creature out of
+    # sight that just struck still counts.
+    def unthreatened?(seen : Vision = sight) : Bool
+      @turn - @fought_turn >= FIGHT_LASTS && monsters_in_sight(seen).empty?
+    end
+
+    # Whether *item* is rot: a putrid mass, or rotten food that is not a
+    # corpse.
+    def self.rot?(item : Item) : Bool
+      item.kind.putrid_mass? || (item.food? && !item.corpse? && item.freshness.rotten?)
+    end
+
+    # The rot to drop next, or `nil` for none. The pack comes first, then
+    # the food bag, each in order.
+    def rot : Item?
+      @player.inventory.each_item { |_, item| return item if Game.rot? item }
+      @player.food_bag.items.find { |item| Game.rot? item }
+    end
+
+    # Drops the next of `#rot`, taking the turn, when the run's settings
+    # drop rot and nothing threatens the character. Answers whether it
+    # dropped anything.
+    #
+    # An explore step and a wait call this. The caller excuses the line, so
+    # neither stops for it.
+    private def drop_rot : Bool
+      return false unless explore_settings.drop_rot?
+
+      item = rot
+      return false unless item && unthreatened?
+
+      letter = letter_of item.id
+      letter ? drop(letter) : drop_food(item)
+    end
+
+    # The food in the bag about to turn, in the order `#meal` eats it.
+    #
+    # That is food that is not rotten and changes freshness within
+    # `Food::TURNING_SOON` turns.
+    def turning_soon : Array(Item)
+      found = @player.food_bag.items.select do |item|
+        next false if !item.edible? || item.nourishment <= 0 || item.freshness.rotten?
+
+        turning = FoodBag.turning item
+        !turning.nil? && turning[1] <= Food::TURNING_SOON
+      end
+      found.each_with_index.to_a.sort_by! { |item, index| {Game.meal_rank(item), index} }.map &.[0]
+    end
+
+    # Eats the food `#turning_soon` holds, soonest first, one `Action::Eat`
+    # a turn. Answers what stopped it, or `nil` when it ran out.
+    #
+    # It runs out when nothing is about to turn, or when the last meal left
+    # the character full or was refused. A character full from the start is
+    # told so by the first eat, as `e` tells them. `#chores` says what else
+    # stops it.
+    def eat_turning : Halt?
+      eaten = 0
+      chores do
+        item = turning_soon.first?
+        next if item.nil? || (eaten > 0 && !ate_whole?)
+
+        eaten += 1
+        Action::Eat.new item.id
+      end
+    end
+
+    # Whether the last action ate a whole item, so the character has room
+    # left for more.
+    private def ate_whole? : Bool
+      @events.any? { |event| event.is_a?(Event::Ate) && event.whole? }
+    end
+
+    # Drops every rotten food and putrid mass in the pack and the bag, one
+    # `Action::Drop` a turn, in `#rot` order. Answers what stopped it, or
+    # `nil` when it ran out. `#chores` says what stops it.
+    #
+    # The person asked for it, so it drops whatever the run's settings say
+    # and whatever is in sight.
+    def drop_all_rot : Halt?
+      chores { rot.try { |item| Action::Drop.new item.id } }
+    end
+
+    # Performs the actions the block gives, one at a time, each its own
+    # turn. Answers what stopped it, or `nil` once the block gives `nil`.
+    #
+    # It stops the way a walk stops. A wound stops it, and so does a
+    # creature coming into view that was not in view before. Each stop
+    # writes the line a walk writes.
+    private def chores(& : -> Action?) : Halt?
+      loop do
+        return Halt::Over if over?
+
+        action = yield
+        return unless action
+
+        before = Watch.on self, sight
+        return Halt::Blocked if perform(action).refused?
+
+        halt = chore_stopped before
+        return halt if halt
+      end
+    end
+
+    # What stopped a chore on the turn that began with *before*, saying so.
+    # `nil` when nothing did.
+    private def chore_stopped(before : Watch) : Halt?
+      return Halt::Over if over?
+
+      if @player.hit_points < before.health
+        say "You stop. You have been hurt.", Event::Stopped.new(Halt::Hurt)
+        return Halt::Hurt
+      end
+      return unless arrived_in_sight? before.seen, sight
+
+      came_into_view before
+      Halt::Creature
+    end
+
+    # Whether the character is full, so eating anything is refused.
+    def full? : Bool
+      @player.sustenance.hunger <= 0
+    end
+
     # Whether the character is hungry enough to eat a corpse where it lies.
     def starving? : Bool
       @player.sustenance.hunger_stage.starving?

@@ -478,7 +478,9 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.zap; nil }
         map.bind TermBuf::Key.parse("a"), "light or put out a flame",
           ->(_context : Widgets::Context) { play.apply; nil }
-        map.bind TermBuf::Key.parse("e"), "eat, or open the food bag",
+        map.bind TermBuf::Key.parse("e"), "eat the food that turns soonest",
+          ->(_context : Widgets::Context) { play.eat_next; nil }
+        map.bind TermBuf::Key.parse("E"), "open the food bag",
           ->(_context : Widgets::Context) { play.show_food_bag; nil }
       end
     end
@@ -506,6 +508,8 @@ module Roguelike::Ui
         {"a-z A-Z", "what to do with that food"},
         {"Left Right", "sort by weight, type, value, name or freshness"},
         {"e d", "eat, drop"},
+        {"+", "eat all food about to turn, soonest first, until full"},
+        {"-", "drop all rotten food and putrid masses"},
         {"%", "the food bag, from the inventory"},
       ]
 
@@ -653,6 +657,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.modern_explore; nil }
         map.bind TermBuf::Key.parse("Ctrl+D"), "drink from your waterskin",
           ->(_context : Widgets::Context) { play.drink_water; nil }
+        map.bind TermBuf::Key.parse("Ctrl+E"), "eat the food that turns soonest",
+          ->(_context : Widgets::Context) { play.eat_next; nil }
         map.bind TermBuf::Key.parse("m"), "open the menu for the square under the cursor",
           ->(_context : Widgets::Context) { play.context_menu_at_cursor; nil }
       end

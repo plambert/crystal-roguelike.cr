@@ -29,6 +29,9 @@ module Roguelike
     # An explore ate from the food bag instead of walking.
     Ate
 
+    # An explore dropped rot instead of walking.
+    Dropped
+
     # Whether a turn was taken.
     def turn? : Bool
       !blocked?
@@ -37,7 +40,7 @@ module Roguelike
     # Whether the character spent the turn on the square ahead and stayed
     # where they were.
     def stayed? : Bool
-      opened? || struck? || drew? || drank? || ate?
+      opened? || struck? || drew? || drank? || ate? || dropped?
     end
   end
 
@@ -960,6 +963,9 @@ module Roguelike
     # No line is written. A line a turn would stop every walk and every rest.
     # An event is recorded instead, so a bot reading `#events` sees the turn
     # pass.
+    #
+    # A wait with rot to drop and nothing threatening drops it instead, as
+    # `#drop_rot` says. Its line does not stop a rest.
     def wait : Nil
       return if over?
 
@@ -967,6 +973,12 @@ module Roguelike
       # decide whether the turn said anything, so a wait leaves them the way
       # a step does.
       clear_step
+
+      wrote = @log.written
+      if drop_rot
+        @forgiven += @log.written - wrote
+        return
+      end
 
       record Event::Waited.new
       spend_turn
@@ -7782,13 +7794,25 @@ module Roguelike
       Verdict.done Step::Drank
     end
 
-    # A step of an explore that drinks or eats instead of walking, or `nil`
-    # when it walks. Thirst comes first.
+    # A step of an explore that drinks, eats or drops rot instead of
+    # walking, or `nil` when it walks. Thirst comes first, then hunger.
     private def explore_sustain : Verdict?
       return explore_drink if drinks?
 
       meal = explore_meal
-      explore_eat meal if meal
+      return explore_eat meal if meal
+
+      explore_drop
+    end
+
+    # A step of an explore that drops rot instead of walking, or `nil` when
+    # `#drop_rot` drops nothing. Its line does not stop the walk.
+    private def explore_drop : Verdict?
+      wrote = @log.written
+      return unless drop_rot
+
+      @overlooked += @log.written - wrote
+      Verdict.done Step::Dropped
     end
 
     # A step of an explore that eats *meal* from the food bag instead of
@@ -7802,38 +7826,15 @@ module Roguelike
 
     # What an explore eats from the food bag now, or `nil` for nothing.
     #
-    # It eats only with eating on and hunger at its first effect. The
-    # worst food goes first, so the best is kept. See `#meal_rank`. Rotten
-    # food is eaten only while starving, and only when nothing else is left.
-    # A corpse underfoot is never eaten here.
+    # It eats only with eating on and hunger at its first effect. It eats
+    # what `#meal` picks, and rotten food only while starving.
     private def explore_meal : Item?
       return unless explore_settings.eat?
 
       stage = @player.sustenance.hunger_stage
       return if stage < Sustenance::HungerStage::Fed
 
-      starving = stage.starving?
-      food = @player.food_bag.items.select do |item|
-        item.edible? && !item.corpse? && item.nourishment > 0 &&
-          (starving || !item.freshness.rotten?)
-      end
-      food.each_with_index.min_by? { |item, index| {meal_rank(item), index} }.try &.[0]
-    end
-
-    # Where *item* comes in the order an explore eats food, lowest first.
-    #
-    # Stale food comes before fresh, and among equals the food with the
-    # fewest turns left before it turns comes first. Food that never spoils,
-    # such as a ration, comes after everything that does. Rotten food comes
-    # last of all.
-    private def meal_rank(item : Item) : {Int32, Int32}
-      facts = item.food_facts
-      freshness = item.freshness
-      return {3, 0} if freshness.rotten?
-      return {2, 0} unless facts.spoils?
-
-      turns = freshness.stale? ? facts.keeps * 2 : facts.keeps
-      {freshness.stale? ? 0 : 1, turns - item.age}
+      meal rotten: stage.starving?
     end
 
     # Adds to `#sightings` the squares of the items the step just taken

@@ -132,6 +132,8 @@ module Roguelike
         "Drink from your waterskin when thirst sets in. Off stops instead", :toggle),
       Setting.new("explore.eat", "When to stop", "Eat when hungry",
         "Eat from your food bag when hunger sets in. Off stops instead", :toggle),
+      Setting.new("explore.drop_rot", "When to stop", "Drop rot when safe",
+        "Drop rotten food and putrid masses when nothing threatens you", :toggle),
       Setting.new("name", "Tester", "Name",
         "The name that labels your uploaded runs", :text),
     ]

@@ -187,6 +187,10 @@ module Roguelike
     # What a putrid mass is worth, for a sort.
     PUTRID_MASS_VALUE = 0
 
+    # How many turns off a change of freshness food is about to turn, for the
+    # food bag's key that eats it. 360 turns is an hour.
+    TURNING_SOON = 360
+
     FACTS = {
       ItemKind::Ration  => FoodFacts.new(FoodCategory::Grain, 1500, 0, 12),
       ItemKind::Bread   => FoodFacts.new(FoodCategory::Grain, 1200, 1500, 6),

@@ -29,7 +29,7 @@ Spectator.describe "the times on the food bag screen" do
     game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {floor.id => floor}), player
     Options.current = Options.new
     run = Playing.open game, columns, 30
-    run.press "e"
+    run.press "E"
     run
   end
 

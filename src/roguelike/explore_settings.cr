@@ -89,6 +89,15 @@ module Roguelike
       # hunger stops the walk instead.
       property? eat : Bool = true
 
+      # Whether rotten food and putrid masses are dropped, a turn each,
+      # while nothing threatens the character. An explore step and a wait
+      # drop them. `Game#drop_rot` reads it.
+      #
+      # It is written only when off, so a save and a fingerprint written
+      # before it existed stay as they were.
+      @[JSON::Field(ignore_serialize: @drop_rot)]
+      property? drop_rot : Bool = true
+
       def initialize
       end
 
