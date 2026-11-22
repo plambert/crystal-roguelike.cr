@@ -103,6 +103,12 @@ module Roguelike::Ui
     # changes. A person choosing a direction has to see which door is which.
     drawn offered : TermBuf::Color = theme.offered
 
+    # What a square on the way explore is heading is drawn on.
+    #
+    # A dimmer shade of `offered`. The game drew this way, and a way the
+    # person drew stands out from it.
+    drawn explore_route : TermBuf::Color = theme.explore_route
+
     # What the square of a creature pointed at in the Seen list is drawn in.
     #
     # The map's own ground on bright amber. The map always draws on

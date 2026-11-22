@@ -33,8 +33,8 @@ module Roguelike::Ui
       {"header_text", "header_ground"}, {"header_text", "selected_header"},
       {"badge_text", "badge_ground"}, {"empty_text", "empty"}, {"ground", "spotlight"},
       {"noise_text", "noise_near"}, {"noise_text", "noise_far"},
-      {"plain", "offered"}, {"plain", "flight"}, {"plain", "impact"},
-      {"buff_pill", "focus_ground"}, {"debuff_pill", "focus_ground"},
+      {"plain", "offered"}, {"plain", "explore_route"}, {"plain", "flight"},
+      {"plain", "impact"}, {"buff_pill", "focus_ground"}, {"debuff_pill", "focus_ground"},
       {"buff_pill", "focus_flash"}, {"debuff_pill", "focus_flash"},
     ]
 
@@ -62,6 +62,7 @@ module Roguelike::Ui
       "ground"            => 0x000000,
       "spotlight"         => 0xFFE000,
       "offered"           => 0x1E4A10,
+      "explore_route"     => 0x143A0A,
       "flight"            => 0x1C2E6C,
       "impact"            => 0x701818,
       "missile"           => 0xFFF0C0,
@@ -164,6 +165,7 @@ module Roguelike::Ui
       "ground"            => 0xFAF6EE,
       "spotlight"         => 0x1A3A8A,
       "offered"           => 0xC8E4B0,
+      "explore_route"     => 0xDDEDCF,
       "flight"            => 0xC4D0F0,
       "impact"            => 0xF0C0C0,
       "missile"           => 0x6A3000,

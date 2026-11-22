@@ -10,6 +10,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* While `X` explores, the map shows the way to the square it is heading for, in a fainter green
+  than a way you draw. It shows only when more than two steps are left, and changes when explore
+  changes its mind. When the walk stops it stays a few seconds and then fades. Your own route,
+  a click, a new walk or a turn takes it off at once. Themes have a new color for it.
 * A right click on a square of the map opens a menu of what you can do there. It offers Examine,
   Walk here, Open, Close, Spike, the stairs, Drink and Fill at a fountain, and Pick up, shown with
   their keys and dimmed when they cannot be done now. A square out of reach shows the way to it

@@ -69,6 +69,7 @@ module Roguelike::Ui
     color ground, 0x0C0E12
     color spotlight, 0xF0C840
     color offered, 0x3A4E2A
+    color explore_route, 0x2A3E1E
     color flight, 0x2E3652
     color impact, 0x6A2E2E
     color missile, 0xF2E6C0
@@ -173,6 +174,7 @@ module Roguelike::Ui
       Entry.new("ground", "Map", "Map background"),
       Entry.new("spotlight", "Map", "Creature pointed at"),
       Entry.new("offered", "Map", "Square to choose"),
+      Entry.new("explore_route", "Map", "Where explore is going"),
       Entry.new("flight", "Map", "Path of a shot"),
       Entry.new("impact", "Map", "Where a shot stops"),
       Entry.new("missile", "Map", "Thing in flight"),

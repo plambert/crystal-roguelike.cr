@@ -118,6 +118,11 @@ module Roguelike::Ui
     # which.
     getter highlights : Set({Int32, Int32}) = Set({Int32, Int32}).new
 
+    # Squares on the way explore is heading, drawn on
+    # `Palette.explore_route`. A square also in `#highlights` draws as
+    # offered instead.
+    getter trail : Set({Int32, Int32}) = Set({Int32, Int32}).new
+
     # Squares a shot would cross, and the color each is drawn on.
     #
     # The line is one color and the square the shot stops on is another. A
@@ -179,6 +184,7 @@ module Roguelike::Ui
 
         style = look.style
         style = echoed x, y, look, style
+        style = style.bg Palette.explore_route if @trail.includes?({x, y})
         style = style.bg Palette.offered if @highlights.includes?({x, y})
 
         aimed = @flight[{x, y}]?
@@ -594,6 +600,21 @@ module Roguelike::Ui
       @highlights.clear
     end
 
+    # Puts *x*, *y* on the way explore is heading.
+    def trail_on(x : Int32, y : Int32) : Nil
+      @trail << {x, y}
+    end
+
+    # Takes the way explore is heading off.
+    def clear_trail : Nil
+      @trail.clear
+    end
+
+    # Whether *x*, *y* is on the way explore is heading.
+    def trailed?(x : Int32, y : Int32) : Bool
+      @trail.includes?({x, y})
+    end
+
     # Draws *x*, *y* on *color* while a shot is being aimed.
     def aim(x : Int32, y : Int32, color : TermBuf::Color) : Nil
       @flight[{x, y}] = color
@@ -627,6 +648,7 @@ module Roguelike::Ui
       @grid.scroll_to 0, 0
       clear_marks
       clear_highlights
+      clear_trail
       clear_flight
       thaw
       @sight = nil
