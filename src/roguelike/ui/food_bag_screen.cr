@@ -29,7 +29,40 @@ module Roguelike::Ui
       Widgets::Menu::Entry.new FOOD_BAG_KEY, food_bag_summary, mark: ' '
     end
 
-    # Shows what is in the food bag, and any corpse underfoot. `e` does
+    # Eats what `Game#meal` picks, with no menu. `e` does this, and
+    # `Ctrl+E` under modern controls.
+    #
+    # Rotten food is eaten only when nothing else is left, and the person is
+    # asked first. A full character is told so as before. With nothing in
+    # the bag the food bag screen goes up, which says so or shows a corpse
+    # underfoot.
+    def eat_next : Nil
+      return if @viewer
+      if @pending
+        @pending = nil
+        refresh
+        return
+      end
+
+      meal = @game.meal
+      return eat_now meal if meal
+
+      rotten = @game.meal rotten: true
+      return show_food_bag unless rotten
+      return eat_now rotten if @game.full?
+
+      ask("Eat #{@game.name rotten}? Rotten food makes you sick.", "yn", default: 'n') do |key|
+        eat_now rotten if key == 'y'
+      end
+    end
+
+    # Eats *item* from the bag.
+    private def eat_now(item : Item) : Nil
+      @game.perform Action::Eat.new(item.id)
+      refresh
+    end
+
+    # Shows what is in the food bag, and any corpse underfoot. `E` does
     # this.
     #
     # One page per sort, and the left and right keys turn the page. A row's

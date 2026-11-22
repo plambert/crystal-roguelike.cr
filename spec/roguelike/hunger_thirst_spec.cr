@@ -418,13 +418,13 @@ Spectator.describe "hunger and thirst" do
       expect(game.player.inventory.items.sum { |(_, item)| item.count }).to eq 3
     end
 
-    it "eats stale food first, the soonest to turn first, and rations last" do
+    it "eats the soonest to turn first, and rations last" do
       ration = food ItemKind::Ration
       bread = food ItemKind::Bread
       berries = food ItemKind::Berries
       stale_apple = food ItemKind::Apple, keeps(ItemKind::Apple)
       stale_berries = food ItemKind::Berries, keeps(ItemKind::Berries) + 100
-      order = [stale_berries, stale_apple, berries, bread, ration]
+      order = [stale_berries, berries, bread, stale_apple, ration]
       game = fed Sustenance::Tuning::HUNGER_SEVERE - 1, [ration, bread, berries, stale_apple, stale_berries]
 
       expect(order.map(&.id).reject(&.zero?).uniq!.size).to eq 5

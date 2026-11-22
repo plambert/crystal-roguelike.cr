@@ -80,8 +80,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
   and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
   it by weight, type, value, name or freshness. Pick a row to eat it or drop it. Press
-  `e` to open it, or pick the food bag row at the end of the inventory. With modern controls it
+  `E` to open it, or pick the food bag row at the end of the inventory. With modern controls it
   is in the inventory and in the action catalog under Items.
+* `e`, or `Ctrl+E` with modern controls, eats with no menu. It eats the food that will next go
+  stale, rotten or putrid, and between two that turn together, the one further along. Rotten food
+  is passed over while anything else is left. When only rotten food is left, you are asked first.
 * Food buffs and being sick each show as a short labeled pill in the character pane, with no bar
   and no count. Pills sit side by side and wrap to the next line when a line fills. Buffs are
   green and debuffs are red. Both colors are in the theme editor, and the pills and their text
@@ -207,8 +210,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   skin just before thirst sets in and walks on, and never drinks more than it needs. With it off,
   or with an empty skin, `X` stops when you grow thirsty.
 * A new explore setting, Eat when hungry, is on by default. With it on, `X` eats from the food bag
-  once hunger first tells on you, at 6 hours, and walks on. It eats the food that will spoil first,
-  stale before fresh, and keeps rations for last. It eats rotten food only when you are starving
+  once hunger first tells on you, at 6 hours, and walks on. It eats what `e` eats, the food that
+  will spoil first, and keeps rations for last. It eats rotten food only when you are starving
   and nothing else is left, and it never eats a corpse. With an empty bag, `X` walks on. With the
   setting off, `X` stops when hunger sets in.
 * Bots get `drank`, `hunger_stage` and `thirst_stage` events, and a `drink` action. The `over`

@@ -7788,38 +7788,15 @@ module Roguelike
 
     # What an explore eats from the food bag now, or `nil` for nothing.
     #
-    # It eats only with eating on and hunger at its first effect. The
-    # worst food goes first, so the best is kept. See `#meal_rank`. Rotten
-    # food is eaten only while starving, and only when nothing else is left.
-    # A corpse underfoot is never eaten here.
+    # It eats only with eating on and hunger at its first effect. It eats
+    # what `#meal` picks, and rotten food only while starving.
     private def explore_meal : Item?
       return unless explore_settings.eat?
 
       stage = @player.sustenance.hunger_stage
       return if stage < Sustenance::HungerStage::Fed
 
-      starving = stage.starving?
-      food = @player.food_bag.items.select do |item|
-        item.edible? && !item.corpse? && item.nourishment > 0 &&
-          (starving || !item.freshness.rotten?)
-      end
-      food.each_with_index.min_by? { |item, index| {meal_rank(item), index} }.try &.[0]
-    end
-
-    # Where *item* comes in the order an explore eats food, lowest first.
-    #
-    # Stale food comes before fresh, and among equals the food with the
-    # fewest turns left before it turns comes first. Food that never spoils,
-    # such as a ration, comes after everything that does. Rotten food comes
-    # last of all.
-    private def meal_rank(item : Item) : {Int32, Int32}
-      facts = item.food_facts
-      freshness = item.freshness
-      return {3, 0} if freshness.rotten?
-      return {2, 0} unless facts.spoils?
-
-      turns = freshness.stale? ? facts.keeps * 2 : facts.keeps
-      {freshness.stale? ? 0 : 1, turns - item.age}
+      meal rotten: stage.starving?
     end
 
     # Adds to `#sightings` the squares of the items the step just taken

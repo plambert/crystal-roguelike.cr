@@ -7002,6 +7002,34 @@ it would stop at once.
 * **Weights.** bread 12; ration, dried meat and apple 10; oatcake, nuts and turnip 8; sausage,
   dried fruit, berries, cheese, herbs and mushroom 6.
 
+## Food chores
+
+Keeping food used to take a menu for every meal. These rules take the chores off the player. Each
+one goes through actions that already exist, so a bot does the same with `eat` and `drop`.
+
+### The next meal
+
+* **One picker.** `Game#meal` picks the bag food to eat next, and `Game.meal_rank` orders it. `e`
+  and an explore's meal both use it.
+* **Order.** The food that changes freshness soonest comes first, by `FoodBag.turning`. A tie goes
+  to the food further along, stale before fresh, then by `FoodBag.ripeness`. Food that never
+  spoils comes after all that does, and rotten food last.
+* **Rotten food.** `#meal` leaves it out unless asked with `rotten: true` and nothing else is left.
+  An explore asks only while starving.
+* **Explore order moved.** An explore used to eat stale food before fresh whatever the turns left.
+  It now eats in the order above, so fresh berries a turn from stale go before a stale apple with
+  days left.
+
+### Keys
+
+* **`e`** eats `#meal` with no menu, through `Action::Eat`. `Ctrl+E` does the same under modern
+  controls, beside `Ctrl+D` for the waterskin.
+* **Rotten only.** When only rotten food is left, `e` asks "Eat the rotten ...? Rotten food makes
+  you sick." first. A full character is not asked, and gets the usual refusal.
+* **Empty bag.** `e` puts the food bag screen up, which says the bag is empty or lists a corpse
+  underfoot.
+* **`E`** opens the food bag screen in the traditional scheme, as `e` did before.
+
 ## Hunger and thirst for bots and trials
 
 ### The switch

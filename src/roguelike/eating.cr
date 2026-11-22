@@ -205,6 +205,39 @@ module Roguelike
       found
     end
 
+    # The food in the bag to eat next, or `nil` when there is none.
+    #
+    # It is the food that changes freshness soonest, so food is eaten before
+    # it turns. `e` eats it, and so does an explore. Rotten food is left out
+    # unless *rotten* is true and nothing else is left. See `.meal_rank`.
+    def meal(rotten : Bool = false) : Item?
+      food = @player.food_bag.items.select do |item|
+        item.edible? && !item.corpse? && item.nourishment > 0
+      end
+      kept = food.reject &.freshness.rotten?
+      food = kept unless kept.empty? && rotten
+      food.each_with_index.min_by? { |item, index| {Game.meal_rank(item), index} }.try &.[0]
+    end
+
+    # Where *item* comes in the order `#meal` eats food, lowest first.
+    #
+    # Food that turns soonest comes first. Between two that turn on the same
+    # turn, the one further along comes first. Stale goes before fresh, and
+    # then the one with more of its stage gone. Food that never spoils, such
+    # as a ration, comes after everything that does. Rotten food comes last.
+    def self.meal_rank(item : Item) : {Int32, Int32, Int32, Int32, Int32}
+      rotten = item.freshness.rotten? ? 1 : 0
+      turning = FoodBag.turning item
+      return {rotten, 1, 0, 0, 0} unless turning
+
+      {rotten, 0, turning[1], -item.freshness.value, -FoodBag.ripeness(item)}
+    end
+
+    # Whether the character is full, so eating anything is refused.
+    def full? : Bool
+      @player.sustenance.hunger <= 0
+    end
+
     # Whether the character is hungry enough to eat a corpse where it lies.
     def starving? : Bool
       @player.sustenance.hunger_stage.starving?
