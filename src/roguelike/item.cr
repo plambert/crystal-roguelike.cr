@@ -83,6 +83,12 @@ module Roguelike
     # What a corpse was. `nil` for anything that is not a corpse.
     @creature : Kind? = nil
 
+    # How many turns a putrid mass has lain on the floor it is on. `nil`
+    # for anything else, and for a mass written by a save before this field,
+    # which starts from nothing. Comparisons and stacking leave it out.
+    @lain : Int32? = nil
+    protected setter lain : Int32?
+
     def initialize(@kind : ItemKind,
                    @enchantment : Int32 = 0,
                    @condition : Condition = Condition::Plain,
@@ -438,6 +444,22 @@ module Roguelike
       @age = held - 1 if held && held > 0
     end
 
+    # Starts the time a putrid mass lies on the floor afresh. Anything else
+    # is left alone.
+    def lay : Nil
+      @lain = 0 if @kind.putrid_mass?
+    end
+
+    # Counts one more turn of a putrid mass lying on the floor. Answers
+    # whether it has lain there long enough to vanish.
+    def fade : Bool
+      return false unless @kind.putrid_mass?
+
+      lain = (@lain || 0) + 1
+      @lain = lain
+      lain >= Food::PUTRID_FADES
+    end
+
     # Whether anything eats this.
     def edible? : Bool
       food? && !category.refuse?
@@ -614,6 +636,7 @@ module Roguelike
       found.eat_raw @eaten || 0
       found.enroll id
       found.set_down if dropped?
+      found.lain = @lain
       found
     end
 

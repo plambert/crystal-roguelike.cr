@@ -6919,7 +6919,8 @@ came before it. The parts take the ids after the corpse and appear in `corpse_le
 
 Putrid mass is the end of all spoiling food. `ItemKind::PutridMass` is the last member, in
 `ItemClass::Refuse`, also the last member. The class stacks, is not food, has no food facts and
-never ages.
+never ages. A mass on the floor fades away after a while. One in the pack keeps, for later use as
+fertilizer and as a trade good.
 
 | Field | Value |
 |---|---|
@@ -6944,6 +6945,23 @@ never ages.
   mass already on the square takes it in, and its id stands. `corpse_rotted` now carries `mass`,
   the id of the mass on the square. No event fires for other food.
 * **Undead.** `Remains::FleshAndBones` leaves a putrid mass and bones. The ids are as before.
+* **Fading.** `Food::PUTRID_FADES` (1,000 turns, about 2h45m) is how long a mass lies on the
+  floor before it vanishes. `@lain` on `Item` counts the turns. It is the one saved field this
+  needs, set only on a mass, and left out of `==`, `#hash` and stacking, so a mass on the floor
+  still stacks with one in the pack.
+* **Fade start.** `Floor#drop` sets the count to 0 through `Item#lay`, on the mass and on any
+  pile the mass joins. Food that rots where it lies, a corpse's mass, an undead's mass and a mass
+  the character drops all start the full time. A pile fades as one, timed from the last mass
+  added.
+* **Fade count.** `Game#age_the_floor` adds a turn with `Item#fade` to each mass on the current
+  floor and takes away each that reaches the limit. Nothing is said and no event fires. The pack
+  is never walked, so a carried mass keeps.
+* **Fade elsewhere.** Other floors wait for the character, as their food does. A mass there
+  resumes its count when the character returns.
+* **Fade memory.** `Knowledge` is not touched. A remembered mass on an unseen square stays on the
+  map until the square is seen again, like any other item that is gone.
+* **Fade in old saves.** A save from before the field loads with no count, so each mass on a
+  floor starts the full time from the load.
 * **Old saves.** `Game#unrot` runs from `#after_initialize`, after `#unbag`. Rotten flesh in the
   bag becomes masses in the pack, or on the floor under the character when the pack is full.
   Rotten flesh on every floor becomes masses on its square. Each keeps its id.
@@ -6954,7 +6972,7 @@ never ages.
 * **Observation.** A mass in the pack or on the floor is a `Seen` with `item_class` `refuse`,
   `kind` `putrid_mass` and its `count`.
 * **Streams.** Nothing new is drawn. The masses reuse ids, so `#next_id` is not called and no
-  stream version moves.
+  stream version moves. Fading draws nothing either. The golden replay did not move.
 
 ### Floor food
 

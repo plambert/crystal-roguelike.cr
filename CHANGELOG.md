@@ -21,7 +21,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   stale and rotten. Putrid food in your food bag turns into putrid masses in your pack, or at
   your feet when the pack is full, and the message log says so. Food on the floor turns into
   putrid masses where it lies. Putrid masses stack without limit, weigh 1, never spoil and cannot
-  be eaten. Automatic pickup takes one only when it stacks with one you carry.
+  be eaten. Automatic pickup takes one only when it stacks with one you carry. Putrid masses on the
+  floor vanish after 1,000 turns there, so floors do not fill up with them. Those in your pack
+  keep.
 * Food. Fourteen kinds lie about the floors in five families: grain, meat, fruit, nuts and
   cheese, and roots and herbs. Food you pick up goes in a food bag that holds weight 40, takes
   no pack letter and costs no pace. If the bag has no room, the food stays on the floor.
