@@ -508,6 +508,7 @@ module Roguelike::Ui
       notes = [
         {"a-z A-Z", "what to do with that item"},
         {"Left Right", "show one class of item at a time"},
+        {sort_key.to_s, "sort the list by letter, name, weight or class"},
         {actions.join(" ", &.key), actions.join(", ", &.label)},
       ]
 
@@ -520,6 +521,7 @@ module Roguelike::Ui
       notes = [
         {"a-z A-Z", "what to do with that food"},
         {"Left Right", "sort by soonest eaten, weight, type, value, name or freshness"},
+        {sort_key.to_s, "pick the sort from a list"},
         {"e d", "eat, drop"},
         {"+", "eat all food about to turn, soonest first, until full"},
         {"-", "drop all rotten food and putrid masses"},
@@ -540,6 +542,24 @@ module Roguelike::Ui
       ]
 
       Section.new "in the item search", Widgets::Bindings.new, notes
+    end
+
+    # The key that sorts a list of items while it is up. A traditional list
+    # answers letters, so it takes `=`.
+    def self.sort_key(scheme : Options::ControlScheme = Options::ControlScheme::Traditional) : Char
+      scheme.modern? ? 'r' : '='
+    end
+
+    # The keys a list of items answers in the modern scheme. The menu binds
+    # them, so these are notes for the help screen.
+    def self.in_a_list : Section
+      key = sort_key(Options::ControlScheme::Modern).to_s
+      notes = [
+        {key, "sort a list of items by letter, name, weight or class"},
+        {key, "pick the food bag's sort from a list"},
+      ]
+
+      Section.new "in a list of items", Widgets::Bindings.new, notes
     end
 
     # The message history.
@@ -632,6 +652,7 @@ module Roguelike::Ui
         Section.new("time", modern_timing(play)),
         Section.new("doors and stairs", modern_stairs(play)),
         Keys.in_the_search,
+        in_a_list,
       ]
       sections << Section.new("debug", Keys.debugging(play)) if play.console
       sections

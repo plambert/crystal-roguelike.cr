@@ -449,7 +449,16 @@ module Roguelike::Ui
       @menu.column_margin = targets.any?(&.item_id) ? MENU_MARGIN : 1
       directions = !targets.empty? && targets.all? { |target| !target.direction.nil? }
       @selection_menu.navigation = directions ? direction_navigation : Widgets::Navigation.selectable
-      rows = targets.map do |target|
+      list, orders = target_sort command
+      items = targets.compact_map { |target| item_for target.item_id }
+      list = nil if targets.empty? || items.size < targets.size
+      shown = targets
+      if list
+        order = sort_order list, items
+        shown = order.map { |index| targets[index] }
+        items = order.map { |index| items[index] }
+      end
+      rows = shown.map do |target|
         direction = target.direction
         value_entry(target_choice(target), target_label(command, target),
           enabled: target.open,
@@ -462,10 +471,27 @@ module Roguelike::Ui
         end
         rows << value_entry(ModernChoice.new(ModernChoiceKind::Empty), "Escape goes back.", enabled: false)
       end
+      rows = with_headers(list, rows, items) { |text| value_header text } if list
       @selection_menu.on_choose = ->(choice : ModernChoice) { choose_modern_choice choice }
       @selection_menu.on_back = -> { back_modern_menu; nil }
       @selection_menu.on_highlight = ->(choice : ModernChoice?) { show_modern_detail choice; nil }
       @selection_menu.show application, "#{command_label(command)} — choose a target", rows
+      return unless list
+
+      offer_sort(list, orders, letters: false) { show_modern_targets command, targets, reason }
+    end
+
+    # The name the order of *command*'s list of items is kept under, and the
+    # orders it offers. `nil` for a command whose targets are not items to
+    # sort.
+    private def target_sort(command : Command) : {String?, Array(ItemSort)}
+      case command
+      when .pick_up? then {PICK_UP, ItemSort.floor}
+      when .equip?, .remove?, .drop?, .drink?, .read?, .zap?, .throw?
+        {command_label(command), ItemSort.carried}
+      else
+        {nil, ItemSort.carried}
+      end
     end
 
     private def empty_target_lines(reason : String) : Array(String)
@@ -825,7 +851,10 @@ module Roguelike::Ui
       @selection_menu.navigation = Widgets::Navigation.selectable
       @modern_inventory_page = @modern_inventory_page.clamp(0, PACK_CLASSES.size)
       held = @game.player.inventory.entries
-      pages = [{EVERYTHING, inventory_entries(held)}]
+      order = sort_order INVENTORY, held.map { |(letter, item)| @game.carried(letter) || item }
+      held = order.map { |index| held[index] }
+      items = held.map { |(letter, item)| @game.carried(letter) || item }
+      pages = [{EVERYTHING, with_headers(INVENTORY, inventory_entries(held), items) { |text| value_header text }}]
       PACK_CLASSES.each do |name|
         entries = held.select { |(_letter, item)| Play.pack_class(item.kind.item_class) == name }
         rows = inventory_entries entries
@@ -847,12 +876,22 @@ module Roguelike::Ui
         show_modern_detail choice
         nil
       end
-      @selection_menu.show application, "Inventory", pages, @modern_inventory_page
+      @selection_menu.show application, INVENTORY, pages, @modern_inventory_page
       @modern_inventory_item = wanted_item
       restored = restore_inventory_selection
       unless restored
         @selection_menu.select_index [@modern_inventory_index || 0, @menu.entries.size - 1].min
       end
+      offer_sort(INVENTORY, ItemSort.carried) { show_inventory_values }
+    end
+
+    # The title of the inventory, and the name its order is kept under.
+    INVENTORY = "Inventory"
+
+    # A heading row in a modern list.
+    private def value_header(text : String)
+      @selection_menu.entry ModernChoice.new(ModernChoiceKind::Empty), text,
+        enabled: false, header: true
     end
 
     # Ends the first page and the food page with the row that opens the food
