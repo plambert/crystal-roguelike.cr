@@ -293,6 +293,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   turn back. Reading an item it walked over to read could send it back the way it came, and a
   drink from the waterskin on the way counted as standing still. Both stopped the walk, and
   pressing `X` again carried on.
+* The detail box beside a menu row goes away when the menu closes, however it closes. Before,
+  leaving the modern pick-up list with Escape left the box for the last row on the screen until
+  the pointer moved.
 
 ## [0.7.0] - 2026-10-28
 

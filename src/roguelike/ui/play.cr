@@ -3352,7 +3352,7 @@ module Roguelike::Ui
       @map.knowledge = @game.knowledge
 
       refresh_info seen
-      @tooltip.hide if @tooltip.showing? && !@tooltip.hanging?
+      @tooltip.hide unless @tooltip.hanging?
       restate_examine
 
       # The pane reads the floor for what is lying about and the knowledge for
