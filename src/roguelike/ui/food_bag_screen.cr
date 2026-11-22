@@ -55,11 +55,23 @@ module Roguelike::Ui
 
       rotten = @game.meal rotten: true
       return show_food_bag unless rotten
-      return eat_now rotten if @game.full?
 
-      ask("Eat #{@game.name rotten}? Rotten food makes you sick.", "yn", default: 'n') do |key|
-        eat_now rotten if key == 'y'
+      eat_asking rotten
+    end
+
+    # Eats *item* from the bag, asking first when it is rotten.
+    private def eat_asking(item : Item) : Nil
+      return eat_now item unless asks_first? item
+
+      ask("Eat #{@game.name item}? Rotten food makes you sick.", "yn", default: 'n') do |key|
+        key == 'y' ? eat_now(item) : refresh
       end
+    end
+
+    # Whether eating *item* asks first. Rotten food does, unless the
+    # character is full and would be refused anyway.
+    private def asks_first?(item : Item) : Bool
+      item.freshness.rotten? && !@game.full?
     end
 
     # Eats *item* from the bag.
@@ -217,7 +229,8 @@ module Roguelike::Ui
     # corpse cuts it, so the pick-up keys do that.
     #
     # Each row is dimmed where it does not apply, so a key is in the same
-    # place every time. `Escape` goes back to the bag.
+    # place every time. Eating rotten food asks first, as `e` does.
+    # `Escape` goes back to the bag.
     private def act_on_food(item : Item) : Nil
       corpse = item.corpse?
       entries = [
@@ -228,16 +241,16 @@ module Roguelike::Ui
       entries.each { |entry| about[entry.key] = Listing.new entry.key, item }
 
       choose(Lore.sentence(@game.name(item)), entries, about) do |key|
-        case key
-        when 'e' then @game.perform Action::Eat.new(item.id)
-        when 'd' then @game.perform Action::Drop.new(item.id)
-        else
+        unless key == 'e' || key == 'd'
           show_food_bag @food_back
           next
         end
 
         @food_back = nil
         clear_modern_menu if modern_controls?
+        next eat_asking item if key == 'e'
+
+        @game.perform Action::Drop.new(item.id)
         refresh
       end
     end

@@ -7027,6 +7027,8 @@ one goes through actions that already exist, so a bot does the same with `eat` a
   controls, beside `Ctrl+D` for the waterskin.
 * **Rotten only.** When only rotten food is left, `e` asks "Eat the rotten ...? Rotten food makes
   you sick." first. A full character is not asked, and gets the usual refusal.
+* **Rotten by hand.** The food bag's eat row asks the same question for rotten food, by
+  `#eat_asking`, and a no takes no turn and writes no line. `+` never eats rotten food.
 * **Empty bag.** `e` puts the food bag screen up, which says the bag is empty or lists a corpse
   underfoot.
 * **`E`** opens the food bag screen in the traditional scheme, as `e` did before.

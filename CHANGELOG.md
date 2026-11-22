@@ -89,6 +89,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `e`, or `Ctrl+E` with modern controls, eats with no menu. It eats the food that will next go
   stale, rotten or putrid, and between two that turn together, the one further along. Rotten food
   is passed over while anything else is left. When only rotten food is left, you are asked first.
+  Picking rotten food in the food bag and choosing eat asks the same question.
 * Two rows end every page of the food bag. `+` eats all the food that turns within the hour,
   soonest first, until you are full. `-` drops all the rotten food and putrid masses in the bag
   and the pack. Each meal or drop takes its turn, and either stops at once if you are hurt or a
