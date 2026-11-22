@@ -4040,8 +4040,8 @@ module Roguelike::Ui
       act Pending::Close, way
     end
 
-    # Drives a spike into the shut door on *spot*, which the character
-    # stands beside. Choosing the row was the yes the key asks for.
+    # Offers to drive a spike into the shut door on *spot*, which the
+    # character stands beside. It asks the question `c` asks.
     private def spike_there(spot : {Int32, Int32}) : Nil
       way = Direction.between @game.player.at, spot
       spike = @game.spike_carried
@@ -4053,8 +4053,7 @@ module Roguelike::Ui
         return say "The door already has a spike in it."
       end
 
-      @game.perform Action::Apply.new(item: spike.id, at: spot)
-      refresh
+      ask_to_spike spike, spot
     end
 
     # Records that the pointer is off the map. Also used when the mouse is
@@ -4163,6 +4162,12 @@ module Roguelike::Ui
         return say "The door already has a spike in it."
       end
 
+      ask_to_spike spike, spot
+    end
+
+    # Asks before *spike* goes into the shut door on *spot*. A no changes
+    # nothing.
+    private def ask_to_spike(spike : Item, spot : {Int32, Int32}) : Nil
       ask("Spike the door?", "yn", default: 'n') do |key|
         next unless key == 'y'
 

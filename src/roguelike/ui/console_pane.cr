@@ -83,7 +83,7 @@ module Roguelike::Ui
         prompt: Widgets::Field::Prompt.new(PROMPT))
       @field.editor.history = history
       @field.completions = ->(request : Widgets::Completion::Request) do
-        Widgets::Completion::Result.new ConsolePane.completions(request)
+        ConsolePane.completion request
       end
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
@@ -196,6 +196,43 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse(TOGGLE), "close the debug console",
           ->(_context : Widgets::Context) { hide; nil }
       end
+    end
+
+    # What *request* could be finishing, and what it replaces.
+    #
+    # A path after `save-copy` runs from the last space to the cursor, which
+    # is longer than the field's idea of a word. Everything else replaces the
+    # field's word.
+    def self.completion(request : Widgets::Completion::Request) : Widgets::Completion::Result
+      typed = request.text[0, request.cursor]? || ""
+      start = typed.rindex(' ').try &.+(1)
+      words = typed.split
+
+      if start && words.first?.try(&.downcase) == "save-copy"
+        return Widgets::Completion::Result.new paths(typed[start..]), start...request.cursor
+      end
+
+      Widgets::Completion::Result.new completions(request)
+    end
+
+    # The files and directories whose paths start with *typed*, from the
+    # working directory. A directory ends in a slash. A hidden one is offered
+    # only when *typed* names a dot.
+    def self.paths(typed : String) : Array(String)
+      cut = typed.rindex('/').try(&.+ 1) || 0
+      above = typed[0, cut]
+      begun = typed[cut..]
+      where = above.empty? ? "." : above
+
+      names = Dir.children(where).select do |name|
+        name.starts_with?(begun) && (begun.starts_with?('.') || !name.starts_with?('.'))
+      end
+
+      names.sort.map do |name|
+        Dir.exists?(File.join(where, name)) ? "#{above}#{name}/" : "#{above}#{name}"
+      end
+    rescue File::Error
+      [] of String
     end
 
     # What *request* could be finishing.

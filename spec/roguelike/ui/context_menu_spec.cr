@@ -462,14 +462,47 @@ Spectator.describe "the context menu on the map" do
       expect(run.at).not_to eq({6, 4})
     end
 
-    it "walks to a far door and drives a spike into it" do
+    it "asks before spiking a door beside the character, and spikes it on yes" do
+      run = room start: {3, 3}, carrying: [Item.new(Kind::Spike)]
+
+      right_click run, {4, 4}
+      choose run, "Spike"
+
+      expect(run.prompt.asking?).to be_true
+      expect(run.text).to contain "Spike the door?"
+      expect(run.game.floor.spiked? 4, 4).to be_false
+
+      run.press "y"
+
+      expect(run.game.floor.spiked? 4, 4).to be_true
+      expect(run.said).to eq "You drive a spike into the door."
+    end
+
+    it "leaves the door and the spike alone on no" do
+      run = room start: {3, 3}, carrying: [Item.new(Kind::Spike)]
+
+      right_click run, {4, 4}
+      choose run, "Spike"
+      run.press "n"
+
+      expect(run.game.floor.spiked? 4, 4).to be_false
+      expect(run.game.spike_carried).not_to be_nil
+      expect(run.turn).to eq 0
+    end
+
+    it "walks to a far door, asks, and drives a spike into it on yes" do
       run = room carrying: [Item.new(Kind::Spike)]
 
       right_click run, {4, 4}
       choose run, "Spike"
 
-      expect(run.game.floor.spiked? 4, 4).to be_true
       expect(Roguelike::Notice.touching?(run.at, {4, 4})).to be_true
+      expect(run.prompt.asking?).to be_true
+      expect(run.game.floor.spiked? 4, 4).to be_false
+
+      run.press "y"
+
+      expect(run.game.floor.spiked? 4, 4).to be_true
     end
 
     it "walks to the stairs and goes down" do
