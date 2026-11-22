@@ -10,6 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* A key in a list of items puts up a menu of orders: `r` in the modern scheme and `=` in the
+  traditional one. The inventory, drop and other lists of what you carry sort by name, weight or
+  class, and the pick-up list by name or class. Sorted by class, a heading names each class, and
+  the highlight steps over the headings. In the food bag the key picks one of its six sorts. Each
+  list keeps its order until you quit.
 * The backquote turns hover mode on and off. With it on, the items on the map square under the
   pointer show in a box beside the pointer instead of in the info panel. The box waits until the
   pointer has rested on a square for a third of a second, so moving the mouse across the map

@@ -7552,6 +7552,58 @@ fixed to what `HoverBox.size` worked out, so the layout leaves it where `.place`
 Nothing here touches the game. No action, save field or bot protocol changes, and the golden
 fixtures do not move.
 
+## The sort key
+
+A key in a list of items puts up a menu of orders, and the list comes back in the order picked.
+The modern scheme uses `r`. The traditional scheme uses `=`, because letters pick rows there.
+
+### Which lists
+
+| List | Orders | Kept under |
+| --- | --- | --- |
+| Inventory, drop and other carried lists | name, weight, class | the menu title |
+| Pick-up list | name, class | `Play::PICK_UP` |
+| Modern target lists of items | as the traditional list | the command label |
+| Food bag | the six `FoodSort.pages` | `@food_sort` |
+
+* `Ui::ItemSort` holds the orders. Members are only added at the end.
+* `Play#choose_by_class` covers every traditional carried list. `#choose_from` covers pick-up.
+  `#show_inventory_values` and `#show_modern_targets` cover the modern ones.
+* The food bag keeps its pages. The picker turns to the page picked.
+* A list that has never been sorted keeps the order it comes in, which is letter order.
+
+### Order
+
+* `Play#sort_order` sorts by `Naming.listed`, by stack weight with the heaviest first, or by the
+  place of `Play.pack_class` in `PACK_CLASSES`. Name breaks ties in the last two, and the
+  position the row came in breaks the rest.
+* Each row keeps its letter. Only the order on the screen changes.
+* `@sorts` keeps one order per list for the session. It is not saved and is not an option.
+
+### Headings
+
+* Sorted by class, the first page gets a heading before each class when it holds two or more.
+  The class pages do not.
+* `Menu::Entry#header` marks a heading. It has no key and no mark and draws in
+  `Menu#header_style`, which is the default color in bold.
+* It is disabled, so no key picks it. `Menu#move_to` steps the highlight over it in the
+  direction it was moving, and back the other way at an end. `#select_index` steps forward.
+* A list put up highlights the first row that is not a heading, scrolled to the top so the
+  heading above it shows.
+
+### The picker
+
+* `Menu#extra_keys` adds bindings to the menu's own. `#show` and a choice clear them, so a key
+  set on one list does not reach the next menu.
+* `Play#pick_sort` replaces the list without closing it, so the list's own handlers for a choice
+  or for `Escape` do not run. A choice or `Escape` in the picker puts the list back up, on the
+  page that was showing.
+
+### Replay and streams
+
+Sorting is display only. No action, save field or bot protocol changes, and the golden fixtures
+do not move.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

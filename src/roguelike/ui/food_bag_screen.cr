@@ -84,9 +84,10 @@ module Roguelike::Ui
     # Shows what is in the food bag, and any corpse underfoot. `E` does
     # this.
     #
-    # One page per sort, and the left and right keys turn the page. The
-    # screen first opens on the order `e` eats in, and after that on the
-    # page last shown. A row's letter stays with its food on every page. A
+    # One page per sort, and the left and right keys turn the page. The sort
+    # key puts up the sorts by name and turns to the one picked. The screen
+    # first opens on the order `e` eats in, and after that on the page last
+    # shown. A row's letter stays with its food on every page. A
     # letter puts up what can be done with that food. `+` and `-` end every
     # page, as `#food_chore_rows` says. Putrid masses in the pack put the
     # screen up with an empty bag, for `-`. *back* runs when the screen is
@@ -117,6 +118,19 @@ module Roguelike::Ui
           act_on_food item
         else
           finish_food
+        end
+      end
+      offer_food_sort
+    end
+
+    # Binds the sort key on the food bag. It puts up the six orders, and the
+    # one picked is the page the bag opens on.
+    private def offer_food_sort : Nil
+      offer_sort_key do
+        @food_sort = @menu.page
+        pick_sort(FoodSort.pages.map(&.label), @food_sort) do |index|
+          @food_sort = index if index
+          show_food_bag @food_back
         end
       end
     end

@@ -53,10 +53,21 @@ module TermBuf::Widgets
     #
     # *tail* is drawn against the right edge of the row, past the text. A
     # list of items puts the slot there.
+    #
+    # *header* makes the row a heading over the rows after it. A heading is
+    # drawn in `Menu#header_style` with no key and no mark. It cannot be
+    # picked, and the highlight steps over it.
     record Entry, key : Char, text : String, enabled : Bool = true,
       mark : Char? = nil, mark_style : Style? = nil,
       tail : Char? = nil, tail_style : Style? = nil,
-      shortcut : Char? = nil, disabled_reason : String? = nil
+      shortcut : Char? = nil, disabled_reason : String? = nil,
+      header : Bool = false
+
+    # A row that heads the rows after it, such as the name of a class of
+    # item in a list sorted by class.
+    def self.header(text : String) : Entry
+      Entry.new '\0', text, enabled: false, header: true
+    end
 
     # The letters a menu hands out when the caller has none of its own.
     LETTERS = ('a'..'z').to_a + ('A'..'Z').to_a
@@ -157,6 +168,9 @@ module TermBuf::Widgets
     # What the key at the start of a row is drawn in.
     property key_style : Style = Style::DEFAULT.bold
 
+    # What a heading row is drawn in.
+    property header_style : Style = Style::DEFAULT.bold
+
     # The two marks on the highlighted row. One is at the near edge and one
     # is at the far edge.
     #
@@ -210,9 +224,51 @@ module TermBuf::Widgets
       current.enabled ? @list.selected : nil if current
     end
 
-    # Moves the highlight to *index* and brings it into view.
+    # Moves the highlight to *index* and brings it into view. A heading
+    # there passes the highlight on to the row after it.
     def select_index(index : Int32) : Nil
-      @list.select index
+      move_to index, 1
+    end
+
+    # Moves the highlight to *index*, or past any heading there in the
+    # direction *step* goes. A heading at the end of the list sends it the
+    # other way.
+    private def move_to(index : Int32, step : Int32) : Nil
+      last = @entries.size - 1
+      return @list.select(index) if last < 0
+
+      start = index.clamp 0, last
+      found = open_row(start, step) || open_row(start, -step) || start
+      @list.select found
+    end
+
+    # Highlights the first row that is not a heading, with any heading above
+    # it in view.
+    private def highlight_first : Nil
+      move_to 0, 1
+      @list.scroll_to_row 0
+    end
+
+    # The first row from *index* on in the direction *step* goes that is not
+    # a heading, or `nil` when there is none.
+    private def open_row(index : Int32, step : Int32) : Int32?
+      while entry = @entries[index]?
+        return index unless entry.header
+        return if index + step < 0
+
+        index += step
+      end
+    end
+
+    # Keys the caller adds to the menu's own, each with what it does. `#show`
+    # and a choice clear them, so they belong to the rows they were set on.
+    getter extra_keys : Array({Key, String, Proc(Nil)}) = [] of {Key, String, Proc(Nil)}
+
+    # :ditto:
+    def extra_keys=(keys : Array({Key, String, Proc(Nil)})) : Array({Key, String, Proc(Nil)})
+      @extra_keys = keys
+      rebind if open?
+      keys
     end
 
     # Replaces the navigation contract without replacing the menu's state.
@@ -483,6 +539,7 @@ module TermBuf::Widgets
     #
     # A menu already up is replaced. The scope it pushed is kept.
     def show(app : App, title : String?, entries : Enumerable(Entry)) : Nil
+      @extra_keys = [] of {Key, String, Proc(Nil)}
       @pages = [] of {String, Array(Entry)}
       @page = 0
       @tabs.hidden = true
@@ -500,6 +557,7 @@ module TermBuf::Widgets
              page : Int32) : Nil
       return show(app, title, [] of Entry) if pages.empty?
 
+      @extra_keys = [] of {Key, String, Proc(Nil)}
       @pages = pages
       @page = page.clamp 0, pages.size - 1
       @tabs.names = pages.map &.[0]
@@ -523,7 +581,7 @@ module TermBuf::Widgets
       @entries = @pages[@page][1]
       @offset = 0
       @list.rows = Rows.of @entries
-      @list.select 0
+      highlight_first
       rebind if open?
       highlighted
     end
@@ -559,7 +617,7 @@ module TermBuf::Widgets
       @entries = entries
       @offset = 0
       @list.rows = Rows.of @entries
-      @list.select 0
+      highlight_first
 
       self.title = title
       fit_into app.tree.screen, app.tree.policy
@@ -712,21 +770,21 @@ module TermBuf::Widgets
       end
 
       bind_keys map, @navigation.previous_row, "the row before",
-        ->(_context : Context) { select_index @list.selected - 1; nil }
+        ->(_context : Context) { move_to @list.selected - 1, -1; nil }
       bind_keys map, @navigation.next_row, "the row after",
-        ->(_context : Context) { select_index @list.selected + 1; nil }
+        ->(_context : Context) { move_to @list.selected + 1, 1; nil }
       bind_keys map, @navigation.activate, "pick the highlighted row",
         ->(_context : Context) { pick_highlighted; nil }
       bind_keys map, @navigation.cancel, "leave the menu",
         ->(_context : Context) { finish nil; nil }
       bind_keys map, @navigation.page_up, "a window back",
-        ->(_context : Context) { select_index @list.selected - @list.page; nil }
+        ->(_context : Context) { move_to @list.selected - @list.page, -1; nil }
       bind_keys map, @navigation.page_down, "a window on",
-        ->(_context : Context) { select_index @list.selected + @list.page; nil }
+        ->(_context : Context) { move_to @list.selected + @list.page, 1; nil }
       bind_keys map, @navigation.first_row, "the first row",
-        ->(_context : Context) { select_index 0; nil }
+        ->(_context : Context) { move_to 0, 1; nil }
       bind_keys map, @navigation.last_row, "the last row",
-        ->(_context : Context) { select_index @entries.size - 1; nil }
+        ->(_context : Context) { move_to @entries.size - 1, -1; nil }
 
       @navigation.previous_tab.each do |key|
         if key.name == Key::Name::Left
@@ -746,6 +804,10 @@ module TermBuf::Widgets
           map.bind key, "the page after",
             ->(_context : Context) { turn_to @page + 1; nil }
         end
+      end
+
+      @extra_keys.each do |(key, description, action)|
+        map.bind key, description, ->(_context : Context) { action.call; nil }
       end
 
       map
@@ -774,6 +836,8 @@ module TermBuf::Widgets
     # The highlight covers the text. The color of a mark is part of its
     # meaning. Reversing the gutter would invert that color.
     private def draw_entry(view : View, entry : Entry, lit : Bool) : Nil
+      return draw_header(view, entry) if entry.header
+
       plain = entry.enabled ? Style::DEFAULT : @disabled_style
 
       gutter = row_gutter
@@ -791,6 +855,12 @@ module TermBuf::Widgets
       end
 
       draw_marks view, entry, lit, plain
+    end
+
+    # Draws a heading from the key's column, over the gutter.
+    private def draw_header(view : View, entry : Entry) : Nil
+      view.write KEY - @offset, 0, entry.text, @header_style
+      view.write 0, 0, " " * KEY, Style::DEFAULT
     end
 
     # The row's explicit shortcut, or its legacy key when it has one.
@@ -827,6 +897,7 @@ module TermBuf::Widgets
       key = index ? @entries[index]?.try(&.key) : nil
       chosen = @on_choose
       indexed = @on_choose_index
+      @extra_keys = [] of {Key, String, Proc(Nil)}
       self.keymap = nil
       close
 
