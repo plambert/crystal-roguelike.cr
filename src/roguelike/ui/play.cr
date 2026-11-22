@@ -979,7 +979,7 @@ module Roguelike::Ui
       @game.log.add "The game could not be saved: #{error.message}"
     end
 
-    # Puts the debug console up, or takes it down. `` ` `` does this.
+    # Puts the debug console up, or takes it down. `~` does this.
     #
     # Nothing happens in a run opened without the console, because the key is
     # not bound in one.

@@ -569,7 +569,7 @@ module Roguelike::Ui
       end
     end
 
-    # `` ` `` puts the debug console up and takes it down.
+    # `~` puts the debug console up and takes it down.
     #
     # `Play` merges this only when it has a console, so the key is unbound in
     # a run started without `--debug-console`.

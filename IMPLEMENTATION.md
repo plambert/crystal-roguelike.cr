@@ -1215,7 +1215,7 @@ they are needed rather than in the sequence above.
 
 ### The debug console
 
-`--debug-console` builds a box that opens on `` ` `` and runs typed commands against the game that
+`--debug-console` builds a box that opens on `~` and runs typed commands against the game that
 is running. Without the flag nothing is built: there is no box in the widget tree and the key is
 not bound, so a normal run cannot reach any of it.
 

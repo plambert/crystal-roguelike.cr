@@ -241,6 +241,7 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Changed
 
+* The debug console opens and closes on `~` instead of the backquote.
 * The character pane shows food and water as rough times rather than exact turns. The food line
   gives about how long until you next grow hungrier, and the water line gives the water in the
   skin out of 20 and about how long until you next grow thirstier. Once you are hungry or thirsty,
