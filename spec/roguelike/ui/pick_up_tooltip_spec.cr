@@ -167,4 +167,69 @@ Spectator.describe "the box beside a pick-up list" do
 
     expect(box_up? run).to be_false
   end
+
+  describe "beside a Here row" do
+    # Points at the Here row about the dagger and answers the cell.
+    def hover_dagger_row(run : Playing::Run) : {Int32, Int32}
+      row = run.nearby.here.children.compact_map(&.as?(Roguelike::Ui::Line))
+        .find(&.text.includes?("dagger")) || raise "No dagger row"
+      spot = {row.rect.x + 1, row.rect.y}
+      run.hover *spot
+      spot
+    end
+
+    # Whether a box about the dagger is up or drawn.
+    def dagger_box?(run : Playing::Run) : Bool
+      tooltip = run.play.tooltip
+      (tooltip.showing? && tooltip.written.first? == "a dagger") ||
+        run.text.includes?("damage 1d4")
+    end
+
+    it "is up while the row is pointed at" do
+      run = pile Scheme::Traditional, 1
+      hover_dagger_row run
+
+      expect(dagger_box? run).to be_true
+    end
+
+    it "goes when the one thing there is picked up, in the traditional scheme" do
+      run = pile Scheme::Traditional, 1
+      hover_dagger_row run
+
+      run.press ","
+
+      expect(run.game.here).to be_empty
+      expect(dagger_box? run).to be_false
+    end
+
+    it "goes when the one thing there is picked up, in the modern scheme" do
+      run = pile Scheme::Modern, 1
+      hover_dagger_row run
+
+      run.press "g"
+
+      expect(run.game.here).to be_empty
+      expect(dagger_box? run).to be_false
+    end
+
+    it "goes when its thing is picked from a pile of two, in the traditional scheme" do
+      run = pile Scheme::Traditional, 2
+      hover_dagger_row run
+
+      run.press ",", "a"
+
+      expect(run.game.here.map &.kind).to eq [Kind::HealingPotion]
+      expect(dagger_box? run).to be_false
+    end
+
+    it "goes when its thing is picked from a pile of two, in the modern scheme" do
+      run = pile Scheme::Modern, 2
+      hover_dagger_row run
+
+      run.press "g", "f"
+
+      expect(run.game.here.map &.kind).to eq [Kind::HealingPotion]
+      expect(dagger_box? run).to be_false
+    end
+  end
 end
