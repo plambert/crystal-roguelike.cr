@@ -49,12 +49,12 @@ properties such as silent, sight-based or sound-based, and a clever goblin might
 
 ### The oil of resizing
 
-The oil of resizing is applied to a piece of armor that is not made of metal, and it resizes that
-armor. Metal armor cannot be resized. Armor already has a size of small, medium or large, and the
-character cannot wear armor of another size. Goblins wear small armor, so the oil lets the character
-use armor that goblins drop. The oil follows the naming rule in the potions, flasks and oils item
-below. Whether the oil sets the armor to the character's size or moves it one size, and whether a
-resized piece is changed in any other way, are to be settled when this is built.
+The oil of resizing is applied to a piece of armor that is not made of metal, and it sets that
+armor to the character's size. Metal armor cannot be resized. Armor already has a size of small,
+medium or large, and the character cannot wear armor of another size. Goblins wear small armor, so
+the oil lets the character use armor that goblins drop. The oil follows the naming rule in the
+potions, flasks and oils item below. Whether a resized piece is changed in any other way is to be
+settled when this is built.
 
 ## Considered
 
