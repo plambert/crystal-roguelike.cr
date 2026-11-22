@@ -162,6 +162,11 @@ module Roguelike::Debug
         ->(console : Console, _game : Game, words : Array(String)) : Nil do
           console.motion words
         end),
+
+      Command.new("save-copy", "save-copy [-f] <path>", "write a copy of this game to a file",
+        ->(console : Console, game : Game, words : Array(String)) : Nil do
+          console.save_copy game, words
+        end),
     ]
 
     # --------------------------------------------------------- the long ones
@@ -209,6 +214,24 @@ module Roguelike::Debug
       end
 
       say "motion is #{Ui::Motion.on? ? "on" : "off"}."
+    end
+
+    # Writes a copy of *game* to the path *words* name, and says where.
+    #
+    # The words are joined with single spaces, so a name with a space in it
+    # works. `-f` first lets the copy replace a file already there. The copy
+    # adds nothing to the replay log and sends nothing.
+    def save_copy(game : Game, words : Array(String)) : Nil
+      overwrite = words.first? == "-f"
+      words = words[1..] if overwrite
+      return say "usage: save-copy [-f] <path>" if words.empty?
+
+      written = Save.copy game, Path[words.join(' ')], overwrite
+      say "saved a copy to #{written}."
+    rescue error : Save::Occupied
+      say "#{error.path} already exists. Use save-copy -f to replace it."
+    rescue error : IO::Error
+      say "could not save a copy: #{error.message}"
     end
 
     # Takes *amount* hit points off, leaving at least one.

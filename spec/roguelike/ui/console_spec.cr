@@ -1,4 +1,5 @@
 require "../../spec_helper"
+require "file_utils"
 
 Spectator.describe "the debug console on the keyboard" do
   alias ConsolePane = Roguelike::Ui::ConsolePane
@@ -171,6 +172,25 @@ Spectator.describe "the debug console on the keyboard" do
       run.press "Tab"
 
       expect(pane(run).field.text).to eq "remove-curse"
+    end
+
+    it "completes a path after save-copy" do
+      where = Path[File.tempname "roguelike-complete", nil]
+      Dir.mkdir_p where / "saves.d"
+      File.write where / "saves.d" / "copy.json", ""
+      run = debugging
+
+      Dir.cd(where) do
+        run.press ConsolePane::TOGGLE
+        run.type "save-copy -f sav"
+        run.press "Tab"
+        expect(pane(run).field.text).to eq "save-copy -f saves.d/"
+
+        run.press "Tab"
+        expect(pane(run).field.text).to eq "save-copy -f saves.d/copy.json"
+      end
+    ensure
+      FileUtils.rm_rf where.to_s if where
     end
 
     it "lists the key in the help overlay" do

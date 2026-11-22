@@ -61,6 +61,15 @@ module Roguelike
           game.player.level, game.outcome, game, mark
       end
 
+      # What *game* is written out as, now, with nothing added to its log.
+      #
+      # The copy names no pause, so a load of it opens a log of its own
+      # rather than carrying on the one the running game writes.
+      def self.unmarked(game : Game) : Held
+        new game.player.name, VERSION, Time.utc, game.turn,
+          game.player.level, game.outcome, game
+      end
+
       # The run, told which save it came from at *path*.
       #
       # The first action after this opens the log, and the log goes on in the
@@ -346,6 +355,42 @@ module Roguelike
       def won : Array(Held)
         listed @wins
       end
+    end
+
+    # A copy refused because something is already at its path.
+    class Occupied < Exception
+      # Where the copy would have gone.
+      getter path : Path
+
+      def initialize(@path : Path)
+        super "#{@path} already exists"
+      end
+    end
+
+    # Writes a copy of *game* to *path*. Answers where it went.
+    #
+    # The copy holds what `Store#write` would, except that no pause goes in
+    # the log and no parcel is packed, so the running game goes on as if
+    # nothing had been written. A relative *path* is taken from the working
+    # directory. Missing directories above it are made.
+    #
+    # Raises `Occupied` for a file already at *path*, unless *overwrite*.
+    # Raises `IO::Error` for a path that cannot be written.
+    def self.copy(game : Game, path : Path, overwrite : Bool = false) : Path
+      wanted = path.expand Dir.current
+      raise Occupied.new wanted if !overwrite && File.exists?(wanted)
+
+      Dir.mkdir_p wanted.parent
+      temporary = Path["#{wanted}.writing"]
+      begin
+        File.write temporary, Held.unmarked(game).to_pretty_json
+        File.rename temporary, wanted
+      rescue error : IO::Error
+        File.delete? temporary
+        raise error
+      end
+
+      wanted
     end
 
     # Where state files go, as the XDG base directory specification says.

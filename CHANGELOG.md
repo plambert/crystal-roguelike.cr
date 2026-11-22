@@ -10,6 +10,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* The debug console's `save-copy <path>` writes a copy of the game to a file, from the working
+  directory or at an absolute path, and says where it went. It refuses to replace a file unless
+  given `-f`. The copy loads like any save, and the running game and its replay log do not
+  change. Tab completes the path.
 * A right click on a square of the map opens a menu of what you can do there. It offers Examine,
   Walk here, Open, Close, Spike, the stairs, Drink and Fill at a fountain, and Pick up, shown with
   their keys and dimmed when they cannot be done now. A square out of reach shows the way to it
