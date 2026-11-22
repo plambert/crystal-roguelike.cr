@@ -139,7 +139,7 @@ module Roguelike::Ui
 
       if here
         @pane.show @map.floor, here[0], here[1], @lore, @map.sight,
-          @map.knowledge, regard_at(here[0], here[1])
+          @map.knowledge, ->(item : Item) { regard_at item, here[0], here[1] }
       else
         @pane.clear
       end
@@ -147,20 +147,20 @@ module Roguelike::Ui
       @map.cursor = @cursoring ? here : nil
     end
 
-    # How well the character has made out whatever lies on *x*, *y*.
+    # How well the character has made out *item* lying on *x*, *y*.
     #
     # The game holds the rule, so the readout asks it rather than working the
     # distance out again. The window's own field of view is passed in: it is
     # the one the map was drawn from, and working another out costs a turn's
     # worth of tracing.
-    private def regard_at(x : Int32, y : Int32) : Regard
+    private def regard_at(item : Item, x : Int32, y : Int32) : Regard
       game = @game
       return Regard::Everything unless game
 
       seen = @map.sight
-      return game.regard_of_item x, y unless seen
+      return game.regard_of_item item, x, y unless seen
 
-      game.regard_of_item x, y, seen
+      game.regard_of_item item, x, y, seen
     end
   end
 end

@@ -5,6 +5,7 @@ Spectator.describe "the food bag screen" do
   alias Kind = Roguelike::ItemKind
   alias Options = Roguelike::Options
   alias Play = Roguelike::Ui::Play
+  alias Widgets = TermBuf::Widgets
 
   HALL = [
     "############",
@@ -46,7 +47,7 @@ Spectator.describe "the food bag screen" do
     run.press "E"
 
     expect(run.menu.title.to_s).to start_with Play::FOOD_BAG
-    expect(run.menu.pages.map &.[0]).to eq %w[weight type value name freshness]
+    expect(run.menu.pages.map &.[0]).to eq %w[soonest weight type value name freshness]
     expect(run.text).to contain "2 rations"
     expect(run.text).to contain "an apple"
   end
@@ -56,10 +57,62 @@ Spectator.describe "the food bag screen" do
     run.press "E"
     first = run.menu.entries.map &.key
 
-    run.press "Right", "Right", "Right"
+    run.press "Right", "Right", "Right", "Right"
     expect(run.menu.page_name).to eq "name"
     expect(run.menu.entries.map &.key).to eq ['b', 'a', '+', '-']
-    expect(first).to eq ['a', 'b', '+', '-']
+    expect(first).to eq ['b', 'a', '+', '-']
+  end
+
+  describe "the first page" do
+    def keeps(kind : Kind) : Int32
+      Roguelike::Food.facts(kind).keeps
+    end
+
+    # A ration, which never spoils, fresh berries, a stale apple and rotten
+    # bread, put in the bag in that order.
+    def mixed : Roguelike::Game
+      stocked([
+        food(Kind::Ration),
+        food(Kind::Berries),
+        food(Kind::Apple, age: keeps(Kind::Apple) + 10),
+        food(Kind::Bread, age: keeps(Kind::Bread) * 2),
+      ])
+    end
+
+    it "is in the order of Game.meal_rank" do
+      game = mixed
+      run = traditional game
+      run.press "E"
+
+      expect(run.menu.page_name).to eq "soonest"
+      ranked = game.player.food_bag.items.sort_by { |item| Roguelike::Game.meal_rank item }
+      letters = ranked.map { |item| Widgets::Menu.letter game.player.food_bag.items.index!(&.same?(item)) }
+      expect(run.menu.entries.map(&.key).first(4)).to eq letters
+      expect(ranked.last.kind).to eq Kind::Bread
+      expect(ranked[-2].kind).to eq Kind::Ration
+    end
+
+    it "starts with what the eat key eats" do
+      game = mixed
+      meal = game.meal
+      run = traditional game
+      run.press "E"
+
+      expect(meal).not_to be_nil
+      first = run.menu.entries.first.key
+      expect(first).to eq Widgets::Menu.letter(game.player.food_bag.items.index!(&.same?(meal)))
+
+      run.press first.to_s, "e"
+      expect(run.game.player.food_bag.items.none?(&.same?(meal))).to be_true
+      expect(run.turn).to eq 1
+    end
+
+    it "keeps the page last chosen for the rest of the session" do
+      run = traditional mixed
+      run.press "E", "Right", "Right", "Escape", "E"
+
+      expect(run.menu.page_name).to eq "type"
+    end
   end
 
   it "eats one of a stack from the menu on its letter" do
@@ -279,6 +332,119 @@ Spectator.describe "the food bag screen" do
 
       expect(notes).to contain "+"
       expect(notes).to contain "-"
+    end
+  end
+
+  describe "eating rotten food by hand" do
+    def keeps(kind : Kind) : Int32
+      Roguelike::Food.facts(kind).keeps
+    end
+
+    def rotten : Item
+      food Kind::Berries, age: keeps(Kind::Berries) * 2
+    end
+
+    it "asks before eating from the food bag, and a yes eats it" do
+      run = traditional stocked([rotten, food(Kind::Ration)])
+      run.press "E", "a", "e"
+
+      expect(run.text).to contain "Rotten food makes you sick."
+      expect(run.turn).to eq 0
+
+      run.press "y"
+      expect(run.game.player.food_bag.items.map &.kind).to eq [Kind::Ration]
+      expect(run.turn).to eq 1
+    end
+
+    it "takes no turn and writes no line on a no from the food bag" do
+      run = traditional stocked([rotten, food(Kind::Ration)])
+      lines = run.log.size
+      run.press "E", "a", "e", "n"
+
+      expect(run.game.player.food_bag.size).to eq 2
+      expect(run.turn).to eq 0
+      expect(run.log.size).to eq lines
+      expect(run.menu.showing?).to be_false
+    end
+
+    it "asks from the food bag in the modern scheme, and a yes eats it" do
+      run = modern stocked([rotten])
+      run.press "i", "s", "f", "f", "f"
+
+      expect(run.text).to contain "Rotten food makes you sick."
+      expect(run.turn).to eq 0
+
+      run.press "a", "f"
+      expect(run.game.player.food_bag.empty?).to be_true
+      expect(run.turn).to eq 1
+    end
+
+    it "takes no turn on a no from the food bag in the modern scheme" do
+      run = modern stocked([rotten])
+      lines = run.log.size
+      run.press "i", "s", "f", "f", "f"
+      expect(run.text).to contain "Rotten food makes you sick."
+
+      run.press "f"
+      expect(run.game.player.food_bag.size).to eq 1
+      expect(run.turn).to eq 0
+      expect(run.log.size).to eq lines
+    end
+
+    it "asks from the inventory, and a yes eats it" do
+      run = traditional stocked([rotten], [Item.new(Kind::Dagger)])
+      run.press "i", Play::FOOD_BAG_KEY.to_s, "a", "e"
+
+      expect(run.text).to contain "Rotten food makes you sick."
+      run.press "y"
+      expect(run.game.player.food_bag.empty?).to be_true
+      expect(run.turn).to eq 1
+    end
+
+    it "takes no turn on a no from the inventory" do
+      run = traditional stocked([rotten], [Item.new(Kind::Dagger)])
+      lines = run.log.size
+      run.press "i", Play::FOOD_BAG_KEY.to_s, "a", "e"
+
+      expect(run.text).to contain "Rotten food makes you sick."
+      run.press "n"
+      expect(run.game.player.food_bag.size).to eq 1
+      expect(run.turn).to eq 0
+      expect(run.log.size).to eq lines
+    end
+
+    it "does not ask for fresh or stale food" do
+      stale = food Kind::Berries, age: keeps(Kind::Berries)
+      expect(stale.freshness.stale?).to be_true
+
+      [food(Kind::Berries), stale].each do |item|
+        run = traditional stocked([item])
+        run.press "E", "a", "e"
+
+        expect(run.text).not_to contain "Rotten food makes you sick."
+        expect(run.game.player.food_bag.empty?).to be_true
+        expect(run.turn).to eq 1
+      end
+    end
+
+    it "does not ask a full character, who is refused as before" do
+      game = stocked([rotten])
+      game.player.sustenance.hunger = 0
+      run = traditional game
+      run.press "E", "a", "e"
+
+      expect(run.said).to eq "You are too full to eat."
+      expect(run.turn).to eq 0
+    end
+
+    it "never eats rotten food on +" do
+      run = traditional stocked([rotten])
+      run.press "E"
+
+      expect(run.menu.entries.find(&.key.==(Play::EAT_TURNING_KEY)).try(&.enabled)).to be_false
+      run.press Play::EAT_TURNING_KEY.to_s
+      expect(run.game.player.food_bag.size).to eq 1
+      expect(run.turn).to eq 0
     end
   end
 end

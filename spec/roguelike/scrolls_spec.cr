@@ -45,7 +45,7 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
 
       game.read reading(game, Kind::TreasureScroll)
 
-      expect(game.knowledge[18, 8].try &.item.try &.kind).to eq Kind::Gold
+      expect(game.knowledge[18, 8].try &.shown.try &.kind).to eq Kind::Gold
     end
 
     it "leaves the gold where it lies" do
@@ -115,7 +115,7 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
 
       game.read reading(game, Kind::DetectionScroll)
 
-      expect(game.knowledge[4, 5].try &.item.try &.kind).to eq Kind::LongSword
+      expect(game.knowledge[4, 5].try &.shown.try &.kind).to eq Kind::LongSword
     end
 
     # The oval is a quarter of the floor across and a quarter down, so it
@@ -135,7 +135,7 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
 
       game.read reading(game, Kind::DetectionScroll, Blessing::Blessed)
 
-      expect(game.knowledge[20, 1].try &.item.try &.kind).to eq Kind::LongSword
+      expect(game.knowledge[20, 1].try &.shown.try &.kind).to eq Kind::LongSword
     end
 
     it "says nothing about the gold" do
@@ -172,7 +172,7 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
       game.read reading(game, Kind::DetectionScroll)
 
       expect(game.knowledge[5, 5].try &.spiked?).to be_true
-      expect(game.knowledge[5, 5].try &.item.try &.kind).to eq Kind::Arrow
+      expect(game.knowledge[5, 5].try &.shown.try &.kind).to eq Kind::Arrow
     end
 
     it "names what it found, nearest first" do
@@ -242,7 +242,7 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
 
         game.read reading(game, Kind::DetectionScroll, Blessing::Cursed)
 
-        expect(game.knowledge[4, 5].try &.item).to be_nil
+        expect(game.knowledge[4, 5].try &.shown).to be_nil
       end
     end
   end

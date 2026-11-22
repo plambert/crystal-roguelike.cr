@@ -82,13 +82,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The inedible parts go in the pack on the food page and stack by kind. They never spoil. They
   are kept for alchemy and do nothing yet.
 * A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
-  and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
-  it by weight, type, value, name or freshness. Pick a row to eat it or drop it. Press
-  `E` to open it, or pick the food bag row at the end of the inventory. With modern controls it
-  is in the inventory and in the action catalog under Items.
+  and what each stack weighs. It also lists any corpse you are standing on. It opens sorted in the
+  order `e` eats, so the food `e` would eat is first and rotten food last. Left and Right sort it
+  instead by weight, type, value, name or freshness, and the bag opens on that sort until you quit.
+  Pick a row to eat it or drop it. Press `E` to open it, or pick the food bag row at the end of
+  the inventory. With modern controls it is in the inventory and in the action catalog under Items.
 * `e`, or `Ctrl+E` with modern controls, eats with no menu. It eats the food that will next go
   stale, rotten or putrid, and between two that turn together, the one further along. Rotten food
   is passed over while anything else is left. When only rotten food is left, you are asked first.
+  Picking rotten food in the food bag and choosing eat asks the same question.
 * Two rows end every page of the food bag. `+` eats all the food that turns within the hour,
   soonest first, until you are full. `-` drops all the rotten food and putrid masses in the bag
   and the pack. Each meal or drop takes its turn, and either stops at once if you are hurt or a
@@ -256,6 +258,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   bag of a saved game move to the pack when it loads, or to the floor under you when the pack is
   full. Rotten flesh in a saved game turns into putrid masses when it loads, in the pack or at
   your feet the same way, and where it lies on the floors.
+* Each item on a square is remembered on its own. An item you looked at closely stays known
+  however the pile around it changes, and an item that turns up on a pile you read is only a
+  "spear" or a "potion" until you come close again. The look readout and the bot observation
+  name each item as well as you made it out.
+* The map shows the most interesting item on a pile rather than the one on top. Magic comes
+  first, then weapons and armor, then tools, light, gold and food, and a putrid mass or a
+  corpse never hides a spear.
 
 ### Fixed
 
@@ -278,6 +287,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   back to the same places." Explore is offered again once you move or see something new. Bots
   get the halt as `circling`. Your save keeps where explore stands in this, so a run you save
   and load carries on the same way.
+* Explore no longer walks back to a pile you have already read when food on it rots into a
+  putrid mass. A pile whose top item changed used to count as unread again.
+* Explore no longer stops with "You stop. You have been here already." when it has a reason to
+  turn back. Reading an item it walked over to read could send it back the way it came, and a
+  drink from the waterskin on the way counted as standing still. Both stopped the walk, and
+  pressing `X` again carried on.
 * The detail box beside a menu row goes away when the menu closes, however it closes. Before,
   leaving the modern pick-up list with Escape left the box for the last row on the screen until
   the pointer moved.

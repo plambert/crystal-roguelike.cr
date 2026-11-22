@@ -148,7 +148,7 @@ module Roguelike::Ui
 
       litter(game, sight).each do |lying|
         item = lying.item
-        regard = game.regard_of_item lying.spot[0], lying.spot[1], sight
+        regard = game.regard_of_item item, lying.spot[0], lying.spot[1], sight
         line = row game.name(item, regard), Palette[item].style,
           Detail.about(game, item, regard)
         rows << place(line, lying.spot)

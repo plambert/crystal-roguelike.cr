@@ -104,7 +104,7 @@ Spectator.describe "what the character remembers" do
 
       run.press "c"
 
-      expect(run.game.knowledge[DOOR].try &.item).to be_nil
+      expect(run.game.knowledge[DOOR].try &.shown).to be_nil
     end
   end
 

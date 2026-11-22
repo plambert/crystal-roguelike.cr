@@ -2818,6 +2818,9 @@ has stood over does not turn a cursed -2 spear back into a spear. The item has t
 a square where somebody swapped the spear for a potion starts again from whatever the new look
 gives.
 
+"Items remembered one by one", further down, replaced the one regard per square with one per
+item.
+
 ### What the game answers
 
 `Game#regard_of` takes a creature. A creature with light on them is `Regard::Everything`, one
@@ -7017,6 +7020,8 @@ one goes through actions that already exist, so a bot does the same with `eat` a
   spoils comes after all that does, and rotten food last.
 * **Rotten food.** `#meal` leaves it out unless asked with `rotten: true` and nothing else is left.
   An explore asks only while starving.
+* **Food bag page.** `FoodSort::Soonest` sorts by `.meal_rank`. `FoodSort.pages` shows it first,
+  so the bag opens on it. Freshness groups by stage, which this order does not, so both are kept.
 * **Explore order moved.** An explore used to eat stale food before fresh whatever the turns left.
   It now eats in the order above, so fresh berries a turn from stale go before a stale apple with
   days left.
@@ -7027,6 +7032,8 @@ one goes through actions that already exist, so a bot does the same with `eat` a
   controls, beside `Ctrl+D` for the waterskin.
 * **Rotten only.** When only rotten food is left, `e` asks "Eat the rotten ...? Rotten food makes
   you sick." first. A full character is not asked, and gets the usual refusal.
+* **Rotten by hand.** The food bag's eat row asks the same question for rotten food, by
+  `#eat_asking`, and a no takes no turn and writes no line. `+` never eats rotten food.
 * **Empty bag.** `e` puts the food bag screen up, which says the bag is empty or lists a corpse
   underfoot.
 * **`E`** opens the food bag screen in the traditional scheme, as `e` did before.
@@ -7380,6 +7387,119 @@ Lit stone floor on the Default route reads 2.79 to 1, against 2.18 to 1 on `offe
 * The replay viewer performs `Action::Explore` straight on the game, not through a `Walk`, so it
   shows no trail. Showing one there would need the viewer to say which action it just performed.
 * Headless and the bot protocol do not change. No new `Action`, enum member or stream version.
+
+## Items remembered one by one
+
+A square used to hold one `Memory` with the top item, the items under it and one `Regard` for the
+whole square. A distant look kept the earlier close look only while the top item was still
+`Item.alike?`. Food rotting into a putrid mass changed the top item, the square fell to
+`Regard::Kind`, and explore walked back to read it. A change under an unchanged top kept
+`Regard::Everything` while the memory was overwritten, which named items the character had never
+looked at closely. Nothing on a square hides anything else, so the pile order says nothing about
+how well each item was seen.
+
+### The model
+
+* `Memory` holds the terrain, the fixture, the spike, the turn and `Memory#items`.
+* `Memory::Item` holds a copy of the item, its own regard and the turn it was last seen.
+* The regard belongs to the observer's memory, never to the item. A band's `Knowledge` and the
+  character's are the same class and remember the same spear their own way.
+* Identification of kinds stays in `Lore`, at the character level.
+
+### A look
+
+`Knowledge#see` matches what lies on the square against what was remembered, item by item, by id.
+Pile order plays no part.
+
+| Case | Result |
+| --- | --- |
+| Item still there | Takes the better of its old regard and this look's |
+| New item | Enters at this look's regard |
+| Remembered item gone | Dropped |
+| Distant look | Every item at `Regard::Kind` |
+| Touch | Shape and fixture only, items kept |
+
+* An item seen from further off than it was remembered keeps what only a close look shows.
+  `Item#seen_from_afar` takes the enchantment, condition, charges and blessing from the old copy
+  and the rest from the item. An item now of another kind keeps none of the old copy.
+* An item with no id is matched with a remembered one of the same kind. Only specs build these.
+* `Knowledge#revision` moves when a look adds or drops an item, raises a regard or finds an item
+  changed in kind. A look that refreshes copies and nothing else does not move it. Reading a pile
+  up close now counts as learning, so `Explore::Circling` starts its watch again.
+
+### Identity across rot
+
+Every place that replaces an item in place keeps its id, so the memory still matches it.
+
+| Place | Id |
+| --- | --- |
+| `Game#age_the_floor`, food or a corpse turning putrid | `Game.putrid_mass` enrolls the old id |
+| `Game#putrefied`, the food bag | Same; a mass that joins a stack takes that stack's id |
+| `Game#unrot`, rotten flesh in an old save | Same |
+| `Game#unbag`, bones split out of the bag | The first keeps the id, the rest take new ones |
+| Putrid fade | The mass is taken off the floor; the next look drops it |
+| `Game#leave_remains` | New items with new ids; they enter as new |
+
+A mass dropped on a square that already holds one stacks into it. The old id is gone, and the next
+look drops it and sees the stack's count change.
+
+### Readers
+
+No reader keeps a summary. Each walks every remembered item through `Knowledge#each_item`, which is
+the one place a cache would go.
+
+* `Explore.unread` lists squares where `Memory#unread?` holds: an item below
+  `Regard::Everything` that is not gold, a torch or refuse.
+* `Explore.wanted`, `Game#next_sighting`, `Game#forget_emptied`, `Game#pile_in_mind?` and the
+  context menu ask whether any item is remembered.
+* `Game#regard_of_item` takes the item as well as the square.
+* `ExaminePane` names each remembered item at its own regard, and each item in sight at what
+  `Game#regard_of_item` answers for it. `NearbyPane` and the walk's "comes into sight" line do
+  the same per item.
+* The observation's `items` write each remembered item with its own `regard` and
+  `last_seen_turn`. The shape of the observation did not change.
+* `Game#recall_sighted` counts every remembered item, not only the drawn one.
+* `Chamber::Lying` holds the drawn item.
+
+### The glyph
+
+`Memory.shown` picks the item a map draws, for a remembered square and a square in sight alike. The
+item whose class comes first in `Memory::SHOWN` wins, and the lowest id breaks a tie. The order is
+amulet, wand, scroll, potion, melee, ranged weapon, armor, thrown, ammunition, tool, light,
+treasure, food, delicacy, reagent, remains, refuse. The floor pile keeps its order for drop and
+pickup.
+
+### Saves and fingerprints
+
+* A memory writes `items`, a list of `{item, regard, turn}`, and only when it holds any.
+* An old memory's `item`, `under` and `regard` are read and folded into `items` in
+  `Memory#after_initialize`. Each item takes the square's regard and turn. An old memory with no
+  regard loads as `Regard::Everything`, as before.
+* The fingerprint digests the save, so every regard and every turn last seen is counted. Every
+  remembered pile writes new bytes, so recorded fingerprints move and the golden replay was
+  recorded again. No stream moved.
+* The golden replay plays the same 80 actions to the same turn 91. Only its fingerprints moved.
+
+### Circling
+
+A read up close now moves the revision, and a remembered item keeps its regard while it keeps its
+id, so no pile can send explore round with nothing learned. The specs that forced a circle by
+using wands up out of sight now check that explore reads each wand once and finishes. The specs
+for the halt, the offer once the character moves and the save give the game a watch that has
+already got that far.
+
+### Measured
+
+A playtest save on floor 2, at turn 9,163: 163 piles, 293 items, 296 remembered items, 55 bands.
+Release builds, 300 explore steps with a look after each, two runs each.
+
+| | Before | After |
+| --- | --- | --- |
+| Explore step | 0.98 to 1.01 ms | 1.03 to 1.04 ms |
+| `Explore.unread` | 14 to 15 us | 16 to 17 us |
+| Steps until explore ends | 218 | 210 |
+
+The difference per step is within the noise of other work on the machine.
 
 ## Asked for, not yet built
 

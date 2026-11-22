@@ -805,9 +805,8 @@ module Roguelike
       found = [] of Seen
 
       spots.each do |spot|
-        regard = game.regard_of_item spot[0], spot[1], seen
-
         ground.items(spot[0], spot[1]).each do |item|
+          regard = game.regard_of_item item, spot[0], spot[1], seen
           found << Seen.of(game.lore, item, regard, pos: spot)
         end
       end
@@ -823,11 +822,12 @@ module Roguelike
       found = [] of Lying
 
       known.each_item do |column, row, memory|
-        next unless memory.regard.made_out?
         next if seen.includes? column, row
 
-        memory.pile.each do |item|
-          found << Lying.new({column, row}, item, memory.turn, memory.regard)
+        memory.items.each do |remembered|
+          next unless remembered.regard.made_out?
+
+          found << Lying.new({column, row}, remembered.item, remembered.turn, remembered.regard)
         end
       end
 

@@ -301,16 +301,13 @@ module Roguelike
     end
 
     # Every square *knowledge* remembers an item on that was seen from too
-    # far off to read, in reading order. Gold and torches are left out,
-    # because neither stops a walk. The whole remembered pile counts, so a
-    # scroll under gold is found.
+    # far off to read, in reading order. Each item has its own regard, so a
+    # square counts while any item on it is unread. Gold, torches and refuse
+    # are left out, by `Memory#unread?`.
     def self.unread(knowledge : Knowledge) : Array({Int32, Int32})
       found = [] of {Int32, Int32}
       knowledge.each_item do |column, row, memory|
-        next unless memory.regard < Regard::Everything
-
-        unread = memory.holds? { |item| !item.kind.gold? && !item.kind.torch? }
-        found << {column, row} if unread
+        found << {column, row} if memory.unread?
       end
 
       found.sort_by! { |spot| {spot[1], spot[0]} }
