@@ -143,17 +143,24 @@ module Roguelike
     end
 
     # Ages every food lying on this floor, and turns each that has reached
-    # its end into putrid masses on its square.
+    # its end into putrid masses on its square. A putrid mass that has lain
+    # there for `Food::PUTRID_FADES` turns vanishes without a word.
     private def age_the_floor : Nil
       ended = [] of {Int32, Int32, Item}
+      faded = [] of {Int32, Int32, Item}
 
       floor.each_pile do |column, row, pile|
         pile.each do |item|
+          faded << {column, row, item} if item.fade
           next unless item.food?
 
           item.ripen
           ended << {column, row, item} if item.putrid?
         end
+      end
+
+      faded.each do |column, row, item|
+        clear_bearers if floor.take column, row, item
       end
 
       ended.each do |column, row, item|
