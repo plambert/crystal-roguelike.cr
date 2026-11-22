@@ -7052,6 +7052,28 @@ one goes through actions that already exist, so a bot does the same with `eat` a
   sends `configure` with `drop_rot` false. Dropping by hand is still `drop`. No action or
   observation field was added.
 
+### Batch keys in the food bag
+
+* **Rows.** `+` and `-` end every page of the food bag screen as rows, so the traditional scheme
+  presses them and the modern scheme picks them like any row. Each is dimmed when it has nothing
+  to do. The letters are taken by food, so the keys are not letters. Putrid masses in the pack
+  put the screen up with an empty bag, for `-`.
+* **About to turn.** `Food::TURNING_SOON` is 360 turns, an hour. `Game#turning_soon` is the bag food
+  that is not rotten and changes freshness within that, in `#meal` order. A hunger stage is 12
+  hours or more, and nearly every food would count at that length.
+* **`+`.** `Game#eat_turning` eats the first of `#turning_soon` each turn. It stops when none is
+  left, or when a meal was only part eaten because the character filled up. Hunger ticks again in
+  the turn a meal takes, so the debt alone never reads full after one. A character full from the
+  start gets the usual refusal once.
+* **`-`.** `Game#drop_all_rot` drops `#rot` each turn until none is left. The person asked, so it
+  drops with the setting off and with a creature in sight.
+* **Stops.** Both run through `Game#chores`, which performs one action a turn and stops the way a
+  walk does. A wound stops it, and so does a creature coming into view that was not in view. The
+  stop writes the walk's line. A creature already in view does not stop it, as it does not stop a
+  walk.
+* **Replay.** Each turn is its own `eat` or `drop` through `#perform`, so the log holds the actions
+  and a bot does the same with them. No action was added.
+
 ## Hunger and thirst for bots and trials
 
 ### The switch

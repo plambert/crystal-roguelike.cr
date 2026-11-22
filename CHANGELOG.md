@@ -85,6 +85,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * `e`, or `Ctrl+E` with modern controls, eats with no menu. It eats the food that will next go
   stale, rotten or putrid, and between two that turn together, the one further along. Rotten food
   is passed over while anything else is left. When only rotten food is left, you are asked first.
+* Two rows end every page of the food bag. `+` eats all the food that turns within the hour,
+  soonest first, until you are full. `-` drops all the rotten food and putrid masses in the bag
+  and the pack. Each meal or drop takes its turn, and either stops at once if you are hurt or a
+  creature comes into view.
 * Food buffs and being sick each show as a short labeled pill in the character pane, with no bar
   and no count. Pills sit side by side and wrap to the next line when a line fills. Buffs are
   green and debuffs are red. Both colors are in the theme editor, and the pills and their text

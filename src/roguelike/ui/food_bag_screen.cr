@@ -10,6 +10,12 @@ module Roguelike::Ui
     # The title of the food bag screen.
     FOOD_BAG = "Food bag"
 
+    # The food bag row that eats all the food about to turn.
+    EAT_TURNING_KEY = '+'
+
+    # The food bag row that drops all the rot.
+    DROP_ROT_KEY = '-'
+
     # Which sort the food bag screen opened on last.
     @food_sort : Int32 = 0
 
@@ -67,11 +73,13 @@ module Roguelike::Ui
     #
     # One page per sort, and the left and right keys turn the page. A row's
     # letter stays with its food on every page. A letter puts up what can
-    # be done with that food. *back* runs when the screen is closed.
+    # be done with that food. `+` and `-` end every page, as
+    # `#food_chore_rows` says. Putrid masses in the pack put the screen up
+    # with an empty bag, for `-`. *back* runs when the screen is closed.
     def show_food_bag(back : Proc(Nil)? = nil) : Nil
       @food_back = back
       found = food_rows
-      if found.empty?
+      if found.empty? && @game.rot.nil?
         say "Your food bag is empty and there is nothing here to eat."
         finish_food
         return
@@ -87,6 +95,8 @@ module Roguelike::Ui
       title = food_bag_title
       choose(title, pages, @food_sort.clamp(0, pages.size - 1), about) do |key|
         @food_sort = @menu.page
+        next food_chore(key) if key && (key == EAT_TURNING_KEY || key == DROP_ROT_KEY)
+
         item = key ? found.find(&.[0].==(key)).try(&.[1]) : nil
         if item
           act_on_food item
@@ -94,6 +104,30 @@ module Roguelike::Ui
           finish_food
         end
       end
+    end
+
+    # The rows that end every page of the food bag: eat all the food about
+    # to turn, and drop all the rot. Each is dimmed when there is none.
+    private def food_chore_rows : Array(Widgets::Menu::Entry)
+      [
+        Widgets::Menu::Entry.new(EAT_TURNING_KEY, "eat all food about to turn",
+          enabled: !@game.turning_soon.empty?, mark: ' '),
+        Widgets::Menu::Entry.new(DROP_ROT_KEY, "drop all rotten food and putrid masses",
+          enabled: !@game.rot.nil?, mark: ' '),
+      ]
+    end
+
+    # Does the food bag row *key* names, and goes back to the map.
+    private def food_chore(key : Char) : Nil
+      if key == EAT_TURNING_KEY
+        @game.eat_turning
+      else
+        @game.drop_all_rot
+      end
+
+      @food_back = nil
+      clear_modern_menu if modern_controls?
+      refresh
     end
 
     # The food bag screen's title: the bag's weight out of its limit, and
@@ -147,9 +181,10 @@ module Roguelike::Ui
       fed = rows.max_of? &.[1].size || 0
       parts = {3, 2}.find { |count| rows.all? { |row| food_text(row, fed, count).size <= room } } || 1
 
-      ordered.map_with_index do |(key, _item), index|
+      entries = ordered.map_with_index do |(key, _item), index|
         Widgets::Menu::Entry.new key, food_text(rows[index], fed, parts), mark: ' '
       end
+      entries + food_chore_rows
     end
 
     # The text of a food bag row from its first *parts* columns: the name

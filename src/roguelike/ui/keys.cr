@@ -508,6 +508,8 @@ module Roguelike::Ui
         {"a-z A-Z", "what to do with that food"},
         {"Left Right", "sort by weight, type, value, name or freshness"},
         {"e d", "eat, drop"},
+        {"+", "eat all food about to turn, soonest first, until full"},
+        {"-", "drop all rotten food and putrid masses"},
         {"%", "the food bag, from the inventory"},
       ]
 

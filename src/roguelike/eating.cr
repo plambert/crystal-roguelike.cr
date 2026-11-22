@@ -272,6 +272,90 @@ module Roguelike
       letter ? drop(letter) : drop_food(item)
     end
 
+    # The food in the bag about to turn, in the order `#meal` eats it.
+    #
+    # That is food that is not rotten and changes freshness within
+    # `Food::TURNING_SOON` turns.
+    def turning_soon : Array(Item)
+      found = @player.food_bag.items.select do |item|
+        next false if !item.edible? || item.nourishment <= 0 || item.freshness.rotten?
+
+        turning = FoodBag.turning item
+        !turning.nil? && turning[1] <= Food::TURNING_SOON
+      end
+      found.each_with_index.to_a.sort_by! { |item, index| {Game.meal_rank(item), index} }.map &.[0]
+    end
+
+    # Eats the food `#turning_soon` holds, soonest first, one `Action::Eat`
+    # a turn. Answers what stopped it, or `nil` when it ran out.
+    #
+    # It runs out when nothing is about to turn, or when the last meal left
+    # the character full or was refused. A character full from the start is
+    # told so by the first eat, as `e` tells them. `#chores` says what else
+    # stops it.
+    def eat_turning : Halt?
+      eaten = 0
+      chores do
+        item = turning_soon.first?
+        next if item.nil? || (eaten > 0 && !ate_whole?)
+
+        eaten += 1
+        Action::Eat.new item.id
+      end
+    end
+
+    # Whether the last action ate a whole item, so the character has room
+    # left for more.
+    private def ate_whole? : Bool
+      @events.any? { |event| event.is_a?(Event::Ate) && event.whole? }
+    end
+
+    # Drops every rotten food and putrid mass in the pack and the bag, one
+    # `Action::Drop` a turn, in `#rot` order. Answers what stopped it, or
+    # `nil` when it ran out. `#chores` says what stops it.
+    #
+    # The person asked for it, so it drops whatever the run's settings say
+    # and whatever is in sight.
+    def drop_all_rot : Halt?
+      chores { rot.try { |item| Action::Drop.new item.id } }
+    end
+
+    # Performs the actions the block gives, one at a time, each its own
+    # turn. Answers what stopped it, or `nil` once the block gives `nil`.
+    #
+    # It stops the way a walk stops. A wound stops it, and so does a
+    # creature coming into view that was not in view before. Each stop
+    # writes the line a walk writes.
+    private def chores(& : -> Action?) : Halt?
+      loop do
+        return Halt::Over if over?
+
+        action = yield
+        return unless action
+
+        before = Watch.on self, sight
+        return Halt::Blocked if perform(action).refused?
+
+        halt = chore_stopped before
+        return halt if halt
+      end
+    end
+
+    # What stopped a chore on the turn that began with *before*, saying so.
+    # `nil` when nothing did.
+    private def chore_stopped(before : Watch) : Halt?
+      return Halt::Over if over?
+
+      if @player.hit_points < before.health
+        say "You stop. You have been hurt.", Event::Stopped.new(Halt::Hurt)
+        return Halt::Hurt
+      end
+      return unless arrived_in_sight? before.seen, sight
+
+      came_into_view before
+      Halt::Creature
+    end
+
     # Whether the character is full, so eating anything is refused.
     def full? : Bool
       @player.sustenance.hunger <= 0
