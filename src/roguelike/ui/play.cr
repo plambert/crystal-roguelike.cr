@@ -176,6 +176,27 @@ module Roguelike::Ui
     # The floor it was worked out over has moved on by then.
     @pointing : Pointing? = nil
 
+    # The way an explore walk is heading, from the character's square to its
+    # goal, on *floor* as of *turn*.
+    #
+    # The game drew it, so it draws fainter than a way the person drew, and
+    # the two never show at once.
+    record Trail,
+      floor : String,
+      route : Array({Int32, Int32}),
+      turn : Int32
+
+    # The shortest way explore has to be heading for `#trail` to draw it, in
+    # steps. A way of one or two steps goes by too fast to read.
+    TRAIL_STEPS = 3
+
+    # Where explore is heading. `nil` when it is not drawn.
+    #
+    # Each step of an explore walk sets it again. Once the walk is over it
+    # stays up for `ROUTE_FADE`, and a turn passing or the person doing
+    # something else takes it off sooner.
+    getter trail : Trail? = nil
+
     # How long the camera rests on each cell while it slides.
     GLIDE = 25.milliseconds
 
@@ -1524,6 +1545,7 @@ module Roguelike::Ui
     # until the rest stops, so a key pressed part way through stops it.
     private def start_resting(rest : Game::Rest) : Nil
       stop_resting
+      stop_trailing
       @rest = rest
       @breaths = 0
       @interrupt.grab @app
@@ -1980,6 +2002,7 @@ module Roguelike::Ui
     # Points the map at *goal*, along *route*.
     private def aim_at(goal : {Int32, Int32},
                        route : Array({Int32, Int32})) : Nil
+      @trail = nil
       @pointing = Pointing.new @game.floor.id, goal, route, @game.turn
     end
 
@@ -2106,6 +2129,8 @@ module Roguelike::Ui
         stop_pointing
         return
       end
+
+      stop_trailing
 
       if @home && !@examiner.cursoring?
         come_home
@@ -2722,6 +2747,7 @@ module Roguelike::Ui
 
       @examiner.start @game.player.at
       if command.travel?
+        stop_trailing
         hint = modern_controls? ? "Pick a square with Q W E / A D / Z S X. f or Enter goes there, Escape stops." : "Pick a square with the movement keys. Enter goes there, Escape stops."
         say hint
         return
@@ -3317,6 +3343,10 @@ module Roguelike::Ui
       unless @pointing.try(&.turn) == @game.turn && @pointing.try(&.floor) == @game.floor.id
         @pointing = nil
       end
+      unless @trail.try(&.turn) == @game.turn && @trail.try(&.floor) == @game.floor.id && @pending.nil?
+        @trail = nil
+      end
+      @map.clear_trail
       seen = @game.look
       @map.sight = seen
       @map.knowledge = @game.knowledge
@@ -3330,6 +3360,7 @@ module Roguelike::Ui
       # is the character now and the monsters later.
       @map.mark @game.player.x, @game.player.y, Palette.player
       offer_directions
+      show_trail
       show_route
       show_aim
       show_noise
@@ -3493,6 +3524,16 @@ module Roguelike::Ui
         next if index.zero?
 
         @map.highlight spot[0], spot[1]
+      end
+    end
+
+    # Draws the way explore is heading, past the character's own square.
+    private def show_trail : Nil
+      found = @trail
+      return unless found && @pointing.nil?
+
+      found.route.each_with_index do |spot, index|
+        @map.trail_on spot[0], spot[1] unless index.zero?
       end
     end
 
@@ -3721,6 +3762,8 @@ module Roguelike::Ui
     # There is no way to a square nobody has seen.
     private def walk_toward(goal : {Int32, Int32}?) : Nil
       return interrupted if walking? || resting?
+
+      stop_trailing
       return if goal.nil? || @game.over?
       return if goal == @game.player.at
 
@@ -3768,6 +3811,50 @@ module Roguelike::Ui
       timer = @fade_timer
       @fade_timer = nil
       @app.try &.cancel(timer) if timer
+    end
+
+    # Sets `#trail` from the way the explore step just taken was planned.
+    #
+    # It reads `Game#explore_plan` and plans nothing, so the walk takes the
+    # same steps whether or not anything draws it. The route is cut at the
+    # character's square. A way shorter than `TRAIL_STEPS` is not drawn.
+    private def follow_trail : Nil
+      @trail = nil
+      route = @game.explore_plan
+      return unless route
+
+      here = route.index @game.player.at
+      return unless here && route.size - 1 - here >= TRAIL_STEPS
+
+      @trail = Trail.new @game.floor.id, route[here..], @game.turn
+    end
+
+    # Arms the timer that takes the trail off once an explore walk is over.
+    private def arm_trail_fade : Nil
+      return unless @trail && @pointing.nil?
+
+      stop_fading
+      app = @app
+      return unless app
+
+      drawn = @trail
+      @fade_timer = app.after(ROUTE_FADE) { fade_trail drawn }
+    end
+
+    # Takes the trail off the map if it is still the one the timer was
+    # armed for.
+    private def fade_trail(drawn : Trail?) : Nil
+      @fade_timer = nil
+      stop_trailing if drawn && @trail == drawn
+    end
+
+    # Takes the trail off the map at once.
+    private def stop_trailing : Nil
+      return unless @trail
+
+      @trail = nil
+      stop_fading
+      refresh
     end
 
     # Walks to where the map is pointing.
@@ -3822,6 +3909,7 @@ module Roguelike::Ui
       rows = ContextMenu.rows @game, spot, control_scheme
       return if rows.empty?
 
+      stop_trailing
       @context_rows = rows
       @context_spot = spot
       @context_menu.items.replace(rows.map do |row|
@@ -4108,6 +4196,7 @@ module Roguelike::Ui
     # *errand* is done when the walk ends on the square it names.
     private def start_walking(walk : Game::Walk, errand : ContextErrand? = nil) : Nil
       stop_walking
+      stop_trailing
       @walk = walk
       @errand = errand
       @interrupt.grab @app
@@ -4132,6 +4221,7 @@ module Roguelike::Ui
 
         going = @game.stride walk
         @map.follow @game.player.x, @game.player.y
+        follow_trail if walk.exploring?
 
         # The walk is put away before the screen is drawn, so the pane is free
         # to hold on the lines the last step wrote.
@@ -4139,6 +4229,7 @@ module Roguelike::Ui
           errand = @errand
           stop_walking
           finish_errand walk, errand if errand
+          arm_trail_fade
         end
         refresh
         return unless going
@@ -4171,6 +4262,7 @@ module Roguelike::Ui
     private def interrupted : Nil
       stop_walking
       stop_resting
+      arm_trail_fade
       refresh
     end
 

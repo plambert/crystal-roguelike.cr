@@ -10,6 +10,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* While `X` explores, the map shows the way to the square it is heading for, in a fainter green
+  than a way you draw. It shows only when more than two steps are left, and changes when explore
+  changes its mind. When the walk stops it stays a few seconds and then fades. Your own route,
+  a click, a new walk or a turn takes it off at once. Themes have a new color for it.
 * The debug console's `save-copy <path>` writes a copy of the game to a file, from the working
   directory or at an absolute path, and says where it went. It refuses to replace a file unless
   given `-f`. The copy loads like any save, and the running game and its replay log do not

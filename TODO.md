@@ -316,6 +316,11 @@ well-rounded list of special components that various monsters can leave behind, 
 creature has something worth taking. Which components there are, which dishes they make, and what
 each buff does are to be settled when this is built.
 
+### A farmer and the fertilizer bag
+
+The farmer is an NPC, as in the NPCs with quests item. The farmer gives the character a fertilizer
+bag. Putrid masses go into the bag, and in the bag they change into fertilizer.
+
 ### Magic staves
 
 A magic staff casts one particular spell using the character's mana pool, so it waits for the mana

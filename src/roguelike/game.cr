@@ -1472,6 +1472,20 @@ module Roguelike
       route
     end
 
+    # The way the last explore step planned on this floor, from the square it
+    # was planned on to its goal. `nil` when the last way planned was a
+    # travel's or was planned on another floor.
+    #
+    # It reads what `#planned_route` kept and plans nothing, so asking
+    # changes nothing a replay or a save holds.
+    def explore_plan : Array({Int32, Int32})?
+      held = @plan
+      return unless held
+
+      key, route = held
+      route if key.goal.nil? && key.floor == floor.id
+    end
+
     # The way an explore takes, planned around the goals `#circling` avoids.
     private def exploring_route(known : Knowledge) : Array({Int32, Int32})
       avoid = circling.avoid

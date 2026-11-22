@@ -7328,6 +7328,59 @@ choice takes it off.
 No new `Action`. A walk is `Action::Travel` and a verb is its own action, so replays, saves and
 fingerprints do not change and no stream version moves.
 
+## The explore route
+
+While `X` walks, the map shows the way to the goal explore is heading for. It draws on its own
+palette role, fainter than a way the person drew, because the game picked it.
+
+### Where it comes from
+
+* `Game#planned_route` keeps the last way it planned in `@plan`. `Game#explore_plan` hands that
+  route back when it was an explore's and was planned on this floor. It plans nothing, so no
+  random draw, no `Knowledge` revision, no `Explore::Circling` call and no `@pack_moves` change.
+  `@plan` is not in a save or a fingerprint.
+* After each stride of an explore walk, `Play#follow_trail` cuts that route at the character's
+  square and keeps it as `Play::Trail` with the floor and the turn. The route was planned before
+  the step, so it ends at the goal of the step just taken. A goal that changes shows on the next
+  stride, in place of the old one.
+* Only the next goal is drawn. Explore does not plan past it.
+* A way with fewer than `Play::TRAIL_STEPS`, 3, steps left is not drawn.
+
+### Drawing
+
+* `MapPane#trail` is a set of squares drawn on `Palette.explore_route`. The character's own
+  square is left out. `#highlights`, the aimed line, the spotlight and the examine cursor all draw
+  after it, so each shows over it.
+* `Theme#explore_route` is the new role, in the Map group of the theme editor as "Where explore is
+  going". The theme file reads it by key, so a file without it takes the default.
+
+| Theme | `explore_route` | On `ground` | `offered` on `ground` |
+| --- | --- | --- | --- |
+| Default | `#2a3e1e` | 1.66 to 1 | 2.12 to 1 |
+| High contrast | `#143a0a` | 1.64 to 1 | 2.04 to 1 |
+| Paper | `#ddedcf` | 1.14 to 1 | 1.28 to 1 |
+
+Lit stone floor on the Default route reads 2.79 to 1, against 2.18 to 1 on `offered`.
+
+### Coming off
+
+* The person's way wins. `Play#aim_at` clears the trail, and `#show_trail` draws nothing while a
+  `Pointing` is up, so the two never show together.
+* The walk ending by a halt, a key, a click or the run ending leaves the last trail up and arms
+  the `ROUTE_FADE` timer. An explore that ends with nothing left to see has no goal, so nothing is
+  left up.
+* A turn passing, a command waiting for a direction, a floor change, a new walk, a rest, a click on
+  the map, the context menu, the travel cursor and `Escape` take it off at once.
+* An application with no clock runs the whole walk inside one `stride` call. No timer is armed and
+  the last trail stays readable on `Play#trail`.
+
+### What does not change
+
+* Travel and `v` are not explore. A new walk clears the trail and they set none.
+* The replay viewer performs `Action::Explore` straight on the game, not through a `Walk`, so it
+  shows no trail. Showing one there would need the viewer to say which action it just performed.
+* Headless and the bot protocol do not change. No new `Action`, enum member or stream version.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
