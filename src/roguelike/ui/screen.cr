@@ -158,8 +158,9 @@ module Roguelike::Ui
     # hides when the panel hides.
     getter gutter : Widgets::RuleBar
 
-    # The rule under the map. It names the floor.
-    getter rule : Widgets::Divider
+    # The rule under the map. It names the floor, and says what an explore
+    # is doing beside it.
+    getter rule : Widgets::AsideRule
 
     def initialize
       # A map pane has no padding. A map is a grid of cells, and a column
@@ -185,7 +186,7 @@ module Roguelike::Ui
       @info_panel.add @pinned, @info
 
       @gutter = Widgets::RuleBar.new @info, Widgets::Scrollbar::Orientation::Vertical
-      @rule = Widgets::Divider.new Widgets::Divider::Orientation::Horizontal
+      @rule = Widgets::AsideRule.new Widgets::Divider::Orientation::Horizontal
 
       # The column on the right is the log's scrollbar, so the padding is on
       # the left only.

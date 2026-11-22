@@ -179,11 +179,15 @@ module Roguelike
     # Whether any item here was made out short of everything and is worth
     # walking over to read. Gold, torches and refuse are not.
     def unread? : Bool
-      items.any? do |remembered|
-        item = remembered.item
-        remembered.regard < Regard::Everything &&
-          !item.kind.gold? && !item.kind.torch? && !item.refuse?
-      end
+      items.any? { |remembered| Memory.unread? remembered }
+    end
+
+    # Whether *remembered* was made out short of everything and is worth
+    # walking over to read, as `#unread?` asks of each item.
+    def self.unread?(remembered : Memory::Item) : Bool
+      item = remembered.item
+      remembered.regard < Regard::Everything &&
+        !item.kind.gold? && !item.kind.torch? && !item.refuse?
     end
 
     # Whether the door was seen with a spike in it.

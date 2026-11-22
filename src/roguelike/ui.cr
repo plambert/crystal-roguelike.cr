@@ -1,4 +1,5 @@
 require "termbuf-widgets"
+require "./termbuf_ext/aside_rule"
 require "./termbuf_ext/cell_grid"
 require "./termbuf_ext/eased_scroll"
 require "./termbuf_ext/entry"

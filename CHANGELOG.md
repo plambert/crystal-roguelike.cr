@@ -17,6 +17,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   where the movement keys pan the view and hover mode is on so pointing at a match shows what lies
   there. Tab, Escape or a click on the bar brings the list back. While the search is open, matching
   items come first in a pile's lists. It is in the modern action catalog as Find an item.
+* While `X` explores, the line under the map says what it is doing beside the floor, such as
+  "Floor 7 - Walking to fountain" or "Picking up 3 arrows". Items are named as well as you have
+  made them out. Filling the waterskin pauses a moment at the start so you can read it. On a narrow
+  screen the floor stays and the rest is cut short. When the walk stops the floor shows alone.
 * The backquote turns hover mode on and off. With it on, the items on the map square under the
   pointer show in a box beside the pointer instead of in the info panel. The box waits until the
   pointer has rested on a square for a third of a second, so moving the mouse across the map
