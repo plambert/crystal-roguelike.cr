@@ -60,9 +60,49 @@ module Roguelike
     # No squares to keep away from.
     NO_SQUARES = Set({Int32, Int32}).new
 
+    # Why explore heads for the square it heads for. Values are only ever
+    # added at the end.
+    enum Reason
+      # Gold or an item automatic pickup takes lies there.
+      Pile
+
+      # A fountain to fill the waterskin at.
+      Well
+
+      # The rest of the room the character stands in.
+      Room
+
+      # The rest of the passage the character stands in.
+      Passage
+
+      # The nearest part of the floor not yet seen.
+      Frontier
+
+      # An item seen from too far off to read.
+      Unread
+    end
+
+    # A route `.plan` chose and why. The reason is `nil` when the route is
+    # empty.
+    record Plan, route : Array({Int32, Int32}), reason : Reason?
+
+    # No route, and so no reason.
+    NO_PLAN = Plan.new Route::NOWHERE, nil
+
     # The route to the square explore heads for, the character's own square
     # first. Empty when no pile worth taking, no square left to see and no
-    # item left to read can be reached.
+    # item left to read can be reached. `.plan` says why.
+    def self.route(knowledge : Knowledge, from : {Int32, Int32},
+                   columns : Int32, rows : Int32,
+                   takes : Proc(Item, Bool)? = nil,
+                   shows : Proc({Int32, Int32}, Bool)? = nil,
+                   settings : Settings = Settings.new,
+                   wells : Array({Int32, Int32}) = NO_WELLS,
+                   avoid : Set({Int32, Int32}) = NO_SQUARES) : Array({Int32, Int32})
+      plan(knowledge, from, columns, rows, takes, shows, settings, wells, avoid).route
+    end
+
+    # The route `.route` answers, with the reason for its goal.
     #
     # *columns* and *rows* are the floor's size. The size of a floor is not a
     # secret, and the edge of it is not a square to go and look at. *takes*
@@ -72,15 +112,18 @@ module Roguelike
     # rule are on. *wells* are fountains the character wants water from,
     # and are walked to the way a pile is. *avoid* holds squares that are
     # never the goal, which `Circling` fills.
-    def self.route(knowledge : Knowledge, from : {Int32, Int32},
-                   columns : Int32, rows : Int32,
-                   takes : Proc(Item, Bool)? = nil,
-                   shows : Proc({Int32, Int32}, Bool)? = nil,
-                   settings : Settings = Settings.new,
-                   wells : Array({Int32, Int32}) = NO_WELLS,
-                   avoid : Set({Int32, Int32}) = NO_SQUARES) : Array({Int32, Int32})
+    #
+    # A square that is both a pile and a fountain counts as a pile.
+    def self.plan(knowledge : Knowledge, from : {Int32, Int32},
+                  columns : Int32, rows : Int32,
+                  takes : Proc(Item, Bool)? = nil,
+                  shows : Proc({Int32, Int32}, Bool)? = nil,
+                  settings : Settings = Settings.new,
+                  wells : Array({Int32, Int32}) = NO_WELLS,
+                  avoid : Set({Int32, Int32}) = NO_SQUARES) : Plan
       found = knowledge.chambers columns, rows
-      piles = Explore.piles(knowledge, takes, settings) + wells
+      wanted = Explore.piles(knowledge, takes, settings)
+      piles = wanted + wells
       edge = Explore.edge knowledge, found, columns, rows, shows
       reach, pocket = settings.reach, settings.pocket
       unless avoid.empty?
@@ -93,26 +136,35 @@ module Roguelike
       if reaches_any? knowledge, from, piles
         descent = toward_any knowledge, from, columns, rows, piles
         goal = nearest descent, piles
+        return Plan.new(Route.over(descent, goal), wanted.includes?(goal) ? Reason::Pile : Reason::Well) if goal
       end
-      unless goal
-        if settings.rooms?
-          room = sweeping knowledge, found, edge, from, columns, rows, reach, pocket
-          return room if room
-        end
-        if settings.passages?
-          along = passage knowledge, found, from, columns, rows
-          ahead = along.try { |inside| smallest found, inside, found.frontier.select(&edge), reach, pocket }
-          return Route.over(along, ahead) if along && ahead
-        end
-      end
-      descent ||= toward_frontier knowledge, edge, from, columns, rows, reach: reach
-      goal ||= smallest found, descent, found.frontier.select(&edge), reach, pocket
-      if settings.unread?
-        goal ||= nearest descent, Explore.unread(knowledge).reject { |spot| avoid.includes? spot }
-      end
-      return Route::NOWHERE unless goal
+      held = staying knowledge, found, edge, from, columns, rows, settings
+      return held if held
 
-      Route.over descent, goal
+      descent ||= toward_frontier knowledge, edge, from, columns, rows, reach: reach
+      goal = smallest found, descent, found.frontier.select(&edge), reach, pocket
+      return Plan.new(Route.over(descent, goal), Reason::Frontier) if goal
+      return NO_PLAN unless settings.unread?
+
+      goal = nearest descent, Explore.unread(knowledge).reject { |spot| avoid.includes? spot }
+      goal ? Plan.new(Route.over(descent, goal), Reason::Unread) : NO_PLAN
+    end
+
+    # The plan that keeps the character at *from* in the room or the passage
+    # they stand in, under *settings*. `nil` when neither holds them.
+    private def self.staying(knowledge : Knowledge, chambers : Chambers,
+                             edge : Proc({Int32, Int32}, Bool), from : {Int32, Int32},
+                             columns : Int32, rows : Int32, settings : Settings) : Plan?
+      reach, pocket = settings.reach, settings.pocket
+      if settings.rooms?
+        room = sweeping knowledge, chambers, edge, from, columns, rows, reach, pocket
+        return Plan.new(room, Reason::Room) if room
+      end
+      return unless settings.passages?
+
+      along = passage knowledge, chambers, from, columns, rows
+      ahead = along.try { |inside| smallest chambers, inside, chambers.frontier.select(&edge), reach, pocket }
+      Plan.new(Route.over(along, ahead), Reason::Passage) if along && ahead
     end
 
     # How many steps every square of the passage the character at *from*

@@ -10,6 +10,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* While `X` explores, the line under the map says what it is doing beside the floor, such as
+  "Floor 7 - Walking to fountain" or "Picking up 3 arrows". Items are named as well as you have
+  made them out. A turn filling the waterskin pauses a moment so you can read it. On a narrow
+  screen the floor stays and the rest is cut short. When the walk stops the floor shows alone.
 * While `X` explores, the map shows the way to the square it is heading for, in a fainter green
   than a way you draw. It shows only when more than two steps are left, and changes when explore
   changes its mind. When the walk stops it stays a few seconds and then fades. Your own route,

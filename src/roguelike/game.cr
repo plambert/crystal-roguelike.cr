@@ -1032,6 +1032,10 @@ module Roguelike
       # Whether the square last stepped from was a length of corridor.
       property? along : Bool = false
 
+      # What the last stride did. `nil` before the first stride, and after
+      # one that took no step.
+      property taken : Step? = nil
+
       # What could be seen before the step being taken.
       property seen : Vision
 
@@ -1140,6 +1144,7 @@ module Roguelike
     # can kill the character, and the run ends there. `#wait` takes no turn
     # once they are dead, for the same reason.
     def stride(walk : Walk) : Bool
+      walk.taken = nil
       early = before_stepping walk
       return early unless early.nil?
 
@@ -1174,6 +1179,7 @@ module Roguelike
       # holds what the person asked for and plans each step again.
       before = watching walk
       taken = perform(stepping(walk, direction)).step.as(Step)
+      walk.taken = taken
 
       # A route walked into a shut door opens it. Opening takes the turn and
       # leaves the character where they were, so the walk counts no step and
@@ -1215,7 +1221,7 @@ module Roguelike
     # the skin. Answers whether the walk goes on.
     private def drawing_on(walk : Walk) : Bool
       before = watching walk
-      perform Action::Explore.new
+      walk.taken = perform(Action::Explore.new).step
       settle walk, before, along: false, doors: false
 
       !walk.over?
@@ -1456,18 +1462,18 @@ module Roguelike
       known = knowledge
       key = Plan.new floor.id, @turn, @player.at, known.object_id, known.revision, goal
       held = @plan
-      return held[1] if held && held[0] == key
+      return held[1].route if held && held[0] == key
 
-      route = if goal.nil?
-                exploring_route known
-              elsif goal == @player.at
-                Route::NOWHERE
-              else
-                Route.chosen known, sight, goal, Route.limit(floor)
-              end
+      chosen = if goal.nil?
+                 exploring_route known
+               elsif goal == @player.at
+                 Explore::NO_PLAN
+               else
+                 Explore::Plan.new Route.chosen(known, sight, goal, Route.limit(floor)), nil
+               end
 
-      @plan = {key, route}
-      route
+      @plan = {key, chosen}
+      chosen.route
     end
 
     # The way the last explore step planned on this floor, from the square it
@@ -1480,22 +1486,65 @@ module Roguelike
       held = @plan
       return unless held
 
-      key, route = held
-      route if key.goal.nil? && key.floor == floor.id
+      key, chosen = held
+      chosen.route if key.goal.nil? && key.floor == floor.id
     end
 
-    # The way an explore takes, planned around the goals `#circling` avoids.
-    private def exploring_route(known : Knowledge) : Array({Int32, Int32})
+    # Why the last explore step planned on this floor headed where it did.
+    # `nil` when `#explore_plan` is, or when that way goes nowhere.
+    #
+    # Like `#explore_plan`, it plans nothing and changes nothing.
+    def explore_reason : Explore::Reason?
+      held = @plan
+      return unless held
+
+      key, chosen = held
+      chosen.reason if key.goal.nil? && key.floor == floor.id && chosen.route.size >= 2
+    end
+
+    # The items on *spot* that make it the goal of an explore heading there
+    # for *reason*, as the character remembers them, in the order
+    # `Memory.shown` puts first. Empty for a reason that is not about items.
+    #
+    # A pile gives the gold and the items automatic pickup takes. An unread
+    # goal gives the items not yet read. It reads what the character
+    # remembers and changes nothing.
+    def explore_items(spot : {Int32, Int32}, reason : Explore::Reason) : Array(Memory::Item)
+      memory = knowledge[spot]
+      return [] of Memory::Item unless memory
+
+      found = case reason
+              when .pile?
+                settings = explore_settings
+                takes = settings.pickup? ? auto_takes : nil
+                memory.items.select do |remembered|
+                  item = remembered.item
+                  (settings.gold? && item.kind.gold?) || takes.try(&.call(item)) || false
+                end
+              when .unread?
+                memory.items.select { |remembered| Memory.unread? remembered }
+              else
+                [] of Memory::Item
+              end
+      first = Memory.shown found.map(&.item)
+      ahead, rest = found.partition(&.item.same?(first))
+      ahead + rest
+    end
+
+    # The way an explore takes, planned around the goals `#circling` avoids,
+    # and why.
+    private def exploring_route(known : Knowledge) : Explore::Plan
       avoid = circling.avoid
-      route = Explore.route known, @player.at, floor.columns, floor.rows, auto_takes, shining,
+      chosen = Explore.plan known, @player.at, floor.columns, floor.rows, auto_takes, shining,
         explore_settings, wells, avoid
+      route = chosen.route
 
       if route.size >= 2
         circling.chose route.last, route[1]
       elsif !avoid.empty?
         circling.give_up @player.at
       end
-      route
+      chosen
     end
 
     # Watches an explore step about to be planned, by `Explore::Circling`.
@@ -1545,7 +1594,7 @@ module Roguelike
 
     # The last way `#planned_route` worked out, and what from.
     @[JSON::Field(ignore: true)]
-    @plan : {Plan, Array({Int32, Int32})}? = nil
+    @plan : {Plan, Explore::Plan}? = nil
 
     # Walks toward the nearest square the character has not seen until
     # something is worth stopping for. Answers how far it went and what
