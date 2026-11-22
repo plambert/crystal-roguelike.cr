@@ -98,7 +98,7 @@ module Roguelike
     # It is hidden, so it is in neither the help nor the shell completions. It
     # is for whoever works on the game rather than for whoever plays it.
     flag debug_console : Bool = false, "--debug-console",
-      "Open a console with ` for commands that change the running game",
+      "Open a console with ~ for commands that change the running game",
       hidden: true
 
     # A development tool. It takes no terminal and plays no game a person

@@ -61,15 +61,16 @@ Spectator.describe "the debug console on the keyboard" do
   end
 
   describe "with --debug-console" do
-    it "opens on the backquote" do
+    it "opens on the tilde" do
       run = debugging
 
       run.press ConsolePane::TOGGLE
 
+      expect(ConsolePane::TOGGLE).to eq "~"
       expect(pane(run).showing?).to be_true
     end
 
-    it "closes on the backquote a second time" do
+    it "closes on the tilde a second time" do
       run = debugging
 
       run.press ConsolePane::TOGGLE
@@ -207,7 +208,7 @@ Spectator.describe "the debug console on the keyboard" do
       expect(Playing.open(Playing.field(30, 16), 80, 24).console).to be_nil
     end
 
-    it "leaves the backquote unbound" do
+    it "leaves the tilde unbound" do
       run = Playing.open Playing.field(30, 16), 80, 24
       before = run.text
 

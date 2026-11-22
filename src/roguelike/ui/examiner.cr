@@ -32,6 +32,17 @@ module Roguelike::Ui
     # Whether the keyboard cursor is on the map.
     getter? cursoring : Bool = false
 
+    # Whether hover mode is on. The pane then leaves out the items on a
+    # square the pointer points at, because the hover box shows them. A
+    # square the cursor points at keeps its list.
+    getter? hovering : Bool = false
+
+    def hovering=(hovering : Bool) : Bool
+      @hovering = hovering
+      @pane.items_away = hovering && !@cursoring
+      hovering
+    end
+
     def initialize(@map : MapPane, @pane : ExaminePane)
     end
 
@@ -136,6 +147,7 @@ module Roguelike::Ui
     # It puts the cursor where it belongs as well.
     def restate : Nil
       here = @spot
+      @pane.items_away = @hovering && !@cursoring
 
       if here
         @pane.show @map.floor, here[0], here[1], @lore, @map.sight,

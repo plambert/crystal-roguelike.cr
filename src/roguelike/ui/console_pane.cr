@@ -14,9 +14,9 @@ module Roguelike::Ui
   class ConsolePane < Widgets::Overlay
     # The key that closes the box. It is the key that opened it.
     #
-    # A backquote cannot be typed into the line while this is bound. Nothing a
+    # A tilde cannot be typed into the line while this is bound. Nothing a
     # command takes has one in it.
-    TOGGLE = "`"
+    TOGGLE = "~"
 
     # What is drawn in the top edge of the box.
     TITLE = " debug console "
