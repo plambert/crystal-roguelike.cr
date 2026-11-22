@@ -1017,11 +1017,23 @@ module Roguelike
       # Whether this walk goes to a square an explore saw an item on.
       getter? visiting : Bool = false
 
-      # Where the character has stood during an explore or a travel, with the
-      # `Knowledge#revision` and the count of pickups and drops at the time.
-      # Standing there again with both unchanged would choose the same way
-      # again, so the walk stops.
-      getter stood = Set({ {Int32, Int32}, Int32, Int32 }).new
+      # Where the character has stood during an explore or a travel, with
+      # what the next step was planned from. That is the
+      # `Knowledge#revision`, the count of pickups and drops, and the
+      # `Explore::Circling.sight` number. Standing there again with all three
+      # unchanged would choose the same way again, so the walk stops.
+      getter stood = Set({ {Int32, Int32}, Int32, Int32, Int64 }).new
+
+      # Looks after a step that *taken* spent in place.
+      #
+      # A drink, a meal or a drop of rot took the step instead of the plan.
+      # It changes what explore wants, such as a fountain once the skin is
+      # no longer full, so the squares stood on before it are forgotten. A
+      # swing at a door or a creature keeps them, so a door that will not
+      # give stops the walk.
+      def stayed(taken : Step) : Nil
+        @stood.clear if taken.drank? || taken.ate? || taken.dropped?
+      end
 
       # How far it has gone.
       property steps : Int32 = 0
@@ -1188,6 +1200,7 @@ module Roguelike
       # swings. A walk into the door the character is breaking down swings
       # at it the same way.
       if taken.stayed?
+        walk.stayed taken
         settle walk, before, along: false, doors: false
 
         return !walk.over?
@@ -1267,7 +1280,7 @@ module Roguelike
     # knows now. `nil` when there is no step to take, and the walk is given
     # the reason, and the character is told it, before this answers.
     private def planned_heading(walk : Walk) : Direction?
-      stood = {@player.at, knowledge.revision, @pack_moves}
+      stood = standing
       if walk.stood.includes?(stood) || walk.steps >= floor.columns * floor.rows
         walk.halt = Halt::Spent
       else
@@ -1284,6 +1297,13 @@ module Roguelike
 
       explain walk
       nil
+    end
+
+    # Where the character stands and what a planned step is planned from,
+    # as `Walk#stood` records it.
+    private def standing : { {Int32, Int32}, Int32, Int32, Int64 }
+      sight = Explore::Circling.sight Explore.unread(knowledge), wells, shining.nil?
+      {@player.at, knowledge.revision, @pack_moves, sight}
     end
 
     # Why an explore or a travel has no next step.

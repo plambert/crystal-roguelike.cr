@@ -293,6 +293,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   and load carries on the same way.
 * Explore no longer walks back to a pile you have already read when food on it rots into a
   putrid mass. A pile whose top item changed used to count as unread again.
+* Explore no longer stops with "You stop. You have been here already." when it has a reason to
+  turn back. Reading an item it walked over to read could send it back the way it came, and a
+  drink from the waterskin on the way counted as standing still. Both stopped the walk, and
+  pressing `X` again carried on.
 
 ## [0.7.0] - 2026-10-28
 

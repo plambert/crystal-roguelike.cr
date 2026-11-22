@@ -561,6 +561,28 @@ Spectator.describe "exploring and travelling" do
       expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_true
     end
 
+    # Two putrid masses lie too far off to read, one at each end of a lit
+    # corridor. The east one is nearer. The step that reads it turns the walk
+    # back west over squares it has stood on. Nothing new about the ground
+    # was learned, but the goal changed, so the walk goes on.
+    it "walks back over its own squares once a pile it went to read is read" do
+      lines = ["#" * 41, "#" + "." * 39 + "#", "#" * 41]
+      game = played lines, at: {20, 1}
+      east, west = {31, 1}, {5, 1}
+      [east, west].each { |spot| game.floor.drop *spot, Item.new(Roguelike::ItemKind::PutridMass) }
+      knowing_but(game) { |spot| spot == east || spot == west }
+      [east, west].each do |spot|
+        game.player.knowledge.see game.floor, *spot, regard: Roguelike::Regard::Kind
+      end
+      game.enroll
+
+      walk = game.explore
+
+      expect(walk.halt).to eq Halt::Explored
+      expect(game.player.at[0]).to be < 20
+      expect(Explore.unread game.knowledge).to be_empty
+    end
+
     it "does not count gold or unread items underfoot as explore goals" do
       floor = Floor.parse "here", ["#########", "#...#...#", "#########"]
       floor.drop 2, 1, Item.new(Roguelike::ItemKind::Gold, count: 5)
