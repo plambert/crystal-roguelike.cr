@@ -399,7 +399,7 @@ module Roguelike
       return if event.is_a?(TermBuf::Events::Timer) && event.nonce == @wavering
 
       @play.map.forget_frames
-      @play.focus_under event
+      @play.delivered event
     end
 
     # Records whether the window has the focus. The map pane is idle while

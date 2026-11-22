@@ -391,6 +391,29 @@ module Roguelike::Ui
     # The timer that takes the drawn route off. `nil` when none is armed.
     @fade_timer : UInt64? = nil
 
+    # How long the pointer rests on one map square before the hover box goes
+    # up. A pointer crossing the map rests on no square that long, so it
+    # draws nothing on the way.
+    HOVER_DWELL = 330.milliseconds
+
+    # Whether the items on the square under the pointer go in a box beside
+    # it rather than in the info panel. `` ` `` turns it on and off, and it
+    # lasts until the program ends.
+    getter? hovering : Bool = false
+
+    # The box that shows them.
+    getter hover_box : HoverBox
+
+    # The cell the pointer is resting on while hover mode waits to put the
+    # box up, or has put it up. `nil` when nothing is waiting.
+    @dwell_cell : {Int32, Int32}? = nil
+
+    # The turn the pointer came to rest on. A turn passing takes the box down.
+    @dwell_turn : Int32 = 0
+
+    # The timer that puts the hover box up. `nil` when none is armed.
+    @dwell_timer : UInt64? = nil
+
     # A right button held down on the map: the cell it went down on and the
     # camera at that moment. *moved* is true once the pointer has gone more
     # than a cell from where it went down, which is what makes the press a
@@ -568,12 +591,14 @@ module Roguelike::Ui
       @history.accents = ->BlessingWords.accents(String)
       @placard = Placard.new
       @tooltip = Tooltip.new
+      @hover_box = HoverBox.new
       @context_menu = Widgets::PointMenu.new
       @context_menu.disabled_style = Palette.dimmed
       @context_menu.on_choose = ->(index : Int32) { chose_context index; nil }
       @context_menu.on_dismiss = -> { dismissed_context; nil }
       watch_the_log
       build_info
+      @hover_box.held_back = -> { modal? }
 
       if console
         pane = ConsolePane.new @game
@@ -998,7 +1023,7 @@ module Roguelike::Ui
       @game.log.add "The game could not be saved: #{error.message}"
     end
 
-    # Puts the debug console up, or takes it down. `` ` `` does this.
+    # Puts the debug console up, or takes it down. `~` does this.
     #
     # Nothing happens in a run opened without the console, because the key is
     # not bound in one.
@@ -3357,6 +3382,7 @@ module Roguelike::Ui
       @screen.rule.aside = @doing
       @map.clear_marks
       @map.clear_highlights
+      drop_stale_hover
 
       # A turn passing takes the map's pointer off. The route was worked out
       # over a floor that has since moved.
@@ -3581,6 +3607,9 @@ module Roguelike::Ui
     def reported(report : TermBuf::Events::Mouse) : String?
       x = report.x
       y = report.y
+
+      # A button going down takes the hover box down, and so does a drag.
+      drop_hover if report.action.press? || @drag
       return pointed(x, y, Play.click?(report)) unless dragging? report
 
       if report.action.press?
@@ -3694,6 +3723,7 @@ module Roguelike::Ui
         @detailed = nil
         @nearby.unmark
         spotlight nil
+        drop_hover
         return @pointer.away
       end
 
@@ -3717,7 +3747,10 @@ module Roguelike::Ui
 
       if held && app
         @tooltip.show app, held[0], held[1]
-        return @pointer.away if found
+        if found
+          drop_hover
+          return @pointer.away
+        end
       else
         @tooltip.hide
       end
@@ -3725,6 +3758,7 @@ module Roguelike::Ui
       if @examiner.cursoring? && !click
         # The shape still follows the pointer. The pointer is over the map,
         # whatever the readout is pointing at.
+        drop_hover
         return @map.cell_at_screen(x, y) ? @pointer.over(x, y) : pointer_away
       end
 
@@ -3732,7 +3766,9 @@ module Roguelike::Ui
 
       walk_toward @examiner.spot if click
 
-      @pointer.over x, y
+      shape = @pointer.over x, y
+      rest_on x, y
+      shape
     end
 
     # Lights *spot* on the map, and blinks it, for the Seen row under the
@@ -4083,7 +4119,82 @@ module Roguelike::Ui
     # pointing at is a box in the way.
     def pointer_away : String?
       @tooltip.hide
+      drop_hover
       @pointer.away
+    end
+
+    # Turns hover mode on or off. `` ` `` does this.
+    #
+    # Either way the box comes down. With hover mode on, the next rest of the
+    # pointer on a square puts it up.
+    def toggle_hover : Nil
+      @hovering = !@hovering
+      drop_hover
+      @examiner.hovering = @hovering
+    end
+
+    # Takes the hover box down and stops the wait for it. Nothing puts it up
+    # again until the pointer comes to rest on a square.
+    def drop_hover : Nil
+      timer = @dwell_timer
+      @dwell_timer = nil
+      @app.try &.cancel(timer) if timer
+      @dwell_cell = nil
+      @hover_box.hide
+    end
+
+    # Starts the wait for the hover box on the cell *x*, *y* of the buffer,
+    # which is the square under the pointer.
+    #
+    # A report from the cell already waited on changes nothing. A report from
+    # any other cell takes the box down and starts the wait again. An
+    # application with no clock puts the box up at once.
+    private def rest_on(x : Int32, y : Int32) : Nil
+      return unless @hovering
+      return if @dwell_cell == {x, y}
+
+      drop_hover
+      return if @examiner.cursoring? || @drag || modal?
+
+      app = @app
+      return unless app
+
+      @dwell_cell = {x, y}
+      @dwell_turn = @game.turn
+      @dwell_timer = app.after(HOVER_DWELL) { dwelt }
+      dwelt unless @dwell_timer
+    end
+
+    # Puts the hover box up once the pointer has rested long enough.
+    #
+    # It checks again that nothing has changed: the pointer still on the cell,
+    # the readout still on its square, no turn gone by and no box holding the
+    # screen.
+    private def dwelt : Nil
+      @dwell_timer = nil
+      cell = @dwell_cell
+      app = @app
+      return unless cell && app && @hovering
+      return if @examiner.cursoring? || @drag || modal?
+      return unless @dwell_turn == @game.turn && @pointer.spot == cell
+      return unless @examiner.spot && @map.cell_at_screen(*cell) == @examiner.spot
+
+      @hover_box.show_at app, @screen.map, cell, @examine.items
+    end
+
+    # Takes the hover box down once a turn has passed since the pointer came
+    # to rest. What is on the square may have changed.
+    private def drop_stale_hover : Nil
+      drop_hover if @dwell_cell && @dwell_turn != @game.turn
+    end
+
+    # Takes in an event before the widgets see it.
+    #
+    # A key takes the hover box down, whatever the key goes on to do. A
+    # button pressed on the mouse moves the focus.
+    def delivered(event : TermBuf::Event) : Nil
+      drop_hover if event.is_a?(TermBuf::Events::Key)
+      focus_under event
     end
 
     # Answers the layout to a screen of *columns* by *rows*.
@@ -4378,9 +4489,11 @@ module Roguelike::Ui
     # Records whether the terminal is reporting the mouse.
     #
     # Nothing writes it on the screen now. The status row it was on is gone,
-    # and `M` says what it did in the log.
+    # and `M` says what it did in the log. A mouse turned off takes the hover
+    # box down.
     def mousing=(wanted : Bool) : Nil
       @mousing = wanted
+      drop_hover unless wanted
     end
 
     # :ditto:

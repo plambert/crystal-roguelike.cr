@@ -1,0 +1,24 @@
+ —              D1 Lv 1 │###################
+ HP        40/12        │#@................#
+ XP        0/20         │#...).).╭──────────────╮
+ food                6h │#.......│ Here         │
+ water 20/20         7h │########│ a bow        │
+ ▼ Scores               │        │ 12 arrows    │
+ AC   Gold         Turn │        ╰──────────────╯
+ 0    0               0 │
+ St Dx Cn In Sl         │
+ 10 10 10 10 10         │
+ Walk 111%     0.84 dps │
+ ▶ Equipment          0 │
+ ▶ Pack               0 │
+ ▼ Here                 │
+   stone floor          │
+ ▼ Seen                 │
+   a dagger             │
+   a bow                │
+   12 arrows            │
+   a spear              │───────────────────────────────────────────────────────
+ ▼ Look                 │
+ 6, 2                   │
+ stone floor            │
+ worn flagstones        │
