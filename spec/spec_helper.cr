@@ -3,6 +3,7 @@ require "spectator"
 require "../src/crystal-roguelike"
 require "./support/fixture"
 require "./support/headless"
+require "./support/parallel"
 require "./support/playing"
 require "./support/sustenance"
 

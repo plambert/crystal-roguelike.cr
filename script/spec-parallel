@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# Runs the spec suite as several processes. See script/spec-parallel.cr.
+
+exec "${CRYSTAL:-crystal}" run --no-debug "$(dirname "$0")/spec-parallel.cr" -- "$@"
