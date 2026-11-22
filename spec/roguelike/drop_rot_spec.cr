@@ -174,6 +174,15 @@ Spectator.describe "dropping rot when safe" do
       expect(walk.halt).not_to eq Roguelike::Halt::Told
     end
 
+    it "walks on from the square it dropped on" do
+      game = game_on CORRIDOR, [rotten, rotten(ItemKind::Apple)]
+
+      walk = game.explore
+
+      expect(game.player.food_bag.empty?).to be_true
+      expect(walk.halt).not_to eq Roguelike::Halt::Spent
+    end
+
     it "walks without dropping with the option off" do
       game = game_on CORRIDOR, [rotten]
       game.perform Action::Configure.new(Settings.parse "drop_rot=off")

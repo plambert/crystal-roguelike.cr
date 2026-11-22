@@ -287,16 +287,35 @@ Spectator.describe "hunger and thirst" do
   describe "exploring" do
     it "drinks before thirst sets in and walks on" do
       game = bare MEETING
-      sustenance(game).water = 2
+      sustenance(game).water = 5
+
+      # Thirst starts above the drink trigger. One unit brings it down to the
+      # trigger, so the walk drinks a second unit a step or two later.
       sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
 
       went = game.explore
 
       expect(game.log.lines).not_to contain "You are thirsty."
-      expect(game.log.lines).to contain "You drink from your waterskin."
-      expect(went.halt).not_to eq Halt::Thirsty
-      expect(went.halt).not_to eq Halt::Told
-      expect(sustenance(game).water).to eq 1
+      expect(game.log.lines.any? &.starts_with?("You drink from your waterskin.")).to be_true
+      expect(went.steps).to be > 0
+      expect(went.halt).to eq Halt::Explored
+      expect(sustenance(game).water).to eq 3
+    end
+
+    it "walks on from the square it drank on" do
+      game = bare MEETING
+      sustenance(game).water = 5
+      sustenance(game).thirst = Sustenance::Tuning::THIRST_FIRST - 1
+      start = game.player.at
+
+      walk = game.exploring
+      game.stride walk
+      expect(game.player.at).to eq start
+      expect(sustenance(game).water).to eq 4
+
+      expect(game.stride walk).to be_true
+      expect(game.player.at).not_to eq start
+      expect(walk.halt).to be_nil
     end
 
     it "leaves the skin alone while a unit would not pay off whole" do
