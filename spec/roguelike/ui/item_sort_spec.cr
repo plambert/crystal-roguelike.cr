@@ -197,10 +197,20 @@ Spectator.describe "the sort key in lists of items" do
     it "sorts a list of targets" do
       run = modern stocked([] of Item, floor: mixed)
       run.press "g", "r"
-      expect(run.menu.entries.map &.text).to eq %w[name class]
-      run.press "s", "f"
+      expect(run.menu.entries.map &.text).to eq ["as found", "name", "class"]
+      run.press "s", "s", "f"
 
       expect(headers run).to eq %w[Weapons Armor Potions Scrolls]
+    end
+
+    it "puts a list of targets back as found" do
+      run = modern stocked([] of Item, floor: mixed)
+      run.press "g"
+      found = run.menu.entries.map &.text
+
+      run.press "r", "s", "s", "f", "r", "w", "w", "f"
+      expect(headers run).to be_empty
+      expect(run.menu.entries.map &.text).to eq found
     end
   end
 

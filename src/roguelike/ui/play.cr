@@ -2236,7 +2236,7 @@ module Roguelike::Ui
         take_row row
         refresh
       end
-      offer_sort(PICK_UP, ItemSort.floor(letters: true)) { choose_from rows }
+      offer_sort(PICK_UP, ItemSort.floor) { choose_from rows }
     end
 
     # The title of the pick-up menu, and the name its order is kept under.

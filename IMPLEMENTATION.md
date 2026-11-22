@@ -7568,7 +7568,7 @@ The modern scheme uses `r`. The traditional scheme uses `=`, because letters pic
 
 * `Ui::ItemSort` holds the orders. Members are only added at the end, so `Letter` is last in the
   enum and first in the picker.
-* The modern pick-up list shows no letters, so it offers name and class only.
+* A modern target list shows no letters, so its picker calls letter order "as found".
 * `Play#choose_by_class` covers every traditional carried list. `#choose_from` covers pick-up.
   `#show_inventory_values` and `#show_modern_targets` cover the modern ones.
 * The food bag keeps its pages. The picker turns to the page picked.

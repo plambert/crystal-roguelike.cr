@@ -19,14 +19,16 @@ module Roguelike::Ui
       [Letter, Name, Weight, Class]
     end
 
-    # The orders the pick-up list offers. Letter order comes first only when
-    # the rows show their *letters*.
-    def self.floor(letters : Bool) : Array(ItemSort)
-      letters ? [Letter, Name, Class] : [Name, Class]
+    # The orders the pick-up list offers.
+    def self.floor : Array(ItemSort)
+      [Letter, Name, Class]
     end
 
-    # What the picker calls this order.
-    def label : String
+    # What the picker calls this order. A list whose rows show no *letters*
+    # calls letter order "as found".
+    def label(letters : Bool = true) : String
+      return "as found" if letter? && !letters
+
       to_s.downcase
     end
   end
@@ -92,11 +94,12 @@ module Roguelike::Ui
     end
 
     # Binds the sort key on the item list that is up. The key puts up the
-    # orders in *orders*. *again* puts the list back up afterward, with the
-    # name of the page that was showing.
-    private def offer_sort(list : String, orders : Array(ItemSort),
+    # orders in *orders*, named for a list that shows *letters* or not.
+    # *again* puts the list back up afterward, with the name of the page that
+    # was showing.
+    private def offer_sort(list : String, orders : Array(ItemSort), letters : Bool = true,
                            &again : String? -> Nil) : Nil
-      labels = orders.map &.label
+      labels = orders.map &.label(letters)
       offer_sort_key do
         page = @menu.page_name
         current = orders.index(@sorts[list]? || ItemSort::Letter)

@@ -474,7 +474,7 @@ module Roguelike::Ui
       @selection_menu.show application, "#{command_label(command)} — choose a target", rows
       return unless list
 
-      offer_sort(list, orders) { show_modern_targets command, targets, reason }
+      offer_sort(list, orders, letters: false) { show_modern_targets command, targets, reason }
     end
 
     # The name the order of *command*'s list of items is kept under, and the
@@ -482,7 +482,7 @@ module Roguelike::Ui
     # sort.
     private def target_sort(command : Command) : {String?, Array(ItemSort)}
       case command
-      when .pick_up? then {PICK_UP, ItemSort.floor(letters: false)}
+      when .pick_up? then {PICK_UP, ItemSort.floor}
       when .equip?, .remove?, .drop?, .drink?, .read?, .zap?, .throw?
         {command_label(command), ItemSort.carried}
       else
