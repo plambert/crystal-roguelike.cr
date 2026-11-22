@@ -7552,6 +7552,62 @@ fixed to what `HoverBox.size` worked out, so the layout leaves it where `.place`
 Nothing here touches the game. No action, save field or bot protocol changes, and the golden
 fixtures do not move.
 
+## The item search
+
+`/` opens a panel listing every item the character remembers on the current floor. Both control
+schemes bind it, and the modern catalog has it as Find an item, under View. `Command::ItemSearch`
+is appended to the enum.
+
+### What it lists
+
+* `Ui::ItemSearch.entries` reads `Knowledge#each_item`, one entry per `Memory::Item`. Nothing reads
+  the floor.
+* Each name is `Game#name` at the memory's regard, the same call the `Look` list and the hover box
+  make.
+* One `Descent.toward` flood from the character, over known ground with doors, gives every
+  distance. Entries sort by steps, then name, then square. An item with no known way sorts last.
+* The age is `Game#turn` less the memory's turn, at `Sustenance::SECONDS_PER_TURN` a turn.
+* The filter is a case-insensitive substring of the shown name. An empty query matches all.
+
+### The panel
+
+* `Ui::ItemSearchPane` is a modal overlay against one edge of the screen, 45% of the width between
+  48 and 72 columns, nearly full height. No backdrop, so the map beside it stays readable.
+* A `Field` subclass reports each change. The overlay's own keymap takes `Up`, `Down`, the page
+  keys, `Tab` and `Escape` before the field sees them. Printable keys reach the field.
+* A click on a row chooses it. A click on the Map button, `Tab` or `Enter` goes to the map.
+* Choosing an item points the map at it with `aim_at` and `Game#route_to`, which is how the
+  travel preview draws its way on `offered`. Nothing walks.
+* The camera slides sideways until the item is two columns clear of the panel. When the edge of
+  the floor stops it, the panel flips to the other edge.
+* Closing puts the camera back where it was, unless a turn has passed.
+
+### The map
+
+* `Tab` closes the panel and puts `Ui::ItemSearchBar` along the top of the map pane. The bar is a
+  non-modal overlay, so keys and the pointer still reach the game.
+* `MapPane#found` holds every matching square, drawn in `Palette.spotlit`, the Seen list's amber.
+  The glyph stays. Ground on spotlight is above 10:1 in the Default theme.
+* Hover mode is turned on if it was off, and turned off again when the map mode ends.
+* `Play#step`, `#modern_move`, `#modern_walk` and `#view_move` pan the camera through
+  `#pan_search` while map mode is on, four columns or two rows a key. A waiting command, an aim or
+  the examine cursor keeps the movement keys.
+* `Play#tab`, `#tab_back` and `#escape` go back to the panel first. So do `/` and a click on the
+  bar.
+* Other keys work as usual. A turn passing works the entries out again. A new floor or the end of
+  the run closes the search.
+
+### Piles
+
+`ExaminePane#searching` and `NearbyPane#searching` hold the query. While it is set, the `Look`
+list, the hover box and the `Here` section list matching items first, each part in its own order.
+
+### Replay and streams
+
+Nothing here touches the game. No turn, message, RNG draw, action, save field or bot protocol
+change, and the golden fixtures do not move. A spec checks the game's fingerprint across a
+search.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

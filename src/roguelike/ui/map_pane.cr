@@ -118,6 +118,10 @@ module Roguelike::Ui
     # which.
     getter highlights : Set({Int32, Int32}) = Set({Int32, Int32}).new
 
+    # Squares holding an item the search matches, drawn as
+    # `Palette.spotlit`. The glyph stays, so the item still shows what it is.
+    getter found : Set({Int32, Int32}) = Set({Int32, Int32}).new
+
     # Squares on the way explore is heading, drawn on
     # `Palette.explore_route`. A square also in `#highlights` draws as
     # offered instead.
@@ -186,6 +190,7 @@ module Roguelike::Ui
         style = echoed x, y, look, style
         style = style.bg Palette.explore_route if @trail.includes?({x, y})
         style = style.bg Palette.offered if @highlights.includes?({x, y})
+        style = Palette.spotlit if @found.includes?({x, y})
 
         aimed = @flight[{x, y}]?
         style = style.bg aimed if aimed
@@ -598,6 +603,22 @@ module Roguelike::Ui
     # Stops offering anything.
     def clear_highlights : Nil
       @highlights.clear
+    end
+
+    # Lights *spots* as holding what the search matches, in place of what
+    # was lit before.
+    def find(spots : Enumerable({Int32, Int32})) : Nil
+      @found.clear
+      spots.each { |spot| @found << spot }
+      forget_frames
+    end
+
+    # Lights nothing for the search.
+    def clear_found : Nil
+      return if @found.empty?
+
+      @found.clear
+      forget_frames
     end
 
     # Puts *x*, *y* on the way explore is heading.

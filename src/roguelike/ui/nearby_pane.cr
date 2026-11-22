@@ -64,6 +64,10 @@ module Roguelike::Ui
     # `Play` answers it the way it answers a click on that square of the map.
     property on_press : Proc({Int32, Int32}, Nil)? = nil
 
+    # What the item search is looking for. Items under the character whose
+    # names match it are listed first. Empty while no search is open.
+    property searching : String = ""
+
     # How many rows "Seen" takes at most.
     #
     # The panel scrolls, so this only caps a very long list. Anything past it
@@ -121,7 +125,13 @@ module Roguelike::Ui
       rows << row(fitting.label, Palette[fitting].style, Detail.about(fitting)) if fitting
 
       # The character stands on these, so they have made all of them out.
-      floor.items(spot[0], spot[1]).each do |item|
+      # What the item search matches comes first.
+      items = floor.items(spot[0], spot[1])
+      unless @searching.strip.empty?
+        hits, misses = items.partition { |item| ItemSearch.matches? game.name(item), @searching }
+        items = hits + misses
+      end
+      items.each do |item|
         rows << row(game.name(item), Palette[item].style, Detail.about(game, item))
       end
 

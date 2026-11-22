@@ -10,6 +10,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* `/` opens a search panel listing every item you remember on this floor, nearest walk first,
+  with how far away each is and how long ago you saw it. Items are named only as well as you made
+  them out. Typing narrows the list, and choosing an item shows the way to it on the map without
+  walking. Tab, Enter or the panel's Map button hides the panel and lights every match on the map,
+  where the movement keys pan the view and hover mode is on so pointing at a match shows what lies
+  there. Tab, Escape or a click on the bar brings the list back. While the search is open, matching
+  items come first in a pile's lists. It is in the modern action catalog as Find an item.
 * The backquote turns hover mode on and off. With it on, the items on the map square under the
   pointer show in a box beside the pointer instead of in the info panel. The box waits until the
   pointer has rested on a square for a third of a second, so moving the mouse across the map

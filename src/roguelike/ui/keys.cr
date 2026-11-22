@@ -307,6 +307,8 @@ module Roguelike::Ui
     #
     # `HOVER` moves the items on the square under the pointer out of the info
     # panel and into a box beside the pointer, and back.
+    #
+    # `ItemSearchPane::KEY` opens the search for remembered items.
     def self.map_panel(play : Play) : Widgets::Bindings
       own = Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("Shift+Left"), "scroll the map left a column",
@@ -318,6 +320,8 @@ module Roguelike::Ui
           ->(_context : Widgets::Context) { play.enter; nil }
         map.bind TermBuf::Key.parse(HOVER), "show what is under the pointer beside it",
           ->(_context : Widgets::Context) { play.toggle_hover; nil }
+        map.bind TermBuf::Key.parse(ItemSearchPane::KEY), "find an item you remember on this floor",
+          ->(_context : Widgets::Context) { play.open_search; nil }
       end
 
       scrolling(play, "the map", "the top of the floor", "the bottom of the floor").merge own
@@ -524,6 +528,19 @@ module Roguelike::Ui
       Section.new "in the food bag", Widgets::Bindings.new, notes
     end
 
+    # The keys the item search answers while it is open. The panel binds
+    # them, so these are notes for the help screen.
+    def self.in_the_search : Section
+      notes = [
+        {"letters", "narrow the list to names holding what you type"},
+        {"Up Down PageUp PageDown", "choose an item and show the way to it"},
+        {"Tab Enter", "light every match on the map and pan it, and back"},
+        {"Escape", "close the search, or go back to the list from the map"},
+      ]
+
+      Section.new "in the item search", Widgets::Bindings.new, notes
+    end
+
     # The message history.
     def self.reading(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
@@ -613,6 +630,7 @@ module Roguelike::Ui
         Section.new("actions", modern_actions(play)),
         Section.new("time", modern_timing(play)),
         Section.new("doors and stairs", modern_stairs(play)),
+        Keys.in_the_search,
       ]
       sections << Section.new("debug", Keys.debugging(play)) if play.console
       sections

@@ -71,6 +71,10 @@ module Roguelike::Ui
       away
     end
 
+    # What the item search is looking for. Items whose names match it are
+    # listed first. Empty while no search is open.
+    property searching : String = ""
+
     # The selected profile controls the empty readout hint.
     getter control_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
 
@@ -250,7 +254,8 @@ module Roguelike::Ui
       @items = if pile.empty?
                  [] of String
                elsif lore
-                 pile.map { |item, regard| lore.name(item, regard: regard).as(String) }
+                 named = pile.map { |item, regard| lore.name(item, regard: regard).as(String) }
+                 ItemSearch.matches_first named, @searching
                else
                  ["#{pile.size} things"]
                end
