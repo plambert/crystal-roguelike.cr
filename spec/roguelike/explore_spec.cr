@@ -561,15 +561,17 @@ Spectator.describe "exploring and travelling" do
       expect(Explore.going? knowledge, {2, 1}, floor.columns, floor.rows).to be_true
     end
 
-    # Two putrid masses lie too far off to read, one at each end of a lit
-    # corridor. The east one is nearer. The step that reads it turns the walk
-    # back west over squares it has stood on. Nothing new about the ground
-    # was learned, but the goal changed, so the walk goes on.
+    # Two maces lie too far off to read, one at each end of a lit corridor.
+    # The east one is nearer. The step that reads it turns the walk back west
+    # over squares it has stood on. Nothing new about the ground was
+    # learned, but the goal changed, so the walk goes on. Items coming into
+    # sight do not stop this walk, and automatic pickup takes no mace.
     it "walks back over its own squares once a pile it went to read is read" do
       lines = ["#" * 41, "#" + "." * 39 + "#", "#" * 41]
       game = played lines, at: {20, 1}
+      game.perform Action::Configure.new(Roguelike::Explore::Settings.parse "stop_item=off")
       east, west = {31, 1}, {5, 1}
-      [east, west].each { |spot| game.floor.drop *spot, Item.new(Roguelike::ItemKind::PutridMass) }
+      [east, west].each { |spot| game.floor.drop *spot, Item.new(Roguelike::ItemKind::Mace) }
       knowing_but(game) { |spot| spot == east || spot == west }
       [east, west].each do |spot|
         game.player.knowledge.see game.floor, *spot, regard: Roguelike::Regard::Kind
