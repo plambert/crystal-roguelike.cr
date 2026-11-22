@@ -278,6 +278,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   back to the same places." Explore is offered again once you move or see something new. Bots
   get the halt as `circling`. Your save keeps where explore stands in this, so a run you save
   and load carries on the same way.
+* The detail box beside a menu row goes away when the menu closes, however it closes. Before,
+  leaving the modern pick-up list with Escape left the box for the last row on the screen until
+  the pointer moved.
 
 ## [0.7.0] - 2026-10-28
 
