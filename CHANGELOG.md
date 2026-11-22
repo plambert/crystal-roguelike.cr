@@ -10,6 +10,11 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* A key in a list of items puts up a menu of orders: `r` in the modern scheme and `=` in the
+  traditional one. The inventory, drop and other lists of what you carry sort by letter, name,
+  weight or class, and the pick-up list by letter, name or class. Letter order is the default.
+  Sorted by class, a heading names each class, and the highlight steps over the headings. In the
+  food bag the key picks one of its six sorts. Each list keeps its order until you quit.
 * While `X` explores, the line under the map says what it is doing beside the floor, such as
   "Floor 7 - Walking to fountain" or "Picking up 3 arrows". Items are named as well as you have
   made them out. Filling the waterskin pauses a moment at the start so you can read it. On a narrow

@@ -1145,12 +1145,21 @@ module Roguelike::Ui
     # *listings*.
     #
     # *extra* is a row that ends the first page and the food page.
+    #
+    # The rows come in the order the sort key last picked for *title*. Sorted
+    # by class, the first page has a heading before each class.
     private def choose_by_class(title : String, listings : Array(Listing),
                                 about : Hash(Char, Listing), every : Bool = false,
                                 page : String? = nil, notes : Array(String?)? = nil,
                                 extra : Widgets::Menu::Entry? = nil,
                                 &chosen : Char? -> Nil) : Nil
-      pages = class_pages listings, every, notes
+      order = sort_order title, listings.map(&.item)
+      sorted = order.map { |index| listings[index] }
+      pages = class_pages sorted, every, notes.try { |found| order.map { |index| found[index]? } }
+      unless sorted.empty?
+        headed = with_headers(title, pages[0][1], sorted.map(&.item)) { |text| Widgets::Menu.header text }
+        pages[0] = {EVERYTHING, headed}
+      end
       if extra
         pages = pages.map do |(name, rows)|
           next {name, rows} unless name == EVERYTHING || name == "food"
@@ -1161,15 +1170,18 @@ module Roguelike::Ui
       end
       if pages.size < 3
         choose title, pages[0][1], about, &chosen
-        return
+      else
+        wanted = page || @left_on[title]?
+        at = pages.index { |found| found[0] == wanted } || 0
+
+        choose(title, pages, at, about) do |key|
+          @left_on[title] = @menu.page_name || EVERYTHING
+          chosen.call key
+        end
       end
 
-      wanted = page || @left_on[title]?
-      at = pages.index { |found| found[0] == wanted } || 0
-
-      choose(title, pages, at, about) do |key|
-        @left_on[title] = @menu.page_name || EVERYTHING
-        chosen.call key
+      offer_sort(title, ItemSort.carried) do |showing|
+        choose_by_class title, listings, about, every, showing || page, notes, extra, &chosen
       end
     end
 
@@ -2230,8 +2242,11 @@ module Roguelike::Ui
 
         entry.copy_with text: entry.text + eat_note(row.open, row.cannibal), enabled: row.open
       end
+      order = sort_order PICK_UP, rows.map(&.item)
+      entries = with_headers(PICK_UP, order.map { |index| entries[index] },
+        order.map { |index| rows[index].item }) { |text| Widgets::Menu.header text }
 
-      choose("Pick up what?", entries, about(rows.map &.item)) do |key|
+      choose(PICK_UP, entries, about(rows.map &.item)) do |key|
         next unless key
 
         row = rows[Widgets::Menu.index key]?
@@ -2240,7 +2255,11 @@ module Roguelike::Ui
         take_row row
         refresh
       end
+      offer_sort(PICK_UP, ItemSort.floor) { choose_from rows }
     end
+
+    # The title of the pick-up menu, and the name its order is kept under.
+    PICK_UP = "Pick up what?"
 
     # Does what choosing *row* in the pick-up menu does.
     private def take_row(row : Game::PickUpRow) : Nil
@@ -2291,7 +2310,7 @@ module Roguelike::Ui
     def show_inventory(page : String? = nil) : Nil
       found = @game.player.inventory.entries
 
-      choose_by_class("Inventory", listings(found), about(found),
+      choose_by_class(INVENTORY, listings(found), about(found),
         every: true, page: page, extra: food_bag_entry) do |key|
         back = @menu.page_name || EVERYTHING
         if key == FOOD_BAG_KEY

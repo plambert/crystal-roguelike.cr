@@ -9,7 +9,8 @@ module TermBuf::Widgets
     record Entry(U), value : U, text : String, enabled : Bool = true,
       mark : Char? = nil, mark_style : Style? = nil,
       tail : Char? = nil, tail_style : Style? = nil,
-      shortcut : Char? = nil, disabled_reason : String? = nil
+      shortcut : Char? = nil, disabled_reason : String? = nil,
+      header : Bool = false
 
     # The menu that draws and navigates the rows.
     getter menu : Menu
@@ -137,9 +138,9 @@ module TermBuf::Widgets
               mark : Char? = nil, mark_style : Style? = nil,
               tail : Char? = nil, tail_style : Style? = nil,
               shortcut : Char? = nil,
-              disabled_reason : String? = nil) : Entry(T)
+              disabled_reason : String? = nil, header : Bool = false) : Entry(T)
       Entry(T).new value, text, enabled, mark, mark_style, tail, tail_style,
-        shortcut, disabled_reason
+        shortcut, disabled_reason, header
     end
 
     private def value_at(index : Int32?) : T?
@@ -151,7 +152,7 @@ module TermBuf::Widgets
     private def menu_entry(entry : Entry(T)) : Menu::Entry
       Menu::Entry.new '\0', entry.text, entry.enabled,
         entry.mark, entry.mark_style, entry.tail, entry.tail_style,
-        entry.shortcut, entry.disabled_reason
+        entry.shortcut, entry.disabled_reason, entry.header
     end
   end
 end
