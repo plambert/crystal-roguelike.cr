@@ -283,8 +283,7 @@ module Roguelike::Ui
     # reach the panels while one is up.
     def self.panels(play : Play) : Widgets::Bindings
       Widgets::Bindings.build do |map|
-        map.bind TermBuf::Key.parse("Tab"),
-          "focus the next panel, aim at the next monster, or go back to the item search",
+        map.bind TermBuf::Key.parse("Tab"), "next panel, next monster, or back to the search",
           ->(_context : Widgets::Context) { play.tab; nil }
         map.bind TermBuf::Key.parse("Shift+Tab"), "focus the previous panel",
           ->(_context : Widgets::Context) { play.tab_back; nil }
