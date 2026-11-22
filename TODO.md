@@ -55,6 +55,14 @@ medium or large, and the character cannot wear armor of another size. Goblins we
 the oil lets the character use armor that goblins drop. The oil follows the naming rule in the
 potions, flasks and oils item below.
 
+### A small shield can be wielded
+
+The character can wield a small shield. Only shields can be worn in a size other than the
+character's. A small shield has a penalty of 1 to armor class for being the wrong size. The penalty
+shows in the shield's tooltip, so an ordinary small shield reads "armor 2 - 1 (wrong size)", or
+something similar. Today armor can be worn only by a wearer of its own size, so a small shield
+cannot be worn at all.
+
 ## Considered
 
 ### Sorting the pack

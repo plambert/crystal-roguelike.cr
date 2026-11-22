@@ -80,9 +80,19 @@ module Roguelike::Ui
       false
     end
 
-    # Whether it is up.
+    # Whether it is up and hanging off something on the screen.
     def showing? : Bool
-      open?
+      open? && hanging?
+    end
+
+    # Whether it is left out of the layout and the drawing.
+    #
+    # A box whose row has gone counts as hidden from that moment, whatever took
+    # the row away. A menu closed by a choice, by Escape or by a modal box
+    # taking the screen takes its rows with it, and the box goes in the same
+    # frame. The next redraw takes it down for good.
+    def hidden? : Bool
+      super || (open? && !hanging?)
     end
 
     # Puts *lines* up on *app*, hanging off *beside*.
@@ -155,14 +165,24 @@ module Roguelike::Ui
     # Whether what it hangs off is still on the screen.
     #
     # The sidebar builds its rows again on every redraw, and a box left up
-    # across one hangs off a row that is gone. The layout would put it
-    # against the screen instead, in the top left corner.
+    # across one hangs off a row that is gone. A closed menu stays in the tree
+    # with only the menu itself hidden, so its list is gone from the screen
+    # while the list's own flag says it is not. Each widget up to the root is
+    # looked at for that reason.
     def hanging? : Bool
       app = @shown_on
       target = @target
       return false unless app && target
+      return false unless app.tree.holds? target
 
-      !target.hidden? && app.tree.holds?(target)
+      node = target
+      while node
+        return false if node.hidden?
+
+        node = node.parent
+      end
+
+      true
     end
 
     # Takes it down.
