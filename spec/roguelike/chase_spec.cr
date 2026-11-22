@@ -471,7 +471,7 @@ Spectator.describe "being chased" do
       wait game, 2
       found = knowledge game, creature
 
-      expect(found[2, 1].try &.item).not_to be_nil
+      expect(found[2, 1].try &.shown).not_to be_nil
     end
 
     # Reaching out in the dark says there is a wall there. It does not say
@@ -483,7 +483,7 @@ Spectator.describe "being chased" do
       found = knowledge game, creature
 
       expect(found.seen? 1, 1).to be_true
-      expect(found[1, 1].try &.item).to be_nil
+      expect(found[1, 1].try &.shown).to be_nil
     end
 
     it "knows what is lying on a square it can see" do
@@ -493,7 +493,7 @@ Spectator.describe "being chased" do
       wait game, 2
       found = knowledge game, creature
 
-      expect(found[1, 1].try &.item).not_to be_nil
+      expect(found[1, 1].try &.shown).not_to be_nil
     end
   end
 

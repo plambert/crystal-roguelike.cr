@@ -449,7 +449,7 @@ module Roguelike
           here = spot square
           squares << here
           frontier ||= edge[square]
-          lying = @knowledge[here].try &.item if @flags[square] & Knowledge::Grid::ITEM != 0
+          lying = @knowledge[here].try &.shown if @flags[square] & Knowledge::Grid::ITEM != 0
           items << Chamber::Lying.new(here, lying) if lying
 
           around square do |next_to|

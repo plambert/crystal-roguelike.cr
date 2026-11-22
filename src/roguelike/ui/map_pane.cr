@@ -506,7 +506,7 @@ module Roguelike::Ui
       creature = floor.monster x, y
       return Palette[creature] if creature
 
-      item = floor.items(x, y).last?
+      item = Memory.shown floor.items(x, y)
       return Palette[item] if item
 
       fitting = floor.fixture x, y
@@ -525,7 +525,7 @@ module Roguelike::Ui
       # A creature is not remembered here. Phase 19 gives `Memory` one, so
       # that a monster last seen somewhere stays drawn there until the
       # character looks again.
-      item = memory.item
+      item = memory.shown
       fitting = memory.fixture
 
       look = if item

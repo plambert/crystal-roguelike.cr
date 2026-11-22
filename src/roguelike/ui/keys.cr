@@ -506,7 +506,7 @@ module Roguelike::Ui
     def self.in_the_food_bag : Section
       notes = [
         {"a-z A-Z", "what to do with that food"},
-        {"Left Right", "sort by weight, type, value, name or freshness"},
+        {"Left Right", "sort by soonest eaten, weight, type, value, name or freshness"},
         {"e d", "eat, drop"},
         {"+", "eat all food about to turn, soonest first, until full"},
         {"-", "drop all rotten food and putrid masses"},
