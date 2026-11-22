@@ -131,8 +131,9 @@ Spectator.describe Roguelike::Replay::Viewer do
   #
   # The process is run and waited for, so the id is free by the time this
   # answers. A file under it is what a viewer that was killed leaves behind.
+  # `true` comes from PATH, because NixOS has no `/usr/bin/true`.
   def spent : Int64
-    found = {% if flag?(:win32) %} Process.new("cmd.exe", ["/c", "exit"]) {% else %} Process.new("/usr/bin/true") {% end %}
+    found = {% if flag?(:win32) %} Process.new("cmd.exe", ["/c", "exit"]) {% else %} Process.new("true") {% end %}
     pid = found.pid
     found.wait
     pid

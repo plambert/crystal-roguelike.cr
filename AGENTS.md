@@ -11,11 +11,19 @@ to Completed to them.
 
 ## Finishing a piece of work
 
-A change is finished when `crystal tool format --check`, `ameba`, `crystal spec` and `shards build`
-are all clean, and `rumdl check` passes on any Markdown that changed. The changelog needs
-`rumdl check --no-exclude CHANGELOG.md`. Run them; do not reason about whether they would pass.
+A change is finished when `crystal tool format --check`, `ameba`, `script/spec-parallel` and
+`shards build` are all clean, and `rumdl check` passes on any Markdown that changed. The changelog
+needs `rumdl check --no-exclude CHANGELOG.md`. Run them; do not reason about whether they would
+pass.
 
-On Linux, `crystal spec` needs `--link-flags=-Wl,--no-export-dynamic` (32,767 version limit).
+`script/spec-parallel` compiles the suite once and runs it as one process per CPU. It prints the
+combined failures and counts, and exits nonzero when anything failed. `-j N` sets the number of
+processes. Arguments go to `crystal build`, and arguments after `--` go to the spec runner.
+`crystal spec` still works and runs the same examples in one process. Without a POSIX shell, run
+`crystal run script/spec-parallel.cr -- ARGS`.
+
+On Linux, the specs need `--link-flags=-Wl,--no-export-dynamic` (32,767 version limit), for
+`script/spec-parallel` and `crystal spec` alike.
 
 Commit with explicit paths, never `git add -A`. A new file needs its own `git add` first.
 
