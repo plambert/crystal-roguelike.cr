@@ -1,4 +1,6 @@
 require "../../spec_helper"
+require "file_utils"
+require "../../support/recording"
 
 Spectator.describe Roguelike::Debug::Console do
   alias Blessing = Roguelike::Blessing
@@ -429,6 +431,156 @@ Spectator.describe Roguelike::Debug::Console do
       console.run "light", game
 
       expect(console.lines.last).to eq "ambient light is 2."
+    end
+  end
+
+  describe "save-copy" do
+    alias Held = Roguelike::Save::Held
+    alias Log = Roguelike::Replay::Log
+
+    # Runs *block* in a directory of its own, and takes the directory away.
+    def inside(& : Path ->) : Nil
+      where = Path[File.tempname "roguelike-copy", nil]
+      Dir.mkdir_p where
+      Dir.cd(where) { yield Path[Dir.current] }
+    ensure
+      FileUtils.rm_rf where.to_s if where
+    end
+
+    it "writes to a path from the working directory and says where" do
+      inside do |here|
+        game, console = playing
+        console.run "save-copy copy.json", game
+
+        expect(File.exists? here / "copy.json").to be_true
+        expect(console.lines.last).to eq "saved a copy to #{here / "copy.json"}."
+      end
+    end
+
+    it "writes to an absolute path" do
+      inside do |here|
+        wanted = here / "elsewhere" / "copy"
+        game, console = playing
+        Dir.cd("/") { console.run "save-copy #{wanted}", game }
+
+        expect(File.exists? wanted).to be_true
+        expect(console.lines.last).to eq "saved a copy to #{wanted}."
+      end
+    end
+
+    it "makes the directories above the file" do
+      inside do |here|
+        game, console = playing
+        console.run "save-copy a/b/c/copy", game
+
+        expect(File.file? here / "a" / "b" / "c" / "copy").to be_true
+      end
+    end
+
+    it "keeps a name with a space in it" do
+      inside do |here|
+        game, console = playing
+        console.run "save-copy two  words.json", game
+
+        expect(File.exists? here / "two words.json").to be_true
+      end
+    end
+
+    it "leaves a file already there and says so" do
+      inside do |here|
+        File.write here / "copy", "mine"
+        game, console = playing
+        console.run "save-copy copy", game
+
+        expect(File.read here / "copy").to eq "mine"
+        expect(console.lines.last).to eq "#{here / "copy"} already exists. " \
+                                         "Use save-copy -f to replace it."
+      end
+    end
+
+    it "replaces a file already there after -f" do
+      inside do |here|
+        File.write here / "copy", "mine"
+        game, console = playing
+        console.run "save-copy -f copy", game
+
+        expect(Held.from_json(File.read here / "copy").name).to eq game.player.name
+        expect(console.lines.last).to eq "saved a copy to #{here / "copy"}."
+      end
+    end
+
+    it "says how to use it when given no path" do
+      expect(last "save-copy").to eq "usage: save-copy [-f] <path>"
+      expect(last "save-copy -f").to eq "usage: save-copy [-f] <path>"
+    end
+
+    it "says what went wrong in one line rather than raising" do
+      inside do |here|
+        Dir.mkdir here / "taken"
+        game, console = playing
+        console.run "save-copy -f taken", game
+
+        expect(console.lines.last).to start_with "could not save a copy: "
+        expect(Dir.children here).to eq ["taken"]
+      end
+    end
+
+    it "says so when a directory above the file is a file" do
+      inside do |here|
+        File.write here / "plain", ""
+        game, console = playing
+        console.run "save-copy plain/copy", game
+
+        expect(console.lines.last).to start_with "could not save a copy: "
+      end
+    end
+
+    it "writes a copy that loads as the same game" do
+      inside do |here|
+        game, console = playing
+        console.run "save-copy copy", game
+
+        held = Held.from_json File.read(here / "copy")
+        expect(held.game.to_json).to eq game.to_json
+        expect(held.replay).to be_nil
+      end
+    end
+
+    # Every file in *where*, by name, with what it holds.
+    def files(where : Path) : Hash(String, String)
+      Dir.children(where).sort.to_h { |name| {name, File.read(where / name)} }
+    end
+
+    # What a save would hold of *game*, and what the run would send.
+    def state(game : Game) : {String, Bool, Bool, String}
+      {game.to_json, game.unsent?, game.ending.nil?, game.fingerprint}
+    end
+
+    it "changes nothing about the run or its replay log" do
+      logs = Recording.directory / "copy-#{Random.rand UInt32}"
+      Dir.mkdir_p logs
+      Log.pattern = logs.to_s
+
+      game = Game.dug Rng.new(Recording::SEED)
+      game.player.name = "copier"
+      rng = Rng.new Recording::SEED, 7_u64
+      20.times { game.perform game.legal.reject(Roguelike::Action::Ascend).sample(rng) }
+
+      expect(Dir.children(logs).any? &.ends_with?(".jsonl")).to be_true
+      logged = files logs
+      held = state game
+
+      inside { Console.new.run "save-copy copy", game }
+
+      expect(files logs).to eq logged
+      expect(state game).to eq held
+
+      Log.ended nil
+      log = Dir.children(logs).find!(&.ends_with? ".jsonl")
+      expect(Recording.read(logs / log).pauses).to eq 0
+    ensure
+      Log.ended nil
+      Log.pattern = nil
     end
   end
 

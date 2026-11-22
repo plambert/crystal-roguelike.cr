@@ -1241,8 +1241,15 @@ to the generator. `spawn bow` and `spawn 20 +1 arrow` take two lines instead of 
 walking.
 
 The commands are `help`, `heal`, `hurt`, `spawn`, `identify`, `remove-curse`, `kill`, `inspect`,
-`goto`, `reveal`, `light`, `max-columns` and `max-rows`. `help` lists them with what each one
-takes.
+`goto`, `reveal`, `light`, `max-columns`, `max-rows`, `motion` and `save-copy`. `help` lists
+them with what each one takes.
+
+`save-copy <path>` writes the game to *path*, from the working directory, and makes any missing
+directories above it. `-f` lets it replace a file already there. It writes the same JSON as a
+save, through `Save::Held.unmarked` rather than `Held.of`. `Held.of` writes a pause in the replay
+log and clears the log's unsent mark when the save is sent, so a copy built that way would change
+the run being copied. The unmarked copy names no pause, and a load of it starts a log of its own.
+Nothing goes to the outbox.
 
 `max-columns` and `max-rows` are the exception to the box acting on the game. They change the
 `SizeCap`, which belongs to the session. See the size cap below.
