@@ -10,6 +10,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* The backquote turns hover mode on and off. With it on, the items on the map square under the
+  pointer show in a box beside the pointer instead of in the info panel. The box waits until the
+  pointer has rested on a square for a third of a second, so moving the mouse across the map
+  draws nothing. It sits beside the square, turns to the other side near an edge, and comes down
+  on any key, a click, a turn, a menu or the pointer leaving the map. It is in the modern action
+  catalog as Hover box.
 * While `X` explores, the map shows the way to the square it is heading for, in a fainter green
   than a way you draw. It shows only when more than two steps are left, and changes when explore
   changes its mind. When the walk stops it stays a few seconds and then fades. Your own route,

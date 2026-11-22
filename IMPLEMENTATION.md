@@ -7501,6 +7501,57 @@ Release builds, 300 explore steps with a look after each, two runs each.
 
 The difference per step is within the noise of other work on the machine.
 
+## The hover box
+
+Hovering a map square lists its items in the `Look` section, on the far side of the screen from
+the map. Hover mode moves that list into a box beside the pointer. `` ` `` turns it on and off in
+both control schemes, and the modern catalog has it as Hover box, under View. The debug console
+moved to `~` to free the key.
+
+### What it shows
+
+* `Ui::HoverBox` is a `Tooltip` with its own placement. It is a second box, so the sidebar rows
+  keep theirs.
+* `ExaminePane#items` holds the names the `Look` list writes, each at the character's regard for
+  that item. The box writes a `Here` heading and one item to a line. Past seven items it names six
+  and says how many more.
+* `ExaminePane#items_away` hides the list in the panel. `Examiner` sets it while hover mode is on
+  and the readout follows the pointer. A square under the examine cursor keeps its list in the
+  panel and gets no box.
+* A square with nothing on it gets no box. Sidebar rows keep their own boxes.
+
+### When it shows
+
+* `Play::HOVER_DWELL` is 330 ms. The pointer must rest on one cell that long. `#rest_on` arms the
+  dwell with `App#after`, and `#dwelt` puts the box up.
+* A report from the same cell changes nothing. A report from another cell takes the box down and
+  starts a new dwell, so a pointer crossing the map draws nothing.
+* An application with no clock puts the box up at once, as every other timer in `Play` does.
+  Specs open a run with `clock: true` and fire the dwell with `tick`.
+* `#drop_hover` takes the box down and cancels the dwell. It runs on any key (`Play#delivered`,
+  which sees each event before the widgets), on a mouse button going down or a drag, on a turn
+  passing, on the pointer leaving the map, on the mouse turning off and on the mode turning off.
+* A modal box holds it off the screen through `HoverBox#held_back`. Whatever closes the modal box
+  is a key or a click, so the box does not come back until a new dwell.
+* Hover mode lasts for the session. It is not an option yet.
+
+### Where it goes
+
+`HoverBox.place` works the corner out from the cell, the box size and the screen.
+
+* Right of the cell with one clear column, top on the pointer's row.
+* Left of the cell, with one clear column, when the right side has no room.
+* Below the cell, then above it, when neither side has room, slid across to stay on the screen.
+* A box beside the cell that would run off the bottom moves up.
+
+The box is pinned by its top left corner to the map pane with `Overflow::Clamp`, and its width is
+fixed to what `HoverBox.size` worked out, so the layout leaves it where `.place` put it.
+
+### Replay and streams
+
+Nothing here touches the game. No action, save field or bot protocol changes, and the golden
+fixtures do not move.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

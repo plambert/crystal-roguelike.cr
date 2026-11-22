@@ -53,6 +53,7 @@ module Roguelike::Ui
     DrinkFountain
     DrinkWater
     FoodBag
+    HoverBox
   end
 
   # The stable catalog grouping for a command.
@@ -208,32 +209,34 @@ module Roguelike::Ui
         "Focus the information panel.", 35),
       CommandMetadata.new(Command::FocusLog, "Focus messages", CommandCategory::View,
         "Focus the message panel.", 36),
+      CommandMetadata.new(Command::HoverBox, "Hover box", CommandCategory::View,
+        "Show what lies on a square beside the pointer, or in the info panel.", 37),
       CommandMetadata.new(Command::Options, "Options", CommandCategory::System,
-        "Change application options.", 37),
+        "Change application options.", 38),
       CommandMetadata.new(Command::Theme, "Color theme", CommandCategory::System,
-        "Change the color theme.", 38),
+        "Change the color theme.", 39),
       CommandMetadata.new(Command::ToggleMouse, "Toggle mouse", CommandCategory::System,
-        "Turn mouse reporting on or off.", 39),
+        "Turn mouse reporting on or off.", 40),
       CommandMetadata.new(Command::Help, "Help", CommandCategory::System,
-        "Read help for the current controls.", 40),
+        "Read help for the current controls.", 41),
       CommandMetadata.new(Command::WhatsNew, "What is new", CommandCategory::System,
-        "Read the release notes.", 41),
+        "Read the release notes.", 42),
       CommandMetadata.new(Command::SaveQuit, "Save and quit", CommandCategory::System,
-        "Save the run and leave the game.", 42),
+        "Save the run and leave the game.", 43),
       CommandMetadata.new(Command::DebugConsole, "Debug console", CommandCategory::System,
-        "Open the debug console.", 43),
+        "Open the debug console.", 44),
       CommandMetadata.new(Command::ReplayToggle, "Play or pause", CommandCategory::Replay,
-        "Start or pause replay playback.", 44),
+        "Start or pause replay playback.", 45),
       CommandMetadata.new(Command::ReplayForward, "Step forward", CommandCategory::Replay,
-        "Advance one recorded action.", 45),
+        "Advance one recorded action.", 46),
       CommandMetadata.new(Command::ReplayBack, "Step backward", CommandCategory::Replay,
-        "Go back one recorded action.", 46),
+        "Go back one recorded action.", 47),
       CommandMetadata.new(Command::ReplayFaster, "Increase replay speed", CommandCategory::Replay,
-        "Increase replay playback speed.", 47),
+        "Increase replay playback speed.", 48),
       CommandMetadata.new(Command::ReplaySlower, "Decrease replay speed", CommandCategory::Replay,
-        "Decrease replay playback speed.", 48),
+        "Decrease replay playback speed.", 49),
       CommandMetadata.new(Command::ReplayGoTo, "Go to replay turn", CommandCategory::Replay,
-        "Choose a turn in the recording.", 49),
+        "Choose a turn in the recording.", 50),
     ] of CommandMetadata
 
     private ITEM_ACTIONS = {
@@ -358,7 +361,7 @@ module Roguelike::Ui
                   in .food_bag?                    then !query.game.over? && query.game.food_at_hand?
                   in .inventory?, .pan_map?, .recenter?, .history?,
                      .focus_next?, .focus_previous?, .focus_map?, .focus_info?,
-                     .focus_log?, .options?, .theme?, .toggle_mouse?, .help?,
+                     .focus_log?, .options?, .theme?, .toggle_mouse?, .hover_box?, .help?,
                      .whats_new?, .save_quit?, .replay_toggle?, .replay_forward?,
                      .replay_back?, .replay_faster?, .replay_slower?, .replay_go_to?,
                      .debug_console? then true
@@ -388,7 +391,7 @@ module Roguelike::Ui
       in .examine?              then coordinate_targets(query)
       in .wait?, .drink_water?, .rest?, .walk?, .explore?, .pan_map?, .recenter?, .history?,
          .focus_next?, .focus_previous?, .focus_map?, .focus_info?, .focus_log?,
-         .options?, .theme?, .toggle_mouse?, .help?, .whats_new?, .save_quit?,
+         .options?, .theme?, .toggle_mouse?, .hover_box?, .help?, .whats_new?, .save_quit?,
          .replay_toggle?, .replay_forward?, .replay_back?, .replay_faster?,
          .replay_slower?, .replay_go_to?, .debug_console?, .fill_skin?,
          .drink_fountain?, .food_bag?
@@ -441,7 +444,7 @@ module Roguelike::Ui
          .drink_water?, .inventory?, .pick_up?, .open_door?, .close_door?, .spike_door?,
          .break_door?, .fire?, .fire_nearest?, .examine?, .pan_map?, .recenter?,
          .history?, .focus_next?, .focus_previous?, .focus_map?, .focus_info?,
-         .focus_log?, .options?, .theme?, .toggle_mouse?, .help?, .whats_new?,
+         .focus_log?, .options?, .theme?, .toggle_mouse?, .hover_box?, .help?, .whats_new?,
          .save_quit?, .replay_toggle?, .replay_forward?, .replay_back?,
          .replay_faster?, .replay_slower?, .replay_go_to?, .debug_console?,
          .fill_skin?, .drink_fountain?, .food_bag? then false
@@ -670,7 +673,7 @@ module Roguelike::Ui
       in .food_bag? then "Your food bag is empty and there is nothing here to eat."
       in .inventory?, .pan_map?, .recenter?, .history?, .focus_next?,
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
-         .theme?, .toggle_mouse?, .help?, .whats_new?, .save_quit?,
+         .theme?, .toggle_mouse?, .hover_box?, .help?, .whats_new?, .save_quit?,
          .replay_toggle?, .replay_forward?, .replay_back?, .replay_faster?,
          .replay_slower?, .replay_go_to?, .debug_console?
         "This command is unavailable now."

@@ -291,7 +291,10 @@ module Roguelike::Ui
       end
     end
 
-    # The scrolling keys of the map, and `Enter` for it.
+    # The key that turns hover mode on and off.
+    HOVER = "`"
+
+    # The scrolling keys of the map, `Enter` for it, and `HOVER`.
     #
     # `Shift+Up` and `Shift+Down` scroll a row, `Shift+Left` and
     # `Shift+Right` a column, `PageUp` and `PageDown` a page, and `Home` and
@@ -301,6 +304,9 @@ module Roguelike::Ui
     # `Enter` looses the shot or walks to the square a pick is waiting on.
     # With nothing waiting, it brings the character into view when they are
     # off screen.
+    #
+    # `HOVER` moves the items on the square under the pointer out of the info
+    # panel and into a box beside the pointer, and back.
     def self.map_panel(play : Play) : Widgets::Bindings
       own = Widgets::Bindings.build do |map|
         map.bind TermBuf::Key.parse("Shift+Left"), "scroll the map left a column",
@@ -310,6 +316,8 @@ module Roguelike::Ui
         map.bind TermBuf::Key.parse("Enter"),
           "fire, walk to the square, or find the character",
           ->(_context : Widgets::Context) { play.enter; nil }
+        map.bind TermBuf::Key.parse(HOVER), "show what is under the pointer beside it",
+          ->(_context : Widgets::Context) { play.toggle_hover; nil }
       end
 
       scrolling(play, "the map", "the top of the floor", "the bottom of the floor").merge own

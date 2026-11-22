@@ -355,7 +355,7 @@ module Playing
     # what the map shows. A click moves the focus first, as in `Session`.
     session.app.on_deliver = ->(event : TermBuf::Event) do
       play.map.forget_frames
-      play.focus_under event
+      play.delivered event
     end
 
     # One layout runs before the camera is pointed. `Session` does the

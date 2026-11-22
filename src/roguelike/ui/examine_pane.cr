@@ -57,6 +57,20 @@ module Roguelike::Ui
     # What is lying on the square.
     getter litter : Widgets::Label
 
+    # The names of what is lying on the square, one to an item, as `#litter`
+    # writes them. Empty when nothing is listed.
+    getter items : Array(String) = [] of String
+
+    # Whether the list of items is kept out of the pane. The hover box shows
+    # it beside the pointer instead.
+    getter? items_away : Bool = false
+
+    def items_away=(away : Bool) : Bool
+      @items_away = away
+      place_litter
+      away
+    end
+
     # The selected profile controls the empty readout hint.
     getter control_scheme : Options::ControlScheme = Options::ControlScheme::Traditional
 
@@ -167,8 +181,7 @@ module Roguelike::Ui
       end
 
       pile = floor.items x, y
-      @litter.hidden = pile.empty?
-      @litter.text = listed pile.map { |item| {item, regard.try(&.call item) || Regard::Everything} }, lore
+      list pile.map { |item| {item, regard.try(&.call item) || Regard::Everything} }, lore
     end
 
     # Says that *creature* is a shape and no more.
@@ -185,8 +198,7 @@ module Roguelike::Ui
       @doing.hidden = true
       @arms.text = ""
       @arms.hidden = true
-      @litter.text = ""
-      @litter.hidden = true
+      unlist
     end
 
     # Says what *x*, *y* looked like when it was last seen, or that it has
@@ -199,8 +211,7 @@ module Roguelike::Ui
       @doing.hidden = true
       @arms.text = ""
       @arms.hidden = true
-      @litter.text = ""
-      @litter.hidden = true
+      unlist
 
       unless memory
         @what.text = UNSEEN
@@ -217,8 +228,13 @@ module Roguelike::Ui
       pile = memory.items.map { |remembered| {remembered.item, remembered.regard} }
       return if pile.empty?
 
-      @litter.hidden = false
-      @litter.text = lore ? listed(pile, lore) : "Here: something"
+      if lore
+        list pile, lore
+      else
+        @items = ["something"]
+        @litter.text = "Here: something"
+        place_litter
+      end
     end
 
     # What a remembered square's terrain is called.
@@ -228,14 +244,30 @@ module Roguelike::Ui
       memory.terrain.label
     end
 
-    # What is lying on a square, written out, each item named as well as
-    # it was made out.
-    private def listed(pile : Array({Item, Regard}), lore : Lore?) : String
-      return "" if pile.empty?
-      return "Here: #{pile.size} things" unless lore
+    # Writes what is lying on a square, each item named as well as it was
+    # made out.
+    private def list(pile : Array({Item, Regard}), lore : Lore?) : Nil
+      @items = if pile.empty?
+                 [] of String
+               elsif lore
+                 pile.map { |item, regard| lore.name(item, regard: regard).as(String) }
+               else
+                 ["#{pile.size} things"]
+               end
+      @litter.text = @items.empty? ? "" : "Here: #{@items.join ", "}"
+      place_litter
+    end
 
-      named = pile.map { |item, regard| lore.name(item, regard: regard).as(String) }
-      "Here: #{named.join ", "}"
+    # Writes that nothing is lying on the square.
+    private def unlist : Nil
+      @items = [] of String
+      @litter.text = ""
+      place_litter
+    end
+
+    # Shows the list of items, unless there is none or it is kept away.
+    private def place_litter : Nil
+      @litter.hidden = @items.empty? || @items_away
     end
 
     # A sentence saying what *creature* wields and wears, or `nil` when it
@@ -270,8 +302,7 @@ module Roguelike::Ui
       @doing.hidden = true
       @arms.text = ""
       @arms.hidden = true
-      @litter.text = ""
-      @litter.hidden = true
+      unlist
       self.aiming = nil
     end
 
