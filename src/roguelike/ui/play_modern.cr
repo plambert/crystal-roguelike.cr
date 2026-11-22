@@ -50,6 +50,8 @@ module Roguelike::Ui
     # Sends ordinary modern movement to the focused panel, a cursor, or the
     # character without allowing a panel key to move the character.
     def modern_move(direction : Direction) : Nil
+      return if pan_search direction
+
       if @pending || @aiming || @examiner.cursoring?
         return step direction
       end
@@ -74,6 +76,8 @@ module Roguelike::Ui
     # Starts a shifted walk on the map, or moves a cursor while one owns the
     # input.
     def modern_walk(direction : Direction) : Nil
+      return if pan_search direction
+
       if @pending || @aiming || @examiner.cursoring?
         return step direction
       end
@@ -273,7 +277,7 @@ module Roguelike::Ui
         true
       in .inventory?, .examine?, .pan_map?, .recenter?, .history?, .focus_next?,
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
-         .theme?, .toggle_mouse?, .hover_box?, .help?, .whats_new?, .save_quit?,
+         .theme?, .toggle_mouse?, .hover_box?, .item_search?, .help?, .whats_new?, .save_quit?,
          .replay_toggle?, .replay_forward?, .replay_back?, .replay_faster?,
          .replay_slower?, .replay_go_to?, .debug_console?
         false
@@ -383,7 +387,7 @@ module Roguelike::Ui
          .pick_up?, .drop?, .drink?, .read?, .zap?, .apply?, .throw?,
          .open_door?, .close_door?, .spike_door?, .break_door?, .recenter?,
          .history?, .focus_next?, .focus_previous?, .focus_map?, .focus_info?,
-         .focus_log?, .options?, .theme?, .toggle_mouse?, .hover_box?, .help?, .whats_new?,
+         .focus_log?, .options?, .theme?, .toggle_mouse?, .hover_box?, .item_search?, .help?, .whats_new?,
          .save_quit?, .replay_toggle?, .replay_forward?, .replay_back?,
          .replay_faster?, .replay_slower?, .replay_go_to?, .debug_console?,
          .fill_skin?, .drink_fountain?
@@ -420,7 +424,7 @@ module Roguelike::Ui
         true
       in .walk?, .travel?, .examine?, .pan_map?, .wait?, .drink_water?, .rest?, .explore?,
          .inventory?, .focus_next?, .focus_previous?, .focus_map?, .focus_info?,
-         .focus_log?, .history?, .recenter?, .options?, .theme?, .toggle_mouse?, .hover_box?,
+         .focus_log?, .history?, .recenter?, .options?, .theme?, .toggle_mouse?, .hover_box?, .item_search?,
          .help?, .whats_new?, .save_quit?, .replay_toggle?, .replay_forward?,
          .replay_back?, .replay_faster?, .replay_slower?, .replay_go_to?,
          .debug_console?, .fill_skin?, .drink_fountain?, .food_bag?
@@ -599,7 +603,7 @@ module Roguelike::Ui
          .zap?, .apply?, .throw?, .spike_door?, .fire?, .fire_nearest?,
          .examine?, .recenter?, .history?, .focus_next?, .focus_previous?,
          .focus_map?, .focus_info?, .focus_log?, .options?, .theme?,
-         .toggle_mouse?, .hover_box?, .help?, .whats_new?, .save_quit?, .replay_toggle?,
+         .toggle_mouse?, .hover_box?, .item_search?, .help?, .whats_new?, .save_quit?, .replay_toggle?,
          .replay_forward?, .replay_back?, .replay_faster?, .replay_slower?,
          .replay_go_to?, .debug_console?, .fill_skin?, .drink_fountain?, .food_bag?
         nil
@@ -642,7 +646,7 @@ module Roguelike::Ui
       in .walk?, .travel?, .explore?, .wait?, .drink_water?, .rest?, .inventory?,
          .examine?, .pan_map?, .recenter?, .history?, .focus_next?,
          .focus_previous?, .focus_map?, .focus_info?, .focus_log?, .options?,
-         .theme?, .toggle_mouse?, .hover_box?, .help?, .whats_new?, .save_quit?,
+         .theme?, .toggle_mouse?, .hover_box?, .item_search?, .help?, .whats_new?, .save_quit?,
          .replay_toggle?, .replay_forward?, .replay_back?, .replay_faster?,
          .replay_slower?, .replay_go_to?, .debug_console?, .fill_skin?,
          .drink_fountain?, .food_bag?
@@ -792,6 +796,7 @@ module Roguelike::Ui
       in .theme?          then show_options(-> { @options_screen.show_theme_editor(application); nil })
       in .toggle_mouse?   then @on_mouse.try &.call
       in .hover_box?      then toggle_hover
+      in .item_search?    then open_search
       in .help?           then @on_help.try &.call
       in .whats_new?      then show_news
       in .save_quit?      then confirm_quit

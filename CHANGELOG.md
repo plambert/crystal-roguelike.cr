@@ -10,6 +10,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* `/` opens a search panel listing every item you remember on this floor, nearest walk first,
+  with how far away each is and how long ago you saw it. Items are named only as well as you made
+  them out. Typing narrows the list, and choosing an item shows the way to it on the map without
+  walking. Tab, Enter or the panel's Map button hides the panel and lights every match on the map,
+  where the movement keys pan the view and hover mode is on so pointing at a match shows what lies
+  there. Tab, Escape or a click on the bar brings the list back. While the search is open, matching
+  items come first in a pile's lists. It is in the modern action catalog as Find an item.
 * A key in a list of items puts up a menu of orders: `r` in the modern scheme and `=` in the
   traditional one. The inventory, drop and other lists of what you carry sort by letter, name,
   weight or class, and the pick-up list by letter, name or class. Letter order is the default.

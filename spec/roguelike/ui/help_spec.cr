@@ -28,7 +28,7 @@ Spectator.describe Roguelike::Ui::Help do
 
     expect(help.open?).to be_true
     headers = rows.select(&.header).map(&.keys)
-    expect(headers).to eq(["application", "panels", "moving", "map", "info panel", "log", "time", "getting about", "doors and stairs", "character", "items", "in the inventory", "in the food bag", "aiming", "messages", "mouse"])
+    expect(headers).to eq(["application", "panels", "moving", "map", "info panel", "log", "time", "getting about", "doors and stairs", "character", "items", "in the inventory", "in the food bag", "in the item search", "aiming", "messages", "mouse"])
     expect(rows[0].keys).to eq("application")
     expect(rows[1].keys).to eq("seed")
     expect(rows[1].description).to eq("4272")
@@ -138,9 +138,9 @@ Spectator.describe Roguelike::Ui::Help do
   end
 
   it "fits the screen, leaving the margin, and shows the bar only when it scrolls" do
-    session, help = wired 1_u64, rows: 130
+    session, help = wired 1_u64, rows: 140
     session.press "?"
-    expect(help.list.most).to eq(130 - 2 * Help::MARGIN - Help::CHROME)
+    expect(help.list.most).to eq(140 - 2 * Help::MARGIN - Help::CHROME)
     expect(help.rows.size).to be <= help.list.most
     expect(help.bar.hidden?).to be_true
     session.press "Escape"

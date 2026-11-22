@@ -663,6 +663,7 @@ module Roguelike::Ui
         Keys::Section.new("items", Keys.handling(self)),
         Keys.in_the_pack,
         Keys.in_the_food_bag,
+        Keys.in_the_search,
         Keys::Section.new("aiming", Keys.aiming(self)),
         Keys::Section.new("messages", Keys.reading(self)),
       ]
@@ -1403,7 +1404,8 @@ module Roguelike::Ui
     # Whether a box is holding the keyboard. A question and a list each do.
     def modal? : Bool
       @prompt.asking? || @entry.asking? || @menu.showing? || @placard.showing? ||
-        @context_menu.open? || @history.showing? || @options_screen.showing? || (@console.try &.showing? || false)
+        @context_menu.open? || @history.showing? || @options_screen.showing? ||
+        (@console.try &.showing? || false) || (@search_pane.try &.showing? || false)
     end
 
     # Puts the camera on the character.
@@ -1424,6 +1426,8 @@ module Roguelike::Ui
     #
     # A step that does not happen takes no turn.
     def step(direction : Direction) : Nil
+      return if pan_search direction
+
       waiting = @pending
       if waiting
         @pending = nil
@@ -1781,6 +1785,7 @@ module Roguelike::Ui
     # transport on `h` and `l` beside the arrows. The other six directions do
     # nothing.
     def view_move(direction : Direction) : Nil
+      return if pan_search direction
       return @examiner.move direction if @examiner.cursoring?
 
       case direction
@@ -2103,6 +2108,8 @@ module Roguelike::Ui
     # Gives the focus back to the map from another panel, or takes back
     # whatever is waiting when the map has it. `Escape` does this.
     def escape : Nil
+      return if search_back
+
       if @pending || @aiming
         cancel
         return
@@ -2116,7 +2123,7 @@ module Roguelike::Ui
     # Moves the focus to the next panel, or aims at the next monster while
     # something is being aimed. `Tab` does this.
     def tab : Nil
-      return if @pending
+      return if @pending || search_back
       if @aiming
         next_target
       else
@@ -2126,7 +2133,7 @@ module Roguelike::Ui
 
     # Moves focus backward unless a pending target owns Tab.
     def tab_back : Nil
-      return if @pending || @aiming
+      return if @pending || @aiming || search_back
 
       @ring.previous
     end
@@ -3426,6 +3433,7 @@ module Roguelike::Ui
       @map.mark @game.player.x, @game.player.y, Palette.player
       offer_directions
       show_trail
+      show_found
       show_route
       show_aim
       show_noise
@@ -3747,8 +3755,9 @@ module Roguelike::Ui
       end
 
       # Every other modal box owns the screen the same way, and none of them
-      # has a box of its own to keep up.
-      if modal?
+      # has a box of its own to keep up. The item search's bar over the map
+      # counts as off the map.
+      if held_off_map?(x, y)
         @nearby.unmark
         spotlight nil
         return pointer_away
@@ -4241,6 +4250,7 @@ module Roguelike::Ui
       app = @app
       @menu.refit Rect.new(0, 0, columns, rows), app.tree.policy if app
       @options_screen.refit Rect.new(0, 0, columns, rows)
+      @search_pane.try { |pane| pane.fit_into Rect.new(0, 0, columns, rows) if pane.showing? }
 
       # A box of messages holds its lines wrapped to the width it was opened
       # at, so a window that changed size is filled again rather than sized
