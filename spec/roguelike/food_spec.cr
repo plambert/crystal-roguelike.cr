@@ -985,6 +985,162 @@ Spectator.describe "food, the food bag and corpses" do
     end
   end
 
+  describe "a putrid mass on the floor" do
+    def mass(count : Int32 = 1) : Item
+      Item.new ItemKind::PutridMass, count: count, blessing_known: true
+    end
+
+    # The kinds and counts on square *x*, *y* of *ground*.
+    def lying(ground : Floor, x : Int32, y : Int32) : Array({ItemKind, Int32})
+      ground.items(x, y).map { |item| {item.kind, item.count} }
+    end
+
+    # Waits *turns* turns, one tick each. The character is kept fed and
+    # watered, since a hungry one is slower and a wait would take more.
+    def passes(game : Game, turns : Int32) : Array(Event)
+      start = game.turn
+      found = [] of Event
+      turns.times do
+        game.player.sustenance.hunger = 0
+        game.player.sustenance.thirst = 0
+        game.perform Action::Wait.new
+        found.concat game.events
+      end
+      expect(game.turn).to eq start + turns
+      found
+    end
+
+    it "vanishes after it has lain on the floor for its time" do
+      game = hall
+      game.floor.drop 5, 1, mass
+      game.enroll
+      passes game, Food::PUTRID_FADES - 1
+      expect(lying game.floor, 5, 1).to eq [{ItemKind::PutridMass, 1}]
+
+      seen = passes game, 1
+      expect(game.floor.items(5, 1)).to be_empty
+      expect(seen.any?(Event::CorpseRotted)).to be_false
+    end
+
+    it "never fades in the pack" do
+      game = hall
+      game.player.inventory.add mass(3)
+      game.enroll
+      passes game, Food::PUTRID_FADES * 2
+
+      expect(game.player.inventory.count('a')).to eq 3
+    end
+
+    it "gives a mass dropped from the pack the full time" do
+      game = hall
+      game.floor.drop *HERE, mass
+      game.enroll
+      passes game, Food::PUTRID_FADES - 10
+      game.perform Action::PickUp.new
+      held = game.player.inventory.entries.first[1].id
+      passes game, 20
+      game.perform Action::Drop.new(held)
+      passes game, Food::PUTRID_FADES - 2
+      expect(lying game.floor, *HERE).to eq [{ItemKind::PutridMass, 1}]
+
+      passes game, 1
+      expect(game.here).to be_empty
+    end
+
+    it "fades the mass a corpse leaves" do
+      game = hall
+      game.floor.drop 5, 1, Game.remains_of(Kind::Wolf).first
+      game.enroll
+      passes game, Food::CORPSE_KEEPS * 2
+      expect(lying game.floor, 5, 1).to eq [{ItemKind::PutridMass, 1}]
+
+      passes game, Food::PUTRID_FADES - 1
+      expect(lying game.floor, 5, 1).to eq [{ItemKind::PutridMass, 1}]
+      passes game, 1
+      expect(game.floor.items(5, 1)).to be_empty
+    end
+
+    it "fades a whole stack on one square together, timed from the last mass added" do
+      game = hall
+      game.floor.drop 5, 1, mass(3)
+      game.enroll
+      passes game, 400
+      game.floor.drop 5, 1, mass(2)
+      passes game, Food::PUTRID_FADES - 1
+      expect(lying game.floor, 5, 1).to eq [{ItemKind::PutridMass, 5}]
+
+      passes game, 1
+      expect(game.floor.items(5, 1)).to be_empty
+    end
+
+    it "stays in the character's memory of a square they cannot see" do
+      floor = Floor.parse "hall", ["#########", "#<.'..#.#", "#########"]
+      Playing.daylight floor
+      floor.drop 5, 1, mass
+      player = Player.new floor.id, 2, 1
+      game = Game.new World.new(SEED, {floor.id => floor}), player,
+        lore: Lore.roll(Rng.new SEED)
+      game.enroll
+      game.look
+      expect(game.knowledge[5, 1].try(&.item).try &.kind).to eq ItemKind::PutridMass
+
+      game.perform Action::Close.new(Roguelike::Direction::East)
+      passes game, Food::PUTRID_FADES
+      game.look
+      expect(game.floor.items(5, 1)).to be_empty
+      expect(game.knowledge[5, 1].try(&.item).try &.kind).to eq ItemKind::PutridMass
+
+      game.perform Action::Open.new(Roguelike::Direction::East)
+      game.look
+      expect(game.knowledge[5, 1].try &.item).to be_nil
+    end
+
+    it "waits on a floor the character is not on, and fades once they return" do
+      game = hall
+      other = Floor.parse "other", HALL
+      game.world.floors[other.id] = other
+      other.drop 5, 1, mass
+      game.enroll
+      passes game, Food::PUTRID_FADES * 2
+      expect(lying other, 5, 1).to eq [{ItemKind::PutridMass, 1}]
+
+      game.player.floor = other.id
+      passes game, Food::PUTRID_FADES - 1
+      expect(lying other, 5, 1).to eq [{ItemKind::PutridMass, 1}]
+      passes game, 1
+      expect(other.items(5, 1)).to be_empty
+    end
+
+    it "loads from an old save with the full time ahead of it" do
+      game = hall
+      game.floor.drop 5, 1, mass(2)
+      game.enroll
+      passes game, 300
+      written = game.to_json
+      old = written.gsub(/,"lain":\d+/, "")
+      expect(old).not_to eq written
+
+      read = Game.from_json old
+      passes read, Food::PUTRID_FADES - 1
+      expect(lying read.floor, 5, 1).to eq [{ItemKind::PutridMass, 2}]
+      passes read, 1
+      expect(read.floor.items(5, 1)).to be_empty
+    end
+
+    it "keeps its time through a save" do
+      game = hall
+      game.floor.drop 5, 1, mass
+      game.enroll
+      passes game, 300
+
+      read = Game.from_json game.to_json
+      passes read, Food::PUTRID_FADES - 301
+      expect(lying read.floor, 5, 1).to eq [{ItemKind::PutridMass, 1}]
+      passes read, 1
+      expect(read.floor.items(5, 1)).to be_empty
+    end
+  end
+
   describe "eating a corpse where it lies" do
     # The legal eat actions on *corpse*.
     def eats(game : Game, corpse : Item) : Bool

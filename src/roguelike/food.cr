@@ -179,6 +179,11 @@ module Roguelike
     # putrid.
     PUTRID = 3
 
+    # How many turns a putrid mass lies on the floor before it vanishes.
+    # One in the pack keeps. 1,000 turns is about two and three quarter
+    # hours.
+    PUTRID_FADES = 1_000
+
     # What a putrid mass is worth, for a sort.
     PUTRID_MASS_VALUE = 0
 

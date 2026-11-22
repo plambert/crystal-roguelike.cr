@@ -18,14 +18,16 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   Walk here, Open, Close, Spike, the stairs, Drink and Fill at a fountain, and Pick up, shown with
   their keys and dimmed when they cannot be done now. A square out of reach shows the way to it
   while the menu is open. Choosing a verb walks you there first and does it on arrival, and any
-  key, click or interruption on the way drops it. With the examine cursor on the map, `m` opens
-  the same menu in both control schemes. A right click that moves more than a cell still drags
-  the view.
+  key, click or interruption on the way drops it. Spike asks "Spike the door?" before the spike
+  goes in, as `c` does. With the examine cursor on the map, `m` opens the same menu in both
+  control schemes. A right click that moves more than a cell still drags the view.
 * Putrid mass. Food that spoils now goes putrid at three times the turns it keeps fresh, after
   stale and rotten. Putrid food in your food bag turns into putrid masses in your pack, or at
   your feet when the pack is full, and the message log says so. Food on the floor turns into
   putrid masses where it lies. Putrid masses stack without limit, weigh 1, never spoil and cannot
-  be eaten. Automatic pickup takes one only when it stacks with one you carry.
+  be eaten. Automatic pickup takes one only when it stacks with one you carry. Putrid masses on the
+  floor vanish after 1,000 turns there, so floors do not fill up with them. Those in your pack
+  keep.
 * Food. Fourteen kinds lie about the floors in five families: grain, meat, fruit, nuts and
   cheese, and roots and herbs. Food you pick up goes in a food bag that holds weight 40, takes
   no pack letter and costs no pace. If the bag has no room, the food stays on the floor.
