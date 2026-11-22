@@ -76,9 +76,10 @@ Spectator.describe "what the rule under the map says during explore" do
     run
   end
 
-  # Takes one step of the walk under way.
+  # Takes one step of the walk under way. A step in place that wrote
+  # nothing arms the next on `Play::HOLD` rather than `Play::STRIDE`.
   def stride(run : Playing::Run) : Nil
-    run.tick Play::STRIDE
+    run.tick(Play::STRIDE) || run.tick(Play::HOLD)
   end
 
   # Puts *item* on *spot* and lets the character see it, so the walk does
