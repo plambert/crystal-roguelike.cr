@@ -213,6 +213,14 @@ Spectator.describe "food, the food bag and corpses" do
         .to eq [ItemKind::Apple, ItemKind::Nuts, ItemKind::FreshMeat, ItemKind::Ration]
       expect(bag.sorted(FoodSort::Type).first.kind).to eq ItemKind::FreshMeat
       expect(bag.sorted(FoodSort::Freshness).last.kind).to eq ItemKind::FreshMeat
+      expect(bag.sorted(FoodSort::Soonest)).to eq bag.items.sort_by { |item| Game.meal_rank item }
+      expect(bag.sorted(FoodSort::Soonest).last.kind).to eq ItemKind::Ration
+    end
+
+    it "shows the soonest page first and keeps the other pages in their order" do
+      expect(FoodSort.pages).to eq [FoodSort::Soonest, FoodSort::Weight, FoodSort::Type,
+                                    FoodSort::Value, FoodSort::Name, FoodSort::Freshness]
+      expect(FoodSort.values.map(&.value)).to eq [0, 1, 2, 3, 4, 5]
     end
 
     it "round-trips through JSON with ages and bites" do

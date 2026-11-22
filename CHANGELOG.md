@@ -82,13 +82,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The inedible parts go in the pack on the food page and stack by kind. They never spoil. They
   are kept for alchemy and do nothing yet.
 * A food bag screen lists what is in the bag, with stale, rotten and partly eaten food named so,
-  and what each stack weighs. It also lists any corpse you are standing on. Left and Right sort
-  it by weight, type, value, name or freshness. Pick a row to eat it or drop it. Press
-  `E` to open it, or pick the food bag row at the end of the inventory. With modern controls it
-  is in the inventory and in the action catalog under Items.
+  and what each stack weighs. It also lists any corpse you are standing on. It opens sorted in the
+  order `e` eats, so the food `e` would eat is first and rotten food last. Left and Right sort it
+  instead by weight, type, value, name or freshness, and the bag opens on that sort until you quit.
+  Pick a row to eat it or drop it. Press `E` to open it, or pick the food bag row at the end of
+  the inventory. With modern controls it is in the inventory and in the action catalog under Items.
 * `e`, or `Ctrl+E` with modern controls, eats with no menu. It eats the food that will next go
   stale, rotten or putrid, and between two that turn together, the one further along. Rotten food
   is passed over while anything else is left. When only rotten food is left, you are asked first.
+  Picking rotten food in the food bag and choosing eat asks the same question.
 * Two rows end every page of the food bag. `+` eats all the food that turns within the hour,
   soonest first, until you are full. `-` drops all the rotten food and putrid masses in the bag
   and the pack. Each meal or drop takes its turn, and either stops at once if you are hurt or a

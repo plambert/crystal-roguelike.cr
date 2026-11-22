@@ -16,7 +16,8 @@ module Roguelike::Ui
     # The food bag row that drops all the rot.
     DROP_ROT_KEY = '-'
 
-    # Which sort the food bag screen opened on last.
+    # The page of `FoodSort.pages` the food bag screen opened on last. It
+    # starts on the first, the order `e` eats in.
     @food_sort : Int32 = 0
 
     # What runs when the food bag screen is closed. `nil` goes back to the
@@ -55,11 +56,23 @@ module Roguelike::Ui
 
       rotten = @game.meal rotten: true
       return show_food_bag unless rotten
-      return eat_now rotten if @game.full?
 
-      ask("Eat #{@game.name rotten}? Rotten food makes you sick.", "yn", default: 'n') do |key|
-        eat_now rotten if key == 'y'
+      eat_asking rotten
+    end
+
+    # Eats *item* from the bag, asking first when it is rotten.
+    private def eat_asking(item : Item) : Nil
+      return eat_now item unless asks_first? item
+
+      ask("Eat #{@game.name item}? Rotten food makes you sick.", "yn", default: 'n') do |key|
+        key == 'y' ? eat_now(item) : refresh
       end
+    end
+
+    # Whether eating *item* asks first. Rotten food does, unless the
+    # character is full and would be refused anyway.
+    private def asks_first?(item : Item) : Bool
+      item.freshness.rotten? && !@game.full?
     end
 
     # Eats *item* from the bag.
@@ -71,11 +84,13 @@ module Roguelike::Ui
     # Shows what is in the food bag, and any corpse underfoot. `E` does
     # this.
     #
-    # One page per sort, and the left and right keys turn the page. A row's
-    # letter stays with its food on every page. A letter puts up what can
-    # be done with that food. `+` and `-` end every page, as
-    # `#food_chore_rows` says. Putrid masses in the pack put the screen up
-    # with an empty bag, for `-`. *back* runs when the screen is closed.
+    # One page per sort, and the left and right keys turn the page. The
+    # screen first opens on the order `e` eats in, and after that on the
+    # page last shown. A row's letter stays with its food on every page. A
+    # letter puts up what can be done with that food. `+` and `-` end every
+    # page, as `#food_chore_rows` says. Putrid masses in the pack put the
+    # screen up with an empty bag, for `-`. *back* runs when the screen is
+    # closed.
     def show_food_bag(back : Proc(Nil)? = nil) : Nil
       @food_back = back
       found = food_rows
@@ -86,7 +101,7 @@ module Roguelike::Ui
       end
 
       room = food_room
-      pages = FoodSort.values.map do |sort|
+      pages = FoodSort.pages.map do |sort|
         {sort.label, food_page(found, sort, room)}
       end
       about = {} of Char => Listing
@@ -217,7 +232,8 @@ module Roguelike::Ui
     # corpse cuts it, so the pick-up keys do that.
     #
     # Each row is dimmed where it does not apply, so a key is in the same
-    # place every time. `Escape` goes back to the bag.
+    # place every time. Eating rotten food asks first, as `e` does.
+    # `Escape` goes back to the bag.
     private def act_on_food(item : Item) : Nil
       corpse = item.corpse?
       entries = [
@@ -228,16 +244,16 @@ module Roguelike::Ui
       entries.each { |entry| about[entry.key] = Listing.new entry.key, item }
 
       choose(Lore.sentence(@game.name(item)), entries, about) do |key|
-        case key
-        when 'e' then @game.perform Action::Eat.new(item.id)
-        when 'd' then @game.perform Action::Drop.new(item.id)
-        else
+        unless key == 'e' || key == 'd'
           show_food_bag @food_back
           next
         end
 
         @food_back = nil
         clear_modern_menu if modern_controls?
+        next eat_asking item if key == 'e'
+
+        @game.perform Action::Drop.new(item.id)
         refresh
       end
     end
