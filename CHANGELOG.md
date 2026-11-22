@@ -214,6 +214,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   will spoil first, and keeps rations for last. It eats rotten food only when you are starving
   and nothing else is left, and it never eats a corpse. With an empty bag, `X` walks on. With the
   setting off, `X` stops when hunger sets in.
+* A new explore setting, Drop rot when safe, is on by default. With it on, rotten food and putrid
+  masses in your pack or food bag are dropped, one stack a turn, when you wait, rest or explore.
+  It happens only while no creature is in sight and no blow has been struck either way for 8
+  turns. Each drop writes one line, and a rest or an explore goes on past it.
 * Bots get `drank`, `hunger_stage` and `thirst_stage` events, and a `drink` action. The `over`
   event names the cause of a death from hunger or thirst.
 * `--trial` games run without hunger and thirst, because the trial bot never eats or drinks.

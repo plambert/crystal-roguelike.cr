@@ -29,6 +29,9 @@ module Roguelike
     # An explore ate from the food bag instead of walking.
     Ate
 
+    # An explore dropped rot instead of walking.
+    Dropped
+
     # Whether a turn was taken.
     def turn? : Bool
       !blocked?
@@ -37,7 +40,7 @@ module Roguelike
     # Whether the character spent the turn on the square ahead and stayed
     # where they were.
     def stayed? : Bool
-      opened? || struck? || drew? || drank? || ate?
+      opened? || struck? || drew? || drank? || ate? || dropped?
     end
   end
 
@@ -960,6 +963,9 @@ module Roguelike
     # No line is written. A line a turn would stop every walk and every rest.
     # An event is recorded instead, so a bot reading `#events` sees the turn
     # pass.
+    #
+    # A wait with rot to drop and nothing threatening drops it instead, as
+    # `#drop_rot` says. Its line does not stop a rest.
     def wait : Nil
       return if over?
 
@@ -967,6 +973,12 @@ module Roguelike
       # decide whether the turn said anything, so a wait leaves them the way
       # a step does.
       clear_step
+
+      wrote = @log.written
+      if drop_rot
+        @forgiven += @log.written - wrote
+        return
+      end
 
       record Event::Waited.new
       spend_turn
@@ -7768,13 +7780,25 @@ module Roguelike
       Verdict.done Step::Drank
     end
 
-    # A step of an explore that drinks or eats instead of walking, or `nil`
-    # when it walks. Thirst comes first.
+    # A step of an explore that drinks, eats or drops rot instead of
+    # walking, or `nil` when it walks. Thirst comes first, then hunger.
     private def explore_sustain : Verdict?
       return explore_drink if drinks?
 
       meal = explore_meal
-      explore_eat meal if meal
+      return explore_eat meal if meal
+
+      explore_drop
+    end
+
+    # A step of an explore that drops rot instead of walking, or `nil` when
+    # `#drop_rot` drops nothing. Its line does not stop the walk.
+    private def explore_drop : Verdict?
+      wrote = @log.written
+      return unless drop_rot
+
+      @overlooked += @log.written - wrote
+      Verdict.done Step::Dropped
     end
 
     # A step of an explore that eats *meal* from the food bag instead of

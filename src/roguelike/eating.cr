@@ -233,6 +233,45 @@ module Roguelike
       {rotten, 0, turning[1], -item.freshness.value, -FoodBag.ripeness(item)}
     end
 
+    # Whether nothing threatens the character.
+    #
+    # No creature is in sight in *seen*, which is the rule that refuses a
+    # rest. No blow either way has been struck for `FIGHT_LASTS` turns,
+    # which is the rule that keeps a fight on the sidebar. A creature out of
+    # sight that just struck still counts.
+    def unthreatened?(seen : Vision = sight) : Bool
+      @turn - @fought_turn >= FIGHT_LASTS && monsters_in_sight(seen).empty?
+    end
+
+    # Whether *item* is rot: a putrid mass, or rotten food that is not a
+    # corpse.
+    def self.rot?(item : Item) : Bool
+      item.kind.putrid_mass? || (item.food? && !item.corpse? && item.freshness.rotten?)
+    end
+
+    # The rot to drop next, or `nil` for none. The pack comes first, then
+    # the food bag, each in order.
+    def rot : Item?
+      @player.inventory.each_item { |_, item| return item if Game.rot? item }
+      @player.food_bag.items.find { |item| Game.rot? item }
+    end
+
+    # Drops the next of `#rot`, taking the turn, when the run's settings
+    # drop rot and nothing threatens the character. Answers whether it
+    # dropped anything.
+    #
+    # An explore step and a wait call this. The caller excuses the line, so
+    # neither stops for it.
+    private def drop_rot : Bool
+      return false unless explore_settings.drop_rot?
+
+      item = rot
+      return false unless item && unthreatened?
+
+      letter = letter_of item.id
+      letter ? drop(letter) : drop_food(item)
+    end
+
     # Whether the character is full, so eating anything is refused.
     def full? : Bool
       @player.sustenance.hunger <= 0

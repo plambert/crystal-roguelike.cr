@@ -6060,6 +6060,7 @@ rules above.
 | `stop_item` | on | | An item not seen before coming into sight stops the walk |
 | `stop_message` | on | | A line in the log stops the walk |
 | `stop_stairs` | off | | The stairs down coming into knowledge stops the walk. `Halt::Stairs` |
+| `drop_rot` | on | | A wait or an explore step drops rot while nothing threatens. See Food chores |
 
 The first seven change which squares `Explore.route` and `Explore.going?` pick. The stops change
 only where `Game#stride` ends a walk of `X`. A travel and a visit keep every stop.
@@ -7029,6 +7030,27 @@ one goes through actions that already exist, so a bot does the same with `eat` a
 * **Empty bag.** `e` puts the food bag screen up, which says the bag is empty or lists a corpse
   underfoot.
 * **`E`** opens the food bag screen in the traditional scheme, as `e` did before.
+
+### Dropping rot
+
+* **What.** `Game.rot?` is a putrid mass, or rotten food that is not a corpse. `Game#rot` is the
+  next one, the pack first and then the bag, each in order.
+* **When.** `Game#drop_rot` drops one stack and takes the turn. A wait calls it, so `.`, a rest and
+  a bot's `wait` all drop. An explore step calls it after drinking and eating, and the step is
+  `Step::Dropped`. Nothing else drops.
+* **Safety.** `Game#unthreatened?` joins two rules the game already had. No creature is in sight,
+  the rule `#refusing_rest` uses. No blow either way for `FIGHT_LASTS`, 8 turns, by
+  `#fought_turn`, the rule that keeps a fight on the sidebar. A creature out of sight that just
+  struck still counts, and so does the character's own swing.
+* **Lines.** The drop writes the usual "You drop ..." line and `dropped` event. A wait counts the
+  line into `@forgiven`, so a rest goes on. An explore counts it into `@overlooked`.
+* **Setting.** `Explore::Settings#drop_rot`, on by default, labeled "Drop rot when safe" on the
+  explore page. It rides in `Action::Configure` like every explore setting, so a replay drops on
+  the same turns. Its JSON field is written only when off, so a save, a fingerprint and an
+  `options.json` written before it existed are unchanged.
+* **Bots.** A bot's `wait` and `explore` drop rot like a person's. A bot that wants to keep rot
+  sends `configure` with `drop_rot` false. Dropping by hand is still `drop`. No action or
+  observation field was added.
 
 ## Hunger and thirst for bots and trials
 

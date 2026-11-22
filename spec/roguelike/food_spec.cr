@@ -1024,6 +1024,7 @@ Spectator.describe "food, the food bag and corpses" do
 
     it "never fades in the pack" do
       game = hall
+      game.perform Action::Configure.new(Roguelike::Explore::Settings.parse "drop_rot=off")
       game.player.inventory.add mass(3)
       game.enroll
       passes game, Food::PUTRID_FADES * 2
@@ -1033,6 +1034,7 @@ Spectator.describe "food, the food bag and corpses" do
 
     it "gives a mass dropped from the pack the full time" do
       game = hall
+      game.perform Action::Configure.new(Roguelike::Explore::Settings.parse "drop_rot=off")
       game.floor.drop *HERE, mass
       game.enroll
       passes game, Food::PUTRID_FADES - 10
