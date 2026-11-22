@@ -1,4 +1,5 @@
 require "../spec_helper"
+require "../support/watching"
 
 Spectator.describe Roguelike::Explore::Circling do
   alias Action = Roguelike::Action
@@ -188,28 +189,15 @@ Spectator.describe Roguelike::Explore::Circling do
       expect(game.explorable?).to be_false
     end
 
-    # A look that changes nothing it remembers leaves the revision alone,
-    # and reading a pile up close moves it. No pile can make explore go
-    # round, so these give the game a watch that has already given up.
-    def given_up(game : Game) : Game
-      saved = JSON.parse(game.to_json).as_h
-      moves = saved["pack_moves"]?.try(&.as_i) || 0
-      ground = Circling::Ground.new game.floor.id, game.knowledge.revision, moves
-      watch = Circling.new
-      watch.watch ground, game.player.at, 0_i64, game.turn
-      watch.give_up game.player.at
-      saved["circling"] = JSON.parse(watch.to_json)
-      Game.from_json saved.to_json
-    end
-
     it "stops with circling where the watch has given up" do
       game, _west, _east, _south = room ItemKind::LightWand, 1_000
-      game = given_up game
+      game = Watching.stuck game
 
       expect(game.explorable?).to be_false
       game.perform Action::Explore.new
       stop = game.events.find(&.is_a?(Event::Stopped))
 
+      expect(stop.as?(Event::Stopped).try &.halt).to eq Halt::Circling
       expect(game.log.last?).to eq "You stop. You keep coming back to the same places."
       expect(stop.to_json).to contain %("halt":"circling")
       expect(game.legal.map &.class).not_to contain Action::Explore
@@ -217,11 +205,12 @@ Spectator.describe Roguelike::Explore::Circling do
 
     it "is offered again once the character stands somewhere else" do
       game, _west, _east, _south = room ItemKind::LightWand, 1_000
-      game = given_up game
+      game = Watching.stuck game
       expect(game.explorable?).to be_false
 
       game.player.move_to 15, 10
       expect(game.explorable?).to be_true
+      expect(game.legal.map &.class).to contain Action::Explore
     end
   end
 
@@ -243,12 +232,12 @@ Spectator.describe Roguelike::Explore::Circling do
   end
 
   describe "a save" do
+    # A room holding *watch*, with three pickups and drops counted.
     def holding(watch : Circling) : Game
       game, _west, _east, _south = room ItemKind::LightWand
       saved = JSON.parse(game.to_json).as_h
-      saved["circling"] = JSON.parse(watch.to_json)
       saved["pack_moves"] = JSON::Any.new(3_i64)
-      Game.from_json saved.to_json
+      Watching.holding Game.from_json(saved.to_json), watch
     end
 
     it "holds the watch and the pack count, and not in the fingerprint" do
