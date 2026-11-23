@@ -27,11 +27,12 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   made them out. Filling the waterskin pauses a moment at the start so you can read it. On a narrow
   screen the floor stays and the rest is cut short. When the walk stops the floor shows alone.
 * The backquote turns hover mode on and off. With it on, the items on the map square under the
-  pointer show in a box beside the pointer instead of in the info panel. The box waits until the
-  pointer has rested on a square for a third of a second, so moving the mouse across the map
-  draws nothing. It sits beside the square, turns to the other side near an edge, and comes down
-  on any key, a click, a turn, a menu or the pointer leaving the map. It is in the modern action
-  catalog as Hover box.
+  pointer show in a box beside the pointer instead of in the info panel. The box's first line names
+  a sconce, door, staircase or fountain on the square, so a square with one of those and no items
+  gets a box too. The box waits until the pointer has rested on a square for a third of a second,
+  so moving the mouse across the map draws nothing. It sits beside the square, turns to the other
+  side near an edge, and comes down on any key, a click, a turn, a menu or the pointer leaving the
+  map. It is in the modern action catalog as Hover box.
 * While `X` explores, the map shows the way to the square it is heading for, in a fainter green
   than a way you draw. It shows only when more than two steps are left, and changes when explore
   changes its mind. When the walk stops it stays a few seconds and then fades. Your own route,

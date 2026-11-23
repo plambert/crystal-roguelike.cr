@@ -264,6 +264,83 @@ Spectator.describe "the hover box" do
     end
   end
 
+  describe "a square with a feature" do
+    # A lit sconce at (1, 2), a fountain at (4, 2) and stairs down at (7, 2).
+    # The character stands at (2, 1).
+    HALL = [
+      "#########",
+      "#.......#",
+      "#!..{..>#",
+      "#.......#",
+      "#########",
+    ]
+
+    def hall : Playing::Run
+      Options.current = Options.new
+      floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
+      player = Roguelike::Player.new "hall", 2, 1, hit_points: 40
+      game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"hall" => floor}), player
+
+      run = Playing.open game, clock: true
+      run.clear_monsters
+      run.play.mousing = true
+      run.press Keys::HOVER
+      run
+    end
+
+    it "shows the sconce alone, with no heading" do
+      run = hall
+
+      rest run, {1, 2}
+
+      expect(up? run).to be_true
+      expect(written run).to eq ["a lit sconce"]
+    end
+
+    it "puts the feature above the heading and the items" do
+      run = hall
+      run.game.floor.drop 1, 2, Item.new(Kind::Dagger)
+
+      rest run, {1, 2}
+
+      expect(written run).to eq ["a lit sconce", "Here", "a dagger"]
+    end
+
+    it "names a fountain and stairs" do
+      run = hall
+
+      rest run, {4, 2}
+      expect(written run).to eq ["a fountain"]
+
+      rest run, {7, 2}
+      expect(written run).to eq ["a staircase down"]
+    end
+
+    it "shows no box on bare floor" do
+      run = hall
+
+      rest run, {3, 3}
+
+      expect(up? run).to be_false
+    end
+
+    it "leaves the panel's own line as it was" do
+      run = hall
+
+      rest run, {1, 2}
+
+      expect(run.examine.what.text).to eq "lit sconce"
+    end
+
+    it "counts the feature line against the rows" do
+      items = (1..9).map { |count| "#{count} arrows" }
+
+      expect(HoverBox.lines(items, "a fountain")).to eq ["a fountain", "Here"] + items.first(5) + ["and 4 more"]
+      expect(HoverBox.lines(items.first(6), "a fountain").size).to eq 8
+      expect(HoverBox.lines([] of String, "a fountain")).to eq ["a fountain"]
+    end
+  end
+
   describe "where the box goes" do
     it "never covers the square and stays on the screen" do
       run = room
