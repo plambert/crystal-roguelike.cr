@@ -47,22 +47,6 @@ share like that. Other creatures share with band members who speak a common lang
 within range or were seen recently, and call out to the rest. Languages are per creature, with
 properties such as silent, sight-based or sound-based, and a clever goblin might speak Orc.
 
-### The oil of resizing
-
-The oil of resizing is applied to a piece of armor that is not made of metal, and it sets that
-armor to the character's size. Metal armor cannot be resized. Armor already has a size of small,
-medium or large, and the character cannot wear armor of another size. Goblins wear small armor, so
-the oil lets the character use armor that goblins drop. The oil follows the naming rule in the
-potions, flasks and oils item below.
-
-### A small shield can be wielded
-
-The character can wield a small shield. Only shields can be worn in a size other than the
-character's. A small shield has a penalty of 1 to armor class for being the wrong size. The penalty
-shows in the shield's tooltip, so an ordinary small shield reads "armor 2 - 1 (wrong size)", or
-something similar. Today armor can be worn only by a wearer of its own size, so a small shield
-cannot be worn at all.
-
 ## Considered
 
 ### Sorting the pack
@@ -365,6 +349,22 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### The oil of resizing
+
+The oil of resizing is the first oil. It sets a piece of armor that is not metal to the character's
+size, so the character can wear the small armor that goblins drop. Chain mail is the only metal
+armor, and shields are wooden. The character applies the oil with `q`, which asks for a target among
+the carried items. The oil is always used up and always identified. Until it is used, it shows as
+a vial of colored oil. 7 in 100 of the potions and scrolls on the floors become an oil, and
+monsters never carry one.
+
+### A small shield can be wielded
+
+The character can wield a shield of the wrong size, such as a small one that a goblin dropped. A
+shield of any other size gives 1 less armor class, large ones too, and its description shows the
+loss, as in "armor 2 - 1 (wrong size)". Monsters follow the same rule. Other armor still fits only
+its own size. Goblins can now carry a shield of the character's size.
 
 ### Thirst, fountains and waterskins
 
