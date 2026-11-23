@@ -10,6 +10,14 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* You can use a shield cut for another size, such as a small one a goblin dropped. It gives one
+  point less armor, and its description shows the loss, as in "armor 2 - 1 (wrong size)". Other
+  armor still fits only its own size. Goblins can now carry a shield of your size the same way.
+* The oil of resizing, the first oil. It turns up in place of some of the potions and scrolls
+  lying about, as a vial of colored oil until you know it. Use it with `q` and pick what to put it
+  on. It cuts a piece of armor that is not metal for you, so you can wear the small armor goblins
+  drop. Chain mail is the one metal armor, and the oil runs off it. The oil is used up either way.
+* The debug console's `spawn` takes a size, as in `spawn small shield`.
 * `/` opens a search panel listing every item you remember on this floor, nearest walk first,
   with how far away each is and how long ago you saw it. Items are named only as well as you made
   them out. Typing narrows the list, and choosing an item shows the way to it on the map without

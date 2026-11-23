@@ -235,10 +235,19 @@ Spectator.describe Roguelike::Items do
       Kind.each do |kind|
         next if kind.item_class.treasure? || kind.item_class.amulet? || kind.item_class.food? ||
                 kind.item_class.remains? || kind.item_class.delicacy? || kind.item_class.reagent? ||
-                kind.item_class.refuse?
+                kind.item_class.refuse? || kind.resizing_oil?
 
         expect(Roguelike::Items::WEIGHTS[kind]?).not_to be_nil
       end
+    end
+
+    it "turns some of the potions and scrolls lying about into oils" do
+      rng = Roguelike::Rng.new 11_u64
+      made = Array.new(2_000) { described_class.oiled rng, Roguelike::Item.new(Kind::IdentifyScroll) }
+      oiled = made.count(&.kind.resizing_oil?)
+
+      expect(oiled).to be_within(60).of(2_000 * Roguelike::Items::OILED // 100)
+      expect(described_class.oiled(rng, Roguelike::Item.new(Kind::Dagger)).kind).to eq Kind::Dagger
     end
 
     it "weights nothing that is placed on its own" do

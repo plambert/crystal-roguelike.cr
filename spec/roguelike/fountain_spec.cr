@@ -331,8 +331,8 @@ Spectator.describe "a fountain" do
       expect(game.events.compact_map(&.as?(Event::Drank)).map(&.paid)).to eq [30]
     end
 
-    it "quenches the same for every kind of potion" do
-      Roguelike::ItemKind.of_class(Roguelike::ItemClass::Potion).each do |kind|
+    it "quenches the same for every kind of potion that is drunk" do
+      Roguelike::ItemKind.of_class(Roguelike::ItemClass::Potion).reject(&.oil?).each do |kind|
         game = hall
         parch game.player.sustenance, 600
         letter = game.player.inventory.add(Roguelike::Item.new(kind))

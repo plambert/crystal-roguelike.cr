@@ -720,10 +720,12 @@ module Roguelike
     # Puts items about *ground* on *rng*.
     #
     # Placement is its own stream, so the loot does not shift when anything
-    # else changes how much it rolls.
+    # else changes how much it rolls. Sizes and oils roll on streams of their
+    # own for the same reason.
     def scatter(rng : Rng, ground : Floor = floor) : Nil
       stream = rng.derive "litter:#{ground.id}"
       sizes = rng.derive "sizes:#{ground.id}"
+      oils = rng.derive "oils:#{ground.id}"
       deep = Game.depth_of ground
       squares = [] of {Int32, Int32}
       ground.each { |column, row, tile| squares << {column, row} if tile.terrain.floor? }
@@ -732,6 +734,7 @@ module Roguelike
       (squares.size * LITTER // 100).times do
         spot = squares.sample stream
         item = stream.rand(4).zero? ? gold(stream, deep) : Items.random(stream, deep)
+        item = Items.oiled oils, item
         cut item, sizes, ground, spot
         ground.drop spot[0], spot[1], item
         supply rng, ground, spot, item
@@ -5474,12 +5477,30 @@ module Roguelike
     # Any potion pays `Sustenance::Tuning::POTION_QUENCH` turns of thirst
     # debt and leaves the skin alone. A `drank` event says so when there was
     # debt to pay.
-    def quaff(letter : Char) : Bool
+    #
+    # An oil is not drunk. It goes on the carried item under *choice*, and
+    # quenches nothing.
+    def quaff(letter : Char, choice : Char? = nil) : Bool
+      return rub(letter, choice) if @player.inventory[letter].try &.kind.oil?
+
       use letter, ItemClass::Potion, "drink" do |item|
         say "You drink #{name item}.",
           with_facts(Event::Used.new(item.id, name(item), :drink), item_facts(item))
         paid = @player.sustenance.quench Sustenance::Tuning::POTION_QUENCH
         record Event::Drank.new(1, "potion", paid) if paid > 0
+      end
+    end
+
+    # Puts the oil under *letter* on the carried item under *choice*.
+    #
+    # The oil is used up whatever it goes on, and the character learns what
+    # it was, as they do with a potion.
+    private def rub(letter : Char, choice : Char?) : Bool
+      target = choice.try { |held| @player.inventory[held] }
+
+      use letter, ItemClass::Potion, "use", choice do |item|
+        line = target ? "You rub #{name item} on #{name target}." : "You pour out #{name item}."
+        say line, with_facts(Event::Used.new(item.id, name(item), :rub), item_facts(item))
       end
     end
 
@@ -5961,6 +5982,7 @@ module Roguelike
       in .haste?           then hurry_up item
       in .slow?            then drag_with item, target
       in .haste_other?     then hurry_with item, target
+      in .resize?          then resize choice
       end
     end
 
@@ -6747,6 +6769,40 @@ module Roguelike
         Event::Anointed.new(1, curse: lifting?(scroll), item: item.id,
           name: name(item))
       settle letter, item
+    end
+
+    # -------------------------------------------------------------- resizing
+
+    # What an oil of resizing does to the carried item under *choice*.
+    #
+    # Armor that is not metal is cut for the character. Metal armor, armor
+    # already the character's size, and anything that is not armor stay as
+    # they were.
+    private def resize(choice : Char?) : Nil
+      item = choice ? @player.inventory[choice] : nil
+      unless item && choice
+        say "The oil soaks into the floor.", Event::Fizzled.new(:no_choice)
+        return
+      end
+
+      told = name item
+      if item.kind.metal?
+        say "The oil runs off the metal of #{told}.",
+          Event::Fizzled.new(:nothing_to_change, item: item.id, name: told)
+        return
+      end
+
+      was = item.size
+      unless item.kind.item_class.armor? && was != Player::SIZE
+        say "Nothing about #{told} changes.",
+          Event::Fizzled.new(:nothing_to_change, item: item.id, name: told)
+        return
+      end
+
+      item.cut_for Player::SIZE
+      say "#{told.capitalize} #{was < Player::SIZE ? "grows" : "shrinks"} to fit you.",
+        Event::Resized.new(item.id, told, was)
+      settle choice, item
     end
 
     # ------------------------------------------------------------- repairing
@@ -7731,7 +7787,11 @@ module Roguelike
         letter = holding action.item, ItemClass::Potion
         return Verdict.refused unless letter
 
-        quaff letter
+        wanted = action.choice
+        choice = wanted ? letter_of(wanted) : nil
+        return Verdict.refused if wanted && (choice.nil? || choice == letter)
+
+        quaff letter, choice
         Verdict.done
       in Action::Read
         reading action
@@ -8271,11 +8331,25 @@ module Roguelike
         legal_readying found, letter, item
 
         case item.kind.item_class
-        when .potion? then found << Action::Quaff.new item.id
+        when .potion? then legal_quaffing found, letter, item
         when .scroll? then legal_reading found, letter, item if readable
         when .wand?   then legal_zapping found, letter, item, aims
         end
       end
+    end
+
+    # Drinking the potion under *letter*, or putting the oil under it on
+    # each other carried item. An oil with nothing else carried is poured
+    # out on nothing.
+    private def legal_quaffing(found : Array(Action), letter : Char,
+                               item : Item) : Nil
+      others = @player.inventory.entries.reject { |held, _other| held == letter }
+      if !item.kind.oil? || others.empty?
+        found << Action::Quaff.new(item.id)
+        return
+      end
+
+      others.each { |_held, other| found << Action::Quaff.new item.id, other.id }
     end
 
     # Throwing *item* at each creature in sight.

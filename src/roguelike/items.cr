@@ -179,6 +179,24 @@ module Roguelike
       {Size::Large, 0},
     }
 
+    # How often a potion or a scroll lying about is an oil of resizing
+    # instead, out of a hundred.
+    OILED = 7
+
+    # The item lying about that *item* is, once *rng* has rolled whether it
+    # is an oil of resizing.
+    #
+    # The oil takes the place of a potion or a scroll rather than having a
+    # weight of its own, so the floor holds the same number of things in the
+    # same places. Only those two classes roll, so the stream moves only for
+    # them. The oil keeps the blessing the item rolled.
+    def self.oiled(rng : Rng, item : Item) : Item
+      return item unless item.kind.item_class.potion? || item.kind.item_class.scroll?
+      return item unless rng.rand(100) < OILED
+
+      Item.new ItemKind::ResizingOil, blessing: item.blessing
+    end
+
     # How near a creature armor lies for it to be cut for that creature.
     NEARBY = 8
 

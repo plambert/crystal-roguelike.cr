@@ -550,12 +550,12 @@ module Roguelike
         item.damage
       end
 
-      # What *item* takes off an attack against whoever wears it. `nil` for
-      # one that is not armor.
+      # What *item* takes off an attack against the character wearing it.
+      # `nil` for one that is not armor.
       def self.guarding(item : Item) : Int32?
         return unless item.kind.item_class.armor?
 
-        item.armor
+        item.armor Player::SIZE
       end
     end
 

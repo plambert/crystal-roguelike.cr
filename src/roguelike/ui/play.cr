@@ -2418,7 +2418,8 @@ module Roguelike::Ui
       end
 
       entries = Handle.values.map do |handle|
-        Widgets::Menu::Entry.new handle.key, handle.label,
+        label = handle.drink? && item.kind.oil? ? "put on something" : handle.label
+        Widgets::Menu::Entry.new handle.key, label,
           enabled: handles?(handle, letter, item)
       end
 
@@ -2957,10 +2958,38 @@ module Roguelike::Ui
       end
     end
 
-    # Drinks the potion under *letter*.
+    # Drinks the potion under *letter*, or asks what the oil under it goes
+    # on.
     private def quaff_at(letter : Char) : Nil
+      return rub_with letter if @game.carried(letter).try &.kind.oil?
+
       id = id_under letter
       @game.perform Action::Quaff.new(id) if id
+    end
+
+    # Asks which carried item the oil under *letter* goes on, then puts it
+    # there.
+    #
+    # Every other carried item is offered, because what an oil does is not
+    # known until it is used. With nothing else carried the oil is poured
+    # out.
+    private def rub_with(letter : Char) : Nil
+      id = id_under letter
+      return unless id
+
+      found = @game.player.inventory.entries.reject { |held, _item| held == letter }
+      if found.empty?
+        @game.perform Action::Quaff.new(id)
+        return
+      end
+
+      choose("Put the oil on what?", found) do |key|
+        next if key.nil? && modern_controls?
+
+        choice = key ? id_under(key) : nil
+        @game.perform Action::Quaff.new(id, choice) if choice
+        refresh
+      end
     end
 
     # Asks which scroll to read, then reads it. `r` does this.

@@ -270,13 +270,18 @@ module Roguelike
       end
     end
 
-    # Drinking a potion. `q` does this.
+    # Drinking a potion, or putting an oil on something. `q` does this.
+    #
+    # *choice* is the carried item an oil goes on. A potion that is drunk
+    # ignores it.
     class Quaff < Action
       getter t : String = "quaff"
 
       getter item : Int32
 
-      def initialize(@item : Int32)
+      getter choice : Int32?
+
+      def initialize(@item : Int32, @choice : Int32? = nil)
       end
     end
 

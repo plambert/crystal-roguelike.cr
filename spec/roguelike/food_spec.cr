@@ -791,7 +791,7 @@ Spectator.describe "food, the food bag and corpses" do
       expect(ItemKind::PutridMass.stacks?).to be_true
       expect(ItemKind::PutridMass.facts.weight).to eq 1
       expect(Food::PUTRID_MASS_VALUE).to eq 0
-      expect(ItemKind.values.last).to eq ItemKind::PutridMass
+      expect(ItemKind.values.select(&.item_class.refuse?)).to eq [ItemKind::PutridMass]
     end
 
     it "takes every spoiling food through stale and rotten to putrid" do

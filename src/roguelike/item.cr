@@ -60,8 +60,8 @@ module Roguelike
 
     # Who a piece of armor is cut for. `nil` is `Size::Medium`.
     #
-    # Armor fits a wearer of its own size and no other. Anything that is not
-    # armor holds `nil`. A save holds the field only when it is not medium,
+    # Armor fits a wearer of its own size and no other, except a shield,
+    # which `#misfit` charges for. Anything that is not armor holds `nil`. A save holds the field only when it is not medium,
     # so an item written before sizes existed loads as medium.
     @size : Size? = nil
 
@@ -303,11 +303,24 @@ module Roguelike
       damage.average / swing_turns
     end
 
-    # What this item takes off an attack against whoever wears it.
-    def armor : Int32
+    # What a shield of the wrong size takes off its own rating.
+    MISFIT = 1
+
+    # What this item takes off an attack against a wearer of size *wearer*.
+    #
+    # `nil` is a wearer it fits, so a shield of the wrong size pays nothing.
+    def armor(wearer : Size? = nil) : Int32
       return 0 unless @kind.item_class.armor?
 
-      Math.max @kind.armor + @enchantment + @condition.modifier, 0
+      Math.max @kind.armor + @enchantment + @condition.modifier - misfit(wearer), 0
+    end
+
+    # What a wearer of size *wearer* loses for wearing this at the wrong
+    # size. Only a shield goes on at another size, and it costs `MISFIT`.
+    def misfit(wearer : Size?) : Int32
+      return 0 unless wearer && @kind.slot.try(&.shield?)
+
+      size == wearer ? 0 : MISFIT
     end
 
     # Who a piece of armor is cut for, or how big a corpse is. Medium for
@@ -328,9 +341,10 @@ module Roguelike
 
     # Whether a wearer of size *wearer* can put this on.
     #
-    # Armor fits one size. Everything else fits anybody.
+    # Armor fits one size. A shield is held rather than worn, so it goes on
+    # at any size for the cost `#misfit` says. Everything else fits anybody.
     def fits?(wearer : Size) : Bool
-      !@kind.item_class.armor? || size == wearer
+      !@kind.item_class.armor? || size == wearer || @kind.slot.try(&.shield?) || false
     end
 
     # How much the whole stack weighs.

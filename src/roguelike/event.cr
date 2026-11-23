@@ -79,6 +79,7 @@ module Roguelike
       "refused"        => Refused,
       "removed"        => Removed,
       "repaired"       => Repaired,
+      "resized"        => Resized,
       "scroll_kept"    => ScrollKept,
       "shot"           => Shot,
       "slain"          => Slain,
@@ -586,6 +587,7 @@ module Roguelike
         Drink
         Read
         Zap
+        Rub
       end
 
       getter kind : String = "used"
@@ -994,6 +996,20 @@ module Roguelike
 
       def initialize(@count : Int32, @item : Int32? = nil,
                      @name : String? = nil)
+      end
+    end
+
+    # A piece of armor an oil of resizing cut for the character.
+    #
+    # *from* is the size it was cut for before.
+    class Resized < Event
+      getter kind : String = "resized"
+
+      getter item : Int32
+      getter name : String
+      getter from : Size
+
+      def initialize(@item : Int32, @name : String, @from : Size)
       end
     end
 

@@ -257,7 +257,7 @@ module Roguelike::Ui
     private def self.worn(item : Item) : Array(String)
       kind = item.kind
       where = kind.slot
-      found = ["armor #{item.armor}"]
+      found = [rating(item)]
       found << "worn on the #{where.to_s.downcase}" if where
       return found << "does not change your pace" unless where.try(&.body?) || where.try(&.shield?)
 
@@ -265,6 +265,15 @@ module Roguelike::Ui
       blow = Costs.blow_drag [item]
       found << (blow > 0 ? "attacks #{Costs.share blow} slower (+#{percent blow}%)" : UNHURRIED)
       found
+    end
+
+    # What a piece of armor takes off an attack on the character. A shield of
+    # the wrong size shows what it loses, as in "armor 2 - 1 (wrong size)".
+    private def self.rating(item : Item) : String
+      lost = item.misfit Player::SIZE
+      return "armor #{item.armor}" if lost.zero? || item.armor.zero?
+
+      "armor #{item.armor} - #{lost} (wrong size)"
     end
 
     # What body armor of class *bulk* does to a step, against a normal turn.
