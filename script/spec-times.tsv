@@ -12,6 +12,7 @@
 0.078	spec/roguelike/chase_spec.cr
 0.001	spec/roguelike/cli_spec.cr
 0.003	spec/roguelike/combat_spec.cr
+12.326	spec/roguelike/conpty_spec.cr
 0.024	spec/roguelike/consumables_spec.cr
 0.008	spec/roguelike/crowding_spec.cr
 0.007	spec/roguelike/cursed_wand_spec.cr
