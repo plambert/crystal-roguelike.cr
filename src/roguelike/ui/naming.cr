@@ -43,6 +43,7 @@ module Roguelike::Ui
       ItemKind::TeleportScroll     => "teleport scroll",
       ItemKind::RepairScroll       => "repair scroll",
       ItemKind::HastePotion        => "haste potion",
+      ItemKind::ResizingOil        => "resizing oil",
       ItemKind::SlowScroll         => "slow scroll",
       ItemKind::HasteScroll        => "haste scroll",
       ItemKind::LightWand          => "light wand",
@@ -151,7 +152,7 @@ module Roguelike::Ui
       return KINDS[kind]? || kind.label unless look
 
       case kind.item_class
-      when .potion? then "#{look} potion"
+      when .potion? then kind.oil? ? "#{look} oil" : "#{look} potion"
       when .wand?   then "#{look} wand"
       when .scroll? then "#{look} scroll"
       else               KINDS[kind]? || kind.label

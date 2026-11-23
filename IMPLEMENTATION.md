@@ -5022,6 +5022,45 @@ at 120 with a modifier of +2 is 5.42, and a dagger at 75 is 6.0.
 | Anywhere, and near an orc | 10 | 90 | 0 |
 | Near a goblin | 60 | 40 | 0 |
 
+### The oil of resizing
+
+* `ItemKind::ResizingOil` is the first oil. It is `ItemClass::Potion`, so every screen that lists
+  potions lists it. `ItemFacts#oil?` marks it. Known, it is "an oil of resizing".
+* An oil's look comes from `Lore::OIL_LOOKS`, a pool of colors of its own: "a vial of green oil".
+  `Lore::POOLS` deals the potions, wands, scrolls and then the oils on the one appearance stream,
+  so the potions keep the looks they had.
+* A save from before the oil has no look for it. `Lore#after_initialize` gives it the first look
+  in its pool nobody has, which is "orange". That rolls nothing.
+* `q` takes the oil like a potion. For an oil, `Ui::Play` asks "Put the oil on what?" and offers
+  every other carried item, since the oil does nothing that shows before it is used.
+  `Action::Quaff` carries the choice as `choice`. `Game#legal` offers one quaff per other carried
+  item. With nothing else carried, the oil is poured out on nothing.
+* The item menu row for drinking reads "put on something" on an oil.
+* The oil is used up whatever it goes on, and the character learns what it is, as with a potion.
+  Its blessing does nothing.
+* `Effect::Resize` cuts armor that is not metal for the character: "Small leather armor grows to
+  fit you." `Event::Resized` records it, with the size it had.
+* Metal armor keeps its size: "The oil runs off the metal of small chain mail." Armor already the
+  character's size and anything that is not armor say "Nothing about ... changes." Both are
+  `Event::Fizzled` with `nothing_to_change`.
+* `ItemFacts#metal?` is the only material. A kind is metal or it is not.
+
+| Kind | Metal |
+| --- | --- |
+| Cap | no |
+| Padded jacket | no |
+| Leather armor | no |
+| Chain mail | yes |
+| Gloves | no |
+| Boots | no |
+| Shield | no, a wooden shield |
+
+* An oil has no weight in `Items::WEIGHTS`. `Items.oiled` turns a potion or a scroll lying about
+  into an oil `Items::OILED` (7) times in a hundred, on the `oils:<floor>` stream. The floor holds
+  the same number of things, with the same ids, so a replay recorded before the oil still plays.
+  The oil keeps the blessing the item rolled. A monster never carries one.
+* The debug console's `spawn` takes a size: `spawn small shield`.
+
 ### Gates and ceilings
 
 Monster starting gear and litter both roll through `Loot.gated` and `Loot.ceiling`, as the floors

@@ -204,7 +204,9 @@ module Roguelike
     power : Dice = Dice::NONE,
     uncountable : Bool = false,
     proper : Bool = false,
-    brittle : Bool = false do
+    brittle : Bool = false,
+    oil : Bool = false,
+    metal : Bool = false do
     # How far a thing nobody made for throwing goes, before its weight is
     # taken off.
     ARM = 10
@@ -265,6 +267,18 @@ module Roguelike
     # Whether one of these wears out from being fired or thrown.
     def brittle? : Bool
       brittle
+    end
+
+    # Whether this potion is an oil, which is put on an item rather than
+    # drunk.
+    def oil? : Bool
+      oil
+    end
+
+    # Whether this armor is made of metal. An oil of resizing does nothing
+    # to metal.
+    def metal? : Bool
+      metal
     end
   end
 
@@ -399,6 +413,9 @@ module Roguelike
     # What spoiled food and a rotted corpse end as. It is `Refuse` and goes
     # in the pack.
     PutridMass
+
+    # Rubbed on armor that is not metal, to cut it for the character.
+    ResizingOil
 
     # What this kind is.
     def facts : ItemFacts
@@ -535,6 +552,16 @@ module Roguelike
       facts.proper?
     end
 
+    # Whether this is an oil, put on an item rather than drunk.
+    def oil? : Bool
+      facts.oil?
+    end
+
+    # Whether this is armor made of metal.
+    def metal? : Bool
+      facts.metal?
+    end
+
     # The key a JSON object uses for this kind.
     #
     # `Lore` holds a `Hash(ItemKind, String)`. A JSON object key has to be a
@@ -596,7 +623,7 @@ module Roguelike
         weight: 100, uncountable: true),
       ItemKind::ChainMail => ItemFacts.new("chain mail", "suits of chain mail",
         ItemClass::Armor, armor: 4, slot: ArmorSlot::Body, bulk: Bulk::Heavy,
-        weight: 300, uncountable: true),
+        weight: 300, uncountable: true, metal: true),
       ItemKind::Gloves => ItemFacts.new("gloves", "pairs of gloves", ItemClass::Armor,
         armor: 1, slot: ArmorSlot::Hands, weight: 10, uncountable: true),
       ItemKind::Boots => ItemFacts.new("boots", "pairs of boots", ItemClass::Armor,
@@ -720,6 +747,9 @@ module Roguelike
         weight: 1),
       ItemKind::PutridMass => ItemFacts.new("putrid mass", "putrid masses", ItemClass::Refuse,
         weight: 1),
+
+      ItemKind::ResizingOil => ItemFacts.new("oil of resizing", "oils of resizing",
+        ItemClass::Potion, weight: 10, effect: Effect::Resize, oil: true),
     }
   end
 end

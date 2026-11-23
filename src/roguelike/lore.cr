@@ -21,6 +21,10 @@ module Roguelike
     POTION_LOOKS = %w[swirly murky bubbling fizzy cloudy smoky golden silver
       ruby emerald inky pearly milky dark bright]
 
+    # What color an oil is. An oil is a potion, but its look is its own, so
+    # adding an oil leaves the color of every potion where it was.
+    OIL_LOOKS = %w[orange amber green blue red yellow violet black brown pink]
+
     # What a wand is made of.
     WAND_LOOKS = %w[oak iron glass bone silver crystal ebony copper bronze
       walnut brass tin]
@@ -50,22 +54,54 @@ module Roguelike
       stream = rng.derive DOMAIN
       table = {} of ItemKind => String
 
-      {
-        {ItemClass::Potion, POTION_LOOKS},
-        {ItemClass::Wand, WAND_LOOKS},
-        {ItemClass::Scroll, SCROLL_LOOKS},
-      }.each do |item_class, pool|
-        kinds = ItemKind.of_class item_class
-        if kinds.size > pool.size
-          raise ArgumentError.new "#{item_class} has #{kinds.size} kinds and " \
-                                  "#{pool.size} looks to disguise them with"
+      POOLS.each do |pool|
+        kinds = pool.kinds
+        if kinds.size > pool.looks.size
+          raise ArgumentError.new "#{pool.name} has #{kinds.size} kinds and " \
+                                  "#{pool.looks.size} looks to disguise them with"
         end
 
-        looks = pool.shuffle stream
+        looks = pool.looks.shuffle stream
         kinds.each_with_index { |kind, index| table[kind] = looks[index] }
       end
 
       new table
+    end
+
+    # One set of disguised kinds and the looks they are dealt from.
+    record Pool, name : String, looks : Array(String), oil : Bool, item_class : ItemClass do
+      # The kinds dealt a look from this pool, in enum order.
+      def kinds : Array(ItemKind)
+        ItemKind.of_class(item_class).select { |kind| kind.oil? == oil }
+      end
+    end
+
+    # The pools in the order `.roll` deals them. Each one shuffles on the
+    # same stream, so a new pool goes last and leaves the others alone.
+    POOLS = [
+      Pool.new("potions", POTION_LOOKS, false, ItemClass::Potion),
+      Pool.new("wands", WAND_LOOKS, false, ItemClass::Wand),
+      Pool.new("scrolls", SCROLL_LOOKS, false, ItemClass::Scroll),
+      Pool.new("oils", OIL_LOOKS, true, ItemClass::Potion),
+    ]
+
+    # Deals a look to any disguised kind a save has none for.
+    #
+    # A save from before a kind existed holds no look for it. The kind takes
+    # the first look in its pool that no other kind has. That rolls nothing,
+    # so loading a save never moves a stream. A lore with no looks at all,
+    # which a floor built by hand for a spec has, is left with none.
+    def after_initialize : Nil
+      return if @appearances.empty?
+
+      POOLS.each do |pool|
+        pool.kinds.each do |kind|
+          next if @appearances.has_key? kind
+
+          taken = @appearances.values.to_set
+          pool.looks.find { |look| !taken.includes? look }.try { |look| @appearances[kind] = look }
+        end
+      end
     end
 
     # What *kind* looks like. `nil` for a kind nobody has to find out.
@@ -185,18 +221,21 @@ module Roguelike
                                blessing : Bool = true) : String
       kind = item.kind
       look = appearance kind
-      noun = if look
-               case kind.item_class
-               when .potion? then plural ? "#{look} potions" : "#{look} potion"
-               when .wand?   then plural ? "#{look} wands" : "#{look} wand"
-               when .scroll? then plural ? "scrolls #{look}" : "scroll #{look}"
-               else               plural ? kind.plural : kind.label
-               end
-             else
-               plural ? kind.plural : kind.label
-             end
+      noun = look ? looking(kind, look, plural) : (plural ? kind.plural : kind.label)
 
       blessing && item.blessing_known? ? "#{item.blessing.label} #{noun}" : noun
+    end
+
+    # What one or several of *kind* that look like *look* are called.
+    private def looking(kind : ItemKind, look : String, plural : Bool) : String
+      return (plural ? "vials of #{look} oil" : "vial of #{look} oil") if kind.oil?
+
+      case kind.item_class
+      when .potion? then plural ? "#{look} potions" : "#{look} potion"
+      when .wand?   then plural ? "#{look} wands" : "#{look} wand"
+      when .scroll? then plural ? "scrolls #{look}" : "scroll #{look}"
+      else               plural ? kind.plural : kind.label
+      end
     end
 
     # What *item* is called by somebody who made out its kind and no more.

@@ -22,6 +22,13 @@ module Roguelike
       "mwk"        => Condition::Masterwork,
     }
 
+    # The words that cut a piece of armor for another size.
+    SIZES = {
+      "small"  => Size::Small,
+      "medium" => Size::Medium,
+      "large"  => Size::Large,
+    }
+
     # The word that sets a torch or a candle alight.
     ALIGHT = "lit"
 
@@ -29,10 +36,11 @@ module Roguelike
     #
     # The parts come in this order and each one may be left out:
     #
-    #     [count] [blessing] [condition] [+N] [lit] <kind>
+    #     [count] [blessing] [condition] [+N] [lit] [size] <kind>
     #
     # So `+1 bow`, `mwk sh sword`, `12 +1 arrow`, `cursed chain mail`,
-    # `lit torch` and `pot heal` all name something.
+    # `lit torch`, `small shield` and `pot heal` all name something. A size
+    # means nothing on anything but armor.
     #
     # Nothing here rolls. An enchantment nobody typed is zero rather than one
     # drawn from `Items::ENCHANTMENTS`, so spawning an item leaves every
@@ -46,6 +54,7 @@ module Roguelike
       condition = take CONDITIONS, left
       enchantment = take_enchantment left
       lit = take_alight left
+      size = take SIZES, left
 
       found = kinds left
       return "nothing is called #{left.join ' '}." if found.empty?
@@ -53,7 +62,7 @@ module Roguelike
 
       Item.new found.first, enchantment || 0, condition || Condition::Plain,
         count || 1, blessing: blessing || Blessing::Uncursed,
-        blessing_known: !blessing.nil?, lit: lit
+        blessing_known: !blessing.nil?, lit: lit, size: size || Size::Medium
     end
 
     # Every kind *words* could name.

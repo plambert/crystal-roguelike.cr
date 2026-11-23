@@ -63,6 +63,9 @@ module Roguelike
     # Hurries a creature, or the reader.
     HasteOther
 
+    # Cuts one carried piece of armor that is not metal for the character.
+    Resize
+
     # Whether using this needs a square to aim at.
     #
     # A wand of striking is aimed before it is used. A scroll that needs a
