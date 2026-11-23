@@ -7561,12 +7561,18 @@ moved to `~` to free the key.
 * `Ui::HoverBox` is a `Tooltip` with its own placement. It is a second box, so the sidebar rows
   keep theirs.
 * `ExaminePane#items` holds the names the `Look` list writes, each at the character's regard for
-  that item. The box writes a `Here` heading and one item to a line. Past seven items it names six
-  and says how many more.
+  that item. The box writes a `Here` heading and one item to a line.
+* `ExaminePane#feature` names a fixture, a spiked door, a door, a staircase or a fountain on the
+  square, with its article. It reads the floor for a seen square and the memory for a remembered
+  one. Plain floor, rock, an unseen square and a backlit shape have none. The box writes it above
+  the heading. The panel's own line for the square does not change.
+* A square with a feature and no items gets a box with the feature line alone.
+* The box has eight rows, the feature line among them. With no feature it names up to seven
+  items, and past that six and how many more. With a feature it names one fewer.
 * `ExaminePane#items_away` hides the list in the panel. `Examiner` sets it while hover mode is on
   and the readout follows the pointer. A square under the examine cursor keeps its list in the
   panel and gets no box.
-* A square with nothing on it gets no box. Sidebar rows keep their own boxes.
+* A square with no feature and no items gets no box. Sidebar rows keep their own boxes.
 
 ### When it shows
 

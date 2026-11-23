@@ -4236,7 +4236,7 @@ module Roguelike::Ui
       return unless @dwell_turn == @game.turn && @pointer.spot == cell
       return unless @examiner.spot && @map.cell_at_screen(*cell) == @examiner.spot
 
-      @hover_box.show_at app, @screen.map, cell, @examine.items
+      @hover_box.show_at app, @screen.map, cell, @examine.items, @examine.feature
     end
 
     # Takes the hover box down once a turn has passed since the pointer came
