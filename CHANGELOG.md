@@ -10,6 +10,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* You can use a shield cut for another size, such as a small one a goblin dropped. It gives one
+  point less armor, and its description shows the loss, as in "armor 2 - 1 (wrong size)". Other
+  armor still fits only its own size. Goblins can now carry a shield of your size the same way.
 * `/` opens a search panel listing every item you remember on this floor, nearest walk first,
   with how far away each is and how long ago you saw it. Items are named only as well as you made
   them out. Typing narrows the list, and choosing an item shows the way to it on the map without

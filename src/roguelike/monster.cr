@@ -375,7 +375,7 @@ module Roguelike
     # Where it would ready *item*. `nil` for anything it would not.
     #
     # A kind that does not `Kind#wields?` readies nothing. Armor cut for
-    # another size does not go on. A wand goes in the ranged hand of a kind
+    # another size does not go on, except a shield. A wand goes in the ranged hand of a kind
     # that casts, and nowhere for any other.
     def slot_for(item : Item) : Slot?
       return unless kind.wields?
@@ -451,7 +451,7 @@ module Roguelike
       when .wand?
         item.kind.effect.strike? && !item.spent? && (held.nil? || held.spent?)
       when .armor?
-        held.nil? || item.armor > held.armor
+        held.nil? || item.armor(kind.size) > held.armor(kind.size)
       when .melee?
         Player.swung?(item) && offense(item) > offense(wielded)
       when .ranged_weapon?, .ammunition?
@@ -487,7 +487,7 @@ module Roguelike
     # Its kind's hide, plus the armor it wears, plus the dexterity modifier,
     # never below zero.
     def armor_class : Int32
-      hide = kind.armor + worn.sum(&.armor) +
+      hide = kind.armor + worn.sum(&.armor(kind.size)) +
              @attributes.modifier(Attributes::Which::Dexterity)
 
       Math.max hide, 0

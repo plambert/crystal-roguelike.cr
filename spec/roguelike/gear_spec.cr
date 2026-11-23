@@ -169,6 +169,58 @@ Spectator.describe "what a monster wields and wears" do
     end
   end
 
+  describe "a shield of the wrong size" do
+    def holding(size : Size) : {Game, Char}
+      game = caged Monster.new(Kind::WhiteSlime, 9, 1, "band-one")
+      letter = game.player.inventory.add Item.new(ItemKind::Shield, size: size)
+      raise "the pack is full" unless letter
+
+      {game, letter}
+    end
+
+    it "goes on at a point less armor" do
+      game, letter = holding Size::Small
+      bare = game.player.armor_class
+
+      expect(game.wear letter).to be_true
+      expect(game.player.armor_class).to eq bare + 1
+    end
+
+    it "costs a large one the same point" do
+      game, letter = holding Size::Large
+      bare = game.player.armor_class
+
+      expect(game.wear letter).to be_true
+      expect(game.player.armor_class).to eq bare + 1
+    end
+
+    it "is offered as something to wear" do
+      game, letter = holding Size::Small
+      id = game.player.inventory[letter].try &.id
+
+      wear = game.legal.select(Roguelike::Action::Wear)
+      expect(wear.any? { |action| action.item == id }).to be_true
+    end
+
+    it "shows the point it loses" do
+      game, letter = holding Size::Small
+      item = game.player.inventory[letter] || raise "no shield"
+
+      expect(Roguelike::Ui::Detail.about game, item).to contain "armor 2 - 1 (wrong size)"
+      expect(Roguelike::Ui::Detail.about game, Item.new(ItemKind::Shield)).to contain "armor 2"
+    end
+
+    it "goes on a goblin at a point less armor" do
+      fitted = Monster.new Kind::GoblinWarrior, 3, 1, "band-one"
+      fitted.outfit [Item.new(ItemKind::Shield, size: Size::Small)]
+      goblin = Monster.new Kind::GoblinWarrior, 3, 1, "band-one"
+      goblin.outfit [Item.new(ItemKind::Shield)]
+
+      expect(goblin.in_slot Slot::Shield).not_to be_nil
+      expect(goblin.armor_class).to eq fitted.armor_class - 1
+    end
+  end
+
   describe "picking things up" do
     it "takes up a better weapon and drops the one it held" do
       goblin = Monster.new Kind::GoblinScout, 9, 1, "band-one"

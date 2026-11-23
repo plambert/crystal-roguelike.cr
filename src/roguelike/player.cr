@@ -242,10 +242,11 @@ module Roguelike
     # How much an attack against this character is reduced by.
     #
     # Higher is better. It is what is worn, plus the dexterity modifier, and
-    # it never goes below zero. Each piece already carries its enchantment and
-    # its condition, which `Item#armor` works in.
+    # it never goes below zero. Each piece already carries its enchantment,
+    # its condition and the cost of a shield of the wrong size, which
+    # `Item#armor` works in.
     def armor_class : Int32
-      total = worn.sum { |_slot, item| item.armor }
+      total = worn.sum { |_slot, item| item.armor SIZE }
 
       Math.max total + worn_attributes.modifier(Attributes::Which::Dexterity), 0
     end

@@ -4992,12 +4992,21 @@ at 120 with a modifier of +2 is 5.42, and a dagger at 75 is 6.0.
 
 * `Item` has a size. It is `nil` in the object for medium and for anything that is not armor, so a
   save holds the field only on small and large armor. An item written before sizes loads as medium.
-* `Item#fits?(size)` is true for anything that is not armor, and for armor of that size.
+* `Item#fits?(size)` is true for anything that is not armor, for armor of that size, and for a
+  shield of any size.
+* A shield of the wrong size loses `Item::MISFIT`, one point, from its rating. `Item#armor` takes
+  the wearer's size and `Item#misfit` says what it loses. The character, a creature and the bot's
+  observation all pass the wearer's size. A plain small shield gives the character 1 rather than 2.
+* A large shield on a medium wearer loses the same point. The penalty is for any wrong size, so a
+  large kind needs no new rule.
+* The tooltip shows the loss as "armor 2 - 1 (wrong size)". A shield that rates 0 shows "armor 0"
+  alone.
 * `Size` is the creature size the silhouettes already use. Goblins are small, and the character
   (`Player::SIZE`) and orcs are medium. The armor an orc starts with or picks up is medium, so the
   character can wear it, and an orc and the character want the same armor.
-* `Game#wear` refuses armor of another size: "You cannot wear small leather armor, which was made
-  for somebody smaller." `Event::Refused` carries `wrong_size`. `Game#legal` offers no wear for it.
+* `Game#wear` refuses armor of another size, except a shield: "You cannot wear small leather
+  armor, which was made for somebody smaller." `Event::Refused` carries `wrong_size`. `Game#legal`
+  offers no wear for it.
 * `Lore#name` puts the size before the kind when it is not medium: "a small cap", "large chain
   mail".
 * `Loot.for` cuts armor for the creature it is rolled for. That rolls nothing.
@@ -5005,8 +5014,8 @@ at 120 with a modifier of +2 is 5.42, and a dagger at 75 is 6.0.
   everything else on a floor lies where it lay before. `Items.sizes_at` picks the table from the
   nearest goblin or orc within eight squares. An orc is medium, so armor near one rolls on the
   table for anywhere.
-* No kind is large, so no armor is cut large. `Size::Large` and the refusal to wear armor of
-  another size stay, so a large kind needs only a row here.
+* No kind is large, so no armor is cut large. `Size::Large`, the refusal to wear armor of another
+  size and the shield's penalty stay, so a large kind needs only a row here.
 
 | Where | Small | Medium | Large |
 | --- | --- | --- | --- |
