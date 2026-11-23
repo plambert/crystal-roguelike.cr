@@ -280,13 +280,10 @@ end
 
 File.write FAILURES, failed_locations.join { |location| "#{location}\n" }
 
-# A run of the whole suite replaces the table, so deleted files leave it.
+# Files that ran replace their times. A file that ran nothing here, such as a
+# spec for another platform, keeps its time, and a deleted file leaves.
 if save_times
-  if selected.empty?
-    times.clear
-  else
-    times.reject! { |file, _| files.includes?(file) }
-  end
+  times.select! { |file, _| File.exists?(file) }
   shards.each do |shard|
     shard.report.try &.["seconds"].as_h.each { |file, seconds| times[file] = seconds.as_f.round(3) }
   end
