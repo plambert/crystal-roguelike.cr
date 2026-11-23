@@ -61,6 +61,12 @@ module Roguelike::Ui
     # writes them. Empty when nothing is listed.
     getter items : Array(String) = [] of String
 
+    # What stands on the square or what the square is, when that is worth a
+    # line of its own: a fixture, a door, a staircase or a fountain. Named with
+    # its article, as the hover box writes it. `nil` for plain floor, rock, a
+    # square never seen and a shape against the light.
+    getter feature : String? = nil
+
     # Whether the list of items is kept out of the pane. The hover box shows
     # it beside the pointer instead.
     getter? items_away : Bool = false
@@ -184,6 +190,7 @@ module Roguelike::Ui
         @detail.text = terrain.description
       end
 
+      @feature = ExaminePane.feature fitting, terrain, floor.spiked?(x, y)
       pile = floor.items x, y
       list pile.map { |item| {item, regard.try(&.call item) || Regard::Everything} }, lore
     end
@@ -202,6 +209,7 @@ module Roguelike::Ui
       @doing.hidden = true
       @arms.text = ""
       @arms.hidden = true
+      @feature = nil
       unlist
     end
 
@@ -215,6 +223,7 @@ module Roguelike::Ui
       @doing.hidden = true
       @arms.text = ""
       @arms.hidden = true
+      @feature = nil
       unlist
 
       unless memory
@@ -228,6 +237,7 @@ module Roguelike::Ui
       @what.text = fitting ? fitting.label : remembered_terrain(memory)
       @what.style = Style::DEFAULT.faint
       @detail.text = REMEMBERED
+      @feature = ExaminePane.feature fitting, memory.terrain, memory.spiked?
 
       pile = memory.items.map { |remembered| {remembered.item, remembered.regard} }
       return if pile.empty?
@@ -294,6 +304,22 @@ module Roguelike::Ui
       "It #{Lore.listing clauses}."
     end
 
+    # The feature line for a square holding *fitting* on *terrain*, or `nil`
+    # when there is nothing to name. *spiked* says a shut door there has a
+    # spike in it.
+    def self.feature(fitting : Fixture?, terrain : Terrain, spiked : Bool) : String?
+      label = if fitting
+                fitting.label
+              elsif terrain.closed_door? && spiked
+                SPIKED
+              elsif terrain.door? || terrain.stairs? || terrain.fountain?
+                terrain.label
+              end
+      return unless label
+
+      "#{Lore.article label} #{label}"
+    end
+
     # Puts the pane back to the state before anything was looked at.
     def clear : Nil
       @where.text = ""
@@ -307,6 +333,7 @@ module Roguelike::Ui
       @doing.hidden = true
       @arms.text = ""
       @arms.hidden = true
+      @feature = nil
       unlist
       self.aiming = nil
     end

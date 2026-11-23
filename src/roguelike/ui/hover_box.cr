@@ -1,7 +1,8 @@
 require "../../crystal-roguelike"
 
 module Roguelike::Ui
-  # The items on one map square, in a box beside the pointer.
+  # What stands on one map square and the items lying there, in a box beside
+  # the pointer.
   #
   # Hover mode puts it up in place of the list in the info panel. `Play`
   # decides when it goes up and when it comes down. This class decides what
@@ -12,12 +13,8 @@ module Roguelike::Ui
   # side has room it goes below the square, or above it. It is moved up or
   # down to stay on the screen.
   class HoverBox < Tooltip
-    # What the first line says.
+    # What the line above the items says.
     HEADING = "Here"
-
-    # The most items it names. A pile with more names this many and says how
-    # many are left.
-    MOST_ITEMS = MOST_LINES - 2
 
     # The columns left clear between the square and the box.
     GAP = 1
@@ -39,13 +36,21 @@ module Roguelike::Ui
     # down for good. So it does not come back when the modal box goes.
     property held_back : Proc(Bool)? = nil
 
-    # The lines for *items*: a heading, then one item to a line. Empty when
-    # there are no items, which puts no box up.
-    def self.lines(items : Array(String)) : Array(String)
-      return [] of String if items.empty?
-      return [HEADING] + items if items.size < MOST_LINES
+    # The lines for *feature* and *items*. The feature comes first, then a
+    # heading and one item to a line. The heading is left out when there are
+    # no items. Empty when there is neither, which puts no box up.
+    #
+    # The lines fit in `MOST_LINES`, the feature line among them. A pile too
+    # long for the rest names one fewer item and says how many are left.
+    def self.lines(items : Array(String), feature : String? = nil) : Array(String)
+      top = feature ? [feature] : [] of String
+      return top if items.empty?
 
-      [HEADING] + items.first(MOST_ITEMS) + ["and #{items.size - MOST_ITEMS} more"]
+      room = MOST_LINES - top.size - 1
+      return top + [HEADING] + items if items.size <= room
+
+      named = room - 1
+      top + [HEADING] + items.first(named) + ["and #{items.size - named} more"]
     end
 
     # The width and height of a box holding *lines*.
@@ -81,11 +86,11 @@ module Roguelike::Ui
       Math.max top, screen.y
     end
 
-    # Puts *items* up beside *cell*, pinned to *map*. Takes the box down when
-    # there are none.
+    # Puts *feature* and *items* up beside *cell*, pinned to *map*. Takes the
+    # box down when there is neither.
     def show_at(app : Widgets::App, map : Widgets::Widget, cell : {Int32, Int32},
-                items : Array(String)) : Nil
-      lines = HoverBox.lines items
+                items : Array(String), feature : String? = nil) : Nil
+      lines = HoverBox.lines items, feature
       return hide if lines.empty?
 
       @size = HoverBox.size lines, app.tree.policy
