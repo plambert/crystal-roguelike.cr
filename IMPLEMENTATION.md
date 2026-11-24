@@ -7781,6 +7781,119 @@ The modern scheme uses `r`. The traditional scheme uses `=`, because letters pic
 Sorting is display only. No action, save field or bot protocol changes, and the golden fixtures
 do not move.
 
+## Item rules and automatic pickup
+
+What the character picks up without being asked is an ordered list of rules. The list and its
+editor know nothing about pickup, so a later list that hides or highlights items, or one for the
+food bag, uses both as they are.
+
+### The model
+
+`src/roguelike/item_filter.cr`, no terminal in it.
+
+| Type | Holds |
+| --- | --- |
+| `ItemFilter::List(O)` | The rules in order, and `otherwise`, the outcome when none matches |
+| `ItemFilter::Rule(O)` | A `Group` or none, a list of `Test`, and an outcome |
+| `ItemFilter::Test` | A `Trait` and whether the rule wants it to hold |
+| `ItemFilter::Group` | The sort of item: gold, food, melee weapon, armor, potion and so on |
+| `ItemFilter::Trait` | Dropped, KnownCursed, KnownBlessed, Identified, Stacks, Quiver, Spoiled, Better |
+| `ItemFilter::Facts` | The answers to each trait for one character, from what they know |
+
+* `O` is an enum the user of the list chooses. `Pickup::Outcome` is Take and Leave.
+* `List#verdict` gives the outcome of the first rule that matches.
+* `Facts#holds?` answers `true`, `false` or `nil`. `nil` means the character cannot tell, and a
+  rule that asks then does not match, whichever way it asks.
+* A rule reads an item only through `Facts`. A blessing shows only when `Item#blessing_known?`,
+  and a kind only when `Lore#known?`.
+* `Group` and `Trait` members are only added at the end. JSON holds the member name.
+* A list is valid with at most `ItemFilter::LIMIT` rules and no rule that asks a trait twice.
+
+A rule is written `{"class":"food","when":["!spoiled"],"then":"take"}`, and a list
+`{"rules":[...],"else":"leave"}`. `class` and `when` are left out when they say nothing.
+
+### Better
+
+`Appraisal.better?` is the one place two items are compared. It answers for a melee weapon and
+for armor, and `nil` for anything else.
+
+* A melee weapon is better when its `Item#damage_per_turn` is more than that of the weapon in
+  the hand, or more than bare hands.
+* Armor is better when `Item#armor` for the character's size is more than that of the piece in
+  its slot, or more than nothing. That counts `Item::MISFIT` for a shield of the wrong size.
+* Armor that does not fit is not better. A thing known to be cursed is not better.
+* A kind the character has not identified gives `nil`, for the item and for what it is compared
+  with. Weapons and armor are never disguised today, so every one of them compares.
+* A blessing is left out. It adds to a swing landing and to nothing the character is shown.
+
+### Pickup
+
+`Pickup.default` is the list a run has until it is configured.
+
+| Rule | Outcome |
+| --- | --- |
+| Any gold | take |
+| Anything you put down | leave |
+| Any food that has spoiled | leave |
+| Any food | take |
+| Anything your quiver holds | take |
+| Anything that stacks with what you carry | take |
+| Anything else | leave |
+
+`Game#auto_takes` asks the list and then what can be carried. Food goes in the food bag while
+the bag has room, a corpse and refuse food are never taken, and anything else needs a letter in
+the pack. `Game#take_coins` asks the list about gold. `Game#walking` turns off the explore
+setting `gold` when the list leaves gold, so an explore does not walk to it.
+
+### Decisions about pickup
+
+* **Game state.** `Game#pickup_rules` holds the list. It is `nil` for the default, so a save and a
+  fingerprint are as they were, an older save loads, and the golden replay verifies unchanged.
+* **A field on `Action::Configure`.** `{"t":"configure","pickup":{...}}` replaces the list whole.
+  A line without the field leaves the list alone. It takes no turn, a list that is not valid
+  refuses it, and it clears the explore plan.
+* **`options.json` holds the starting list.** `Options#pickup` is what a new character starts
+  with, sent as a `configure` when it differs from the default. A list in the file that does not
+  read is the default, and the other options are kept.
+* **Play edits the character.** As on the explore page, the editor changes the character during
+  play and `options.json` from the title screen. A change in play does not write the file.
+* **Limits are not rules.** Room in the pack and the food bag, and never taking a corpse, are
+  what can be carried and stay outside the list.
+* **The protocol gains one optional field.** A bot that sends no `pickup` sees no change.
+
+### The editor
+
+* `TermBuf::Widgets::ListEditor(T)`, in `termbuf_ext/list_editor.cr`, is an ordered list of rows
+  of any type. It adds, removes, moves and hands a row over to be edited, and reports the rows
+  after each change. It has no game types in it.
+* `Ui::FilterEditor(O)` is an overlay with a `ListEditor` of rules, and a form under it for the
+  outcome when no rule matches, a row that adds a rule, and a row that resets the list.
+* `Ui::RuleEditor(O)` is the overlay `Enter` on a rule opens. A menu chooses the sort of item, a
+  three-way choice per trait says yes, no or either, and a choice sets the outcome.
+* `O` answers `#label` with the word a row ends with. The traits offered are a parameter.
+* The options screen has a "Pickup rules" row under Game that opens a `FilterEditor` of
+  `Pickup::Outcome`.
+
+| Key | Does |
+| --- | --- |
+| `Up` `Down`, and `k` `j` or `w` `s` | Move the highlight, and on to the rows under the rules |
+| `Enter` `Space`, and `f` in the modern scheme | Edit the rule |
+| `+` `Insert` | Add a rule after the highlight and open it |
+| `-` `Delete` `Backspace` | Remove the rule |
+| `[` `]` | Move the rule up or down |
+| `Tab` `Shift+Tab` | Between the rules and the rows under them |
+| `Escape` | Back |
+
+### The next lists
+
+* A list that hides or highlights items is `ItemFilter::List` of an enum such as Normal, Hide
+  and Highlight. The map and the log ask `#verdict` with the same `Facts`, and
+  `FilterEditor` of that enum edits it. A list that only changes drawing lives in `options.json`
+  and needs no action. One that changes where explore walks goes on the `Game` as pickup does.
+* A list for the food bag is `ItemFilter::List` of its own enum. Traits it needs, such as one
+  for food that has been bitten, are added at the end of `Trait`, and the editor is given the
+  traits that make sense for it.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
@@ -7790,15 +7903,11 @@ they were raised, not in the order they should be done.
 
 The list should be sorted by how far each creature is from the character.
 
-### An options screen, and a pickup filter
+### More for a pickup rule to ask
 
-Player preferences need somewhere to live. One of them is what to pick up without being asked.
-Rather than a switch for gold, it is an ordered list of rules: gold only, by default, and a person
-can add rules like "never pick up a cursed item", "pick up anything better than what I have",
-"never pick up a worse weapon", "always pick up anything worth more than 100 gold". What a rule can
-say is its own design question.
-
-Another preference: whether a bar's color comes from the gradient or from the fixed bands.
+The pickup rules are built. Two of the rules first asked for cannot be written yet: "never pick up
+a worse weapon", and "always pick up anything worth more than 100 gold". The second needs items to
+have a worth.
 
 ### A minimap
 

@@ -5,12 +5,12 @@
  #│                                │ │
  #│ Game                           │ │
  #│ Update check ☑                 │ │
- #│ Send runs    ☐                 █ │
+ #│ Send runs    ☐                 │ │
  #│ Explore      Enter to edit     █ │
+  │ Pickup rules Enter to edit     █ │
   │                                █ │
-  │ Tester                         █ │
-──│ Name         anonymous         █ │──
- Y│ The name that labels your        │
- s│ uploaded runs                    │
+──│ Tester                         █ │──
+ Y│ Name         anonymous         █ │
+ s│ The name that labels your        │
  Y╰──────────────────────────────────╯f
  minor healing. Press ? for the keys.

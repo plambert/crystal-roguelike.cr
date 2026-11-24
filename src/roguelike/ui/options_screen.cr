@@ -22,6 +22,11 @@ module Roguelike::Ui
   # new character starts with, in `options.json`. During play it shows the
   # character's own settings, and each change goes to `#on_explore`, which
   # sends it to the run as an `Action::Configure` the replay log records.
+  #
+  # The rules of automatic pickup work the same way. The "Pickup rules" row
+  # opens a `FilterEditor` over this screen. From the title screen it edits
+  # the rules a new character starts with, and during play the character's
+  # own, through `#on_pickup`.
   class OptionsScreen < Widgets::Overlay
     # What the border says.
     TITLE = "Options"
@@ -65,6 +70,15 @@ module Roguelike::Ui
     # The setting the explore row follows.
     GAME_LAST = "autosubmit"
 
+    # The key of the row that opens the rules of automatic pickup.
+    PICKUP_KEY = "pickup"
+
+    # What that row says, and what the border of its editor says.
+    PICKUP_TITLE = "Pickup rules"
+
+    # The line over the rules in that editor.
+    PICKUP_INTRO = "The first rule that matches an item decides."
+
     # Which settings a screen shows.
     enum Page
       # Every setting but the explore settings, and a row that opens them.
@@ -94,6 +108,18 @@ module Roguelike::Ui
     # play. `nil` on the title screen, where they edit the options.
     getter explore : Explore::Settings? = nil
 
+    # Runs after each change to the rules of automatic pickup during play,
+    # with the character's rules as they now stand.
+    property on_pickup : Proc(Pickup::Rules, Nil)? = nil
+
+    # The character's rules of automatic pickup, which the editor shows
+    # during play. `nil` on the title screen, where it edits the options.
+    getter pickup : Pickup::Rules? = nil
+
+    # The editor of the rules of automatic pickup, which the "Pickup rules"
+    # row opens over the screen.
+    getter pickup_editor : FilterEditor(Pickup::Outcome)
+
     # The form showing, rebuilt each time the screen opens.
     getter form : Widgets::Form
 
@@ -121,6 +147,7 @@ module Roguelike::Ui
       @form = OptionsScreen.form_for @options, Tester::ANONYMOUS, page: @page
       @help = Help.new
       @theme_editor = ThemeEditor.new @root
+      @pickup_editor = FilterEditor(Pickup::Outcome).new PICKUP_TITLE, PICKUP_INTRO, Pickup.default
       @control_setup = ControlSchemeSetup.new @root
 
       super modal: true, backdrop: true, light_dismiss: false, z: z
@@ -144,12 +171,15 @@ module Roguelike::Ui
     # The tester name is read from the state directory, since it is kept in
     # `tester.json` rather than with the options.
     #
-    # *explore* is the character's explore settings during play, and `nil`
-    # on the title screen.
+    # *explore* is the character's explore settings during play, and
+    # *pickup* their rules of automatic pickup. Both are `nil` on the title
+    # screen.
     def show(app : Widgets::App, options : Options,
-             explore : Explore::Settings? = nil) : Nil
+             explore : Explore::Settings? = nil,
+             pickup : Pickup::Rules? = nil) : Nil
       @options = options
       @explore = explore
+      @pickup = pickup
       remove @form
       @form = OptionsScreen.form_for options, Options.name(@root), explore, @page
       @form.attach app
@@ -184,7 +214,8 @@ module Roguelike::Ui
     # The form for *options*, a section for each heading in
     # `Options::SETTINGS` that *page* shows, with *name* in the tester's
     # row. The row that opens the theme editor ends the Display section, and
-    # the row that opens the explore page ends the Game section.
+    # the rows that open the explore page and the rules of automatic pickup
+    # end the Game section.
     #
     # A key a flag set for this run carries a note naming the flag. The
     # explore rows show *explore* when it is given.
@@ -220,6 +251,8 @@ module Roguelike::Ui
         if setting.key == GAME_LAST
           form.section(setting.section).action EXPLORE_KEY, EXPLORE_TITLE, hint: THEME_HINT,
             help: "Choose where X walks and what stops it"
+          form.section(setting.section).action PICKUP_KEY, PICKUP_TITLE, hint: THEME_HINT,
+            help: "Choose what you pick up as you walk"
         end
 
         if setting.key == "control_scheme"
@@ -263,6 +296,7 @@ module Roguelike::Ui
     def refit(screen : Rect) : Nil
       fit_into screen if showing?
       @theme_editor.refit screen
+      @pickup_editor.refit screen
       @explore_page.try &.refit(screen)
     end
 
@@ -288,6 +322,29 @@ module Roguelike::Ui
       @explore_page
     end
 
+    # Puts the rules of automatic pickup up over the screen. They are the
+    # character's own during play, and the options' otherwise.
+    def show_pickup_editor(app : Widgets::App) : Nil
+      @pickup_editor.on_change = ->(rules : Pickup::Rules) { keep_pickup rules; nil }
+      @pickup_editor.show app, @pickup || @options.pickup, modern_controls?
+    end
+
+    # Keeps *rules*. During play they go to the run through `#on_pickup`.
+    # Otherwise they are written to the options as what a new character
+    # starts with.
+    private def keep_pickup(rules : Pickup::Rules) : Nil
+      if @pickup
+        @pickup = rules
+        @on_pickup.try &.call(rules)
+        return
+      end
+
+      @options.pickup = rules
+      Options.current = @options
+      @options.write @root
+      @on_change.try &.call(@options)
+    end
+
     # Puts the theme editor up over the screen.
     def show_theme_editor(app : Widgets::App) : Nil
       @theme_editor.show app
@@ -298,6 +355,7 @@ module Roguelike::Ui
       return unless open?
 
       @theme_editor.dismiss
+      @pickup_editor.dismiss
       @explore_page.try &.dismiss
       @help.close_with nil if @help.open?
       self.keymap = nil
@@ -365,27 +423,28 @@ module Roguelike::Ui
         return
       end
 
-      if event.is_a?(Widgets::Form::Activated) && event.key == THEME_KEY
+      if event.is_a?(Widgets::Form::Activated) && activated(event.key)
         context.consume
-        app = @app
-        show_theme_editor app if app
-        return
-      end
-
-      if event.is_a?(Widgets::Form::Activated) && event.key == EXPLORE_KEY
-        context.consume
-        app = @app
-        show_explore_page app if app
-        return
-      end
-
-      if event.is_a?(Widgets::Form::Activated) && event.key == CONTROLS_KEY
-        context.consume
-        compare_controls
         return
       end
 
       super
+    end
+
+    # Opens what the action row under *key* opens. Answers whether *key* is
+    # one of this screen's action rows.
+    private def activated(key : String) : Bool
+      app = @app
+
+      case key
+      when THEME_KEY    then show_theme_editor app if app
+      when EXPLORE_KEY  then show_explore_page app if app
+      when PICKUP_KEY   then show_pickup_editor app if app
+      when CONTROLS_KEY then compare_controls
+      else                   return false
+      end
+
+      true
     end
 
     # Keeps *value* under *key* and applies it.

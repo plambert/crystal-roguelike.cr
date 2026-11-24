@@ -67,9 +67,9 @@ module Roguelike
 
     # Whether the character put this pile down.
     #
-    # Automatic pickup leaves such a pile alone, so an explore does not walk
-    # back for what was just set down. Picking it up by hand clears it. A save
-    # holds the field only when it is set.
+    # The default rules of automatic pickup leave such a pile alone, so an
+    # explore does not walk back for what was just set down. Picking it up by
+    # hand clears it. A save holds the field only when it is set.
     @dropped : Bool? = nil
 
     # How many turns old a food that spoils is. `nil` for anything else. A
