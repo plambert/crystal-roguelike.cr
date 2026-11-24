@@ -30,6 +30,37 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
       Roguelike::Player.new("hall", 3, 5)
   end
 
+  # Two lit rooms with solid rock between them. The character stands in
+  # the left one and cannot see into the right one.
+  SPLIT = ["##############################",
+           "#.........##########.........#",
+           "#.........##########.........#",
+           "#.........##########.........#",
+           "#.........##########.........#",
+           "#.........##########.........#",
+           "#.........##########.........#",
+           "#.........##########.........#",
+           "##############################"]
+
+  def split : Roguelike::Game
+    floor = Roguelike::Floor.parse "split", SPLIT.join('\n')
+    floor.ambient = 1
+
+    Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"split" => floor}),
+      Roguelike::Player.new("split", 3, 5)
+  end
+
+  # Reads a blessed scroll of minor teleport through `Game#perform`, so its
+  # question is up, after the character has looked around.
+  def waiting_teleport(game : Roguelike::Game) : Nil
+    game.look
+    letter = reading game, Kind::TeleportScroll, Blessing::Blessed
+    game.enroll
+    id = game.player.inventory[letter].try(&.id) || raise "no scroll"
+    game.perform Roguelike::Action::Read.new(id)
+    raise "no question" unless game.asking
+  end
+
   def reading(game : Roguelike::Game, kind : Kind,
               blessing : Blessing = Blessing::Uncursed) : Char
     letter = game.player.inventory.add Item.new(kind, blessing: blessing)
@@ -443,6 +474,7 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
 
     it "puts them where they chose when it is blessed" do
       game = bare
+      game.look
       scroll = game.start_aiming_read reading(game, Kind::TeleportScroll,
         Blessing::Blessed)
       raise "no scroll" unless scroll
@@ -463,6 +495,96 @@ Spectator.describe "the scrolls that detect, darken, blind and move" do
 
       expect(game.player.at).to eq before
       expect(game.log.last?.to_s).to contain "nowhere to go"
+    end
+
+    it "puts them on a far square they remember when it is blessed" do
+      game = split
+      game.player.knowledge.remember 25, 5, Roguelike::Memory.new(Roguelike::Terrain::StoneFloor)
+      waiting_teleport game
+
+      expect(game.perform(Roguelike::Action::Aim.new({25, 5})).allowed).to be_true
+
+      expect(game.player.at).to eq({25, 5})
+      expect(game.asking).to be_nil
+    end
+
+    it "fizzles at ground the character has never seen when it is blessed" do
+      game = split
+      before = game.player.at
+      waiting_teleport game
+      expect(game.knowledge.seen? 25, 5).to be_false
+
+      game.perform Roguelike::Action::Aim.new({25, 5})
+
+      expect(game.player.at).to eq before
+      expect(game.asking).to be_nil
+      expect(game.log.last?.to_s).to contain "nowhere to go"
+    end
+
+    it "fizzles at a remembered square a creature stands on when it is blessed" do
+      game = bare
+      before = game.player.at
+      game.floor.place Monster.new(Species::Slime, 18, 2, "band-one")
+      waiting_teleport game
+
+      game.perform Roguelike::Action::Aim.new({18, 2})
+
+      expect(game.player.at).to eq before
+      expect(game.log.last?.to_s).to contain "nowhere to go"
+    end
+
+    it "fizzles at a remembered wall when it is blessed" do
+      game = split
+      before = game.player.at
+      waiting_teleport game
+      expect(game.knowledge[10, 5].try &.terrain.passable?).to be_false
+
+      game.perform Roguelike::Action::Aim.new({10, 5})
+
+      expect(game.player.at).to eq before
+      expect(game.log.last?.to_s).to contain "nowhere to go"
+    end
+
+    it "fizzles at a square off the floor when it is blessed" do
+      game = bare
+      before = game.player.at
+      waiting_teleport game
+
+      game.perform Roguelike::Action::Aim.new({-4, 300})
+
+      expect(game.player.at).to eq before
+      expect(game.log.last?.to_s).to contain "nowhere to go"
+    end
+
+    it "offers only creatures and no square while it waits" do
+      game = bare
+      slime = Monster.new Species::Slime, 18, 2, "band-one"
+      game.floor.place slime
+      waiting_teleport game
+
+      expect(game.legal.map(&.to_json)).to eq [
+        Roguelike::Action::Aim.new(slime.at).to_json,
+        Roguelike::Action::Aim.new.to_json,
+      ]
+    end
+
+    it "ignores a chosen square when it is not blessed" do
+      {Blessing::Uncursed, Blessing::Cursed}.each do |blessing|
+        aimed = bare
+        plain = bare
+        {aimed, plain}.each do |game|
+          game.floor.place Monster.new(Species::Orc, 18, 8, "band-two")
+        end
+
+        scroll = aimed.start_aiming_read reading(aimed, Kind::TeleportScroll, blessing)
+        raise "no scroll" unless scroll
+        aimed.aim_reading scroll, {18, 2}
+
+        plain.read reading(plain, Kind::TeleportScroll, blessing)
+
+        expect(aimed.player.at).to eq plain.player.at
+        expect(aimed.player.at).not_to eq({18, 2})
+      end
     end
 
     it "puts them beside the worst thing on the floor when it is cursed" do

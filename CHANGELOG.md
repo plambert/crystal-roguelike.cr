@@ -342,6 +342,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The detail box beside a menu row goes away when the menu closes, however it closes. Before,
   leaving the modern pick-up list with Escape left the box for the last row on the screen until
   the pointer moved.
+* A blessed scroll of minor teleport only takes you to a square you have seen. Aimed at a square
+  you have never seen, it fades with nowhere to go, as it does at a wall. Before, it took you
+  there whenever the hidden ground was open. A bot may aim it at any square it has seen, not
+  only at the creatures the legal actions list.
 
 ## [0.7.0] - 2026-10-28
 
