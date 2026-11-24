@@ -346,6 +346,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   you have never seen, it fades with nowhere to go, as it does at a wall. Before, it took you
   there whenever the hidden ground was open. A bot may aim it at any square it has seen, not
   only at the creatures the legal actions list.
+* The armor a goblin always wears, such as a goblin fighter's small chain mail, can be cursed or
+  blessed and can carry a plus or a minus, as other armor can. Before, it was always plain and
+  uncursed, so nearly every chain mail in the dungeon was safe to put on.
 
 ## [0.7.0] - 2026-10-28
 
