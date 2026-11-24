@@ -122,7 +122,7 @@ Spectator.describe "a fountain" do
     end
 
     it "uses the bands the design gives" do
-      expect(Roguelike::Sustenance::Tuning::FOUNTAINS).to eq({2..4 => {75, 3}, 5..7 => {25, nil}, 8..10 => {45, 4}})
+      expect(Roguelike::Sustenance::Tuning::FOUNTAINS).to eq({2..4 => {75, 3}, 5..7 => {25, 2}, 8..10 => {45, 4}})
     end
 
     it "is on the share of each floor the bands work out to" do
@@ -133,7 +133,7 @@ Spectator.describe "a fountain" do
 
       expected = expected_shares
       expect(expected[2]).to be_within(0.01).of(75.0)
-      expect(expected[5]).to be_within(1.0).of(25.0)
+      expect(expected[5]).to be_within(1.0).of(29.7)
       Generator::WATERED.each do |depth|
         expect(wet[depth] * 100.0 / SEEDS).to be_within(1.0).of(expected[depth]), "floor #{depth}"
       end
@@ -153,9 +153,22 @@ Spectator.describe "a fountain" do
       expect(certain).to be > 0
     end
 
-    it "can leave floors 5 to 7 all dry, because they have no certainty" do
-      dry = all_watered.count(&.[4..6].none?)
-      expect(dry).to be > 0
+    it "always has one on floors 5 to 7 after two dry floors directly above" do
+      certain = 0
+      all_watered.each_with_index do |flags, index|
+        seed = index + 1
+        (5..7).each do |depth|
+          next unless flags[depth - 3...depth - 1].none?
+
+          certain += 1
+          expect(flags[depth - 1]).to be_true, "seed #{seed} floor #{depth}"
+        end
+      end
+      expect(certain).to be > 0
+    end
+
+    it "never leaves floors 5 to 7 all dry" do
+      expect(all_watered.count(&.[4..6].none?)).to eq 0
     end
 
     it "puts one fountain in a room of each floor that has one, and none elsewhere" do

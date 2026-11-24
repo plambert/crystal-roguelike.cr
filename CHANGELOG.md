@@ -316,6 +316,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   very rare +5 on floor 10. Cursed items lean toward a minus as before.
 * A scroll of magic mapping shows the fountains on the floor as well as the walls, so you can
   find water. It still never shows the stairs.
+* Floors 5 to 7 never go more than two floors in a row without a fountain, so one of them
+  always has water.
 
 ### Fixed
 

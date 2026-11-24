@@ -7234,14 +7234,29 @@ included.
 | --- | ---: | --- |
 | 1 | always | |
 | 2 to 4 | 75 | 3 dry floors |
-| 5 to 7 | 25 | never |
+| 5 to 7 | 25 | 2 dry floors |
 | 8 to 10 | 45 | 4 dry floors |
 
 * Floor 1 is always wet, so floors 2 to 4 can never have three dry floors above them. Their
   certainty never comes into play.
 * **Rate.** Worked from floor 1 through the dry count, each floor's chance is 75% on floors 2 to 4,
-  25% on floors 5 to 7, and 45% on floor 8. Floors 9 and 10 rise a little above 45% from the
-  certainty after four dry floors.
+  about 30% on floor 5, 36% on floor 6, 56% on floor 7 and 45% on floor 8. Floors 9 and 10 rise a
+  little above 45% from the certainty after four dry floors.
+* **Floors 5 to 7.** They had no certainty at first, and a playtest save went from floor 5 to
+  floor 8 without water. Over 100,000 seeds, 42% of runs had floors 5 to 7 all dry, 17% had 5 to 8
+  all dry, and 37% had a dry run of four floors or more somewhere. With a certainty of two, no run
+  has 5 to 7 all dry and 10% have a dry run of four, all of it on floors 8 to 10. A run has 4.85
+  wet floors among floors 2 to 10, up from 4.53.
+
+| Longest dry run | Without certainty | Certain after 2 |
+| ---: | ---: | ---: |
+| 1 or none | 9.5% | 9.5% |
+| 2 | 26.8% | 62.7% |
+| 3 | 27.1% | 18.2% |
+| 4 | 33.7% | 9.6% |
+| 5 | 2.2% | 0% |
+| 6 | 0.7% | 0% |
+
 * **Placement on floor 1.** The fountain goes on a bare square of the up staircase's own zone at
   most `Generator::NEAR` = 6 steps from the staircase, walking through doors. When that zone has
   no such square, it goes on the bare square of any zone fewest steps away. Over 2,000 seeds every
