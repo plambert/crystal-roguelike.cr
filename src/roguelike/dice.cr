@@ -66,6 +66,12 @@ module Roguelike
       Dice.new @count, @sides, @bonus + amount
     end
 
+    # The dice thrown *times* over, bonus and all. The average is *times*
+    # the average.
+    def times(times : Int32) : Dice
+      Dice.new @count * times, @sides, @bonus * times
+    end
+
     # Whether a throw can only give nothing.
     def none? : Bool
       @count.zero? && @bonus.zero?

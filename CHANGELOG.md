@@ -311,6 +311,18 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The map shows the most interesting item on a pile rather than the one on top. Magic comes
   first, then weapons and armor, then tools, light, gold and food, and a putrid mass or a
   corpse never hides a spear.
+* Golems guard a post. A stone or iron golem stands in a doorway or a corridor and sleeps there
+  through anything it sees or hears. It wakes when you step beside it or hit it.
+* A golem woken by a shot, a thrown thing or a bolt launches itself at you with surprising speed
+  for a few turns.
+* An awake golem follows you round corners, searches for you when it loses sight of you, and
+  breaks a shut door down in two to four blows. About eight steps from its post it gives up,
+  walks back, and goes to sleep there. It pays no heed to you on the way back, and it never heals,
+  so you can wear one down over several trips.
+* Golems walk more slowly, so you can get away from one even in chain mail, and they see you
+  from further off once they are awake.
+* A wand of striking is the bane of an iron golem. Its bolts hit an iron golem far more often
+  and do three times the damage.
 
 ### Fixed
 
@@ -346,9 +358,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   you have never seen, it fades with nowhere to go, as it does at a wall. Before, it took you
   there whenever the hidden ground was open. A bot may aim it at any square it has seen, not
   only at the creatures the legal actions list.
-* Golems, slimes, jellies and gelatinous cubes come through a doorway at you when you stand off to
-  one side of it in the room. Before, one standing in the corridor outside stopped there for as
-  long as you stayed off to the side, and you could shoot it without it coming nearer.
+* The armor a goblin always wears, such as a goblin fighter's small chain mail, can be cursed or
+  blessed and can carry a plus or a minus, as other armor can. Before, it was always plain and
+  uncursed, so nearly every chain mail in the dungeon was safe to put on.
 
 ## [0.7.0] - 2026-10-28
 

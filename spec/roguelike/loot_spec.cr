@@ -86,6 +86,21 @@ Spectator.describe Roguelike::Loot do
         expect(weapons).to be <= 1
       end
     end
+
+    # A curse comes up 5 times in 100. Over `ROLLS` pieces that lands
+    # within one of 5 nearly every time. Each creature has a stream of its
+    # own, as `Game#equip` gives it.
+    it "curses the body armor a kind always wears as often as anything else" do
+      [Creature::GoblinWarrior, Creature::GoblinScout, Creature::GoblinSkirmisher].each do |creature|
+        root = Rng.new(SEED)
+        worn = Array.new(ROLLS) { |which| Loot.for(creature, root.derive("garb:#{creature}:#{which}"), 4).first }
+        cursed = worn.count(&.cursed?) * 100.0 / ROLLS
+
+        expect(worn.all?(&.kind.item_class.armor?)).to be_true
+        expect(cursed).to be_within(1.0).of(5.0)
+        expect(worn.max_of(&.enchantment)).to be <= Loot.ceiling(4)
+      end
+    end
   end
 
   describe "the share of healing potions that are minor" do

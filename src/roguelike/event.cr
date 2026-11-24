@@ -63,6 +63,7 @@ module Roguelike
       "identified_all" => IdentifiedAll,
       "interrupted"    => Interrupted,
       "kindled"        => Kindled,
+      "launched"       => Launched,
       "learned"        => Learned,
       "level_up"       => LevelUp,
       "lights_out"     => LightsOut,
@@ -193,28 +194,36 @@ module Roguelike
       end
     end
 
-    # A blow the character landed on the shut door at *at*.
+    # A blow landed on the shut door at *at*.
     #
     # *damage* is what it took off. A door's hit points are on the screen,
-    # so the event may carry them.
+    # so the event may carry them. *by* is the creature that struck it when
+    # the character can see it. *unseen* says a creature they cannot see
+    # struck it. Neither is set for the character's own blow.
     class DoorStruck < Event
       getter kind : String = "door_struck"
 
       getter at : {Int32, Int32}
       getter damage : Int32
+      getter by : Int32?
+      getter? unseen : Bool = false
 
-      def initialize(@at : {Int32, Int32}, @damage : Int32)
+      def initialize(@at : {Int32, Int32}, @damage : Int32, @by : Int32? = nil,
+                     @unseen : Bool = false)
       end
     end
 
-    # The door at *at* broke under the character's blows. The square is a
-    # broken doorway now.
+    # The door at *at* broke. The square is a broken doorway now.
+    #
+    # *by* and *unseen* say who broke it, as they do for `DoorStruck`.
     class DoorBroken < Event
       getter kind : String = "door_broken"
 
       getter at : {Int32, Int32}
+      getter by : Int32?
+      getter? unseen : Bool = false
 
-      def initialize(@at : {Int32, Int32})
+      def initialize(@at : {Int32, Int32}, @by : Int32? = nil, @unseen : Bool = false)
       end
     end
 
@@ -942,6 +951,21 @@ module Roguelike
       getter kind : String = "looming"
 
       def initialize
+      end
+    end
+
+    # A guard woken by a shot threw itself at the character, far faster
+    # than it walks.
+    #
+    # *creature* and *species* name it, when the character can see it. Both
+    # are `nil` when the character only heard it.
+    class Launched < Event
+      getter kind : String = "launched"
+
+      getter creature : Int32?
+      getter species : String?
+
+      def initialize(@creature : Int32? = nil, @species : String? = nil)
       end
     end
 

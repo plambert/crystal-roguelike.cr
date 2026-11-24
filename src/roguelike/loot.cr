@@ -320,9 +320,10 @@ module Roguelike
     # Armor comes out cut for the creature's own size. That rolls nothing.
     #
     # The body armor a kind always wears, its `Kind#garb`, comes first and
-    # plain. It rolls nothing either, so what else the creature carries is
-    # what it carried before it had any. A kind in `GARBS` rolls its body
-    # armor there instead, before anything else.
+    # plain. A kind in `GARBS` rolls its body armor there instead, before
+    # anything else. Either piece rolls its blessing and enchantment on a
+    # stream derived for it, so what else the creature carries is what it
+    # carried before its armor could be cursed.
     #
     # The weapon comes first, so `Monster#outfit` readies it before anything
     # else that wants the hand.
@@ -330,11 +331,12 @@ module Roguelike
       found = [] of Item
       size = kind.size
 
+      worn = rng.derive "garb"
       garb = as_kind(kind).garb
-      found << Item.new(garb, size: size) if garb
+      found << dressed(worn, garb, Condition::Plain, size, depth) if garb
       GARBS[as_kind(kind)]?.try do |garbs|
         piece, condition = Items.pick rng, garbs
-        found << Item.new(piece, condition: condition, size: size)
+        found << dressed(worn, piece, condition, size, depth)
       end
 
       draws(kind).each do |draw|
@@ -363,6 +365,20 @@ module Roguelike
       plus = rng.rand(100) < fletched(depth) ? 1 : 0
 
       [weapon, Item.new(ammunition, plus, count: count)]
+    end
+
+    # The body armor *piece*, cut for *size*, with its blessing and
+    # enchantment rolled on *rng*.
+    #
+    # The two roll the way they do on anything lying about. A plus is capped
+    # at what the floor at *depth* allows.
+    private def self.dressed(rng : Rng, piece : ItemKind, condition : Condition,
+                             size : Size, depth : Int32?) : Item
+      blessing = Items.pick rng, Items::BLESSINGS
+      enchantment = Items.pick rng, Items.enchantments_for(blessing)
+      depth.try { |deep| enchantment = Math.min enchantment, ceiling(deep) }
+
+      Item.new piece, enchantment, condition, blessing: blessing, size: size
     end
 
     # The kind *kind* stands for.
