@@ -128,6 +128,14 @@ module Roguelike
     # writes out the bytes it wrote before splitting existed.
     @bud : Int32? = nil
 
+    # The square it guards, for a kind that `Kind#guards?`. `nil` for any
+    # other kind, which then writes what it wrote before guards existed.
+    #
+    # It is where the creature was placed. A guard from a save written
+    # before this field existed takes the square it stands on when the save
+    # loads.
+    getter home : {Int32, Int32}? = nil
+
     def initialize(kind : Kind, @x : Int32, @y : Int32,
                    @band : String,
                    hit_points : Int32? = nil,
@@ -141,6 +149,7 @@ module Roguelike
       @hit_points = hit_points || @max_hit_points
       @attributes = attributes || kind.attributes
       @pace = Pace.new kind.speed
+      @home = {@x, @y} if kind.guards?
     end
 
     # A creature of *species*' default kind.
@@ -159,6 +168,17 @@ module Roguelike
       @kind ||= @species.default
       @max_hit_points = kind.hit_points if @max_hit_points <= 0
       @pace.base = kind.speed
+      @home ||= {@x, @y} if kind.guards?
+    end
+
+    # Makes the square it stands on the one it guards.
+    def post_here : Nil
+      @home = at
+    end
+
+    # Whether it stands on the square it guards.
+    def home? : Bool
+      @home == at
     end
 
     # Which kind of its species it is.
@@ -625,7 +645,8 @@ module Roguelike
       @hit_points == other.hit_points && @max_hit_points == other.max_hit_points &&
         @attributes.to_a == other.attributes.to_a && @memory == other.memory &&
         @carrying == other.carrying && gear == other.gear &&
-        @mending == other.mending && @fleeing == other.fleeing? && bud == other.bud
+        @mending == other.mending && @fleeing == other.fleeing? && bud == other.bud &&
+        @home == other.home
     end
 
     def to_s(io : IO) : Nil

@@ -61,6 +61,10 @@ module Roguelike
     # What food adds to the speed. A save holds it only while it is set.
     @boost : Int32? = nil
 
+    # What a haste adds on top of `HASTE` while it lasts. A save holds it
+    # only while it is set. `#launch` sets it.
+    @surge : Int32? = nil
+
     # A new pace at *base*, with one action already paid for.
     #
     # An actor starts ready. One that started empty would lose a tick to its
@@ -71,7 +75,7 @@ module Roguelike
     # What this actor gains in a tick as it stands, with *less* taken off.
     def speed(less : Int32 = 0) : Int32
       found = @base - less + boost
-      found += HASTE if hurried?
+      found += HASTE + surge if hurried?
       found -= SLOW if dragging?
 
       found.clamp LEAST, MOST
@@ -86,6 +90,11 @@ module Roguelike
     def boost=(amount : Int32) : Int32
       @boost = amount.zero? ? nil : amount
       amount
+    end
+
+    # What the haste running now adds on top of `HASTE`.
+    def surge : Int32
+      @surge || 0
     end
 
     # Whether an action has been paid for.
@@ -135,6 +144,15 @@ module Roguelike
       @hasted += ticks
     end
 
+    # Hurries this actor by *surge* more than a haste does, for *ticks*.
+    #
+    # A golem woken by a shot does this. The surge ends with the haste, and
+    # a second one replaces the first rather than adding to it.
+    def launch(ticks : Int32, surge : Int32) : Nil
+      @hasted += ticks
+      @surge = surge
+    end
+
     # Holds it back for *ticks* more.
     def drag(ticks : Int32) : Nil
       @slowed += ticks
@@ -144,12 +162,14 @@ module Roguelike
     def settle : Nil
       @hasted = 0
       @slowed = 0
+      @surge = nil
     end
 
     # Counts the two timers down one tick.
     def pass : Nil
       @hasted -= 1 if @hasted > 0
       @slowed -= 1 if @slowed > 0
+      @surge = nil unless hurried?
     end
 
     # How many actions this actor takes while a normal one takes *actions*.
@@ -165,6 +185,7 @@ module Roguelike
       io << "Pace(" << speed
       io << " energy=" << @energy
       io << " hasted=" << @hasted if hurried?
+      io << " surge=" << surge if surge > 0
       io << " slowed=" << @slowed if dragging?
       io << ')'
     end

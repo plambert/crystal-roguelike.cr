@@ -51,7 +51,8 @@ module Roguelike
     # Makes *sound* on the floor the character is on.
     #
     # Every band with a member the sound reaches hears it. A band asleep
-    # wakes and searches. A band awake writes down where the sound came
+    # wakes and searches. A guard hears nothing unless it is already after
+    # something. A band awake writes down where the sound came
     # from and goes to look. What it writes down is where the character is
     # believed to be, and where the creature that made the sound is when the
     # band is hostile to it.
@@ -86,6 +87,7 @@ module Roguelike
       heard = {} of String => Monster
       floor.each_monster do |column, row, creature|
         next if creature.same? sound.creature
+        next if creature.kind.guards? && !fighting?(creature)
         next unless Noise.hears? reach, {column, row}
 
         heard[creature.band] ||= creature

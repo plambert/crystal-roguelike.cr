@@ -311,6 +311,18 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The map shows the most interesting item on a pile rather than the one on top. Magic comes
   first, then weapons and armor, then tools, light, gold and food, and a putrid mass or a
   corpse never hides a spear.
+* Golems guard a post. A stone or iron golem stands in a doorway or a corridor and sleeps there
+  through anything it sees or hears. It wakes when you step beside it or hit it.
+* A golem woken by a shot, a thrown thing or a bolt launches itself at you with surprising speed
+  for a few turns.
+* An awake golem follows you round corners, searches for you when it loses sight of you, and
+  breaks a shut door down in two to four blows. About eight steps from its post it gives up,
+  walks back, and goes to sleep there. It pays no heed to you on the way back, and it never heals,
+  so you can wear one down over several trips.
+* Golems walk more slowly, so you can get away from one even in chain mail, and they see you
+  from further off once they are awake.
+* A wand of striking is the bane of an iron golem. Its bolts hit an iron golem far more often
+  and do three times the damage.
 
 ### Fixed
 

@@ -2856,7 +2856,7 @@ module Roguelike
             fight_facts(nil, creature, weapon, launcher, damage, blow))
       end
 
-      wake creature if creature.alive?
+      wake creature, ranged: true if creature.alive?
       blow
     end
 
@@ -2899,6 +2899,12 @@ module Roguelike
         while creature.pace.ready?
           break if over?
           break unless floor.monster(creature.x, creature.y).try &.same?(creature)
+          break unless awake? creature
+
+          if guarding = keep_post(creature)
+            creature.pace.spend guarding
+            next
+          end
 
           nerve creature
 
@@ -2985,7 +2991,8 @@ module Roguelike
       maps
     end
 
-    # Every band on this floor whose members all open doors.
+    # Every band on this floor whose members all open doors, or break them
+    # down.
     #
     # Such a band paths through a door it remembers as shut. A band with one
     # member that cannot would leave it behind at the first door.
@@ -2994,7 +3001,7 @@ module Roguelike
       cannot = Set(String).new
 
       floor.each_monster do |_column, _row, creature|
-        (creature.kind.opens_doors? ? opens : cannot) << creature.band
+        (passes_doors?(creature) ? opens : cannot) << creature.band
       end
 
       opens - cannot
@@ -3022,7 +3029,7 @@ module Roguelike
         quarry: quarry.try(&.at),
         stale: quarry.try(&.age(@turn)) || 0,
         descent: descent,
-        doors: creature.kind.opens_doors?,
+        doors: passes_doors?(creature),
         blocked: blocked(creature, quarry),
         stumble: stumbles?(creature),
         fleeing: creature.fleeing?,
@@ -3248,9 +3255,7 @@ module Roguelike
 
       case action.intent
       in .wait? then Costs::TURN
-      in .step?
-        walk_creature creature, wanted
-        creature.stride
+      in .step? then step_creature creature, wanted
       in .shut?
         creature_shuts creature, wanted
         Costs::TURN
@@ -3293,12 +3298,13 @@ module Roguelike
     # Gives every hurt creature on the floor a hit point every `RECOVERY`
     # turns. Nothing is rolled, and nothing is said. A running creature that
     # has come back above half stops running, whether or not its band is
-    # still awake to see it.
+    # still awake to see it. A kind that does not `Kind#heals?` stays as
+    # hurt as it is.
     private def creatures_recover : Nil
       return unless (@turn % RECOVERY).zero?
 
       floor.each_monster do |_column, _row, creature|
-        creature.heal 1 if creature.hurt?
+        creature.heal 1 if creature.hurt? && creature.kind.heals?
         creature.rally if creature.fleeing? && creature.steadied?
       end
     end
@@ -3557,6 +3563,12 @@ module Roguelike
       floor.awareness(creature).awake?
     end
 
+    # Whether the band *creature* belongs to is after something. A guard
+    # walking back to its post is awake and is not.
+    private def fighting?(creature : Monster) : Bool
+      floor.awareness(creature).fighting?
+    end
+
     # Every creature standing next to the character.
     #
     # In the order `Direction` names them, so one turn plays out the same way
@@ -3607,7 +3619,7 @@ module Roguelike
     # one is fighting them.
     private def besets?(spot : {Int32, Int32}) : Bool
       other = floor.monster spot[0], spot[1]
-      !other.nil? && other.alive? && awake?(other)
+      !other.nil? && other.alive? && fighting?(other)
     end
 
     # Whether a creature on *spot* is fighting *target* alongside the
@@ -3617,7 +3629,7 @@ module Roguelike
     # the faction table, so that test is the only one.
     private def against?(spot : {Int32, Int32}, target : Monster) : Bool
       other = floor.monster spot[0], spot[1]
-      return false unless other && other.alive? && awake?(other)
+      return false unless other && other.alive? && fighting?(other)
 
       hostile? other, target
     end
@@ -4114,7 +4126,8 @@ module Roguelike
 
       return unless band.awareness.alert? && knowledge.sightings.empty?
 
-      band.awareness = Awareness::Asleep
+      guard = guard_of band
+      band.awareness = guard && !guard.home? ? Awareness::Returning : Awareness::Asleep
     end
 
     # How many turns *band* goes on looking after it has lost its quarry.
@@ -4323,14 +4336,24 @@ module Roguelike
 
       floor.each_monster do |column, row, creature|
         next if found.has_key? creature.band
-        next if creature.blind?
-        next unless Notice.notices? creature.kind, stealth, light,
-                      {column, row}, @player.at, seen.field.includes?(column, row)
+
+        if creature.kind.guards? && !fighting?(creature)
+          next unless asleep?(creature) && Notice.touching?(creature.at, @player.at)
+        else
+          next if creature.blind?
+          next unless Notice.notices? creature.kind, stealth, light,
+                        {column, row}, @player.at, seen.field.includes?(column, row)
+        end
 
         found[creature.band] = creature
       end
 
       found
+    end
+
+    # Whether the band *creature* belongs to is asleep.
+    private def asleep?(creature : Monster) : Bool
+      floor.awareness(creature).asleep?
     end
 
     # What the log says the first time the character sees the orc warlord.
@@ -4370,14 +4393,20 @@ module Roguelike
     # It writes down where the blow came from as well. Being hit in the dark
     # says which side the character is on, and a band with nowhere to go
     # would give up the turn after it woke.
-    private def wake(creature : Monster) : Nil
+    #
+    # A guard walking back to its post pays a blow no heed. A guard woken by
+    # a *ranged* blow throws itself at the character. See `#launch`.
+    private def wake(creature : Monster, ranged : Bool = false) : Nil
       band = floor.band creature.band
       return unless band
+      return if band.awareness.returning?
 
       band.knowledge(floor.id).saw Knowledge::PLAYER, @player.x, @player.y, @turn
       return if band.awake?
 
       band.awareness = Awareness::Hunting
+      return launch creature if ranged && creature.kind.guards?
+
       say "The #{creature.label} notices you.",
         Event::Noticed.new(creature.id, creature.label)
     end
@@ -4697,11 +4726,22 @@ module Roguelike
       Step::Struck
     end
 
-    # Breaks in the door on *spot*.
+    # The character breaks in the door on *spot*.
+    #
+    # The character's map stops barring the square.
+    private def smash(spot : {Int32, Int32}) : Nil
+      fell_door spot
+      handled spot
+      say "The door breaks!", Event::DoorBroken.new(spot)
+      make_noise Noise::Sound.new(spot, :door_broken, character: @player.at)
+    end
+
+    # Takes the door out of the doorway on *spot*.
     #
     # The doorway stays with no door in it. A spike in the door falls on the
-    # side it was driven from. The character's map stops barring the square.
-    private def smash(spot : {Int32, Int32}) : Nil
+    # side it was driven from. The character stops breaking down a door that
+    # is gone.
+    private def fell_door(spot : {Int32, Int32}) : Nil
       floor.set spot[0], spot[1], Terrain::BrokenDoor
       floor.mend_door spot[0], spot[1]
 
@@ -4712,10 +4752,7 @@ module Roguelike
         floor.drop far[0], far[1], held.item
       end
 
-      @forcing = nil
-      handled spot
-      say "The door breaks!", Event::DoorBroken.new(spot)
-      make_noise Noise::Sound.new(spot, :door_broken, character: @player.at)
+      @forcing = nil if forcing? spot
     end
 
     # Gives up the door target once it no longer stands.
@@ -7118,10 +7155,20 @@ module Roguelike
       say "Light floods out and stays.", Event::FloorLit.new(squares)
     end
 
+    # What a bolt adds to its aim at a creature it is the `Kind#weakness`
+    # of.
+    WEAK_AIM = 10
+
+    # How many times its dice a bolt does to a creature it is the
+    # `Kind#weakness` of.
+    WEAK_HARM = 3
+
     # Sends a bolt at *target*.
     #
     # It flies the way an arrow flies and stops at the first thing in the
-    # line. Nothing is left on the floor afterwards.
+    # line. Nothing is left on the floor afterwards. A creature whose
+    # weakness the wand is takes it far worse. See `WEAK_AIM` and
+    # `WEAK_HARM`.
     private def bolt(item : Item, target : {Int32, Int32}?) : Nil
       unless target
         say "The bolt goes nowhere.", Event::Fizzled.new(:no_target)
@@ -7134,7 +7181,10 @@ module Roguelike
       struck = floor.monster spot[0], spot[1]
 
       if struck
-        hit struck, "bolt", @player.to_zap, item.kind.power, item
+        weak = struck.kind.weakness == item.kind.effect
+        aim = weak ? @player.to_zap + WEAK_AIM : @player.to_zap
+        power = weak ? item.kind.power.times(WEAK_HARM) : item.kind.power
+        hit struck, "bolt", aim, power, item
       else
         say "The bolt strikes the #{floor.terrain(spot[0], spot[1]).label}.",
           Event::BoltStopped.new(spot, floor.terrain(spot[0], spot[1]).label)

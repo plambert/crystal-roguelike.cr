@@ -7894,6 +7894,61 @@ setting `gold` when the list leaves gold, so an explore does not walk to it.
   for food that has been bitten, are added at the end of `Trait`, and the editor is given the
   traits that make sense for it.
 
+## Golems guard their posts
+
+A golem holds one square, sleeps on it, and chases only a short way from it. A slime, a jelly and
+a gelatinous cube still walk straight at what they are after and wait when rock is in the way, so
+the character can shoot one from round a corner.
+
+### Placing
+
+* `Kind#leash` above zero makes a kind a guard. Both golems have `Kinds::LEASH`, 8 steps.
+* `Generator#post` puts a guard in a mouth of the room it was rolled for: a doorway or the first
+  square of a corridor, from `Chambers` cut over the dug floor. When those are taken it tries the
+  rest of the corridors out of the room, then the narrow parts of a cave, then the passage square
+  nearest the room. Only a floor with no passage at all puts it in the room.
+* A guard stays at least `POST_CLEAR` squares from the up staircase.
+* `Monster#home` is the square it was placed on. Any other kind has none and writes no field. A
+  golem from a save that predates the field takes the square it stands on as it loads.
+
+### Waking
+
+* An asleep guard hears nothing and notices nothing at a distance. It wakes when the character
+  stands on one of the eight squares around it, whatever the light or their stealth.
+* A melee blow wakes it the usual way, with "notices you".
+* A shot, a thrown thing or a bolt that wakes it launches it. `Pace#launch` gives it a haste with
+  a surge on top: speed plus `Pace::HASTE` plus `LAUNCH_SURGE` (140) for `LAUNCH_TICKS` (5). A
+  stone golem moves at 250 and covers about ten squares. The surge ends with the haste.
+  `Event::Launched` goes with the line.
+
+### Chasing and going home
+
+* Golems path, and `Kind#batters?` lets their band's map cross shut doors. A golem walking into a
+  shut door swings at it for `DOOR_BLOW`, 1d6+2, against the door's 12, so two to four blows.
+  `Event::DoorStruck` and `Event::DoorBroken` carry `by` or `unseen` for a creature's blow.
+* Golem notice is 10, up from 5. It reads only while the golem is awake, so it decides how long an
+  awake golem keeps the character in sight.
+* Before each action `Game#keep_post` measures the walk home over the band's knowledge, doors
+  crossed. Past the leash the band becomes `Awareness::Returning`, appended to the enum. A
+  returning golem walks home, ignores every blow and every sight, and sleeps when it gets there,
+  forgetting its sightings. A golem whose band gives up the search walks home the same way.
+* A returning golem does not count toward flanking.
+* `Kind#heals?` is false for golems, so damage stays between trips.
+
+### Speed
+
+Stone golems move at 60 and iron golems at 55, from 75 and 70. A golem's step costs 110, so they
+cover 0.55 and 0.50 squares a tick. A character in chain mail covers 0.95. A character under a
+scroll of slow covers 0.57, still a little faster than a stone golem. Only a character slowed by
+severe hunger or thirst is slower than a golem.
+
+### Weakness
+
+`Kind#weakness` names an `Effect`. A wand whose effect matches adds `WEAK_AIM` (10) to the bolt's
+aim and throws its dice `WEAK_HARM` (3) times over. The iron golem's weakness is `Effect::Strike`.
+Against armor class 8 a bolt from a character with no dexterity bonus hits on 8 or more rather
+than 18 or more, and does 6d4 rather than 2d4.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order

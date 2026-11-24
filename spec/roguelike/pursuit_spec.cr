@@ -255,6 +255,15 @@ Spectator.describe Roguelike::Pursuit do
       expect(found).to eq Action.wait
     end
 
+    # The line from the corridor to the character cuts the corner of the
+    # doorway. A slime waits there, so it can be shot from round the corner.
+    it "waits in a corridor when the line to the character cuts a corner" do
+      found = Pursuit.decide snapshot({3, 1}, quarry: {1, 4}, paths: false,
+        knowledge: known(CROWD))
+
+      expect(found).to eq Action.wait
+    end
+
     it "steps to a free square beside the character when its way is taken" do
       found = Pursuit.decide snapshot({3, 1}, quarry: {1, 1}, paths: false,
         blocked: [{2, 1}])

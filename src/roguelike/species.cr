@@ -116,8 +116,18 @@ module Roguelike
     # searches toward the sound after that.
     Stirring
 
+    # It has given up the chase and is walking back to the square it
+    # guards. It pays no heed to anything on the way and sleeps when it
+    # gets there. Only a kind that `Kind#guards?` does this.
+    Returning
+
     # Whether it acts at all.
     def awake? : Bool
+      alert? || hunting? || returning?
+    end
+
+    # Whether it is after something it is hostile to.
+    def fighting? : Bool
       alert? || hunting?
     end
 
@@ -125,10 +135,11 @@ module Roguelike
     # the character is.
     def label(you : Bool = true) : String
       case self
-      in .asleep?   then "asleep"
-      in .alert?    then you ? "looking for you" : "searching"
-      in .hunting?  then you ? "hunting you" : "hunting"
-      in .stirring? then "stirring"
+      in .asleep?    then "asleep"
+      in .alert?     then you ? "looking for you" : "searching"
+      in .hunting?   then you ? "hunting you" : "hunting"
+      in .stirring?  then "stirring"
+      in .returning? then "returning to its post"
       end
     end
   end
@@ -288,6 +299,12 @@ module Roguelike
   # *sharing* is how a band of them shares what it knows. *surrounds* says
   # one beside its quarry moves round to face a bandmate across it. *splits*
   # says one buds off a copy of itself now and then.
+  #
+  # *leash* is how many steps from the square it was placed on one chases
+  # before it turns back, and zero for a kind that guards nothing.
+  # *batters* says it breaks a shut door down rather than opening it.
+  # *heals* says it gains back hit points as time passes. *weakness* is the
+  # effect of a wand that does it far more harm than it does anything else.
   record KindFacts,
     species : Species,
     mark : Char,
@@ -326,7 +343,11 @@ module Roguelike
     hide : Bulk = Bulk::Medium,
     garb : ItemKind? = nil,
     remains : Remains? = nil,
-    butchery : Butchery? = nil do
+    butchery : Butchery? = nil,
+    leash : Int32 = 0,
+    batters : Bool = false,
+    heals : Bool = true,
+    weakness : Effect? = nil do
     # Hit points of an average one.
     def hit_points : Int32
       hit_dice.average.round.to_i
@@ -776,6 +797,37 @@ module Roguelike
       facts.garb
     end
 
+    # How many steps from its post one chases before it turns back. Zero
+    # for a kind that guards nothing.
+    #
+    # The steps are walked, not counted across rock. `Game#keep_post` reads
+    # them.
+    def leash : Int32
+      facts.leash
+    end
+
+    # Whether one sleeps on a post, wakes only when somebody is beside it,
+    # and walks back to the post when a chase takes it past `#leash`.
+    def guards? : Bool
+      leash > 0
+    end
+
+    # Whether one breaks a shut door down rather than opening it.
+    def batters? : Bool
+      facts.batters
+    end
+
+    # Whether one gains back hit points as time passes.
+    def heals? : Bool
+      facts.heals
+    end
+
+    # The effect of a wand that does one far more harm than it does anything
+    # else. `nil` for a kind with no such weakness.
+    def weakness : Effect?
+      facts.weakness
+    end
+
     # Which kind a floor file's *mark* names: the default kind of the species
     # with that letter. `nil` for a character that names none.
     def self.from_mark?(mark : Char) : Kind?
@@ -793,6 +845,12 @@ module Roguelike
 
     # The intelligence at which a creature stops putting a foot wrong.
     CLUMSY = 18
+
+    # How many steps from its post a golem chases before it turns back.
+    #
+    # Far enough to cross a room and come out the other side, and short
+    # enough that a character can lead one away and lose it.
+    LEASH = 8
 
     SLIMY = Attributes.new(strength: 8, dexterity: 4, constitution: 12,
       intelligence: 3, stealth: 6)
@@ -1007,18 +1065,20 @@ module Roguelike
       Kind::StoneGolem => KindFacts.new(Species::Golem, 'G', "stone golem",
         "stone golems", "a slow giant of carved stone that guards this place and nothing else",
         hit_dice: Dice.new(8, 8), damage: Dice.new(2, 8), armor: 6,
-        notice: 5, darkvision: true, paths: false, experience: 45,
-        size: Size::Large, persistence: 100, speed: 75, swing: 120, verb: "pounds",
+        notice: 10, darkvision: true, paths: true, experience: 45,
+        size: Size::Large, persistence: 100, speed: 60, swing: 120, verb: "pounds",
         alone: true, depths: 6..10, faction: Faction::Construct, hide: Bulk::VeryHeavy,
+        leash: Kinds::LEASH, batters: true, heals: false,
         attributes: Attributes.new(strength: 18, dexterity: 10, constitution: 18,
           intelligence: 1, stealth: 6)),
 
       Kind::IronGolem => KindFacts.new(Species::Golem, 'G', "iron golem",
         "iron golems", "a towering figure of black iron that walks with a sound like a forge",
         hit_dice: Dice.new(8, 10), damage: Dice.new(2, 8), armor: 8,
-        notice: 5, darkvision: true, paths: false, experience: 80,
-        size: Size::Large, persistence: 100, speed: 70, swing: 130, verb: "pounds",
+        notice: 10, darkvision: true, paths: true, experience: 80,
+        size: Size::Large, persistence: 100, speed: 55, swing: 130, verb: "pounds",
         alone: true, depths: 8..10, faction: Faction::Construct, hide: Bulk::VeryHeavy,
+        leash: Kinds::LEASH, batters: true, heals: false, weakness: Effect::Strike,
         attributes: Attributes.new(strength: 20, dexterity: 10, constitution: 20,
           intelligence: 1, stealth: 4)),
       Kind::OrcWarlord => KindFacts.new(Species::Orc, 'o', "orc warlord",

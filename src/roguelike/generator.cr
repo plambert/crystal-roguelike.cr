@@ -453,6 +453,9 @@ module Roguelike
     # Every corridor square carved so far.
     @halls = Set({Int32, Int32}).new
 
+    # What `#chambers` cut.
+    @chambers : Chambers? = nil
+
     # How many more rectangles of a tree may be filled another way.
     @mixes : Int32
 
@@ -1194,13 +1197,91 @@ module Roguelike
       found
     end
 
+    # How near the up staircase a guard may stand. One that close would
+    # wake the moment the character arrived.
+    POST_CLEAR = 3
+
+    # Where a guard placed for *room* stands.
+    #
+    # A guard holds a way in. It stands in a doorway of the room, or in the
+    # mouth of a corridor leading out of it. When another creature already
+    # holds each of those it stands further along one of the corridors. A
+    # cave has no doorways, so a guard there stands in a narrow part of the
+    # cave. With none of these it stands in the corridor nearest the room,
+    # and on a floor with no corridor at all, anywhere in the room.
+    private def post(stream : Rng, room : Area) : {Int32, Int32}
+      found = [] of {Int32, Int32}
+      {mouths(room), corridors(room), narrows(room)}.each do |spots|
+        found = spots.select { |spot| postable? spot }
+        break unless found.empty?
+      end
+      return found.sample(stream) unless found.empty?
+
+      nearest = chambers.passages.flat_map(&.squares).select { |spot| postable? spot }
+        .min_by? { |spot| {Pursuit.gap(spot, room.middle), spot[1], spot[0]} }
+      nearest || plain(room).sample(stream)
+    end
+
+    # The anchors of the chambers *room* is cut into.
+    private def anchors(room : Area) : Set({Int32, Int32})
+      cut = chambers
+      found = Set({Int32, Int32}).new
+      room.each { |column, row| cut.at(column, row).try { |chamber| found << chamber.anchor } }
+      found
+    end
+
+    # The squares just outside *room* that lead out of it.
+    private def mouths(room : Area) : Array({Int32, Int32})
+      cut = chambers
+      found = Set({Int32, Int32}).new
+      anchors(room).each do |anchor|
+        cut[anchor].try &.exits.each { |spot| found << spot unless room.holds?(*spot) }
+      end
+
+      Chambers.ordered found
+    end
+
+    # Every square of the corridors that lead out of *room*.
+    private def corridors(room : Area) : Array({Int32, Int32})
+      mine = anchors room
+      found = chambers.passages.select { |passage| passage.chambers.any? { |anchor| mine.includes? anchor } }
+      Chambers.ordered found.flat_map(&.squares).reject { |spot| room.holds?(*spot) }
+    end
+
+    # The squares inside *room* in a passage rather than a chamber: ground
+    # one or two squares wide.
+    private def narrows(room : Area) : Array({Int32, Int32})
+      chambers.passages.flat_map(&.squares).select { |spot| room.holds?(*spot) }
+    end
+
+    # Whether a guard may stand on *spot*.
+    #
+    # Bare ground or an open doorway, with nothing else on it, and not so
+    # near the up staircase that it wakes when the character arrives.
+    private def postable?(spot : {Int32, Int32}) : Bool
+      terrain = @floor.terrain spot[0], spot[1]
+      return false unless terrain.passable?
+      return false if terrain.stairs?
+      return false if @floor.monster(spot[0], spot[1]) || @floor.fixture(spot[0], spot[1])
+
+      landing = @landing
+      landing.nil? || Pursuit.gap(landing, spot) > POST_CLEAR
+    end
+
+    # The floor as dug, cut into chambers and passages. Cut once, the first
+    # time a guard is placed.
+    private def chambers : Chambers
+      @chambers ||= Chambers.of surveyed, @floor.columns, @floor.rows
+    end
+
     # Puts creatures in *room*, as `Spawns` says for this depth.
     #
     # The first creature's kind is rolled from every kind that appears at
     # the floor's depth. A kind that appears alone has the room to itself.
     # Any other is joined by more of its species that also go about in
     # company, and every creature in the room is in one band. `Floor#place`
-    # writes the band down.
+    # writes the band down. A kind that guards stands on a post that holds
+    # the way in. See `#post`.
     #
     # Each rolls its hit points from its kind's hit dice.
     #
@@ -1220,7 +1301,7 @@ module Roguelike
 
       count.times do |which|
         kind = which.zero? ? first : Items.pick(stream, company)
-        spot = plain(room).sample stream
+        spot = kind.guards? ? post(stream, room) : plain(room).sample(stream)
         health = kind.hit_dice.roll stream
 
         @floor.place Monster.new(kind, spot[0], spot[1], band,
