@@ -32,8 +32,8 @@ module Roguelike
   #   holds one line per step.
   # * The protocol has no `visit`. It is a `travel` to a square the last
   #   explore stop saw an item on, and `v` repeats it.
-  # * The protocol has no `configure`. It changes how `explore` behaves
-  #   and takes no turn.
+  # * The protocol has no `configure`. It changes how `explore` and
+  #   automatic pickup behave and takes no turn.
   #
   # An item is named by `Item#id`. An id names one item for as long as it is
   # in the run, it comes from the seed, and a save round-trips it. An
@@ -444,20 +444,27 @@ module Roguelike
       end
     end
 
-    # Changing how the run's explore behaves. No turn passes.
+    # Changing how the run's explore and automatic pickup behave. No turn
+    # passes.
     #
     # *explore* replaces `Game#explore_settings` whole, and a field it leaves
-    # out takes its default. `nil` leaves the settings as they are. A number
-    # out of its range refuses the action. `Game#legal` never offers this.
-    # The options screen sends it during play, a new character sends it
-    # when `options.json` holds other settings, and a bot sends it whenever
-    # it likes. The replay log records it, so a replay explores the same way.
+    # out takes its default. *pickup* replaces `Game#pickup_rules` whole.
+    # `nil` for either leaves that one as it is. A number out of its range
+    # refuses the action, and so do rules that are not valid, and then
+    # neither changes. `Game#legal` never offers this. The options screen
+    # sends it during play, a new character sends it when `options.json`
+    # holds other settings or rules, and a bot sends it whenever it likes.
+    # The replay log records it, so a replay explores and picks up the same
+    # way.
     class Configure < Action
       getter t : String = "configure"
 
       getter explore : Roguelike::Explore::Settings?
 
-      def initialize(@explore : Roguelike::Explore::Settings? = nil)
+      getter pickup : Roguelike::Pickup::Rules?
+
+      def initialize(@explore : Roguelike::Explore::Settings? = nil,
+                     @pickup : Roguelike::Pickup::Rules? = nil)
       end
     end
 

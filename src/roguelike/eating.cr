@@ -708,13 +708,11 @@ module Roguelike
       true
     end
 
-    # Whether automatic pickup puts *item* in the food bag.
+    # Whether the food bag has a place for food automatic pickup wants.
     #
-    # Food that has not rotted and fits. Nothing the character put down,
-    # no corpse, and none of the refuse.
+    # Food that fits. No corpse, and none of the refuse.
     private def bag_takes?(item : Item) : Bool
-      item.edible? && !item.corpse? && !item.freshness.rotten? &&
-        !item.dropped? && @player.food_bag.room_for?(item)
+      item.edible? && !item.corpse? && @player.food_bag.room_for?(item)
     end
 
     # The verbs that eat and cut up food.

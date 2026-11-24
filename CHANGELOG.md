@@ -10,6 +10,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
+* A bot can change what the character picks up without being asked with the `configure` action,
+  in a new optional `pickup` field that holds an ordered list of rules. It takes no turn. The
+  rules a run starts with pick up what the game always picked up.
 * You can use a shield cut for another size, such as a small one a goblin dropped. It gives one
   point less armor, and its description shows the loss, as in "armor 2 - 1 (wrong size)". Other
   armor still fits only its own size. Goblins can now carry a shield of your size the same way.

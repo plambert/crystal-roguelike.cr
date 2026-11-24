@@ -398,6 +398,12 @@ module Roguelike
     # save written before it existed loads.
     @explore_settings : Explore::Settings? = nil
 
+    # What this run picks up without being asked, or `nil` for the defaults.
+    #
+    # `Action::Configure` sets it. It is `nil` rather than the defaults, for
+    # the reasons `@explore_settings` is.
+    @pickup_rules : Pickup::Rules? = nil
+
     def initialize(@world : World, @player : Player, @turn : Int32 = 0,
                    @outcome : Outcome = Outcome::Playing,
                    @log : MessageLog = MessageLog.new,
@@ -1109,6 +1115,12 @@ module Roguelike
       @explore_settings || Explore::Settings.new
     end
 
+    # What this run picks up without being asked. `Action::Configure`
+    # changes it.
+    def pickup_rules : Pickup::Rules
+      @pickup_rules || Pickup.default
+    end
+
     # An explore, ready to be stepped. `X` does this.
     #
     # The character looks first. What they can see now is what the first
@@ -1538,7 +1550,7 @@ module Roguelike
 
       found = case reason
               when .pile?
-                settings = explore_settings
+                settings = walking
                 takes = settings.pickup? ? auto_takes : nil
                 memory.items.select do |remembered|
                   item = remembered.item
@@ -1559,7 +1571,7 @@ module Roguelike
     private def exploring_route(known : Knowledge) : Explore::Plan
       avoid = circling.avoid
       chosen = Explore.plan known, @player.at, floor.columns, floor.rows, auto_takes, shining,
-        explore_settings, wells, avoid
+        walking, wells, avoid
       route = chosen.route
 
       if route.size >= 2
@@ -5282,8 +5294,9 @@ module Roguelike
 
     # Takes any gold on the square, without a turn of its own.
     #
-    # The step onto the square is the turn. Nobody walks over coins and
-    # leaves them, and asking would be a keystroke for every pile.
+    # The step onto the square is the turn, and asking would be a keystroke
+    # for every pile. Rules of automatic pickup that leave gold leave it
+    # here too.
     #
     # Gold is counted rather than carried, so there is no pack to fill and no
     # way for this to refuse.
@@ -5291,6 +5304,8 @@ module Roguelike
     # An explore and a travel go on past the line. `#told?` overlooks it.
     private def take_coins : Nil
       taken = 0
+
+      return unless takes_gold?
 
       here.select(&.kind.item_class.treasure?).each do |item|
         next unless floor.take @player.x, @player.y, item
@@ -7616,16 +7631,20 @@ module Roguelike
       end
     end
 
-    # Takes the settings *action* carries. No turn passes.
+    # Takes the settings and the rules *action* carries. No turn passes.
     #
-    # A number out of its range refuses it. The way explore planned last is
-    # forgotten, since it was planned under the settings before.
+    # A number out of its range refuses it, and so do rules that are not
+    # valid. The way explore planned last is forgotten, since it was planned
+    # under the settings and the rules before.
     private def configuring(action : Action::Configure) : Verdict
       settings = action.explore
-      return Verdict.done unless settings
-      return Verdict.refused unless settings.valid?
+      rules = action.pickup
+      return Verdict.done unless settings || rules
+      return Verdict.refused if settings && !settings.valid?
+      return Verdict.refused if rules && !rules.valid?
 
-      @explore_settings = settings.default? ? nil : settings
+      @explore_settings = settings.default? ? nil : settings if settings
+      @pickup_rules = rules == Pickup.default ? nil : rules if rules
       @plan = nil
       @circling = nil
       Verdict.done
@@ -8191,7 +8210,7 @@ module Roguelike
       return false if circling_stuck?
 
       Explore.going? knowledge, @player.at, floor.columns, floor.rows, auto_takes, shining,
-        explore_settings, wells
+        walking, wells
     end
 
     # Which squares light falls on, for `Explore`. `nil` when the character
@@ -8219,58 +8238,44 @@ module Roguelike
       {"There is nothing left to see on this floor.", Halt::Explored}
     end
 
-    # Which items automatic pickup takes off the floor. `nil` when it takes
-    # none.
+    # Which items automatic pickup takes off the floor.
     #
-    # Two rules, and either one is enough. The quiver takes its own
-    # ammunition back, damaged or not. Any stacking item is taken when it
-    # `Item#might_be?` something already in the pack. Unknown arrows join
-    # the hunt for which of the carried arrows are blessed, and blessed ones
-    # are taken when the carried ones might be blessed too. A known curse on
-    # either side is no reason to take anything.
-    #
-    # Nothing the character put down is taken. They meant to leave it.
-    #
-    # A full pack narrows both rules to what would join a letter it already
-    # holds. An explore plans over the same answer, so it does not walk to a
-    # pile the pickup would have to leave.
+    # `#pickup_rules` says which it wants, read through what the character
+    # knows. What can be carried bounds that. Food goes in the food bag
+    # while the bag has room for it, and a corpse and refuse are never
+    # taken. Anything else needs a letter in the pack, so a full pack takes
+    # only what would join a letter it already holds. An explore plans over
+    # the same answer, so it does not walk to a pile the pickup would have
+    # to leave.
     #
     # Gold is taken apart from this, by `#take_coins`.
     private def auto_takes : Proc(Item, Bool)?
-      quiver = quiver_takes
+      rules = pickup_rules
+      facts = ItemFilter::Facts.new @player, lore
       pack = @player.inventory
-      held = [] of Item
-      pack.each_item do |_, item|
-        held << item if item.kind.stacks? && !item.known_cursed?
-      end
-
-      wanted = if held.empty?
-                 quiver
-               else
-                 ->(item : Item) { quiver.try(&.call(item)) || held.any?(&.might_be?(item)) }
-               end
-      return ->(item : Item) { bag_takes? item } unless wanted
 
       ->(item : Item) do
-        if item.food?
+        if item.kind.item_class.treasure? || !rules.verdict(item, facts).take?
+          false
+        elsif item.food?
           bag_takes? item
         else
-          !item.dropped? && wanted.call(item) && (!pack.full? || pack.room_for?(item))
+          !pack.full? || pack.room_for?(item)
         end
       end
     end
 
-    # Which items the quiver takes back off the floor. `nil` when the quiver
-    # is empty and remembers nothing.
-    #
-    # A damaged one of the quiver's own arrows counts. It was a sound one
-    # when it was shot. A `+1` arrow beside plain ones does not, because it
-    # would sit under a letter of its own.
-    private def quiver_takes : Proc(Item, Bool)?
-      @player.quivered.try do |held|
-        return ->(item : Item) { held.looks_like? item, any_condition: true }
-      end
-      @player.quiver_memory.try { |memory| ->(item : Item) { memory.matches? item } }
+    # Whether the rules of automatic pickup take gold.
+    private def takes_gold? : Bool
+      pickup_rules.verdict(Item.new(ItemKind::Gold), ItemFilter::Facts.new(@player, lore)).take?
+    end
+
+    # The explore settings an explore plans under. Gold the rules of
+    # automatic pickup leave is not walked to.
+    private def walking : Explore::Settings
+      settings = explore_settings
+      settings.gold = false if settings.gold? && !takes_gold?
+      settings
     end
 
     # Whether a step *direction* would do anything.
