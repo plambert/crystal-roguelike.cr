@@ -311,6 +311,9 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * The map shows the most interesting item on a pile rather than the one on top. Magic comes
   first, then weapons and armor, then tools, light, gold and food, and a putrid mass or a
   corpse never hides a spear.
+* Weapons and armor turn up with higher pluses the deeper you go, from floor 3 down, both lying
+  about and in monsters' hands. Floors 1 and 2 are as they were. +4 turns up from floor 8, and a
+  very rare +5 on floor 10. Cursed items lean toward a minus as before.
 
 ### Fixed
 

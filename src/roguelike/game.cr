@@ -783,10 +783,10 @@ module Roguelike
       stream = rng.derive "ammunition:#{ground.id}:#{spot[0]},#{spot[1]}"
       return unless stream.rand(100) < QUIVERED
 
-      ceiling = Loot.ceiling Game.depth_of(ground)
+      deep = Game.depth_of ground
       stream.rand(SUPPLY).times do
         where = near stream, ground, spot
-        ground.drop where[0], where[1], Items.make(stream, kind, ceiling: ceiling)
+        ground.drop where[0], where[1], Items.make(stream, kind, depth: deep)
       end
     end
 

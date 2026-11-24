@@ -137,20 +137,40 @@ module Roguelike
     # different one, because what a monster is carrying is more battered than
     # what is lying about the floor.
     #
-    # *ceiling* caps a plus. `Loot.ceiling` says how high one goes on each
-    # floor. `nil` leaves it uncapped.
+    # *depth* is the floor it turns up on. A deeper floor raises a plus as
+    # often as `Loot.raise` says, and `Loot.ceiling` caps it. `nil` raises
+    # nothing and caps nothing.
     #
     # *size* is who a piece of armor is cut for. It rolls nothing, and
     # anything that is not armor ignores it.
     def self.make(rng : Rng, kind : ItemKind, conditions = CONDITIONS,
-                  ceiling : Int32? = nil, size : Size = Size::Medium) : Item
+                  depth : Int32? = nil, size : Size = Size::Medium) : Item
       blessing = pick rng, BLESSINGS
       condition = kind.enchantable? ? pick(rng, conditions) : Condition::Plain
       enchantment = kind.enchantable? ? pick(rng, enchantments_for(blessing)) : 0
-      enchantment = Math.min enchantment, ceiling if ceiling
+      enchantment = deepen rng, enchantment, blessing, depth if depth && kind.enchantable?
       count = STACKS[kind]?.try { |range| rng.rand range } || 1
 
       Item.new kind, enchantment, condition, count, blessing: blessing, size: size
+    end
+
+    # *enchantment* as it turns up on the floor at *depth*, rolled on *rng*.
+    #
+    # A plus of zero or better on an item that is not cursed goes up by one
+    # as often as `Loot.raise` says, and again on each step, until a roll
+    # fails or it reaches `Loot.ceiling`. A curse keeps its minus. The
+    # ceiling caps a plus from the table as well.
+    def self.deepen(rng : Rng, enchantment : Int32, blessing : Blessing,
+                    depth : Int32) : Int32
+      ceiling = Loot.ceiling depth
+      chance = Loot.raise depth
+      unless blessing.cursed? || enchantment < 0 || chance <= 0
+        while enchantment < ceiling && rng.rand(100) < chance
+          enchantment += 1
+        end
+      end
+
+      Math.min enchantment, ceiling
     end
 
     # Which enchantment table *blessing* rolls on.
@@ -228,7 +248,7 @@ module Roguelike
     def self.random(rng : Rng, depth : Int32? = nil) : Item
       return make rng, pick(rng, WEIGHTS) unless depth
 
-      make rng, pick(rng, Loot.gated(WEIGHTS, depth)), ceiling: Loot.ceiling(depth)
+      make rng, pick(rng, Loot.gated(WEIGHTS, depth)), depth: depth
     end
 
     # One of *choices*, picked by weight.

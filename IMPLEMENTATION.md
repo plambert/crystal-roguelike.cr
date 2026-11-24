@@ -7894,6 +7894,46 @@ setting `gold` when the list leaves gold, so an explore does not walk to it.
   for food that has been bitten, are added at the end of `Trait`, and the editor is given the
   traits that make sense for it.
 
+## Pluses by depth
+
+The enchantment tables in `Items` were the same on every floor, so a plus stopped improving
+after floor 5 and nothing could reach +4. A plus now climbs with depth.
+
+* `Loot::RAISES` gives, for each floor, the chance out of 100 that a plus goes up by one. Floors
+  1 to 10 read 0, 0, 2, 4, 6, 8, 10, 14, 15 and 15.
+* `Items.deepen` rolls it again after each step until a roll fails or the plus reaches
+  `Loot.ceiling`. Two steps are as rare as the chance squared.
+* Only a roll of zero or better on an item that is not cursed is raised. A curse keeps its minus.
+* `Loot::CEILINGS` reaches +5 on floor 10 and below. Floors 8 and 9 stay at +4.
+* `Items.make` takes the depth rather than a ceiling. Floor litter, ammunition beside a ranged
+  weapon and everything a monster carries pass it.
+* A floor with no chance rolls nothing more, so floors 1 and 2 roll what they rolled before.
+* The raise adds draws to the litter, loot and ammunition streams, so their replay stream versions
+  go to 5, 8 and 3. The golden replay stays on floor 1, so only its header changed.
+
+`script/loot-stats.cr` digs whole runs and counts the armor that fits a medium wearer, lying
+about and carried. Over 500 runs, the spread of pluses on single pieces:
+
+| Floor | Before | After |
+| ---: | --- | --- |
+| 1 | +1 21.5%, 0 72.1% | the same |
+| 5 | +3 2.2%, +2 5.3%, +1 14.6% | +3 2.5%, +2 6.1%, +1 18.0% |
+| 8 | +3 2.0%, +2 5.2%, +1 14.3% | +4 0.4%, +3 2.6%, +2 7.6%, +1 21.0% |
+| 10 | +3 2.0%, +2 5.3%, +1 14.7% | +5 0.1%, +4 0.5%, +3 2.8%, +2 7.8%, +1 21.1% |
+
+A character who picks up everything wears the best piece found for each of the five slots. The
+share of slots at each plus after floors 1 to N:
+
+| N | Before | After |
+| ---: | --- | --- |
+| 1 | +1 54.9%, 0 23.2%, empty 21.4% | the same |
+| 5 | +3 15.8%, +2 60.2%, +1 23.4% | +3 18.6%, +2 59.8%, +1 21.0% |
+| 8 | +3 57.0%, +2 40.0%, +1 3.1% | +4 6.5%, +3 60.1%, +2 31.6%, +1 1.8% |
+| 10 | +3 81.2%, +2 18.4%, +1 0.4% | +5 2.4%, +4 26.3%, +3 61.3%, +2 9.6% |
+
+At floor 10 the commonest sets of five are now one +4 and four +3 (18%), and two +4 and three
++3 (16%). About one run in nine that picks up everything finds a +5 piece of armor.
+
 ## Asked for, not yet built
 
 Each of these was asked for and written down rather than built at the time. They are in the order
