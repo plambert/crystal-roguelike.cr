@@ -314,6 +314,8 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 * Weapons and armor turn up with higher pluses the deeper you go, from floor 3 down, both lying
   about and in monsters' hands. Floors 1 and 2 are as they were. +4 turns up from floor 8, and a
   very rare +5 on floor 10. Cursed items lean toward a minus as before.
+* A scroll of magic mapping shows the fountains on the floor as well as the walls, so you can
+  find water. It still never shows the stairs.
 
 ### Fixed
 

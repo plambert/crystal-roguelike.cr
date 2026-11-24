@@ -1889,9 +1889,11 @@ yet reads as a dash.
 
 ## What a scroll of magic mapping tells you
 
-The walls, and nothing else. A square is written down when it is rock with something walkable
-beside it, so the rooms and the corridors come through as outlines and their floors stay unknown
-until somebody walks them.
+The walls and the fountains, and nothing else. A square is written down when it is rock with
+something walkable beside it, so the rooms and the corridors come through as outlines and their
+floors stay unknown until somebody walks them. A fountain is written down too, so a thirsty
+character knows where the water is and explore can walk to it. The stairs are never shown. A
+blessed or a cursed scroll maps the same as any other.
 
 It used to write down every square on the floor. That made a map that had been read
 indistinguishable from a floor that had been walked, which is the one thing a map should not do.
