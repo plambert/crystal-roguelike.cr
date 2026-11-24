@@ -731,13 +731,10 @@ module Roguelike
 
     # The step a creature that does not path takes.
     #
-    # Along the line to the quarry. When what is that way cannot be walked
-    # on, it takes the free step that brings it nearest the quarry, as long
-    # as that step brings it nearer at all. See `#nudge`. A slime does this.
-    # It comes up against a wall and stays against it, because it has no
-    # idea the corridor round the corner is there. It does go through a
-    # doorway in front of it when the line to the character cuts the corner
-    # of the door frame.
+    # Along the line to the quarry, and nothing at all when what is that way
+    # cannot be walked on. A slime does this. It comes up against a wall and
+    # stays against it, because it has no idea the corridor round the corner
+    # is there.
     #
     # The line rather than the sign of the difference. A step chosen from the
     # sign goes diagonally until one axis lines up and straight after that,
@@ -751,33 +748,10 @@ module Roguelike
       return unless direction
 
       wanted = direction.from snapshot.at[0], snapshot.at[1]
-      return nudge snapshot, quarry unless snapshot.knowledge.walkable? wanted[0], wanted[1]
+      return unless snapshot.knowledge.walkable? wanted[0], wanted[1]
       return slip snapshot, quarry if snapshot.blocked.includes? wanted
 
       direction
-    end
-
-    # The step a creature that does not path takes when the line to *quarry*
-    # runs into rock, or `nil` to wait.
-    #
-    # It steps to a free square fewer steps from the quarry than it is, the
-    # one nearest the quarry in a straight line. The first in `Direction`
-    # order wins a tie. It never takes a step that brings it no nearer, so a
-    # creature with only wall between it and the quarry still stops there.
-    private def self.nudge(snapshot : Snapshot, quarry : {Int32, Int32}) : Direction?
-      at = snapshot.at
-      here = gap at, quarry
-
-      nearer = Direction.values.select do |direction|
-        spot = direction.from at[0], at[1]
-        gap(spot, quarry) < here && !snapshot.blocked.includes?(spot) &&
-          snapshot.knowledge.walkable?(spot[0], spot[1])
-      end
-
-      nearer.min_by? do |direction|
-        spot = direction.from at[0], at[1]
-        (spot[0] - quarry[0]) ** 2 + (spot[1] - quarry[1]) ** 2
-      end
     end
 
     # The step a creature that does not path takes when another creature

@@ -346,9 +346,6 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   you have never seen, it fades with nowhere to go, as it does at a wall. Before, it took you
   there whenever the hidden ground was open. A bot may aim it at any square it has seen, not
   only at the creatures the legal actions list.
-* Golems, slimes, jellies and gelatinous cubes come through a doorway at you when you stand off to
-  one side of it in the room. Before, one standing in the corridor outside stopped there for as
-  long as you stayed off to the side, and you could shoot it without it coming nearer.
 
 ## [0.7.0] - 2026-10-28
 
