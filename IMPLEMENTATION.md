@@ -1889,9 +1889,11 @@ yet reads as a dash.
 
 ## What a scroll of magic mapping tells you
 
-The walls, and nothing else. A square is written down when it is rock with something walkable
-beside it, so the rooms and the corridors come through as outlines and their floors stay unknown
-until somebody walks them.
+The walls and the fountains, and nothing else. A square is written down when it is rock with
+something walkable beside it, so the rooms and the corridors come through as outlines and their
+floors stay unknown until somebody walks them. A fountain is written down too, so a thirsty
+character knows where the water is and explore can walk to it. The stairs are never shown. A
+blessed or a cursed scroll maps the same as any other.
 
 It used to write down every square on the floor. That made a map that had been read
 indistinguishable from a floor that had been walked, which is the one thing a map should not do.
@@ -7232,14 +7234,29 @@ included.
 | --- | ---: | --- |
 | 1 | always | |
 | 2 to 4 | 75 | 3 dry floors |
-| 5 to 7 | 25 | never |
+| 5 to 7 | 25 | 2 dry floors |
 | 8 to 10 | 45 | 4 dry floors |
 
 * Floor 1 is always wet, so floors 2 to 4 can never have three dry floors above them. Their
   certainty never comes into play.
 * **Rate.** Worked from floor 1 through the dry count, each floor's chance is 75% on floors 2 to 4,
-  25% on floors 5 to 7, and 45% on floor 8. Floors 9 and 10 rise a little above 45% from the
-  certainty after four dry floors.
+  about 30% on floor 5, 36% on floor 6, 56% on floor 7 and 45% on floor 8. Floors 9 and 10 rise a
+  little above 45% from the certainty after four dry floors.
+* **Floors 5 to 7.** They had no certainty at first, and a playtest save went from floor 5 to
+  floor 8 without water. Over 100,000 seeds, 42% of runs had floors 5 to 7 all dry, 17% had 5 to 8
+  all dry, and 37% had a dry run of four floors or more somewhere. With a certainty of two, no run
+  has 5 to 7 all dry and 10% have a dry run of four, all of it on floors 8 to 10. A run has 4.85
+  wet floors among floors 2 to 10, up from 4.53.
+
+| Longest dry run | Without certainty | Certain after 2 |
+| ---: | ---: | ---: |
+| 1 or none | 9.5% | 9.5% |
+| 2 | 26.8% | 62.7% |
+| 3 | 27.1% | 18.2% |
+| 4 | 33.7% | 9.6% |
+| 5 | 2.2% | 0% |
+| 6 | 0.7% | 0% |
+
 * **Placement on floor 1.** The fountain goes on a bare square of the up staircase's own zone at
   most `Generator::NEAR` = 6 steps from the staircase, walking through doors. When that zone has
   no such square, it goes on the bare square of any zone fewest steps away. Over 2,000 seeds every
@@ -7948,6 +7965,46 @@ severe hunger or thirst is slower than a golem.
 aim and throws its dice `WEAK_HARM` (3) times over. The iron golem's weakness is `Effect::Strike`.
 Against armor class 8 a bolt from a character with no dexterity bonus hits on 8 or more rather
 than 18 or more, and does 6d4 rather than 2d4.
+
+## Pluses by depth
+
+The enchantment tables in `Items` were the same on every floor, so a plus stopped improving
+after floor 5 and nothing could reach +4. A plus now climbs with depth.
+
+* `Loot::RAISES` gives, for each floor, the chance out of 100 that a plus goes up by one. Floors
+  1 to 10 read 0, 0, 2, 4, 6, 8, 10, 14, 15 and 15.
+* `Items.deepen` rolls it again after each step until a roll fails or the plus reaches
+  `Loot.ceiling`. Two steps are as rare as the chance squared.
+* Only a roll of zero or better on an item that is not cursed is raised. A curse keeps its minus.
+* `Loot::CEILINGS` reaches +5 on floor 10 and below. Floors 8 and 9 stay at +4.
+* `Items.make` takes the depth rather than a ceiling. Floor litter, ammunition beside a ranged
+  weapon and everything a monster carries pass it.
+* A floor with no chance rolls nothing more, so floors 1 and 2 roll what they rolled before.
+* The raise adds draws to the litter, loot and ammunition streams, so their replay stream versions
+  go to 5, 8 and 3. The golden replay stays on floor 1, so only its header changed.
+
+`script/loot-stats.cr` digs whole runs and counts the armor that fits a medium wearer, lying
+about and carried. Over 500 runs, the spread of pluses on single pieces:
+
+| Floor | Before | After |
+| ---: | --- | --- |
+| 1 | +1 21.5%, 0 72.1% | the same |
+| 5 | +3 2.2%, +2 5.3%, +1 14.6% | +3 2.5%, +2 6.1%, +1 18.0% |
+| 8 | +3 2.0%, +2 5.2%, +1 14.3% | +4 0.4%, +3 2.6%, +2 7.6%, +1 21.0% |
+| 10 | +3 2.0%, +2 5.3%, +1 14.7% | +5 0.1%, +4 0.5%, +3 2.8%, +2 7.8%, +1 21.1% |
+
+A character who picks up everything wears the best piece found for each of the five slots. The
+share of slots at each plus after floors 1 to N:
+
+| N | Before | After |
+| ---: | --- | --- |
+| 1 | +1 54.9%, 0 23.2%, empty 21.4% | the same |
+| 5 | +3 15.8%, +2 60.2%, +1 23.4% | +3 18.6%, +2 59.8%, +1 21.0% |
+| 8 | +3 57.0%, +2 40.0%, +1 3.1% | +4 6.5%, +3 60.1%, +2 31.6%, +1 1.8% |
+| 10 | +3 81.2%, +2 18.4%, +1 0.4% | +5 2.4%, +4 26.3%, +3 61.3%, +2 9.6% |
+
+At floor 10 the commonest sets of five are now one +4 and four +3 (18%), and two +4 and three
++3 (16%). About one run in nine that picks up everything finds a +5 piece of armor.
 
 ## Asked for, not yet built
 

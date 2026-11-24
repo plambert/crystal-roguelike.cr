@@ -783,10 +783,10 @@ module Roguelike
       stream = rng.derive "ammunition:#{ground.id}:#{spot[0]},#{spot[1]}"
       return unless stream.rand(100) < QUIVERED
 
-      ceiling = Loot.ceiling Game.depth_of(ground)
+      deep = Game.depth_of ground
       stream.rand(SUPPLY).times do
         where = near stream, ground, spot
-        ground.drop where[0], where[1], Items.make(stream, kind, ceiling: ceiling)
+        ground.drop where[0], where[1], Items.make(stream, kind, depth: deep)
       end
     end
 
@@ -7099,13 +7099,15 @@ module Roguelike
 
     # Writes the shape of the whole floor into what the character remembers.
     #
-    # The shape and no more. `Knowledge#touch` records the terrain and what
-    # is fixed to it, and keeps whatever item was already remembered there.
+    # The shape and the fountains, and no more. The stairs stay unknown.
+    # `Knowledge#touch` records the terrain and what is fixed to it, and
+    # keeps whatever item was already remembered there. A blessed and a
+    # cursed scroll map the same as any other.
     private def map_the_floor : Nil
       tiles = 0
 
-      floor.each do |column, row, _tile|
-        next unless wall? column, row
+      floor.each do |column, row, tile|
+        next unless wall?(column, row) || tile.terrain.fountain?
 
         @player.knowledge.touch floor, column, row, @turn
         tiles += 1

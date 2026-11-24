@@ -323,6 +323,13 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   from further off once they are awake.
 * A wand of striking is the bane of an iron golem. Its bolts hit an iron golem far more often
   and do three times the damage.
+* Weapons and armor turn up with higher pluses the deeper you go, from floor 3 down, both lying
+  about and in monsters' hands. Floors 1 and 2 are as they were. +4 turns up from floor 8, and a
+  very rare +5 on floor 10. Cursed items lean toward a minus as before.
+* A scroll of magic mapping shows the fountains on the floor as well as the walls, so you can
+  find water. It still never shows the stairs.
+* Floors 5 to 7 never go more than two floors in a row without a fountain, so one of them
+  always has water.
 
 ### Fixed
 

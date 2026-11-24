@@ -73,7 +73,7 @@ module Roguelike
       # is no certainty. Floor 1 always has one.
       FOUNTAINS = {
         2..4  => {75, 3},
-        5..7  => {25, nil},
+        5..7  => {25, 2},
         8..10 => {45, 4},
       } of Range(Int32, Int32) => {Int32, Int32?}
 

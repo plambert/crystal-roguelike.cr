@@ -407,6 +407,39 @@ Spectator.describe "drinking, reading and zapping" do
       expect(game.knowledge[10, 4].try &.shown).to be_nil
     end
 
+    # A dark hall with a fountain and a down staircase at the far end, out
+    # of the torch's reach.
+    def watered(blessing : Roguelike::Blessing) : Game
+      floor = Floor.parse "watered", "############\n#<........{#\n#.........>#\n############"
+      player = Player.new floor.id, 1, 1
+      game = Game.new World.new(SEED, {floor.id => floor}), player,
+        lore: Lore.roll(Rng.new SEED)
+      player.inventory.add Item.new(Kind::MappingScroll, blessing: blessing)
+      player.inventory.add Playing.torch
+      game
+    end
+
+    it "remembers a fountain the character has never seen, whatever its blessing" do
+      Roguelike::Blessing.each do |blessing|
+        game = watered blessing
+        expect(game.knowledge.seen? 10, 1).to be_false
+
+        game.read 'a'
+
+        expect(game.knowledge[10, 1].try &.terrain).to eq Roguelike::Terrain::Fountain
+      end
+    end
+
+    it "never shows the stairs, whatever its blessing" do
+      Roguelike::Blessing.each do |blessing|
+        game = watered blessing
+
+        game.read 'a'
+
+        expect(game.knowledge.seen? 10, 2).to be_false
+      end
+    end
+
     it "uses the scroll up" do
       game = carrying [Item.new(Kind::MappingScroll)]
 

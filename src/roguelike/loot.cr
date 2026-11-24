@@ -136,7 +136,15 @@ module Roguelike
     # deeper than the last entry reads the last entry.
     #
     # A minus is never capped. A curse is as bad on floor 1 as anywhere.
-    CEILINGS = [1, 1, 2, 2, 3, 3, 3, 4, 4, 4]
+    CEILINGS = [1, 1, 2, 2, 3, 3, 3, 4, 4, 5]
+
+    # How often a plus goes up by one more, out of a hundred, from floor 1
+    # down. A floor deeper than the last entry reads the last entry.
+    #
+    # `Items.make` rolls this again after each step, so two steps are as
+    # rare as the chance squared. Only a roll of zero or better on an item
+    # that is not cursed is raised. A floor with no chance rolls nothing.
+    RAISES = [0, 0, 2, 4, 6, 8, 10, 14, 15, 15]
 
     # How often a monster's ammunition comes out +1, out of a hundred, from
     # floor 1 down. A floor deeper than the last entry reads the last entry.
@@ -165,6 +173,12 @@ module Roguelike
     # The highest `+N` on the floor at *depth*.
     def self.ceiling(depth : Int32) : Int32
       CEILINGS[(depth - 1).clamp(0, CEILINGS.size - 1)]
+    end
+
+    # How often a plus on the floor at *depth* goes up by one more, out of a
+    # hundred.
+    def self.raise(depth : Int32) : Int32
+      RAISES[(depth - 1).clamp(0, RAISES.size - 1)]
     end
 
     # *table* with every kind that waits for a floor deeper than *depth*
@@ -360,7 +374,7 @@ module Roguelike
       ammunition = ranged_weapon.try &.ammunition
       return [] of Item unless ranged_weapon && ammunition
 
-      weapon = Items.make rng, ranged_weapon, CONDITIONS, depth.try { |deep| ceiling deep }
+      weapon = Items.make rng, ranged_weapon, CONDITIONS, depth
       count = Math.max kind.quiver.roll(rng), 1
       plus = rng.rand(100) < fletched(depth) ? 1 : 0
 
@@ -399,7 +413,7 @@ module Roguelike
       kind = Items.pick rng, kinds
       return Item.new kind, count: rng.rand(draw.count) if kind.item_class.treasure?
 
-      item = Items.make rng, kind, CONDITIONS, depth.try { |deep| ceiling deep }, size
+      item = Items.make rng, kind, CONDITIONS, depth, size
       item.kindle
       item
     end

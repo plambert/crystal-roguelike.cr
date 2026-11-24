@@ -200,6 +200,63 @@ Spectator.describe Roguelike::Items do
     end
   end
 
+  describe "the plus by depth" do
+    # The pluses on *count* long swords made for the floor at *depth*.
+    def pluses(depth : Int32?, count = 20_000) : Array(Int32)
+      rng = stream
+      Array.new(count) { described_class.make(rng, Kind::LongSword, depth: depth).enchantment }
+    end
+
+    it "keeps under the ceiling on every floor" do
+      (1..11).each do |depth|
+        expect(pluses(depth, 5_000).max).to be <= Roguelike::Loot.ceiling(depth), "floor #{depth}"
+      end
+    end
+
+    it "rolls nothing more on a floor that raises nothing" do
+      expect(Roguelike::Loot.raise(1)).to eq 0
+
+      shallow = stream
+      plain = stream
+      200.times do
+        made = described_class.make shallow, Kind::LongSword, depth: 1
+        capped = described_class.make plain, Kind::LongSword
+        expect(made.enchantment).to eq Math.min(capped.enchantment, Roguelike::Loot.ceiling(1))
+      end
+      expect(shallow.rand(1_000_000)).to eq plain.rand(1_000_000)
+    end
+
+    it "is higher on average the deeper the floor" do
+      means = {3, 6, 9}.map { |depth| (found = pluses depth).sum / found.size.to_f }
+
+      expect(means[1]).to be > means[0]
+      expect(means[2]).to be > means[1]
+    end
+
+    it "turns up +4 on floor 8 and +5 only on floor 10 and below" do
+      expect(pluses(8)).to contain 4
+      expect(pluses(9).max).to eq 4
+      expect(pluses(10, 100_000)).to contain 5
+    end
+
+    it "keeps +5 to fewer than one item in five hundred" do
+      found = pluses 10, 100_000
+
+      expect(found.count(5)).to be < found.size // 500
+    end
+
+    it "never raises a curse" do
+      rng = stream
+
+      20_000.times do
+        item = described_class.make rng, Kind::LongSword, depth: 10
+        next unless item.cursed?
+
+        expect(item.enchantment).to be <= 0
+      end
+    end
+  end
+
   describe ".pick" do
     it "never picks a weight of nothing" do
       rng = stream
