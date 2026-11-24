@@ -23,9 +23,9 @@ Spectator.describe "the explore page of the options screen" do
     run.play.options_screen.explore_page.as(Roguelike::Ui::OptionsScreen)
   end
 
-  # Opens the options screen, and the explore page from its last row but one.
+  # Opens the options screen, and the explore page from its last row but two.
   def open_page(run : Playing::Run, first : String = "O") : Nil
-    run.press first, "End", "Up", "Enter"
+    run.press first, "End", "Up", "Up", "Enter"
   end
 
   let(root) { state }

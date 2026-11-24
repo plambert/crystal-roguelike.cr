@@ -16,7 +16,9 @@ module Roguelike
   #
   # `explore` is the explore settings a new character starts with. The run
   # holds its own in `Game#explore_settings`, and `Action::Configure` puts
-  # these there, so the replay records them as an action.
+  # these there, so the replay records them as an action. `pickup` is the
+  # rules of automatic pickup a new character starts with, and reaches the
+  # run the same way.
   class Options
     include JSON::Serializable
 
@@ -162,6 +164,10 @@ module Roguelike
     # The explore settings a new character starts with.
     property explore : Explore::Settings = Explore::Settings.new
 
+    # The rules of automatic pickup a new character starts with.
+    @[JSON::Field(converter: Roguelike::Pickup::Stored)]
+    property pickup : Pickup::Rules = Pickup.default
+
     # The file's value of each key a flag set for this run.
     #
     # `#write` saves these in place of the flag's value, so a flag never
@@ -275,7 +281,7 @@ module Roguelike
       return @explore[key.lchop EXPLORE] if key.starts_with? EXPLORE
 
       {% for ivar in @type.instance_vars %}
-        {% unless ivar.name == "overridden" || ivar.name == "explore" %}
+        {% unless ivar.name == "overridden" || ivar.name == "explore" || ivar.name == "pickup" %}
           if key == {{ ivar.name.stringify }}
             {% if ivar.name == "control_scheme" %}
               return @{{ ivar.name }}.try &.to_s.underscore
@@ -301,7 +307,7 @@ module Roguelike
       end
 
       {% for ivar in @type.instance_vars %}
-        {% unless ivar.name == "overridden" || ivar.name == "explore" %}
+        {% unless ivar.name == "overridden" || ivar.name == "explore" || ivar.name == "pickup" %}
           if key == {{ ivar.name.stringify }}
             {% if ivar.name == "control_scheme" %}
               if value.nil?

@@ -87,7 +87,33 @@ Spectator.describe Roguelike::Options do
 
       expect(written(root).as_h.keys).to contain_exactly(
         "motion", "flicker", "bar_color", "mouse", "control_scheme",
-        "update_check", "autosubmit", "explore")
+        "update_check", "autosubmit", "explore", "pickup")
+    end
+  end
+
+  describe "the pickup rules" do
+    alias Pickup = Roguelike::Pickup
+
+    it "are the game's own with no file" do
+      expect(Options.read(root).pickup).to eq Pickup.default
+    end
+
+    it "are written and read back" do
+      options = Options.new
+      options.pickup = Pickup::Rules.new [Pickup::Rule.new(Pickup::Outcome::Take)], Pickup::Outcome::Leave
+      options.write root
+
+      expect(Options.read(root).pickup).to eq options.pickup
+    end
+
+    it "read as the game's own when they do not read, and keep the other options" do
+      Dir.mkdir_p root
+      File.write Options.path(root),
+        %({"mouse":false,"pickup":{"rules":[{"when":["shiny"],"then":"take"}],"else":"leave"}})
+      found = Options.read root
+
+      expect(found.pickup).to eq Pickup.default
+      expect(found.mouse?).to be_false
     end
   end
 
@@ -160,7 +186,7 @@ Spectator.describe Roguelike::Options do
 
     it "names a property for every setting except the tester's name" do
       keys = Options::SETTINGS.map(&.key) - ["name"]
-      plain = keys.reject(&.starts_with? Options::EXPLORE) + ["explore"]
+      plain = keys.reject(&.starts_with? Options::EXPLORE) + ["explore", "pickup"]
 
       expect(plain).to contain_exactly(*JSON.parse(Options.new.to_json).as_h.keys)
     end

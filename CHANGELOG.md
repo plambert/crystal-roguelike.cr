@@ -10,9 +10,20 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
 
 ### Added
 
-* A bot can change what the character picks up without being asked with the `configure` action,
-  in a new optional `pickup` field that holds an ordered list of rules. It takes no turn. The
-  rules a run starts with pick up what the game always picked up.
+* Pickup rules. A "Pickup rules" row on the options screen opens an ordered list of rules that
+  say what you pick up as you walk. Each rule names a sort of item, or anything, and may ask
+  whether you put it down, know it is cursed or blessed, have identified it, carry a pile it
+  stacks with, hold it in your quiver, whether it has spoiled, and whether it is a melee weapon
+  or armor better than the one you use. The first rule that matches an item says take or leave,
+  and a last row says what happens to everything else. `+` adds a rule, `-` removes one, `[` and
+  `]` move one up and down, and Enter edits one. The rules you start with pick up what the game
+  always picked up, and Reset puts them back.
+* Gold is a rule like any other, so a list without it leaves gold on the floor, and `X` then
+  does not walk to gold.
+* During play the rules change your character and are kept in the save and the replay. From the
+  title screen they set what a new character starts with, in `options.json`.
+* A bot can change the rules at any point in a run with the `configure` action, in a new optional
+  `pickup` field. It takes no turn.
 * You can use a shield cut for another size, such as a small one a goblin dropped. It gives one
   point less armor, and its description shows the loss, as in "armor 2 - 1 (wrong size)". Other
   armor still fits only its own size. Goblins can now carry a shield of your size the same way.

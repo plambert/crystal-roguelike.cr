@@ -752,7 +752,8 @@ module Roguelike::Ui
     # options.
     #
     # *from_title* says the title screen opened it. Otherwise, while a run
-    # is being played, the Explore rows change the run's own settings.
+    # is being played, the Explore rows change the run's own settings and
+    # the "Pickup rules" row the run's own rules.
     def show_options(after : Proc(Nil)? = nil, from_title : Bool = false) : Nil
       screen = @options_screen
       options = Options.current || Options.read(screen.root)
@@ -760,11 +761,13 @@ module Roguelike::Ui
       screen.on_close = after
       screen.on_warning = ->(warning : String) { say warning; nil }
       screen.on_explore = ->(settings : Explore::Settings) { configure settings; nil }
+      screen.on_pickup = ->(rules : Pickup::Rules) { configure rules; nil }
 
       configure_theme_editor
 
       playing = !from_title && @viewer.nil? && !@game.over?
-      screen.show application, options, (@game.explore_settings if playing)
+      screen.show application, options, (@game.explore_settings if playing),
+        (@game.pickup_rules if playing)
     end
 
     # Sends *settings* to the run as its explore settings.
@@ -775,14 +778,26 @@ module Roguelike::Ui
       @game.perform Action::Configure.new(settings)
     end
 
-    # Gives the run the explore settings in the options.
+    # Sends *rules* to the run as its rules of automatic pickup.
+    def configure(rules : Pickup::Rules) : Nil
+      return if @viewer || @game.over?
+      return if rules == @game.pickup_rules
+
+      @game.perform Action::Configure.new(pickup: rules)
+    end
+
+    # Gives the run the explore settings and the rules of automatic pickup
+    # in the options.
     #
-    # A new character, *fresh*, takes them from `options.json` and
-    # `--explore`. A character carried on keeps the settings in its save
-    # unless `--explore` was typed.
+    # A new character, *fresh*, takes both from `options.json`, and the
+    # explore settings from `--explore`. A character carried on keeps what
+    # is in its save, except the explore settings when `--explore` was
+    # typed.
     private def starting_explore(fresh : Bool) : Nil
       options = Options.current
       return unless options
+
+      configure options.pickup if fresh
       return unless fresh || options.overridden?("explore")
 
       configure options.explore
