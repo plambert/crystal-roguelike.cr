@@ -255,6 +255,22 @@ Spectator.describe Roguelike::Pursuit do
       expect(found).to eq Action.wait
     end
 
+    # The line from the corridor to the character cuts the corner of the
+    # doorway. The step straight down the corridor still brings it nearer.
+    it "walks through a doorway when the line to the character cuts its corner" do
+      found = Pursuit.decide snapshot({3, 1}, quarry: {1, 4}, paths: false,
+        knowledge: known(CROWD))
+
+      expect(found).to eq Action.step(Direction::South)
+    end
+
+    it "waits in the corridor when the step toward the doorway is taken" do
+      found = Pursuit.decide snapshot({3, 1}, quarry: {1, 4}, paths: false,
+        knowledge: known(CROWD), blocked: [{3, 2}])
+
+      expect(found).to eq Action.wait
+    end
+
     it "steps to a free square beside the character when its way is taken" do
       found = Pursuit.decide snapshot({3, 1}, quarry: {1, 1}, paths: false,
         blocked: [{2, 1}])
