@@ -41,6 +41,44 @@ share like that. Other creatures share with band members who speak a common lang
 within range or were seen recently, and call out to the rest. Languages are per creature, with
 properties such as silent, sight-based or sound-based, and a clever goblin might speak Orc.
 
+### Modular monster AI
+
+Monster AI becomes pluggable and modular, so each kind of creature can have its own behavior. Today
+one movement routine in `pursuit.cr` serves every creature, adjusted by per-kind settings such as
+paths, persistence and opens_doors. This starts with a design document, in the style of
+`plans/OPTIONS.md`. The golem's guard, leash and return-home behavior, which is being built now, is
+the first example of a per-kind behavior.
+
+### Kobolds
+
+Kobolds are skirmishers. They keep their distance and run away quickly. They throw rocks from a
+distance, or fire bows if they find one.
+
+### Giant carrion worms
+
+Giant carrion worms smell corpses from a long distance and are drawn to them. They do not attack
+the character unless provoked. Eating a corpse gives a worm hit points. Their acid destroys
+potions, scrolls, wands and non-metal items, and damages metal items. A possible later step is that
+a worm with enough hit points forms a cocoon, and some time later it emerges as a much more
+aggressive and dangerous monster.
+
+### Creatures with their own behavior
+
+Some creatures need a behavior of their own, as in the modular monster AI item. Blink dogs teleport.
+Black puddings split. Giant spiders spin webs. Giant spiders with plain stats and no webs are being
+added separately.
+
+### Creatures scavenge when a floor is built
+
+When a floor is built, each creature knows the area around it. Creatures that can use weapons and
+armor are assumed to have scavenged the best ones nearby.
+
+### Smart creatures use potions
+
+Very smart creatures gather healing and haste potions and drink them in fights. Orcs, hobgoblins and
+kobolds are very smart. They do not need to identify the potions, because they already know what
+they are.
+
 ## Considered
 
 ### Sorting the pack
