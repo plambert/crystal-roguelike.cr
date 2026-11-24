@@ -16,12 +16,6 @@ can also be relative, such as "You realize that your dagger (z) is better than y
 (c)!", which lifts the lower bound. A scroll of identify learns it outright. How the steps are
 timed, and what a negative enchantment reveals as, is to be settled when this is built.
 
-### A pickup filter
-
-What to pick up without being asked becomes an ordered list of rules, such as "gold only", "never a
-cursed item", or "anything better than what I have". The rules are set on the options screen. They
-are part of the game state and are recorded in the replay.
-
 ### A tutorial for new players
 
 A guided first run that introduces moving, fighting, picking things up, the pack, doors, stairs
@@ -349,6 +343,20 @@ Nothing is here yet. This section records items we decided not to follow up on, 
 is not made twice.
 
 ## Completed
+
+### A pickup filter
+
+A "Pickup rules" row on the options screen opens an ordered list of rules that say what the
+character picks up when walking. Each rule names a sort of item, or anything. It may also ask
+whether the character put the item down, knows it is cursed or blessed, has identified it, carries a
+pile it stacks with, holds it in the quiver, or whether it has spoiled. It may ask whether the item
+is a melee weapon or armor better than the one in use. The first rule that matches an item says take
+or leave, and a last row says what happens to everything else. `+` adds a rule, `-` removes one,
+`[` and `]` move one up and down, and Enter edits one. The starting rules pick up what the game
+always picked up, and Reset puts them back. Gold is a rule like any other, so a list without it
+leaves gold on the floor and `X` does not walk to gold. The rules are kept in the save and the
+replay. From the title screen they set what a new character starts with. A bot can change them at
+any point with the `configure` action, and that takes no turn.
 
 ### The oil of resizing
 
