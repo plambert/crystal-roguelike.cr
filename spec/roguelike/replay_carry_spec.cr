@@ -172,7 +172,8 @@ Spectator.describe "a replay log carried across a save" do
       play game, 20, 3_u64
       Log.ended Exception.new("crashed")
 
-      play loaded(store), 20, 2_u64
+      # The character lives through this stream. A blue slime kills it on some others.
+      play loaded(store), 20, 5_u64
     end
 
     file = only where
