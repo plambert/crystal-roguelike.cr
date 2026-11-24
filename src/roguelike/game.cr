@@ -6518,13 +6518,14 @@ module Roguelike
     # Puts the character somewhere else on this floor.
     #
     # An uncursed one picks a square at random, no nearer than
-    # `TELEPORT_LEAST`. A blessed one goes where they chose. A cursed one
-    # puts them beside whatever on the floor is worth the most experience.
+    # `TELEPORT_LEAST`. A blessed one goes where they chose, if they remember
+    # ground there and nothing stands on it now. A cursed one puts them
+    # beside whatever on the floor is worth the most experience.
     private def teleport_with(scroll : Item, target : {Int32, Int32}?) : Nil
       return teleport_to_trouble if scroll.cursed?
 
       if scroll.blessed?
-        return arrive_at target if target && standable? target
+        return arrive_at target if target && chosen_landing? target
 
         say "The writing fades with nowhere to go.",
           Event::Fizzled.new(:no_target)
@@ -6539,6 +6540,22 @@ module Roguelike
       end
 
       arrive_at spots.sample(draught)
+    end
+
+    # Whether a blessed scroll of minor teleport will put the character on
+    # *spot*.
+    #
+    # The character must remember ground there. A square never seen fizzles
+    # whatever lies on it, so the scroll tells them nothing they had not
+    # seen. The square must also be standable now, because the scroll cannot
+    # put them inside a wall or a creature.
+    private def chosen_landing?(spot : {Int32, Int32}) : Bool
+      return false unless floor.contains? spot[0], spot[1]
+
+      memory = @player.knowledge?.try &.[spot]
+      return false unless memory && memory.terrain.passable?
+
+      standable? spot
     end
 
     # Whether the character could stand on *spot*.
@@ -8161,6 +8178,11 @@ module Roguelike
     end
 
     # The answers the waiting scroll will take.
+    #
+    # A scroll that wants a square is offered each creature in sight and no
+    # square at all. A blessed scroll of minor teleport takes more than that.
+    # `#perform` sends it to any square the character remembers as ground,
+    # and the list keeps to the sample rather than naming every such square.
     private def answers(scroll : Item, seen : Vision) : Array(Action)
       found = [] of Action
 
