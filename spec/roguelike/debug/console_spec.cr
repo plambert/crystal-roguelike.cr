@@ -69,7 +69,7 @@ Spectator.describe Roguelike::Debug::Console do
   describe "heal and hurt" do
     it "puts hit points back" do
       game, console = playing
-      game.player.hurt 5
+      game.player.hurt hp(5)
       console.run "heal 3", game
 
       expect(console.lines.last).to contain "healed 3"
@@ -77,7 +77,7 @@ Spectator.describe Roguelike::Debug::Console do
 
     it "fills up when it is given no number" do
       game, console = playing
-      game.player.hurt 5
+      game.player.hurt hp(5)
       console.run "heal", game
 
       expect(game.player.hit_points).to eq game.player.max_hit_points
@@ -88,7 +88,7 @@ Spectator.describe Roguelike::Debug::Console do
       before = game.player.hit_points
       console.run "hurt 4", game
 
-      expect(game.player.hit_points).to eq before - 4
+      expect(game.player.hit_points).to eq before - hp(4)
     end
 
     # Ending a run belongs to the blow that killed the character. The console
@@ -97,7 +97,7 @@ Spectator.describe Roguelike::Debug::Console do
       game, console = playing
       console.run "hurt 1000", game
 
-      expect(game.player.hit_points).to eq 1
+      expect(game.player.hit_points).to eq hp(1)
       expect(game.player.alive?).to be_true
     end
 

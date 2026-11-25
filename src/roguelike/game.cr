@@ -1794,7 +1794,7 @@ module Roguelike
     # *assailed* is how many attacks the character had taken, and *stairs*
     # whether they knew where the stairs down were.
     private record Watch,
-      health : Int32,
+      health : Fixed,
       written : Int32,
       last : String?,
       seen : Array(Monster),
@@ -2455,7 +2455,7 @@ module Roguelike
       held = @player.wielded
       behind = flanking > 0 ? " from behind" : ""
       if blow.hit?
-        creature.hurt blow.damage
+        creature.hurt blow.harm
         say "You hit the #{creature.label}#{behind} for #{blow.damage}.",
           with_facts(Event::Attack.new(true, target: creature.id,
             damage: blow.damage, with: weapon, flanking: flanking > 0),
@@ -2538,7 +2538,7 @@ module Roguelike
                             blow : Blow? = nil) : Events::Facts
       lore = attacker ? nil : @lore
       total = blow.try { |found| found.damage if found.hit? }
-      left = target ? target.hit_points : @player.hit_points if blow
+      left = (target ? target.hit_points : @player.hit_points).ceil if blow
 
       Events::Facts.new attacker: attacker.try(&.id),
         attacker_species: Events::Facts.species(attacker),
@@ -2844,7 +2844,7 @@ module Roguelike
       blow = Combat.swing exchange, bonus, creature.armor_class, damage
 
       if blow.hit?
-        creature.hurt blow.damage
+        creature.hurt blow.harm
         say "The #{noun} hits the #{creature.label} for #{blow.damage}.",
           with_facts(Event::Attack.new(true, target: creature.id,
             damage: blow.damage, with: noun),
@@ -3304,7 +3304,7 @@ module Roguelike
       return unless (@turn % RECOVERY).zero?
 
       floor.each_monster do |_column, _row, creature|
-        creature.heal 1 if creature.hurt? && creature.kind.heals?
+        creature.heal Fixed.whole(1) if creature.hurt? && creature.kind.heals?
         creature.rally if creature.fleeing? && creature.steadied?
       end
     end
@@ -3350,7 +3350,7 @@ module Roguelike
         blow = Combat.swing exchange, bonus, @player.armor_class, damage
         if blow.hit?
           @assailed += 1
-          @player.hurt blow.damage
+          @player.hurt blow.harm
           facts = fight_facts creature, nil, one, weapon, damage, blow
           say "The #{noun} hits you for #{blow.damage}.",
             with_facts(Event::Attack.new(true, attacker: shooter,
@@ -3430,13 +3430,13 @@ module Roguelike
       return false unless patient
 
       root = (@root ||= Rng.new @world.seed)
-      amount = patient.heal MEND.roll(root.derive("mend", @mends))
+      amount = patient.heal Fixed.whole(MEND.roll(root.derive("mend", @mends)))
       @mends += 1
       creature.mended MEND_WAIT
 
       if regard_of(creature).everything?
         say "The #{creature.label} mends the #{patient.label}.",
-          Event::Healed.new(amount, who: patient.id)
+          Event::Healed.new(amount.ceil, who: patient.id)
       end
 
       true
@@ -3595,7 +3595,7 @@ module Roguelike
 
       behind = flanking > 0 ? " from behind" : ""
       if blow.hit?
-        @player.hurt blow.damage
+        @player.hurt blow.harm
         say "The #{creature.label} #{creature.kind.verb} you#{behind} for #{blow.damage}.",
           with_facts(Event::Attack.new(true, attacker: creature.id,
             damage: blow.damage, flanking: flanking > 0),
@@ -3677,7 +3677,7 @@ module Roguelike
       shown = regard_of(creature).everything? && regard_of(victim).everything?
 
       if blow.hit?
-        victim.hurt blow.damage
+        victim.hurt blow.harm
         if shown
           say "The #{creature.label} #{creature.kind.verb} the #{victim.label} for #{blow.damage}.",
             with_facts(Event::Attack.new(true, attacker: creature.id,
@@ -3869,7 +3869,7 @@ module Roguelike
       @splits = splits + 1
 
       spot = free.sample stream
-      health = creature.kind.hit_dice.roll stream
+      health = creature.kind.health.roll stream
       copy = Monster.new creature.kind, spot[0], spot[1], creature.band,
         hit_points: health, max_hit_points: health
       return unless floor.place copy
@@ -3918,10 +3918,10 @@ module Roguelike
       return if rested < REST
       return unless (rested % @player.regeneration).zero?
 
-      gained = @player.heal 1
+      gained = @player.heal Fixed.whole(1)
       return if gained.zero?
 
-      record Event::Healed.new(gained)
+      record Event::Healed.new(gained.ceil)
     end
 
     # Passes one turn of hunger and thirst, unless `#sustenance?` has them
@@ -3937,7 +3937,7 @@ module Roguelike
       sustenance.tick thirst: !thirst_held?
       restage
 
-      @player.hurt sustenance.wasted if sustenance.wasted > 0
+      @player.hurt Fixed.whole(sustenance.wasted) if sustenance.wasted > 0
       death = sustenance.death
       death ||= sustenance.wasted_by unless @player.alive?
       wasted_away death if death
@@ -5248,7 +5248,7 @@ module Roguelike
       deep = Game.depth_of ground
       say line, with_facts(Event::Climbed.new(ground.id, deep, spot),
         Events::Facts.new(level: @player.level,
-          hp: {@player.hit_points, @player.max_hit_points}))
+          hp: {@player.hit_points.ceil, @player.max_hit_points.ceil}))
       arrived
       spend_turn
       landed calm
@@ -6996,10 +6996,10 @@ module Roguelike
     private def mend(item : Item) : Nil
       rolled = item.kind.power.roll draught
       strength = Math.max rolled * item.blessing.potency // 100, 1
-      put_back = @player.heal strength
+      put_back = @player.heal Fixed.whole(strength)
 
-      say put_back > 0 ? "You feel better." : "You feel no different.",
-        Event::Healed.new(put_back)
+      say put_back.zero? ? "You feel no different." : "You feel better.",
+        Event::Healed.new(put_back.ceil)
     end
 
     # What a scroll of identify does.

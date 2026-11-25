@@ -408,7 +408,7 @@ module Roguelike
 
       GARRISON.each do |kind, spot|
         stream = rng.derive("#{DOMAIN}:#{floor.id}").derive "garrison:#{spot[0]},#{spot[1]}"
-        health = kind.hit_dice.roll stream
+        health = kind.health.roll stream
 
         floor.place Monster.new(kind, spot[0], spot[1], band,
           hit_points: health, max_hit_points: health)
@@ -1302,7 +1302,7 @@ module Roguelike
       count.times do |which|
         kind = which.zero? ? first : Items.pick(stream, company)
         spot = kind.guards? ? post(stream, room) : plain(room).sample(stream)
-        health = kind.hit_dice.roll stream
+        health = kind.health.roll stream
 
         @floor.place Monster.new(kind, spot[0], spot[1], band,
           hit_points: health, max_hit_points: health)

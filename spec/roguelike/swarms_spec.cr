@@ -53,7 +53,7 @@ Spectator.describe "ants, jellies and flanking" do
     members = spots.map { |spot| Monster.new kind, spot[0], spot[1], "band-one" }
     members.each { |member| floor.place member }
 
-    player = Player.new floor.id, *Game.entrance(floor), hit_points: 5000
+    player = Player.new floor.id, *Game.entrance(floor), hit_points: hp(5000)
     game = Game.new World.new(20260930_u64, {floor.id => floor}), player
     game.enroll
 
@@ -237,7 +237,7 @@ Spectator.describe "ants, jellies and flanking" do
 
     it "does not split at half its hit points or below" do
       game, jelly = cell
-      half = jelly.max_hit_points // 2
+      half = Roguelike::Fixed.new jelly.max_hit_points.value // 2
 
       # Creatures recover a hit point every ten turns, so the jelly is held
       # at half throughout.
@@ -309,7 +309,7 @@ Spectator.describe "ants, jellies and flanking" do
       end
 
       expect(first.fingerprint).to eq second.fingerprint
-      expect(first.player.hit_points).to be < 5000
+      expect(first.player.hit_points).to be < hp(5000)
     end
   end
 end

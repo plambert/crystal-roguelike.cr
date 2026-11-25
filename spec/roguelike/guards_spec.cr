@@ -52,13 +52,13 @@ Spectator.describe "golems guarding their posts" do
   # The character is hard to kill, walks a turn a step, and carries twenty
   # rocks to throw.
   def guarded(map : Array(String), kind : Creature, at : {Int32, Int32},
-              hero : {Int32, Int32}, hit_points : Int32? = nil) : {Game, Monster}
+              hero : {Int32, Int32}, hit_points : Roguelike::Fixed? = nil) : {Game, Monster}
     floor = Playing.daylight Floor.parse("guarded", map)
     creature = Monster.new kind, at[0], at[1], "guard",
       hit_points: hit_points, max_hit_points: hit_points
     floor.place creature
 
-    player = Playing.dressed Player.new(floor.id, hero[0], hero[1], hit_points: 5000)
+    player = Playing.dressed Player.new(floor.id, hero[0], hero[1], hit_points: hp(5000))
     player.inventory.add Item.new(ItemKind::Rock, count: 20)
     {Game.new(World.new(SEED, {floor.id => floor}), player), creature}
   end
@@ -234,9 +234,9 @@ Spectator.describe "golems guarding their posts" do
     end
 
     it "sleeps once it is home, as hurt as it came back" do
-      game, golem = guarded CORRIDOR, Creature::StoneGolem, {30, 1}, {29, 1}, hit_points: 40
+      game, golem = guarded CORRIDOR, Creature::StoneGolem, {30, 1}, {29, 1}, hit_points: hp(40)
       game.wait
-      golem.hurt 10
+      golem.hurt hp(10)
       26.times do
         break if awareness(game, golem).returning?
 
@@ -246,11 +246,11 @@ Spectator.describe "golems guarding their posts" do
 
       expect(golem.home?).to be_true
       expect(awareness game, golem).to eq Awareness::Asleep
-      expect(golem.hit_points).to eq 30
+      expect(golem.hit_points).to eq hp(30)
 
       100.times { game.wait }
 
-      expect(golem.hit_points).to eq 30
+      expect(golem.hit_points).to eq hp(30)
     end
 
     it "lets a character in heavy armor get away" do
@@ -264,7 +264,7 @@ Spectator.describe "golems guarding their posts" do
       20.times { game.step Direction::West }
 
       expect(Roguelike::Pursuit.gap(golem.at, game.player.at)).to be > 3
-      expect(game.player.hit_points).to be >= start - 30
+      expect(game.player.hit_points).to be >= start - hp(30)
     end
   end
 
@@ -293,7 +293,7 @@ Spectator.describe "golems guarding their posts" do
     # Zaps a wand of striking at *kind* twenty times. Answers how many bolts
     # hit and the damage of each.
     def zapped(kind : Creature) : {Int32, Array(Int32)}
-      game, golem = guarded CORRIDOR, kind, {6, 1}, {1, 1}, hit_points: 10_000
+      game, golem = guarded CORRIDOR, kind, {6, 1}, {1, 1}, hit_points: hp(10_000)
       wand = game.player.inventory.add(Item.new ItemKind::StrikingWand, charges: 40) || raise "pack full"
       hit = 0
       damage = [] of Int32

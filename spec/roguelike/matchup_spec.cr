@@ -65,7 +65,7 @@ Spectator.describe Roguelike::Trial::Matchup do
     it "leaves the character at most as hurt as they were" do
       result = Matchup.fight first, Kind::Orc, Roguelike::Rng.new(7_u64)
 
-      expect(result.damage).to be_between(0, first.character.max_hit_points)
+      expect(result.damage).to be_between(0, first.character.max_hit_points.ceil)
     end
   end
 
@@ -107,8 +107,8 @@ Spectator.describe Roguelike::Trial::Matchup do
     # off before the fight closes. The first kit dies sooner with fewer hit
     # points to lose. Against a shooter only the win rate is compared.
     it "costs a stronger kit a smaller share of its hit points" do
-      weakest = first.character.max_hit_points
-      strongest = last.character.max_hit_points
+      weakest = first.character.max_hit_points.ceil
+      strongest = last.character.max_hit_points.ceil
 
       Matchup.opponents.each do |kind|
         weak = Matchup.cell first, kind, FIGHTS

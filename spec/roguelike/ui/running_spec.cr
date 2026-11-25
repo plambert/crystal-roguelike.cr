@@ -22,7 +22,7 @@ Spectator.describe "running from the keyboard" do
     Playing.open Roguelike::Game.new(
       Roguelike::World.new(Playing::SEED, {"run" => floor}),
       Roguelike::Player.new("run", *Roguelike::Game.entrance(floor),
-        hit_points: 40)), 60, 20, clock: clock
+        hit_points: hp(40))), 60, 20, clock: clock
   end
 
   describe "G" do
@@ -153,13 +153,13 @@ Spectator.describe "running from the keyboard" do
     it "stops in front of a creature without swinging at it" do
       run = walking
       run.game.floor.place Monster.new(Species::Goblin, 2, 2, "band-one",
-        hit_points: 30)
+        hit_points: hp(30))
       run.play.refresh
 
       run.press "G", "l"
 
       expect(run.at).to eq({1, 2})
-      expect(run.game.floor.monster(2, 2).try &.hit_points).to eq 30
+      expect(run.game.floor.monster(2, 2).try &.hit_points).to eq hp(30)
     end
   end
 end

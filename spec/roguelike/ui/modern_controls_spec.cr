@@ -45,7 +45,7 @@ Spectator.describe "the modern controls" do
     Options.current = Options.new
     run = Playing.open carrying([Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12)])
     run.press "w", "a", "w", "b"
-    run.game.floor.place Monster.new(Roguelike::Species::Goblin, 6, 1, "modern-test", hit_points: 200)
+    run.game.floor.place Monster.new(Roguelike::Species::Goblin, 6, 1, "modern-test", hit_points: hp(200))
     run.play.refresh
     run.render
     run

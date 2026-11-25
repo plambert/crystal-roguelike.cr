@@ -513,7 +513,7 @@ module Roguelike
     private def defiled(item : Item, id : Int32, noun : String) : Nil
       return unless item.corpse? && item.butchery.humanoid?
 
-      lost = @player.waste 1
+      lost = @player.waste(1).ceil
       return if lost.zero?
 
       say "Eating #{noun} weakens you for good. Your maximum hit points drop by #{lost}.",

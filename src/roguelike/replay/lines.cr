@@ -19,10 +19,15 @@ module Roguelike
     # that went back to an earlier save would then play wrongly, so the
     # number is raised. A format 2 file has neither line and reads as it
     # always did.
-    FORMAT = 3
+    #
+    # Format 4 keeps hit points in hundredths, in the run a header carries and
+    # in every fingerprint. Combat rules change from this format on, so the
+    # actions in an older file lead to different fights. Every older file is
+    # refused, and the release that recorded one still plays it.
+    FORMAT = 4
 
     # The formats this build reads.
-    READS = 2..FORMAT
+    READS = FORMAT..FORMAT
 
     # What a run was written down with, and where it started.
     #

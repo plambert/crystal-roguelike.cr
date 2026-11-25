@@ -293,7 +293,7 @@ Spectator.describe "the message log" do
     # An orc archer at *at*, with a bow and arrows.
     def archer(at : {Int32, Int32}) : Monster
       creature = Monster.new Creature::OrcArcher, at[0], at[1], "archers",
-        hit_points: PLENTY
+        hit_points: hp(PLENTY)
       creature.outfit [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 20)]
       creature
     end
@@ -302,7 +302,7 @@ Spectator.describe "the message log" do
     # log already full.
     def fight : Playing::Run
       floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
-      player = Roguelike::Player.new "hall", 1, 2, hit_points: PLENTY
+      player = Roguelike::Player.new "hall", 1, 2, hit_points: hp(PLENTY)
       player.inventory.add Item.new(Kind::Bow)
       player.inventory.add Item.new(Kind::Arrow, count: 20)
 

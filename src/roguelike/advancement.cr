@@ -63,11 +63,11 @@ module Roguelike
     #
     # Constitution counts once per level, so a tough character pulls further
     # ahead as they grow.
-    def self.max_hit_points(level : Int32, constitution : Int32) : Int32
+    def self.max_hit_points(level : Int32, constitution : Int32) : Fixed
       held = level.clamp 1, MAX_LEVEL
       bonus = Attributes.modifier(constitution) * held
 
-      Math.max BASE_HIT_POINTS + (held - 1) * HIT_POINTS_PER_LEVEL + bonus, 1
+      Fixed.whole Math.max(BASE_HIT_POINTS + (held - 1) * HIT_POINTS_PER_LEVEL + bonus, 1)
     end
 
     # Experience needed to reach *level*.

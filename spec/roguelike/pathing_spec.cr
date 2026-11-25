@@ -39,7 +39,7 @@ Spectator.describe "creatures pathing around each other" do
     members = spots.map { |spot| Monster.new Species::Goblin, spot[0], spot[1], "band-one" }
     members.each { |member| floor.place member }
 
-    player = Player.new floor.id, *Game.entrance(floor), hit_points: 5000
+    player = Player.new floor.id, *Game.entrance(floor), hit_points: hp(5000)
     game = Game.new World.new(20260930_u64, {floor.id => floor}), player
 
     band = floor.band "band-one"

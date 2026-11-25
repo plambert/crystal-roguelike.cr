@@ -106,7 +106,7 @@ Spectator.describe "the save written every few hundred turns" do
     store = Playing.store
     run = playing store, clock: true
     wait run, Play::AUTOSAVE_EVERY - 5
-    run.game.player.hurt run.game.player.hit_points - 1
+    run.game.player.hurt run.game.player.hit_points - hp(1)
 
     run.press "R"
     while run.play.resting? && run.turn < Play::AUTOSAVE_EVERY

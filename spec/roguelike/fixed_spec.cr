@@ -96,6 +96,25 @@ Spectator.describe Roguelike::Fixed do
     it "compares by value" do
       expect(described_class.new(1)).to be < described_class.new(2)
     end
+
+    it "multiplies by a whole number" do
+      expect((described_class.new(275) * 4).value).to eq 1100
+      expect { described_class.new(Int32::MAX) * 2 }.to raise_error OverflowError
+    end
+  end
+
+  describe "#ceil" do
+    it "rounds up to a whole number" do
+      expect(described_class.new(1).ceil).to eq 1
+      expect(described_class.new(100).ceil).to eq 1
+      expect(described_class.new(101).ceil).to eq 2
+      expect(described_class.new(0).ceil).to eq 0
+    end
+
+    it "rounds a negative quantity toward zero" do
+      expect(described_class.new(-50).ceil).to eq 0
+      expect(described_class.new(-150).ceil).to eq -1
+    end
   end
 
   describe "JSON" do

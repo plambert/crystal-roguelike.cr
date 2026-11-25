@@ -59,7 +59,7 @@ Spectator.describe "the creature last fought" do
   # *hit_points* is the creature's. The room is lit unless *light* says
   # otherwise.
   def arena(species : Species = Species::Goblin,
-            hit_points : Int32? = nil,
+            hit_points : Roguelike::Fixed? = nil,
             at : {Int32, Int32} = BESIDE) : {Game, Monster}
     floor = Playing.daylight Floor.parse("arena", ROOM)
     creature = Monster.new species, at[0], at[1], "band-one",
@@ -101,7 +101,7 @@ Spectator.describe "the creature last fought" do
     # A miss is a blow aimed at something, which is dealing with it. A person
     # who has just missed wants to know how much is left in what they missed.
     it "is raised by a swing that misses" do
-      game, creature = arena hit_points: 40
+      game, creature = arena hit_points: hp(40)
       20.times { game.attack creature }
 
       expect(game.log.lines.any? &.starts_with?("You miss")).to be_true
@@ -148,7 +148,7 @@ Spectator.describe "the creature last fought" do
 
   describe "what it reads" do
     it "reads the creature's hit points" do
-      game, creature = arena hit_points: 4
+      game, creature = arena hit_points: hp(4)
       game.attack creature
 
       expect(fought(game).hit_points).to eq creature.hit_points
@@ -199,7 +199,7 @@ Spectator.describe "the creature last fought" do
 
   describe "when it goes away" do
     it "goes when the creature dies" do
-      game, creature = arena hit_points: 1
+      game, creature = arena hit_points: hp(1)
       while creature.alive?
         game.attack creature
       end
@@ -226,7 +226,7 @@ Spectator.describe "the creature last fought" do
     end
 
     it "starts the count again on every exchange" do
-      game, creature = arena at: SEALED, hit_points: 40
+      game, creature = arena at: SEALED, hit_points: hp(40)
       game.attack creature
       (Game::FIGHT_LASTS - 2).times { game.wait }
       game.attack creature
@@ -248,7 +248,7 @@ Spectator.describe "the creature last fought" do
 
   describe "through a save" do
     it "finds the creature again" do
-      game, creature = arena hit_points: 4
+      game, creature = arena hit_points: hp(4)
       game.attack creature
       loaded = Game.from_json game.to_json
       found = loaded.fought
@@ -298,24 +298,24 @@ Spectator.describe "the creature last fought" do
     end
 
     it "shows the creature's name and count" do
-      game, creature = arena hit_points: 4
+      game, creature = arena hit_points: hp(4)
       run = playing game
       game.attack creature
       run.play.refresh
 
       expect(run.play.character.fight.hidden?).to be_false
       expect(run.play.character.threat.reading)
-        .to eq "goblin fighter #{creature.hit_points}/#{creature.max_hit_points}"
+        .to eq "goblin fighter #{creature.hit_points.ceil}/#{creature.max_hit_points.ceil}"
     end
 
     it "draws the bar against the creature's hit points" do
-      game, creature = arena hit_points: 4
+      game, creature = arena hit_points: hp(4)
       run = playing game
       game.attack creature
       run.play.refresh
 
-      expect(run.play.character.threat.value).to eq creature.hit_points
-      expect(run.play.character.threat.most).to eq creature.max_hit_points
+      expect(run.play.character.threat.value).to eq creature.hit_points.ceil
+      expect(run.play.character.threat.most).to eq creature.max_hit_points.ceil
     end
 
     it "labels the bar apart from the character's own" do

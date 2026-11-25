@@ -107,8 +107,8 @@ Spectator.describe Roguelike::Events::Writer do
     it "writes hit, miss and slain lines with the dice" do
       where = logs
       floor = Playing.daylight Floor.parse("arena", ROOM)
-      floor.place Monster.new(Species::Slime, 3, 2, "band-one", hit_points: 12)
-      player = Player.new floor.id, 3, 3, hit_points: 200,
+      floor.place Monster.new(Species::Slime, 3, 2, "band-one", hit_points: hp(12))
+      player = Player.new floor.id, 3, 3, hit_points: hp(200),
         experience: Roguelike::Advancement.threshold(2) - 1
       game = Game.new World.new(20260912_u64, {floor.id => floor}), player
       game.player.name = "fighter"
@@ -192,7 +192,7 @@ Spectator.describe Roguelike::Events::Writer do
       expect(line["floor_id"]).to eq(game.player.floor)
       expect(line["depth"]).to eq(2)
       expect(line["level"]).to eq(1)
-      expect(line["hp"]).to eq(JSON.parse([game.player.hit_points, game.player.max_hit_points].to_json))
+      expect(line["hp"]).to eq(JSON.parse([game.player.hit_points.ceil, game.player.max_hit_points.ceil].to_json))
 
       after = found[found.index!(line) + 1]
       expect(after["kind"]).to eq("stats")

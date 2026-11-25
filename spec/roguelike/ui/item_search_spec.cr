@@ -49,7 +49,7 @@ Spectator.describe "the item search" do
     floor.drop 1, 7, Item.new(Kind::Spear)
     floor.drop 6, 1, Item.new(Kind::Dagger, enchantment: 1)
     floor.drop 10, 3, Item.new(Kind::Mace)
-    player = Roguelike::Player.new "room", 1, 1, hit_points: 40
+    player = Roguelike::Player.new "room", 1, 1, hit_points: hp(40)
     game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}), player
 
     run = Playing.open game, columns: 120, rows: 40
@@ -364,7 +364,7 @@ Spectator.describe "the item search" do
         "....................",
       ])
       floor.drop 3, 0, Item.new(Kind::Spear)
-      player = Roguelike::Player.new "strip", 1, 2, hit_points: 40
+      player = Roguelike::Player.new "strip", 1, 2, hit_points: hp(40)
       game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"strip" => floor}), player
 
       run = Playing.open game, columns: 60, rows: 20, clock: true

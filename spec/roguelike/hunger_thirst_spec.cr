@@ -31,7 +31,7 @@ Spectator.describe "hunger and thirst" do
   def bare(lines : Array(String) = HALL) : Game
     floor = Roguelike::Floor.parse "here", lines
     floor.ambient = 1
-    player = Roguelike::Player.new "here", *Game.entrance(floor), hit_points: 40
+    player = Roguelike::Player.new "here", *Game.entrance(floor), hit_points: hp(40)
 
     Game.new Roguelike::World.new(SEED, {"here" => floor}), player
   end
@@ -169,13 +169,13 @@ Spectator.describe "hunger and thirst" do
 
     it "stops regeneration and wastes hit points once thirst passes the wasting point" do
       game = bare
-      game.player.hurt 10
+      game.player.hurt hp(10)
       sustenance(game).thirst = Sustenance::THIRST_DYING
       before = game.player.hit_points
 
       pass game, Sustenance::Tuning::WASTE_FIRST
 
-      expect(game.player.hit_points).to eq before - 1
+      expect(game.player.hit_points).to eq before - hp(1)
     end
 
     it "wastes hit points when hunger and thirst together pass the wasting point" do
@@ -188,7 +188,7 @@ Spectator.describe "hunger and thirst" do
 
       pass game, every + 1
 
-      expect(game.player.hit_points).to eq before - 1
+      expect(game.player.hit_points).to eq before - hp(1)
     end
   end
 
@@ -220,7 +220,7 @@ Spectator.describe "hunger and thirst" do
 
     it "ends the run when wasting takes the last hit point" do
       game = bare
-      game.player.hurt game.player.hit_points - 1
+      game.player.hurt game.player.hit_points - hp(1)
       sustenance(game).water = 0
       sustenance(game).thirst = Sustenance::THIRST_DYING
 

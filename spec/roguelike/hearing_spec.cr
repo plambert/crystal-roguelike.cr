@@ -35,7 +35,7 @@ Spectator.describe "hearing" do
     floor = Floor.parse "hall", HALL
     monsters.each { |creature| floor.place creature }
 
-    player = Player.new floor.id, *HERE, hit_points: 500
+    player = Player.new floor.id, *HERE, hit_points: hp(500)
     player.inventory.add Item.new(ItemKind::Rock, count: 5)
 
     game = Game.new World.new(SEED, {floor.id => floor}), player
@@ -45,7 +45,7 @@ Spectator.describe "hearing" do
 
   # A goblin at *at*, asleep, in a band of its own.
   def goblin(at : {Int32, Int32}) : Monster
-    Monster.new Species::Goblin, at[0], at[1], "band-#{at[0]}-#{at[1]}", hit_points: 200
+    Monster.new Species::Goblin, at[0], at[1], "band-#{at[0]}-#{at[1]}", hit_points: hp(200)
   end
 
   # The band *creature* belongs to.
@@ -107,9 +107,9 @@ Spectator.describe "hearing" do
     end
 
     it "is still stirring at the end of the turn it heard a fight" do
-      orc = Monster.new Species::Orc, 8, 2, "band-orcs", hit_points: 500
-      slime = Monster.new Species::Slime, 9, 2, "band-slimes", hit_points: 500
-      other = Monster.new Species::Slime, 12, 2, "band-other", hit_points: 500
+      orc = Monster.new Species::Orc, 8, 2, "band-orcs", hit_points: hp(500)
+      slime = Monster.new Species::Slime, 9, 2, "band-slimes", hit_points: hp(500)
+      other = Monster.new Species::Slime, 12, 2, "band-other", hit_points: hp(500)
       game = hall [orc, slime, other]
       band(game, orc).awareness = Awareness::Hunting
       band(game, orc).knowledge(game.floor.id).saw Knowledge.creature(slime.id), 9, 2, game.turn
@@ -127,7 +127,7 @@ Spectator.describe "hearing" do
       near = goblin({7, 2})
       near.blind 1000
       [target, near].each { |creature| floor.place creature }
-      player = Player.new floor.id, *HERE, hit_points: 500
+      player = Player.new floor.id, *HERE, hit_points: hp(500)
       game = Game.new World.new(SEED, {floor.id => floor}), player
       game.enroll
 
@@ -186,8 +186,8 @@ Spectator.describe "hearing" do
 
   describe "a sound out of sight" do
     it "is marked on the last square in sight toward it" do
-      orc = Monster.new Species::Orc, 8, 2, "band-orcs", hit_points: 500
-      slime = Monster.new Species::Slime, 9, 2, "band-slimes", hit_points: 500
+      orc = Monster.new Species::Orc, 8, 2, "band-orcs", hit_points: hp(500)
+      slime = Monster.new Species::Slime, 9, 2, "band-slimes", hit_points: hp(500)
       game = hall [orc, slime]
       band(game, orc).awareness = Awareness::Hunting
       band(game, orc).knowledge(game.floor.id).saw Knowledge.creature(slime.id), 9, 2, game.turn
@@ -203,8 +203,8 @@ Spectator.describe "hearing" do
 
   describe "a fight out of sight" do
     it "is told to the character once while it goes on" do
-      orc = Monster.new Species::Orc, 8, 2, "band-orcs", hit_points: 500
-      slime = Monster.new Species::Slime, 9, 2, "band-slimes", hit_points: 500
+      orc = Monster.new Species::Orc, 8, 2, "band-orcs", hit_points: hp(500)
+      slime = Monster.new Species::Slime, 9, 2, "band-slimes", hit_points: hp(500)
       game = hall [orc, slime]
       band(game, orc).awareness = Awareness::Hunting
       band(game, orc).knowledge(game.floor.id).saw Knowledge.creature(slime.id), 9, 2, game.turn

@@ -67,7 +67,7 @@ Spectator.describe "what the rule under the map says during explore" do
                 clock : Bool = true, lit : Bool = true) : Playing::Run
     floor = Roguelike::Floor.parse(Roguelike::World.id(1), lines)
     Playing.daylight floor if lit
-    player = Playing.dressed(Roguelike::Player.new(floor.id, *Game.entrance(floor), hit_points: 40))
+    player = Playing.dressed(Roguelike::Player.new(floor.id, *Game.entrance(floor), hit_points: hp(40)))
     player.inventory.add Item.new(ItemKind::Candle, lit: true) unless lit
     run = Playing.open Game.new(
       Roguelike::World.new(Playing::SEED, {floor.id => floor}), player),

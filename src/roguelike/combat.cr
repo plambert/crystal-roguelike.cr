@@ -28,6 +28,11 @@ module Roguelike
                    @hit : Bool, @damage : Int32)
     end
 
+    # `#damage` in the unit hit points are kept in.
+    def harm : Fixed
+      Fixed.whole @damage
+    end
+
     # The face and the bonus together.
     def total : Int32
       @roll + @bonus

@@ -45,7 +45,7 @@ Spectator.describe "showing a shot once it has landed" do
            creatures : Array(Monster) = [] of Monster,
            rows : Array(String) = HALL,
            here : {Int32, Int32} = HERE,
-           hit_points : Int32 = PLENTY) : Game
+           hit_points : Roguelike::Fixed = hp(PLENTY)) : Game
     floor = Playing.daylight Floor.parse("hall", rows)
     creatures.each { |creature| floor.place creature }
 
@@ -69,19 +69,19 @@ Spectator.describe "showing a shot once it has landed" do
 
   # A goblin standing at *at*, asleep.
   def goblin(at : {Int32, Int32}) : Monster
-    Monster.new Species::Goblin, at[0], at[1], "band-#{at[0]}", hit_points: 200
+    Monster.new Species::Goblin, at[0], at[1], "band-#{at[0]}", hit_points: hp(200)
   end
 
   # An orc archer at *at* with a bow and *arrows* arrows.
   def archer(at : {Int32, Int32}, arrows : Int32 = 20) : Monster
-    creature = Monster.new Creature::OrcArcher, at[0], at[1], "archers", hit_points: PLENTY
+    creature = Monster.new Creature::OrcArcher, at[0], at[1], "archers", hit_points: hp(PLENTY)
     creature.outfit [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: arrows)]
     creature
   end
 
   # A goblin scout at *at* with a sling and *stones* stones.
   def scout(at : {Int32, Int32}, stones : Int32 = 20) : Monster
-    creature = Monster.new Creature::GoblinScout, at[0], at[1], "scouts", hit_points: PLENTY
+    creature = Monster.new Creature::GoblinScout, at[0], at[1], "scouts", hit_points: hp(PLENTY)
     creature.outfit [Item.new(Kind::Sling), Item.new(Kind::Stone, count: stones)]
     creature
   end
@@ -238,7 +238,7 @@ Spectator.describe "showing a shot once it has landed" do
 
       run.run_timers
 
-      expect(run.text).to match /HP\s+#{run.game.player.hit_points}\//
+      expect(run.text).to match /HP\s+#{run.game.player.hit_points.ceil}\//
     end
   end
 
@@ -270,7 +270,7 @@ Spectator.describe "showing a shot once it has landed" do
 
   describe "a death by arrow" do
     it "puts the ending up only once the arrow has landed" do
-      run = Playing.open hall(creatures: [archer({7, 1})], hit_points: 1),
+      run = Playing.open hall(creatures: [archer({7, 1})], hit_points: hp(1)),
         80, 24, clock: true
 
       40.times do

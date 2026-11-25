@@ -25,7 +25,7 @@ Spectator.describe "what armor costs in pace" do
     floor = Roguelike::Floor.parse "hall", HALL.join('\n')
     floor.ambient = 1
 
-    player = Player.new "hall", 1, 2, hit_points: PLENTY
+    player = Player.new "hall", 1, 2, hit_points: hp(PLENTY)
     kinds.each do |kind|
       item = Item.new kind, blessing_known: true
       letter = player.inventory.add(item) || raise "pack full"
@@ -43,7 +43,7 @@ Spectator.describe "what armor costs in pace" do
 
   # A hunting orc at the far end of *game*'s hall, wearing *kinds*.
   def orc(game : Game, kinds : Array(Kind) = [] of Kind) : Monster
-    creature = Monster.new Roguelike::Kind::Orc, 38, 2, "band", hit_points: PLENTY
+    creature = Monster.new Roguelike::Kind::Orc, 38, 2, "band", hit_points: hp(PLENTY)
     creature.outfit kinds.map { |kind| Item.new kind }
     game.floor.place creature
 

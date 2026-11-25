@@ -34,7 +34,7 @@ Spectator.describe "the menu on an inventory letter" do
   # row needs a tall one.
   def carrying(items : Array(Item), rows : Int32 = 24, columns : Int32 = 80) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
-    player = Roguelike::Player.new "hall", 1, 1, hit_points: 1
+    player = Roguelike::Player.new "hall", 1, 1, hit_points: hp(1)
     items.each { |item| player.inventory.add item }
 
     Playing.open Handled.new(Roguelike::World.new(Playing::SEED, {"hall" => floor}), player),

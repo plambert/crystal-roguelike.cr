@@ -330,6 +330,15 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   find water. It still never shows the stairs.
 * Floors 5 to 7 never go more than two floors in a row without a fountain, so one of them
   always has water.
+* Saves from earlier versions cannot be loaded. The title menu still lists each one, faint, with
+  the version that wrote it, and picking it says why. The file is left untouched on disk, and the
+  version that wrote it still loads it.
+* Replays recorded by earlier versions cannot be played, checked or upgraded. The message names
+  the version that recorded the replay, which still plays it.
+* Hit points are kept in hundredths, for you and for every creature. The screen still shows whole
+  numbers, rounded up.
+* A creature's hit points are rolled from a range for its kind, most often near the middle,
+  instead of from dice. The averages are about as before, and a little less spread out.
 
 ### Fixed
 

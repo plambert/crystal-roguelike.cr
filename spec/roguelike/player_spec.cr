@@ -49,7 +49,7 @@ Spectator.describe Roguelike::Player do
       hurt = described_class.new "proving-ground", 6, 5,
         attributes: Roguelike::Attributes.new(14, 11, 16, 9, 13)
       hurt.gain 100
-      hurt.hurt 5
+      hurt.hurt hp(5)
 
       again = described_class.from_json hurt.to_json
 
@@ -208,29 +208,29 @@ Spectator.describe Roguelike::Player do
     end
 
     it "falls when the character is hurt" do
-      player.hurt 3
+      player.hurt hp(3)
 
-      expect(player.hit_points).to eq player.max_hit_points - 3
+      expect(player.hit_points).to eq player.max_hit_points - hp(3)
     end
 
     it "stops at nothing rather than going below it" do
-      player.hurt 1_000
+      player.hurt hp(1_000)
 
-      expect(player.hit_points).to eq 0
+      expect(player.hit_points).to eq hp(0)
       expect(player.alive?).to be_false
     end
 
     it "goes back up when the character heals" do
-      player.hurt 5
+      player.hurt hp(5)
 
-      expect(player.heal(3)).to eq 3
-      expect(player.hit_points).to eq player.max_hit_points - 2
+      expect(player.heal(hp(3))).to eq hp(3)
+      expect(player.hit_points).to eq player.max_hit_points - hp(2)
     end
 
     it "heals no further than full health" do
-      player.hurt 2
+      player.hurt hp(2)
 
-      expect(player.heal(1_000)).to eq 2
+      expect(player.heal(hp(1_000))).to eq hp(2)
       expect(player.hit_points).to eq player.max_hit_points
     end
   end
@@ -255,7 +255,7 @@ Spectator.describe Roguelike::Player do
     # A character who levels up mid fight is better off than before, and is
     # not suddenly at full health either.
     it "adds the hit points the level gained, and no more" do
-      player.hurt 5
+      player.hurt hp(5)
       hurt = player.hit_points
       before = player.max_hit_points
 
@@ -283,17 +283,17 @@ Spectator.describe Roguelike::Player do
     # for a hundred turns. Healing one of those used to pull them down to
     # the maximum.
     it "takes nothing off a character above their maximum" do
-      player = Roguelike::Player.new "floor", 1, 1, hit_points: 40
+      player = Roguelike::Player.new "floor", 1, 1, hit_points: hp(40)
 
-      expect(player.heal 1).to eq 0
-      expect(player.hit_points).to eq 40
+      expect(player.heal(hp(1))).to eq hp(0)
+      expect(player.hit_points).to eq hp(40)
     end
 
     it "stops at the maximum" do
       player = Roguelike::Player.new "floor", 1, 1
-      player.hurt 5
+      player.hurt hp(5)
 
-      player.heal 100
+      player.heal hp(100)
 
       expect(player.hit_points).to eq player.max_hit_points
     end

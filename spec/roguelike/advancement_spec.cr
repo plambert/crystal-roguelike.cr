@@ -4,14 +4,14 @@ Spectator.describe Roguelike::Advancement do
   describe ".max_hit_points" do
     it "starts at the base for an average character" do
       expect(described_class.max_hit_points(1, 10))
-        .to eq Roguelike::Advancement::BASE_HIT_POINTS
+        .to eq hp(Roguelike::Advancement::BASE_HIT_POINTS)
     end
 
     it "rises by the same amount at every level" do
       steps = (1..6).map { |level| described_class.max_hit_points level, 10 }
       gaps = steps.each_cons(2).map { |pair| pair[1] - pair[0] }.to_a
 
-      expect(gaps.uniq).to eq [Roguelike::Advancement::HIT_POINTS_PER_LEVEL]
+      expect(gaps.uniq).to eq [hp(Roguelike::Advancement::HIT_POINTS_PER_LEVEL)]
     end
 
     # Constitution counts once per level. A tough character pulls further
@@ -20,11 +20,11 @@ Spectator.describe Roguelike::Advancement do
       low = described_class.max_hit_points 5, 10
       high = described_class.max_hit_points 5, 16
 
-      expect(high - low).to eq 5 * Roguelike::Attributes.modifier(16)
+      expect(high - low).to eq hp(5 * Roguelike::Attributes.modifier(16))
     end
 
     it "never falls below one, however weak the character" do
-      expect(described_class.max_hit_points(1, 3)).to be >= 1
+      expect(described_class.max_hit_points(1, 3)).to be >= hp(1)
     end
 
     it "stops rising past the last level" do

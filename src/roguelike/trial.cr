@@ -275,7 +275,7 @@ module Roguelike
       protected def hurt? : Bool
         player = @game.player
 
-        player.hit_points * 100 // player.max_hit_points < HURT
+        player.hit_points.value * 100 // player.max_hit_points.value < HURT
       end
 
       # Drinks something when badly hurt. Answers whether it did.

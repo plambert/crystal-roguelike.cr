@@ -36,7 +36,7 @@ Spectator.describe "wielding and wearing by one key" do
   def carrying(items : Array(Item), readied : Item? = nil) : Game
     floor = Floor.parse "here", BEND
     floor.ambient = 1
-    player = Roguelike::Player.new "here", *Game.entrance(floor), hit_points: 40
+    player = Roguelike::Player.new "here", *Game.entrance(floor), hit_points: hp(40)
     items.each { |item| player.inventory.add item }
     readied.try { |item| ready player, item }
 

@@ -638,8 +638,8 @@ Spectator.describe "food, the food bag and corpses" do
       expect(game.player.hit_points).to eq before
       game.perform Action::Eat.new(corpse.id)
 
-      expect(game.player.max_hit_points).to eq before - 1
-      expect(game.player.hit_points).to eq before - 1
+      expect(game.player.max_hit_points).to eq before - hp(1)
+      expect(game.player.hit_points).to eq before - hp(1)
       expect(game.events.select(Event::Weakened).map(&.as(Event::Weakened).amount)).to eq [1]
     end
 

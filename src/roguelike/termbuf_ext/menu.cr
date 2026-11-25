@@ -57,11 +57,15 @@ module TermBuf::Widgets
     # *header* makes the row a heading over the rows after it. A heading is
     # drawn in `Menu#header_style` with no key and no mark. It cannot be
     # picked, and the highlight steps over it.
+    #
+    # *faint* draws the text in `Menu#disabled_style` while the row can
+    # still be picked. A row for something that cannot be used, which opens
+    # a page saying why, is drawn this way.
     record Entry, key : Char, text : String, enabled : Bool = true,
       mark : Char? = nil, mark_style : Style? = nil,
       tail : Char? = nil, tail_style : Style? = nil,
       shortcut : Char? = nil, disabled_reason : String? = nil,
-      header : Bool = false
+      header : Bool = false, faint : Bool = false
 
     # A row that heads the rows after it, such as the name of a class of
     # item in a list sorted by class.
@@ -838,7 +842,7 @@ module TermBuf::Widgets
     private def draw_entry(view : View, entry : Entry, lit : Bool) : Nil
       return draw_header(view, entry) if entry.header
 
-      plain = entry.enabled ? Style::DEFAULT : @disabled_style
+      plain = entry.enabled && !entry.faint ? Style::DEFAULT : @disabled_style
 
       gutter = row_gutter
       view.write gutter - @offset, 0, entry.text, lit ? plain.reverse : plain

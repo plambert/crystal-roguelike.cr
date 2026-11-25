@@ -188,7 +188,7 @@ Spectator.describe "exploring and travelling" do
              dark : Bool = false) : Game
     floor = Floor.parse "here", lines
     floor.ambient = 1 unless dark
-    player = Roguelike::Player.new "here", *(at || Game.entrance(floor)), hit_points: 40
+    player = Roguelike::Player.new "here", *(at || Game.entrance(floor)), hit_points: hp(40)
     player.inventory.add Item.new(Roguelike::ItemKind::Candle, lit: true) if dark
 
     Game.new Roguelike::World.new(SEED, {"here" => floor}), player
@@ -661,7 +661,7 @@ Spectator.describe "exploring and travelling" do
     it "says it is too dark and takes no step with no light at all" do
       floor = Floor.parse "here", DARK_ROOM
       floor.ambient = 0
-      player = Roguelike::Player.new "here", *INSIDE, hit_points: 40
+      player = Roguelike::Player.new "here", *INSIDE, hit_points: hp(40)
       game = Game.new Roguelike::World.new(SEED, {"here" => floor}), player
       game.look
       game.player.knowledge.see floor, INSIDE[0] + 1, INSIDE[1]
@@ -682,7 +682,7 @@ Spectator.describe "exploring and travelling" do
     it "heads for no unlit square left to see with no light to carry" do
       floor = Floor.parse "here", DARK_ROOM
       floor.ambient = 0
-      player = Roguelike::Player.new "here", *INSIDE, hit_points: 40
+      player = Roguelike::Player.new "here", *INSIDE, hit_points: hp(40)
       game = Game.new Roguelike::World.new(SEED, {"here" => floor}), player
       game.look
       knowing_but(game) { |spot| spot[0] > 9 }
@@ -698,7 +698,7 @@ Spectator.describe "exploring and travelling" do
     it "says the same for one action in the dark, and takes no turn" do
       floor = Floor.parse "here", DARK_ROOM
       floor.ambient = 0
-      player = Roguelike::Player.new "here", *INSIDE, hit_points: 40
+      player = Roguelike::Player.new "here", *INSIDE, hit_points: hp(40)
       game = Game.new Roguelike::World.new(SEED, {"here" => floor}), player
       game.look
 

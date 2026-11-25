@@ -25,8 +25,8 @@ Spectator.describe "the character's noise on the screen" do
 
   def hall(clock : Bool = false, motion : Bool = false) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
-    floor.place Monster.new(Species::Goblin, *BESIDE, "band-one", hit_points: 200)
-    player = Roguelike::Player.new "hall", *HERE, hit_points: 500
+    floor.place Monster.new(Species::Goblin, *BESIDE, "band-one", hit_points: hp(200))
+    player = Roguelike::Player.new "hall", *HERE, hit_points: hp(500)
 
     Playing.open Roguelike::Game.new(
       Roguelike::World.new(Playing::SEED, {"hall" => floor}), player),
@@ -140,10 +140,10 @@ Spectator.describe "the character's noise on the screen" do
     # A dark hall where an orc fights a slime out of the character's sight.
     def brawl(clock : Bool, motion : Bool) : Playing::Run
       floor = Roguelike::Floor.parse("hall", HALL)
-      orc = Monster.new Species::Orc, 8, 2, "band-orcs", hit_points: 500
-      slime = Monster.new Species::Slime, 9, 2, "band-slimes", hit_points: 500
+      orc = Monster.new Species::Orc, 8, 2, "band-orcs", hit_points: hp(500)
+      slime = Monster.new Species::Slime, 9, 2, "band-slimes", hit_points: hp(500)
       [orc, slime].each { |creature| floor.place creature }
-      player = Roguelike::Player.new "hall", *HERE, hit_points: 500
+      player = Roguelike::Player.new "hall", *HERE, hit_points: hp(500)
       game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"hall" => floor}), player
       run = Playing.open game, 80, 24, clock: clock, motion: motion
 

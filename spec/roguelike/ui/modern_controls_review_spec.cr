@@ -34,7 +34,7 @@ Spectator.describe "modern controls reviewed interaction flows" do
     chosen = options
     chosen.control_scheme = scheme
     floor = Playing.daylight Roguelike::Floor.parse("review", rows)
-    player = Roguelike::Player.new("review", 2, 2, hit_points: 40)
+    player = Roguelike::Player.new("review", 2, 2, hit_points: hp(40))
     items.each { |item| player.inventory.add item }
     game = Game.new Roguelike::World.new(Playing::SEED, {"review" => floor}), player
     run = Playing.open game, news: notes
@@ -231,7 +231,7 @@ Spectator.describe "modern controls reviewed interaction flows" do
 
   it "keeps rest and pickup first in their categories when available" do
     run = run_with
-    run.game.player.hurt(run.game.player.hit_points - 1)
+    run.game.player.hurt(run.game.player.hit_points - hp(1))
     run.game.floor.drop 2, 2, Item.new(Kind::Dagger)
     run.game.enroll
     run.play.refresh

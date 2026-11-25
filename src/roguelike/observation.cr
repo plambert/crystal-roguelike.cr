@@ -70,7 +70,7 @@ module Roguelike
       # How hurt *creature* is.
       def self.of(creature : Monster) : Health
         most = creature.max_hit_points
-        return Unhurt if most <= 0
+        return Unhurt if most <= Fixed::ZERO
 
         left = creature.hit_points
         return Unhurt if left >= most
@@ -264,8 +264,8 @@ module Roguelike
         body = player.sustenance
 
         new pos: player.at,
-          hit_points: player.hit_points,
-          max_hit_points: player.max_hit_points,
+          hit_points: player.hit_points.ceil,
+          max_hit_points: player.max_hit_points.ceil,
           level: player.level,
           experience: player.experience,
           armor_class: player.armor_class,

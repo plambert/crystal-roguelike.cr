@@ -45,7 +45,7 @@ Spectator.describe "drinking, reading and zapping" do
   def carrying(held : Array(Item) = [] of Item,
                dark : Bool = false,
                torch : Bool = false,
-               hit_points : Int32? = nil) : Game
+               hit_points : Roguelike::Fixed? = nil) : Game
     floor = Floor.parse "hall", HALL
     Playing.daylight floor unless dark
 
@@ -58,7 +58,7 @@ Spectator.describe "drinking, reading and zapping" do
   end
 
   # A goblin standing at *at*.
-  def goblin(at : {Int32, Int32}, hit_points : Int32? = nil) : Monster
+  def goblin(at : {Int32, Int32}, hit_points : Roguelike::Fixed? = nil) : Monster
     Monster.new Species::Goblin, at[0], at[1], "band-one", hit_points: hit_points
   end
 
@@ -109,9 +109,9 @@ Spectator.describe "drinking, reading and zapping" do
         blessing: blessing)]
 
       Array.new(count) do
-        game.player.hurt game.player.hit_points - 1
+        game.player.hurt game.player.hit_points - hp(1)
         game.quaff 'a'
-        game.player.hit_points - 1
+        (game.player.hit_points - hp(1)).ceil
       end
     end
 
@@ -152,11 +152,11 @@ Spectator.describe "drinking, reading and zapping" do
 
   describe "Game#quaff" do
     it "puts hit points back" do
-      game = carrying [Item.new(Kind::HealingPotion)], hit_points: 1
+      game = carrying [Item.new(Kind::HealingPotion)], hit_points: hp(1)
 
       game.quaff 'a'
 
-      expect(game.player.hit_points).to be > 1
+      expect(game.player.hit_points).to be > hp(1)
       expect(game.log.lines).to contain "You feel better."
     end
 
@@ -503,7 +503,7 @@ Spectator.describe "drinking, reading and zapping" do
 
     it "leaves drinking and zapping alone" do
       game = carrying [Item.new(Kind::HealingPotion), Item.new(Kind::LightWand)],
-        dark: true, hit_points: 1
+        dark: true, hit_points: hp(1)
 
       expect(game.quaff 'a').to be_true
       expect(game.zap 'b').to be_true
@@ -717,7 +717,7 @@ Spectator.describe "drinking, reading and zapping" do
   describe "a wand of striking" do
     it "hits a creature in the line" do
       game = carrying [Item.new(Kind::StrikingWand)]
-      game.floor.place goblin({6, 1}, hit_points: 200)
+      game.floor.place goblin({6, 1}, hit_points: hp(200))
 
       game.zap 'a', EAST
 
@@ -819,7 +819,7 @@ Spectator.describe "drinking, reading and zapping" do
       drinking.quaff 'a'
 
       [plain, drinking].each do |game|
-        game.floor.place goblin({2, 1}, hit_points: 500)
+        game.floor.place goblin({2, 1}, hit_points: hp(500))
         3.times { game.step Roguelike::Direction::East }
       end
 

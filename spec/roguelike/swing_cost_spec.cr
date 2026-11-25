@@ -27,14 +27,14 @@ Spectator.describe "what a blow costs" do
     floor = Roguelike::Floor.parse "hall", HALL.join('\n')
     floor.ambient = 1
 
-    player = Player.new "hall", 3, 2, hit_points: PLENTY
+    player = Player.new "hall", 3, 2, hit_points: hp(PLENTY)
     if weapon
       letter = player.inventory.add Item.new(weapon, blessing_known: true)
       player.equipment.put(Slot::Melee, letter || raise("pack full"))
     end
 
     game = Game.new Roguelike::World.new(20260930_u64, {"hall" => floor}), player
-    game.floor.place Monster.new(species, 4, 2, "band", hit_points: PLENTY)
+    game.floor.place Monster.new(species, 4, 2, "band", hit_points: hp(PLENTY))
     game
   end
 
@@ -160,7 +160,7 @@ Spectator.describe "what a blow costs" do
       floor = Roguelike::Floor.parse "hall", HALL.join('\n')
       floor.ambient = 1
       Game.new Roguelike::World.new(20260930_u64, {"hall" => floor}),
-        Player.new("hall", 3, 2, hit_points: PLENTY)
+        Player.new("hall", 3, 2, hit_points: hp(PLENTY))
     end
 
     def equip(game : Game, kinds : Array({Kind, Slot, Int32})) : Nil

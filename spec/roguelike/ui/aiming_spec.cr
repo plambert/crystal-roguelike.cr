@@ -42,7 +42,7 @@ Spectator.describe "aiming" do
     floor = Playing.daylight Roguelike::Floor.parse("hall", rows)
     monsters.each { |creature| floor.place creature }
 
-    player = Roguelike::Player.new "hall", *HERE, hit_points: 500
+    player = Roguelike::Player.new "hall", *HERE, hit_points: hp(500)
     items.each { |item| player.inventory.add item }
 
     Playing.open Roguelike::Game.new(
@@ -51,7 +51,7 @@ Spectator.describe "aiming" do
 
   # A goblin standing at *at*, asleep.
   def goblin(at : {Int32, Int32}) : Monster
-    Monster.new Species::Goblin, at[0], at[1], "band-#{at[0]}", hit_points: 200
+    Monster.new Species::Goblin, at[0], at[1], "band-#{at[0]}", hit_points: hp(200)
   end
 
   # A run with a bow readied and arrows in the quiver.
@@ -318,7 +318,7 @@ Spectator.describe "aiming" do
     # A run on `DARK` with a bow readied, and nothing lighting the character.
     def in_the_dark : Playing::Run
       floor = Roguelike::Floor.parse "dark", DARK
-      player = Roguelike::Player.new floor.id, 1, 1, hit_points: 500
+      player = Roguelike::Player.new floor.id, 1, 1, hit_points: hp(500)
       [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: 12)].each do |item|
         player.inventory.add item
       end
@@ -329,7 +329,7 @@ Spectator.describe "aiming" do
       run.press "w", "b"
 
       run.game.floor.place Monster.new(Species::Goblin, 7, 1, "band-one",
-        hit_points: 200)
+        hit_points: hp(200))
       run.play.refresh
       run.render
       run

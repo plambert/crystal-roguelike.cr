@@ -26,7 +26,7 @@ Spectator.describe "regeneration" do
       Roguelike::World.new(Playing::SEED, {"hall" => floor}),
       Playing.dressed(Roguelike::Player.new("hall", 3, 2,
         attributes: Roguelike::Attributes.new(constitution: constitution))))
-    game.player.hurt down
+    game.player.hurt hp(down)
 
     game
   end
@@ -55,7 +55,7 @@ Spectator.describe "regeneration" do
 
       mark_time game, RATE
 
-      expect(game.player.hit_points).to eq before + 1
+      expect(game.player.hit_points).to eq before + hp(1)
     end
 
     it "regenerates one more every twenty ticks after that" do
@@ -64,7 +64,7 @@ Spectator.describe "regeneration" do
 
       mark_time game, 3 * RATE
 
-      expect(game.player.hit_points).to eq before + 3
+      expect(game.player.hit_points).to eq before + hp(3)
     end
 
     it "writes nothing to the log" do
@@ -101,7 +101,7 @@ Spectator.describe "regeneration" do
     it "sets the count back to nothing" do
       game = bare 6
       mark_time game, Game::REST
-      game.player.hurt 1
+      game.player.hurt hp(1)
 
       expect(game.player.rested).to eq 0
     end
@@ -117,7 +117,7 @@ Spectator.describe "regeneration" do
     it "starts the count again from the last wound" do
       game = bare 6
       mark_time game, RATE - 1
-      game.player.hurt 1
+      game.player.hurt hp(1)
       before = game.player.hit_points
 
       mark_time game, RATE - 1
@@ -146,8 +146,8 @@ Spectator.describe "regeneration" do
       mark_time tough, 40
       mark_time weak, 40
 
-      expect(tough.player.hit_points - started[0]).to eq 4
-      expect(weak.player.hit_points - started[1]).to eq 1
+      expect(tough.player.hit_points - started[0]).to eq hp(4)
+      expect(weak.player.hit_points - started[1]).to eq hp(1)
     end
 
     it "regenerates at the base rate at average constitution" do

@@ -38,7 +38,7 @@ Spectator.describe "the context menu on the map" do
            mouse : Bool = true) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("room", lines)
     floor.drop 8, 2, Item.new(Kind::Dagger) if lines == ROOM
-    player = Roguelike::Player.new "room", start[0], start[1], hit_points: 40
+    player = Roguelike::Player.new "room", start[0], start[1], hit_points: hp(40)
     carrying.each { |item| player.inventory.add item }
     game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}), player
 
@@ -315,7 +315,7 @@ Spectator.describe "the context menu on the map" do
 
     it "opens nothing once the run is over" do
       floor = Playing.daylight Roguelike::Floor.parse("room", ROOM)
-      player = Roguelike::Player.new "room", 1, 1, hit_points: 40
+      player = Roguelike::Player.new "room", 1, 1, hit_points: hp(40)
       game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}), player,
         outcome: Roguelike::Outcome::Died
       run = Playing.open game

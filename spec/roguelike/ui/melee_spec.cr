@@ -42,7 +42,7 @@ Spectator.describe "walking into a creature" do
     floor = Playing.daylight Roguelike::Floor.parse("room", ROOM)
     game = Bumping.new(
       Roguelike::World.new(Playing::SEED, {"room" => floor}),
-      Roguelike::Player.new("room", *HERE, hit_points: 40))
+      Roguelike::Player.new("room", *HERE, hit_points: hp(40)))
     floor.place Monster.new(Species::Goblin, THERE[0], THERE[1], "band-one")
 
     Playing.open game

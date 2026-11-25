@@ -20,7 +20,7 @@ Spectator.describe "the character dying on the screen" do
   def dying : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("room", ROOM)
     player = Roguelike::Player.new floor.id, *Roguelike::Game.entrance(floor),
-      hit_points: 1
+      hit_points: hp(1)
 
     Playing.open Roguelike::Game.new(
       Roguelike::World.new(Playing::SEED, {floor.id => floor}), player), 40, 16

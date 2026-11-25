@@ -53,7 +53,7 @@ Spectator.describe "what a monster wields and wears" do
     floor.band(creature.band).try &.awareness=(Awareness::Hunting)
 
     Game.new World.new(GEAR_SEED, {"room" => floor}),
-      Player.new("room", 2, 1, hit_points: 500)
+      Player.new("room", 2, 1, hit_points: hp(500))
   end
 
   def strength(creature : Monster) : Int32
@@ -466,7 +466,7 @@ Spectator.describe "what a monster wields and wears" do
 
     it "loads an old creature with what it carried and nothing readied" do
       old = %({"id":3,"species":"goblin","kind":"GoblinWarrior","x":4,"y":5,) +
-            %("hit_points":6,"attributes":{"strength":10,"dexterity":13,) +
+            %("hit_points":600,"attributes":{"strength":10,"dexterity":13,) +
             %("constitution":10,"intelligence":7,"stealth":13},"band":"band-one",) +
             %("memory":{},"carrying":[{"kind":"ShortSword","enchantment":0,) +
             %("condition":"Plain","blessing":"Uncursed","blessing_known":false,) +

@@ -283,6 +283,86 @@ Spectator.describe Roguelike::Save do
       end
     end
 
+    describe "a save in another format" do
+      # A save of *name* with its format set to *format*, or with no format
+      # at all, as a build before `Save::FORMAT` wrote it. Answers where it is.
+      def aged(kept : Save::Store, name : String, format : Int32? = nil) : Path
+        kept.write named(name, turn: 5)
+        where = kept.path name
+        text = File.read where
+        field = %("format": #{Save::FORMAT},)
+        raise "no format in #{where}" unless text.includes? field
+
+        File.write where, format ? text.sub(field, %("format": #{format},)) : text.sub(/\n\s*"format": \d+,/, "")
+        where
+      end
+
+      it "writes the format this build reads" do
+        kept = store
+        kept.write named("Sparky")
+
+        expect(held(kept).format).to eq Save::FORMAT
+        expect(kept.header("Sparky").try &.loadable?).to be_true
+      end
+
+      it "reads a header with no format as format 1" do
+        kept = store
+        aged kept, "Sparky"
+
+        found = kept.header "Sparky"
+        expect(found.try &.format).to eq 1
+        expect(found.try &.loadable?).to be_false
+      end
+
+      it "is listed, with its name, level, turn and the version that wrote it" do
+        kept = store
+        aged kept, "Sparky"
+
+        found = kept.characters
+        expect(found.map &.name).to eq ["Sparky"]
+        expect(found.first.turn).to eq 5
+        expect(found.first.level).to eq 1
+        expect(found.first.version).to eq Roguelike::VERSION
+        expect(found.first.loadable?).to be_false
+      end
+
+      it "is never loaded, and the file is left as it was" do
+        kept = store
+        where = aged kept, "Sparky"
+        before = File.read where
+
+        expect(kept.held "Sparky").to be_nil
+        expect(kept.read "Sparky").to be_nil
+        expect(File.read where).to eq before
+      end
+
+      it "is refused at a later format as well" do
+        kept = store
+        aged kept, "Sparky", Save::FORMAT + 1
+
+        expect(kept.header("Sparky").try &.loadable?).to be_false
+        expect(kept.held "Sparky").to be_nil
+      end
+
+      it "raises when read as a whole save" do
+        kept = store
+        where = aged kept, "Sparky"
+
+        expect { Save::Held.from_json File.read(where) }
+          .to raise_error Save::Refused, /format 1/
+      end
+
+      # The file is the character's own. A new run under that name would be
+      # written over it.
+      it "still holds its name" do
+        kept = store
+        aged kept, "Sparky"
+
+        expect(kept.holds? "Sparky").to be_true
+        expect(kept.taken_by "Sparky").to be_nil
+      end
+    end
+
     describe "#taken_by" do
       it "says nothing when there is no file" do
         expect(store.taken_by "Sparky").to be_nil

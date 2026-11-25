@@ -224,7 +224,7 @@ Spectator.describe Roguelike::Trial do
     def cornered : Trial::Cautious
       bot = Trial::Cautious.new Trial::FIRST
       game = bot.game
-      game.player.hurt game.player.hit_points - 1
+      game.player.hurt game.player.hit_points - hp(1)
       game.player.inventory.select(&.kind.item_class.potion?).each do |letter, _item|
         game.player.inventory.remove letter
       end

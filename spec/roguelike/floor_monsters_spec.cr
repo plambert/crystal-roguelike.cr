@@ -132,14 +132,14 @@ Spectator.describe "monsters on a floor" do
   describe "serialization" do
     it "round-trips a floor with one of each" do
       floor = spot ["#######", "#.j.g.#", "#..o..#", "#######"]
-      floor.monster(2, 1).try &.hurt 2
+      floor.monster(2, 1).try &.hurt hp(2)
 
       again = Floor.from_json floor.to_json
 
       expect(again).to eq floor
       expect(again.monsters.size).to eq 3
       expect(again.bands.size).to eq 3
-      expect(again.monster(2, 1).try &.hit_points).to eq Species::Slime.hit_points - 2
+      expect(again.monster(2, 1).try &.hit_points).to eq Species::Slime.hit_points - hp(2)
       expect(again.monster(3, 2).try &.species).to eq Species::Orc
     end
 

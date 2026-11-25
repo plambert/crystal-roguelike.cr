@@ -352,13 +352,13 @@ Spectator.describe Roguelike::Generator do
       expect(shared).to be > 0
     end
 
-    it "rolls hit points within each kind's hit dice" do
+    it "rolls hit points within each kind's span" do
       deep.each_value do |floors|
         floors.each do |floor|
           floor.each_monster do |_column, _row, creature|
-            dice = creature.kind.hit_dice
+            span = creature.kind.health
 
-            expect(creature.max_hit_points).to be_between(dice.minimum, dice.maximum)
+            expect(creature.max_hit_points).to be_between(span.low, span.high)
             expect(creature.hit_points).to eq creature.max_hit_points
           end
         end

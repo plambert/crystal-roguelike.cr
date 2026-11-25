@@ -111,8 +111,8 @@ module Roguelike
         end
 
         raise Error.new "the file has no header" unless header
-        if fingerprints && !READS.includes?(header.format)
-          raise Error.new refused(header.format)
+        if fingerprints && (refusal = refusal header)
+          raise Error.new refusal
         end
 
         {header, records, footer, truncated, ignored}
@@ -131,23 +131,27 @@ module Roguelike
         end
       end
 
-      # Why a file of *format* is not read.
+      # Why the file *header* heads is not read, or `nil` when it is.
       #
-      # Format 1 holds fingerprints taken with the message log in them, and
-      # this build leaves the log out. Every checkpoint in such a file
-      # differs from what this build takes, so there is nothing in it to
-      # check. `--force` does not reach this. It is for a build whose draw
-      # sequences moved, where checking anyway says something, and here it
-      # would say only that the first checkpoint differs.
-      private def self.refused(format : Int32) : String
-        if format == 1
-          return "the file is format 1, recorded by a build whose " \
-                 "fingerprints cover the message log, which this build " \
-                 "leaves out. Record the run again to check it"
+      # A file older than `READS` was recorded under other rules, so its
+      # actions lead to other fights here. `--force` does not reach this. It
+      # is for a build whose draw sequences moved, where checking anyway says
+      # something, and here it would say only that the first checkpoint
+      # differs. The version in the header is named, because that release
+      # still plays the file.
+      def self.refusal(header : Header) : String?
+        format = header.format
+        return if READS.includes? format
+
+        recorded = header.game_version
+        if format < READS.begin
+          return "the file is format #{format}, recorded by version #{recorded} " \
+                 "under rules this build no longer plays by. Version #{recorded} " \
+                 "still plays it"
         end
 
-        "the file is format #{format}, and this build reads " \
-        "#{READS.begin} to #{READS.end}"
+        "the file is format #{format}, recorded by version #{recorded}, and this " \
+        "build reads #{READS.begin} to #{READS.end}"
       end
 
       # What *line* calls itself. `nil` for a line that is not JSON.

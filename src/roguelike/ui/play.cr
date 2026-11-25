@@ -711,7 +711,10 @@ module Roguelike::Ui
     # A new character first, every saved character after it, then the
     # options and what is new, and leaving last. The two ends keep their keys whatever is in the store, so the
     # saves take what is left.
-    private def title_rows(held : Array(Save::Held)) : Array(Widgets::Menu::Entry)
+    #
+    # A save this build cannot load is listed faint. Picking it opens a page
+    # saying why.
+    private def title_rows(held : Array(Save::Header)) : Array(Widgets::Menu::Entry)
       rows = [Widgets::Menu::Entry.new Placards::NEW_KEY, Placards::NEW_ROW]
       keys = Widgets::Menu::LETTERS.reject do |key|
         {Placards::NEW_KEY, Placards::QUIT_KEY, Placards::WHATS_NEW_KEY,
@@ -723,7 +726,8 @@ module Roguelike::Ui
         break unless key
 
         @carrying[key] = found.name
-        rows << Widgets::Menu::Entry.new key, Placards.saved_row(found)
+        rows << Widgets::Menu::Entry.new key, Placards.saved_row(found),
+          faint: !found.loadable?
       end
 
       rows << Widgets::Menu::Entry.new Placards::OPTIONS_KEY, Placards::OPTIONS_ROW
@@ -874,8 +878,8 @@ module Roguelike::Ui
     end
 
     # Every character in the store, or nothing when there is no store.
-    private def saved : Array(Save::Held)
-      @store.try(&.characters) || [] of Save::Held
+    private def saved : Array(Save::Header)
+      @store.try(&.characters) || [] of Save::Header
     end
 
     # Asks who is playing.
@@ -944,6 +948,9 @@ module Roguelike::Ui
       return ask_the_name Placards.taken(whose) if whose
 
       store = @store
+      found = store.try &.header(name)
+      return refuse found if found && !found.loadable?
+
       held = store.try &.held(name)
       return start_as name unless store && held
 
@@ -951,6 +958,25 @@ module Roguelike::Ui
       resume found
       starting_explore fresh: false
       say "Welcome back, #{found.player.name}. Turn #{found.turn}."
+    end
+
+    # Says that *held* cannot be loaded by this build. Closing the page puts
+    # the title screen back.
+    #
+    # The file is left as it is. Nothing here writes or moves it.
+    private def refuse(held : Save::Header) : Nil
+      @placard.on_answer = ->(_key : Char?) { show_title; nil }
+
+      if modern_controls?
+        choices = [Widgets::Prompt::Choice.new(Placards::REFUSED_KEY, "Back")]
+        @placard.show_named application, Placards::REFUSED_HEADING,
+          Placards.refused(held), choices, Placards::REFUSED_KEY,
+          footer: "f choose · Esc=Back"
+      else
+        @placard.show application, Placards::REFUSED_HEADING,
+          Placards.refused(held), Placards::REFUSED_KEY.to_s,
+          default: Placards::REFUSED_KEY, footer: Placards::REFUSED_FOOTER
+      end
     end
 
     # Names the dug character and starts the run.
@@ -1690,7 +1716,7 @@ module Roguelike::Ui
                  Sustenance::Tuning::SKIN_UNITS - player.sustenance.water, BREATH_SHARE
              else
                Play.breath_size @breaths,
-                 player.max_hit_points - player.hit_points,
+                 (player.max_hit_points - player.hit_points).ceil,
                  player.regeneration
              end
       @breaths += 1

@@ -16,7 +16,7 @@ Spectator.describe "a run drawn a step at a time" do
     run = Playing.open Game.new(
       Roguelike::World.new(Playing::SEED, {"hall" => floor}),
       Roguelike::Player.new("hall", *Game.entrance(floor),
-        hit_points: 40)), columns, rows, clock: true
+        hit_points: hp(40))), columns, rows, clock: true
     run.clear_monsters
     run
   end

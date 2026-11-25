@@ -88,7 +88,8 @@ module Roguelike::Debug
       Command.new("heal", "heal [N]", "put N hit points back, or fill up",
         ->(console : Console, game : Game, words : Array(String)) : Nil do
           player = game.player
-          put_back = player.heal(number(words) || player.max_hit_points)
+          amount = number(words)
+          put_back = player.heal(amount ? Fixed.whole(amount) : player.max_hit_points)
 
           console.say "healed #{put_back}, now on " \
                       "#{player.hit_points}/#{player.max_hit_points}."
@@ -243,7 +244,7 @@ module Roguelike::Debug
       return say "say how much to hurt for." unless amount
 
       player = game.player
-      taken = player.hurt Math.min(amount, player.hit_points - 1)
+      taken = player.hurt Math.min(Fixed.whole(amount), player.hit_points - Fixed.whole(1))
 
       say "took #{taken} off, now on " \
           "#{player.hit_points}/#{player.max_hit_points}."
