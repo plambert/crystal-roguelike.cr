@@ -286,5 +286,21 @@ Spectator.describe "fighting" do
 
       expect(again.log.lines).to eq game.log.lines
     end
+
+    # A weak arm and a long sword hit for 1d8-3, which is 0 to 4.5 here, so
+    # some hits round to nothing.
+    it "takes a fraction of a hit point and calls a hit that rounds to 0 a graze" do
+      game, creature = arena hit_points: Roguelike::Fixed.whole(500),
+        health: Roguelike::Fixed.whole(500)
+      sword = Roguelike::Item.new Roguelike::ItemKind::LongSword
+      letter = game.player.inventory.add(sword) || raise "pack full"
+      game.player.equipment.put Roguelike::Slot::Melee, letter
+      game.player.attributes = Roguelike::Attributes.new(strength: 4)
+
+      fight(game) { game.log.lines.includes? "You graze the #{creature.label}." }
+
+      expect(game.log.lines).to contain "You graze the #{creature.label}."
+      expect(creature.hit_points.value % Roguelike::Fixed::SCALE).not_to eq 0
+    end
   end
 end

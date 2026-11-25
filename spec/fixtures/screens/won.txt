@@ -1,5 +1,5 @@
  —              D1 Lv 1 │#########
- HP        12/12        │#....o..#
+ HP        4/12         │#....o..#
  XP        0/20         │#..<...@#
  food             5h50m │#########
  water╭─ You win ─────────────────────────────────────────────────╮
@@ -19,6 +19,6 @@
  ▼ Loo│  Play again? y starts a new run, n quits.  [yN]           │
  Point╰───────────────────────────────────────────────────────────╯─────
  press x.               │ The orc notices you.
-                        │ The orc misses you.
+                        │ The orc hits you for 8.
                         │ There is a staircase leading down here.
                         │

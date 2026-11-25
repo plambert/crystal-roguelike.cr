@@ -2442,23 +2442,24 @@ module Roguelike
     # A swing takes a turn whether it lands or not. A creature left at zero
     # hit points is taken off the floor and what killing it is worth is
     # awarded.
-    def attack(creature : Monster) : Blow
+    def attack(creature : Monster) : Strike
       fought_with creature
       flanking = Combat.flanking(@player.at, creature.at) do |spot|
         against? spot, creature
       end
       dice = @player.damage
-      blow = Combat.swing exchange, @player.to_hit + flanking,
+      blow = Combat.stand_in exchange, @player.to_hit + flanking,
         creature.armor_class, dice
 
       weapon = swung_with
       held = @player.wielded
       behind = flanking > 0 ? " from behind" : ""
-      if blow.hit?
-        creature.hurt blow.harm
-        say "You hit the #{creature.label}#{behind} for #{blow.damage}.",
+      if blow.landed?
+        creature.hurt blow.damage
+        say told(blow, "You hit the #{creature.label}#{behind}",
+          "You graze the #{creature.label}#{behind}"),
           with_facts(Event::Attack.new(true, target: creature.id,
-            damage: blow.damage, with: weapon, flanking: flanking > 0),
+            damage: blow.damage.rounded, with: weapon, flanking: flanking > 0),
             fight_facts(nil, creature, held, dice: dice, blow: blow))
         kill creature, held unless creature.alive?
       else
@@ -2515,6 +2516,13 @@ module Roguelike
         Event::LevelUp.new(@player.level)
     end
 
+    # *hit* and what *blow* took off, or *graze* when that rounds to 0, as a
+    # line of the log.
+    private def told(blow : Strike, hit : String, graze : String) : String
+      shown = blow.damage.rounded
+      shown.zero? ? "#{graze}." : "#{hit} for #{shown}."
+    end
+
     # What the character is swinging with. `nil` for bare hands.
     private def swung_with : String?
       @player.wielded.try { |item| name item }
@@ -2535,9 +2543,9 @@ module Roguelike
     private def fight_facts(attacker : Monster?, target : Monster?,
                             weapon : Item?, launcher : Item? = nil,
                             dice : Dice? = nil,
-                            blow : Blow? = nil) : Events::Facts
+                            blow : Strike? = nil) : Events::Facts
       lore = attacker ? nil : @lore
-      total = blow.try { |found| found.damage if found.hit? }
+      total = blow.try { |found| found.damage.rounded if found.landed? }
       left = (target ? target.hit_points : @player.hit_points).ceil if blow
 
       Events::Facts.new attacker: attacker.try(&.id),
@@ -2837,17 +2845,19 @@ module Roguelike
     #
     # *weapon* is the missile, or the wand that sent the bolt, and
     # *launcher* is what shot the missile. Both are for the events file.
+    # *reach* is `Reach::Bolt` for a bolt.
     private def hit(creature : Monster, noun : String, bonus : Int32,
                     damage : Dice, weapon : Item? = nil,
-                    launcher : Item? = nil) : Blow
+                    launcher : Item? = nil, reach : Reach = Reach::Missile) : Strike
       fought_with creature
-      blow = Combat.swing exchange, bonus, creature.armor_class, damage
+      blow = Combat.stand_in exchange, bonus, creature.armor_class, damage, reach
 
-      if blow.hit?
-        creature.hurt blow.harm
-        say "The #{noun} hits the #{creature.label} for #{blow.damage}.",
+      if blow.landed?
+        creature.hurt blow.damage
+        say told(blow, "The #{noun} hits the #{creature.label}",
+          "The #{noun} grazes the #{creature.label}"),
           with_facts(Event::Attack.new(true, target: creature.id,
-            damage: blow.damage, with: noun),
+            damage: blow.damage.rounded, with: noun),
             fight_facts(nil, creature, weapon, launcher, damage, blow))
         kill creature, weapon, launcher unless creature.alive?
       else
@@ -3347,14 +3357,14 @@ module Roguelike
 
       if @player.at? spot[0], spot[1]
         fought_with creature
-        blow = Combat.swing exchange, bonus, @player.armor_class, damage
-        if blow.hit?
+        blow = Combat.stand_in exchange, bonus, @player.armor_class, damage, Reach::Missile
+        if blow.landed?
           @assailed += 1
-          @player.hurt blow.harm
+          @player.hurt blow.damage
           facts = fight_facts creature, nil, one, weapon, damage, blow
-          say "The #{noun} hits you for #{blow.damage}.",
+          say told(blow, "The #{noun} hits you", "The #{noun} grazes you"),
             with_facts(Event::Attack.new(true, attacker: shooter,
-              damage: blow.damage, with: noun), facts)
+              damage: blow.damage.rounded, with: noun), facts)
           character_died creature, one, weapon unless @player.alive?
         else
           @assailed += 1
@@ -3581,7 +3591,7 @@ module Roguelike
     end
 
     # *creature* swings at the character. Answers what the swing did.
-    private def strike(creature : Monster) : Blow
+    private def strike(creature : Monster) : Strike
       fought_with creature
       @assailed += 1
       flanking = Combat.flanking(creature.at, @player.at) do |spot|
@@ -3590,15 +3600,16 @@ module Roguelike
       outflanked if flanking > 0
       dice = creature.damage
       held = creature.wielded
-      blow = Combat.swing exchange, creature.to_hit + flanking,
+      blow = Combat.stand_in exchange, creature.to_hit + flanking,
         @player.armor_class, dice
 
       behind = flanking > 0 ? " from behind" : ""
-      if blow.hit?
-        @player.hurt blow.harm
-        say "The #{creature.label} #{creature.kind.verb} you#{behind} for #{blow.damage}.",
+      if blow.landed?
+        @player.hurt blow.damage
+        say told(blow, "The #{creature.label} #{creature.kind.verb} you#{behind}",
+          "The #{creature.label} grazes you#{behind}"),
           with_facts(Event::Attack.new(true, attacker: creature.id,
-            damage: blow.damage, flanking: flanking > 0),
+            damage: blow.damage.rounded, flanking: flanking > 0),
             fight_facts(creature, nil, held, dice: dice, blow: blow))
         character_died creature, held unless @player.alive?
       else
@@ -3671,17 +3682,18 @@ module Roguelike
     #
     # The swing rolls on the `brawl` stream. The character is told only when
     # they can make out both creatures.
-    private def brawl(creature : Monster, victim : Monster) : Blow
+    private def brawl(creature : Monster, victim : Monster) : Strike
       dice = creature.damage
-      blow = Combat.swing brawling, creature.to_hit, victim.armor_class, dice
+      blow = Combat.stand_in brawling, creature.to_hit, victim.armor_class, dice
       shown = regard_of(creature).everything? && regard_of(victim).everything?
 
-      if blow.hit?
-        victim.hurt blow.harm
+      if blow.landed?
+        victim.hurt blow.damage
         if shown
-          say "The #{creature.label} #{creature.kind.verb} the #{victim.label} for #{blow.damage}.",
+          say told(blow, "The #{creature.label} #{creature.kind.verb} the #{victim.label}",
+            "The #{creature.label} grazes the #{victim.label}"),
             with_facts(Event::Attack.new(true, attacker: creature.id,
-              target: victim.id, damage: blow.damage),
+              target: victim.id, damage: blow.damage.rounded),
               fight_facts(creature, victim, creature.wielded, dice: dice, blow: blow))
         end
       elsif shown
@@ -7186,7 +7198,7 @@ module Roguelike
         weak = struck.kind.weakness == item.kind.effect
         aim = weak ? @player.to_zap + WEAK_AIM : @player.to_zap
         power = weak ? item.kind.power.times(WEAK_HARM) : item.kind.power
-        hit struck, "bolt", aim, power, item
+        hit struck, "bolt", aim, power, item, reach: Reach::Bolt
       else
         say "The bolt strikes the #{floor.terrain(spot[0], spot[1]).label}.",
           Event::BoltStopped.new(spot, floor.terrain(spot[0], spot[1]).label)

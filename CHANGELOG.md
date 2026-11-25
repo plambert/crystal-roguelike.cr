@@ -339,6 +339,10 @@ and a tag of the form `vX.Y.Z` builds and publishes a release.
   numbers, rounded up.
 * A creature's hit points are rolled from a range for its kind, most often near the middle,
   instead of from dice. The averages are about as before, and a little less spread out.
+* Combat runs on new rules with today's numbers. Every attack lands as often as before and does
+  the same damage on average, but a blow can take a fraction of a hit point. Messages show the
+  damage rounded to a whole number, and a hit that rounds to 0 is a graze, as in "You graze the
+  orc."
 
 ### Fixed
 

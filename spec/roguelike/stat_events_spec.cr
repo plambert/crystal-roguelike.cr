@@ -75,7 +75,9 @@ Spectator.describe Roguelike::Event::StatChanged do
     blows.each do |before, changed|
       attack = before.as(Event::Attack)
       expect(attack.hit?).to be_true
-      expect(changed.from.as(Int32) - changed.to.as(Int32)).to eq(attack.damage)
+      # Hit points show rounded up and damage rounded half up, so the two
+      # can differ by one.
+      expect(changed.from.as(Int32) - changed.to.as(Int32)).to be_within(1).of(attack.damage.as(Int32))
     end
   end
 

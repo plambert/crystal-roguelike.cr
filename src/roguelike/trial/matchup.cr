@@ -264,8 +264,8 @@ module Roguelike
             player.pace.spend player.stride
           else
             target = band.first
-            blow = Combat.swing rng, player.to_hit, target.armor_class, player.damage
-            target.hurt blow.harm if blow.hit?
+            blow = Combat.stand_in rng, player.to_hit, target.armor_class, player.damage
+            target.hurt blow.damage if blow.landed?
             band.shift unless target.alive?
             return Result.new true, ticks + 1, (start - player.hit_points).ceil if band.empty?
 
@@ -335,8 +335,8 @@ module Roguelike
             bonus = monster.to_shoot weapon, ammunition
             damage = Combat.shot weapon, ammunition
             monster.draw_shot 0
-            blow = Combat.swing rng, bonus, player.armor_class, damage
-            player.hurt blow.harm if blow.hit?
+            blow = Combat.stand_in rng, bonus, player.armor_class, damage, Reach::Missile
+            player.hurt blow.damage if blow.landed?
             return Costs.loose weapon
           end
         end
@@ -346,8 +346,8 @@ module Roguelike
           return monster.stride
         end
 
-        blow = Combat.swing rng, monster.to_hit + flanking, player.armor_class, monster.damage
-        player.hurt blow.harm if blow.hit?
+        blow = Combat.stand_in rng, monster.to_hit + flanking, player.armor_class, monster.damage
+        player.hurt blow.damage if blow.landed?
         monster.swing
       end
 

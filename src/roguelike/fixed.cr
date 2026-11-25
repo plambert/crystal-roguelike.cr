@@ -109,6 +109,13 @@ module Roguelike
       ((@value.to_i64 + SCALE - 1) // SCALE).to_i32
     end
 
+    # The nearest whole number, half away from zero.
+    #
+    # Damage in a message is shown this way, so a blow of 0.4 shows 0.
+    def rounded : Int32
+      FixedPoint.divide_signed(@value.to_i64, SCALE.to_i64).to_i32
+    end
+
     # This quantity, or zero when it is below zero.
     def clamp_positive : Fixed
       @value < 0 ? ZERO : self
