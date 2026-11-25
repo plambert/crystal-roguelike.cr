@@ -43,14 +43,14 @@ Spectator.describe "shooting and throwing" do
             at : {Int32, Int32} = HERE) : Game
     floor = Playing.daylight Floor.parse("hall", HALL)
 
-    player = Player.new floor.id, *at, hit_points: 500
+    player = Player.new floor.id, *at, hit_points: hp(500)
     game = Game.new World.new(SEED, {floor.id => floor}), player
     held.each { |item| player.inventory.add item }
     game
   end
 
   # A goblin standing at *at* with nothing on it.
-  def goblin(at : {Int32, Int32}, hit_points : Int32? = nil) : Monster
+  def goblin(at : {Int32, Int32}, hit_points : Roguelike::Fixed? = nil) : Monster
     Monster.new Species::Goblin, at[0], at[1], "band-one", hit_points: hit_points
   end
 
@@ -202,7 +202,7 @@ Spectator.describe "shooting and throwing" do
     end
 
     it "wakes the band it hit" do
-      creature = goblin({6, 1}, hit_points: 200)
+      creature = goblin({6, 1}, hit_points: hp(200))
       game = archer monsters: [creature]
       game.fire EAST
 
@@ -344,7 +344,7 @@ Spectator.describe "shooting and throwing" do
 
     it "is false for a square behind a shut door" do
       floor = Playing.daylight Floor.parse("hall", ["#######", "#<.+..#", "#######"])
-      player = Player.new floor.id, 1, 1, hit_points: 500
+      player = Player.new floor.id, 1, 1, hit_points: hp(500)
       game = Game.new World.new(SEED, {floor.id => floor}), player
 
       expect(game.reachable?({5, 1})).to be_false
@@ -401,9 +401,9 @@ Spectator.describe "shooting and throwing" do
     end
 
     it "is called before the goblin is hurt" do
-      target = goblin({5, 1}, hit_points: 200)
+      target = goblin({5, 1}, hit_points: hp(200))
       game = archer monsters: [target]
-      hurt = nil.as(Int32?)
+      hurt = nil.as(Roguelike::Fixed?)
       game.on_flight = ->(_missile : Roguelike::Missile) do
         hurt = target.hit_points
         nil
@@ -411,7 +411,7 @@ Spectator.describe "shooting and throwing" do
 
       game.fire target.at
 
-      expect(hurt).to eq 200
+      expect(hurt).to eq hp(200)
       expect(game.flights.size).to eq 1
       expect(game.flights[0].shooter).to be_nil
       expect(game.flights[0].item.try &.kind).to eq Kind::Arrow

@@ -32,8 +32,9 @@ Spectator.describe Roguelike::Kind do
         expect(kind.label).not_to be_empty
         expect(kind.plural).not_to be_empty
         expect(kind.description).not_to be_empty
-        expect(kind.hit_points).to be > 1
-        expect(kind.hit_dice.minimum).to be > 1
+        expect(kind.hit_points).to be > hp(1)
+        expect(kind.health.low).to be >= hp(1)
+        expect(kind.health.spread).to eq Roguelike::Spread::Centered
         expect(kind.experience).to be > 0
         expect(kind.speed).to be > 0
         expect(kind.light).to be_between(0, 100)
@@ -72,9 +73,9 @@ Spectator.describe Roguelike::Kind do
       expect(Species::Goblin.default).to eq Kind::GoblinWarrior
       expect(Species::Orc.default).to eq Kind::Orc
 
-      expect(Kind::WhiteSlime.hit_points).to eq 6
-      expect(Kind::GoblinWarrior.hit_points).to eq 11
-      expect(Kind::Orc.hit_points).to eq 14
+      expect(Kind::WhiteSlime.hit_points).to eq hp(6)
+      expect(Kind::GoblinWarrior.hit_points).to eq hp(11)
+      expect(Kind::Orc.hit_points).to eq hp(14)
     end
 
     it "is what a floor file's letter names" do
@@ -157,19 +158,19 @@ Spectator.describe Roguelike::Kind do
 
   describe "a save" do
     it "round-trips a creature's kind" do
-      slime = Monster.new Kind::BlueSlime, 3, 4, "band-one", hit_points: 7,
-        max_hit_points: 12
+      slime = Monster.new Kind::BlueSlime, 3, 4, "band-one", hit_points: hp(7),
+        max_hit_points: hp(12)
       again = Monster.from_json slime.to_json
 
       expect(again).to eq slime
       expect(again.kind).to eq Kind::BlueSlime
       expect(again.species).to eq Species::Slime
-      expect(again.max_hit_points).to eq 12
+      expect(again.max_hit_points).to eq hp(12)
       expect(again.label).to eq "blue slime"
     end
 
     # What a save written before kinds existed holds for one creature.
-    OLD = %({"id":3,"species":"goblin","x":4,"y":5,"hit_points":6,) +
+    OLD = %({"id":3,"species":"goblin","x":4,"y":5,"hit_points":600,) +
           %("attributes":{"strength":10,"dexterity":13,"constitution":10,) +
           %("intelligence":7,"stealth":13},"band":"band-one","memory":{},) +
           %("carrying":[],"blinded":0,"pace":{"base":100,"energy":0}})
@@ -179,7 +180,7 @@ Spectator.describe Roguelike::Kind do
 
       expect(old.kind).to eq Kind::GoblinWarrior
       expect(old.species).to eq Species::Goblin
-      expect(old.hit_points).to eq 6
+      expect(old.hit_points).to eq hp(6)
       expect(old.max_hit_points).to eq Kind::GoblinWarrior.hit_points
     end
 
@@ -208,7 +209,7 @@ Spectator.describe Roguelike::Kind do
 
       shaman = Monster.new Kind::GoblinShaman, 9, 1, "band-one"
       warrior = Monster.new Kind::GoblinWarrior, 10, 1, "band-one"
-      warrior.hurt wound
+      warrior.hurt hp(wound)
       floor.place shaman
       floor.place warrior
 
@@ -229,7 +230,7 @@ Spectator.describe Roguelike::Kind do
 
       game.wait
 
-      expect(warrior.hit_points).to be_between(before + 1, before + 4)
+      expect(warrior.hit_points).to be_between(before + hp(1), before + hp(4))
     end
 
     it "does not mend a goblin that is not hurt" do
@@ -270,7 +271,7 @@ Spectator.describe Roguelike::Kind do
       floor.ambient = 1
       shaman = Monster.new Kind::GoblinShaman, 4, 1, "band-one"
       warrior = Monster.new Kind::GoblinWarrior, 5, 1, "band-one"
-      warrior.hurt 4
+      warrior.hurt hp(4)
       floor.place shaman
       floor.place warrior
       floor.band("band-one").try &.awareness=(Awareness::Hunting)

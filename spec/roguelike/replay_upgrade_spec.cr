@@ -20,11 +20,12 @@ Spectator.describe Roguelike::Replay::Upgrade do
     where
   end
 
-  # *source*, with its format and every fingerprint in it made wrong.
+  # *source*, in *format*, with every fingerprint in it made wrong.
   #
-  # This is the shape of a file an older build wrote. Its actions are good
-  # and its fingerprints are values this build does not take.
-  def staled(source : Path) : Path
+  # This is the shape of a file a build with other fingerprints wrote. Its
+  # actions are good and its fingerprints are values this build does not
+  # take.
+  def staled(source : Path, format : Int32 = Roguelike::Replay::FORMAT) : Path
     where = spot "stale"
 
     lines = File.read_lines(source).map do |line|
@@ -32,7 +33,7 @@ Spectator.describe Roguelike::Replay::Upgrade do
 
       case line
       when .starts_with? %({"type":"header")
-        JSON.parse(line).as_h.merge({"format" => JSON::Any.new(1_i64),
+        JSON.parse(line).as_h.merge({"format" => JSON::Any.new(format.to_i64),
                                      "state"  => JSON::Any.new("sha256:#{"0" * 64}")}).to_json
       when .starts_with? %({"type":"check")
         check = Check.from_json line
@@ -63,10 +64,22 @@ Spectator.describe Roguelike::Replay::Upgrade do
     Recording.read(path, fingerprints: false).footer.as Roguelike::Replay::Footer
   end
 
-  describe "a file this build refuses" do
+  describe "a file of an earlier format" do
+    it "is refused, and nothing is written" do
+      stale = staled recorded, Roguelike::Replay::FORMAT - 1
+      target = spot "upgraded"
+      report = Upgrade.run stale, target
+
+      expect(report.ok?).to be_false
+      expect(report.trouble).to match /format #{Roguelike::Replay::FORMAT - 1}/
+      expect(File.exists? target).to be_false
+    end
+  end
+
+  describe "a file whose fingerprints this build does not take" do
     it "is refused before the upgrade and read after it" do
       stale = staled recorded
-      expect(Verifier.check(stale).trouble).to match /format 1/
+      expect(Verifier.check(stale).ok?).to be_false
 
       target = spot "upgraded"
       expect(Upgrade.run(stale, target).ok?).to be_true

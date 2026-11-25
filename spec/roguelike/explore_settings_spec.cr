@@ -57,7 +57,7 @@ Spectator.describe Roguelike::Explore::Settings do
   def played(lines : Array(String), at : {Int32, Int32}? = nil) : Game
     floor = Floor.parse "here", lines
     floor.ambient = 1
-    player = Roguelike::Player.new "here", *(at || Game.entrance(floor)), hit_points: 40
+    player = Roguelike::Player.new "here", *(at || Game.entrance(floor)), hit_points: hp(40)
 
     Game.new Roguelike::World.new(SEED, {"here" => floor}), player
   end
@@ -295,7 +295,7 @@ Spectator.describe Roguelike::Explore::Settings do
       went = game.explore
 
       expect(went.halt).to eq Halt::Explored
-      expect(game.player.hit_points).to be < 40
+      expect(game.player.hit_points).to be < hp(40)
     end
 
     it "stops when it finds the stairs down with that stop on" do

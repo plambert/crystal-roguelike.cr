@@ -46,7 +46,7 @@ Spectator.describe "monsters that shoot" do
     floor = Playing.daylight floor if lit
 
     creatures.each { |creature| floor.place creature }
-    player = Player.new floor.id, *here, hit_points: PLENTY
+    player = Player.new floor.id, *here, hit_points: hp(PLENTY)
     game = Game.new World.new(SEED, {floor.id => floor}), player
     creatures.each { |creature| hunting game, creature }
     game
@@ -64,14 +64,14 @@ Spectator.describe "monsters that shoot" do
 
   # An orc archer at *at* with a bow and *arrows* arrows.
   def archer(at : {Int32, Int32}, arrows : Int32 = 5, band : String = "archers") : Monster
-    creature = Monster.new Creature::OrcArcher, at[0], at[1], band, hit_points: PLENTY
+    creature = Monster.new Creature::OrcArcher, at[0], at[1], band, hit_points: hp(PLENTY)
     creature.outfit [Item.new(Kind::Bow), Item.new(Kind::Arrow, count: arrows)]
     creature
   end
 
   # A goblin scout at *at* with a sling and *stones* stones.
   def scout(at : {Int32, Int32}, stones : Int32 = 5) : Monster
-    creature = Monster.new Creature::GoblinScout, at[0], at[1], "scouts", hit_points: PLENTY
+    creature = Monster.new Creature::GoblinScout, at[0], at[1], "scouts", hit_points: hp(PLENTY)
     creature.outfit [Item.new(Kind::Sling), Item.new(Kind::Stone, count: stones)]
     creature
   end
@@ -293,7 +293,7 @@ Spectator.describe "monsters that shoot" do
 
     it "does not shoot through another creature" do
       creature = archer({8, 2})
-      blocker = Monster.new Creature::WhiteSlime, 4, 2, "slimes", hit_points: PLENTY
+      blocker = Monster.new Creature::WhiteSlime, 4, 2, "slimes", hit_points: hp(PLENTY)
       game = hall [creature]
       game.floor.place blocker
 

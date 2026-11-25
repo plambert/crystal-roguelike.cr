@@ -171,7 +171,7 @@ Spectator.describe "a cursed wand" do
         target = Roguelike::Monster.new Roguelike::Species::Slime, 3, 2, "band-one"
         game.floor.place target
         game.attack target
-        game.player.heal 100
+        game.player.heal hp(100)
       end
 
       expect(wand.condition.damaged?).to be_true

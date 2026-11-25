@@ -19,3 +19,8 @@ ENV["XDG_STATE_HOME"] = SPEC_STATE_HOME
 Spectator.configure do |config|
   config.after_suite { FileUtils.rm_rf SPEC_STATE_HOME }
 end
+
+# *whole* hit points, in the unit they are kept in.
+def hp(whole : Int) : Roguelike::Fixed
+  Roguelike::Fixed.whole whole
+end

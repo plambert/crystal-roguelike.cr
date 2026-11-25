@@ -25,7 +25,7 @@ Spectator.describe "resting from the keyboard" do
       Roguelike::Player.new("hall", *Game.entrance(floor))),
       60, 20, clock: clock
     run.clear_monsters
-    run.game.player.hurt down
+    run.game.player.hurt hp(down)
     run.play.refresh
 
     run

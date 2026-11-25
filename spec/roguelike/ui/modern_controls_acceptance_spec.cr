@@ -52,7 +52,7 @@ Spectator.describe "approved modern controls" do
   def playing(scheme : Scheme, items : Array(Item) = [] of Item,
               map : Array(String) = ROOM,
               start : {Int32, Int32} = {2, 2},
-              clock : Bool = false, hit_points : Int32 = 20) : Playing::Run
+              clock : Bool = false, hit_points : Roguelike::Fixed = hp(20)) : Playing::Run
     options = Options.new
     options.control_scheme = scheme
     Options.current = options
@@ -159,7 +159,7 @@ Spectator.describe "approved modern controls" do
     game = Recording.recording(path.to_s) do
       run = playing scheme,
         [Item.new(ItemKind::Dagger), Item.new(ItemKind::HealingPotion)],
-        hit_points: 2
+        hit_points: hp(2)
 
       if modern
         use_modern_item_action run, "potion", ["drink"]
@@ -214,7 +214,7 @@ Spectator.describe "approved modern controls" do
   describe "map movement" do
     it "moves in all eight spatial directions without running old item commands" do
       MODERN_MOVES.each do |key, delta|
-        run = playing Scheme::Modern, items_for_legacy_letters, hit_points: 1
+        run = playing Scheme::Modern, items_for_legacy_letters, hit_points: hp(1)
         before = run.at
         equipment = run.game.player.equipment.to_json
 
@@ -223,7 +223,7 @@ Spectator.describe "approved modern controls" do
         expect(run.at).to eq({before[0] + delta[0], before[1] + delta[1]})
         expect(run.turn).to eq 1
         expect(run.game.player.equipment.to_json).to eq equipment
-        reference = playing Scheme::Traditional, items_for_legacy_letters, hit_points: 1
+        reference = playing Scheme::Traditional, items_for_legacy_letters, hit_points: hp(1)
         reference.press TRADITIONAL_MOVES[key]
         expect(inventory_state(run.game)).to eq inventory_state(reference.game)
       end

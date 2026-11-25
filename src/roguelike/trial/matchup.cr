@@ -246,7 +246,7 @@ module Roguelike
         player = kit.character
         kind = opponent.kind
         band = Array.new opponent.count do |index|
-          health = kind.hit_dice.roll rng
+          health = kind.health.roll rng
           monster = Monster.new kind, 1, 0, "matchup", hit_points: health, max_hit_points: health
           gear = index.zero? ? rng.derive("gear") : rng.derive("gear", index)
           monster.outfit Loot.for(kind, gear, kit.depth)
@@ -265,15 +265,15 @@ module Roguelike
           else
             target = band.first
             blow = Combat.swing rng, player.to_hit, target.armor_class, player.damage
-            target.hurt blow.damage if blow.hit?
+            target.hurt blow.harm if blow.hit?
             band.shift unless target.alive?
-            return Result.new true, ticks + 1, start - player.hit_points if band.empty?
+            return Result.new true, ticks + 1, (start - player.hit_points).ceil if band.empty?
 
             player.pace.spend swing
           end
 
           until player.pace.ready?
-            return Result.new false, ticks + 1, start - player.hit_points if answered(band, player, field, rng)
+            return Result.new false, ticks + 1, (start - player.hit_points).ceil if answered(band, player, field, rng)
 
             player.pace.gain
             band.each &.pace.gain
@@ -281,7 +281,7 @@ module Roguelike
           end
         end
 
-        Result.new false, ticks, start - player.hit_points
+        Result.new false, ticks, (start - player.hit_points).ceil
       end
 
       # Lets every creature in *band* take the actions it has banked. Answers
@@ -336,7 +336,7 @@ module Roguelike
             damage = Combat.shot weapon, ammunition
             monster.draw_shot 0
             blow = Combat.swing rng, bonus, player.armor_class, damage
-            player.hurt blow.damage if blow.hit?
+            player.hurt blow.harm if blow.hit?
             return Costs.loose weapon
           end
         end
@@ -347,7 +347,7 @@ module Roguelike
         end
 
         blow = Combat.swing rng, monster.to_hit + flanking, player.armor_class, monster.damage
-        player.hurt blow.damage if blow.hit?
+        player.hurt blow.harm if blow.hit?
         monster.swing
       end
 

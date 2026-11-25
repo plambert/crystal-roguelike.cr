@@ -54,6 +54,11 @@ module Roguelike::Ui
       @text = text
     end
 
+    # :ditto: Hit points, shown as whole numbers rounded up.
+    def show(value : Fixed, most : Fixed, text : String? = nil) : Nil
+      show value.ceil, most.ceil, text
+    end
+
     # How full it is, out of a hundred.
     #
     # A bar that goes to zero is empty rather than full. Nothing in the game

@@ -88,14 +88,14 @@ Spectator.describe "running" do
     spot = at || Game.entrance(floor)
 
     Game.new Roguelike::World.new(SEED, {"run" => floor}),
-      Roguelike::Player.new("run", *spot, hit_points: 40)
+      Roguelike::Player.new("run", *spot, hit_points: hp(40))
   end
 
   # A game on `DARK` with the character carrying a lit torch.
   def carrying_a_torch : Game
     floor = Roguelike::Floor.parse("run", DARK)
     player = Roguelike::Player.new("run", *Game.entrance(floor),
-      hit_points: 40)
+      hit_points: hp(40))
     player.inventory.add Playing.torch
 
     Game.new Roguelike::World.new(SEED, {"run" => floor}), player
@@ -185,14 +185,14 @@ Spectator.describe "running" do
     it "stops in front of a creature rather than swinging at it" do
       game = walking
       game.floor.place Monster.new(Species::Goblin, 2, 2, "band-one",
-        hit_points: 30)
+        hit_points: hp(30))
 
       went = game.run EAST
 
       expect(went.halt).to eq Halt::Blocked
       expect(went.steps).to eq 0
       expect(game.player.at).to eq START
-      expect(game.floor.monster(2, 2).try &.hit_points).to eq 30
+      expect(game.floor.monster(2, 2).try &.hit_points).to eq hp(30)
       expect(game.log.last?).to eq "The goblin fighter is in the way."
     end
 
@@ -274,7 +274,7 @@ Spectator.describe "running" do
     it "stops when the character is hurt" do
       game = walking HALL
       game.floor.place Monster.new(Species::Orc, 2, 1, "band-one",
-        hit_points: 200)
+        hit_points: hp(200))
       full = game.player.hit_points
       reasons = [] of Halt
 
@@ -292,8 +292,8 @@ Spectator.describe "running" do
     it "stops because the run ended when a blow kills the character" do
       game = walking HALL
       game.floor.place Monster.new(Species::Orc, 2, 1, "band-one",
-        hit_points: 200)
-      game.player.hurt game.player.hit_points - 1
+        hit_points: hp(200))
+      game.player.hurt game.player.hit_points - hp(1)
       reasons = [] of Halt
 
       8.times do

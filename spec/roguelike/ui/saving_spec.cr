@@ -27,7 +27,7 @@ Spectator.describe "when a run is written to the store" do
 
   # A named run, saved to *store*.
   def playing(store : Save::Store? = nil, name : String = "Sparky",
-              map : Array(String) = ROOM, hit_points : Int32? = nil) : Playing::Run
+              map : Array(String) = ROOM, hit_points : Roguelike::Fixed? = nil) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("room", map)
     player = Roguelike::Player.new floor.id, *Roguelike::Game.entrance(floor),
       hit_points: hit_points
@@ -49,7 +49,7 @@ Spectator.describe "when a run is written to the store" do
 
   # The most recently ended character in *held*, or a failure saying there is
   # none.
-  def retired(held : Array(Save::Held)) : Save::Held
+  def retired(held : Array(Save::Header)) : Save::Header
     found = held.first?
     raise "no character has ended" unless found
 
@@ -210,7 +210,7 @@ Spectator.describe "when a run is written to the store" do
 
     it "writes when the character dies" do
       store = Playing.store
-      run = playing store, map: FIGHT, hit_points: 1
+      run = playing store, map: FIGHT, hit_points: hp(1)
 
       SWINGS.times do
         break if run.game.over?
@@ -228,7 +228,7 @@ Spectator.describe "when a run is written to the store" do
     # it can be read and their name goes back to whoever wants it.
     it "is taken out of the saves" do
       store = Playing.store
-      run = playing store, map: FIGHT, hit_points: 1
+      run = playing store, map: FIGHT, hit_points: hp(1)
 
       SWINGS.times do
         break if run.game.over?
@@ -242,7 +242,7 @@ Spectator.describe "when a run is written to the store" do
 
     it "is kept among the deaths" do
       store = Playing.store
-      run = playing store, map: FIGHT, hit_points: 1
+      run = playing store, map: FIGHT, hit_points: hp(1)
 
       SWINGS.times do
         break if run.game.over?

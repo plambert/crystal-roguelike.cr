@@ -49,6 +49,11 @@ module Roguelike
       end
     end
 
+    # A span from *low* to *high* whole units.
+    def self.whole(low : Int, high : Int, spread : Spread = Spread::Steady) : Span
+      new Fixed.whole(low), Fixed.whole(high), spread
+    end
+
     # A roll inside the span, `low + (high - low) × u / STEPS`.
     def roll(rng : Rng) : Fixed
       width = (@high - @low).value.to_i64

@@ -94,7 +94,7 @@ Spectator.describe Roguelike::Observation do
 
     it "gives a condition rather than hit points" do
       near = Monster.new Species::Goblin, 1, 1, "band-one"
-      near.hurt near.max_hit_points - 1
+      near.hurt near.max_hit_points - hp(1)
       game = played ROOMS, creatures: [near]
       found = Observation.of(game).monsters.first
 
@@ -684,8 +684,8 @@ Spectator.describe Roguelike::Observation do
       found = Observation.of(game).player
 
       expect(found.pos).to eq game.player.at
-      expect(found.hit_points).to eq game.player.hit_points
-      expect(found.max_hit_points).to eq game.player.max_hit_points
+      expect(found.hit_points).to eq game.player.hit_points.ceil
+      expect(found.max_hit_points).to eq game.player.max_hit_points.ceil
       expect(found.level).to eq game.player.level
       expect(found.experience).to eq game.player.experience
       expect(found.armor_class).to eq game.player.armor_class

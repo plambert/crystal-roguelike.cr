@@ -45,7 +45,7 @@ Spectator.describe "creatures and doors" do
     creature = Monster.new species, at[0], at[1], "band-one"
     floor.place creature
 
-    player = Player.new floor.id, hero[0], hero[1], hit_points: 500
+    player = Player.new floor.id, hero[0], hero[1], hit_points: hp(500)
     player.inventory.add Item.new(ItemKind::Spike, count: 3)
     game = Game.new World.new(SEED, {floor.id => floor}), player
     hunting game, creature
@@ -204,7 +204,7 @@ Spectator.describe "creatures and doors" do
     floor = Playing.daylight Floor.parse("rooms", ROOMS)
     floor.drive_spike DOOR[0], DOOR[1], Direction::West, Item.new(ItemKind::Spike)
 
-    player = Player.new floor.id, 5, 1, hit_points: 500
+    player = Player.new floor.id, 5, 1, hit_points: hp(500)
     if armed
       letter = player.inventory.add Item.new(ItemKind::ShortSword)
       player.equipment.put Slot::Melee, letter if letter

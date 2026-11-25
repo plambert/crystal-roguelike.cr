@@ -139,7 +139,7 @@ Spectator.describe "dropping rot when safe" do
 
     it "goes on resting past the line" do
       game = game_on HALL, [rotten]
-      game.player.hurt 6
+      game.player.hurt hp(6)
       rest = game.rest
 
       expect(game.player.food_bag.empty?).to be_true

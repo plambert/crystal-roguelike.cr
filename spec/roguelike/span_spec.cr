@@ -23,6 +23,16 @@ Spectator.describe Roguelike::Span do
     end
   end
 
+  describe ".whole" do
+    it "holds whole units at each end" do
+      found = described_class.whole 3, 9, Spread::Centered
+
+      expect(found.low.value).to eq 300
+      expect(found.high.value).to eq 900
+      expect(found.spread).to eq Spread::Centered
+    end
+  end
+
   describe "#roll" do
     it "rolls the low end on the least draw and the high end on the largest" do
       expect(span(300, 700, Spread::Even).roll(DrawnRng.new [0]).value).to eq 300

@@ -76,7 +76,7 @@ module Roguelike::Ui
       lines = [
         creature.label,
         creature.description,
-        "hit points #{creature.hit_points}/#{creature.max_hit_points}",
+        "hit points #{creature.hit_points.ceil}/#{creature.max_hit_points.ceil}",
         game.floor.doing(creature),
       ]
       ExaminePane.gear(creature, game.lore).try { |armed| lines << armed }

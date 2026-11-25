@@ -24,7 +24,7 @@ Spectator.describe "drawing a shot crossing the floor" do
            clock : Bool = true) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
 
-    player = Roguelike::Player.new "hall", *HERE, hit_points: 500
+    player = Roguelike::Player.new "hall", *HERE, hit_points: hp(500)
     items.each { |item| player.inventory.add item }
 
     Playing.open Roguelike::Game.new(

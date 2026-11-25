@@ -21,22 +21,22 @@ Spectator.describe Roguelike::Monster do
   end
 
   it "takes statistics of its own when it is given them" do
-    hurt = described_class.new Species::Goblin, 4, 5, "band-one", hit_points: 2
+    hurt = described_class.new Species::Goblin, 4, 5, "band-one", hit_points: hp(2)
 
-    expect(hurt.hit_points).to eq 2
+    expect(hurt.hit_points).to eq hp(2)
     expect(hurt.max_hit_points).to eq Species::Goblin.hit_points
   end
 
   describe "hit points" do
     it "falls when it is hurt" do
-      expect(goblin.hurt 3).to eq Species::Goblin.hit_points - 3
+      expect(goblin.hurt(hp(3))).to eq Species::Goblin.hit_points - hp(3)
       expect(goblin.alive?).to be_true
     end
 
     it "stops at nothing" do
-      goblin.hurt 999
+      goblin.hurt hp(999)
 
-      expect(goblin.hit_points).to eq 0
+      expect(goblin.hit_points).to eq hp(0)
       expect(goblin.alive?).to be_false
     end
   end
@@ -209,7 +209,7 @@ Spectator.describe Roguelike::Monster do
 
   describe "serialization" do
     it "round-trips through JSON" do
-      goblin.hurt 3
+      goblin.hurt hp(3)
       again = described_class.from_json goblin.to_json
 
       expect(again).to eq goblin
@@ -256,7 +256,7 @@ Spectator.describe Roguelike::Monster do
     end
 
     it "takes more than one hit" do
-      Species.each { |species| expect(species.hit_points).to be > 1 }
+      Species.each { |species| expect(species.hit_points).to be > hp(1) }
     end
 
     # A slime is weak, a goblin is quick, an orc is strong.

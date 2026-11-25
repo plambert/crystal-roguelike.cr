@@ -13,6 +13,69 @@ module Roguelike
   # to edit their character opens the file and edits it. The format is meant
   # to be read.
   module Save
+    # Which shape of save this build writes and reads.
+    #
+    # A file in any other shape is refused and left on disk as it is. A file
+    # with no `format` field is format 1.
+    #
+    # Format 2 keeps hit points in hundredths, for the character and for
+    # every creature. A format 1 file holds whole hit points, which this
+    # build would read as a hundredth of what they were.
+    FORMAT = 2
+
+    # A file whose format is not `FORMAT`.
+    class Refused < Exception
+      # The format the file is in.
+      getter format : Int32
+
+      # The build that wrote it.
+      getter version : String
+
+      def initialize(@format : Int32, @version : String)
+        super "the save is format #{@format}, written by #{@version}, " \
+              "and this build reads format #{FORMAT}"
+      end
+    end
+
+    # The header of a file, read without the game under it.
+    #
+    # The title menu lists every file this way, including those this build
+    # cannot load, so a person sees every character they have.
+    class Header
+      include JSON::Serializable
+
+      # What the person called the character, as they typed it.
+      getter name : String
+
+      # Which build wrote the file.
+      getter version : String
+
+      # Which shape the file is in. See `FORMAT`.
+      getter format : Int32 = 1
+
+      # When it was written.
+      getter saved : Time
+
+      # How many turns had been taken.
+      getter turn : Int32
+
+      # What level the character had reached.
+      getter level : Int32
+
+      # How the run stood. `Playing` for one still going.
+      getter outcome : Outcome
+
+      def initialize(@name : String, @version : String, @format : Int32,
+                     @saved : Time, @turn : Int32, @level : Int32,
+                     @outcome : Outcome)
+      end
+
+      # Whether this build loads the file.
+      def loadable? : Bool
+        @format == FORMAT
+      end
+    end
+
     # What one file holds.
     #
     # The header fields are declared before the game, so they are written
@@ -26,6 +89,9 @@ module Roguelike
 
       # Which build wrote the file.
       getter version : String
+
+      # Which shape the file is in. See `FORMAT`.
+      getter format : Int32 = 1
 
       # When it was written.
       getter saved : Time
@@ -49,6 +115,15 @@ module Roguelike
       def initialize(@name : String, @version : String, @saved : Time,
                      @turn : Int32, @level : Int32, @outcome : Outcome,
                      @game : Game, @replay : Replay::Mark? = nil)
+        @format = FORMAT
+      end
+
+      # Refuses a file in another format.
+      #
+      # The game in such a file has been read by then, but it was read in
+      # this build's units, so nothing of it is kept.
+      def after_initialize : Nil
+        raise Refused.new @format, @version unless @format == FORMAT
       end
 
       # What *game* is written out as, now.
@@ -245,7 +320,7 @@ module Roguelike
         found = path name
         return unless File.exists? found
 
-        whose = held name
+        whose = header name
         return if whose && whose.name == name
 
         whose.try(&.name) || found.basename(EXTENSION)
@@ -255,9 +330,10 @@ module Roguelike
 
       # The character called *name*, or `nil` for one this store has not got.
       #
-      # A file that will not parse answers `nil` as well. A save from a build
-      # whose fields have moved is not worth stopping the game over, and the
-      # file is left where it is for a person to look at.
+      # A file that will not parse answers `nil` as well, and so does a file
+      # in another format. A save from a build whose fields have moved is not
+      # worth stopping the game over, and the file is left where it is for a
+      # person to look at.
       def read(name : String) : Game?
         held(name).try &.game
       end
@@ -267,7 +343,21 @@ module Roguelike
         found = path name
         return unless File.exists? found
 
-        Held.from_json File.read(found)
+        text = File.read found
+        return unless Header.from_json(text).loadable?
+
+        Held.from_json text
+      rescue ArgumentError | JSON::ParseException | IO::Error | Refused
+        nil
+      end
+
+      # The header of the file for *name*, whatever its format. `nil` when
+      # there is no file or it will not parse.
+      def header(name : String) : Header?
+        found = path name
+        return unless File.exists? found
+
+        Header.from_json File.read(found)
       rescue ArgumentError | JSON::ParseException | IO::Error
         nil
       end
@@ -278,20 +368,21 @@ module Roguelike
       # the `saved` field in it. The field is written to the second and two
       # saves can land in the same one; the filesystem counts smaller.
       #
-      # A file that will not parse is left out. The list is what a person is
-      # offered, and offering a file that cannot be loaded helps nobody.
-      def characters : Array(Held)
+      # Only the headers are read. A file in another format is listed, and
+      # `Header#loadable?` says so. A file that will not parse is left out,
+      # because there is nothing in it to show.
+      def characters : Array(Header)
         listed @directory
       end
 
       # Every character in *where*, the most recently written first.
-      private def listed(where : Path) : Array(Held)
-        return [] of Held unless Dir.exists? where
+      private def listed(where : Path) : Array(Header)
+        return [] of Header unless Dir.exists? where
 
         found = Dir.glob where / "*#{EXTENSION}"
         found.sort_by! { |name| -File.info(name).modification_time.to_unix_ms }
 
-        found.compact_map { |name| Held.from_json File.read(name) rescue nil }
+        found.compact_map { |name| Header.from_json File.read(name) rescue nil }
       end
 
       # Takes the character called *name* out of the store.
@@ -347,12 +438,12 @@ module Roguelike
       end
 
       # Every character who died, the most recently written first.
-      def died : Array(Held)
+      def died : Array(Header)
         listed @deaths
       end
 
       # Every character who came out alive, the most recently written first.
-      def won : Array(Held)
+      def won : Array(Header)
         listed @wins
       end
     end

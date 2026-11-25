@@ -96,12 +96,35 @@ module Roguelike::Ui
     end
 
     # What one saved character's row says.
-    def self.saved_row(held : Save::Held) : String
+    def self.saved_row(held : Save::Header) : String
+      return "#{held.name} — saved by #{held.version}, cannot be loaded by this version" unless held.loadable?
+
       "#{held.name} — #{standing held}"
     end
 
+    # What the page for a save this build cannot load is headed with.
+    REFUSED_HEADING = "Cannot load"
+
+    # The key that closes that page.
+    REFUSED_KEY = 'b'
+
+    # What that page says the key does.
+    REFUSED_FOOTER = "b goes back to the title screen."
+
+    # What that page says about *held*.
+    def self.refused(held : Save::Header) : Array(String)
+      [
+        "#{held.name} was saved by version #{held.version}.",
+        "",
+        "Combat was rebuilt in this version, and its saves are kept in a new",
+        "form. A save from before that cannot be carried on here.",
+        "",
+        "The file is untouched on disk. Version #{held.version} still loads it.",
+      ]
+    end
+
     # How one saved character stood when it was written.
-    private def self.standing(held : Save::Held) : String
+    private def self.standing(held : Save::Header) : String
       return "level #{held.level}, turn #{held.turn}" unless held.outcome.over?
 
       "#{heading(held.outcome).downcase} on turn #{held.turn}"

@@ -4,13 +4,14 @@ module Roguelike
   module Replay
     # A recorded run written out again, under this build's fingerprints.
     #
-    # A format 1 file holds fingerprints taken with the message log in them,
-    # and this build leaves the log out. So `Replay::Verifier` refuses one
-    # and `Replay::Viewer` does not open one. The actions in such a file are
-    # still good. This reads them, performs them again, and writes a file in
-    # this build's format holding the same actions with the fingerprints this
-    # build takes. The pauses and the resumes of a run carried on across a
-    # save are written again where they stood.
+    # This reads the actions, performs them again, and writes a file holding
+    # the same actions with the fingerprints this build takes. The pauses and
+    # the resumes of a run carried on across a save are written again where
+    # they stood.
+    #
+    # A file of a format `Reading.refusal` refuses is not written again. Its
+    # actions were chosen under other rules, so they lead to other fights
+    # here.
     #
     # The seed, the character, what wrote the file and the time the run
     # started all carry over, so the new file is the same run.
@@ -29,6 +30,8 @@ module Roguelike
       def self.run(source : Path | String, target : Path | String) : Report
         to = Path.new target
         read = Reading.read source, fingerprints: false
+        refusal = Reading.refusal read.header
+        return Report.new to, 0, 0, 0, refusal if refusal
 
         # Beside the target, not in the temporary directory: a rename cannot
         # cross from one drive or filesystem to another, and on Windows the

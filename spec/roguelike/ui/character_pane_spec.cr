@@ -108,8 +108,8 @@ Spectator.describe Roguelike::Ui::CharacterPane do
       run = playing
       player = run.game.player
 
-      expect(run.play.character.health.value).to eq player.hit_points
-      expect(run.play.character.health.most).to eq player.max_hit_points
+      expect(run.play.character.health.value).to eq player.hit_points.ceil
+      expect(run.play.character.health.most).to eq player.max_hit_points.ceil
     end
 
     # The bar is the part of this level that is done, so a full bar always

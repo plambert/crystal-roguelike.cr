@@ -29,7 +29,7 @@ Spectator.describe Roguelike::Event::StatChanged do
   # A game on `ROOM` with *player*, and a slime north of them when *slime*.
   def room(player : Player, slime : Bool = false) : Game
     floor = Playing.daylight Floor.parse("arena", ROOM)
-    floor.place Monster.new(Species::Slime, 3, 2, "band-one", hit_points: 12) if slime
+    floor.place Monster.new(Species::Slime, 3, 2, "band-one", hit_points: hp(12)) if slime
     game = Game.new World.new(20260912_u64, {floor.id => floor}), player
     game.enroll
     game
@@ -68,7 +68,7 @@ Spectator.describe Roguelike::Event::StatChanged do
   end
 
   it "lowers the hit points with the blow as the cause" do
-    game = room Player.new("arena", 3, 3, hit_points: 200), slime: true
+    game = room Player.new("arena", 3, 3, hit_points: hp(200)), slime: true
 
     blows = fought(game, 200).select { |_, changed| changed.stat == "hp" && changed.cause == "attack" }
     expect(blows).not_to be_empty
@@ -95,7 +95,7 @@ Spectator.describe Roguelike::Event::StatChanged do
   end
 
   it "fires level, maximum hit points and experience on a level up" do
-    player = Player.new "arena", 3, 3, hit_points: 200,
+    player = Player.new "arena", 3, 3, hit_points: hp(200),
       experience: Roguelike::Advancement.threshold(2) - 1
     game = room player, slime: true
 
@@ -114,7 +114,7 @@ Spectator.describe Roguelike::Event::StatChanged do
     player = Player.new "arena", 3, 3
     reading = Event::StatChanged.reading player
     expect(reading.size).to eq(Event::StatChanged::NAMES.size)
-    expect(reading[0]).to eq(player.hit_points)
+    expect(reading[0]).to eq(player.hit_points.ceil)
     expect(reading[Event::StatChanged::NAMES.index!("ac")]).to eq(player.armor_class)
     expect(reading[Event::StatChanged::NAMES.index!("damage")]).to eq(player.damage.to_s)
     expect(reading[Event::StatChanged::NAMES.index!("pace")]).to eq(player.pace.speed)
@@ -136,7 +136,7 @@ Spectator.describe Roguelike::Event::StatChanged do
   it "writes a line to the events file after the event that caused it" do
     where = Recording.directory / "stat-events-#{Random.rand UInt32}"
     Dir.mkdir_p where
-    game = room Player.new("arena", 3, 3, hit_points: 200), slime: true
+    game = room Player.new("arena", 3, 3, hit_points: hp(200)), slime: true
     game.player.name = "fighter"
 
     Recording.recording where.to_s do

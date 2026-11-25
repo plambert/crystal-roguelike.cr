@@ -48,7 +48,7 @@ module Roguelike
     getter experience : Int32
 
     # Hit points left. The character dies at zero.
-    getter hit_points : Int32
+    getter hit_points : Fixed
 
     # How many turns the character cannot see for.
     #
@@ -139,7 +139,7 @@ module Roguelike
                    @attributes : Attributes = Attributes.new,
                    @level : Int32 = 1,
                    @experience : Int32 = 0,
-                   hit_points : Int32? = nil,
+                   hit_points : Fixed? = nil,
                    @inventory : Inventory = Inventory.new,
                    @gold : Int32 = 0,
                    @equipment : Equipment = Equipment.new,
@@ -362,8 +362,9 @@ module Roguelike
     end
 
     # Hit points at full health. Never less than one.
-    def max_hit_points : Int32
-      Math.max Advancement.max_hit_points(@level, @attributes.constitution) - wasted, 1
+    def max_hit_points : Fixed
+      Math.max Advancement.max_hit_points(@level, @attributes.constitution) - Fixed.whole(wasted),
+        Fixed.whole(1)
     end
 
     # Maximum hit points lost for good.
@@ -374,7 +375,7 @@ module Roguelike
     # Takes *amount* off the maximum hit points for good, and the current
     # hit points down to the new maximum. Answers how many came off the
     # maximum.
-    def waste(amount : Int32) : Int32
+    def waste(amount : Int32) : Fixed
       before = max_hit_points
       @wasted = wasted + amount
       @hit_points = Math.min @hit_points, max_hit_points
@@ -415,7 +416,7 @@ module Roguelike
 
     # Whether the character is still alive.
     def alive? : Bool
-      @hit_points > 0
+      @hit_points > Fixed::ZERO
     end
 
     # Experience still needed to reach the next level. `nil` at the last one.
@@ -553,9 +554,9 @@ module Roguelike
     #
     # Being hurt puts the rest count back to nothing, so a character hit once
     # a turn never regenerates.
-    def hurt(amount : Int32) : Int32
+    def hurt(amount : Fixed) : Fixed
       @rested = 0
-      @hit_points = Math.max @hit_points - amount, 0
+      @hit_points = Math.max @hit_points - amount, Fixed::ZERO
     end
 
     # Puts *amount* back, up to full health. Answers how many were restored.
@@ -563,7 +564,7 @@ module Roguelike
     # It never takes any off. A character already above their maximum is left
     # where they are rather than pulled down to it, because healing that hurt
     # would be a strange thing for a potion to do.
-    def heal(amount : Int32) : Int32
+    def heal(amount : Fixed) : Fixed
       before = @hit_points
       @hit_points = Math.min before + amount, Math.max(max_hit_points, before)
       @hit_points - before

@@ -25,7 +25,7 @@ Spectator.describe "the quiver remembering its ammunition" do
   # A game with the character at the west end, holding *held*.
   def armed(held : Array(Item)) : Game
     floor = Playing.daylight Floor.parse("hall", HALL)
-    player = Player.new floor.id, 1, 1, hit_points: 500
+    player = Player.new floor.id, 1, 1, hit_points: hp(500)
     game = Game.new World.new(Playing::SEED, {floor.id => floor}), player
     held.each { |item| player.inventory.add item }
     game

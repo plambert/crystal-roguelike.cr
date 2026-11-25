@@ -486,7 +486,7 @@ module Roguelike
           contents = Compress::Gzip::Reader.open(file, &.gets_to_end)
           Save::Held.from_json contents
         end
-      rescue error : File::Error | IO::Error | JSON::Error | GzipError
+      rescue error : File::Error | IO::Error | JSON::Error | GzipError | Save::Refused
         raise IO::Error.new("#{path} is not a valid save: #{error.message}")
       end
 

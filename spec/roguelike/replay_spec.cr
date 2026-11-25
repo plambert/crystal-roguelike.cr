@@ -112,7 +112,7 @@ Spectator.describe Roguelike::Replay do
       Recording.recording where do
         game = Game.dug Rng.new(Recording::SEED)
         game.player.name = "carried"
-        game.player.hurt 3
+        game.player.hurt hp(3)
         6.times { game.perform Roguelike::Action::Wait.new }
         game
       end
@@ -182,7 +182,7 @@ Spectator.describe Roguelike::Replay do
         floor = Playing.daylight Roguelike::Floor.parse("arena", ARENA)
         game = Game.new(
           Roguelike::World.new(Playing::SEED, {"arena" => floor}),
-          Roguelike::Player.new("arena", 3, 3, hit_points: 40))
+          Roguelike::Player.new("arena", 3, 3, hit_points: hp(40)))
         floor.place Roguelike::Monster.new(
           Roguelike::Species::Goblin, 4, 3, "band-one")
 
@@ -243,7 +243,7 @@ Spectator.describe Roguelike::Replay do
         floor = Playing.daylight Roguelike::Floor.parse("arena", ARENA)
         game = Game.new(
           Roguelike::World.new(Playing::SEED, {"arena" => floor}),
-          Roguelike::Player.new("arena", 1, 1, hit_points: 40))
+          Roguelike::Player.new("arena", 1, 1, hit_points: hp(40)))
 
         run = Playing.open game
         run.game.player.name = "blocked"
@@ -369,14 +369,13 @@ Spectator.describe Roguelike::Replay do
   end
 
   describe "a file this cannot read" do
-    # The header of a run recorded before the fingerprint left the message
-    # log out.
-    def old_format : String
+    # The header of a run, given the format *format*.
+    def aged(format : Int32) : String
       where = spot "aged"
       Recording.played where, turns: 20
 
       File.read_lines(where)[0]
-        .sub %("format":#{Roguelike::Replay::FORMAT}), %("format":1)
+        .sub %("format":#{Roguelike::Replay::FORMAT}), %("format":#{format})
     end
 
     it "reports an empty file rather than raising" do
@@ -396,23 +395,24 @@ Spectator.describe Roguelike::Replay do
         .to be_false
     end
 
-    # Format 1 holds fingerprints taken with the message log in them. Every
-    # checkpoint in one differs from what this build takes, so --force has
-    # nothing to find and does not reach the refusal.
-    it "refuses a file whose fingerprints cover the message log" do
-      where = Recording.file [old_format], "format-one"
+    # Every format before this build's was recorded under other rules.
+    # --force has nothing to find and does not reach the refusal.
+    it "refuses a file of every earlier format and names the version that plays it" do
+      (1...Roguelike::Replay::FORMAT).each do |format|
+        where = Recording.file [aged(format)], "format-#{format}"
+        trouble = Verifier.check(where).trouble.to_s
 
-      expect(Verifier.check(where).trouble.to_s).to contain "is format 1"
-      expect(Verifier.check(where).trouble.to_s).to contain "cover the message log"
-      expect(Verifier.check(where, force: true).ok?).to be_false
+        expect(trouble).to contain "is format #{format}"
+        expect(trouble).to contain "Version #{Roguelike::VERSION}"
+        expect(Verifier.check(where, force: true).ok?).to be_false
+      end
     end
 
     it "reports a file from a build it does not read" do
-      later = old_format.sub %("format":1), %("format":#{Roguelike::Replay::FORMAT + 1})
-      where = Recording.file [later], "format-later"
+      where = Recording.file [aged(Roguelike::Replay::FORMAT + 1)], "format-later"
 
       expect(Verifier.check(where).trouble.to_s)
-        .to contain "and this build reads 2 to #{Roguelike::Replay::FORMAT}"
+        .to contain "and this build reads #{Roguelike::Replay::FORMAT} to #{Roguelike::Replay::FORMAT}"
     end
   end
 

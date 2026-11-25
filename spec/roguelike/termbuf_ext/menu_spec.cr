@@ -89,6 +89,51 @@ Spectator.describe TermBuf::Widgets::Menu do
     raise "the box is not on the screen"
   end
 
+  describe "a faint row" do
+    # A menu of a plain row and a faint one.
+    def faint : Shown
+      menu = Widgets::Menu.new
+      chosen = [] of Char?
+      menu.on_choose = ->(key : Char?) { chosen << key; nil }
+      root = Widgets::Panel.new(
+        width: Widgets::Layout::Sizing.grow,
+        height: Widgets::Layout::Sizing.grow)
+      root.add menu
+
+      session = Headless.open root, 60, 20
+      menu.show session.app, "Saves", [Entry.new('a', "a torch"),
+                                       Entry.new('b', "an old save", faint: true)]
+      session.render
+
+      Shown.new menu, session, chosen
+    end
+
+    # Whether the cell at *x*, *y* of the screen is drawn faint.
+    def faint?(run : Shown, x : Int32, y : Int32) : Bool
+      found = run.session.buffer.hit x, y
+      raise "nothing is drawn at #{x},#{y}" unless found
+
+      style = run.session.buffer.styles[found.cell.style]
+      style.attributes.includes? TermBuf::Attributes::Faint
+    end
+
+    it "draws its text in the style of a row that cannot be picked" do
+      run = faint
+      x, y = first_row run
+      text = x + Widgets::Menu::GUTTER
+
+      expect(faint?(run, text, y)).to be_false
+      expect(faint?(run, text, y + 1)).to be_true
+    end
+
+    it "is picked by its key" do
+      run = faint
+      run.session.press "b"
+
+      expect(run.chosen).to eq ['b']
+    end
+  end
+
   describe "the marks on the highlighted row" do
     it "puts the pointer at the near edge" do
       run = lit ["a torch", "a dagger"]

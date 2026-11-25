@@ -202,7 +202,7 @@ Spectator.describe "a replay log carried across a save" do
       Log.ended nil
 
       found = loaded store
-      found.player.hurt 2
+      found.player.hurt hp(2)
       play found, 10, 2_u64
     end
 

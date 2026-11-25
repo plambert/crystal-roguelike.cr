@@ -33,7 +33,7 @@ Spectator.describe "how a run starts and ends" do
   # The sword is put in the hand rather than wielded. `Game#wield` spends a
   # turn, and a turn spent here is one the orc gets before the screen the
   # example is about goes up.
-  def playing(hit_points : Int32? = nil, title : Bool = false,
+  def playing(hit_points : Roguelike::Fixed? = nil, title : Bool = false,
               store : Roguelike::Save::Store? = nil) : Playing::Run
     floor = Playing.daylight Roguelike::Floor.parse("room", ROOM)
     player = Roguelike::Player.new floor.id, *Roguelike::Game.entrance(floor)
@@ -58,7 +58,7 @@ Spectator.describe "how a run starts and ends" do
 
   # A run where the orc killed the character.
   def died : Playing::Run
-    run = playing hit_points: 1
+    run = playing hit_points: hp(1)
 
     SWINGS.times do
       break if run.game.over?
@@ -82,6 +82,18 @@ Spectator.describe "how a run starts and ends" do
     run = playing
     run.game.player.name = name
     store.write run.game
+  end
+
+  # A save of *name* as a build before `Save::FORMAT` wrote it, with no
+  # format in its header. Answers where it is.
+  def aged(store : Roguelike::Save::Store, name : String) : Path
+    kept store, name
+    where = store.path name
+    text = File.read where
+    raise "no format in #{where}" unless text.includes? %("format": #{Roguelike::Save::FORMAT},)
+
+    File.write where, text.sub(/\n\s*"format": \d+,/, "")
+    where
   end
 
   describe "the title screen" do
@@ -152,6 +164,53 @@ Spectator.describe "how a run starts and ends" do
       expect(run.menu.showing?).to be_false
       expect(run.entry.asking?).to be_false
       expect(run.game.player.name).to eq "Sparky"
+    end
+
+    it "lists a save this build cannot load, faint, with the version that wrote it" do
+      store = Playing.store
+      aged store, "Sparky"
+
+      run = playing title: true, store: store
+      row = run.menu.entries[1]
+
+      expect(row.text).to eq "Sparky — saved by #{Roguelike::VERSION}, cannot be loaded by this version"
+      expect(row.faint).to be_true
+      expect(row.enabled).to be_true
+    end
+
+    it "says why when that row is picked, and leaves the file as it was" do
+      store = Playing.store
+      where = aged store, "Sparky"
+      before = File.read where
+
+      run = playing title: true, store: store
+      run.press run.menu.entries[1].key.to_s
+
+      expect(run.placard.showing?).to be_true
+      expect(run.placard.heading).to eq Placards::REFUSED_HEADING
+      expect(run.placard.lines.join(' ')).to contain "untouched on disk"
+      expect(run.game.player.name).not_to eq "Sparky"
+
+      run.press Placards::REFUSED_KEY.to_s
+
+      expect(run.placard.showing?).to be_false
+      expect(run.menu.showing?).to be_true
+      expect(File.read where).to eq before
+    end
+
+    it "refuses the name of a save this build cannot load" do
+      store = Playing.store
+      where = aged store, "Sparky"
+      before = File.read where
+
+      run = playing title: true, store: store
+      run.press Placards::NEW_KEY.to_s
+      run.type "Sparky"
+      run.press "Enter"
+
+      expect(run.placard.showing?).to be_true
+      expect(run.placard.heading).to eq Placards::REFUSED_HEADING
+      expect(File.read where).to eq before
     end
 
     it "leaves on Escape" do

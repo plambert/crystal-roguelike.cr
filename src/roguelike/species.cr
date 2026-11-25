@@ -277,9 +277,9 @@ module Roguelike
   # No member here carries a style. `Ui::Palette` holds the colour, the same
   # way it does for terrain. A spec reads a monster with no terminal open.
   #
-  # *hit_dice* is what a creature placed by the generator rolls for its hit
-  # points. `#hit_points` is their average, which is what a creature a floor
-  # file or a spec names starts with.
+  # *health* is the span a creature placed by the generator rolls its hit
+  # points from. `#hit_points` is its midpoint, which is what a creature a
+  # floor file or a spec names starts with.
   #
   # *light* is how often one carries something burning, out of a hundred.
   # *weapon* is the one weapon it always carries. A kind with no *weapon*
@@ -311,7 +311,7 @@ module Roguelike
     label : String,
     plural : String,
     description : String,
-    hit_dice : Dice,
+    health : Span,
     damage : Dice,
     armor : Int32,
     notice : Int32,
@@ -349,8 +349,8 @@ module Roguelike
     heals : Bool = true,
     weakness : Effect? = nil do
     # Hit points of an average one.
-    def hit_points : Int32
-      hit_dice.average.round.to_i
+    def hit_points : Fixed
+      health.mean
     end
   end
 
@@ -455,7 +455,7 @@ module Roguelike
     end
 
     # The default kind's `Kind#hit_points`.
-    def hit_points : Int32
+    def hit_points : Fixed
       default.hit_points
     end
 
@@ -595,13 +595,13 @@ module Roguelike
       facts.description
     end
 
-    # What a placed one rolls for its hit points.
-    def hit_dice : Dice
-      facts.hit_dice
+    # The span a placed one rolls its hit points from.
+    def health : Span
+      facts.health
     end
 
     # Hit points of an average one.
-    def hit_points : Int32
+    def hit_points : Fixed
       facts.hit_points
     end
 
@@ -858,35 +858,35 @@ module Roguelike
     FACTS = {
       Kind::WhiteSlime => KindFacts.new(Species::Slime, 'j', "white slime",
         "white slimes", "a pale puddle of acid that moves on its own",
-        hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 4), armor: 0,
+        health: Span.whole(3, 9, Spread::Centered), damage: Dice.new(1, 4), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 3,
         persistence: 4, speed: 80, attributes: SLIMY,
         depths: 1..3, faction: Faction::Slime),
 
       Kind::BlueSlime => KindFacts.new(Species::Slime, 'j', "blue slime",
         "blue slimes", "a slow blue ooze, cold as meltwater, that numbs what it touches",
-        hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 4), armor: 0,
+        health: Span.whole(6, 16, Spread::Centered), damage: Dice.new(1, 4), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 5,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "chills",
         depths: 1..5, faction: Faction::Slime),
 
       Kind::RedSlime => KindFacts.new(Species::Slime, 'j', "red slime",
         "red slimes", "a steaming red ooze that scalds what it touches",
-        hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 8), armor: 0,
+        health: Span.whole(3, 9, Spread::Centered), damage: Dice.new(1, 8), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 6,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "scalds",
         depths: 2..7, faction: Faction::Slime),
 
       Kind::GreenSlime => KindFacts.new(Species::Slime, 'j', "green slime",
         "green slimes", "a bubbling green acid that eats through leather and skin",
-        hit_dice: Dice.new(2, 6, 2), damage: Dice.new(2, 6), armor: 0,
+        health: Span.whole(4, 14, Spread::Centered), damage: Dice.new(2, 6), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 10,
         persistence: 4, speed: 80, attributes: SLIMY, verb: "eats at",
         depths: 3..8, faction: Faction::Slime),
 
       Kind::GoblinScout => KindFacts.new(Species::Goblin, 'g', "goblin scout",
         "goblin scouts", "a wiry goblin with a sling and a dagger, alone and quick on its feet",
-        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: -2,
+        health: Span.whole(4, 10, Spread::Centered), damage: Dice.new(1, 4), armor: -2,
         notice: 10, darkvision: false, paths: true, experience: 5,
         size: Size::Small, persistence: 8, speed: 110,
         weapon: ItemKind::Dagger, light: 40, alone: true, opens_doors: true,
@@ -899,7 +899,7 @@ module Roguelike
       # The member keeps its old name so that saves and replays still load.
       Kind::GoblinWarrior => KindFacts.new(Species::Goblin, 'g', "goblin fighter",
         "goblin fighters", "a stocky goblin in chain mail with a mace, slow to strike and slow to fall",
-        hit_dice: Dice.new(2, 4, 6), damage: Dice.new(1, 6), armor: -2,
+        health: Span.whole(8, 14, Spread::Centered), damage: Dice.new(1, 6), armor: -2,
         notice: 8, darkvision: false, paths: true, experience: 7,
         size: Size::Small, persistence: 6, opens_doors: true, flees: true, wields: true,
         weapon: ItemKind::Mace, light: 25,
@@ -909,7 +909,7 @@ module Roguelike
 
       Kind::GoblinShaman => KindFacts.new(Species::Goblin, 'g', "goblin shaman",
         "goblin shamans", "a hunched goblin in bone charms who mends its kin",
-        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 3), armor: 1,
+        health: Span.whole(4, 10, Spread::Centered), damage: Dice.new(1, 3), armor: 1,
         notice: 9, darkvision: false, paths: true, experience: 12,
         size: Size::Small, persistence: 8, light: 50,
         mends: true, casts: true, opens_doors: true, flees: true, wields: true,
@@ -919,7 +919,7 @@ module Roguelike
 
       Kind::Orc => KindFacts.new(Species::Orc, 'o', "orc", "orcs",
         "a heavy gray brute with a notched blade",
-        hit_dice: Dice.new(2, 6, 7), damage: Dice.new(1, 8), armor: 4,
+        health: Span.whole(9, 19, Spread::Centered), damage: Dice.new(1, 8), armor: 4,
         notice: 8, darkvision: true, paths: true, experience: 14,
         size: Size::Medium, persistence: 30, speed: 95, swing: 120,
         armed: 90, light: 20, depths: 3..10, opens_doors: true,
@@ -929,7 +929,7 @@ module Roguelike
 
       Kind::OrcArcher => KindFacts.new(Species::Orc, 'o', "orc archer",
         "orc archers", "a lean orc with a bow and a quiver of arrows",
-        hit_dice: Dice.new(2, 6, 4), damage: Dice.new(1, 6), armor: 3,
+        health: Span.whole(6, 16, Spread::Centered), damage: Dice.new(1, 6), armor: 3,
         notice: 10, darkvision: true, paths: true, experience: 16,
         size: Size::Medium, persistence: 24, speed: 95, swing: 120,
         light: 10, depths: 4..10, opens_doors: true, flees: true, wields: true,
@@ -940,7 +940,7 @@ module Roguelike
 
       Kind::Ant => KindFacts.new(Species::Ant, 'a', "giant ant", "giant ants",
         "a dog-sized ant that hunts with its nestmates and comes at you from every side",
-        hit_dice: Dice.new(1, 4, 1), damage: Dice.new(1, 3), armor: 2,
+        health: Span.whole(1, 6, Spread::Centered), damage: Dice.new(1, 3), armor: 2,
         notice: 7, darkvision: false, paths: true, experience: 3,
         size: Size::Small, persistence: 12, speed: 130, verb: "bites",
         sharing: Sharing::Hive, surrounds: true,
@@ -950,7 +950,7 @@ module Roguelike
 
       Kind::Jelly => KindFacts.new(Species::Jelly, 'J', "violet jelly",
         "violet jellies", "a quivering violet mass that buds off copies of itself",
-        hit_dice: Dice.new(3, 4), damage: Dice.new(1, 6), armor: 0,
+        health: Span.whole(3, 12, Spread::Centered), damage: Dice.new(1, 6), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 6,
         size: Size::Large, persistence: 4, speed: 60, verb: "stings",
         alone: true, splits: true,
@@ -960,7 +960,7 @@ module Roguelike
 
       Kind::Rat => KindFacts.new(Species::Rat, 'r', "rat", "rats",
         "a gray rat as long as your forearm, never alone and quick to run",
-        hit_dice: Dice.new(1, 4, 1), damage: Dice.new(1, 3), armor: 0,
+        health: Span.whole(1, 6, Spread::Centered), damage: Dice.new(1, 3), armor: 0,
         notice: 8, darkvision: false, paths: true, experience: 2,
         size: Size::Small, persistence: 6, speed: 120, verb: "bites",
         flees: true, depths: 1..3, faction: Faction::Beast, hide: Bulk::None,
@@ -969,7 +969,7 @@ module Roguelike
 
       Kind::GiantRat => KindFacts.new(Species::Rat, 'r', "giant rat",
         "giant rats", "a rat the size of a small dog, with yellow teeth and a filthy bite",
-        hit_dice: Dice.new(2, 4, 2), damage: Dice.new(1, 4), armor: 1,
+        health: Span.whole(4, 10, Spread::Centered), damage: Dice.new(1, 4), armor: 1,
         notice: 8, darkvision: false, paths: true, experience: 4,
         size: Size::Small, persistence: 8, speed: 115, verb: "bites",
         flees: true, depths: 2..4, faction: Faction::Beast, hide: Bulk::None,
@@ -978,7 +978,7 @@ module Roguelike
 
       Kind::Wolf => KindFacts.new(Species::Wolf, 'd', "wolf", "wolves",
         "a lean gray wolf that hunts with its pack and circles to your back",
-        hit_dice: Dice.new(2, 6), damage: Dice.new(1, 4), armor: 1,
+        health: Span.whole(2, 12, Spread::Centered), damage: Dice.new(1, 4), armor: 1,
         notice: 11, darkvision: true, paths: true, experience: 8,
         persistence: 20, speed: 120, verb: "bites",
         flees: true, surrounds: true, sharing: Sharing::Called,
@@ -988,7 +988,7 @@ module Roguelike
 
       Kind::Werewolf => KindFacts.new(Species::Wolf, 'd', "werewolf", "werewolves",
         "a wolf too large and too clever to be only a wolf, that leads the pack",
-        hit_dice: Dice.new(4, 8, 4), damage: Dice.new(2, 4), armor: 4,
+        health: Span.whole(11, 33, Spread::Centered), damage: Dice.new(2, 4), armor: 4,
         notice: 12, darkvision: true, paths: true, experience: 40,
         persistence: 40, speed: 125, verb: "bites",
         opens_doors: true, surrounds: true, sharing: Sharing::Called,
@@ -999,7 +999,7 @@ module Roguelike
 
       Kind::Bear => KindFacts.new(Species::Bear, 'B', "bear", "bears",
         "a huge brown bear that does not like being woken",
-        hit_dice: Dice.new(4, 8, 6), damage: Dice.new(2, 6), armor: 3,
+        health: Span.whole(13, 35, Spread::Centered), damage: Dice.new(2, 6), armor: 3,
         notice: 9, darkvision: false, paths: true, experience: 30,
         size: Size::Large, persistence: 15, swing: 120, verb: "mauls",
         alone: true, depths: 5..8, faction: Faction::Beast, hide: Bulk::Heavy,
@@ -1008,7 +1008,7 @@ module Roguelike
 
       Kind::Boar => KindFacts.new(Species::Boar, 'q', "boar", "boars",
         "a bristling wild boar with tusks like knives, that fights until it drops",
-        hit_dice: Dice.new(3, 8), damage: Dice.new(1, 6), armor: 3,
+        health: Span.whole(4, 23, Spread::Centered), damage: Dice.new(1, 6), armor: 3,
         notice: 7, darkvision: false, paths: true, experience: 14,
         size: Size::Large, persistence: 10, speed: 110, verb: "gores",
         depths: 3..6, faction: Faction::Beast, hide: Bulk::Medium,
@@ -1017,7 +1017,7 @@ module Roguelike
 
       Kind::GiantSnake => KindFacts.new(Species::Snake, 'S', "giant snake",
         "giant snakes", "a snake as thick as your leg that lies still until you are close",
-        hit_dice: Dice.new(4, 6, 2), damage: Dice.new(1, 8), armor: 3,
+        health: Span.whole(8, 24, Spread::Centered), damage: Dice.new(1, 8), armor: 3,
         notice: 8, darkvision: false, paths: true, experience: 20,
         size: Size::Large, persistence: 8, speed: 90, verb: "bites",
         alone: true, depths: 4..7, faction: Faction::Beast, hide: Bulk::Light,
@@ -1026,7 +1026,7 @@ module Roguelike
 
       Kind::Skeleton => KindFacts.new(Species::Undead, 'Z', "skeleton",
         "skeletons", "a rattling skeleton that walks without a mind and often carries an old blade",
-        hit_dice: Dice.new(2, 6, 2), damage: Dice.new(1, 6), armor: 3,
+        health: Span.whole(4, 14, Spread::Centered), damage: Dice.new(1, 6), armor: 3,
         notice: 6, darkvision: true, paths: false, experience: 8,
         persistence: 50, speed: 90, verb: "claws",
         armed: 50, wields: true, depths: 2..5, faction: Faction::Undead, hide: Bulk::Light,
@@ -1036,7 +1036,7 @@ module Roguelike
 
       Kind::Zombie => KindFacts.new(Species::Undead, 'Z', "zombie", "zombies",
         "a shambling corpse that is slow, hard to stop and never gives up",
-        hit_dice: Dice.new(3, 6, 4), damage: Dice.new(1, 8), armor: 1,
+        health: Span.whole(7, 22, Spread::Centered), damage: Dice.new(1, 8), armor: 1,
         notice: 5, darkvision: true, paths: false, experience: 9,
         persistence: 60, speed: 70, swing: 120, verb: "claws",
         depths: 2..5, faction: Faction::Undead, hide: Bulk::Heavy,
@@ -1045,7 +1045,7 @@ module Roguelike
 
       Kind::Imp => KindFacts.new(Species::Imp, 'i', "imp", "imps",
         "a tiny red devil with leathery wings, quick, spiteful and hard to hit",
-        hit_dice: Dice.new(2, 4, 3), damage: Dice.new(1, 4), armor: 3,
+        health: Span.whole(5, 11, Spread::Centered), damage: Dice.new(1, 4), armor: 3,
         notice: 10, darkvision: true, paths: true, experience: 10,
         size: Size::Small, persistence: 12, speed: 140, verb: "claws",
         opens_doors: true, flees: true, alone: true,
@@ -1055,7 +1055,7 @@ module Roguelike
 
       Kind::GelatinousCube => KindFacts.new(Species::Cube, 'C', "gelatinous cube",
         "gelatinous cubes", "a clear quivering block that fills the passage, with old things floating inside it",
-        hit_dice: Dice.new(6, 8, 6), damage: Dice.new(2, 6), armor: 0,
+        health: Span.whole(19, 47, Spread::Centered), damage: Dice.new(2, 6), armor: 0,
         notice: 4, darkvision: false, paths: false, experience: 20,
         size: Size::Large, persistence: 10, speed: 55, verb: "burns",
         alone: true, depths: 5..8, faction: Faction::Jelly, hide: Bulk::VeryHeavy,
@@ -1064,7 +1064,7 @@ module Roguelike
 
       Kind::StoneGolem => KindFacts.new(Species::Golem, 'G', "stone golem",
         "stone golems", "a slow giant of carved stone that guards this place and nothing else",
-        hit_dice: Dice.new(8, 8), damage: Dice.new(2, 8), armor: 6,
+        health: Span.whole(20, 52, Spread::Centered), damage: Dice.new(2, 8), armor: 6,
         notice: 10, darkvision: true, paths: true, experience: 45,
         size: Size::Large, persistence: 100, speed: 60, swing: 120, verb: "pounds",
         alone: true, depths: 6..10, faction: Faction::Construct, hide: Bulk::VeryHeavy,
@@ -1074,7 +1074,7 @@ module Roguelike
 
       Kind::IronGolem => KindFacts.new(Species::Golem, 'G', "iron golem",
         "iron golems", "a towering figure of black iron that walks with a sound like a forge",
-        hit_dice: Dice.new(8, 10), damage: Dice.new(2, 8), armor: 8,
+        health: Span.whole(28, 60, Spread::Centered), damage: Dice.new(2, 8), armor: 8,
         notice: 10, darkvision: true, paths: true, experience: 80,
         size: Size::Large, persistence: 100, speed: 55, swing: 130, verb: "pounds",
         alone: true, depths: 8..10, faction: Faction::Construct, hide: Bulk::VeryHeavy,
@@ -1083,7 +1083,7 @@ module Roguelike
           intelligence: 1, stealth: 4)),
       Kind::OrcWarlord => KindFacts.new(Species::Orc, 'o', "orc warlord",
         "orc warlords", "a huge orc in black iron who guards the amulet with a sworn band",
-        hit_dice: Dice.new(10, 8, 20), damage: Dice.new(1, 10), armor: 5,
+        health: Span.whole(47, 83, Spread::Centered), damage: Dice.new(1, 10), armor: 5,
         notice: 12, darkvision: true, paths: true, experience: 250,
         size: Size::Large, persistence: 80, speed: 100, swing: 120,
         weapon: ItemKind::LongSword, light: 100, opens_doors: true, wields: true,
@@ -1094,7 +1094,7 @@ module Roguelike
       # Labeled "goblin warrior". `Loot::GARBS` rolls what it wears.
       Kind::GoblinSkirmisher => KindFacts.new(Species::Goblin, 'g', "goblin warrior",
         "goblin warriors", "a wiry goblin with a dagger, quick to close and quick to stab, and easy to hurt",
-        hit_dice: Dice.new(2, 4, 1), damage: Dice.new(1, 4), armor: -2,
+        health: Span.whole(3, 9, Spread::Centered), damage: Dice.new(1, 4), armor: -2,
         notice: 9, darkvision: false, paths: true, experience: 5,
         size: Size::Small, persistence: 8, speed: 110,
         weapon: ItemKind::Dagger, light: 30, opens_doors: true, flees: true, wields: true,

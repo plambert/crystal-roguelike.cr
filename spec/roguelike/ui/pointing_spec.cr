@@ -37,7 +37,7 @@ Spectator.describe "pointing at a square" do
     run = Playing.open Game.new(
       Roguelike::World.new(Playing::SEED, {"hall" => floor}),
       Roguelike::Player.new("hall", *Game.entrance(floor),
-        hit_points: 40)), columns, rows, clock: clock
+        hit_points: hp(40))), columns, rows, clock: clock
     run.clear_monsters
     run
   end
@@ -248,7 +248,7 @@ Spectator.describe "pointing at a square" do
       floor = Playing.daylight Roguelike::Floor.parse("other", HALL)
       replacement = Game.new(
         Roguelike::World.new(Playing::SEED, {"other" => floor}),
-        Roguelike::Player.new("other", 1, 1, hit_points: 40))
+        Roguelike::Player.new("other", 1, 1, hit_points: hp(40)))
       run.play.resume replacement
       run.press ">"
 

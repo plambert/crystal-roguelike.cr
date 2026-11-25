@@ -253,7 +253,7 @@ module Roguelike
       return if player.name.empty?
 
       "#{player.name}    level #{player.level}    " \
-      "hp #{player.hit_points}/#{player.max_hit_points}    floor #{game.depth}"
+      "hp #{player.hit_points.ceil}/#{player.max_hit_points.ceil}    floor #{game.depth}"
     end
 
     # The release notes to offer on the title screen. Notes the person has
@@ -310,14 +310,15 @@ module Roguelike
     end
 
     # Prints *held*, under the directory it came out of.
-    private def print_held(where : Path, held : Array(Save::Held),
+    private def print_held(where : Path, held : Array(Save::Header),
                            empty : String) : Nil
       puts where
       return puts empty if held.empty?
 
       held.each do |one|
         puts "#{one.name}\t#{Save.slug one.name}\tlevel #{one.level}" \
-             "\tturn #{one.turn}\t#{one.outcome.to_s.downcase}\t#{one.saved}"
+             "\tturn #{one.turn}\t#{one.outcome.to_s.downcase}\t#{one.saved}" \
+             "#{"\tcannot be loaded by this version" unless one.loadable?}"
       end
     end
 

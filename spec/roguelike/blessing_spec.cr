@@ -379,14 +379,14 @@ Spectator.describe "blessing and uncursing" do
 
         40.times do |index|
           game = bare Playing::SEED + index.to_u64
-          game.player.hurt 100
+          game.player.hurt hp(100)
           letter = game.player.inventory.add Item.new(Kind::HealingPotion,
             blessing: blessing)
           raise "no room" unless letter
 
           before = game.player.hit_points
           game.quaff letter
-          total += game.player.hit_points - before
+          total += (game.player.hit_points - before).ceil
         end
 
         total
@@ -401,7 +401,7 @@ Spectator.describe "blessing and uncursing" do
       letter = game.player.inventory.add Item.new(Kind::HealingPotion,
         blessing: Blessing::Cursed)
       raise "no room" unless letter
-      game.player.hurt 5
+      game.player.hurt hp(5)
       game.quaff letter
 
       expect(game.log.lines.any? &.includes?("cursed")).to be_true

@@ -39,7 +39,7 @@ module Roguelike
     getter y : Int32
 
     # Hit points left. It dies at zero.
-    getter hit_points : Int32
+    getter hit_points : Fixed
 
     # What it is made of.
     getter attributes : Attributes
@@ -111,7 +111,7 @@ module Roguelike
     #
     # Zero in a save written before creatures rolled their hit points.
     # `#after_initialize` gives such a creature its kind's average.
-    getter max_hit_points : Int32 = 0
+    getter max_hit_points : Fixed = Fixed::ZERO
 
     # How many turns until it can mend a neighbour again. Zero when it can.
     getter mending : Int32 = 0
@@ -138,11 +138,11 @@ module Roguelike
 
     def initialize(kind : Kind, @x : Int32, @y : Int32,
                    @band : String,
-                   hit_points : Int32? = nil,
+                   hit_points : Fixed? = nil,
                    attributes : Attributes? = nil,
                    @memory : Hash(String, Knowledge) = {} of String => Knowledge,
                    @carrying : Array(Item) = [] of Item,
-                   max_hit_points : Int32? = nil)
+                   max_hit_points : Fixed? = nil)
       @kind = kind
       @species = kind.species
       @max_hit_points = max_hit_points || kind.hit_points
@@ -154,7 +154,7 @@ module Roguelike
 
     # A creature of *species*' default kind.
     def self.new(species : Species, x : Int32, y : Int32, band : String,
-                 hit_points : Int32? = nil, attributes : Attributes? = nil,
+                 hit_points : Fixed? = nil, attributes : Attributes? = nil,
                  memory : Hash(String, Knowledge) = {} of String => Knowledge,
                  carrying : Array(Item) = [] of Item) : Monster
       new species.default, x, y, band, hit_points, attributes, memory, carrying
@@ -166,7 +166,7 @@ module Roguelike
     # taken from the kind again on the way in.
     def after_initialize : Nil
       @kind ||= @species.default
-      @max_hit_points = kind.hit_points if @max_hit_points <= 0
+      @max_hit_points = kind.hit_points if @max_hit_points <= Fixed::ZERO
       @pace.base = kind.speed
       @home ||= {@x, @y} if kind.guards?
     end
@@ -218,7 +218,7 @@ module Roguelike
 
     # Gives back *amount* hit points, never past full. Answers how many it
     # took.
-    def heal(amount : Int32) : Int32
+    def heal(amount : Fixed) : Fixed
       before = @hit_points
       @hit_points = Math.min @hit_points + amount, @max_hit_points
       @hit_points - before
@@ -546,12 +546,12 @@ module Roguelike
 
     # Whether it is still alive.
     def alive? : Bool
-      @hit_points > 0
+      @hit_points > Fixed::ZERO
     end
 
     # Takes *amount* off its hit points. Answers how many are left.
-    def hurt(amount : Int32) : Int32
-      @hit_points = Math.max @hit_points - amount, 0
+    def hurt(amount : Fixed) : Fixed
+      @hit_points = Math.max @hit_points - amount, Fixed::ZERO
     end
 
     # How far it can shoot now. Zero when it has nothing to shoot or nothing

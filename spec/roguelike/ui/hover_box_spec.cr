@@ -37,7 +37,7 @@ Spectator.describe "the hover box" do
     floor.drop 6, 2, Item.new(Kind::Bow)
     floor.drop 6, 2, Item.new(Kind::Arrow, count: 12)
     floor.drop 16, 2, Item.new(Kind::Spear)
-    player = Roguelike::Player.new "room", 1, 1, hit_points: 40
+    player = Roguelike::Player.new "room", 1, 1, hit_points: hp(40)
     game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"room" => floor}), player
 
     run = Playing.open game, clock: clock, console: console
@@ -278,7 +278,7 @@ Spectator.describe "the hover box" do
     def hall : Playing::Run
       Options.current = Options.new
       floor = Playing.daylight Roguelike::Floor.parse("hall", HALL)
-      player = Roguelike::Player.new "hall", 2, 1, hit_points: 40
+      player = Roguelike::Player.new "hall", 2, 1, hit_points: hp(40)
       game = Roguelike::Game.new Roguelike::World.new(Playing::SEED, {"hall" => floor}), player
 
       run = Playing.open game, clock: true

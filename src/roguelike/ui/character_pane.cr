@@ -460,7 +460,7 @@ module Roguelike::Ui
 
       name = Naming.creature creature, game.fought_regard
       @threat.show creature.hit_points, creature.max_hit_points,
-        "#{name} #{creature.hit_points}/#{creature.max_hit_points}"
+        "#{name} #{creature.hit_points.ceil}/#{creature.max_hit_points.ceil}"
     end
 
     # The bar for the door the character is breaking down, at *spot*.

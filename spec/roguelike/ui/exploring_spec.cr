@@ -32,7 +32,7 @@ Spectator.describe "exploring and travelling from the keyboard" do
     floor = Playing.daylight Roguelike::Floor.parse("rooms", lines)
     run = Playing.open Game.new(
       Roguelike::World.new(Playing::SEED, {"rooms" => floor}),
-      Roguelike::Player.new("rooms", *Game.entrance(floor), hit_points: 40)), 60, 20
+      Roguelike::Player.new("rooms", *Game.entrance(floor), hit_points: hp(40))), 60, 20
     run.clear_monsters
     run
   end

@@ -63,10 +63,10 @@ Spectator.describe "hurt creatures running" do
              daylight : Bool = true, hidden_below : Int32? = nil) : {Game, Monster}
     floor = Floor.parse "fleeing", lines
     floor.ambient = 1 if daylight
-    creature = Monster.new kind, at[0], at[1], "band-one", hit_points: hit_points
+    creature = Monster.new kind, at[0], at[1], "band-one", hit_points: hp(hit_points)
     floor.place creature
 
-    player = Player.new floor.id, hero[0], hero[1], hit_points: 5000
+    player = Player.new floor.id, hero[0], hero[1], hit_points: hp(5000)
     game = Game.new World.new(20260930_u64, {floor.id => floor}), player
 
     band = floor.band "band-one"
@@ -126,22 +126,22 @@ Spectator.describe "hurt creatures running" do
     it "keeps running between a quarter and a half" do
       game, goblin = hunted HALL, Kind::GoblinWarrior, {9, 2}, 2, {1, 2}
       game.wait
-      goblin.heal 2
+      goblin.heal hp(2)
 
       game.wait
 
-      expect(goblin.hit_points).to eq 4
+      expect(goblin.hit_points).to eq hp(4)
       expect(goblin.fleeing?).to be_true
     end
 
     it "turns back above a half" do
       game, goblin = hunted HALL, Kind::GoblinWarrior, {9, 2}, 2, {1, 2}
       game.wait
-      goblin.heal 4
+      goblin.heal hp(4)
 
       game.wait
 
-      expect(goblin.hit_points).to eq 6
+      expect(goblin.hit_points).to eq hp(6)
       expect(goblin.fleeing?).to be false
     end
 
@@ -347,13 +347,13 @@ Spectator.describe "hurt creatures running" do
       slime.blind 1000
 
       pass game, 9
-      expect(slime.hit_points).to eq 2
+      expect(slime.hit_points).to eq hp(2)
 
       game.wait
-      expect(slime.hit_points).to eq 3
+      expect(slime.hit_points).to eq hp(3)
 
       pass game, 10
-      expect(slime.hit_points).to eq 4
+      expect(slime.hit_points).to eq hp(4)
     end
 
     it "stops at full" do

@@ -165,7 +165,7 @@ Spectator.describe "the tick loop" do
 
       game = Roguelike::Game.new(
         Roguelike::World.new(Playing::SEED, {"long" => floor}),
-        Roguelike::Player.new("long", 5, 1, hit_points: 500))
+        Roguelike::Player.new("long", 5, 1, hit_points: hp(500)))
 
       found = creature game, species, 2, 1
       rouse game, found

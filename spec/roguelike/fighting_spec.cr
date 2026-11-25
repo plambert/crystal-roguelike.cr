@@ -43,9 +43,9 @@ Spectator.describe "fighting" do
   # character's. Each defaults to what the species or the character would
   # have.
   def arena(species : Species = Species::Slime,
-            hit_points : Int32? = nil,
+            hit_points : Roguelike::Fixed? = nil,
             at : {Int32, Int32} = BESIDE,
-            health : Int32? = nil,
+            health : Roguelike::Fixed? = nil,
             experience : Int32 = 0) : {Game, Monster}
     floor = Playing.daylight Floor.parse("arena", ROOM)
     creature = Monster.new species, at[0], at[1], "band-one",
@@ -114,7 +114,7 @@ Spectator.describe "fighting" do
 
   describe "killing a creature" do
     it "takes it off the floor" do
-      game, _ = arena hit_points: 1
+      game, _ = arena hit_points: hp(1)
       fight(game) { game.floor.monster(*BESIDE).nil? }
 
       expect(game.floor.monster(*BESIDE)).to be_nil
@@ -122,14 +122,14 @@ Spectator.describe "fighting" do
     end
 
     it "awards the species' experience" do
-      game, _ = arena hit_points: 1
+      game, _ = arena hit_points: hp(1)
       fight(game) { game.floor.monster(*BESIDE).nil? }
 
       expect(game.player.experience).to eq Species::Slime.experience
     end
 
     it "raises the level when the kill crosses the threshold" do
-      game, _ = arena hit_points: 1,
+      game, _ = arena hit_points: hp(1),
         experience: Advancement.threshold(2) - Species::Slime.experience
       fight(game) { game.floor.monster(*BESIDE).nil? }
 
@@ -138,7 +138,7 @@ Spectator.describe "fighting" do
     end
 
     it "leaves the level alone when it does not" do
-      game, _ = arena hit_points: 1
+      game, _ = arena hit_points: hp(1)
       fight(game) { game.floor.monster(*BESIDE).nil? }
 
       expect(game.player.level).to eq 1
@@ -147,7 +147,7 @@ Spectator.describe "fighting" do
 
     # A dead creature does not get the turn the killing blow took.
     it "is not swung at by what it killed" do
-      game, _ = arena hit_points: 1
+      game, _ = arena hit_points: hp(1)
       fight(game) { game.floor.monster(*BESIDE).nil? }
 
       said = game.log.lines
@@ -207,7 +207,7 @@ Spectator.describe "fighting" do
 
   describe "the character dying" do
     it "ends the run" do
-      game, _ = arena Species::Orc, health: 1
+      game, _ = arena Species::Orc, health: hp(1)
       fight(game) { game.over? }
 
       expect(game.outcome).to eq Outcome::Died
@@ -215,7 +215,7 @@ Spectator.describe "fighting" do
     end
 
     it "says so" do
-      game, _ = arena Species::Orc, health: 1
+      game, _ = arena Species::Orc, health: hp(1)
       fight(game) { game.over? }
 
       expect(game.log.lines.last).to eq "You die..."
@@ -225,7 +225,7 @@ Spectator.describe "fighting" do
     # creature is still on the floor, so the label is kept rather than the
     # creature.
     it "records what killed the character" do
-      game, _ = arena Species::Orc, health: 1
+      game, _ = arena Species::Orc, health: hp(1)
       expect(game.killer).to be_nil
 
       fight(game) { game.over? }
@@ -234,7 +234,7 @@ Spectator.describe "fighting" do
     end
 
     it "keeps that through serialization" do
-      game, _ = arena Species::Orc, health: 1
+      game, _ = arena Species::Orc, health: hp(1)
       fight(game) { game.over? }
 
       expect(Roguelike::Game.from_json(game.to_json).killer).to eq "orc"

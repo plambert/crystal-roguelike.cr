@@ -34,7 +34,7 @@ Spectator.describe "what a monster leaves behind" do
     raise "the room has lost its goblin" unless creature
     creature.carry held
 
-    player = Player.new floor.id, *Game.entrance(floor), hit_points: 500
+    player = Player.new floor.id, *Game.entrance(floor), hit_points: hp(500)
     {Game.new(World.new(SEED, {floor.id => floor}), player), creature}
   end
 

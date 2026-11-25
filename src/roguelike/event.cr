@@ -1180,7 +1180,7 @@ module Roguelike
         ranged = Stats.ranged player
         attributes = player.attributes
 
-        [player.hit_points, player.max_hit_points, player.experience,
+        [player.hit_points.ceil, player.max_hit_points.ceil, player.experience,
          player.level, attributes.strength, attributes.dexterity,
          attributes.constitution, attributes.intelligence, attributes.stealth,
          player.gold, player.armor_class, player.to_hit, player.damage.to_s,
@@ -1236,7 +1236,7 @@ module Roguelike
         melee = player.damage
         ranged = ranged player
 
-        new player.level, player.armor_class, player.max_hit_points,
+        new player.level, player.armor_class, player.max_hit_points.ceil,
           player.to_hit, melee.to_s, melee.bonus, ranged.try(&.[0]),
           ranged.try(&.[1]), player.speed, player.attributes
       end

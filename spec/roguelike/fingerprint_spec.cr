@@ -391,7 +391,7 @@ Spectator.describe Roguelike::Fingerprint do
       game = Game.dug Rng.new(SEED)
       before = game.fingerprint
 
-      game.player.hurt 1
+      game.player.hurt hp(1)
 
       expect(game.fingerprint).not_to eq before
     end

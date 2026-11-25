@@ -14,7 +14,7 @@ Spectator.describe "a drawn route fading" do
     floor = Playing.daylight Roguelike::Floor.parse("hall", HALL_LINES)
     run = Playing.open Game.new(
       Roguelike::World.new(Playing::SEED, {"hall" => floor}),
-      Roguelike::Player.new("hall", *Game.entrance(floor), hit_points: 40)),
+      Roguelike::Player.new("hall", *Game.entrance(floor), hit_points: hp(40))),
       60, 20, clock: true
     run.clear_monsters
     run

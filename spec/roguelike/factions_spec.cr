@@ -50,7 +50,7 @@ Spectator.describe "factions" do
       Monster.new(kind, spot[0], spot[1], band).tap { |creature| floor.place creature }
     end
 
-    player = Player.new floor.id, *Game.entrance(floor), hit_points: 5000
+    player = Player.new floor.id, *Game.entrance(floor), hit_points: hp(5000)
     game = Game.new World.new(SEED, {floor.id => floor}), player
     game.enroll
 
@@ -169,7 +169,7 @@ Spectator.describe "factions" do
 
       expect(game.felled).to be > 0
       expect(placed.any? { |creature| !creature.alive? }).to be_true
-      expect(game.player.hit_points).to eq 5000
+      expect(game.player.hit_points).to eq hp(5000)
     end
 
     it "tells the character about blows they can see" do
@@ -240,7 +240,7 @@ Spectator.describe "factions" do
       known.saw Knowledge::PLAYER, *game.player.at, game.turn
       known.saw Knowledge.creature(orc.id), *orc.at, game.turn
       band.awareness = Awareness::Hunting
-      goblin.hurt goblin.hit_points - 1
+      goblin.hurt goblin.hit_points - hp(1)
 
       game.wait
 
@@ -258,7 +258,7 @@ Spectator.describe "factions" do
       ]
       slime = placed[0]
       slime.carry [Item.new(ItemKind::ShortSword)]
-      slime.hurt slime.hit_points - 1
+      slime.hurt slime.hit_points - hp(1)
 
       30.times { game.wait if slime.alive? }
       at = slime.at

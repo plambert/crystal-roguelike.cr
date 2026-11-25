@@ -93,8 +93,20 @@ module Roguelike
       Fixed.new FixedPoint.divide_signed(@value.to_i64 * other.value, Ratio::SCALE).to_i32
     end
 
+    # This quantity *other* times over.
+    def *(other : Int32) : Fixed
+      Fixed.new (@value.to_i64 * other).to_i32
+    end
+
     def zero? : Bool
       @value.zero?
+    end
+
+    # The least whole number at or above this quantity.
+    #
+    # Hit points are shown this way, so a creature at 0.01 shows 1.
+    def ceil : Int32
+      ((@value.to_i64 + SCALE - 1) // SCALE).to_i32
     end
 
     # This quantity, or zero when it is below zero.

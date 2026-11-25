@@ -24,7 +24,7 @@ Spectator.describe "quaffing, reading and zapping" do
     floor = Roguelike::Floor.parse "hall", HALL
     Playing.daylight floor unless dark
 
-    player = Roguelike::Player.new "hall", *HERE, hit_points: 1
+    player = Roguelike::Player.new "hall", *HERE, hit_points: hp(1)
     items.each { |item| player.inventory.add item }
 
     Playing.open Roguelike::Game.new(
@@ -241,7 +241,7 @@ Spectator.describe "quaffing, reading and zapping" do
 
     it "aims at the nearest monster" do
       run = carrying [Item.new Kind::StrikingWand]
-      run.game.floor.place Monster.new(Species::Goblin, 5, 1, "band-one", hit_points: 200)
+      run.game.floor.place Monster.new(Species::Goblin, 5, 1, "band-one", hit_points: hp(200))
       run.play.refresh
 
       run.press "z", "a"
@@ -251,7 +251,7 @@ Spectator.describe "quaffing, reading and zapping" do
 
     it "looses the bolt on Enter" do
       run = carrying [Item.new Kind::StrikingWand]
-      run.game.floor.place Monster.new(Species::Goblin, 5, 1, "band-one", hit_points: 200)
+      run.game.floor.place Monster.new(Species::Goblin, 5, 1, "band-one", hit_points: hp(200))
       run.play.refresh
 
       run.press "z", "a"
