@@ -124,6 +124,58 @@ Spectator.describe Roguelike::Rng do
     end
   end
 
+  describe "#below" do
+    # A generator that answers the values it is given, in order.
+    class Scripted < Roguelike::Rng
+      def initialize(@values : Array(UInt32))
+        super 0_u64
+      end
+
+      def next_u : UInt32
+        @values.shift
+      end
+    end
+
+    it "draws the same values on every platform" do
+      rng = described_class.new(20261124_u64).derive "combat", 7
+
+      expect(Array.new(8) { rng.below 10_000 })
+        .to eq [6292, 9969, 6546, 8707, 6745, 9504, 4161, 3041]
+    end
+
+    it "stays inside the range" do
+      rng = described_class.new 3_u64
+      drawn = Array.new(2_000) { rng.below 7 }
+
+      expect(drawn.min).to eq 0
+      expect(drawn.max).to eq 6
+    end
+
+    it "draws 0 for a range of one" do
+      expect(described_class.new(3_u64).below(1)).to eq 0
+    end
+
+    # Two whole multiples of this fit in 2³², which leaves the top quarter of
+    # the draws to throw away.
+    let(wide) { 3 << 29 }
+
+    it "draws again at or above the largest whole multiple" do
+      rng = Scripted.new [UInt32::MAX, 3_u32 << 30, 5_u32]
+
+      expect(rng.below wide).to eq 5
+    end
+
+    it "takes the last value below the largest whole multiple" do
+      rng = Scripted.new [(3_u32 << 30) - 1]
+
+      expect(rng.below wide).to eq wide - 1
+    end
+
+    it "refuses an empty range" do
+      expect { described_class.new(3_u64).below(0) }.to raise_error ArgumentError
+    end
+  end
+
   describe "#to_s" do
     it "names the seed and the stream, which is what reproduces a failure" do
       expect(described_class.new(42_u64).to_s).to eq "Rng(seed=42, stream=0)"

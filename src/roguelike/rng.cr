@@ -90,6 +90,22 @@ module Roguelike
       @source.next_u
     end
 
+    # A whole number in `0...n`, every value equally likely.
+    #
+    # It maps `#next_u` by rejection in this file, so a change to the
+    # standard library's `Random#rand` cannot move a roll. A draw at or above
+    # the largest multiple of *n* that fits in 2³² is drawn again.
+    def below(n : Int32) : Int32
+      raise ArgumentError.new "cannot draw below #{n}" if n < 1
+
+      span = 1_u64 << 32
+      limit = span - span % n
+      loop do
+        drawn = next_u.to_u64
+        return (drawn % n).to_i32 if drawn < limit
+      end
+    end
+
     def to_s(io : IO) : Nil
       io << "Rng(seed=" << @seed << ", stream=" << @stream << ')'
     end
