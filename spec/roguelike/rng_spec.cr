@@ -1,4 +1,5 @@
 require "../spec_helper"
+require "../support/drawn_rng"
 
 Spectator.describe Roguelike::Rng do
   # Enough draws that two generators cannot agree by chance. Few enough that
@@ -125,17 +126,6 @@ Spectator.describe Roguelike::Rng do
   end
 
   describe "#below" do
-    # A generator that answers the values it is given, in order.
-    class Scripted < Roguelike::Rng
-      def initialize(@values : Array(UInt32))
-        super 0_u64
-      end
-
-      def next_u : UInt32
-        @values.shift
-      end
-    end
-
     it "draws the same values on every platform" do
       rng = described_class.new(20261124_u64).derive "combat", 7
 
@@ -160,13 +150,13 @@ Spectator.describe Roguelike::Rng do
     let(wide) { 3 << 29 }
 
     it "draws again at or above the largest whole multiple" do
-      rng = Scripted.new [UInt32::MAX, 3_u32 << 30, 5_u32]
+      rng = DrawnRng.new [UInt32::MAX, 3_u32 << 30, 5_u32]
 
       expect(rng.below wide).to eq 5
     end
 
     it "takes the last value below the largest whole multiple" do
-      rng = Scripted.new [(3_u32 << 30) - 1]
+      rng = DrawnRng.new [(3_u32 << 30) - 1]
 
       expect(rng.below wide).to eq wide - 1
     end

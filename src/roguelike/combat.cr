@@ -195,5 +195,127 @@ module Roguelike
     def self.shot(weapon : Item, ammunition : Item) : Dice
       ammunition.damage.with_bonus weapon.enchantment + weapon.condition.modifier
     end
+
+    # The least accuracy the hit curve reads.
+    LEAST_ACCURACY = Fixed.new 100
+
+    # The least AC the hit curve reads.
+    LEAST_AC = Fixed.new 10
+
+    # The share of a blow that always gets through DR.
+    SOAK_FLOOR = Ratio.new 2_000
+
+    # Accuracy from a flat sum and an increased sum, `flat × (1 + increased)`.
+    def self.accuracy(flat : Fixed, increased : Ratio) : Fixed
+      flat.clamp_positive * Ratio.new(Math.max(Ratio::SCALE + increased.value, 0))
+    end
+
+    # The chance that *accuracy* hits *ac*, `A / (A + AC)`.
+    #
+    # Both are held to their floors, and the result to 1 to 9,999 basis
+    # points, so a hit is never certain or impossible.
+    def self.hit_chance(accuracy : Fixed, ac : Fixed) : Chance
+      reach = Math.max(accuracy, LEAST_ACCURACY).value.to_i64
+      guard = Math.max(ac, LEAST_AC).value.to_i64
+      odds = FixedPoint.divide reach * Chance::SCALE, reach + guard
+
+      Chance.new odds.clamp(1_i64, Chance::SCALE - 1_i64).to_i32
+    end
+
+    # Whether *chance* comes up on one draw from *rng*.
+    def self.rolls?(rng : Rng, chance : Chance) : Bool
+      rng.below(Chance::SCALE) < chance.value
+    end
+
+    # What a blow of *blow* takes off through *dr*, with *penetration*.
+    #
+    # Penetration leaves `R = DR × (1 - penetration)`. One even draw soaks
+    # from `R / 2` to `3R / 2`. At least `SOAK_FLOOR` of the blow gets
+    # through. The draw is taken even when `R` is zero.
+    def self.soak(rng : Rng, blow : Fixed, dr : Fixed, penetration : Chance) : Fixed
+      blow = blow.clamp_positive
+      left = FixedPoint.divide dr.clamp_positive.value.to_i64 * penetration.complement.value,
+        Chance::SCALE.to_i64
+      steps = Span::STEPS.to_i64
+      soaked = FixedPoint.divide left * (steps + Spread::Even.draw(rng) * 2), steps * 2
+
+      through = Fixed.new (blow.value - soaked).to_i32
+      Math.max through, blow * SOAK_FLOOR
+    end
+
+    # One attack of *offense* on *defense*, rolled on *rng*.
+    #
+    # The rolls run in order: to hit, dodge, then parry for a blow or deflect
+    # for a missile. The first that fails the attack settles the outcome. A
+    # failed attack then rolls lucky once, and a lucky hit goes on as a hit.
+    # A hit rolls crit, then damage, then soak. A parry that stood rolls each
+    # of the defender's parry effects.
+    #
+    # Every step that applies takes its draw, whatever its chance. An attack
+    # that stops early draws fewer values.
+    #
+    # *attacker_dr* soaks riposte damage. A riposte does damage only when the
+    # attacker is *adjacent*. Its stun reaches the attacker regardless.
+    def self.resolve(rng : Rng, offense : Offense, defense : Defense, *,
+                     attacker_dr : Fixed = Fixed::ZERO, adjacent : Bool = true) : Strike
+      hit = hit_chance offense.accuracy, defense.ac
+      guard = guard_chance offense.reach, defense
+      lucky = Chance.clamped offense.lucky.value.to_i64 + defense.lucky_shift
+
+      outcome = defend rng, hit, defense.dodge, guard, offense.reach
+      lucky_hit = !outcome.hit? && rolls?(rng, lucky)
+
+      unless outcome.hit? || lucky_hit
+        ripostes = outcome.parried? ? riposte(rng, defense, attacker_dr, adjacent) : [] of Riposte
+        return Strike.new outcome, false, false, hit, defense.dodge, guard, lucky,
+          offense.crit, Fixed::ZERO, Fixed::ZERO, ripostes
+      end
+
+      crit = rolls? rng, offense.crit
+      raw = offense.damage.roll rng
+      raw *= Ratio.new(Math.max(offense.crit_multiplier.value, 0)) if crit
+      damage = soak rng, raw, defense.dr, offense.penetration
+
+      Strike.new outcome, lucky_hit, crit, hit, defense.dodge, guard, lucky,
+        offense.crit, raw, damage, [] of Riposte
+    end
+
+    # The parry chance for a blow, the deflect chance for a missile, and
+    # none for a bolt.
+    private def self.guard_chance(reach : Reach, defense : Defense) : Chance
+      case reach
+      in .melee?   then defense.parry
+      in .missile? then defense.deflect
+      in .bolt?    then Chance::NEVER
+      end
+    end
+
+    # Steps 1 to 3 of the roll order, stopping at the first failure.
+    private def self.defend(rng : Rng, hit : Chance, dodge : Chance,
+                            guard : Chance, reach : Reach) : Strike::Outcome
+      return Strike::Outcome::Missed unless rolls? rng, hit
+      return Strike::Outcome::Dodged if rolls? rng, dodge
+      return Strike::Outcome::Hit if reach.bolt?
+      return Strike::Outcome::Hit unless rolls? rng, guard
+
+      reach.melee? ? Strike::Outcome::Parried : Strike::Outcome::Deflected
+    end
+
+    # The defender's parry effects that fire, each rolled in turn.
+    private def self.riposte(rng : Rng, defense : Defense, attacker_dr : Fixed,
+                             adjacent : Bool) : Array(Riposte)
+      fired = [] of Riposte
+      defense.parry_effects.each do |effect|
+        next unless rolls? rng, effect.chance
+
+        damage = Fixed::ZERO
+        if adjacent && (span = effect.damage)
+          damage = soak rng, span.roll(rng), attacker_dr, Chance::NEVER
+        end
+        fired << Riposte.new effect, damage
+      end
+
+      fired
+    end
   end
 end

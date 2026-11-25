@@ -1,0 +1,800 @@
+  0 A 1448 286-727e cr 1419 x20368 lk 160 pen 886 melee | AC 937 DR 660 dg 0 pa 0 df 0 sh -184 fx [8779/0/245-632c 9645/100/434-669e] adr 229 adj
+    => missed hit 6071 lk 0 raw 0 dmg 0 next 3011273483
+  1 A 565 12-83e cr 1152 x24810 lk 257 pen 0 melee | AC 331 DR 266 dg 0 pa 4719 df 0 sh -258 fx [439/100/- 788/100/-] adr 146 adj
+    => parried hit 6306 lk 0 raw 0 dmg 0 next 2405706041
+  2 A 805 359-868e cr 1535 x17912 lk 421 pen 1372 bolt | AC 972 DR 0 dg 0 pa 142 df 0 sh -165 fx [] adr 172 far
+    => hit hit 4530 lk 256 raw 828 dmg 828 next 2874607286
+  3 A 2222 439-497s cr 118 x21935 lk 472 pen 0 melee | AC 736 DR 786 dg 319 pa 5692 df 0 sh 281 fx [] adr 287 adj
+    => missed lucky hit 7512 lk 753 raw 462 dmg 92 next 669626685
+  4 A 2649 391-830s cr 1587 x17532 lk 316 pen 4635 melee | AC 266 DR 358 dg 0 pa 0 df 2680 sh 104 fx [] adr 280 adj
+    => hit hit 9087 lk 420 raw 791 dmg 682 next 207832843
+  5 A 2273 127-842c cr 1420 x23370 lk 230 pen 1607 missile | AC 708 DR 0 dg 0 pa 0 df 949 sh 21 fx [3092/0/33-279s] adr 176 adj
+    => hit hit 7625 lk 251 raw 515 dmg 515 next 1473029934
+  6 A 1946 59-946c cr 755 x17398 lk 446 pen 0 bolt | AC 853 DR 0 dg 0 pa 7637 df 0 sh 220 fx [8744/100/73-811s 8043/100/97-840e] adr 86 far
+    => missed hit 6952 lk 666 raw 0 dmg 0 next 1765751129
+  7 A 805 46-1034e cr 1623 x24632 lk 215 pen 0 missile | AC 1091 DR 0 dg 0 pa 53 df 1536 sh -129 fx [9661/100/176-756e] adr 250 far
+    => missed hit 4246 lk 86 raw 0 dmg 0 next 3919266546
+  8 A 2174 121-201e cr 518 x16983 lk 196 pen 0 bolt | AC 1012 DR 0 dg 985 pa 0 df 0 sh 185 fx [1775/0/36-682s 8617/100/241-481e] adr 58 far
+    => hit hit 6824 lk 381 raw 149 dmg 149 next 3289180521
+  9 A 612 455-642c cr 1987 x18138 lk 143 pen 0 bolt | AC 1178 DR 0 dg 2271 pa 0 df 231 sh 233 fx [8609/0/- 2694/100/-] adr 243 far
+    => missed hit 3419 lk 376 raw 0 dmg 0 next 4106445888
+ 10 A 942 356-422c cr 1142 x15834 lk 431 pen 0 missile | AC 1038 DR 0 dg 0 pa 7786 df 3795 sh 31 fx [7051/0/-] adr 296 adj
+    => missed hit 4758 lk 462 raw 0 dmg 0 next 1994154167
+ 11 A 1140 350-514s cr 634 x23396 lk 384 pen 0 melee | AC 984 DR 687 dg 2035 pa 6504 df 2200 sh 268 fx [] adr 56 adj
+    => parried hit 5367 lk 652 raw 0 dmg 0 next 3102402567
+ 12 A 326 439-613e cr 136 x16844 lk 303 pen 4616 bolt | AC 1262 DR 118 dg 0 pa 540 df 1954 sh 127 fx [7497/0/407-639s] adr 153 adj
+    => missed hit 2053 lk 430 raw 0 dmg 0 next 927590886
+ 13 A 597 436-1158e cr 1408 x20574 lk 280 pen 0 bolt | AC 249 DR 0 dg 0 pa 0 df 3979 sh -48 fx [] adr 260 adj
+    => hit hit 7057 lk 232 raw 575 dmg 575 next 3596788055
+ 14 A 1257 193-567c cr 89 x18759 lk 113 pen 0 bolt | AC 278 DR 0 dg 0 pa 0 df 1634 sh 1 fx [] adr 191 adj
+    => missed hit 8189 lk 114 raw 0 dmg 0 next 3349375422
+ 15 A 392 260-333c cr 815 x20061 lk 126 pen 0 bolt | AC 820 DR 0 dg 2230 pa 0 df 0 sh 128 fx [3002/0/- 3769/0/-] adr 1 adj
+    => missed hit 3234 lk 254 raw 0 dmg 0 next 1756357075
+ 16 A 2357 116-161s cr 1464 x17588 lk 147 pen 0 missile | AC 1402 DR 0 dg 397 pa 6747 df 0 sh -188 fx [] adr 64 adj
+    => hit hit 6270 lk 0 raw 145 dmg 145 next 978532530
+ 17 A 1280 37-381s cr 750 x22576 lk 326 pen 0 missile | AC 218 DR 0 dg 275 pa 0 df 2444 sh -92 fx [4404/0/106-111e 4095/0/416-912c] adr 29 far
+    => missed hit 8545 lk 234 raw 0 dmg 0 next 813869916
+ 18 A 1688 254-961s cr 849 x19635 lk 293 pen 0 melee | AC 518 DR 0 dg 0 pa 449 df 1142 sh -271 fx [] adr 93 far
+    => hit hit 7652 lk 22 raw 609 dmg 609 next 3144255492
+ 19 A 2436 158-1055c cr 92 x22094 lk 448 pen 0 melee | AC 388 DR 0 dg 0 pa 0 df 1886 sh 264 fx [8095/0/- 2192/0/-] adr 281 adj
+    => hit hit 8626 lk 712 raw 675 dmg 675 next 4030592247
+ 20 A 837 387-684c cr 1744 x22040 lk 145 pen 0 missile | AC 175 DR 0 dg 2733 pa 0 df 0 sh 238 fx [7177/0/454-1075e 9116/100/-] adr 192 far
+    => hit hit 8271 lk 383 raw 585 dmg 585 next 3201587635
+ 21 A 672 409-1293e cr 1432 x24359 lk 493 pen 3496 missile | AC 1394 DR 0 dg 0 pa 0 df 0 sh -36 fx [5288/0/- 6271/100/-] adr 236 adj
+    => missed hit 3253 lk 457 raw 0 dmg 0 next 415604658
+ 22 A 1426 272-1043e cr 1005 x22799 lk 206 pen 2875 missile | AC 193 DR 519 dg 0 pa 0 df 2048 sh 208 fx [4821/100/- 9029/0/-] adr 113 far
+    => hit hit 8808 lk 414 raw 489 dmg 121 next 713505283
+ 23 A 2618 485-1303e cr 50 x19628 lk 107 pen 946 melee | AC 546 DR 0 dg 545 pa 5028 df 0 sh -217 fx [] adr 140 adj
+    => hit hit 8274 lk 0 raw 1043 dmg 1043 next 4004491504
+ 24 A 644 177-911e cr 285 x20454 lk 119 pen 0 melee | AC 1229 DR 0 dg 0 pa 0 df 3582 sh 256 fx [2409/100/163-773e 6865/0/-] adr 128 adj
+    => missed hit 3438 lk 375 raw 0 dmg 0 next 73774524
+ 25 A 2656 23-699c cr 808 x22738 lk 285 pen 0 melee | AC 872 DR 472 dg 0 pa 0 df 3768 sh -221 fx [3359/100/372-643c] adr 139 far
+    => hit hit 7528 lk 64 raw 88 dmg 18 next 3439490057
+ 26 A 570 292-853c cr 1061 x21053 lk 189 pen 15 missile | AC 557 DR 0 dg 2248 pa 5159 df 1367 sh 76 fx [] adr 264 adj
+    => deflected hit 5058 lk 265 raw 0 dmg 0 next 2565787790
+ 27 A 1026 5-213e cr 1351 x15373 lk 203 pen 0 missile | AC 925 DR 0 dg 0 pa 0 df 1213 sh -244 fx [] adr 51 adj
+    => missed hit 5259 lk 0 raw 0 dmg 0 next 1507016905
+ 28 A 2066 213-229e cr 1453 x17500 lk 101 pen 0 missile | AC 293 DR 321 dg 169 pa 0 df 1364 sh 92 fx [4273/100/61-219s 1185/0/169-492e] adr 67 far
+    => hit hit 8758 lk 193 raw 217 dmg 43 next 1405662442
+ 29 A 1758 459-1266c cr 853 x22199 lk 272 pen 0 melee | AC 417 DR 254 dg 636 pa 0 df 0 sh 51 fx [6282/0/350-1036c] adr 224 adj
+    => dodged hit 8083 lk 323 raw 0 dmg 0 next 3432209088
+ 30 A 584 198-1048s cr 692 x19247 lk 295 pen 0 melee | AC 1462 DR 0 dg 2213 pa 5080 df 0 sh -274 fx [9370/0/431-1017c 4396/0/-] adr 257 adj
+    => parried hit 2854 lk 21 raw 0 dmg 0 [stun 0 dmg 526] next 2813882654
+ 31 A 1935 397-491e cr 674 x15413 lk 418 pen 2409 melee | AC 955 DR 0 dg 570 pa 5079 df 0 sh 176 fx [8067/0/- 450/0/-] adr 219 adj
+    => hit hit 6696 lk 594 raw 452 dmg 452 next 4152273219
+ 32 A 409 385-725e cr 1397 x19067 lk 333 pen 4718 missile | AC 1004 DR 0 dg 274 pa 0 df 0 sh -61 fx [3465/100/- 5316/0/389-1140c] adr 94 adj
+    => missed hit 2895 lk 272 raw 0 dmg 0 next 238162368
+ 33 A 874 283-1222s cr 1968 x24527 lk 367 pen 1128 melee | AC 1280 DR 0 dg 0 pa 3111 df 3351 sh 112 fx [] adr 261 adj
+    => hit hit 4058 lk 479 raw 1153 dmg 1153 next 3832686317
+ 34 A 805 358-977e cr 1438 x18210 lk 500 pen 4009 bolt | AC 688 DR 0 dg 131 pa 0 df 0 sh 101 fx [] adr 68 adj
+    => hit hit 5392 lk 601 raw 417 dmg 417 next 4077242398
+ 35 A 1799 170-547c cr 515 x16783 lk 156 pen 0 missile | AC 644 DR 0 dg 0 pa 3019 df 0 sh 133 fx [9626/0/453-661c 8562/100/-] adr 58 adj
+    => hit hit 7364 lk 289 raw 498 dmg 498 next 3567111264
+ 36 A 1287 390-1231e cr 862 x18114 lk 481 pen 0 missile | AC 1129 DR 0 dg 1993 pa 0 df 922 sh 226 fx [7076/100/273-384s 3578/100/464-795s] adr 40 adj
+    => missed hit 5327 lk 707 raw 0 dmg 0 next 1186904439
+ 37 A 697 300-519e cr 506 x15554 lk 108 pen 2495 melee | AC 494 DR 0 dg 1075 pa 0 df 0 sh 92 fx [] adr 36 adj
+    => missed hit 5852 lk 200 raw 0 dmg 0 next 3491586212
+ 38 A 622 122-160e cr 19 x15348 lk 275 pen 0 missile | AC 1023 DR 0 dg 0 pa 7490 df 0 sh 148 fx [1986/100/356-411s] adr 13 adj
+    => hit hit 3781 lk 423 raw 147 dmg 147 next 3870197104
+ 39 A 1544 463-666s cr 1634 x17473 lk 459 pen 0 missile | AC 521 DR 0 dg 1313 pa 6628 df 2089 sh -269 fx [] adr 266 adj
+    => deflected hit 7477 lk 190 raw 0 dmg 0 next 1302343089
+ 40 A 1487 232-800e cr 765 x17788 lk 256 pen 2679 missile | AC 943 DR 0 dg 0 pa 0 df 2750 sh -269 fx [7024/0/204-288c] adr 158 adj
+    => hit hit 6119 lk 0 raw 563 dmg 563 next 3058994823
+ 41 A 357 238-1232s cr 1531 x18826 lk 278 pen 0 bolt | AC 20 DR 0 dg 606 pa 7011 df 0 sh -64 fx [3575/100/362-656e 6719/0/-] adr 27 far
+    => hit hit 9469 lk 214 raw 258 dmg 258 next 3773271576
+ 42 A 1830 454-1385c cr 985 x21986 lk 296 pen 1688 melee | AC 154 DR 0 dg 0 pa 0 df 0 sh -261 fx [4266/100/- 8431/0/172-820e] adr 99 far
+    => hit hit 9224 lk 35 raw 1088 dmg 1088 next 885947197
+ 43 A 925 37-783e cr 1563 x23891 lk 265 pen 0 melee | AC 587 DR 0 dg 1822 pa 0 df 3817 sh -225 fx [3525/100/75-511e] adr 68 adj
+    => missed hit 6118 lk 40 raw 0 dmg 0 next 4151975791
+ 44 A 1499 42-765s cr 1429 x19998 lk 117 pen 2718 bolt | AC 109 DR 783 dg 135 pa 4843 df 0 sh 227 fx [4797/100/259-416e 5042/0/85-545e] adr 27 adj
+    => hit crit hit 9322 lk 344 raw 840 dmg 168 next 1311735048
+ 45 A 546 105-864s cr 714 x21646 lk 153 pen 0 missile | AC 1284 DR 0 dg 2695 pa 256 df 3604 sh 201 fx [] adr 256 adj
+    => hit hit 2984 lk 354 raw 273 dmg 273 next 809273386
+ 46 A 315 182-1117s cr 663 x15222 lk 401 pen 0 missile | AC 358 DR 256 dg 0 pa 0 df 0 sh -296 fx [8794/0/338-441e 7334/0/-] adr 225 adj
+    => missed hit 4681 lk 105 raw 0 dmg 0 next 351200880
+ 47 A 1972 38-674s cr 1378 x22354 lk 170 pen 0 melee | AC 1167 DR 0 dg 2434 pa 6318 df 0 sh 298 fx [4587/0/231-829c 5884/100/-] adr 27 adj
+    => hit hit 6282 lk 468 raw 239 dmg 239 next 4175205679
+ 48 A 2419 347-916s cr 783 x16889 lk 416 pen 220 bolt | AC 34 DR 772 dg 1800 pa 0 df 3706 sh -56 fx [] adr 59 adj
+    => hit hit 9861 lk 360 raw 690 dmg 138 next 3340546641
+ 49 A 2471 360-456s cr 1854 x17139 lk 264 pen 0 melee | AC 1355 DR 0 dg 0 pa 705 df 2080 sh 197 fx [4009/100/- 9753/0/67-1010c] adr 0 far
+    => missed hit 6458 lk 461 raw 0 dmg 0 next 2963322560
+ 50 A 2375 69-421e cr 289 x23311 lk 339 pen 0 melee | AC 584 DR 16 dg 457 pa 0 df 0 sh 60 fx [] adr 222 far
+    => hit hit 8026 lk 399 raw 151 dmg 128 next 263528143
+ 51 A 1781 379-730e cr 1947 x23561 lk 276 pen 0 missile | AC 987 DR 0 dg 0 pa 0 df 0 sh 220 fx [1966/0/- 9/0/-] adr 51 far
+    => hit crit hit 6434 lk 496 raw 1685 dmg 1685 next 1288039979
+ 52 A 2695 272-794e cr 1835 x18639 lk 160 pen 0 melee | AC 84 DR 682 dg 0 pa 3418 df 2973 sh 83 fx [6514/0/- 1498/100/270-1269e] adr 206 adj
+    => hit hit 9698 lk 243 raw 631 dmg 126 next 771073650
+ 53 A 1141 206-1142c cr 1684 x15064 lk 364 pen 1007 bolt | AC 1357 DR 0 dg 0 pa 0 df 0 sh -207 fx [] adr 61 adj
+    => hit hit 4568 lk 157 raw 909 dmg 909 next 4123019356
+ 54 A 1478 189-934e cr 959 x15375 lk 116 pen 4056 melee | AC 999 DR 480 dg 0 pa 0 df 2937 sh -179 fx [] adr 157 adj
+    => hit hit 5967 lk 0 raw 356 dmg 196 next 3897947338
+ 55 A 2147 20-98s cr 1669 x22714 lk 499 pen 0 missile | AC 117 DR 0 dg 0 pa 0 df 1503 sh 45 fx [] adr 187 adj
+    => hit hit 9483 lk 544 raw 52 dmg 52 next 1558118317
+ 56 A 1086 112-203e cr 115 x16107 lk 355 pen 3526 bolt | AC 691 DR 0 dg 0 pa 0 df 0 sh -171 fx [7233/100/- 4794/0/-] adr 115 adj
+    => hit hit 6111 lk 184 raw 148 dmg 148 next 2912687007
+ 57 A 2292 338-735s cr 207 x15274 lk 357 pen 4735 bolt | AC 525 DR 0 dg 0 pa 7447 df 0 sh -230 fx [9823/0/402-1014e] adr 107 far
+    => hit hit 8136 lk 127 raw 539 dmg 539 next 3496000954
+ 58 A 986 41-943e cr 1480 x21949 lk 145 pen 365 missile | AC 552 DR 0 dg 0 pa 0 df 1553 sh -160 fx [] adr 242 adj
+    => missed hit 6411 lk 0 raw 0 dmg 0 next 3894415847
+ 59 A 2680 38-156s cr 313 x15251 lk 480 pen 0 missile | AC 1292 DR 0 dg 2112 pa 0 df 2417 sh 195 fx [1081/100/180-721s] adr 3 adj
+    => deflected hit 6747 lk 675 raw 0 dmg 0 next 2869143401
+ 60 A 1254 169-535s cr 192 x17454 lk 178 pen 0 bolt | AC 516 DR 0 dg 1761 pa 1357 df 0 sh -106 fx [] adr 80 far
+    => hit hit 7085 lk 72 raw 426 dmg 426 next 1617882689
+ 61 A 669 487-1284c cr 914 x15671 lk 216 pen 1336 bolt | AC 316 DR 0 dg 99 pa 1088 df 0 sh -91 fx [321/0/- 9155/100/371-913s] adr 193 adj
+    => hit crit hit 6792 lk 125 raw 1155 dmg 1155 next 1146227905
+ 62 A 776 196-529s cr 1843 x21118 lk 268 pen 0 bolt | AC 798 DR 249 dg 241 pa 0 df 0 sh 272 fx [9721/100/497-944s] adr 126 adj
+    => dodged hit 4930 lk 540 raw 0 dmg 0 next 101678944
+ 63 A 2114 441-450s cr 1883 x16138 lk 133 pen 2772 missile | AC 338 DR 0 dg 0 pa 0 df 1750 sh -58 fx [] adr 279 adj
+    => hit hit 8622 lk 75 raw 444 dmg 444 next 1112941618
+ 64 A 1594 22-564e cr 1172 x24665 lk 363 pen 0 bolt | AC 316 DR 0 dg 0 pa 0 df 2990 sh 181 fx [2819/0/-] adr 172 adj
+    => hit hit 8346 lk 544 raw 526 dmg 526 next 758116059
+ 65 A 991 335-897s cr 1321 x15574 lk 114 pen 0 bolt | AC 265 DR 259 dg 1414 pa 4713 df 775 sh 144 fx [] adr 54 adj
+    => hit hit 7890 lk 258 raw 773 dmg 433 next 2761841322
+ 66 A 513 156-1074s cr 1190 x21968 lk 412 pen 0 missile | AC 980 DR 0 dg 645 pa 707 df 866 sh -12 fx [] adr 88 adj
+    => hit hit 3436 lk 400 raw 378 dmg 378 next 747561576
+ 67 A 592 492-1435c cr 425 x22381 lk 266 pen 0 missile | AC 978 DR 0 dg 1561 pa 0 df 0 sh -263 fx [9131/0/- 7385/100/-] adr 171 adj
+    => missed hit 3771 lk 3 raw 0 dmg 0 next 3449547557
+ 68 A 1350 126-841s cr 1219 x21691 lk 204 pen 0 missile | AC 1063 DR 261 dg 2500 pa 0 df 0 sh -162 fx [] adr 39 adj
+    => hit hit 5595 lk 42 raw 622 dmg 412 next 1481962244
+ 69 A 2727 466-815e cr 1143 x19983 lk 276 pen 0 bolt | AC 449 DR 0 dg 0 pa 0 df 2923 sh -261 fx [3611/100/- 6418/100/-] adr 145 adj
+    => hit hit 8586 lk 15 raw 579 dmg 579 next 2880982465
+ 70 A 2308 318-773c cr 509 x18412 lk 170 pen 0 melee | AC 283 DR 0 dg 610 pa 0 df 3614 sh -17 fx [] adr 218 adj
+    => hit hit 8908 lk 153 raw 516 dmg 516 next 1497878605
+ 71 A 796 253-809s cr 1936 x18199 lk 164 pen 0 melee | AC 1287 DR 183 dg 0 pa 1252 df 2333 sh -47 fx [8410/100/328-1039e 1551/0/-] adr 225 adj
+    => missed hit 3821 lk 117 raw 0 dmg 0 next 542802910
+ 72 A 2564 313-1103s cr 804 x20813 lk 257 pen 0 melee | AC 533 DR 0 dg 0 pa 3699 df 446 sh 289 fx [] adr 151 adj
+    => hit crit hit 8279 lk 546 raw 1043 dmg 1043 next 2585866999
+ 73 A 1574 161-846c cr 1070 x16123 lk 243 pen 4008 missile | AC 848 DR 368 dg 0 pa 0 df 3320 sh -148 fx [2839/0/- 2848/0/320-643s] adr 178 adj
+    => deflected hit 6499 lk 95 raw 0 dmg 0 next 924370469
+ 74 A 2532 93-445s cr 1559 x21133 lk 291 pen 0 bolt | AC 580 DR 0 dg 1293 pa 6105 df 0 sh -39 fx [] adr 258 far
+    => missed hit 8136 lk 252 raw 0 dmg 0 next 539492875
+ 75 A 1678 104-237s cr 118 x24461 lk 291 pen 0 missile | AC 1102 DR 0 dg 508 pa 0 df 0 sh -23 fx [7056/100/-] adr 229 adj
+    => hit hit 6036 lk 268 raw 143 dmg 143 next 1894429344
+ 76 A 1889 388-888s cr 1960 x19989 lk 489 pen 0 missile | AC 384 DR 0 dg 0 pa 0 df 2910 sh 293 fx [384/100/91-98c 1001/0/-] adr 41 adj
+    => hit hit 8311 lk 782 raw 711 dmg 711 next 333779846
+ 77 A 1016 466-606c cr 1590 x16159 lk 267 pen 0 missile | AC 1110 DR 82 dg 1263 pa 2179 df 0 sh -57 fx [] adr 154 adj
+    => hit hit 4779 lk 210 raw 531 dmg 473 next 3270555693
+ 78 A 1691 390-1122e cr 1418 x17201 lk 337 pen 0 missile | AC 120 DR 0 dg 2517 pa 0 df 421 sh 82 fx [] adr 238 adj
+    => hit hit 9337 lk 419 raw 891 dmg 891 next 1075735228
+ 79 A 1448 403-1184c cr 712 x17156 lk 321 pen 1405 bolt | AC 583 DR 0 dg 0 pa 7895 df 497 sh -210 fx [8037/100/2-74c] adr 163 adj
+    => hit hit 7129 lk 111 raw 975 dmg 975 next 2041923579
+ 80 A 1727 85-323s cr 1048 x16030 lk 404 pen 0 bolt | AC 720 DR 535 dg 0 pa 4154 df 2271 sh -279 fx [907/100/-] adr 152 far
+    => missed hit 7058 lk 125 raw 0 dmg 0 next 753192695
+ 81 A 403 173-871s cr 484 x23716 lk 459 pen 0 missile | AC 836 DR 0 dg 0 pa 6983 df 0 sh 19 fx [] adr 129 adj
+    => missed hit 3253 lk 478 raw 0 dmg 0 next 839535095
+ 82 A 2310 189-777s cr 1 x15702 lk 285 pen 0 bolt | AC 1233 DR 0 dg 0 pa 0 df 0 sh 119 fx [611/100/181-1107c] adr 106 far
+    => missed lucky hit 6520 lk 404 raw 582 dmg 582 next 1506998875
+ 83 A 1250 311-880s cr 1807 x16876 lk 388 pen 0 bolt | AC 856 DR 0 dg 0 pa 7050 df 246 sh -170 fx [1370/0/316-448c] adr 230 adj
+    => hit crit hit 5935 lk 218 raw 894 dmg 894 next 3443311503
+ 84 A 1359 434-513e cr 1160 x18890 lk 191 pen 0 melee | AC 725 DR 0 dg 0 pa 0 df 2863 sh -200 fx [1257/0/111-1071e 7861/0/-] adr 98 far
+    => hit hit 6521 lk 0 raw 480 dmg 480 next 1657660749
+ 85 A 2355 304-1047s cr 1956 x23090 lk 305 pen 0 missile | AC 932 DR 0 dg 0 pa 5224 df 0 sh -210 fx [7575/100/273-1080c 8360/0/-] adr 236 far
+    => hit hit 7165 lk 95 raw 640 dmg 640 next 1772696268
+ 86 A 435 171-983e cr 1873 x19369 lk 390 pen 0 missile | AC 1062 DR 541 dg 2529 pa 4099 df 2887 sh -271 fx [1419/100/-] adr 251 adj
+    => missed hit 2906 lk 119 raw 0 dmg 0 next 3021645823
+ 87 A 729 427-810e cr 923 x21255 lk 335 pen 3531 bolt | AC 929 DR 0 dg 485 pa 0 df 2082 sh -175 fx [6621/0/351-1201c] adr 57 adj
+    => hit hit 4397 lk 160 raw 739 dmg 739 next 2538007642
+ 88 A 404 43-297c cr 410 x17048 lk 311 pen 0 bolt | AC 7 DR 0 dg 0 pa 3721 df 1150 sh -201 fx [] adr 65 adj
+    => hit hit 9758 lk 110 raw 251 dmg 251 next 2505412051
+ 89 A 2340 114-602e cr 1371 x24920 lk 494 pen 0 missile | AC 597 DR 0 dg 1497 pa 0 df 0 sh 261 fx [6643/100/-] adr 72 adj
+    => hit hit 7967 lk 755 raw 426 dmg 426 next 2455190674
+ 90 A 670 383-1356c cr 1411 x18856 lk 283 pen 0 bolt | AC 1474 DR 0 dg 0 pa 6467 df 0 sh -284 fx [2267/100/- 6735/100/443-956s] adr 229 adj
+    => missed hit 3125 lk 0 raw 0 dmg 0 next 245261185
+ 91 A 756 275-803s cr 1839 x21747 lk 144 pen 0 melee | AC 842 DR 0 dg 2494 pa 664 df 2282 sh 260 fx [] adr 139 adj
+    => missed hit 4731 lk 404 raw 0 dmg 0 next 894148837
+ 92 A 821 230-758c cr 1201 x20544 lk 388 pen 0 missile | AC 502 DR 0 dg 744 pa 6568 df 2619 sh 33 fx [2596/0/- 6545/0/-] adr 135 far
+    => dodged hit 6206 lk 421 raw 0 dmg 0 next 2866198128
+ 93 A 398 18-302e cr 322 x18146 lk 197 pen 0 melee | AC 197 DR 0 dg 0 pa 0 df 3478 sh -190 fx [1705/100/- 1267/100/-] adr 125 far
+    => hit hit 6689 lk 7 raw 257 dmg 257 next 2241346601
+ 94 A 1782 236-953s cr 1004 x22410 lk 118 pen 2819 missile | AC 981 DR 0 dg 1429 pa 6915 df 1447 sh -254 fx [] adr 239 adj
+    => missed hit 6450 lk 0 raw 0 dmg 0 next 1588581530
+ 95 A 2132 492-723e cr 1257 x18900 lk 316 pen 2506 melee | AC 1314 DR 0 dg 828 pa 0 df 1930 sh -173 fx [1128/0/- 4366/0/-] adr 287 adj
+    => hit hit 6187 lk 143 raw 652 dmg 652 next 2101499515
+ 96 A 1448 48-918c cr 1579 x16633 lk 100 pen 2548 missile | AC 1436 DR 547 dg 906 pa 1793 df 2218 sh -40 fx [] adr 167 adj
+    => hit hit 5021 lk 60 raw 593 dmg 337 next 588302687
+ 97 A 1364 128-244e cr 15 x23637 lk 384 pen 0 melee | AC 641 DR 0 dg 2325 pa 0 df 0 sh -132 fx [4739/100/- 979/0/361-1310c] adr 213 adj
+    => hit hit 6803 lk 252 raw 132 dmg 132 next 4101614488
+ 98 A 2532 135-1054s cr 1813 x18757 lk 232 pen 856 melee | AC 570 DR 0 dg 2168 pa 7216 df 2277 sh -121 fx [] adr 219 far
+    => missed hit 8162 lk 111 raw 0 dmg 0 next 4086478014
+ 99 A 1705 324-482s cr 1192 x21737 lk 191 pen 0 melee | AC 1060 DR 0 dg 375 pa 0 df 0 sh -91 fx [4806/0/18-290s 4369/0/485-647e] adr 281 far
+    => hit hit 6166 lk 100 raw 374 dmg 374 next 3794144343
+100 A 720 422-591e cr 264 x17216 lk 235 pen 0 bolt | AC 472 DR 0 dg 1821 pa 0 df 0 sh -116 fx [3472/0/- 4426/100/413-543c] adr 191 adj
+    => hit hit 6040 lk 119 raw 560 dmg 560 next 3167981351
+101 A 1218 149-437e cr 821 x23812 lk 452 pen 0 melee | AC 306 DR 795 dg 2176 pa 0 df 2818 sh 41 fx [9342/0/441-444s 144/0/-] adr 166 far
+    => hit hit 7992 lk 493 raw 344 dmg 69 next 2024681912
+102 A 1062 445-576c cr 1673 x22799 lk 387 pen 2964 bolt | AC 239 DR 0 dg 1779 pa 0 df 0 sh -296 fx [7475/0/12-663c 8584/100/485-1404s] adr 32 adj
+    => dodged hit 8163 lk 91 raw 0 dmg 0 next 4063705121
+103 A 449 214-432s cr 1820 x20673 lk 485 pen 0 missile | AC 22 DR 0 dg 0 pa 0 df 3274 sh 263 fx [] adr 136 far
+    => hit crit hit 9533 lk 748 raw 738 dmg 738 next 1450428883
+104 A 1524 272-380s cr 1334 x18793 lk 293 pen 0 bolt | AC 254 DR 0 dg 2096 pa 0 df 0 sh 14 fx [6404/100/-] adr 115 adj
+    => hit crit hit 8571 lk 307 raw 626 dmg 626 next 2044512610
+105 A 441 362-788c cr 1805 x19277 lk 355 pen 0 bolt | AC 433 DR 0 dg 0 pa 0 df 0 sh 23 fx [8059/0/-] adr 131 adj
+    => missed hit 5046 lk 378 raw 0 dmg 0 next 1629441546
+106 A 499 31-842s cr 852 x17290 lk 271 pen 0 bolt | AC 846 DR 0 dg 903 pa 6731 df 0 sh 132 fx [] adr 284 far
+    => missed hit 3710 lk 403 raw 0 dmg 0 next 3257864329
+107 A 641 94-844s cr 5 x17471 lk 299 pen 0 melee | AC 1146 DR 0 dg 0 pa 0 df 0 sh -80 fx [9164/100/- 3962/100/-] adr 94 adj
+    => hit hit 3587 lk 219 raw 661 dmg 661 next 2322918122
+108 A 808 140-357s cr 453 x15199 lk 491 pen 0 bolt | AC 1175 DR 0 dg 834 pa 5884 df 2862 sh -21 fx [449/100/61-109c] adr 204 adj
+    => missed hit 4075 lk 470 raw 0 dmg 0 next 1449779052
+109 A 857 429-1209e cr 426 x20700 lk 112 pen 0 bolt | AC 817 DR 0 dg 0 pa 2018 df 617 sh 172 fx [4239/0/402-1054c 7818/100/-] adr 145 far
+    => hit hit 5119 lk 284 raw 723 dmg 723 next 497995904
+110 A 1996 58-400s cr 464 x20337 lk 458 pen 0 bolt | AC 406 DR 0 dg 0 pa 3638 df 0 sh -205 fx [] adr 31 adj
+    => hit hit 8310 lk 253 raw 167 dmg 167 next 1029340898
+111 A 1791 91-446c cr 1957 x22219 lk 449 pen 4912 missile | AC 458 DR 0 dg 418 pa 0 df 0 sh -12 fx [1133/100/-] adr 23 adj
+    => missed hit 7964 lk 437 raw 0 dmg 0 next 619950750
+112 A 1719 258-408e cr 247 x17333 lk 306 pen 2105 missile | AC 1175 DR 0 dg 0 pa 0 df 0 sh -298 fx [1242/0/- 1270/100/-] adr 248 far
+    => missed hit 5940 lk 8 raw 0 dmg 0 next 239414677
+113 A 895 412-468c cr 908 x21105 lk 278 pen 2571 missile | AC 507 DR 0 dg 753 pa 7765 df 3729 sh 45 fx [9501/0/59-768s] adr 19 far
+    => missed hit 6384 lk 323 raw 0 dmg 0 next 3978866013
+114 A 2329 419-890s cr 1587 x18014 lk 206 pen 0 melee | AC 1003 DR 549 dg 0 pa 5742 df 2864 sh 156 fx [157/0/297-451s 2332/0/-] adr 192 adj
+    => parried hit 6990 lk 362 raw 0 dmg 0 next 3568676759
+115 A 1702 91-450e cr 1403 x22713 lk 350 pen 925 melee | AC 1370 DR 0 dg 1640 pa 0 df 2925 sh 268 fx [8829/0/489-1135s 853/0/370-999s] adr 74 adj
+    => dodged hit 5540 lk 618 raw 0 dmg 0 next 1555709368
+116 A 1945 494-1293c cr 1926 x20182 lk 254 pen 0 melee | AC 211 DR 0 dg 1402 pa 5046 df 0 sh -261 fx [] adr 32 adj
+    => parried hit 9021 lk 0 raw 0 dmg 0 next 1623253775
+117 A 2525 213-904s cr 1990 x24837 lk 294 pen 3247 bolt | AC 1267 DR 0 dg 0 pa 1988 df 0 sh 129 fx [] adr 137 adj
+    => missed hit 6659 lk 423 raw 0 dmg 0 next 1790644850
+118 A 2272 220-947e cr 111 x22726 lk 154 pen 0 missile | AC 647 DR 0 dg 419 pa 0 df 3267 sh -235 fx [] adr 57 adj
+    => dodged hit 7783 lk 0 raw 0 dmg 0 next 2393800421
+119 A 1301 40-959s cr 1691 x23032 lk 492 pen 3945 missile | AC 251 DR 0 dg 0 pa 0 df 251 sh 273 fx [2370/100/483-594c] adr 86 adj
+    => hit crit hit 8383 lk 765 raw 1813 dmg 1813 next 1514055203
+120 A 818 451-1072s cr 363 x23581 lk 270 pen 0 bolt | AC 1018 DR 0 dg 1068 pa 0 df 1983 sh -299 fx [5116/100/41-483e] adr 134 adj
+    => missed hit 4455 lk 0 raw 0 dmg 0 next 157079327
+121 A 1871 201-616c cr 1809 x16994 lk 436 pen 0 missile | AC 714 DR 0 dg 0 pa 0 df 0 sh 141 fx [2183/0/49-466c] adr 227 adj
+    => hit hit 7238 lk 577 raw 400 dmg 400 next 3238659576
+122 A 2410 244-724s cr 631 x18864 lk 109 pen 0 missile | AC 238 DR 0 dg 0 pa 4665 df 2194 sh -209 fx [] adr 57 adj
+    => deflected hit 9101 lk 0 raw 0 dmg 0 next 2126921215
+123 A 1349 389-488e cr 1668 x17838 lk 226 pen 0 bolt | AC 546 DR 0 dg 1128 pa 585 df 2818 sh -269 fx [8582/100/- 8798/100/65-758e] adr 163 far
+    => missed hit 7119 lk 0 raw 0 dmg 0 next 1440807646
+124 A 847 42-1014e cr 1366 x19497 lk 438 pen 0 bolt | AC 735 DR 102 dg 1234 pa 0 df 0 sh -201 fx [9202/100/- 1824/100/-] adr 17 adj
+    => missed hit 5354 lk 237 raw 0 dmg 0 next 252016423
+125 A 1008 181-665e cr 803 x20438 lk 160 pen 0 bolt | AC 565 DR 669 dg 1705 pa 5185 df 3262 sh 62 fx [8973/0/285-305c] adr 298 adj
+    => missed hit 6408 lk 222 raw 0 dmg 0 next 2666405347
+126 A 2677 81-721e cr 872 x15867 lk 455 pen 0 melee | AC 1468 DR 0 dg 0 pa 2559 df 2104 sh 30 fx [] adr 36 adj
+    => hit hit 6458 lk 485 raw 174 dmg 174 next 697000846
+127 A 687 340-1212e cr 1111 x23643 lk 372 pen 0 missile | AC 1443 DR 0 dg 2126 pa 40 df 592 sh 195 fx [5820/0/-] adr 41 adj
+    => missed hit 3225 lk 567 raw 0 dmg 0 next 152473034
+128 A 1298 201-1188s cr 1746 x17102 lk 303 pen 2889 melee | AC 1137 DR 13 dg 1583 pa 0 df 3930 sh 167 fx [2123/100/- 6268/0/-] adr 273 adj
+    => hit hit 5331 lk 470 raw 395 dmg 387 next 452517248
+129 A 2435 133-457s cr 13 x18238 lk 386 pen 4342 melee | AC 757 DR 0 dg 2672 pa 6961 df 0 sh 173 fx [3274/100/- 3749/0/335-668s] adr 284 adj
+    => missed hit 7628 lk 559 raw 0 dmg 0 next 3529914942
+130 A 2366 117-546e cr 50 x18922 lk 468 pen 0 bolt | AC 1454 DR 724 dg 2336 pa 2837 df 2834 sh 185 fx [8518/0/-] adr 261 far
+    => missed hit 6194 lk 653 raw 0 dmg 0 next 678854373
+131 A 2353 76-587e cr 606 x24668 lk 195 pen 0 missile | AC 1151 DR 0 dg 0 pa 0 df 0 sh -120 fx [9410/100/360-552c 8318/100/-] adr 231 adj
+    => missed hit 6715 lk 75 raw 0 dmg 0 next 1528397540
+132 A 2047 171-659e cr 861 x17486 lk 338 pen 0 melee | AC 1153 DR 0 dg 1491 pa 0 df 0 sh 13 fx [3586/100/123-529e] adr 274 far
+    => missed hit 6397 lk 351 raw 0 dmg 0 next 3715210080
+133 A 2036 359-789c cr 772 x24564 lk 485 pen 345 melee | AC 484 DR 0 dg 2264 pa 4241 df 0 sh -99 fx [94/100/-] adr 287 adj
+    => hit hit 8079 lk 386 raw 580 dmg 580 next 646054987
+134 A 2182 449-1020c cr 1031 x17185 lk 114 pen 0 melee | AC 984 DR 0 dg 0 pa 3141 df 0 sh -9 fx [] adr 240 far
+    => missed hit 6892 lk 105 raw 0 dmg 0 next 162756745
+135 A 2469 193-626e cr 1347 x22769 lk 305 pen 0 missile | AC 1383 DR 0 dg 928 pa 0 df 563 sh -60 fx [7100/100/425-1256e] adr 57 adj
+    => hit crit hit 6410 lk 245 raw 795 dmg 795 next 991515921
+136 A 1185 457-924s cr 1044 x20511 lk 128 pen 0 melee | AC 143 DR 0 dg 1112 pa 5893 df 0 sh 234 fx [] adr 223 adj
+    => parried hit 8923 lk 362 raw 0 dmg 0 next 803464396
+137 A 1247 68-210s cr 450 x16004 lk 232 pen 0 missile | AC 679 DR 0 dg 1240 pa 1707 df 2454 sh -138 fx [133/0/461-844c] adr 182 adj
+    => missed hit 6475 lk 94 raw 0 dmg 0 next 69293061
+138 A 1555 127-837c cr 1263 x20814 lk 375 pen 0 missile | AC 1425 DR 158 dg 2501 pa 4205 df 0 sh 0 fx [] adr 271 adj
+    => hit hit 5218 lk 375 raw 428 dmg 280 next 1377115678
+139 A 2347 72-947s cr 979 x16465 lk 268 pen 0 melee | AC 923 DR 0 dg 0 pa 3262 df 0 sh -59 fx [6880/100/- 4676/100/406-492e] adr 289 adj
+    => hit crit hit 7177 lk 209 raw 654 dmg 654 next 2579212515
+140 A 1856 94-712s cr 861 x17238 lk 239 pen 919 bolt | AC 949 DR 0 dg 0 pa 0 df 173 sh 157 fx [2693/0/236-1173s 3514/0/165-1163c] adr 13 adj
+    => hit hit 6617 lk 396 raw 302 dmg 302 next 824230619
+141 A 547 64-302s cr 146 x21527 lk 394 pen 336 melee | AC 36 DR 147 dg 1299 pa 1682 df 0 sh 172 fx [] adr 77 adj
+    => missed hit 9383 lk 566 raw 0 dmg 0 next 2150255041
+142 A 1548 399-982c cr 1152 x17851 lk 483 pen 0 missile | AC 1490 DR 0 dg 1776 pa 5503 df 0 sh -236 fx [3836/100/- 8272/100/-] adr 190 far
+    => dodged hit 5095 lk 247 raw 0 dmg 0 next 2203991765
+143 A 1616 62-485c cr 863 x23156 lk 311 pen 4489 bolt | AC 949 DR 0 dg 174 pa 2924 df 3014 sh 300 fx [91/100/-] adr 91 far
+    => missed lucky hit 6300 lk 611 raw 399 dmg 399 next 602218424
+144 A 2142 392-827e cr 242 x17735 lk 213 pen 0 bolt | AC 906 DR 123 dg 0 pa 2460 df 0 sh -50 fx [423/100/-] adr 220 adj
+    => hit hit 7028 lk 163 raw 640 dmg 531 next 3703439250
+145 A 1665 60-652s cr 1484 x18007 lk 221 pen 0 missile | AC 1415 DR 130 dg 194 pa 5814 df 457 sh -22 fx [3487/100/450-564c 2359/100/-] adr 210 adj
+    => missed hit 5406 lk 199 raw 0 dmg 0 next 2231019151
+146 A 1769 238-1013s cr 1146 x15974 lk 276 pen 0 melee | AC 457 DR 269 dg 2233 pa 3710 df 0 sh -263 fx [5163/0/- 8132/0/420-585c] adr 213 adj
+    => hit crit hit 7947 lk 13 raw 508 dmg 331 next 4087304077
+147 A 1322 230-1109s cr 1263 x22390 lk 201 pen 4305 melee | AC 312 DR 0 dg 0 pa 0 df 7 sh 207 fx [5210/0/-] adr 161 far
+    => hit hit 8091 lk 408 raw 358 dmg 358 next 654125762
+148 A 2793 300-1021e cr 797 x24699 lk 158 pen 2889 bolt | AC 1375 DR 0 dg 1988 pa 2980 df 786 sh 0 fx [4210/0/-] adr 246 far
+    => hit hit 6701 lk 158 raw 450 dmg 450 next 2947441444
+149 A 2594 289-311s cr 1523 x17782 lk 139 pen 0 bolt | AC 1300 DR 0 dg 0 pa 6163 df 0 sh 90 fx [8601/100/324-1108c] adr 206 adj
+    => hit hit 6662 lk 229 raw 301 dmg 301 next 4033055080
+150 A 1951 179-1093e cr 681 x19344 lk 433 pen 0 melee | AC 847 DR 0 dg 0 pa 7753 df 2207 sh -41 fx [1443/100/31-106e 4149/0/-] adr 128 adj
+    => parried hit 6973 lk 392 raw 0 dmg 0 next 489553118
+151 A 2223 119-851c cr 432 x17725 lk 207 pen 0 melee | AC 591 DR 0 dg 0 pa 944 df 249 sh -110 fx [8677/100/359-644s 2001/0/-] adr 2 adj
+    => missed hit 7900 lk 97 raw 0 dmg 0 next 2071575120
+152 A 2340 445-1229s cr 1820 x24952 lk 112 pen 0 missile | AC 854 DR 0 dg 1423 pa 4674 df 2522 sh 19 fx [6370/0/-] adr 294 far
+    => missed hit 7326 lk 131 raw 0 dmg 0 next 569993564
+153 A 1380 17-447e cr 149 x23272 lk 478 pen 0 bolt | AC 320 DR 0 dg 0 pa 0 df 831 sh 291 fx [6043/100/-] adr 107 far
+    => hit hit 8118 lk 769 raw 165 dmg 165 next 3757224296
+154 A 1199 185-474e cr 804 x21230 lk 348 pen 0 bolt | AC 40 DR 0 dg 1786 pa 0 df 2715 sh 177 fx [3747/0/332-802e] adr 17 adj
+    => hit crit hit 9677 lk 525 raw 769 dmg 769 next 870041248
+155 A 410 76-931c cr 1827 x21175 lk 468 pen 0 melee | AC 333 DR 749 dg 2917 pa 0 df 0 sh 39 fx [2458/100/428-745s] adr 130 adj
+    => dodged hit 5518 lk 507 raw 0 dmg 0 next 3177777320
+156 A 955 437-1181s cr 1675 x21291 lk 335 pen 0 melee | AC 1459 DR 0 dg 1054 pa 0 df 0 sh 220 fx [7390/100/104-728s] adr 177 adj
+    => hit hit 3956 lk 555 raw 871 dmg 871 next 3782044255
+157 A 1295 171-709c cr 506 x20739 lk 444 pen 0 missile | AC 1310 DR 714 dg 666 pa 842 df 3530 sh -288 fx [6946/0/259-326c 6474/0/216-349e] adr 57 adj
+    => hit hit 4971 lk 156 raw 454 dmg 91 next 2834044044
+158 A 1462 448-495s cr 598 x19850 lk 483 pen 3757 missile | AC 478 DR 0 dg 0 pa 7336 df 372 sh -47 fx [5805/0/103-104e] adr 9 adj
+    => missed hit 7536 lk 436 raw 0 dmg 0 next 329055378
+159 A 1579 332-612e cr 1049 x22605 lk 300 pen 0 missile | AC 1075 DR 188 dg 2637 pa 0 df 0 sh 47 fx [7807/0/177-1154s 4518/0/-] adr 82 adj
+    => hit hit 5950 lk 347 raw 404 dmg 262 next 908612272
+160 A 1977 200-999c cr 550 x24442 lk 462 pen 4811 missile | AC 868 DR 0 dg 769 pa 0 df 2642 sh -77 fx [5612/100/447-1233s] adr 19 far
+    => hit hit 6949 lk 385 raw 521 dmg 521 next 2555290047
+161 A 836 342-1173c cr 695 x21789 lk 341 pen 0 bolt | AC 258 DR 0 dg 1170 pa 4321 df 3056 sh -171 fx [7087/100/278-337s] adr 2 adj
+    => hit hit 7642 lk 170 raw 801 dmg 801 next 3914820587
+162 A 2271 289-1268c cr 796 x24741 lk 342 pen 0 missile | AC 721 DR 0 dg 1066 pa 0 df 0 sh -220 fx [7934/0/231-1027e 5020/0/166-468c] adr 76 far
+    => missed hit 7590 lk 122 raw 0 dmg 0 next 3176740777
+163 A 1311 322-1180s cr 234 x21168 lk 295 pen 2375 missile | AC 1225 DR 566 dg 0 pa 3314 df 1685 sh -266 fx [5536/0/327-745s 4530/0/-] adr 284 adj
+    => hit hit 5170 lk 29 raw 915 dmg 273 next 3711789590
+164 A 2435 46-339c cr 1248 x20855 lk 470 pen 931 bolt | AC 563 DR 209 dg 740 pa 0 df 3931 sh -282 fx [4642/0/246-304e] adr 190 adj
+    => hit crit hit 8122 lk 188 raw 296 dmg 180 next 3170442095
+165 A 2330 357-362s cr 851 x18241 lk 116 pen 0 missile | AC 1436 DR 0 dg 2309 pa 7688 df 0 sh 77 fx [] adr 90 adj
+    => hit hit 6187 lk 193 raw 360 dmg 360 next 2906831676
+166 A 1539 297-878s cr 1465 x23861 lk 273 pen 0 melee | AC 486 DR 0 dg 1941 pa 0 df 623 sh -251 fx [2860/100/360-1019s 4075/100/-] adr 114 adj
+    => hit hit 7600 lk 22 raw 361 dmg 361 next 584525693
+167 A 1676 319-1283s cr 1344 x16693 lk 327 pen 0 missile | AC 609 DR 105 dg 1719 pa 2094 df 1613 sh -134 fx [9338/0/120-1033c 6736/0/-] adr 260 adj
+    => hit hit 7335 lk 193 raw 835 dmg 697 next 1198903332
+168 A 2495 307-1236s cr 726 x21350 lk 101 pen 4249 melee | AC 1335 DR 211 dg 0 pa 0 df 3152 sh -264 fx [3266/0/-] adr 126 far
+    => hit hit 6514 lk 0 raw 751 dmg 619 next 1832096200
+169 A 1309 60-173e cr 1016 x21815 lk 342 pen 787 melee | AC 358 DR 0 dg 2430 pa 2503 df 506 sh -133 fx [8401/100/119-733e] adr 165 adj
+    => dodged lucky hit 7852 lk 209 raw 86 dmg 86 next 2643474867
+170 A 1905 428-894c cr 412 x24194 lk 388 pen 0 missile | AC 1349 DR 713 dg 2107 pa 0 df 3346 sh 139 fx [4944/0/499-1256s] adr 259 adj
+    => hit hit 5854 lk 527 raw 796 dmg 372 next 335144213
+171 A 1142 324-1233c cr 1894 x24946 lk 203 pen 0 bolt | AC 43 DR 0 dg 0 pa 447 df 0 sh -290 fx [] adr 116 adj
+    => hit hit 9637 lk 0 raw 517 dmg 517 next 800868604
+172 A 1724 212-324e cr 967 x17135 lk 308 pen 0 missile | AC 1258 DR 0 dg 0 pa 4660 df 0 sh 292 fx [9978/0/423-1088s] adr 215 adj
+    => missed lucky hit 5781 lk 600 raw 225 dmg 225 next 2214341864
+173 A 945 157-967c cr 1482 x19745 lk 176 pen 0 melee | AC 673 DR 582 dg 0 pa 0 df 2092 sh -123 fx [1057/0/- 398/100/-] adr 202 adj
+    => missed hit 5841 lk 53 raw 0 dmg 0 next 3949307470
+174 A 2042 432-1121s cr 354 x15497 lk 488 pen 0 missile | AC 568 DR 624 dg 0 pa 5730 df 2703 sh 102 fx [8428/100/- 9363/100/392-1253e] adr 118 adj
+    => hit hit 7824 lk 590 raw 647 dmg 129 next 802487445
+175 A 1741 55-600e cr 1450 x21720 lk 119 pen 917 missile | AC 1443 DR 0 dg 0 pa 0 df 0 sh 232 fx [5061/0/-] adr 39 adj
+    => hit hit 5468 lk 351 raw 483 dmg 483 next 597811625
+176 A 1071 87-800c cr 357 x24959 lk 107 pen 0 bolt | AC 1334 DR 0 dg 122 pa 6669 df 0 sh -160 fx [487/0/411-884e 2216/0/424-1026s] adr 75 adj
+    => missed hit 4453 lk 0 raw 0 dmg 0 next 4149002806
+177 A 943 101-627c cr 1373 x16160 lk 401 pen 0 missile | AC 416 DR 0 dg 1220 pa 0 df 1919 sh 8 fx [6260/100/154-211c] adr 35 adj
+    => deflected hit 6939 lk 409 raw 0 dmg 0 next 791500022
+178 A 1198 141-352s cr 1465 x23800 lk 495 pen 0 bolt | AC 39 DR 0 dg 1928 pa 0 df 0 sh -27 fx [238/0/-] adr 38 far
+    => hit hit 9685 lk 468 raw 202 dmg 202 next 2266135552
+179 A 376 140-252s cr 1273 x24575 lk 103 pen 0 missile | AC 552 DR 0 dg 0 pa 7099 df 3916 sh 267 fx [] adr 269 far
+    => deflected hit 4052 lk 370 raw 0 dmg 0 next 887740685
+180 A 1061 28-1024c cr 1262 x20596 lk 240 pen 169 melee | AC 371 DR 0 dg 0 pa 710 df 0 sh 2 fx [464/0/480-504c] adr 215 adj
+    => hit hit 7409 lk 242 raw 803 dmg 803 next 3762652817
+181 A 1268 166-794c cr 424 x15261 lk 135 pen 3163 melee | AC 475 DR 647 dg 0 pa 0 df 3501 sh -6 fx [584/0/89-775s] adr 187 far
+    => hit hit 7275 lk 129 raw 590 dmg 118 next 1442619524
+182 A 360 487-910s cr 1970 x18903 lk 184 pen 0 bolt | AC 85 DR 0 dg 0 pa 0 df 0 sh 84 fx [9058/0/-] adr 13 adj
+    => hit hit 8090 lk 268 raw 670 dmg 670 next 3036575353
+183 A 519 28-552c cr 991 x24575 lk 376 pen 0 missile | AC 115 DR 0 dg 1521 pa 0 df 99 sh 295 fx [543/100/400-905s] adr 71 adj
+    => hit hit 8186 lk 671 raw 110 dmg 110 next 621752284
+184 A 1197 147-622c cr 1522 x24682 lk 108 pen 702 missile | AC 371 DR 563 dg 131 pa 0 df 2287 sh -116 fx [6006/0/491-1357e] adr 230 adj
+    => hit hit 7634 lk 0 raw 423 dmg 85 next 2859404745
+185 A 832 308-666c cr 1250 x23062 lk 295 pen 0 melee | AC 1300 DR 721 dg 0 pa 0 df 0 sh 124 fx [] adr 261 adj
+    => missed hit 3902 lk 419 raw 0 dmg 0 next 4126006403
+186 A 945 30-45c cr 1921 x17445 lk 127 pen 0 missile | AC 1161 DR 0 dg 2821 pa 5689 df 0 sh 198 fx [5675/0/-] adr 250 adj
+    => dodged hit 4487 lk 325 raw 0 dmg 0 next 1248448763
+187 A 1389 59-474c cr 1791 x22377 lk 194 pen 4259 melee | AC 1414 DR 493 dg 0 pa 0 df 2859 sh 84 fx [] adr 254 adj
+    => missed hit 4955 lk 278 raw 0 dmg 0 next 1418620831
+188 A 1259 107-313s cr 411 x22825 lk 157 pen 0 missile | AC 567 DR 0 dg 1367 pa 1964 df 3505 sh -6 fx [] adr 80 far
+    => missed hit 6895 lk 151 raw 0 dmg 0 next 2170531099
+189 A 940 160-896c cr 1443 x20033 lk 495 pen 0 bolt | AC 18 DR 0 dg 1763 pa 1897 df 0 sh 224 fx [2839/100/-] adr 266 adj
+    => hit hit 9812 lk 719 raw 501 dmg 501 next 4215595928
+190 A 313 378-882s cr 1751 x18992 lk 347 pen 736 missile | AC 1294 DR 0 dg 0 pa 0 df 721 sh 65 fx [6464/100/- 9435/100/-] adr 7 adj
+    => missed hit 1948 lk 412 raw 0 dmg 0 next 3294925911
+191 A 2475 308-852e cr 1094 x17525 lk 420 pen 0 melee | AC 1378 DR 0 dg 820 pa 17 df 0 sh 105 fx [3168/0/- 4824/0/-] adr 82 far
+    => hit hit 6424 lk 525 raw 759 dmg 759 next 1667377070
+192 A 2390 425-1309s cr 639 x24988 lk 262 pen 0 missile | AC 923 DR 0 dg 0 pa 6138 df 0 sh -94 fx [7719/0/- 3286/100/-] adr 201 adj
+    => missed hit 7214 lk 168 raw 0 dmg 0 next 1321889594
+193 A 495 267-482c cr 1422 x24807 lk 494 pen 4261 bolt | AC 1077 DR 249 dg 0 pa 0 df 0 sh 134 fx [8229/0/- 740/0/-] adr 254 adj
+    => missed hit 3149 lk 628 raw 0 dmg 0 next 2063640335
+194 A 631 456-742s cr 741 x21203 lk 218 pen 466 bolt | AC 463 DR 0 dg 1428 pa 684 df 0 sh 131 fx [8067/0/- 6218/0/-] adr 204 adj
+    => hit hit 5768 lk 349 raw 607 dmg 607 next 3336652518
+195 A 2140 117-145s cr 1192 x16498 lk 391 pen 0 melee | AC 518 DR 0 dg 0 pa 139 df 0 sh -278 fx [] adr 59 adj
+    => hit hit 8051 lk 113 raw 125 dmg 125 next 2981417689
+196 A 2375 48-322e cr 1126 x23257 lk 452 pen 0 missile | AC 552 DR 0 dg 0 pa 0 df 0 sh -277 fx [5394/100/-] adr 65 adj
+    => hit hit 8114 lk 175 raw 163 dmg 163 next 3828629690
+197 A 2425 27-218e cr 1609 x20664 lk 287 pen 1543 missile | AC 23 DR 598 dg 0 pa 5446 df 0 sh 179 fx [6082/0/-] adr 85 far
+    => hit hit 9906 lk 466 raw 65 dmg 13 next 513836931
+198 A 2362 146-1098s cr 249 x24423 lk 112 pen 426 bolt | AC 812 DR 0 dg 83 pa 5731 df 0 sh -94 fx [8871/0/- 6553/100/53-471e] adr 277 adj
+    => hit hit 7442 lk 18 raw 828 dmg 828 next 3778818288
+199 A 1557 87-556s cr 1250 x17812 lk 212 pen 0 melee | AC 919 DR 0 dg 0 pa 0 df 0 sh -237 fx [6124/100/-] adr 149 adj
+    => missed hit 6288 lk 0 raw 0 dmg 0 next 3253986120
+200 A 1864 311-332s cr 1080 x16622 lk 161 pen 0 bolt | AC 133 DR 535 dg 0 pa 4128 df 0 sh -101 fx [] adr 202 adj
+    => hit hit 9334 lk 60 raw 321 dmg 64 next 396758833
+201 A 1912 276-1079e cr 1455 x16401 lk 377 pen 0 melee | AC 711 DR 0 dg 790 pa 0 df 0 sh 252 fx [] adr 217 adj
+    => hit hit 7289 lk 629 raw 385 dmg 385 next 198202352
+202 A 2617 425-1344e cr 20 x18627 lk 168 pen 0 bolt | AC 1330 DR 0 dg 0 pa 0 df 3211 sh -289 fx [5529/100/132-758e] adr 275 far
+    => missed hit 6630 lk 0 raw 0 dmg 0 next 3925282060
+203 A 430 156-758e cr 704 x23670 lk 291 pen 3339 bolt | AC 24 DR 0 dg 2585 pa 5553 df 0 sh 100 fx [8593/100/254-613e] adr 159 adj
+    => hit hit 9471 lk 391 raw 754 dmg 754 next 1055208989
+204 A 364 224-392e cr 631 x20992 lk 413 pen 0 missile | AC 853 DR 0 dg 0 pa 6471 df 0 sh 57 fx [4258/100/- 2694/100/-] adr 108 adj
+    => missed hit 2991 lk 470 raw 0 dmg 0 next 2439258552
+205 A 1182 161-281s cr 1627 x16687 lk 253 pen 0 melee | AC 612 DR 475 dg 723 pa 0 df 0 sh 199 fx [] adr 204 far
+    => dodged hit 6589 lk 452 raw 0 dmg 0 next 17251845
+206 A 2572 133-1100e cr 815 x18021 lk 204 pen 708 bolt | AC 266 DR 663 dg 0 pa 4002 df 1100 sh 85 fx [5863/0/- 630/100/-] adr 80 adj
+    => missed hit 9063 lk 289 raw 0 dmg 0 next 1212793701
+207 A 2276 291-861s cr 1661 x20203 lk 103 pen 3878 melee | AC 98 DR 0 dg 1913 pa 7380 df 0 sh 238 fx [] adr 2 adj
+    => missed hit 9587 lk 341 raw 0 dmg 0 next 3190226776
+208 A 2534 140-310c cr 1915 x20340 lk 192 pen 0 missile | AC 913 DR 0 dg 0 pa 632 df 0 sh -297 fx [] adr 284 adj
+    => missed hit 7351 lk 0 raw 0 dmg 0 next 1145984392
+209 A 853 138-722s cr 1350 x20266 lk 422 pen 0 bolt | AC 460 DR 0 dg 0 pa 2694 df 0 sh 285 fx [] adr 285 adj
+    => missed hit 6497 lk 707 raw 0 dmg 0 next 3681593300
+210 A 1147 440-1145s cr 159 x16977 lk 147 pen 0 bolt | AC 964 DR 0 dg 1084 pa 0 df 777 sh 175 fx [2420/0/320-938e 1706/0/319-1215s] adr 174 adj
+    => missed hit 5433 lk 322 raw 0 dmg 0 next 9392109
+211 A 1647 369-498s cr 1938 x21140 lk 483 pen 3309 missile | AC 1067 DR 0 dg 882 pa 4443 df 0 sh -130 fx [7853/0/80-358c] adr 213 far
+    => missed hit 6069 lk 353 raw 0 dmg 0 next 2461984041
+212 A 1238 485-526s cr 1384 x17429 lk 114 pen 0 bolt | AC 1015 DR 0 dg 2572 pa 2125 df 0 sh -16 fx [6000/0/439-1041s] adr 4 adj
+    => missed hit 5495 lk 98 raw 0 dmg 0 next 1896289865
+213 A 1092 334-1149c cr 1296 x18207 lk 146 pen 0 missile | AC 1388 DR 0 dg 161 pa 757 df 0 sh 223 fx [280/0/59-745e 7485/0/-] adr 163 far
+    => missed hit 4403 lk 369 raw 0 dmg 0 next 1268521090
+214 A 2186 370-1088c cr 316 x22302 lk 476 pen 0 bolt | AC 231 DR 756 dg 1111 pa 5800 df 2053 sh -31 fx [] adr 48 adj
+    => dodged hit 9044 lk 445 raw 0 dmg 0 next 3892711874
+215 A 2419 313-368c cr 642 x17791 lk 372 pen 3566 missile | AC 719 DR 399 dg 0 pa 186 df 0 sh -1 fx [5000/0/- 3131/0/307-892s] adr 135 adj
+    => missed hit 7709 lk 371 raw 0 dmg 0 next 1034497580
+216 A 1149 52-272s cr 346 x23117 lk 329 pen 0 missile | AC 6 DR 0 dg 0 pa 112 df 0 sh -19 fx [1555/0/- 3653/100/63-755s] adr 262 adj
+    => hit hit 9914 lk 310 raw 199 dmg 199 next 2902951973
+217 A 566 258-710s cr 789 x19242 lk 438 pen 0 bolt | AC 737 DR 0 dg 1194 pa 4925 df 0 sh -253 fx [] adr 25 adj
+    => hit hit 4344 lk 185 raw 582 dmg 582 next 2808586463
+218 A 1390 98-832s cr 1628 x16630 lk 133 pen 0 missile | AC 84 DR 0 dg 2694 pa 5299 df 955 sh -129 fx [374/0/- 684/100/-] adr 233 adj
+    => hit hit 9430 lk 4 raw 740 dmg 740 next 3154075926
+219 A 1987 322-1098s cr 180 x18614 lk 399 pen 3807 missile | AC 334 DR 0 dg 1548 pa 0 df 0 sh 293 fx [7128/0/-] adr 182 adj
+    => dodged hit 8561 lk 692 raw 0 dmg 0 next 1311148303
+220 A 2655 404-505e cr 1895 x18407 lk 351 pen 0 bolt | AC 910 DR 545 dg 1336 pa 0 df 81 sh 290 fx [4539/0/-] adr 232 far
+    => dodged hit 7447 lk 641 raw 0 dmg 0 next 1976539682
+221 A 1161 73-331e cr 928 x22455 lk 124 pen 0 bolt | AC 353 DR 0 dg 1150 pa 0 df 2090 sh -273 fx [] adr 255 adj
+    => missed hit 7668 lk 0 raw 0 dmg 0 next 2660682403
+222 A 2403 499-917e cr 1843 x22392 lk 278 pen 0 melee | AC 265 DR 0 dg 1713 pa 0 df 0 sh -181 fx [4485/100/- 1056/100/1-292c] adr 182 adj
+    => hit hit 9007 lk 97 raw 570 dmg 570 next 2482154351
+223 A 2525 136-484s cr 1404 x16577 lk 438 pen 0 bolt | AC 1088 DR 0 dg 466 pa 0 df 3600 sh -176 fx [6324/100/43-103c 6736/0/140-922c] adr 53 adj
+    => hit hit 6989 lk 262 raw 235 dmg 235 next 1910796055
+224 A 2333 146-279e cr 274 x22199 lk 215 pen 0 missile | AC 950 DR 0 dg 0 pa 3592 df 2708 sh 184 fx [] adr 190 far
+    => deflected hit 7106 lk 399 raw 0 dmg 0 next 2788332263
+225 A 560 146-402c cr 722 x19818 lk 300 pen 4561 melee | AC 990 DR 0 dg 1459 pa 0 df 0 sh 80 fx [9618/100/-] adr 104 adj
+    => missed hit 3613 lk 380 raw 0 dmg 0 next 38211303
+226 A 1462 376-1050c cr 951 x15080 lk 134 pen 0 bolt | AC 415 DR 530 dg 0 pa 975 df 2592 sh -161 fx [5812/100/103-864e] adr 214 adj
+    => hit hit 7789 lk 0 raw 968 dmg 236 next 104341991
+227 A 667 366-1087c cr 815 x18778 lk 356 pen 0 missile | AC 739 DR 0 dg 0 pa 0 df 0 sh -36 fx [2109/100/-] adr 103 adj
+    => hit hit 4744 lk 320 raw 921 dmg 921 next 2665850837
+228 A 1753 468-1238e cr 1994 x18122 lk 452 pen 2786 melee | AC 110 DR 0 dg 0 pa 1884 df 1850 sh 119 fx [9818/100/- 3167/100/393-604e] adr 247 adj
+    => parried hit 9410 lk 571 raw 0 dmg 0 [stun 100 dmg 0] next 4065317007
+229 A 1693 314-996s cr 1623 x20280 lk 472 pen 0 missile | AC 1299 DR 272 dg 2294 pa 166 df 1760 sh -38 fx [5713/0/459-985e] adr 188 adj
+    => missed hit 5658 lk 434 raw 0 dmg 0 next 293204754
+230 A 1118 283-377e cr 1589 x17387 lk 423 pen 1618 bolt | AC 1470 DR 0 dg 1033 pa 6395 df 3896 sh -10 fx [3474/100/371-788c 3256/100/145-1033e] adr 147 adj
+    => missed hit 4320 lk 413 raw 0 dmg 0 next 1881793152
+231 A 2720 284-1170c cr 934 x18867 lk 256 pen 0 missile | AC 1425 DR 0 dg 0 pa 6554 df 0 sh 112 fx [] adr 260 adj
+    => hit hit 6562 lk 368 raw 628 dmg 628 next 3329550031
+232 A 1406 303-1037c cr 107 x24661 lk 166 pen 0 melee | AC 7 DR 0 dg 2190 pa 0 df 1772 sh -221 fx [3253/0/-] adr 219 adj
+    => dodged hit 9929 lk 0 raw 0 dmg 0 next 3336344887
+233 A 2561 299-599s cr 1556 x22497 lk 395 pen 2423 missile | AC 111 DR 0 dg 0 pa 4374 df 0 sh -297 fx [] adr 137 adj
+    => hit hit 9585 lk 98 raw 376 dmg 376 next 3057430208
+234 A 1096 301-755e cr 718 x19852 lk 275 pen 0 bolt | AC 1036 DR 3 dg 1449 pa 0 df 211 sh 297 fx [2531/0/318-755s 434/0/361-1019e] adr 29 adj
+    => hit hit 5141 lk 572 raw 499 dmg 496 next 171763645
+235 A 2410 227-957s cr 1597 x20006 lk 282 pen 0 melee | AC 1190 DR 0 dg 2734 pa 0 df 2393 sh 144 fx [7211/0/382-1294c 6353/100/302-886c] adr 27 adj
+    => hit hit 6694 lk 426 raw 457 dmg 457 next 82730309
+236 A 2128 300-442s cr 1700 x20383 lk 387 pen 0 melee | AC 1470 DR 0 dg 2792 pa 0 df 0 sh -20 fx [227/0/- 4511/100/214-252c] adr 69 adj
+    => missed hit 5914 lk 367 raw 0 dmg 0 next 330969021
+237 A 1108 7-214c cr 40 x18546 lk 339 pen 0 bolt | AC 396 DR 0 dg 0 pa 0 df 0 sh -245 fx [4064/0/- 6129/100/-] adr 297 far
+    => hit hit 7367 lk 94 raw 105 dmg 105 next 2503165358
+238 A 1880 3-964c cr 1909 x16079 lk 195 pen 0 melee | AC 535 DR 428 dg 0 pa 0 df 0 sh 7 fx [4034/100/30-377c 2939/100/454-980s] adr 44 adj
+    => hit hit 7785 lk 202 raw 516 dmg 103 next 941437410
+239 A 371 487-1287c cr 119 x18105 lk 333 pen 0 missile | AC 168 DR 0 dg 0 pa 0 df 3833 sh -187 fx [3110/100/- 7583/100/-] adr 103 adj
+    => hit hit 6883 lk 146 raw 668 dmg 668 next 3059570030
+240 A 2213 293-739s cr 505 x24792 lk 406 pen 0 bolt | AC 802 DR 0 dg 2317 pa 0 df 312 sh -286 fx [8287/100/107-671c] adr 20 adj
+    => hit hit 7340 lk 120 raw 605 dmg 605 next 71634700
+241 A 1378 24-660e cr 466 x15735 lk 375 pen 0 bolt | AC 1112 DR 0 dg 2397 pa 1301 df 0 sh 67 fx [9477/0/107-270e 9319/0/-] adr 189 adj
+    => missed hit 5534 lk 442 raw 0 dmg 0 next 3852987046
+242 A 2094 494-578e cr 823 x16232 lk 480 pen 0 melee | AC 58 DR 177 dg 0 pa 495 df 0 sh -133 fx [] adr 293 far
+    => missed hit 9730 lk 347 raw 0 dmg 0 next 2279462843
+243 A 1273 100-914e cr 1752 x16669 lk 293 pen 1788 melee | AC 1411 DR 0 dg 0 pa 0 df 618 sh 62 fx [8526/100/389-945s 5659/0/-] adr 36 adj
+    => hit hit 4743 lk 355 raw 174 dmg 174 next 1307871625
+244 A 1061 499-887s cr 1239 x22039 lk 493 pen 2996 bolt | AC 1341 DR 0 dg 2466 pa 1271 df 0 sh 105 fx [1228/100/- 4074/100/232-989s] adr 283 adj
+    => hit hit 4417 lk 598 raw 624 dmg 624 next 3012839863
+245 A 470 217-1112e cr 344 x15079 lk 111 pen 0 melee | AC 938 DR 0 dg 141 pa 7790 df 1219 sh -70 fx [] adr 206 adj
+    => missed hit 3338 lk 41 raw 0 dmg 0 next 134916007
+246 A 1854 168-249c cr 54 x16209 lk 189 pen 0 bolt | AC 1167 DR 2 dg 0 pa 0 df 2272 sh 36 fx [5472/0/46-563s 1308/100/57-190e] adr 256 adj
+    => hit hit 6137 lk 225 raw 218 dmg 216 next 3975885328
+247 A 1248 104-241c cr 553 x24597 lk 222 pen 0 melee | AC 71 DR 0 dg 0 pa 0 df 0 sh 21 fx [] adr 194 adj
+    => hit hit 9462 lk 243 raw 124 dmg 124 next 2871631800
+248 A 822 405-1219s cr 273 x24533 lk 479 pen 4479 bolt | AC 410 DR 0 dg 2258 pa 2475 df 0 sh 170 fx [3428/100/94-1033c] adr 151 adj
+    => hit hit 6672 lk 649 raw 586 dmg 586 next 274343303
+249 A 447 212-667e cr 1818 x19113 lk 362 pen 0 missile | AC 39 DR 663 dg 851 pa 6023 df 0 sh 259 fx [2531/0/- 5849/100/-] adr 245 far
+    => dodged hit 9198 lk 621 raw 0 dmg 0 next 2852409972
+250 A 368 316-905c cr 1088 x16185 lk 318 pen 0 bolt | AC 1007 DR 0 dg 2730 pa 3266 df 0 sh 246 fx [1603/100/424-632s 6915/0/357-583s] adr 142 adj
+    => missed hit 2676 lk 564 raw 0 dmg 0 next 3455728223
+251 A 754 307-469c cr 1484 x20962 lk 167 pen 0 melee | AC 1482 DR 0 dg 2084 pa 1536 df 2898 sh 179 fx [] adr 97 adj
+    => missed hit 3372 lk 346 raw 0 dmg 0 next 1484859942
+252 A 2179 413-1076s cr 1014 x16725 lk 138 pen 0 bolt | AC 224 DR 30 dg 0 pa 2886 df 0 sh -133 fx [] adr 143 adj
+    => hit hit 9068 lk 5 raw 720 dmg 682 next 3352469204
+253 A 671 451-1399e cr 689 x19118 lk 116 pen 2347 missile | AC 15 DR 0 dg 2666 pa 1756 df 0 sh -256 fx [2389/100/- 1940/100/-] adr 169 far
+    => hit hit 9781 lk 0 raw 755 dmg 755 next 206468275
+254 A 2655 56-291s cr 140 x17087 lk 217 pen 102 missile | AC 1179 DR 0 dg 2958 pa 7874 df 3569 sh -84 fx [] adr 248 adj
+    => hit hit 6925 lk 133 raw 145 dmg 145 next 950522327
+255 A 1048 148-823c cr 1878 x21839 lk 185 pen 0 melee | AC 1460 DR 0 dg 2380 pa 1285 df 2048 sh -234 fx [341/100/45-911c] adr 29 adj
+    => missed hit 4179 lk 0 raw 0 dmg 0 next 42804724
+256 A 813 151-860e cr 1126 x17278 lk 212 pen 0 melee | AC 683 DR 0 dg 423 pa 0 df 569 sh -220 fx [6526/0/-] adr 84 far
+    => hit hit 5434 lk 0 raw 705 dmg 705 next 3139803424
+257 A 1936 446-1350c cr 1331 x15237 lk 466 pen 4630 bolt | AC 534 DR 0 dg 2146 pa 0 df 3600 sh 278 fx [5717/100/223-933s] adr 95 adj
+    => hit hit 7838 lk 744 raw 606 dmg 606 next 828976235
+258 A 1486 375-757s cr 1982 x16944 lk 393 pen 0 bolt | AC 1400 DR 0 dg 0 pa 2003 df 0 sh -262 fx [1979/100/214-672c 1451/100/447-1418s] adr 262 far
+    => hit hit 5149 lk 131 raw 447 dmg 447 next 3457353327
+259 A 955 444-767e cr 383 x15298 lk 308 pen 0 bolt | AC 561 DR 517 dg 1175 pa 0 df 0 sh 194 fx [] adr 285 adj
+    => missed hit 6299 lk 502 raw 0 dmg 0 next 2422075367
+260 A 1654 240-447e cr 1222 x18419 lk 443 pen 3115 bolt | AC 1293 DR 0 dg 2237 pa 3949 df 165 sh 88 fx [7472/0/-] adr 127 adj
+    => missed hit 5612 lk 531 raw 0 dmg 0 next 3817222242
+261 A 1200 2-642c cr 1938 x17789 lk 195 pen 4220 bolt | AC 1471 DR 0 dg 0 pa 5919 df 0 sh -273 fx [3395/100/- 4729/100/217-782s] adr 172 far
+    => missed hit 4493 lk 0 raw 0 dmg 0 next 438466705
+262 A 1290 44-53e cr 1536 x19530 lk 135 pen 0 bolt | AC 991 DR 0 dg 0 pa 0 df 0 sh 274 fx [5706/100/-] adr 166 adj
+    => hit hit 5655 lk 409 raw 46 dmg 46 next 2840600329
+263 A 1253 270-459c cr 1772 x18248 lk 491 pen 0 melee | AC 259 DR 0 dg 0 pa 0 df 3344 sh -272 fx [5617/100/- 4953/0/231-1151c] adr 270 adj
+    => hit crit hit 8287 lk 219 raw 593 dmg 593 next 1704934299
+264 A 748 28-33s cr 902 x15534 lk 217 pen 0 melee | AC 767 DR 0 dg 971 pa 6273 df 0 sh -199 fx [] adr 146 adj
+    => missed hit 4937 lk 18 raw 0 dmg 0 next 1772157944
+265 A 1581 210-663s cr 1034 x17300 lk 436 pen 0 bolt | AC 279 DR 399 dg 0 pa 0 df 622 sh -114 fx [] adr 230 far
+    => hit hit 8500 lk 322 raw 436 dmg 87 next 3870715496
+266 A 1062 453-719c cr 352 x24873 lk 371 pen 800 melee | AC 478 DR 230 dg 2213 pa 0 df 0 sh 109 fx [] adr 140 far
+    => missed hit 6896 lk 480 raw 0 dmg 0 next 552632054
+267 A 1540 376-1248c cr 917 x15187 lk 103 pen 0 melee | AC 1136 DR 361 dg 1732 pa 0 df 0 sh -284 fx [] adr 281 adj
+    => hit hit 5755 lk 0 raw 990 dmg 620 next 4010941098
+268 A 1817 204-276s cr 1088 x16815 lk 438 pen 2960 bolt | AC 808 DR 0 dg 739 pa 2426 df 0 sh 218 fx [5066/100/30-49s 6985/100/-] adr 75 adj
+    => missed hit 6922 lk 656 raw 0 dmg 0 next 3381551194
+269 A 1678 495-747c cr 1202 x18137 lk 124 pen 0 missile | AC 954 DR 0 dg 1521 pa 0 df 299 sh 223 fx [] adr 119 adj
+    => deflected lucky crit hit 6375 lk 347 raw 1101 dmg 1101 next 3793141897
+270 A 1749 273-544e cr 373 x17202 lk 473 pen 0 bolt | AC 570 DR 295 dg 0 pa 7178 df 0 sh 96 fx [] adr 275 adj
+    => hit hit 7542 lk 569 raw 441 dmg 109 next 3742906424
+271 A 1403 373-1227e cr 291 x19017 lk 304 pen 4642 bolt | AC 1246 DR 575 dg 2259 pa 324 df 1749 sh -97 fx [6142/0/189-678e] adr 116 adj
+    => missed hit 5296 lk 207 raw 0 dmg 0 next 702790508
+272 A 1779 247-403c cr 1066 x23742 lk 281 pen 0 bolt | AC 930 DR 0 dg 562 pa 2656 df 0 sh -126 fx [7053/100/- 6185/100/483-986e] adr 215 adj
+    => missed hit 6567 lk 155 raw 0 dmg 0 next 1220459463
+273 A 2605 325-580e cr 152 x22399 lk 233 pen 0 missile | AC 904 DR 0 dg 326 pa 2085 df 1939 sh -132 fx [487/100/416-912s] adr 299 adj
+    => missed hit 7424 lk 101 raw 0 dmg 0 next 370768416
+274 A 542 160-569e cr 1017 x22700 lk 485 pen 0 melee | AC 1271 DR 0 dg 0 pa 4597 df 2130 sh 11 fx [4916/100/- 912/0/206-928e] adr 81 adj
+    => missed hit 2990 lk 496 raw 0 dmg 0 next 2373763830
+275 A 455 307-1281s cr 1388 x20172 lk 447 pen 0 bolt | AC 590 DR 0 dg 2764 pa 0 df 2098 sh -291 fx [5570/100/-] adr 28 adj
+    => hit hit 4354 lk 156 raw 658 dmg 658 next 2898967721
+276 A 1333 478-943s cr 1329 x23041 lk 336 pen 0 missile | AC 645 DR 628 dg 443 pa 1352 df 0 sh -15 fx [3974/0/- 6159/0/-] adr 251 adj
+    => hit hit 6739 lk 321 raw 872 dmg 419 next 3481769806
+277 A 625 407-661s cr 423 x15312 lk 367 pen 0 bolt | AC 1319 DR 361 dg 0 pa 2083 df 587 sh 153 fx [] adr 284 adj
+    => missed hit 3215 lk 520 raw 0 dmg 0 next 841895851
+278 A 2457 27-572c cr 392 x17306 lk 107 pen 0 missile | AC 1222 DR 322 dg 1019 pa 7495 df 0 sh -165 fx [6493/100/260-602e] adr 23 far
+    => hit hit 6678 lk 0 raw 377 dmg 184 next 1150530210
+279 A 386 48-186c cr 188 x18383 lk 179 pen 0 melee | AC 199 DR 746 dg 2340 pa 0 df 0 sh 210 fx [8290/0/492-1056s 508/0/-] adr 135 adj
+    => missed hit 6598 lk 389 raw 0 dmg 0 next 1951677455
+280 A 754 12-584c cr 1482 x21520 lk 422 pen 3097 melee | AC 742 DR 0 dg 979 pa 0 df 2054 sh -289 fx [3144/0/- 2774/100/-] adr 133 adj
+    => dodged hit 5040 lk 133 raw 0 dmg 0 next 2178654867
+281 A 1502 466-540c cr 1381 x20564 lk 101 pen 1635 bolt | AC 1198 DR 14 dg 0 pa 0 df 1806 sh -8 fx [] adr 21 far
+    => missed hit 5563 lk 93 raw 0 dmg 0 next 353783737
+282 A 642 475-1467s cr 1001 x24059 lk 138 pen 0 bolt | AC 967 DR 0 dg 0 pa 0 df 3368 sh -34 fx [1652/0/269-1094s 9623/0/-] adr 81 adj
+    => missed hit 3990 lk 104 raw 0 dmg 0 next 3096827553
+283 A 2293 389-1084c cr 975 x17083 lk 425 pen 3384 melee | AC 812 DR 328 dg 787 pa 0 df 55 sh 134 fx [8191/100/212-1023e] adr 247 adj
+    => missed hit 7385 lk 559 raw 0 dmg 0 next 32315601
+284 A 1475 305-682s cr 1420 x19424 lk 110 pen 0 bolt | AC 393 DR 0 dg 0 pa 0 df 0 sh -288 fx [7324/0/- 2258/0/-] adr 268 adj
+    => hit hit 7896 lk 0 raw 495 dmg 495 next 1987914008
+285 A 391 280-361s cr 947 x19175 lk 397 pen 0 melee | AC 244 DR 0 dg 0 pa 0 df 0 sh -14 fx [] adr 86 adj
+    => hit hit 6157 lk 383 raw 300 dmg 300 next 950701843
+286 A 1710 200-982s cr 542 x15433 lk 179 pen 0 missile | AC 959 DR 0 dg 0 pa 0 df 2939 sh -58 fx [4733/0/- 2060/0/185-302s] adr 268 adj
+    => hit hit 6407 lk 121 raw 488 dmg 488 next 3211159567
+287 A 2781 199-928e cr 1203 x15500 lk 444 pen 297 bolt | AC 324 DR 0 dg 1528 pa 0 df 0 sh 242 fx [9557/100/104-796c 7003/100/-] adr 63 adj
+    => missed hit 8957 lk 686 raw 0 dmg 0 next 463388356
+288 A 1331 444-1025e cr 852 x21560 lk 443 pen 0 bolt | AC 1307 DR 0 dg 1535 pa 0 df 0 sh -70 fx [] adr 145 adj
+    => hit hit 5045 lk 373 raw 950 dmg 950 next 3275852952
+289 A 304 191-340s cr 410 x18106 lk 106 pen 0 bolt | AC 121 DR 381 dg 1074 pa 1795 df 0 sh 136 fx [8902/100/133-974e 1151/0/-] adr 183 adj
+    => missed hit 7153 lk 242 raw 0 dmg 0 next 2150800344
+290 A 1979 261-1125c cr 631 x22823 lk 289 pen 105 bolt | AC 1212 DR 0 dg 1801 pa 1799 df 0 sh -276 fx [9380/0/98-372e 1634/0/-] adr 39 adj
+    => hit hit 6202 lk 13 raw 769 dmg 769 next 1253949541
+291 A 958 74-872s cr 1182 x16172 lk 248 pen 0 bolt | AC 232 DR 0 dg 294 pa 5432 df 2326 sh -130 fx [9221/0/76-899e] adr 2 far
+    => hit hit 8050 lk 118 raw 371 dmg 371 next 628947751
+292 A 1973 152-813c cr 926 x19735 lk 468 pen 0 missile | AC 495 DR 0 dg 0 pa 0 df 3461 sh -205 fx [] adr 195 adj
+    => missed hit 7994 lk 263 raw 0 dmg 0 next 724220373
+293 A 2447 203-1093e cr 832 x21048 lk 464 pen 3389 missile | AC 761 DR 685 dg 641 pa 3303 df 2478 sh 265 fx [] adr 175 adj
+    => missed hit 7628 lk 729 raw 0 dmg 0 next 4274348945
+294 A 1448 60-984c cr 332 x15699 lk 126 pen 1228 melee | AC 929 DR 0 dg 0 pa 0 df 0 sh -20 fx [9102/0/- 1040/0/-] adr 102 far
+    => hit hit 6092 lk 106 raw 830 dmg 830 next 3669476345
+295 A 1968 433-738e cr 1636 x24452 lk 492 pen 0 missile | AC 743 DR 374 dg 2597 pa 0 df 2742 sh -300 fx [] adr 35 adj
+    => missed hit 7259 lk 192 raw 0 dmg 0 next 3550277126
+296 A 1924 236-651s cr 959 x22584 lk 424 pen 154 melee | AC 734 DR 0 dg 0 pa 0 df 66 sh -143 fx [5573/100/- 9959/0/79-497e] adr 202 far
+    => missed hit 7239 lk 281 raw 0 dmg 0 next 3925229806
+297 A 2073 467-1445c cr 1294 x21980 lk 216 pen 513 melee | AC 373 DR 0 dg 2465 pa 201 df 3723 sh 178 fx [2496/100/- 3711/0/-] adr 294 adj
+    => hit hit 8475 lk 394 raw 936 dmg 936 next 690085243
+298 A 2787 445-1334s cr 632 x19672 lk 365 pen 0 bolt | AC 294 DR 0 dg 1257 pa 693 df 363 sh -127 fx [5586/100/306-1184e] adr 226 adj
+    => hit hit 9046 lk 238 raw 698 dmg 698 next 2753107454
+299 A 2212 94-715e cr 311 x21159 lk 266 pen 0 melee | AC 203 DR 424 dg 0 pa 0 df 877 sh -167 fx [] adr 279 adj
+    => hit hit 9159 lk 99 raw 207 dmg 41 next 2753782952
+300 A 1713 180-809c cr 1461 x17292 lk 334 pen 0 bolt | AC 412 DR 0 dg 1481 pa 4661 df 1306 sh -251 fx [] adr 248 adj
+    => hit hit 8061 lk 83 raw 295 dmg 295 next 1523599932
+301 A 1862 470-797c cr 457 x22911 lk 131 pen 0 missile | AC 1240 DR 0 dg 0 pa 0 df 0 sh -295 fx [2703/100/-] adr 141 adj
+    => missed hit 6003 lk 0 raw 0 dmg 0 next 47854692
+302 A 1339 90-198s cr 168 x16701 lk 237 pen 0 melee | AC 13 DR 327 dg 0 pa 0 df 497 sh -255 fx [] adr 222 far
+    => hit hit 9904 lk 0 raw 114 dmg 23 next 2738120366
+303 A 1329 238-604c cr 603 x16046 lk 495 pen 0 bolt | AC 1341 DR 0 dg 0 pa 5312 df 1372 sh 266 fx [6275/0/239-1151c 9268/0/-] adr 141 far
+    => missed hit 4978 lk 761 raw 0 dmg 0 next 3990698031
+304 A 791 406-545c cr 350 x24731 lk 457 pen 0 melee | AC 214 DR 788 dg 2031 pa 0 df 0 sh 92 fx [3259/0/140-918s 4940/0/108-794s] adr 272 adj
+    => hit hit 7871 lk 549 raw 538 dmg 108 next 2214951581
+305 A 1571 297-1011s cr 123 x21026 lk 496 pen 501 bolt | AC 160 DR 0 dg 869 pa 0 df 1123 sh 283 fx [] adr 298 far
+    => hit hit 9076 lk 779 raw 772 dmg 772 next 1305039719
+306 A 1185 244-493c cr 775 x19908 lk 486 pen 0 missile | AC 241 DR 0 dg 1097 pa 6991 df 0 sh 123 fx [1704/0/358-387s] adr 229 adj
+    => hit hit 8310 lk 609 raw 425 dmg 425 next 2386236268
+307 A 1185 199-982s cr 846 x19797 lk 399 pen 0 missile | AC 1364 DR 0 dg 0 pa 0 df 443 sh -257 fx [718/100/-] adr 51 adj
+    => missed hit 4649 lk 142 raw 0 dmg 0 next 1785155615
+308 A 374 149-624c cr 1488 x16000 lk 428 pen 0 melee | AC 1003 DR 0 dg 1081 pa 4535 df 3300 sh 33 fx [] adr 108 adj
+    => hit hit 2716 lk 461 raw 467 dmg 467 next 666849203
+309 A 1247 267-504s cr 1527 x21880 lk 274 pen 0 bolt | AC 630 DR 0 dg 0 pa 3600 df 602 sh 214 fx [] adr 298 adj
+    => hit hit 6644 lk 488 raw 398 dmg 398 next 1855051839
+310 A 876 262-711s cr 723 x15161 lk 161 pen 0 missile | AC 604 DR 0 dg 449 pa 3773 df 3735 sh 84 fx [8266/0/- 9701/100/25-877e] adr 161 adj
+    => missed hit 5919 lk 245 raw 0 dmg 0 next 1580740870
+311 A 2596 304-453c cr 1069 x24895 lk 339 pen 0 missile | AC 320 DR 0 dg 1234 pa 4301 df 0 sh -129 fx [] adr 210 adj
+    => missed hit 8903 lk 210 raw 0 dmg 0 next 2144227377
+312 A 1536 25-336e cr 1220 x17708 lk 320 pen 1424 bolt | AC 944 DR 0 dg 0 pa 1158 df 0 sh 60 fx [] adr 74 adj
+    => hit hit 6194 lk 380 raw 274 dmg 274 next 482467387
+313 A 2792 428-916c cr 441 x24465 lk 198 pen 0 melee | AC 1317 DR 0 dg 0 pa 1593 df 324 sh -147 fx [7605/0/- 1302/100/-] adr 46 adj
+    => hit hit 6795 lk 51 raw 674 dmg 674 next 1414213073
+314 A 1777 168-932s cr 713 x17891 lk 313 pen 0 missile | AC 1280 DR 0 dg 0 pa 0 df 3655 sh -279 fx [8700/0/- 4734/100/492-1084s] adr 37 adj
+    => missed hit 5813 lk 34 raw 0 dmg 0 next 720029984
+315 A 520 461-792s cr 1745 x23411 lk 439 pen 0 bolt | AC 287 DR 0 dg 0 pa 0 df 0 sh 245 fx [7481/0/420-871c 7934/0/-] adr 24 adj
+    => hit hit 6444 lk 684 raw 694 dmg 694 next 1648224672
+316 A 1641 445-1347c cr 744 x16735 lk 352 pen 2779 missile | AC 276 DR 701 dg 1920 pa 3493 df 2055 sh -171 fx [8515/100/312-963e] adr 184 adj
+    => hit hit 8560 lk 181 raw 1032 dmg 649 next 2643608002
+317 A 1135 89-385c cr 480 x16141 lk 406 pen 0 melee | AC 653 DR 0 dg 1423 pa 0 df 3558 sh -21 fx [376/0/- 6597/100/-] adr 187 far
+    => hit crit hit 6348 lk 385 raw 236 dmg 236 next 846946951
+318 A 990 77-340s cr 1608 x18151 lk 379 pen 0 bolt | AC 1164 DR 0 dg 0 pa 0 df 10 sh -230 fx [] adr 162 adj
+    => missed hit 4596 lk 149 raw 0 dmg 0 next 3985830757
+319 A 324 241-1017c cr 1690 x15429 lk 189 pen 0 bolt | AC 825 DR 0 dg 0 pa 0 df 2299 sh -226 fx [5239/100/143-675e 9920/100/37-669s] adr 138 far
+    => hit crit hit 2820 lk 0 raw 1325 dmg 1325 next 3857146777
+320 A 1731 296-370s cr 603 x24980 lk 199 pen 0 bolt | AC 95 DR 0 dg 2953 pa 1109 df 1487 sh -277 fx [2455/100/196-740e] adr 225 adj
+    => hit hit 9480 lk 0 raw 328 dmg 328 next 3141342847
+321 A 2093 485-1386e cr 499 x18525 lk 102 pen 0 missile | AC 982 DR 0 dg 0 pa 0 df 0 sh 87 fx [1357/100/- 7868/100/193-921s] adr 33 adj
+    => hit hit 6807 lk 189 raw 996 dmg 996 next 1663817717
+322 A 616 483-889s cr 318 x22108 lk 112 pen 0 missile | AC 1218 DR 0 dg 0 pa 0 df 0 sh 262 fx [9995/0/-] adr 133 far
+    => missed hit 3359 lk 374 raw 0 dmg 0 next 3771895102
+323 A 528 2-513c cr 576 x19323 lk 424 pen 4261 bolt | AC 466 DR 231 dg 0 pa 0 df 2843 sh -79 fx [577/0/-] adr 123 far
+    => hit hit 5312 lk 345 raw 412 dmg 297 next 3434118057
+324 A 1771 34-396s cr 1205 x19231 lk 373 pen 0 bolt | AC 32 DR 0 dg 1477 pa 0 df 228 sh -46 fx [] adr 107 adj
+    => hit hit 9823 lk 327 raw 160 dmg 160 next 2960843625
+325 A 2043 38-312c cr 1257 x22669 lk 133 pen 1340 melee | AC 1237 DR 0 dg 0 pa 364 df 0 sh 272 fx [] adr 60 adj
+    => missed hit 6229 lk 405 raw 0 dmg 0 next 4149101325
+326 A 1224 209-624e cr 73 x20380 lk 136 pen 2645 missile | AC 85 DR 0 dg 0 pa 3166 df 1378 sh 167 fx [] adr 89 far
+    => hit hit 9351 lk 303 raw 270 dmg 270 next 3219786165
+327 A 1559 116-1051e cr 1880 x21577 lk 251 pen 0 melee | AC 1239 DR 0 dg 763 pa 4881 df 0 sh -63 fx [] adr 230 adj
+    => hit hit 5572 lk 188 raw 386 dmg 386 next 1854349079
+328 A 1306 288-1165c cr 738 x15346 lk 395 pen 0 melee | AC 591 DR 0 dg 0 pa 3099 df 3156 sh -186 fx [9820/0/36-643e] adr 195 adj
+    => parried hit 6885 lk 209 raw 0 dmg 0 [stun 0 dmg 61] next 886042566
+329 A 2705 116-668s cr 1703 x24650 lk 461 pen 0 melee | AC 1255 DR 0 dg 0 pa 5671 df 0 sh 86 fx [6331/100/295-725e] adr 223 adj
+    => missed hit 6831 lk 547 raw 0 dmg 0 next 3965011015
+330 A 1904 211-716c cr 1296 x18942 lk 266 pen 3422 bolt | AC 630 DR 0 dg 0 pa 669 df 0 sh -204 fx [] adr 211 adj
+    => hit hit 7514 lk 62 raw 436 dmg 436 next 2793222505
+331 A 1427 375-794c cr 1818 x15584 lk 288 pen 4958 melee | AC 270 DR 48 dg 0 pa 4597 df 1814 sh 245 fx [7825/0/-] adr 198 adj
+    => hit hit 8409 lk 533 raw 584 dmg 562 next 1539783961
+332 A 1552 348-1278c cr 1553 x19930 lk 206 pen 0 melee | AC 897 DR 0 dg 0 pa 1401 df 0 sh 280 fx [2732/0/-] adr 117 adj
+    => missed hit 6337 lk 486 raw 0 dmg 0 next 1353998993
+333 A 1344 201-326c cr 126 x17038 lk 433 pen 0 missile | AC 259 DR 0 dg 166 pa 5178 df 0 sh 167 fx [] adr 291 adj
+    => hit hit 8384 lk 600 raw 259 dmg 259 next 1307593911
+334 A 2635 367-1241c cr 1118 x18708 lk 281 pen 0 bolt | AC 1153 DR 0 dg 0 pa 5008 df 490 sh -97 fx [7717/0/332-471c] adr 216 far
+    => missed hit 6956 lk 184 raw 0 dmg 0 next 1894835927
+335 A 1075 79-806s cr 1432 x17510 lk 327 pen 0 missile | AC 595 DR 21 dg 2752 pa 0 df 2689 sh 198 fx [] adr 253 adj
+    => missed hit 6437 lk 525 raw 0 dmg 0 next 3970934247
+336 A 447 214-992e cr 374 x21225 lk 126 pen 0 melee | AC 47 DR 0 dg 0 pa 7974 df 0 sh -90 fx [7633/0/385-1229s 3308/0/-] adr 146 adj
+    => parried hit 9049 lk 36 raw 0 dmg 0 [stun 0 dmg 498] [stun 0 dmg 0] next 4035686099
+337 A 1663 92-415s cr 496 x22606 lk 426 pen 0 missile | AC 28 DR 0 dg 0 pa 0 df 0 sh 228 fx [2467/100/300-584c] adr 244 far
+    => hit hit 9834 lk 654 raw 280 dmg 280 next 2279085004
+338 A 1871 61-484c cr 1563 x23559 lk 113 pen 0 melee | AC 507 DR 707 dg 189 pa 1693 df 778 sh 39 fx [53/100/-] adr 10 adj
+    => hit crit hit 7868 lk 152 raw 803 dmg 161 next 19616496
+339 A 2740 227-368s cr 1304 x21190 lk 416 pen 0 melee | AC 313 DR 556 dg 688 pa 617 df 178 sh -253 fx [] adr 53 adj
+    => missed hit 8975 lk 163 raw 0 dmg 0 next 1624040611
+340 A 442 418-1040e cr 1400 x20663 lk 333 pen 2141 bolt | AC 1229 DR 0 dg 0 pa 3577 df 2884 sh -152 fx [8771/0/-] adr 75 far
+    => hit hit 2645 lk 181 raw 596 dmg 596 next 1582739546
+341 A 2754 166-805e cr 1148 x15191 lk 194 pen 0 bolt | AC 814 DR 0 dg 0 pa 0 df 0 sh 161 fx [7395/100/- 2169/100/-] adr 128 adj
+    => hit hit 7719 lk 355 raw 766 dmg 766 next 3600669316
+342 A 641 498-1405c cr 736 x18337 lk 439 pen 0 melee | AC 1377 DR 0 dg 2460 pa 1174 df 0 sh -36 fx [9572/100/150-363c] adr 296 far
+    => missed hit 3176 lk 403 raw 0 dmg 0 next 2033606600
+343 A 1223 24-415c cr 14 x23566 lk 145 pen 0 bolt | AC 1365 DR 0 dg 1195 pa 1995 df 0 sh 127 fx [] adr 99 adj
+    => missed hit 4726 lk 272 raw 0 dmg 0 next 3420773516
+344 A 2554 219-998s cr 1728 x19701 lk 294 pen 0 missile | AC 247 DR 0 dg 2467 pa 7669 df 0 sh 200 fx [2632/0/167-388s 937/0/10-504e] adr 269 adj
+    => dodged hit 9118 lk 494 raw 0 dmg 0 next 402357681
+345 A 764 1-401e cr 1088 x15638 lk 355 pen 0 bolt | AC 1458 DR 251 dg 2672 pa 1506 df 1801 sh 46 fx [8707/0/-] adr 75 adj
+    => missed hit 3438 lk 401 raw 0 dmg 0 next 889232940
+346 A 2694 488-778s cr 1263 x22453 lk 418 pen 0 bolt | AC 1466 DR 553 dg 882 pa 0 df 0 sh 18 fx [757/100/- 3727/100/-] adr 133 adj
+    => hit crit hit 6476 lk 436 raw 1273 dmg 778 next 1510162442
+347 A 1342 444-1417e cr 1355 x23377 lk 481 pen 0 melee | AC 517 DR 0 dg 2388 pa 0 df 75 sh 213 fx [] adr 240 adj
+    => missed hit 7219 lk 694 raw 0 dmg 0 next 2274261570
+348 A 2526 96-752s cr 924 x24677 lk 119 pen 0 missile | AC 607 DR 0 dg 2630 pa 0 df 0 sh -52 fx [9810/0/58-553c 7420/0/-] adr 83 adj
+    => hit hit 8063 lk 67 raw 304 dmg 304 next 3799119828
+349 A 1845 105-1059c cr 1785 x15495 lk 206 pen 0 melee | AC 241 DR 503 dg 0 pa 5858 df 3185 sh -68 fx [7114/0/- 6677/0/-] adr 199 far
+    => hit crit hit 8845 lk 138 raw 868 dmg 237 next 138025127
+350 A 2673 3-767c cr 347 x17950 lk 243 pen 1648 bolt | AC 391 DR 0 dg 2375 pa 5166 df 0 sh -40 fx [] adr 64 adj
+    => hit hit 8724 lk 203 raw 263 dmg 263 next 1256857532
+351 A 2639 153-975s cr 1913 x17388 lk 288 pen 0 bolt | AC 725 DR 568 dg 467 pa 1702 df 0 sh -112 fx [] adr 135 adj
+    => hit hit 7845 lk 176 raw 852 dmg 558 next 1977974019
+352 A 1894 10-294c cr 40 x15216 lk 104 pen 3465 melee | AC 1262 DR 0 dg 0 pa 0 df 0 sh 155 fx [2160/100/283-1094s 9380/100/139-976s] adr 218 adj
+    => missed hit 6001 lk 259 raw 0 dmg 0 next 2574008013
+353 A 671 476-485s cr 1107 x17029 lk 245 pen 4759 bolt | AC 604 DR 0 dg 0 pa 390 df 308 sh -266 fx [] adr 27 adj
+    => hit hit 5263 lk 0 raw 479 dmg 479 next 3252602307
+354 A 1348 35-923e cr 123 x17644 lk 336 pen 0 melee | AC 269 DR 0 dg 0 pa 6435 df 3431 sh 201 fx [6640/0/495-1464e 9739/0/-] adr 283 far
+    => missed hit 8336 lk 537 raw 0 dmg 0 next 2279325280
+355 A 647 261-562e cr 170 x15131 lk 246 pen 0 missile | AC 470 DR 0 dg 1551 pa 0 df 3955 sh -156 fx [] adr 187 far
+    => missed hit 5792 lk 90 raw 0 dmg 0 next 2605008890
+356 A 1192 121-916e cr 1047 x15466 lk 250 pen 0 missile | AC 1027 DR 0 dg 72 pa 0 df 2356 sh 175 fx [] adr 269 adj
+    => missed hit 5372 lk 425 raw 0 dmg 0 next 3335432960
+357 A 1383 132-647c cr 1908 x16226 lk 151 pen 0 bolt | AC 767 DR 0 dg 2364 pa 0 df 3921 sh 284 fx [] adr 198 adj
+    => hit hit 6433 lk 435 raw 357 dmg 357 next 2135856702
+358 A 2314 452-1289e cr 1142 x17192 lk 301 pen 0 bolt | AC 509 DR 0 dg 0 pa 0 df 0 sh -81 fx [1648/0/417-988s] adr 88 far
+    => hit hit 8197 lk 220 raw 741 dmg 741 next 2785294708
+359 A 2539 140-876s cr 1394 x19794 lk 275 pen 3521 melee | AC 51 DR 0 dg 241 pa 4214 df 0 sh -147 fx [6366/100/-] adr 85 adj
+    => parried hit 9803 lk 128 raw 0 dmg 0 next 2707678450
+360 A 1632 59-72c cr 1028 x15769 lk 234 pen 0 bolt | AC 475 DR 0 dg 0 pa 6428 df 0 sh 11 fx [8106/0/-] adr 12 adj
+    => hit hit 7746 lk 245 raw 67 dmg 67 next 3495106161
+361 A 2446 211-732c cr 1250 x17145 lk 247 pen 0 bolt | AC 1280 DR 618 dg 1982 pa 4438 df 2602 sh -226 fx [3570/0/454-1390e 5447/100/403-1056c] adr 73 far
+    => hit crit hit 6565 lk 21 raw 569 dmg 114 next 3103485270
+362 A 2304 139-583e cr 1867 x17331 lk 479 pen 0 missile | AC 1010 DR 0 dg 2877 pa 0 df 3334 sh -165 fx [4490/100/- 3932/100/-] adr 48 adj
+    => hit hit 6952 lk 314 raw 551 dmg 551 next 2123761444
+363 A 2023 368-1029s cr 864 x16117 lk 208 pen 0 missile | AC 613 DR 0 dg 2014 pa 7703 df 0 sh 175 fx [] adr 297 far
+    => hit hit 7675 lk 383 raw 550 dmg 550 next 2402863210
+364 A 353 257-489e cr 1094 x23078 lk 458 pen 0 missile | AC 310 DR 0 dg 0 pa 0 df 3718 sh -74 fx [6496/100/473-918e 1493/0/381-1191s] adr 95 far
+    => deflected hit 5324 lk 384 raw 0 dmg 0 next 3974306193
+365 A 626 478-812c cr 629 x17627 lk 401 pen 0 melee | AC 523 DR 0 dg 61 pa 2826 df 11 sh 156 fx [8292/100/-] adr 237 adj
+    => parried hit 5448 lk 557 raw 0 dmg 0 next 2557187525
+366 A 1611 83-724e cr 1845 x19471 lk 468 pen 0 bolt | AC 46 DR 0 dg 0 pa 0 df 0 sh 274 fx [3457/0/-] adr 20 far
+    => hit hit 9722 lk 742 raw 412 dmg 412 next 3831505885
+367 A 2066 494-887e cr 483 x24559 lk 199 pen 0 bolt | AC 962 DR 0 dg 2308 pa 0 df 0 sh -230 fx [] adr 119 adj
+    => hit hit 6823 lk 0 raw 765 dmg 765 next 4075096448
+368 A 668 469-484e cr 571 x18523 lk 102 pen 1850 bolt | AC 283 DR 776 dg 0 pa 4419 df 1798 sh -235 fx [] adr 21 far
+    => hit hit 7024 lk 0 raw 470 dmg 94 next 172937280
+369 A 2783 9-907e cr 2000 x20924 lk 391 pen 0 melee | AC 296 DR 789 dg 0 pa 4675 df 0 sh 202 fx [8254/0/375-469s 3490/100/-] adr 63 adj
+    => hit hit 9039 lk 593 raw 548 dmg 110 next 478045240
+370 A 2416 160-722e cr 1689 x23513 lk 152 pen 0 melee | AC 1288 DR 0 dg 0 pa 0 df 3716 sh 276 fx [5215/100/492-1204c 5531/0/-] adr 2 far
+    => hit hit 6523 lk 428 raw 521 dmg 521 next 2536311982
+371 A 2457 66-952e cr 1166 x20074 lk 180 pen 0 bolt | AC 112 DR 0 dg 1897 pa 6175 df 0 sh 31 fx [3698/0/297-1217e 446/0/271-1035s] adr 184 adj
+    => hit hit 9564 lk 211 raw 835 dmg 835 next 3267884878
+372 A 575 10-835s cr 1963 x22110 lk 473 pen 0 bolt | AC 260 DR 0 dg 2889 pa 0 df 66 sh -75 fx [965/0/-] adr 274 adj
+    => dodged hit 6886 lk 398 raw 0 dmg 0 next 934132378
+373 A 2349 285-1254s cr 602 x24317 lk 358 pen 0 melee | AC 228 DR 0 dg 0 pa 1121 df 2562 sh -27 fx [3356/0/- 9339/100/-] adr 157 adj
+    => hit hit 9115 lk 331 raw 1175 dmg 1175 next 2686422426
+374 A 2042 95-1001e cr 1858 x15400 lk 195 pen 0 bolt | AC 1326 DR 0 dg 931 pa 5713 df 2318 sh -74 fx [] adr 227 adj
+    => hit hit 6063 lk 121 raw 388 dmg 388 next 1953554917
+375 A 2118 357-1041c cr 1531 x20491 lk 417 pen 0 missile | AC 1072 DR 0 dg 0 pa 0 df 0 sh -171 fx [1625/100/323-474c] adr 37 adj
+    => missed hit 6639 lk 246 raw 0 dmg 0 next 4184747387
+376 A 2193 21-32c cr 971 x20339 lk 300 pen 641 melee | AC 152 DR 233 dg 0 pa 0 df 2449 sh 128 fx [] adr 147 adj
+    => hit hit 9352 lk 428 raw 30 dmg 6 next 2886699159
+377 A 490 128-379s cr 501 x22449 lk 476 pen 3036 missile | AC 1432 DR 442 dg 2463 pa 0 df 0 sh -126 fx [4081/0/397-881e] adr 45 far
+    => missed hit 2549 lk 350 raw 0 dmg 0 next 3883253338
+378 A 709 46-463s cr 967 x16288 lk 468 pen 0 bolt | AC 203 DR 0 dg 341 pa 0 df 475 sh -18 fx [] adr 17 far
+    => hit hit 7774 lk 450 raw 332 dmg 332 next 4153003559
+379 A 1439 42-949c cr 1023 x23350 lk 182 pen 0 missile | AC 1439 DR 0 dg 0 pa 1401 df 0 sh -234 fx [3008/100/- 6235/100/-] adr 242 far
+    => missed hit 5000 lk 0 raw 0 dmg 0 next 3197787781
+380 A 511 460-1044s cr 1065 x21136 lk 150 pen 0 missile | AC 180 DR 216 dg 0 pa 0 df 0 sh -220 fx [7800/0/-] adr 12 adj
+    => hit hit 7395 lk 0 raw 983 dmg 727 next 2042112433
+381 A 1516 98-567e cr 712 x20514 lk 436 pen 0 missile | AC 962 DR 0 dg 0 pa 0 df 2691 sh 18 fx [2878/100/- 7061/0/-] adr 299 far
+    => missed hit 6118 lk 454 raw 0 dmg 0 next 2148589069
+382 A 1040 231-658c cr 1041 x21262 lk 469 pen 0 missile | AC 1281 DR 67 dg 379 pa 2381 df 3035 sh -205 fx [9407/0/- 2946/0/-] adr 157 far
+    => missed hit 4481 lk 264 raw 0 dmg 0 next 2559977993
+383 A 1668 442-1001s cr 1359 x19772 lk 438 pen 0 missile | AC 646 DR 0 dg 0 pa 0 df 0 sh -69 fx [] adr 72 adj
+    => hit hit 7208 lk 369 raw 871 dmg 871 next 888741549
+384 A 2173 180-1089c cr 587 x19971 lk 416 pen 4078 bolt | AC 318 DR 0 dg 2894 pa 0 df 0 sh -262 fx [7755/0/- 9782/100/58-271c] adr 38 adj
+    => hit hit 8723 lk 154 raw 532 dmg 532 next 3059310236
+385 A 1254 182-705c cr 1574 x23283 lk 412 pen 2552 bolt | AC 840 DR 0 dg 0 pa 1712 df 0 sh -96 fx [] adr 192 adj
+    => missed hit 5989 lk 316 raw 0 dmg 0 next 3194691007
+386 A 860 132-463c cr 757 x15752 lk 301 pen 0 missile | AC 1224 DR 0 dg 0 pa 3200 df 0 sh -295 fx [] adr 279 far
+    => hit hit 4127 lk 6 raw 269 dmg 269 next 1154540946
+387 A 984 391-731c cr 403 x17990 lk 414 pen 322 melee | AC 38 DR 0 dg 2794 pa 7360 df 148 sh 271 fx [8821/100/272-1254s] adr 138 adj
+    => dodged hit 9628 lk 685 raw 0 dmg 0 next 2421594280
+388 A 2411 476-1097e cr 1053 x22463 lk 117 pen 0 bolt | AC 360 DR 0 dg 886 pa 0 df 0 sh 146 fx [] adr 25 adj
+    => hit hit 8701 lk 263 raw 731 dmg 731 next 3824913703
+389 A 1150 3-132e cr 805 x16462 lk 382 pen 3618 missile | AC 1356 DR 246 dg 1077 pa 5324 df 0 sh -81 fx [380/100/290-306e 779/0/-] adr 162 adj
+    => missed hit 4589 lk 301 raw 0 dmg 0 next 3054200467
+390 A 2638 255-1001s cr 928 x20233 lk 168 pen 4729 missile | AC 259 DR 583 dg 0 pa 7314 df 0 sh 90 fx [3497/100/-] adr 139 adj
+    => hit hit 9106 lk 258 raw 773 dmg 543 next 2449595195
+391 A 849 42-230c cr 687 x24856 lk 290 pen 0 missile | AC 177 DR 0 dg 0 pa 0 df 0 sh 270 fx [2641/0/-] adr 96 adj
+    => hit hit 8275 lk 560 raw 143 dmg 143 next 565019587
+392 A 1998 24-953c cr 923 x20581 lk 149 pen 722 melee | AC 977 DR 627 dg 226 pa 0 df 3581 sh 102 fx [8156/0/-] adr 297 adj
+    => missed hit 6716 lk 251 raw 0 dmg 0 next 1091344010
+393 A 2045 493-1446c cr 538 x15068 lk 457 pen 639 melee | AC 781 DR 0 dg 0 pa 6359 df 0 sh 293 fx [8476/100/101-689e] adr 90 adj
+    => missed hit 7236 lk 750 raw 0 dmg 0 next 3497383157
+394 A 2429 357-1009e cr 782 x18469 lk 499 pen 0 bolt | AC 475 DR 273 dg 2884 pa 0 df 1593 sh 284 fx [] adr 13 far
+    => hit hit 8364 lk 783 raw 951 dmg 544 next 3193102377
+395 A 1971 386-900e cr 1149 x17623 lk 214 pen 4022 melee | AC 1382 DR 272 dg 0 pa 5441 df 596 sh 25 fx [] adr 19 far
+    => hit hit 5878 lk 239 raw 755 dmg 563 next 3176956558
+396 A 726 89-743e cr 1588 x15593 lk 441 pen 2761 bolt | AC 547 DR 180 dg 0 pa 6349 df 686 sh -296 fx [9300/0/181-624s 1711/0/23-31s] adr 135 adj
+    => hit hit 5703 lk 145 raw 214 dmg 47 next 114083393
+397 A 2734 17-883e cr 1525 x17464 lk 157 pen 0 melee | AC 84 DR 0 dg 967 pa 0 df 0 sh 166 fx [] adr 14 far
+    => hit hit 9702 lk 323 raw 205 dmg 205 next 96530224
+398 A 602 416-871e cr 1263 x21286 lk 305 pen 87 melee | AC 136 DR 0 dg 0 pa 0 df 0 sh 259 fx [4259/100/28-662e] adr 274 adj
+    => hit hit 8157 lk 564 raw 464 dmg 464 next 1638795592
+399 A 1918 99-898e cr 161 x19938 lk 175 pen 1222 bolt | AC 1144 DR 0 dg 1715 pa 0 df 71 sh 79 fx [8893/0/471-1228s 775/100/308-1034s] adr 14 far
+    => hit hit 6264 lk 254 raw 497 dmg 497 next 4038812631
