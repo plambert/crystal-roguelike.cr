@@ -15,6 +15,9 @@ Spectator.describe Roguelike::Explore::Settings do
 
   SEED = 20261028_u64
 
+  # A seed whose first blow at the character misses.
+  MISSING = 20261029_u64
+
   # A short corridor running north into a long one running east. Nothing of
   # the east corridor is in sight from the staircase.
   MEETING = [
@@ -53,13 +56,14 @@ Spectator.describe Roguelike::Explore::Settings do
     "########################################",
   ]
 
-  # A game on *lines*, the character on the up staircase or at *at*.
-  def played(lines : Array(String), at : {Int32, Int32}? = nil) : Game
+  # A game on *lines* from *seed*, the character on the up staircase or at
+  # *at*.
+  def played(lines : Array(String), at : {Int32, Int32}? = nil, seed : UInt64 = SEED) : Game
     floor = Floor.parse "here", lines
     floor.ambient = 1
     player = Roguelike::Player.new "here", *(at || Game.entrance(floor)), hit_points: hp(40)
 
-    Game.new Roguelike::World.new(SEED, {"here" => floor}), player
+    Game.new Roguelike::World.new(seed, {"here" => floor}), player
   end
 
   # Gives *game* the settings *text* reads as.
@@ -274,7 +278,7 @@ Spectator.describe Roguelike::Explore::Settings do
     end
 
     it "stops when attacked with that stop on, though the blow misses" do
-      game = played SIDE_ROOM
+      game = played SIDE_ROOM, seed: MISSING
       game.floor.place Monster.new(Roguelike::Kind::GoblinScout, 5, 1, "scouts")
       game.enroll
       tuned game, "stop=attacked"

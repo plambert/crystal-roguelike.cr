@@ -285,6 +285,85 @@ module Roguelike
         offense.crit, raw, damage, [] of Riposte
     end
 
+    # One attack with today's numbers, `#swing`'s *bonus*, *against* and
+    # *damage*, rolled on the new rules. See `StandIn`.
+    def self.stand_in(rng : Rng, bonus : Int32, against : Int32, damage : Dice,
+                      reach : Reach = Reach::Melee) : Strike
+      resolve rng, StandIn.offense(bonus, against, damage, reach), StandIn.defense
+    end
+
+    # Today's d20 numbers carried onto `Offense` and `Defense`, until kinds
+    # and items have stats of their own.
+    #
+    # The chance to land and the mean damage of every attack match the d20
+    # swing. The lucky roll stands in for the natural 20, which is one face
+    # in twenty. Every defender has the same AC. The attacker's accuracy is
+    # set from the faces that land against the defender's armor class, so
+    # the hit curve passes the share of the other nineteen faces that land.
+    # Nothing dodges, parries, deflects, crits or soaks.
+    module StandIn
+      # The AC every defender has. It is large, so the accuracy floor of 1.0
+      # hits it on one basis point.
+      AC = Fixed.whole 10_000
+
+      # The natural 20.
+      LUCKY = Chance.new Chance::SCALE // SIDES
+
+      # The attack of a d20 swing with *bonus* on armor class *against*,
+      # hitting for *damage*.
+      def self.offense(bonus : Int32, against : Int32, damage : Dice,
+                       reach : Reach = Reach::Melee) : Offense
+        Offense.new accuracy(bonus, against), span(damage), lucky: LUCKY, reach: reach
+      end
+
+      # What every defender brings.
+      def self.defense : Defense
+        Defense.new ac: AC
+      end
+
+      # The accuracy that hits `AC` as often as the faces from 2 to 19 that
+      # land, out of those eighteen, `AC × (faces − 1) / (20 − faces)`.
+      def self.accuracy(bonus : Int32, against : Int32) : Fixed
+        faces = (1..SIDES).count { |roll| Combat.lands? roll, bonus, against }
+        Fixed.new FixedPoint.divide(AC.value.to_i64 * (faces - 1), (SIDES - faces).to_i64).to_i32
+      end
+
+      # A span with the mean of *dice*, `LEAST` included.
+      #
+      # Dice whose lowest total is at least `LEAST` keep their range. One die
+      # is `Even` and more than one is `Centered`. Dice that can roll below
+      # `LEAST` keep their highest total and move the low end to match the
+      # mean.
+      def self.span(dice : Dice) : Span
+        spread = dice.count > 1 ? Spread::Centered : Spread::Even
+        return Span.whole(dice.minimum, dice.maximum, spread) if dice.minimum >= LEAST
+        return Span.whole(LEAST, LEAST, spread) if dice.maximum <= LEAST
+
+        mean = mean(dice).value
+        high = Fixed.whole(dice.maximum).value
+        low = 2 * mean - high
+        return Span.new(Fixed::ZERO, Fixed.new(2 * mean), spread) if low < 0
+
+        Span.new Fixed.new(low), Fixed.new(high), spread
+      end
+
+      # The mean of *dice*, with `LEAST` for any total below it.
+      def self.mean(dice : Dice) : Fixed
+        totals = {0 => 1_i64}
+        dice.count.times do
+          rolled = Hash(Int32, Int64).new 0_i64
+          totals.each do |total, ways|
+            (1..dice.sides).each { |face| rolled[total + face] += ways }
+          end
+          totals = rolled
+        end
+
+        ways = totals.values.sum
+        sum = totals.sum { |total, count| Math.max(total + dice.bonus, LEAST).to_i64 * count }
+        Fixed.new FixedPoint.divide(sum * Fixed::SCALE, ways).to_i32
+      end
+    end
+
     # The parry chance for a blow, the deflect chance for a missile, and
     # none for a bolt.
     private def self.guard_chance(reach : Reach, defense : Defense) : Chance

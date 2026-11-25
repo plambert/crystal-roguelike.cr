@@ -1,100 +1,100 @@
-  0 white slime     you d12 +0 vs 0 hit  1  it d13 -3 vs 0 hit  1
-  1 goblin fighter  you d13 +0 vs 0 hit  2  it d18 +1 vs 0 hit  4
-  2 orc             you d1  +0 vs 4 miss    it d10 +0 vs 0 hit  7
-  3 giant ant       you d5  +0 vs 2 miss    it d20 +0 vs 0 hit  2
-  4 violet jelly    you d1  +0 vs 0 miss    it d10 -2 vs 0 miss
-  5 rat             you d17 +0 vs 1 hit  2  it d18 +1 vs 0 hit  1
-  6 wolf            you d19 +0 vs 3 hit  2  it d18 +2 vs 0 hit  4
-  7 bear            you d8  +0 vs 2 miss    it d17 -1 vs 0 hit 11
-  8 boar            you d12 +0 vs 3 miss    it d8  +0 vs 0 miss
-  9 giant snake     you d11 +0 vs 4 miss    it d13 +1 vs 0 hit  4
- 10 zombie          you d7  +0 vs 0 miss    it d12 -2 vs 0 hit 10
- 11 imp             you d9  +0 vs 6 miss    it d6  +3 vs 0 miss
- 12 gelatinous cube  you d9  +0 vs 0 miss    it d1  -2 vs 0 miss
- 13 stone golem     you d2  +0 vs 6 miss    it d15 +0 vs 0 hit 14
- 14 white slime     you d5  +0 vs 0 miss    it d20 -3 vs 0 hit  1
- 15 goblin fighter  you d7  +0 vs 0 miss    it d15 +1 vs 0 hit  5
- 16 orc             you d13 +0 vs 4 miss    it d15 +0 vs 0 hit  3
- 17 giant ant       you d8  +0 vs 2 miss    it d6  +0 vs 0 miss
- 18 violet jelly    you d9  +0 vs 0 miss    it d13 -2 vs 0 hit  4
- 19 rat             you d6  +0 vs 1 miss    it d8  +1 vs 0 miss
- 20 wolf            you d18 +0 vs 3 hit  1  it d15 +2 vs 0 hit  4
- 21 bear            you d2  +0 vs 2 miss    it d5  -1 vs 0 miss
- 22 boar            you d20 +0 vs 3 hit  1  it d14 +0 vs 0 hit  7
- 23 giant snake     you d5  +0 vs 4 miss    it d5  +1 vs 0 miss
- 24 zombie          you d6  +0 vs 0 miss    it d5  -2 vs 0 miss
- 25 imp             you d3  +0 vs 6 miss    it d17 +3 vs 0 hit  2
- 26 gelatinous cube  you d5  +0 vs 0 miss    it d6  -2 vs 0 miss
- 27 stone golem     you d14 +0 vs 6 miss    it d3  +0 vs 0 miss
- 28 white slime     you d6  +0 vs 0 miss    it d10 -3 vs 0 miss
- 29 goblin fighter  you d20 +0 vs 0 hit  2  it d16 +1 vs 0 hit  2
- 30 orc             you d18 +0 vs 4 hit  2  it d8  +0 vs 0 miss
- 31 giant ant       you d4  +0 vs 2 miss    it d17 +0 vs 0 hit  2
- 32 violet jelly    you d5  +0 vs 0 miss    it d10 -2 vs 0 miss
- 33 rat             you d2  +0 vs 1 miss    it d1  +1 vs 0 miss
- 34 wolf            you d1  +0 vs 3 miss    it d19 +2 vs 0 hit  3
- 35 bear            you d15 +0 vs 2 hit  1  it d17 -1 vs 0 hit 11
- 36 boar            you d2  +0 vs 3 miss    it d2  +0 vs 0 miss
- 37 giant snake     you d7  +0 vs 4 miss    it d5  +1 vs 0 miss
- 38 zombie          you d10 +0 vs 0 hit  1  it d5  -2 vs 0 miss
- 39 imp             you d9  +0 vs 6 miss    it d15 +3 vs 0 hit  3
- 40 gelatinous cube  you d10 +0 vs 0 hit  2  it d11 -2 vs 0 miss
- 41 stone golem     you d19 +0 vs 6 hit  2  it d4  +0 vs 0 miss
- 42 white slime     you d7  +0 vs 0 miss    it d10 -3 vs 0 miss
- 43 goblin fighter  you d11 +0 vs 0 hit  1  it d17 +1 vs 0 hit  4
- 44 orc             you d17 +0 vs 4 hit  2  it d15 +0 vs 0 hit  6
- 45 giant ant       you d4  +0 vs 2 miss    it d8  +0 vs 0 miss
- 46 violet jelly    you d16 +0 vs 0 hit  1  it d6  -2 vs 0 miss
- 47 rat             you d9  +0 vs 1 miss    it d19 +1 vs 0 hit  1
- 48 wolf            you d17 +0 vs 3 hit  1  it d2  +2 vs 0 miss
- 49 bear            you d18 +0 vs 2 hit  1  it d14 -1 vs 0 hit 12
- 50 boar            you d5  +0 vs 3 miss    it d1  +0 vs 0 miss
- 51 giant snake     you d17 +0 vs 4 hit  6  it d16 +1 vs 0 hit  7
- 52 zombie          you d9  +0 vs 0 miss    it d12 -2 vs 0 hit  6
- 53 imp             you d20 +0 vs 6 hit  3  it d8  +3 vs 0 hit  3
- 54 gelatinous cube  you d8  +0 vs 0 miss    it d1  -2 vs 0 miss
- 55 stone golem     you d2  +0 vs 6 miss    it d17 +0 vs 0 hit 10
- 56 white slime     you d10 +0 vs 0 hit  2  it d6  -3 vs 0 miss
- 57 goblin fighter  you d18 +0 vs 0 hit  4  it d12 +1 vs 0 hit  6
- 58 orc             you d17 +0 vs 4 hit  4  it d14 +0 vs 0 hit 10
- 59 giant ant       you d15 +0 vs 2 hit  2  it d7  +0 vs 0 miss
- 60 violet jelly    you d20 +0 vs 0 hit  3  it d8  -2 vs 0 miss
- 61 rat             you d5  +0 vs 1 miss    it d17 +1 vs 0 hit  1
- 62 wolf            you d3  +0 vs 3 miss    it d9  +2 vs 0 hit  2
- 63 bear            you d11 +0 vs 2 miss    it d3  -1 vs 0 miss
- 64 boar            you d15 +0 vs 3 hit  4  it d4  +0 vs 0 miss
- 65 giant snake     you d18 +0 vs 4 hit  5  it d16 +1 vs 0 hit 10
- 66 zombie          you d9  +0 vs 0 miss    it d2  -2 vs 0 miss
- 67 imp             you d14 +0 vs 6 miss    it d6  +3 vs 0 miss
- 68 gelatinous cube  you d5  +0 vs 0 miss    it d19 -2 vs 0 hit  7
- 69 stone golem     you d19 +0 vs 6 hit  5  it d13 +0 vs 0 hit 12
- 70 white slime     you d17 +0 vs 0 hit  5  it d9  -3 vs 0 miss
- 71 goblin fighter  you d13 +0 vs 0 hit  5  it d4  +1 vs 0 miss
- 72 orc             you d8  +0 vs 4 miss    it d8  +0 vs 0 miss
- 73 giant ant       you d9  +0 vs 2 miss    it d18 +0 vs 0 hit  3
- 74 violet jelly    you d4  +0 vs 0 miss    it d19 -2 vs 0 hit  5
- 75 rat             you d12 +0 vs 1 hit  4  it d15 +1 vs 0 hit  1
- 76 wolf            you d9  +0 vs 3 miss    it d12 +2 vs 0 hit  4
- 77 bear            you d2  +0 vs 2 miss    it d10 -1 vs 0 miss
- 78 boar            you d2  +0 vs 3 miss    it d5  +0 vs 0 miss
- 79 giant snake     you d19 +0 vs 4 hit  3  it d10 +1 vs 0 hit 10
- 80 zombie          you d7  +0 vs 0 miss    it d4  -2 vs 0 miss
- 81 imp             you d14 +0 vs 6 miss    it d6  +3 vs 0 miss
- 82 gelatinous cube  you d14 +0 vs 0 hit  5  it d12 -2 vs 0 hit 10
- 83 stone golem     you d7  +0 vs 6 miss    it d17 +0 vs 0 hit 15
- 84 white slime     you d14 +0 vs 0 hit  2  it d13 -3 vs 0 hit  3
- 85 goblin fighter  you d20 +0 vs 0 hit  2  it d17 +1 vs 0 hit  2
- 86 orc             you d13 +0 vs 4 miss    it d7  +0 vs 0 miss
- 87 giant ant       you d16 +0 vs 2 hit  1  it d4  +0 vs 0 miss
- 88 violet jelly    you d4  +0 vs 0 miss    it d8  -2 vs 0 miss
- 89 rat             you d10 +0 vs 1 miss    it d15 +1 vs 0 hit  1
- 90 wolf            you d19 +0 vs 3 hit  4  it d10 +2 vs 0 hit  1
- 91 bear            you d13 +0 vs 2 hit  3  it d14 -1 vs 0 hit 10
- 92 boar            you d8  +0 vs 3 miss    it d19 +0 vs 0 hit  4
- 93 giant snake     you d13 +0 vs 4 miss    it d17 +1 vs 0 hit  9
- 94 zombie          you d10 +0 vs 0 hit  4  it d17 -2 vs 0 hit  4
- 95 imp             you d10 +0 vs 6 miss    it d14 +3 vs 0 hit  1
- 96 gelatinous cube  you d19 +0 vs 0 hit  1  it d3  -2 vs 0 miss
- 97 stone golem     you d7  +0 vs 6 miss    it d14 +0 vs 0 hit 17
- 98 white slime     you d12 +0 vs 0 hit  3  it d16 -3 vs 0 hit  1
- 99 goblin fighter  you d3  +0 vs 0 miss    it d4  +1 vs 0 miss
+  0 white slime     you missed  hit  5263 lk 500        it missed  hit  3684 lk 500
+  1 goblin fighter  you hit     hit  5263 lk 500   147  it hit     hit  5789 lk 500   298
+  2 orc             you missed  hit  3158 lk 500        it missed  hit  5263 lk 500
+  3 giant ant       you hit     hit  4211 lk 500   139  it missed  hit  5263 lk 500
+  4 violet jelly    you hit     hit  5263 lk 500   185  it hit     hit  4211 lk 500   203
+  5 rat             you hit     hit  4737 lk 500   154  it hit     hit  5789 lk 500   100
+  6 wolf            you hit     hit  3684 lk 500   144  it missed  hit  6316 lk 500
+  7 bear            you hit     hit  4211 lk 500   190  it hit     hit  4737 lk 500  1105
+  8 boar            you hit     hit  3684 lk 500   177  it hit     hit  5263 lk 500   583
+  9 giant snake     you missed  hit  3158 lk 500        it hit     hit  5789 lk 500   407
+ 10 zombie          you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 11 imp             you missed  hit  2105 lk 500        it missed  hit  6842 lk 500
+ 12 gelatinous cube  you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 13 stone golem     you hit     hit  2105 lk 500   121  it hit     hit  5263 lk 500   900
+ 14 white slime     you missed  hit  5263 lk 500        it missed  hit  3684 lk 500
+ 15 goblin fighter  you missed  hit  5263 lk 500        it hit     hit  5789 lk 500   441
+ 16 orc             you missed  hit  3158 lk 500        it hit     hit  5263 lk 500   590
+ 17 giant ant       you missed  hit  4211 lk 500        it missed  hit  5263 lk 500
+ 18 violet jelly    you hit     hit  5263 lk 500   100  it missed  hit  4211 lk 500
+ 19 rat             you missed  hit  4737 lk 500        it hit     hit  5789 lk 500   100
+ 20 wolf            you missed  hit  3684 lk 500        it missed  hit  6316 lk 500
+ 21 bear            you hit     hit  4211 lk 500   122  it hit     hit  4737 lk 500  1545
+ 22 boar            you missed  hit  3684 lk 500        it lucky   hit  5263 lk 500   519
+ 23 giant snake     you missed  hit  3158 lk 500        it missed  hit  5789 lk 500
+ 24 zombie          you hit     hit  5263 lk 500   186  it missed  hit  4211 lk 500
+ 25 imp             you missed  hit  2105 lk 500        it hit     hit  6842 lk 500   245
+ 26 gelatinous cube  you missed  hit  5263 lk 500        it hit     hit  4211 lk 500  1123
+ 27 stone golem     you missed  hit  2105 lk 500        it hit     hit  5263 lk 500  1117
+ 28 white slime     you missed  hit  5263 lk 500        it hit     hit  3684 lk 500    74
+ 29 goblin fighter  you missed  hit  5263 lk 500        it hit     hit  5789 lk 500   337
+ 30 orc             you missed  hit  3158 lk 500        it hit     hit  5263 lk 500   419
+ 31 giant ant       you missed  hit  4211 lk 500        it missed  hit  5263 lk 500
+ 32 violet jelly    you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 33 rat             you missed  hit  4737 lk 500        it hit     hit  5789 lk 500   100
+ 34 wolf            you hit     hit  3684 lk 500   122  it missed  hit  6316 lk 500
+ 35 bear            you missed  hit  4211 lk 500        it missed  hit  4737 lk 500
+ 36 boar            you missed  hit  3684 lk 500        it hit     hit  5263 lk 500   599
+ 37 giant snake     you missed  hit  3158 lk 500        it hit     hit  5789 lk 500   356
+ 38 zombie          you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 39 imp             you missed  hit  2105 lk 500        it hit     hit  6842 lk 500   112
+ 40 gelatinous cube  you hit     hit  5263 lk 500   174  it hit     hit  4211 lk 500   582
+ 41 stone golem     you lucky   hit  2105 lk 500   122  it missed  hit  5263 lk 500
+ 42 white slime     you hit     hit  5263 lk 500   157  it missed  hit  3684 lk 500
+ 43 goblin fighter  you hit     hit  5263 lk 500   156  it hit     hit  5789 lk 500   599
+ 44 orc             you lucky   hit  3158 lk 500   139  it hit     hit  5263 lk 500   968
+ 45 giant ant       you missed  hit  4211 lk 500        it missed  hit  5263 lk 500
+ 46 violet jelly    you hit     hit  5263 lk 500   145  it hit     hit  4211 lk 500   287
+ 47 rat             you missed  hit  4737 lk 500        it missed  hit  5789 lk 500
+ 48 wolf            you missed  hit  3684 lk 500        it missed  hit  6316 lk 500
+ 49 bear            you missed  hit  4211 lk 500        it hit     hit  4737 lk 500  1357
+ 50 boar            you hit     hit  3684 lk 500   219  it lucky   hit  5263 lk 500   669
+ 51 giant snake     you missed  hit  3158 lk 500        it hit     hit  5789 lk 500   360
+ 52 zombie          you missed  hit  5263 lk 500        it hit     hit  4211 lk 500   676
+ 53 imp             you missed  hit  2105 lk 500        it missed  hit  6842 lk 500
+ 54 gelatinous cube  you hit     hit  5263 lk 500   418  it hit     hit  4211 lk 500   685
+ 55 stone golem     you hit     hit  2105 lk 500   206  it missed  hit  5263 lk 500
+ 56 white slime     you missed  hit  5263 lk 500        it missed  hit  3684 lk 500
+ 57 goblin fighter  you missed  hit  5263 lk 500        it hit     hit  5789 lk 500   537
+ 58 orc             you missed  hit  3158 lk 500        it hit     hit  5263 lk 500   718
+ 59 giant ant       you missed  hit  4211 lk 500        it hit     hit  5263 lk 500   236
+ 60 violet jelly    you hit     hit  5263 lk 500   173  it missed  hit  4211 lk 500
+ 61 rat             you hit     hit  4737 lk 500   362  it missed  hit  5789 lk 500
+ 62 wolf            you missed  hit  3684 lk 500        it missed  hit  6316 lk 500
+ 63 bear            you hit     hit  4211 lk 500   534  it missed  hit  4737 lk 500
+ 64 boar            you hit     hit  3684 lk 500   387  it hit     hit  5263 lk 500   382
+ 65 giant snake     you missed  hit  3158 lk 500        it hit     hit  5789 lk 500   534
+ 66 zombie          you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 67 imp             you missed  hit  2105 lk 500        it hit     hit  6842 lk 500   160
+ 68 gelatinous cube  you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 69 stone golem     you missed  hit  2105 lk 500        it hit     hit  5263 lk 500  1720
+ 70 white slime     you missed  hit  5263 lk 500        it hit     hit  3684 lk 500   119
+ 71 goblin fighter  you missed  hit  5263 lk 500        it hit     hit  5789 lk 500   434
+ 72 orc             you missed  hit  3158 lk 500        it hit     hit  5263 lk 500   524
+ 73 giant ant       you missed  hit  4211 lk 500        it missed  hit  5263 lk 500
+ 74 violet jelly    you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 75 rat             you lucky   hit  4737 lk 500   552  it missed  hit  5789 lk 500
+ 76 wolf            you missed  hit  3684 lk 500        it missed  hit  6316 lk 500
+ 77 bear            you missed  hit  4211 lk 500        it missed  hit  4737 lk 500
+ 78 boar            you missed  hit  3684 lk 500        it missed  hit  5263 lk 500
+ 79 giant snake     you missed  hit  3158 lk 500        it hit     hit  5789 lk 500   329
+ 80 zombie          you hit     hit  5263 lk 500   368  it missed  hit  4211 lk 500
+ 81 imp             you missed  hit  2105 lk 500        it hit     hit  6842 lk 500    88
+ 82 gelatinous cube  you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 83 stone golem     you missed  hit  2105 lk 500        it hit     hit  5263 lk 500   768
+ 84 white slime     you hit     hit  5263 lk 500   100  it missed  hit  3684 lk 500
+ 85 goblin fighter  you hit     hit  5263 lk 500   372  it hit     hit  5789 lk 500   551
+ 86 orc             you missed  hit  3158 lk 500        it hit     hit  5263 lk 500   653
+ 87 giant ant       you hit     hit  4211 lk 500   582  it missed  hit  5263 lk 500
+ 88 violet jelly    you missed  hit  5263 lk 500        it missed  hit  4211 lk 500
+ 89 rat             you hit     hit  4737 lk 500   408  it hit     hit  5789 lk 500   100
+ 90 wolf            you missed  hit  3684 lk 500        it hit     hit  6316 lk 500   166
+ 91 bear            you missed  hit  4211 lk 500        it hit     hit  4737 lk 500  1143
+ 92 boar            you missed  hit  3684 lk 500        it missed  hit  5263 lk 500
+ 93 giant snake     you missed  hit  3158 lk 500        it hit     hit  5789 lk 500   647
+ 94 zombie          you hit     hit  5263 lk 500   233  it missed  hit  4211 lk 500
+ 95 imp             you hit     hit  2105 lk 500   285  it hit     hit  6842 lk 500   162
+ 96 gelatinous cube  you hit     hit  5263 lk 500   473  it hit     hit  4211 lk 500   578
+ 97 stone golem     you hit     hit  2105 lk 500   297  it hit     hit  5263 lk 500  1648
+ 98 white slime     you missed  hit  5263 lk 500        it missed  hit  3684 lk 500
+ 99 goblin fighter  you missed  hit  5263 lk 500        it missed  hit  5789 lk 500

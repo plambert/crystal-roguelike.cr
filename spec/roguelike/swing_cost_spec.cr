@@ -143,7 +143,7 @@ Spectator.describe "what a blow costs" do
         gained = Pace::TICK * (game.turn - turn)
 
         expect(game.player.pace.energy - before).to eq gained - Kind::LongSword.swing
-        if blow.hit?
+        if blow.landed?
           hits += 1
         else
           misses += 1

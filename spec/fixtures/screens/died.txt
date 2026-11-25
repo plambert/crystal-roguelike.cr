@@ -18,7 +18,7 @@
  ▼ Seen   │  seed 20260915                                   │
    orc    │  Play again? y starts a new run, n quits.  [yN]  │
  ▼ Look   ╰──────────────────────────────────────────────────╯──────────
- Point at the map, or   │ You miss the orc.
+ Point at the map, or   │ You hit the orc for 7.
  press x.               │ The orc notices you.
-                        │ The orc hits you for 8.
+                        │ The orc hits you for 6.
                         │ You die...

@@ -11,6 +11,8 @@ Spectator.describe Roguelike::Combat do
   alias Rng = Roguelike::Rng
   alias Slot = Roguelike::Slot
   alias Species = Roguelike::Species
+  alias Strike = Roguelike::Strike
+  alias Fixed = Roguelike::Fixed
 
   describe ".lands?" do
     it "lands when the face and the bonus reach the target plus the armor" do
@@ -148,9 +150,9 @@ Spectator.describe Roguelike::Combat do
   # A hundred exchanges from one seed, written out.
   #
   # Every number the maths reads is in here: the character's swing bonus and
-  # dice, each species' armor class, swing bonus and dice, and both rolls of
-  # every exchange. A change to any of them shows as a diff rather than as a
-  # spec nobody can read.
+  # dice, each species' armor class, swing bonus and dice, and what both
+  # attacks of every exchange did. A change to any of them shows as a diff
+  # rather than as a spec nobody can read.
   describe "a hundred exchanges" do
     # The seed the fixture was written from.
     SEED = 20260912_u64
@@ -174,9 +176,9 @@ Spectator.describe Roguelike::Combat do
 
         creature = Monster.new combatant(index), 1, 0, "band"
 
-        forward = Combat.swing rng, player.to_hit, creature.armor_class,
+        forward = Combat.stand_in rng, player.to_hit, creature.armor_class,
           player.damage
-        back = Combat.swing rng, creature.to_hit, player.armor_class,
+        back = Combat.stand_in rng, creature.to_hit, player.armor_class,
           creature.damage
 
         lines << ("%3d %-14s  you %s  it %s" % [
@@ -187,11 +189,13 @@ Spectator.describe Roguelike::Combat do
       lines
     end
 
-    # One swing on one line, the same width every time.
-    def written(blow : Blow) : String
-      "d%-2d %+d vs %d %s" % [
-        blow.roll, blow.bonus, blow.against,
-        blow.hit? ? "hit %2d" % blow.damage : "miss  ",
+    # One attack on one line, the same width every time: the outcome, the
+    # chances it was rolled against, and the damage after DR.
+    def written(strike : Strike) : String
+      outcome = strike.lucky? ? "lucky" : strike.outcome.to_s.downcase
+      "%-7s hit %5d lk %3d %5s" % [
+        outcome, strike.hit_chance.value, strike.lucky_chance.value,
+        strike.landed? ? strike.damage.value.to_s : "",
       ]
     end
 
@@ -203,6 +207,52 @@ Spectator.describe Roguelike::Combat do
 
     it "rolls the same sequence twice from the same seed" do
       expect(transcript).to eq transcript
+    end
+  end
+
+  describe Combat::StandIn do
+    # The chance to land under the stand-in, in basis points, in closed form.
+    def landed(bonus : Int32, against : Int32) : Int64
+      offense = Combat::StandIn.offense bonus, against, Dice.new(1, 6)
+      hit = Combat.hit_chance(offense.accuracy, Combat::StandIn::AC).value.to_i64
+      lucky = offense.lucky.value.to_i64
+
+      (hit * 10_000 + lucky * (10_000 - hit) + 5_000) // 10_000
+    end
+
+    it "lands as often as the d20 for every bonus and armor class" do
+      (-6..8).each do |bonus|
+        (0..25).each do |against|
+          d20 = (Combat.hit_chance(bonus, against) * 10_000).round.to_i64
+          expect(landed bonus, against).to be_within(1).of(d20)
+        end
+      end
+    end
+
+    it "keeps the range of dice that never roll below one" do
+      span = Combat::StandIn.span Dice.new(2, 6, 1)
+
+      expect(span.low).to eq Fixed.whole(3)
+      expect(span.high).to eq Fixed.whole(13)
+      expect(span.spread).to eq Roguelike::Spread::Centered
+      expect(Combat::StandIn.span(Dice.new(1, 8)).spread).to eq Roguelike::Spread::Even
+    end
+
+    it "keeps the mean of dice that can roll below one" do
+      {Dice.new(1, 4, -2), Dice.new(1, 2, -1), Dice.new(1, 3, -1), Dice.new(2, 4, -4)}.each do |dice|
+        mean = Combat::StandIn.span(dice).mean.value / Fixed::SCALE
+
+        expect(mean).to be_within(0.01).of(Combat.mean_damage(dice))
+      end
+    end
+
+    it "lands one attack in twenty when only the top face would" do
+      rng = Rng.new 20261124_u64
+      landed = (1..20_000).count do |index|
+        Combat.stand_in(rng.derive("combat", index), 0, 40, Dice.new(1, 6)).landed?
+      end
+
+      expect(landed).to be_within(150).of(1_000)
     end
   end
 end
